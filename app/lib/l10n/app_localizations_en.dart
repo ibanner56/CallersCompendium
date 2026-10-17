@@ -1184,6 +1184,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Programs sort direction (last used)';
 
   @override
+  String get syncSettingDefaultCollectionSortDirection =>
+      'Collection sort direction (default)';
+
+  @override
+  String get syncSettingDefaultProgramSortDirection =>
+      'Programs sort direction (default)';
+
+  @override
   String get syncSettingPerformStageTheme => 'Stage theme in Perform';
 
   @override
@@ -2381,6 +2389,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsDefaultsProgramSortSubtitle =>
       'How the Programs list is sorted when you open it. You can still change the sort while browsing.';
+
+  @override
+  String get settingsDefaultsSortLastUsedSubtitle =>
+      'Opens with the sort and direction you last used.';
+
+  @override
+  String get settingsDefaultsSortAscending => 'Ascending';
+
+  @override
+  String get settingsDefaultsSortDescending => 'Descending';
 
   @override
   String get settingsDefaultsCanonicalTitle =>

@@ -1204,6 +1204,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Sens du tri des programmes (dernier utilisé)';
 
   @override
+  String get syncSettingDefaultCollectionSortDirection =>
+      'Sens du tri de la collection (par défaut)';
+
+  @override
+  String get syncSettingDefaultProgramSortDirection =>
+      'Sens du tri des programmes (par défaut)';
+
+  @override
   String get syncSettingPerformStageTheme => 'Thème scène dans Perform';
 
   @override
@@ -2433,6 +2441,16 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsDefaultsProgramSortSubtitle =>
       'Comment la liste des programmes est triée à l\'ouverture. Vous pouvez toujours modifier le tri en parcourant la liste.';
+
+  @override
+  String get settingsDefaultsSortLastUsedSubtitle =>
+      'S’ouvre avec le tri et le sens que vous avez utilisés en dernier.';
+
+  @override
+  String get settingsDefaultsSortAscending => 'Croissant';
+
+  @override
+  String get settingsDefaultsSortDescending => 'Décroissant';
 
   @override
   String get settingsDefaultsCanonicalTitle =>

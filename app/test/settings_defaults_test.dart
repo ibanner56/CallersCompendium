@@ -148,7 +148,9 @@ Future<void> _pumpDefaults(
   CompendiumRepositories repos, {
   bool expandGroups = true,
   ValueNotifier<Set<String>>? hiddenFacets,
-  Size surface = const Size(1200, 4500),
+  // Tall enough for the whole expanded pane to build; the two sort-direction
+  // rows (issue #1841) pushed the move-defaults editor past the old 4500.
+  Size surface = const Size(1200, 4800),
   double textScale = 1,
 }) async {
   await setScreenSize(tester, surface);
@@ -312,7 +314,9 @@ void main() {
     await _pumpDefaults(
       tester,
       repos,
-      surface: const Size(360, 4500),
+      // Tall enough that the group headers below the sort rows (now two rows
+      // taller with the direction toggles, issue #1841) stay on the surface.
+      surface: const Size(360, 5200),
       textScale: 2,
       expandGroups: false,
     );
@@ -339,8 +343,32 @@ void main() {
       expect(box.right, lessThanOrEqualTo(360), reason: key);
     }
 
+    // The direction toggles sit under their dropdown, so each is checked
+    // before scrolling past it. They are not dropdowns, so only the bounds
+    // of the row and its two labels apply.
+    Future<void> expectDirectionOnScreen(String key) async {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(key)),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      for (final text in ['Ascending', 'Descending']) {
+        final box = tester.getRect(
+          find.descendant(
+            of: find.byKey(ValueKey(key)),
+            matching: find.text(text),
+          ),
+        );
+        expect(box.left, greaterThanOrEqualTo(0), reason: '$key $text');
+        expect(box.right, lessThanOrEqualTo(360), reason: '$key $text');
+      }
+    }
+
     await expectOnScreen('defaults-collection-sort');
+    await expectDirectionOnScreen('defaults-collection-sort-direction');
     await expectOnScreen('defaults-program-sort');
+    await expectDirectionOnScreen('defaults-program-sort-direction');
     // The dance-form rows live in the authoring group, collapsed by default.
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('defaults-authoring-group')),
@@ -923,6 +951,264 @@ void main() {
     });
   });
 
+  group('default sort direction (issue #1841)', () {
+    // Both lists share the control, so one table drives both. `other` is a
+    // second fixed sort whose natural direction differs from `sort`'s where
+    // possible, to prove the reset follows the new key.
+    final lists = [
+      (
+        name: 'Collection',
+        sortKey: 'defaults-collection-sort',
+        directionKey: 'defaults-collection-sort-direction',
+        settingsKey: kDefaultCollectionSortKey,
+        directionSettingsKey: kDefaultCollectionSortDirectionKey,
+        fixedSort: CollectionSort.title.name,
+        fixedNatural: SortDirection.ascending,
+        otherLabel: 'Recently added',
+        otherSort: CollectionSort.recentlyAdded.name,
+        otherNatural: CollectionSort.recentlyAdded.searchSort.defaultDirection,
+      ),
+      (
+        name: 'Programs',
+        sortKey: 'defaults-program-sort',
+        directionKey: 'defaults-program-sort-direction',
+        settingsKey: kDefaultProgramSortKey,
+        directionSettingsKey: kDefaultProgramSortDirectionKey,
+        fixedSort: ProgramSort.title.name,
+        fixedNatural: SortDirection.ascending,
+        otherLabel: 'Recently updated',
+        otherSort: ProgramSort.recentlyUpdated.name,
+        otherNatural: ProgramSort.recentlyUpdated.defaultDirection,
+      ),
+    ];
+
+    SortDirection selected(WidgetTester tester, String key) => tester
+        .widget<SegmentedButton<SortDirection>>(
+          find.descendant(
+            of: find.byKey(ValueKey(key)),
+            matching: find.byType(SegmentedButton<SortDirection>),
+          ),
+        )
+        .selected
+        .single;
+
+    for (final list in lists) {
+      group(list.name, () {
+        testWidgets('shows the natural direction, and writes nothing, when '
+            'untouched', (tester) async {
+          final repos = openTestRepositories();
+          await _pumpDefaults(tester, repos);
+
+          expect(find.byKey(ValueKey(list.directionKey)), findsOneWidget);
+          expect(selected(tester, list.directionKey), list.fixedNatural);
+          expect(await repos.settings.get(list.directionSettingsKey), isNull);
+        });
+
+        testWidgets('choosing Descending persists the direction name', (
+          tester,
+        ) async {
+          final repos = openTestRepositories();
+          await _pumpDefaults(tester, repos);
+
+          await tester.tap(
+            find.descendant(
+              of: find.byKey(ValueKey(list.directionKey)),
+              matching: find.text('Descending'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+          expect(
+            await repos.settings.get(list.directionSettingsKey),
+            SortDirection.descending.name,
+          );
+        });
+
+        testWidgets('a saved direction is reflected on reload', (tester) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            list.directionSettingsKey,
+            SortDirection.descending.name,
+          );
+
+          await _pumpDefaults(tester, repos);
+
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+        });
+
+        testWidgets('an unrecognised saved direction shows the natural one', (
+          tester,
+        ) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(list.directionSettingsKey, 'sideways');
+
+          await _pumpDefaults(tester, repos);
+
+          expect(tester.takeException(), isNull);
+          expect(selected(tester, list.directionKey), list.fixedNatural);
+        });
+
+        testWidgets('is hidden under Last used, whose subtitle says it '
+            'remembers the direction', (tester) async {
+          final repos = openTestRepositories();
+          await _pumpDefaults(tester, repos);
+
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Last used').last);
+          await tester.pumpAndSettle();
+
+          expect(find.byKey(ValueKey(list.directionKey)), findsNothing);
+          expect(
+            find.text('Opens with the sort and direction you last used.'),
+            findsOneWidget,
+          );
+          expect(
+            await repos.settings.get(list.settingsKey),
+            kLastUsedSortSentinel,
+          );
+        });
+
+        testWidgets('picking a fixed sort after Last used resets to its '
+            'natural direction, even with a stale one left stored', (
+          tester,
+        ) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(list.settingsKey, kLastUsedSortSentinel);
+          await repos.settings.set(
+            list.directionSettingsKey,
+            SortDirection.descending.name,
+          );
+          await _pumpDefaults(tester, repos);
+          expect(find.byKey(ValueKey(list.directionKey)), findsNothing);
+
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(list.otherLabel).last);
+          await tester.pumpAndSettle();
+
+          // Picking a fixed sort resets to that sort's natural direction, even
+          // though a descending value was left behind under Last used.
+          expect(selected(tester, list.directionKey), list.otherNatural);
+          expect(
+            await repos.settings.get(list.directionSettingsKey),
+            list.otherNatural.name,
+          );
+        });
+
+        testWidgets('changing the sort key resets the direction to the new '
+            "key's natural direction", (tester) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(list.settingsKey, list.fixedSort);
+          // The opposite of the new sort's natural direction, so a carry-over
+          // would be visible.
+          final opposite = list.otherNatural == SortDirection.ascending
+              ? SortDirection.descending
+              : SortDirection.ascending;
+          await repos.settings.set(list.directionSettingsKey, opposite.name);
+          await _pumpDefaults(tester, repos);
+          expect(selected(tester, list.directionKey), opposite);
+
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(list.otherLabel).last);
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), list.otherNatural);
+          expect(await repos.settings.get(list.settingsKey), list.otherSort);
+          expect(
+            await repos.settings.get(list.directionSettingsKey),
+            list.otherNatural.name,
+          );
+        });
+
+        testWidgets('re-selecting the current sort keeps a chosen direction', (
+          tester,
+        ) async {
+          final repos = openTestRepositories();
+          await _pumpDefaults(tester, repos);
+          await tester.tap(
+            find.descendant(
+              of: find.byKey(ValueKey(list.directionKey)),
+              matching: find.text('Descending'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // The dropdown reports a tap on the already-selected item too.
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Title').last);
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+          expect(
+            await repos.settings.get(list.directionSettingsKey),
+            SortDirection.descending.name,
+          );
+        });
+
+        testWidgets('a late direction read does not clobber a direction '
+            'chosen in-session', (tester) async {
+          final opened = openTestRepositoriesWithDelayedSettingsRead();
+          final repos = opened.repos;
+          final settings = opened.settings;
+          // The stale value equals the natural one the control starts on, so
+          // a late application is visible as a revert of the user's choice.
+          await repos.settings.set(
+            list.directionSettingsKey,
+            list.fixedNatural.name,
+          );
+
+          settings.holdNextRead(list.directionSettingsKey);
+          await _pumpDefaults(tester, repos);
+          await settings.readStarted;
+
+          await tester.tap(
+            find.descendant(
+              of: find.byKey(ValueKey(list.directionKey)),
+              matching: find.text('Descending'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+
+          settings.releaseRead();
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+        });
+
+        testWidgets('a late direction read does not undo the reset caused by '
+            'changing the sort in-session', (tester) async {
+          final opened = openTestRepositoriesWithDelayedSettingsRead();
+          final repos = opened.repos;
+          final settings = opened.settings;
+          final opposite = list.otherNatural == SortDirection.ascending
+              ? SortDirection.descending
+              : SortDirection.ascending;
+          await repos.settings.set(list.directionSettingsKey, opposite.name);
+
+          settings.holdNextRead(list.directionSettingsKey);
+          await _pumpDefaults(tester, repos);
+          await settings.readStarted;
+
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(list.otherLabel).last);
+          await tester.pumpAndSettle();
+          expect(selected(tester, list.directionKey), list.otherNatural);
+
+          settings.releaseRead();
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), list.otherNatural);
+        });
+      });
+    }
+  });
+
   group('"Last used" default-sort option (issue #895)', () {
     testWidgets(
       'selecting Last used for Collection persists the sentinel, not an '
@@ -1104,7 +1390,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4500));
+    await tester.binding.setSurfaceSize(const Size(1200, 4800));
     await tester.pumpAndSettle();
 
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
@@ -1127,7 +1413,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4500));
+    await tester.binding.setSurfaceSize(const Size(1200, 4800));
     await tester.pumpAndSettle();
 
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
@@ -1229,7 +1515,7 @@ void main() {
     await repos.settings.set(kDefaultDancePhraseStructureKey, '8*8*1');
 
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4500));
+    await tester.binding.setSurfaceSize(const Size(1200, 4800));
     await tester.pumpAndSettle();
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
 
@@ -1273,7 +1559,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4500));
+    await tester.binding.setSurfaceSize(const Size(1200, 4800));
     await tester.pumpAndSettle();
 
     expect(find.text('Starting figures'), findsOneWidget);
@@ -1290,7 +1576,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       expect(find.text('Meanwhile defaults'), findsOneWidget);
@@ -1330,7 +1616,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4500));
+    await tester.binding.setSurfaceSize(const Size(1200, 4800));
     await tester.pumpAndSettle();
 
     for (var i = 0; i < 4; i++) {
@@ -1357,7 +1643,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.settings.set(kFreeTextEntryKey, true);
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4500));
+    await tester.binding.setSurfaceSize(const Size(1200, 4800));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
@@ -1390,7 +1676,7 @@ void main() {
   testWidgets('Starting figures can add a meanwhile template', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4500));
+    await tester.binding.setSurfaceSize(const Size(1200, 4800));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -1410,7 +1696,7 @@ void main() {
   testWidgets('editing the template figure persists it', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4500));
+    await tester.binding.setSurfaceSize(const Size(1200, 4800));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
@@ -1437,7 +1723,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       // Delete one of the eight seeded figures: the shortened list persists.
@@ -1477,7 +1763,7 @@ void main() {
       ]),
     );
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4500));
+    await tester.binding.setSurfaceSize(const Size(1200, 4800));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
@@ -1502,7 +1788,7 @@ void main() {
         ]),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
@@ -1525,7 +1811,7 @@ void main() {
     testWidgets('editor renders with an add affordance', (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       expect(find.text('Move defaults'), findsOneWidget);
@@ -1537,7 +1823,7 @@ void main() {
     ) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('move-defaults-add')));
@@ -1582,7 +1868,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       expect(find.text('backing up'), findsOneWidget);
@@ -1599,7 +1885,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       // The saved override renders its card on reload; reset beats to 8.
@@ -1632,7 +1918,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(
@@ -1663,7 +1949,7 @@ void main() {
       await repos.settings.set(kDefaultDanceFiguresTemplateKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -1697,7 +1983,7 @@ void main() {
       await repos.settings.set(kFreeTextEntryKey, true);
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('figure-0-summary')), findsNothing);
@@ -1720,7 +2006,7 @@ void main() {
       );
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
@@ -1752,7 +2038,7 @@ void main() {
       );
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(
@@ -1782,7 +2068,7 @@ void main() {
       await repos.settings.set(kDefaultDanceFiguresTemplateKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -1809,7 +2095,7 @@ void main() {
       await repos.settings.set(kDefaultMeanwhileSideFiguresKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
@@ -1838,7 +2124,7 @@ void main() {
       await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
@@ -1868,7 +2154,7 @@ void main() {
       await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
@@ -1902,7 +2188,7 @@ void main() {
         await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
         await _pumpDefaults(tester, repos);
-        await tester.binding.setSurfaceSize(const Size(1200, 4500));
+        await tester.binding.setSurfaceSize(const Size(1200, 4800));
         await tester.pumpAndSettle();
         await _scrollTo(tester, const ValueKey('modifier-default-add'));
 
@@ -2507,7 +2793,7 @@ void main() {
         });
 
         await _pumpDefaults(tester, repos);
-        await tester.binding.setSurfaceSize(const Size(1200, 4500));
+        await tester.binding.setSurfaceSize(const Size(1200, 4800));
         await tester.pumpAndSettle();
 
         await c.edit(tester);
@@ -2548,7 +2834,7 @@ void main() {
       );
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
       await tester.pumpAndSettle();
 
       expect(

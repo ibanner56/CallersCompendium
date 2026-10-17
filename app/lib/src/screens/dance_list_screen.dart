@@ -631,11 +631,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (mounted) await _runSearch();
   }
 
-  /// Seeds `_sort` (and, under "Last used", `_sortDir`) from the saved default
-  /// Collection sort order (ROADMAP G.6a; extended to a "Last used" mode by
-  /// issue #895 / ROADMAP G.6c), at most once and only if the user hasn't already chosen a
-  /// sort this session. A `null`/invalid stored value leaves the historical
-  /// default (`title`, ascending) in place. Called before the first search so
+  /// Seeds `_sort` and `_sortDir` from the saved default Collection sort order
+  /// (ROADMAP G.6a; extended to a "Last used" mode by issue #895 / ROADMAP
+  /// G.6c), at most once and only if the user hasn't already chosen a sort this
+  /// session. The direction comes from the last-used keys under "Last used",
+  /// otherwise from the default's own direction key (issue #1841), falling back
+  /// to the sort's natural direction. A `null`/invalid stored sort leaves the
+  /// historical default (`title`, ascending) in place. Called before the first search so
   /// the list opens in the default sort; a no-op on subsequent [_boot]s (e.g.
   /// a refresh).
   Future<void> _seedDefaultSort() async {
@@ -682,12 +684,23 @@ class _DanceListScreenState extends State<DanceListScreen> {
       }
       if (!mounted || _sortUserSet) return;
     } else {
-      // A fixed default always uses that sort's natural direction, regardless
-      // of what was last used in the list (Isaac's ruling, issue #895) — never
-      // the stored last-used direction, which is why this branch never reads
-      // the last-used keys at all.
+      // A fixed default opens in the direction chosen in Settings ▸ Defaults
+      // (issue #1841), or the sort's natural direction when none is stored or
+      // it is unrecognised. Never the last-used direction, so this branch never
+      // reads the last-used keys.
       sort = mode.sort;
       direction = sort.searchSort.defaultDirection;
+      try {
+        direction =
+            sortDirectionFromName(
+              await _repos.settings.get(kDefaultCollectionSortDirectionKey),
+            ) ??
+            direction;
+      } catch (_) {
+        // diagnostics: silent — direction read failed; the fixed sort still
+        // applies, in its natural direction.
+      }
+      if (!mounted || _sortUserSet) return;
     }
 
     // Compare the (sort, direction) PAIR, not just the sort key: a key-only

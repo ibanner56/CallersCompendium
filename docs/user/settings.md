@@ -339,8 +339,14 @@ be changed on each item later — they save you repetitive setup.
 
 - **Collection sort order** and **Programs sort order** — the order your
   library and your Programs list use when you open them. Choose a fixed order,
-  or **Last used** to pick up wherever you left off. You can still change the
-  sort while browsing.
+  or **Last used** to open with the sort and direction you last used while
+  browsing. You can still change the sort while browsing.
+- **Ascending / Descending** — shown under a fixed sort order. It sets which
+  way that list opens, so you can have Programs always open newest event first.
+  Each order starts in its natural direction (Title and Event date ascending,
+  Recently updated descending), and choosing a different sort order puts the
+  direction back to that sort's natural one. It is hidden under **Last used**,
+  which remembers the direction itself.
 
 ### Collection card fields
 

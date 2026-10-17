@@ -1192,6 +1192,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Programmernes sorteringsretning (senest brugt)';
 
   @override
+  String get syncSettingDefaultCollectionSortDirection =>
+      'Samlingens sorteringsretning (standard)';
+
+  @override
+  String get syncSettingDefaultProgramSortDirection =>
+      'Programmernes sorteringsretning (standard)';
+
+  @override
   String get syncSettingPerformStageTheme => 'Scenetema i Fremfør';
 
   @override
@@ -2400,6 +2408,16 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsDefaultsProgramSortSubtitle =>
       'Hvordan programlisten sorteres, når du åbner den. Du kan stadig ændre sorteringen, mens du gennemser.';
+
+  @override
+  String get settingsDefaultsSortLastUsedSubtitle =>
+      'Åbner med den sortering og retning, du sidst brugte.';
+
+  @override
+  String get settingsDefaultsSortAscending => 'Stigende';
+
+  @override
+  String get settingsDefaultsSortDescending => 'Faldende';
 
   @override
   String get settingsDefaultsCanonicalTitle =>

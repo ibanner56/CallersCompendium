@@ -15,8 +15,10 @@ import 'package:compendium_app/src/data/display_defaults.dart'
     show
         encodeStartingProgramTemplate,
         kCanonicalFigureTextKey,
+        kDefaultCollectionSortDirectionKey,
         kDefaultImportTagNamesKey,
         kDefaultModifierFiguresKey,
+        kDefaultProgramSortDirectionKey,
         kDefaultStartingProgramKey,
         StartingProgramTemplateEntry;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
@@ -113,6 +115,20 @@ void main() {
       );
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, 1), isFalse);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, null), isFalse);
+    });
+
+    test('default sort direction settings (issue #1841) are backed up and '
+        'accept only strings', () {
+      for (final key in [
+        kDefaultCollectionSortDirectionKey,
+        kDefaultProgramSortDirectionKey,
+      ]) {
+        expect(isBackupEligibleSettingKey(key), isTrue, reason: key);
+        expect(validateBackupSettingValue(key, 'descending'), isTrue);
+        expect(validateBackupSettingValue(key, true), isFalse, reason: key);
+        expect(validateBackupSettingValue(key, 1), isFalse, reason: key);
+        expect(validateBackupSettingValue(key, null), isFalse, reason: key);
+      }
     });
 
     test('capitalize figures setting accepts only bools', () {

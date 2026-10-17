@@ -1028,6 +1028,14 @@
   "@syncSettingLastProgramSortDirection": {
     "x-sourceSha256": "5a4f0099f2621a3fcef84cf43e172910e2dc32ad516e3a1854b203ed2875f431"
   },
+  "syncSettingDefaultCollectionSortDirection": "Sorteerrichting van de collectie (standaard)",
+  "@syncSettingDefaultCollectionSortDirection": {
+    "x-sourceSha256": "03f4415b15235b958e4311b8dfe220e03f3ee47f0429417fa132a939d03aa134"
+  },
+  "syncSettingDefaultProgramSortDirection": "Sorteerrichting van programma's (standaard)",
+  "@syncSettingDefaultProgramSortDirection": {
+    "x-sourceSha256": "edec05d972e8c68eeac43135da9da1d0e816963c1d9e338cbdc6597521121753"
+  },
   "syncSettingPerformStageTheme": "Podiumthema in Uitvoeren",
   "@syncSettingPerformStageTheme": {
     "x-sourceSha256": "54bfa2402ef66801c0f8fc5f7696b44b2a5569d030a58591c70043e990dcc45b"
@@ -2343,6 +2351,18 @@
   "settingsDefaultsProgramSortSubtitle": "Hoe de programmalijst wordt gesorteerd wanneer je deze opent. Je kunt de sortering tijdens het bladeren nog steeds wijzigen.",
   "@settingsDefaultsProgramSortSubtitle": {
     "x-sourceSha256": "d1b19f20d70621043d6259de6852f88a01ea347990acd4533d3289d45eb9a5f7"
+  },
+  "settingsDefaultsSortLastUsedSubtitle": "Wordt geopend met de sortering en richting die je het laatst hebt gebruikt.",
+  "@settingsDefaultsSortLastUsedSubtitle": {
+    "x-sourceSha256": "00bb7988cfc3db3e15ab43549e757189988a4fbd1b06ed7fae8c7f31bf36876b"
+  },
+  "settingsDefaultsSortAscending": "Oplopend",
+  "@settingsDefaultsSortAscending": {
+    "x-sourceSha256": "77184595bde3befc7f5a20efc97caea43f4858e4c97cd2ee406af2c61db3266c"
+  },
+  "settingsDefaultsSortDescending": "Aflopend",
+  "@settingsDefaultsSortDescending": {
+    "x-sourceSha256": "79479a6c76d8416ab7839952a2f8222e350862464f4d02db13d8d8f9551dbf8e"
   },
   "settingsDefaultsCanonicalTitle": "Dansdetails openen in canonieke termen",
   "@settingsDefaultsCanonicalTitle": {

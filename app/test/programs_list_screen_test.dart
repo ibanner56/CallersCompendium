@@ -272,10 +272,9 @@ void main() {
       },
     );
 
-    testWidgets('a fixed (non-"Last used") default always opens at its natural '
-        'direction, regardless of what was last used in the list', (
-      tester,
-    ) async {
+    testWidgets('a fixed (non-"Last used") default with no stored direction '
+        'opens at its natural direction, regardless of what was last used in '
+        'the list', (tester) async {
       final repos = openTestRepositories();
       await repos.settings.set(kDefaultProgramSortKey, ProgramSort.title.name);
       await repos.settings.set(kLastUsedProgramSortKey, ProgramSort.title.name);
@@ -289,6 +288,139 @@ void main() {
       await _pump(tester, repos);
 
       expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+    });
+
+    group('configurable direction of a fixed default (issue #1841)', () {
+      Future<void> seedTitles(CompendiumRepositories repos) async {
+        await repos.programs.create(_program(id: 'p1', title: 'Alpha'));
+        await repos.programs.create(_program(id: 'p2', title: 'Zeta'));
+      }
+
+      testWidgets('a fixed default opens in its stored direction', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultProgramSortKey,
+          ProgramSort.title.name,
+        );
+        await repos.settings.set(
+          kDefaultProgramSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await seedTitles(repos);
+
+        await _pump(tester, repos);
+
+        expect(_titlesInOrder(tester), ['Zeta', 'Alpha']);
+      });
+
+      testWidgets('a fixed default with a different sort key honours its '
+          'stored direction too (Event date, descending)', (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultProgramSortKey,
+          ProgramSort.eventDate.name,
+        );
+        await repos.settings.set(
+          kDefaultProgramSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Zeta',
+            eventDate: DateTime.utc(2026, 5, 1),
+          ),
+        );
+        await repos.programs.create(
+          _program(
+            id: 'p2',
+            title: 'Alpha',
+            eventDate: DateTime.utc(2026, 3, 1),
+          ),
+        );
+
+        await _pump(tester, repos);
+
+        // Ascending would be Alpha (March) then Zeta (May).
+        expect(_titlesInOrder(tester), ['Zeta', 'Alpha']);
+      });
+
+      for (final bad in <Object?>['sideways', '', 7, true]) {
+        testWidgets('an unrecognised stored direction ($bad) falls back to '
+            'the natural direction without throwing', (tester) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            kDefaultProgramSortKey,
+            ProgramSort.title.name,
+          );
+          await repos.settings.set(kDefaultProgramSortDirectionKey, bad);
+          await seedTitles(repos);
+
+          await _pump(tester, repos);
+
+          expect(tester.takeException(), isNull);
+          expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+        });
+      }
+
+      testWidgets('"Last used" ignores the stored default direction', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kDefaultProgramSortKey, kLastUsedSortSentinel);
+        await repos.settings.set(
+          kDefaultProgramSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await repos.settings.set(
+          kLastUsedProgramSortKey,
+          ProgramSort.title.name,
+        );
+        await repos.settings.set(
+          kLastUsedProgramSortDirectionKey,
+          SortDirection.ascending.name,
+        );
+        await seedTitles(repos);
+
+        await _pump(tester, repos);
+
+        expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+      });
+
+      testWidgets('a late direction read does not clobber a direction the '
+          'user already chose in-session', (tester) async {
+        final opened = openTestRepositoriesWithDelayedSettingsRead();
+        final repos = opened.repos;
+        final settings = opened.settings;
+        await repos.settings.set(
+          kDefaultProgramSortKey,
+          ProgramSort.title.name,
+        );
+        await repos.settings.set(
+          kDefaultProgramSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await seedTitles(repos);
+
+        settings.holdNextRead(kDefaultProgramSortDirectionKey);
+        await _pump(tester, repos);
+        await settings.readStarted;
+
+        // Flip twice, ending on the natural (ascending) direction the stale
+        // read would overwrite with its stored descending.
+        await tester.tap(find.byKey(const ValueKey('programs-sort-direction')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('programs-sort-direction')));
+        await tester.pumpAndSettle();
+        expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+
+        settings.releaseRead();
+        await tester.pumpAndSettle();
+
+        expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+      });
     });
 
     testWidgets('changing the sort in-list persists it as last-used (key and '

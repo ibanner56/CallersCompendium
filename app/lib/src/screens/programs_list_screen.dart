@@ -207,9 +207,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     _subscribe();
   }
 
-  /// Seeds `_sort` (and, under "Last used", `_sortDir`) from the saved default
-  /// Programs sort order (issue #895), at most once and only if the user
-  /// hasn't already chosen a sort this session. A `null`/invalid stored value
+  /// Seeds `_sort` and `_sortDir` from the saved default Programs sort order
+  /// (issue #895), at most once and only if the user hasn't already chosen a
+  /// sort this session. The direction comes from the last-used keys under
+  /// "Last used", otherwise from the default's own direction key (issue #1841),
+  /// falling back to the sort's natural direction. A `null`/invalid stored sort
   /// leaves the historical default (`title`, ascending) in place. Mirrors
   /// `dance_list_screen.dart`'s `_seedDefaultSort` exactly, including the
   /// (sort, direction) *pair* comparison at the end — a key-only comparison
@@ -254,12 +256,23 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       }
       if (!mounted || _sortUserSet) return;
     } else {
-      // A fixed default always uses that sort's natural direction, regardless
-      // of what was last used in the list (Isaac's ruling, issue #895) — never
-      // the stored last-used direction, which is why this branch never reads
-      // the last-used keys at all.
+      // A fixed default opens in the direction chosen in Settings ▸ Defaults
+      // (issue #1841), or the sort's natural direction when none is stored or
+      // it is unrecognised. Never the last-used direction, so this branch never
+      // reads the last-used keys.
       sort = mode.sort;
       direction = sort.defaultDirection;
+      try {
+        direction =
+            sortDirectionFromName(
+              await _repos.settings.get(kDefaultProgramSortDirectionKey),
+            ) ??
+            direction;
+      } catch (_) {
+        // diagnostics: silent — direction read failed; the fixed sort still
+        // applies, in its natural direction.
+      }
+      if (!mounted || _sortUserSet) return;
     }
 
     if (sort != _sort || direction != _sortDir) {

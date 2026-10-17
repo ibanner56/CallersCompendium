@@ -37,6 +37,21 @@ void main() {
     );
   });
 
+  test('the default sort direction settings are named distinctly from the '
+      'last-used ones (issue #1841)', () {
+    final names = {
+      for (final key in [
+        'default_collection_sort_direction',
+        'default_program_sort_direction',
+        'last_used_collection_sort_direction',
+        'last_used_program_sort_direction',
+      ])
+        key: syncSettingLabel(l10n, key),
+    };
+    expect(names.values, everyElement(isNotNull));
+    expect(names.values.toSet(), hasLength(4));
+  });
+
   test('every synced settings prefix has a name for the keys under it', () {
     // The prefix counterpart of the ratchet above: a key under a shareable
     // prefix syncs too, so it needs a label the same way. Probed with a key

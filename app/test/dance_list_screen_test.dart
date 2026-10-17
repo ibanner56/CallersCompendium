@@ -384,10 +384,9 @@ void main() {
       },
     );
 
-    testWidgets('a fixed (non-"Last used") default always opens at its natural '
-        'direction, regardless of what was last used in the list', (
-      tester,
-    ) async {
+    testWidgets('a fixed (non-"Last used") default with no stored direction '
+        'opens at its natural direction, regardless of what was last used in '
+        'the list', (tester) async {
       final repos = openTestRepositories();
       // The default stays the fixed concrete sort `title`; only the
       // last-used keys (which a "Last used" default would have read) carry
@@ -411,6 +410,118 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_titles(tester), ['Aardvark', 'Zephyr']);
+    });
+
+    group('configurable direction of a fixed default (issue #1841)', () {
+      Future<void> seedTitles(CompendiumRepositories repos) async {
+        await repos.dances.create(_dance(id: 'd1', title: 'Aardvark'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Zephyr'));
+      }
+
+      testWidgets('a fixed default opens in its stored direction', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          CollectionSort.title.name,
+        );
+        await repos.settings.set(
+          kDefaultCollectionSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await seedTitles(repos);
+
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Zephyr', 'Aardvark']);
+      });
+
+      for (final bad in <Object?>['sideways', '', 7, true]) {
+        testWidgets('an unrecognised stored direction ($bad) falls back to '
+            'the natural direction without throwing', (tester) async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            kDefaultCollectionSortKey,
+            CollectionSort.title.name,
+          );
+          await repos.settings.set(kDefaultCollectionSortDirectionKey, bad);
+          await seedTitles(repos);
+
+          await _pumpScreen(tester, repos);
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(_titles(tester), ['Aardvark', 'Zephyr']);
+        });
+      }
+
+      testWidgets('"Last used" ignores the stored default direction', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          kLastUsedSortSentinel,
+        );
+        await repos.settings.set(
+          kDefaultCollectionSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await repos.settings.set(
+          kLastUsedCollectionSortKey,
+          CollectionSort.title.name,
+        );
+        await repos.settings.set(
+          kLastUsedCollectionSortDirectionKey,
+          SortDirection.ascending.name,
+        );
+        await seedTitles(repos);
+
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+      });
+
+      testWidgets('a late direction read does not clobber a direction the '
+          'user already chose in-session', (tester) async {
+        final opened = openTestRepositoriesWithDelayedSettingsRead();
+        final repos = opened.repos;
+        final settings = opened.settings;
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          CollectionSort.title.name,
+        );
+        await repos.settings.set(
+          kDefaultCollectionSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await seedTitles(repos);
+
+        settings.holdNextRead(kDefaultCollectionSortDirectionKey);
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+        await settings.readStarted;
+
+        // Flip twice, ending on the natural (ascending) direction the stale
+        // read would overwrite with its stored descending.
+        await tester.tap(
+          find.byKey(const ValueKey('collection-sort-direction')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('collection-sort-direction')),
+        );
+        await tester.pumpAndSettle();
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+
+        settings.releaseRead();
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+      });
     });
 
     testWidgets('changing the sort in-list persists it as last-used (key and '

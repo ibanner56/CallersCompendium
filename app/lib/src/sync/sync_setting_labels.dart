@@ -35,6 +35,8 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'date_format_custom' => l10n.settingsDateFormatCustomPatternLabel,
   'decimal_turns' => l10n.settingsGeneralDecimalTurnsTitle,
   'default_collection_sort' => l10n.settingsDefaultsSortTitle,
+  'default_collection_sort_direction' =>
+    l10n.syncSettingDefaultCollectionSortDirection,
   'default_dance_detail_rendering' => l10n.settingsDefaultsCanonicalTitle,
   'default_dance_figures_template' => l10n.settingsDefaultsStartingFiguresTitle,
   'default_dance_form' => l10n.settingsDefaultsFormTitle,
@@ -48,6 +50,8 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'default_program_band' => l10n.settingsDefaultsBandLabel,
   'default_program_caller' => l10n.settingsDefaultsCallerLabel,
   'default_program_sort' => l10n.settingsDefaultsProgramSortTitle,
+  'default_program_sort_direction' =>
+    l10n.syncSettingDefaultProgramSortDirection,
   'default_starting_program' => l10n.settingsDefaultsStartingProgramTitle,
   'first_day_of_week' => l10n.settingsFirstDayOfWeekTitle,
   'formation_color_overrides' => l10n.settingsAppearanceFormationColoursTitle,
