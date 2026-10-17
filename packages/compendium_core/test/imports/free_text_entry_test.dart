@@ -312,6 +312,10 @@ void main() {
         'circle left (8); gibberish xyz; turn alone (4)',
         'circle left; face up; turn alone (4)',
         'circle left; face up (4)',
+        // A later count the beats range (0..64) refuses, as it does on the
+        // first clause or a one-clause line.
+        'circle left; turn alone (100)',
+        'circle left (64); turn alone (65)',
         // A second count on one clause: the parser would drop one.
         'circle left (8) (4); turn alone',
         // A count too long to be beats.
