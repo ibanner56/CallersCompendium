@@ -289,6 +289,81 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get importCcTermsTitle => 'Termen in dit bestand';
+
+  @override
+  String get importCcTermsIntro =>
+      'Je Caller\'s Companion-bestand heeft eigen termen. Kies welke je als termen aan je woordenlijst toevoegt. Elke beschrijving begint als de definitie: bewerk een term om die, de definitie of de naam te wijzigen.';
+
+  @override
+  String get importCcTermsNameTaken =>
+      'Een figuur, afkorting of term heeft deze naam al. Geef hem een andere naam om hem toe te voegen, of laat hem weg.';
+
+  @override
+  String get importCcTermsNeedsDefinition =>
+      'Hij heeft geen definitie. Bewerk hem om er een te geven en hem toe te voegen.';
+
+  @override
+  String get importCcTermsIncomplete =>
+      'Hij heeft een naam, een definitie en een beschrijving nodig. Bewerk hem om ze in te vullen en hem toe te voegen.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'Hij is langer dan een woordenlijstitem mag zijn. Bewerk hem om hem in te korten en toe te voegen.';
+
+  @override
+  String get importCcTermsEditTitle => 'Term bewerken';
+
+  @override
+  String importCcTermsEditLabel(String name) {
+    return '$name bewerken';
+  }
+
+  @override
+  String get importCcTermsSkip => 'Overslaan';
+
+  @override
+  String importCcTermsConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count termen toevoegen',
+      one: '1 term toevoegen',
+      zero: 'Termen toevoegen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count termen aan je woordenlijst toegevoegd.',
+      one: '1 term aan je woordenlijst toegevoegd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count termen konden niet worden toegevoegd: ze zijn te lang, of je woordenlijst is vol.',
+      one:
+          '1 term kon niet worden toegevoegd: hij is te lang, of je woordenlijst is vol.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String glossaryTermSource(String source) {
+    return 'Bron: $source';
+  }
+
+  @override
   String glossaryCustomShippedNameBody(String name) {
     return 'De app heeft nu een eigen figuur met de naam $name. Geef de jouwe een andere naam, of zet je dansen over op de figuur van de app en verwijder de jouwe.';
   }

@@ -286,6 +286,81 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importCcTermsTitle => 'Terms in this file';
+
+  @override
+  String get importCcTermsIntro =>
+      'Your Caller\'s Companion file has terms of its own. Choose which to add to your Glossary as terms. Each one\'s description starts as its definition: edit a term to change either, or its name.';
+
+  @override
+  String get importCcTermsNameTaken =>
+      'A figure, shorthand or term already has this name. Rename it to add it, or leave it out.';
+
+  @override
+  String get importCcTermsNeedsDefinition =>
+      'It has no definition. Edit it to give it one and add it.';
+
+  @override
+  String get importCcTermsIncomplete =>
+      'It needs a name, a definition and a description. Edit it to fill them in and add it.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'It is longer than a Glossary entry can be. Edit it to shorten it and add it.';
+
+  @override
+  String get importCcTermsEditTitle => 'Edit term';
+
+  @override
+  String importCcTermsEditLabel(String name) {
+    return 'Edit $name';
+  }
+
+  @override
+  String get importCcTermsSkip => 'Skip';
+
+  @override
+  String importCcTermsConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Add $count terms',
+      one: 'Add 1 term',
+      zero: 'Add terms',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count terms to your Glossary.',
+      one: 'Added 1 term to your Glossary.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count terms couldn\'t be added: they\'re too long, or your Glossary is full.',
+      one:
+          '1 term couldn\'t be added: it\'s too long, or your Glossary is full.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String glossaryTermSource(String source) {
+    return 'Source: $source';
+  }
+
+  @override
   String glossaryCustomShippedNameBody(String name) {
     return 'The app now has its own figure called $name. Rename yours, or switch your dances to the app\'s figure and remove yours.';
   }

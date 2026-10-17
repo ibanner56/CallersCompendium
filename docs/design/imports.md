@@ -455,12 +455,18 @@ declines the collapse.
   it is read into a figure or a wording template. The source citation is kept
   whole, as the term payload's `source` (`glossaryTermSource`): one sample
   can't show that CC always writes "title - author", so it is not split. The
-  opt-in, previewed step that adds them to the user's glossary follows the
-  dance/program commit, as the shorthand seeding does (maintainer, 2026-10-16:
+  opt-in, previewed step that adds them to the user's glossary
+  (`ImportCcTermsScreen`, then `applyCcTermImport`, while the Glossary is
+  shown) follows the shorthand seeding, its context read before that step
+  because Done on the result dialog closes the review (#1819). It adds each as
+  a `term`, with an Undo (maintainer, 2026-10-16:
   a row's description starts as its definition; one with no definition is
   offered unticked until it has one, its notes kept as the entry's notes; and
-  a row whose name is taken can only be skipped, never added marked *Rename
-  needed*).
+  a row whose name is taken is never added marked *Rename needed*). As this
+  change decided (not the maintainer), a taken row can be left out, or renamed
+  with **Edit** and then added. A term already in the glossary with the row's
+  stored name, definition and source is taken to be an earlier import of the
+  same file and is not offered again.
 - Follow-ups: approximating dialect from `Elements`/button phrasing (#563).
 - Fixture: the publicly downloadable demo `.USR` (kept out of the repo until
   redistribution permission is clarified; local test asset otherwise). CI runs

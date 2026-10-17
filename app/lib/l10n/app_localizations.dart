@@ -560,6 +560,84 @@ abstract class AppLocalizations {
   /// **'Copied from {name}'**
   String glossaryCustomCopiedFrom(String name);
 
+  /// Title of the opt-in step, after a Caller's Companion file is imported, that offers the file's own glossary terms for the user's Glossary (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Terms in this file'**
+  String get importCcTermsTitle;
+
+  /// Explains the Caller's Companion terms step (#1023). A term is a glossary word with an explanation and no figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Caller\'s Companion file has terms of its own. Choose which to add to your Glossary as terms. Each one\'s description starts as its definition: edit a term to change either, or its name.'**
+  String get importCcTermsIntro;
+
+  /// Shown on a Caller's Companion term (#1023) whose name is already taken in the app or the user's Glossary, or by an earlier term in the same file; it can't be added under that name.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure, shorthand or term already has this name. Rename it to add it, or leave it out.'**
+  String get importCcTermsNameTaken;
+
+  /// Shown on a Caller's Companion term (#1023) that has no definition, which every Glossary entry needs.
+  ///
+  /// In en, this message translates to:
+  /// **'It has no definition. Edit it to give it one and add it.'**
+  String get importCcTermsNeedsDefinition;
+
+  /// Shown on a Caller's Companion term (#1023) that has a definition but, after an edit, no name or no description; every Glossary entry needs all three.
+  ///
+  /// In en, this message translates to:
+  /// **'It needs a name, a definition and a description. Edit it to fill them in and add it.'**
+  String get importCcTermsIncomplete;
+
+  /// Shown on a Caller's Companion term (#1023) whose name or text is longer than a Glossary entry can be, so it can't be added as it is.
+  ///
+  /// In en, this message translates to:
+  /// **'It is longer than a Glossary entry can be. Edit it to shorten it and add it.'**
+  String get importCcTermsTooLong;
+
+  /// Title of the dialog that edits a Caller's Companion term's name, definition and description before it is added to the Glossary (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit term'**
+  String get importCcTermsEditTitle;
+
+  /// Screen-reader label of the Edit button on one Caller's Companion term (#1023); {name} is the term.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {name}'**
+  String importCcTermsEditLabel(String name);
+
+  /// Leaves the Caller's Companion terms step without adding any terms (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importCcTermsSkip;
+
+  /// Adds the ticked Caller's Companion terms to the Glossary (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Add terms} =1{Add 1 term} other{Add {count} terms}}'**
+  String importCcTermsConfirm(int count);
+
+  /// Snackbar after Caller's Companion terms are added to the Glossary (#1023), with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 term to your Glossary.} other{Added {count} terms to your Glossary.}}'**
+  String importCcTermsAdded(int count);
+
+  /// Shown when some Caller's Companion terms (#1023) were refused by the Glossary's size limits or failed to save.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 term couldn\'t be added: it\'s too long, or your Glossary is full.} other{{count} terms couldn\'t be added: they\'re too long, or your Glossary is full.}}'**
+  String importCcTermsFailed(int count);
+
+  /// Where one of the user's glossary terms comes from, as it was written (#1023): a Caller's Companion term's source, such as a book and its author.
+  ///
+  /// In en, this message translates to:
+  /// **'Source: {source}'**
+  String glossaryTermSource(String source);
+
   /// On one of the user's own figures (#1023) whose name a figure that came with a later version of the app now has; {name} is that figure's name. The user chooses: rename theirs, or switch to the app's.
   ///
   /// In en, this message translates to:

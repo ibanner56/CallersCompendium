@@ -300,6 +300,58 @@
   "@glossaryCustomCopiedFrom": {
     "x-sourceSha256": "3c803d847c47bd231f3c3bb39109df7e6a49945c0432bbed0fbc3cacbc72db5e"
   },
+  "importCcTermsTitle": "Termes de ce fichier",
+  "@importCcTermsTitle": {
+    "x-sourceSha256": "5ae022f959c3c603b6f896330e21a31be76a043b049c0e58b2418faadb7bc520"
+  },
+  "importCcTermsIntro": "Votre fichier Caller's Companion contient ses propres termes. Choisissez ceux à ajouter à votre glossaire comme termes. Chaque description reprend d'abord la définition : modifiez un terme pour changer l'une, l'autre ou son nom.",
+  "@importCcTermsIntro": {
+    "x-sourceSha256": "b19a51da89f82418cd4771adf2481967a522fccfe12a04f254b8f20d567597a1"
+  },
+  "importCcTermsNameTaken": "Une figure, une abréviation ou un terme porte déjà ce nom. Renommez-le pour l'ajouter, ou laissez-le de côté.",
+  "@importCcTermsNameTaken": {
+    "x-sourceSha256": "43337a9a5b09469e8a86ace68df2ce760b2e19bd13fce1ffba035f1dd1935381"
+  },
+  "importCcTermsNeedsDefinition": "Il n'a pas de définition. Modifiez-le pour lui en donner une et l'ajouter.",
+  "@importCcTermsNeedsDefinition": {
+    "x-sourceSha256": "11af2ee7e314ff38aa02c96c581e3a1eb8ddb05356609429367e3dc3d22770cb"
+  },
+  "importCcTermsIncomplete": "Il lui faut un nom, une définition et une description. Modifiez-le pour les remplir et l'ajouter.",
+  "@importCcTermsIncomplete": {
+    "x-sourceSha256": "a1c4c14d487eec6570b84669a9d6c1f8d14c2c8ee83e7abd53371ef8b2d389b3"
+  },
+  "importCcTermsTooLong": "Il est plus long qu'une entrée du glossaire ne peut l'être. Modifiez-le pour le raccourcir et l'ajouter.",
+  "@importCcTermsTooLong": {
+    "x-sourceSha256": "7f3d9b2fea011dc3ca4580f6a50fabda106ee120e7acc87030411583dbfc5357"
+  },
+  "importCcTermsEditTitle": "Modifier le terme",
+  "@importCcTermsEditTitle": {
+    "x-sourceSha256": "e8e50e7ff1817a0f8e2a0b99f6d7bad2421e7cb7b63a76176b10947882379837"
+  },
+  "importCcTermsEditLabel": "Modifier {name}",
+  "@importCcTermsEditLabel": {
+    "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
+  },
+  "importCcTermsSkip": "Ignorer",
+  "@importCcTermsSkip": {
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+  },
+  "importCcTermsConfirm": "{count, plural, =0{Ajouter des termes} =1{Ajouter 1 terme} other{Ajouter {count} termes}}",
+  "@importCcTermsConfirm": {
+    "x-sourceSha256": "1b0448de168148edd809f4ce4001f8c088a17c3cac96626d3314cf74b403b0d6"
+  },
+  "importCcTermsAdded": "{count, plural, =1{1 terme ajouté à votre glossaire.} other{{count} termes ajoutés à votre glossaire.}}",
+  "@importCcTermsAdded": {
+    "x-sourceSha256": "88e79ac1192a3ac97f816144d0231cc422aae7f22c000b270ef19b3b7276608f"
+  },
+  "importCcTermsFailed": "{count, plural, =1{1 terme n'a pas pu être ajouté : il est trop long, ou votre glossaire est plein.} other{{count} termes n'ont pas pu être ajoutés : ils sont trop longs, ou votre glossaire est plein.}}",
+  "@importCcTermsFailed": {
+    "x-sourceSha256": "8aac2e3b66b96bf668ab23514ffb16793275bb927815be11d3f355dcd4a10885"
+  },
+  "glossaryTermSource": "Source : {source}",
+  "@glossaryTermSource": {
+    "x-sourceSha256": "9f9d70c6e9c02550610692cff5686db18819f711160ae757a745aaac28a1e1e8"
+  },
   "glossaryCustomShippedNameBody": "L'application a maintenant sa propre figure nommée {name}. Renommez la vôtre, ou faites passer vos danses à la figure de l'application et retirez la vôtre.",
   "@glossaryCustomShippedNameBody": {
     "x-sourceSha256": "01c2a7364d0611f3cf2f3c5e1e881f8619329a10ea1260d42b72fd89438ce235"

@@ -470,6 +470,13 @@ void main() {
         find.byKey(const ValueKey('glossary-custom-form')),
         findsOneWidget,
       );
+      // Where the term comes from, as it was written (#1023).
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('glossary-term-source')))
+            .data,
+        'Source: Term 12',
+      );
       await tester.tap(find.byKey(const ValueKey('glossary-term-make-figure')));
       await tester.pumpAndSettle();
       expect(find.text('Make it a figure'), findsWidgets);

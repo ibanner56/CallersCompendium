@@ -289,6 +289,81 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get importCcTermsTitle => 'Begriffe in dieser Datei';
+
+  @override
+  String get importCcTermsIntro =>
+      'Deine Caller\'s-Companion-Datei hat eigene Begriffe. Wähle, welche du deinem Glossar als Begriffe hinzufügen willst. Jede Beschreibung beginnt als Definition: Bearbeite einen Begriff, um sie, die Definition oder den Namen zu ändern.';
+
+  @override
+  String get importCcTermsNameTaken =>
+      'Eine Figur, Abkürzung oder ein Begriff hat bereits diesen Namen. Benenne ihn um, um ihn hinzuzufügen, oder lass ihn weg.';
+
+  @override
+  String get importCcTermsNeedsDefinition =>
+      'Er hat keine Definition. Bearbeite ihn, um ihm eine zu geben und ihn hinzuzufügen.';
+
+  @override
+  String get importCcTermsIncomplete =>
+      'Er braucht einen Namen, eine Definition und eine Beschreibung. Bearbeite ihn, um sie auszufüllen und ihn hinzuzufügen.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'Er ist länger, als ein Glossareintrag sein kann. Bearbeite ihn, um ihn zu kürzen und hinzuzufügen.';
+
+  @override
+  String get importCcTermsEditTitle => 'Begriff bearbeiten';
+
+  @override
+  String importCcTermsEditLabel(String name) {
+    return '$name bearbeiten';
+  }
+
+  @override
+  String get importCcTermsSkip => 'Überspringen';
+
+  @override
+  String importCcTermsConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Begriffe hinzufügen',
+      one: '1 Begriff hinzufügen',
+      zero: 'Begriffe hinzufügen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Begriffe zu deinem Glossar hinzugefügt.',
+      one: '1 Begriff zu deinem Glossar hinzugefügt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Begriffe konnten nicht hinzugefügt werden: Sie sind zu lang, oder dein Glossar ist voll.',
+      one:
+          '1 Begriff konnte nicht hinzugefügt werden: Er ist zu lang, oder dein Glossar ist voll.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String glossaryTermSource(String source) {
+    return 'Quelle: $source';
+  }
+
+  @override
   String glossaryCustomShippedNameBody(String name) {
     return 'Die App hat jetzt eine eigene Figur namens $name. Benenne deine um oder stelle deine Tänze auf die Figur der App um und entferne deine.';
   }

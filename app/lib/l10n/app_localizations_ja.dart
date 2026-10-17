@@ -279,6 +279,73 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get importCcTermsTitle => 'このファイルの用語';
+
+  @override
+  String get importCcTermsIntro =>
+      'Caller\'s Companion ファイルに独自の用語があります。用語集に用語として追加するものを選んでください。説明は最初は定義と同じです。用語を編集すると、説明・定義・名前を変更できます。';
+
+  @override
+  String get importCcTermsNameTaken =>
+      'フィギュア、ショートハンド、または用語がすでにこの名前を使っています。名前を変更して追加するか、追加しないでください。';
+
+  @override
+  String get importCcTermsNeedsDefinition => '定義がありません。編集して定義を加えると追加できます。';
+
+  @override
+  String get importCcTermsIncomplete => '名前・定義・説明がすべて必要です。編集して入力すると追加できます。';
+
+  @override
+  String get importCcTermsTooLong => '用語集の項目として長すぎます。編集して短くすると追加できます。';
+
+  @override
+  String get importCcTermsEditTitle => '用語を編集';
+
+  @override
+  String importCcTermsEditLabel(String name) {
+    return '$name を編集';
+  }
+
+  @override
+  String get importCcTermsSkip => 'スキップ';
+
+  @override
+  String importCcTermsConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の用語を追加',
+      zero: '用語を追加',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の用語を用語集に追加しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の用語を追加できませんでした。長すぎるか、用語集がいっぱいです。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String glossaryTermSource(String source) {
+    return '出典: $source';
+  }
+
+  @override
   String glossaryCustomShippedNameBody(String name) {
     return 'アプリに $name という独自のフィギュアが追加されました。自分のフィギュアの名前を変更するか、ダンスをアプリのフィギュアに切り替えて自分のフィギュアを削除してください。';
   }

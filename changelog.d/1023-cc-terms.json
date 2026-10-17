@@ -1,0 +1,9 @@
+{
+  "id": "1023-cc-terms",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Importing a Caller's Companion .USR file now offers its own glossary terms, while the Glossary is shown: each is added as a term in your Glossary, with its source and notes, after you check it. A term's description starts as its definition; one with no definition, or whose name is already taken, is left out unless you edit it. A term's page shows its source."
+    ]
+  }
+}

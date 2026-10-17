@@ -289,6 +289,81 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get importCcTermsTitle => 'Termer i denne fil';
+
+  @override
+  String get importCcTermsIntro =>
+      'Din Caller\'s Companion-fil har sine egne termer. Vælg, hvilke der skal føjes til din ordliste som termer. Hver beskrivelse starter som termens definition: rediger en term for at ændre den, definitionen eller navnet.';
+
+  @override
+  String get importCcTermsNameTaken =>
+      'En figur, kortform eller term har allerede dette navn. Omdøb den for at tilføje den, eller udelad den.';
+
+  @override
+  String get importCcTermsNeedsDefinition =>
+      'Den har ingen definition. Rediger den for at give den en og tilføje den.';
+
+  @override
+  String get importCcTermsIncomplete =>
+      'Den skal have et navn, en definition og en beskrivelse. Rediger den for at udfylde dem og tilføje den.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'Den er længere, end en ordlistepost kan være. Rediger den for at forkorte den og tilføje den.';
+
+  @override
+  String get importCcTermsEditTitle => 'Rediger term';
+
+  @override
+  String importCcTermsEditLabel(String name) {
+    return 'Rediger $name';
+  }
+
+  @override
+  String get importCcTermsSkip => 'Spring over';
+
+  @override
+  String importCcTermsConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tilføj $count termer',
+      one: 'Tilføj 1 term',
+      zero: 'Tilføj termer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Føjede $count termer til din ordliste.',
+      one: 'Føjede 1 term til din ordliste.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count termer kunne ikke tilføjes: de er for lange, eller din ordliste er fuld.',
+      one:
+          '1 term kunne ikke tilføjes: den er for lang, eller din ordliste er fuld.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String glossaryTermSource(String source) {
+    return 'Kilde: $source';
+  }
+
+  @override
   String glossaryCustomShippedNameBody(String name) {
     return 'Appen har nu sin egen figur ved navn $name. Omdøb din, eller skift dine danse over til appens figur og fjern din.';
   }

@@ -293,6 +293,81 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get importCcTermsTitle => 'Termes de ce fichier';
+
+  @override
+  String get importCcTermsIntro =>
+      'Votre fichier Caller\'s Companion contient ses propres termes. Choisissez ceux à ajouter à votre glossaire comme termes. Chaque description reprend d\'abord la définition : modifiez un terme pour changer l\'une, l\'autre ou son nom.';
+
+  @override
+  String get importCcTermsNameTaken =>
+      'Une figure, une abréviation ou un terme porte déjà ce nom. Renommez-le pour l\'ajouter, ou laissez-le de côté.';
+
+  @override
+  String get importCcTermsNeedsDefinition =>
+      'Il n\'a pas de définition. Modifiez-le pour lui en donner une et l\'ajouter.';
+
+  @override
+  String get importCcTermsIncomplete =>
+      'Il lui faut un nom, une définition et une description. Modifiez-le pour les remplir et l\'ajouter.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'Il est plus long qu\'une entrée du glossaire ne peut l\'être. Modifiez-le pour le raccourcir et l\'ajouter.';
+
+  @override
+  String get importCcTermsEditTitle => 'Modifier le terme';
+
+  @override
+  String importCcTermsEditLabel(String name) {
+    return 'Modifier $name';
+  }
+
+  @override
+  String get importCcTermsSkip => 'Ignorer';
+
+  @override
+  String importCcTermsConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ajouter $count termes',
+      one: 'Ajouter 1 terme',
+      zero: 'Ajouter des termes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count termes ajoutés à votre glossaire.',
+      one: '1 terme ajouté à votre glossaire.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importCcTermsFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count termes n\'ont pas pu être ajoutés : ils sont trop longs, ou votre glossaire est plein.',
+      one:
+          '1 terme n\'a pas pu être ajouté : il est trop long, ou votre glossaire est plein.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String glossaryTermSource(String source) {
+    return 'Source : $source';
+  }
+
+  @override
   String glossaryCustomShippedNameBody(String name) {
     return 'L\'application a maintenant sa propre figure nommée $name. Renommez la vôtre, ou faites passer vos danses à la figure de l\'application et retirez la vôtre.';
   }

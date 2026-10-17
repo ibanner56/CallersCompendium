@@ -652,6 +652,18 @@ class _GlossaryCustomFigureDetailState
             key: const ValueKey('glossary-description'),
           ),
         ),
+        // Where a term comes from, as it was written: a Caller's Companion
+        // term's source (#1023). Kept whole, so not rendered in the dialect.
+        if (item.isTerm)
+          if (glossaryTermSource(entry.payload) case final source?)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Text(
+                l10n.glossaryTermSource(source),
+                key: const ValueKey('glossary-term-source'),
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
         if (definition != null && definition.params.isNotEmpty) ...[
           heading(l10n.glossaryParameters),
           Text(
