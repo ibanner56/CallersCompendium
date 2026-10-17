@@ -1078,12 +1078,13 @@ either has synced, the later choice wins — unless you made different choices
 in the same second, in which case you're asked again.
 
 Your dialects, custom themes, figure shorthands and walkthrough snippets are
-each one whole set. If both devices changed one, you can keep either device's
-set, or choose **Combine both** to keep everything from both. If both devices
-have the same item — the same dialect, say — but changed it differently, the
-app asks you which version of that item to keep before it saves. **Combine
-both** isn't offered when the combined list would be longer than the app keeps
-(128 dialects, 500 shorthands or 2,000 snippets); it says so instead.
+each one whole set. Your shorthands for combinations are one more, with its own
+limit. If both devices changed one, you can keep either device's set, or choose
+**Combine both** to keep everything from both. If both devices have the same
+item — the same dialect, say — but changed it differently, the app asks you
+which version of that item to keep before it saves. **Combine both** isn't
+offered when the combined list would be longer than the app keeps (128
+dialects, 500 in any one shorthand set, or 2,000 snippets); it says so instead.
 
 Once you choose for one of these sets, the device where you chose stops asking
 about it, even if the other device hasn't synced yet. The other device, if it

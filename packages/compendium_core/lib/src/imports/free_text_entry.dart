@@ -183,7 +183,8 @@ _BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
 /// source front-ends via [parseFigureLinesFanOut]) rather than any
 /// "trusted-local" fast-path, so a typed line behaves identically to the same
 /// line arriving from an import — `;`-compounds split all-or-nothing (in the
-/// CallersBox/TCB attempt) and a top-level `||` stays whole-custom.
+/// CallersBox/TCB attempt) and a top-level `||` builds a meanwhile container
+/// when it is well-formed (a malformed one stays whole-custom).
 ///
 /// On top of that grammar, which follows how source sites write calls, free
 /// text reads what a caller types (#1826, `typed_figure_names.dart`): spoken
@@ -448,7 +449,8 @@ List<Figure> _parseSplit(
   // precedence attempt that structures the whole line to non-custom figure(s);
   // on a full miss the line stays an import-gap custom (byte-identical to the
   // pre-fan-out CallersBox fallback). Only the TCB attempt `;`-splits, so a
-  // `;`-compound still resolves through it, and a top-level `||` stays custom.
+  // `;`-compound still resolves through it, and it also builds a top-level
+  // `||` into a meanwhile.
   List<Figure> attempt(String text) => parseFigureLinesFanOut(
     text,
     beats: split.beats,
