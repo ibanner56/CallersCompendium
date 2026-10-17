@@ -359,7 +359,9 @@ void main() {
   });
 
   group('after a Caller\'s Companion import', () {
-    Uint8List usr() => buildFmp12Fixture([
+    Uint8List usr({
+      List<MapEntry<int, Map<int, String>>> moreTerms = const [],
+    }) => buildFmp12Fixture([
       FmpFixtureTable(
         index: 1,
         name: 'Dance',
@@ -382,6 +384,7 @@ void main() {
           MapEntry(21, {1: 'Contra Corners', 4: '1', 5: 'A teaching note.'}),
           // Defined, but a shipped figure's name.
           MapEntry(22, {1: 'Swing', 2: 'My own swing.', 4: '1'}),
+          ...moreTerms,
         ],
       ),
       // A call button, so the shorthand step comes first and is answered
@@ -410,6 +413,7 @@ void main() {
       WidgetTester tester, {
       required bool glossary,
       List<UserGlossaryEntry> existing = const [],
+      List<MapEntry<int, Map<int, String>>> moreTerms = const [],
     }) async {
       await tester.binding.setSurfaceSize(const Size(1000, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -451,11 +455,11 @@ void main() {
                         ImportSource(
                           kind: ImportSourceKind.callersCompanionUsr,
                           adapterFactory: CallersCompanionUsrAdapter.new,
-                          bytePicker: () async => usr(),
+                          bytePicker: () async => usr(moreTerms: moreTerms),
                         ),
                       ],
                       picker: () async => '',
-                      bytePicker: () async => usr(),
+                      bytePicker: () async => usr(moreTerms: moreTerms),
                     ),
                   ),
                 ),
@@ -578,6 +582,46 @@ void main() {
       expect(
         find.byKey(const ValueKey('cc-term-import-taken-2')),
         findsOneWidget,
+      );
+    });
+
+    testWidgets('a term imported before is known again when the file writes '
+        'its text decomposed, as stored it is composed (NFC)', (tester) async {
+      await runImport(
+        tester,
+        glossary: true,
+        moreTerms: [
+          // The file writes its accents decomposed, e + U+0301, which the
+          // fixture spells as SCSU does: SQU (0x0E) quoting the code point.
+          const MapEntry(23, {
+            1: 'Caf\u00e9 Turn',
+            2: 'Cafe\u000e\u0003\u0001 style.',
+            3: 'Le Cafe\u000e\u0003\u0001 - Anon',
+            4: '1',
+          }),
+        ],
+        existing: [
+          UserGlossaryEntry(
+            id: 'earlier',
+            kindName: UserGlossaryEntryKind.term.name,
+            name: 'Caf\u00e9 Turn',
+            definition: 'Caf\u00e9 style.',
+            description: 'Caf\u00e9 style.',
+            payload: glossaryTermPayload(
+              'contra',
+              source: 'Le Caf\u00e9 - Anon',
+            ),
+            createdAt: DateTime.utc(2026, 10, 1),
+          ),
+        ],
+      );
+      expect(find.byType(ImportCcTermsScreen), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ImportCcTermsScreen),
+          matching: find.text('Caf\u00e9 Turn'),
+        ),
+        findsNothing,
       );
     });
 

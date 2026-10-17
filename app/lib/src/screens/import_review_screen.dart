@@ -1829,14 +1829,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // again; nothing is shown when every term is. The definition is compared
     // too, so a term of the user's own that shares a name, and like a CC row
     // has no source, is not taken for this file's: that row is offered, as
-    // taken, to be left out or renamed.
+    // taken, to be left out or renamed. Both are compared composed (NFC), as
+    // the glossary stores them, whatever form the file writes them in.
     bool alreadyHere(CcTerm term) => entries.any(
       (entry) =>
           entry.kind == UserGlossaryEntryKind.term &&
           normalizeGlossaryName(entry.name) ==
               normalizeGlossaryName(stored(term.name)) &&
-          entry.definition == stored(term.definition ?? '') &&
-          glossaryTermSource(entry.payload) == term.source,
+          entry.definition ==
+              normalizeShareableText(stored(term.definition ?? '')) &&
+          glossaryTermSource(entry.payload) ==
+              switch (term.source) {
+                final source? => normalizeShareableText(source),
+                null => null,
+              },
     );
     final offered = [
       for (final term in terms)
