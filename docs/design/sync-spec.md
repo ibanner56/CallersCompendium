@@ -3596,7 +3596,10 @@ a full snapshot to look at it; and a record restored from the trash after the
 upgrade holds the field empty until the next open, because the kept value was
 never stored in it. Nothing in a trash restore touches the kept row, so that
 open then writes the kept value into the record, over any edit made to that
-field in between. Writing the tombstone through the ordinary record writer is
+field in between. A restore from a backup does the same when it writes such a
+record live (either mode, or an archive import), because it clears no kept row
+(§3.2): the kept value then replaces the backup's value for that field.
+Writing the tombstone through the ordinary record writer is
 not a remedy: for a dance whose choreographer or source is also deleted it
 drops the dance's links to them, and a deleted record that a live one still
 cites would become a pending deletion.

@@ -152,7 +152,9 @@ class ArchiveRestorer {
           // library: a record restored here is stamped at restore time, so a
           // body without them would win and strip them from the peer. Rows of
           // records the backup lacks are dropped by the next snapshot
-          // (sync-spec §3.2, §6.7).
+          // (sync-spec §3.2, §6.7). A row still due for a record that was in
+          // the trash is not exempt: its kept value replaces the backup's at
+          // the next open, the cost §6.7 accepts for a trash restore.
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
             revalidatePending: true,
