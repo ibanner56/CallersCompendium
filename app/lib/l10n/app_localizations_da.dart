@@ -6800,6 +6800,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Nøglen til et Caller\'s Companion-felt blev justeret, så den er gyldig og unik; feltets navn er bevaret.';
 
   @override
+  String get importIssueCcUserFieldLabelMissing =>
+      'Et Caller\'s Companion-felt havde intet navn, så det fik et generisk navn.';
+
+  @override
   String get importIssueUnparsedRating =>
       'En bedømmelse kunne ikke læses; ikke bedømt.';
 

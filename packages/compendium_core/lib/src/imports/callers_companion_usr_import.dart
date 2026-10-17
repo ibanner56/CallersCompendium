@@ -286,22 +286,30 @@ class CallersCompanionUsrImporter {
       rethrow;
     }
     // A definition no committed dance ended up using (every dance that carried
-    // its key was skipped) is dropped now rather than left as an orphan.
+    // its key was skipped) is dropped now rather than left as an orphan. Inside
+    // its own compensation: the dances are committed by now, so a failure here
+    // must not leave them without an undo handle.
     final keptInserted = <String>[];
-    for (final id in fields.inserted) {
-      if (await _customFields.isInUse(id)) {
-        keptInserted.add(id);
-      } else {
-        await _customFields.delete(id, permanent: true);
-      }
-    }
     final keptRestored = <String>[];
-    for (final id in fields.restored) {
-      if (await _customFields.isInUse(id)) {
-        keptRestored.add(id);
-      } else {
-        await _customFields.delete(id);
+    try {
+      for (final id in fields.inserted) {
+        if (await _customFields.isInUse(id)) {
+          keptInserted.add(id);
+        } else {
+          await _customFields.delete(id, permanent: true);
+        }
       }
+      for (final id in fields.restored) {
+        if (await _customFields.isInUse(id)) {
+          keptRestored.add(id);
+        } else {
+          await _customFields.delete(id);
+        }
+      }
+    } catch (_) {
+      await _pipeline.undo(danceSession);
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      rethrow;
     }
 
     final danceIdByCcRowId = _danceIdByCcRowId(danceSession);
@@ -537,8 +545,9 @@ class CallersCompanionUsrImporter {
   /// [kCcUserFieldIdPrefix]), and returns [batch] with each placeholder field id
   /// rewritten to the real definition id.
   ///
-  /// Matching follows the native archive importer (`ShareMetadataImporter`):
-  /// a *live text* definition under the same key is reused untouched, and a
+  /// Matching follows the native archive importer (`ShareMetadataImporter`),
+  /// except that keys are compared case-folded (`naturalKeyMatchKey`): a *live
+  /// text* definition under the same key is reused untouched, and a
   /// tombstoned *text* one is revived. A key held by a definition of **another
   /// type** is never reused (that would store text in a number or choice field)
   /// and `upsert` would refuse to create onto it, so the field is created under
@@ -579,9 +588,11 @@ class CallersCompanionUsrImporter {
     final existing = await _customFields.listAllWithDeleted();
     final byCanonical = <String, ({CustomFieldDef field, bool deleted})>{};
     for (final item in existing) {
-      final canonical = normalizeShareableText(item.field.key);
+      final canonical = naturalKeyMatchKey(item.field.key);
       final held = byCanonical[canonical];
-      // A live row beats a tombstone, then the smallest id: the precedence
+      // Case-folded like the custom-fields screen's duplicate check, so a key
+      // the person typed as `Tempo` is found by the CC column "Tempo". A
+      // live row beats a tombstone, then the smallest id: the precedence
       // `ShareMetadataImporter` applies, so the choice is load-order free.
       if (held == null ||
           (held.deleted && !item.deleted) ||
@@ -612,7 +623,7 @@ class CallersCompanionUsrImporter {
         final label = labelByKey[key]!;
         var candidate = key;
         for (var n = 2; ; n++) {
-          final canonical = normalizeShareableText(candidate);
+          final canonical = naturalKeyMatchKey(candidate);
           final match = byCanonical[canonical];
           if (match == null) {
             final def = CustomFieldDef(

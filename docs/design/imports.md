@@ -349,11 +349,15 @@ declines the collapse.
     `cc_<FNV-1a hash of the label>`, so the same label gives the same key in
     every dance and every import. Two labels in **one dance** that slug alike get
     `_2`, `_3`, … (a `cc_user_field_key_adjusted` warning on the draft; the
-    no-slug fallback raises the same code as info). Across dances the key is the
+    no-slug fallback raises the same code as info). A column with no
+    `_Name` (the reader calls it `User field N`) raises
+    `cc_user_field_label_missing` as info. Across dances the key is the
     identity, so "Tempo" in one dance and "tempo!" in another share one field and
     the first dance seen names it.
-  - **Existing key.** A live **text** definition under the key is reused as it
-    is (never edited); a tombstoned text one is revived. A definition of another
+  - **Existing key.** Keys compare case-folded (`naturalKeyMatchKey`, as the
+    custom-fields screen's duplicate check does), so a key typed as `Tempo`
+    matches the column "Tempo". A live **text** definition under the key is
+    reused as it is (never edited); a tombstoned text one is revived. A definition of another
     type is never reused — storing text in a number or choice field would
     corrupt it, and `upsert` refuses to create onto a live key (#1348) — so the
     column is created as `<key>_2`, `_3`, … with a `cc_user_field_key_conflict`
@@ -379,7 +383,8 @@ declines the collapse.
     every stored value and rewrites only what the dance holds, so the pipeline
     now merges the matched dance's existing values under the draft's (the draft
     wins for a field it carries). Before #1890 a re-import dropped every custom
-    value for every adapter.
+    value for every adapter. Known limit: a column **emptied** at the source
+    carries nothing, so the value already stored for it is kept.
   - **Not migrated:** dances imported before #1890 keep the `Label: value`
     lines in their calling notes.
 - Library-scale behaviour (a ~20 000-dance `.USR` is ~240 MB and ~40 s of

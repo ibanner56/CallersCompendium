@@ -132,6 +132,15 @@ void main() {
       expect(plan.fields.single.key.length, kCcUserFieldMaxKeyLength);
     });
 
+    test('a source-blank label is noted as info', () {
+      final plan = planCcUserFields(const [
+        CcUserField(label: 'User field 2', value: 'x', labelWasBlank: true),
+      ]);
+      expect(plan.fields.single.key, 'user_field_2');
+      expect(plan.issues.single.code, 'cc_user_field_label_missing');
+      expect(plan.issues.single.severity, ImportIssueSeverity.info);
+    });
+
     test('a blank label becomes "Note" and empty values are dropped', () {
       final plan = planCcUserFields(const [
         CcUserField(label: '  ', value: 'x'),
@@ -239,6 +248,25 @@ void main() {
       expect(keys, hasLength(1));
       expect(keys.single, startsWith('cc_'));
       expect(isValidCustomFieldKey(keys.single), isTrue);
+    });
+
+    test('matches an existing key case-insensitively', () async {
+      await seed(
+        CustomFieldDef(
+          id: 'typed',
+          key: 'Tempo',
+          label: 'My tempo',
+          type: CustomFieldType.text,
+        ),
+      );
+      final result = await run(
+        _usrBytes([
+          row('4', 'A', [('fast', 'Tempo')]),
+        ]),
+      );
+      expect(result.insertedCustomFieldIds, isEmpty);
+      expect([for (final f in await defs.listAll()) f.id], ['typed']);
+      expect((await danceNamed('A')).customFields.single.fieldId, 'typed');
     });
 
     test('reuses a live text definition with the same key', () async {
@@ -458,6 +486,32 @@ void main() {
       expect(await defs.listAllWithDeleted(), isEmpty);
     });
 
+    test(
+      'a failure while pruning unused definitions reverts the import',
+      () async {
+        final throwing = CallersCompanionUsrImporter(
+          ImportPipeline(dances, ChoreographerRepository(db)),
+          ProgramRepository(db),
+          VenueRepository(db),
+          _ThrowingInUseDefs(db),
+          adapter: adapter,
+        );
+        await expectLater(
+          throwing.import(
+            _usrBytes([
+              row('4', 'A', [('blue', 'Card colour')]),
+            ]),
+            now: now,
+            venueEntityMode: false,
+            newId: nextId,
+          ),
+          throwsA(isA<StateError>()),
+        );
+        expect(await dances.listAll(includeDeleted: true), isEmpty);
+        expect(await defs.listAllWithDeleted(), isEmpty);
+      },
+    );
+
     test('a definition no committed dance uses is not left behind', () async {
       // An untracked dance of the same title makes the CC row ambiguous, and an
       // ambiguous row with no resolution is skipped.
@@ -536,4 +590,12 @@ class _FailingProgramRepository extends ProgramRepository {
   @override
   Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async =>
       throw StateError('simulated program persist failure');
+}
+
+class _ThrowingInUseDefs extends CustomFieldDefRepository {
+  _ThrowingInUseDefs(super.db);
+
+  @override
+  Future<bool> isInUse(String id) async =>
+      throw StateError('simulated in-use check failure');
 }

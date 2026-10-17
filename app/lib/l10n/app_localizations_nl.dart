@@ -6848,6 +6848,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'De sleutel van een Caller\'s Companion-veld is aangepast zodat deze geldig en uniek is; de naam blijft behouden.';
 
   @override
+  String get importIssueCcUserFieldLabelMissing =>
+      'Een Caller\'s Companion-veld had geen naam, dus er is een algemene naam aan gegeven.';
+
+  @override
   String get importIssueUnparsedRating =>
       'Een beoordeling kon niet worden gelezen; niet beoordeeld.';
 

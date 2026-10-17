@@ -115,6 +115,17 @@ CcUserFieldPlan planCcUserFields(List<CcUserField> userFields) {
     final value = field.value.trim();
     if (value.isEmpty) continue;
     final trimmed = field.label.trim();
+    if (field.labelWasBlank || trimmed.isEmpty) {
+      issues.add(
+        ImportIssue(
+          severity: ImportIssueSeverity.info,
+          code: 'cc_user_field_label_missing',
+          message:
+              'A Caller\'s Companion field had no name; it was called '
+              '"${trimmed.isEmpty ? 'Note' : trimmed}".',
+        ),
+      );
+    }
     final label = trimmed.isEmpty
         ? 'Note'
         : trimmed.length <= kCcUserFieldMaxLabelLength

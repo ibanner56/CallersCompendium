@@ -117,6 +117,7 @@ void main() {
       'cc_unparsed_date',
       'cc_unparsed_rating',
       'cc_user_field_key_adjusted',
+      'cc_user_field_label_missing',
       'contradb_figures_unreadable',
       'contradb_formation_unclassified',
       'contradb_html_beats_unreadable',

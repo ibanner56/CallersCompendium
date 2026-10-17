@@ -124,9 +124,9 @@ implementation notes and deviations against each item — is in
       import as **text custom fields** (#1890; previously folded into calling
       notes because the pipeline could not create a definition, a limitation
       rather than a recorded decision). Dances imported before #1890 keep the
-      `Label: value` lines in their calling notes; they are not migrated, and a
-      re-import moves the values into typed fields while leaving the old notes
-      text alone.
+      `Label: value` lines in their calling notes; they are not migrated. A
+      re-import replaces the calling notes from the file, so those lines go
+      and the values arrive as typed fields.
     - **Venue linking/minting delivered** (#687, PR #700): when venue-entity
       mode is ON, `.USR` program commit now resolves each set's cleaned
       `Location` text to a venue entity via the shared fingerprint path

@@ -148,9 +148,17 @@ class CcDanceRecord {
 /// `UserDefined_N`.
 @immutable
 class CcUserField {
-  const CcUserField({required this.label, required this.value});
+  const CcUserField({
+    required this.label,
+    required this.value,
+    this.labelWasBlank = false,
+  });
   final String label;
   final String value;
+
+  /// Whether the source had no UserDefined_N_Name, so [label] is a name the
+  /// reader made up. [mapCallersCompanionDance] notes it on the draft.
+  final bool labelWasBlank;
 }
 
 /// The result of [mapCallersCompanionDance]: a [Dance] draft plus the non-fatal
@@ -302,6 +310,7 @@ CcDanceMapping mapCallersCompanionDance(
       CcUserField(
         label: _sanitizeLine(field.label) ?? '',
         value: sanitizeImportedText(field.value).trim(),
+        labelWasBlank: field.labelWasBlank,
       ),
   ]);
   issues.addAll(userFieldPlan.issues);

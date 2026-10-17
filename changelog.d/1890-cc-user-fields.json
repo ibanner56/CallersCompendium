@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Importing a Caller's Companion .USR file now brings its custom columns across as custom fields, one per column name and filled in on each dance, instead of lines in the calling notes. An existing text field with the same name is reused. Dances imported earlier keep the text in their notes."
+      "Importing a Caller's Companion .USR file now brings its custom columns across as custom fields, one per column name and filled in on each dance, instead of lines in the calling notes. An existing text field whose key matches the column name (lower case, punctuation as underscores) is reused. Dances imported earlier keep the text in their notes."
     ],
     "fixed": [
       "Importing a dance again no longer clears the custom-field values you added to it since the last import."

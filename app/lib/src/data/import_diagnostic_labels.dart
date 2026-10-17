@@ -50,6 +50,7 @@ const Set<String> mappedImportIssueCodes = {
   'cc_unparsed_date',
   'cc_unparsed_rating',
   'cc_user_field_key_adjusted',
+  'cc_user_field_label_missing',
   'contradb_figures_unreadable',
   'contradb_formation_unclassified',
   'contradb_html_beats_unreadable',
@@ -168,6 +169,8 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
       return l10n.importIssueUnparsedRating;
     case 'cc_user_field_key_adjusted':
       return l10n.importIssueCcUserFieldKeyAdjusted;
+    case 'cc_user_field_label_missing':
+      return l10n.importIssueCcUserFieldLabelMissing;
     case 'contradb_figures_unreadable':
       return l10n.importIssueFiguresUnreadable;
     case 'contradb_html_beats_unreadable':

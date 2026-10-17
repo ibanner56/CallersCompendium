@@ -6873,6 +6873,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Schlüssel eines Caller\'s-Companion-Felds wurde angepasst, damit er gültig und eindeutig ist; sein Name bleibt erhalten.';
 
   @override
+  String get importIssueCcUserFieldLabelMissing =>
+      'Ein Caller\'s-Companion-Feld hatte keinen Namen, daher wurde ein allgemeiner Name vergeben.';
+
+  @override
   String get importIssueUnparsedRating =>
       'Eine Bewertung konnte nicht gelesen werden; nicht bewertet.';
 
