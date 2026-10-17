@@ -481,7 +481,12 @@ void main() {
     await tester.runAsync(() async {
       final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
       final assets = manifest.listAssets().toSet();
-      final reference = RegExp(r'!\[[^\]]*\]\((images/[^)\s]+)\)');
+      // Only PNGs are bundled (sync_user_docs.py); an embedded SVG is allowed
+      // by the image conventions and shows as its alt text, so it is exempt.
+      final reference = RegExp(
+        r'!\[[^\]]*\]\((images/[^)\s]+\.png)\)',
+        caseSensitive: false,
+      );
       final docs = assets
           .where(
             (key) => key.startsWith('assets/docs/user/') && key.endsWith('.md'),
