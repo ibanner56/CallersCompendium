@@ -5,7 +5,8 @@ The other guides link here the first time they use a term, so you can always
 check a meaning without losing your place. Terms are listed alphabetically.
 
 Looking for a dance figure instead? The app's **Glossary** describes the figures
-built into the app, in your own dialect. Turn it on under **Settings ▸
+built into the app, in your own dialect, and also holds your own figures and
+terms — you can even copy a built-in figure as your own. Turn it on under **Settings ▸
 Experimental** (see [Settings](./settings.md#glossary-and-custom-figures)).
 
 ## Alt
@@ -49,7 +50,8 @@ dance's link or ID number.
 Another app for organizing contra dances. If you are moving from it, Caller's
 Compendium can [import](#import) your library from its export files — a `.USR`
 file brings dances, figures, and past programs across in one pass — and can turn
-its call buttons into [shorthands](#shorthand). See
+its call buttons into [shorthands](#shorthand) and offer its own glossary terms
+as Glossary terms. See
 [Imports & migration](./imports.md#bring-your-library-across-from-callers-companion).
 
 ## Caller's Compendium

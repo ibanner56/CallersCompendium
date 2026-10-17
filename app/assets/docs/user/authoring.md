@@ -67,7 +67,8 @@ beat total visible below the list.*
 ![The dance editor showing figure entry in progress, recognized figure rows, and the running beat total](images/dance-editor-figure-entry.png)
 
 The box stays open after each figure so you can keep going: type, Enter, type,
-Enter. Press Escape when you are done.
+Enter. Choose **Done**, press Escape, or press Enter on a blank box when you
+are done.
 
 ### Free-text entry
 
@@ -164,7 +165,9 @@ shorthands**, then **New shorthand**:
 - **Shorthand** is the exact line (or the exact part of a `;` list) you will
   type during free-text entry. It is
   matched without regard to capitals, so `NBS` and `nbs` are the same shorthand.
-- **Expands to** is the figure or figures it inserts, in order. You build them
+  A shorthand can be up to 64 characters long.
+- **Expands to** is the figure or figures it inserts, in order, up to 64
+  figures. You build them
   exactly the way you build a normal figure, with the same options and the same
   checks.
 
@@ -298,7 +301,11 @@ built in the [Glossary](./glossary.md) for the dance's form are offered when
 you choose a figure's move, listed first and marked with a person icon
 (announced as **Custom** by screen readers). They are found by their name or by
 any of their other names. A figure you built has one of two kinds, and each
-works differently in a dance.
+works differently in a dance. (The Glossary can also hold **Term** entries,
+which are never offered in a dance.) You can start a figure of your own from one
+that comes with the app, and rename it or switch to the app's version if a later
+release adds a figure with the same name; see
+[Glossary and custom figures](./settings.md#glossary-and-custom-figures).
 
 #### A combination
 

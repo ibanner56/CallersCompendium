@@ -111,8 +111,8 @@ That's what a [dialect](./glossary.md#dialect) is for. Pick or build one under
 ### How do I make the text bigger for calling on stage?
 
 [Perform mode](./glossary.md#perform-mode) sizes text to be read at arm's length.
-Leave **Auto-size** on to fit each card to the screen, or use **A−** / **A+** to
-set the size yourself — which switches auto-size off and remembers your size for
+Leave **Auto-size** on to fit each card to the screen, or use the **Decrease text size** and **Increase text
+size** buttons to set the size yourself — which switches auto-size off and remembers your size for
 next time. See [Perform mode](./perform.md#set-the-stage), and
 [Accessibility](./accessibility.md) for more ways to adjust text, contrast, and
 input.
@@ -183,7 +183,7 @@ A few things to check:
   exactly like the words you searched for.
 - **Confirm the import finished.** Imports *add* dances to your collection; if you
   didn't confirm the review step, nothing was added. Run it again from
-  **Settings › General › Import dances** — see [Imports & migration](./imports.md).
+  **Settings › General › Import…** — see [Imports & migration](./imports.md).
 - **Sort by recently added.** Change the [collection](./glossary.md#collection)
   sort order to bring your newest dances to the top.
 

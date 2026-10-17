@@ -55,6 +55,8 @@ Apply one **type** label so reports route to the right mindset:
 - `type: enhancement` — a new feature or an improvement to existing behavior.
 - `type: feedback` — general beta-tester impressions (usually from the
   **General feedback** form).
+- `type: experimental` — experimental behavior under evaluation, which may change
+  or be removed.
 - `type: usability` — a confusing, awkward, or inefficient experience, even if
   nothing is technically "broken."
 - `type: import` — anything about importing dances or notation from external
@@ -70,7 +72,10 @@ These mirror the parts of the app testers use:
 - `area: collection` — the dance collection / library.
 - `area: programs` — building and managing programs.
 - `area: perform` — Perform / calling mode.
-- `area: dialect` — figure taxonomy, notation, and dialects.
+- `area: dance_entry` — the dance editor and figure entry.
+- `area: dialect` — figure notation and dialects.
+- `area: taxonomy` — figure definitions, parameters, parameter options, and new
+  figure support.
 - `area: import` — the import pipeline and parsers.
 - `area: search` — search and filtering.
 - `area: settings` — settings and preferences (including backup/restore).
@@ -114,8 +119,10 @@ backbone testers watch to see their report move:
 
 Off to the side of the happy path:
 
+- `status: backlog` — accepted, but not currently scheduled.
 - `status: blocked` — cannot proceed because of a dependency or a pending decision.
   Note what it is blocked on.
+- `status: duplicate` — already tracked by another issue or pull request.
 
 A typical bug travels `triage → confirmed → in-progress → fixed-pending-release`. A
 report that needs clarification detours through `needs-info` and back. Not every

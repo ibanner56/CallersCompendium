@@ -146,6 +146,9 @@ evening to another caller. It builds a single self-contained file — a
   notes on it; and
 - the program's linked [venue](./glossary.md#venue), if it has one.
 
+The program's **Pay** travels in this file too, though it is never part of the
+shared set-list text or PDF.
+
 On Linux the system has no file share sheet, so this action is labelled **Save
 program file…** and saves the file through the system dialog instead.
 
