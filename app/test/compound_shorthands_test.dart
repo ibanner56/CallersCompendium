@@ -387,6 +387,17 @@ void main() {
       });
     }
 
+    // A compound ignores a count whatever it is, so one the beats range refuses
+    // (#1879) makes nothing invalid and the compound is inserted as saved.
+    for (final line in ['100 grl', 'grl (100)', 'grl (10000)']) {
+      testWidgets('"$line" inserts the compound as saved', (tester) async {
+        final repos = await pump(tester, compounds: [shorthand()]);
+        await typeLine(tester, line);
+        expect(find.text('grand pull: partners, left'), findsOneWidget);
+        expect((await saved(tester, repos)), hasLength(4));
+      });
+    }
+
     // A `;` clause may be a compound shorthand (#1866), as it may be a plain
     // shorthand (#1827). A compound is one clause however many figures it
     // holds, and ignores a count typed on its clause.

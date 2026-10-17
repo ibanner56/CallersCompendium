@@ -172,7 +172,11 @@ A shorthand also works with a beat count and in a `;` list:
   when the shorthand is a single figure. A shorthand for several figures is
   added exactly as saved and the count is ignored, since there is no one figure
   to give it to. A token that includes a number, such as `3 swings`, is matched
-  as typed, before any count is looked for.
+  as typed, before any count is looked for. A count follows the same rules as
+  on any figure line: more than the 64 beats a figure can take (`pbs (100)`)
+  keeps the whole line as a custom figure, as you typed it, and a count of five
+  digits or more (`pbs (10000)`) is kept in the figure's note, with the beats the
+  shorthand was saved with.
 - `pbs; ladies chain` adds the shorthand's figures, then the next figure. Each
   part can have its own count. As with any `;` list, if one part is neither a
   shorthand nor a figure the app understands, the whole line is added as one
@@ -182,8 +186,9 @@ The same counts work on the shorthands for [your own figures](#your-own-figures)
 and for combinations, described below, whether typed into the free-text box or
 into the Move box of a row you are changing. `16 zm` and `zm (16)` add your
 figure with 16 beats, in place of the beats the shorthand was saved with, since
-it is one figure. A count typed with a combination is ignored: it is added
-with the beats it was saved with. A shorthand for a
+it is one figure, and a count over 64 keeps the line as a custom figure, as
+above. A count typed with a combination is ignored: it is added with the beats
+it was saved with. A shorthand for a
 plain figure with the same token as the one left after the count is taken off
 wins, as it does for a whole line.
 

@@ -439,6 +439,56 @@ void main() {
       });
     }
 
+    // A count the beats range (0..64) refuses is not the use's beats (#1879),
+    // as it is not a plain shorthand's: the line is kept as one custom figure
+    // with its text as typed, as `circle left (100)` is.
+    for (final line in [
+      'zm (100)',
+      '100 zm',
+      'zm (65)',
+      'zm; zm (100)',
+      'zm (100); turn alone',
+    ]) {
+      testWidgets('"$line" is kept as one custom figure, as typed', (
+        tester,
+      ) async {
+        final repos = await pump(tester, shorthands: [shorthand()]);
+        await typeLine(tester, line);
+        final figure = (await saved(tester, repos)).single;
+        expect(userFigureUseOf(figure), isNull);
+        expect(figure.isCustom, isTrue);
+        expect(figure.params['text'], line);
+      });
+
+      testWidgets('"$line" typed into an existing row\'s Move box makes that '
+          'row a custom figure as typed', (tester) async {
+        final repos = await pump(tester, shorthands: [shorthand()]);
+        await typeInExistingRow(tester, line);
+        final figures = await saved(tester, repos);
+        expect(figures, hasLength(3));
+        expect(figures.map(userFigureUseOf), everyElement(isNull));
+        expect(figures[1].params['text'], line);
+      });
+    }
+
+    testWidgets('64 is the last count the use takes', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      await typeLine(tester, 'zm (64)');
+      final figure = (await saved(tester, repos)).single;
+      expect(userFigureUseOf(figure)?.id, 'zoom-id');
+      expect(figure.params['beats'], 64);
+    });
+
+    testWidgets('a count too long to be beats leaves the use its beats and '
+        'rides in its note (#1863)', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      await typeLine(tester, 'zm (10000)');
+      final figure = (await saved(tester, repos)).single;
+      expect(userFigureUseOf(figure)?.id, 'zoom-id');
+      expect(figure.params['beats'], 4);
+      expect(figure.note, '10000');
+    });
+
     // A `;` clause may be one of these shorthands, with its own count (#1866),
     // as it may be a plain shorthand (#1827). Rows come out in typed order.
     final clauseLines = <String, List<String?>>{
@@ -501,6 +551,49 @@ void main() {
         [for (final f in await saved(tester, repos)) f.move],
         ['swing', 'chain'],
       );
+    });
+
+    testWidgets('a plain shorthand clause whose count is refused keeps the '
+        'whole line custom (#1879)', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      final controller = ShorthandMappingsScope.controllerOf(
+        tester.element(find.byType(DanceEditorScreen)),
+      );
+      await tester.runAsync(
+        () => repos.settings.set(kShorthandMappingsKey, [
+          ShorthandMapping(token: 'ns', figures: [swing()]).toJson(),
+        ]),
+      );
+      await tester.runAsync(controller.load);
+      await tester.pumpAndSettle();
+      await typeLine(tester, 'zm; ns (100)');
+      final figure = (await saved(tester, repos)).single;
+      expect(figure.isCustom, isTrue);
+      expect(figure.params['text'], 'zm; ns (100)');
+    });
+
+    testWidgets('a count over 64 on a plain shorthand of several figures is '
+        'ignored, a custom figure among them included (#1879)', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      final controller = ShorthandMappingsScope.controllerOf(
+        tester.element(find.byType(DanceEditorScreen)),
+      );
+      await tester.runAsync(
+        () => repos.settings.set(kShorthandMappingsKey, [
+          ShorthandMapping(
+            token: 'cb',
+            figures: [swing(), customFigure('my own thing')],
+          ).toJson(),
+        ]),
+      );
+      await tester.runAsync(controller.load);
+      await tester.pumpAndSettle();
+      await typeLine(tester, 'zm; cb (100)');
+      final figures = await saved(tester, repos);
+      expect(figures, hasLength(3));
+      expect(userFigureUseOf(figures[0]), isNotNull);
+      expect(figures[1].move, 'swing');
+      expect(figures[2].params['text'], 'my own thing');
     });
 
     testWidgets('65 clauses are not expanded', (tester) async {

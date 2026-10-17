@@ -149,14 +149,19 @@ class DanceEditorForm extends StatelessWidget {
   FigureDraft? _shorthandDraft(String clause) {
     final split = splitShorthandCount(clause);
     return _draftForToken(clause, null) ??
-        (split == null ? null : _draftForToken(split.text, split.beats));
+        (split == null
+            ? null
+            : _draftForToken(split.text, split.beats, unread: split.unread));
   }
 
   /// The row for the compound or own-figure shorthand whose token is [token].
   /// [beats] is a count typed with it: a compound row takes its beats from the
   /// compound, so it ignores one (even for a compound of a single figure); an
-  /// own figure is one figure, so it takes it as its beats.
-  FigureDraft? _draftForToken(String token, int? beats) {
+  /// own figure is one figure, so it takes it as its beats, as a plain
+  /// shorthand does (#1879): a count the taxonomy's beats range refuses is no
+  /// shorthand match, so the line is kept custom as typed; [unread], a count
+  /// too long to be beats, leaves the figure its beats and rides in its note.
+  FigureDraft? _draftForToken(String token, int? beats, {String? unread}) {
     // Tokens are kept unique, but two devices can each add one before they
     // sync, and then the plain shorthand wins.
     if (shorthandMappings?.resolve(token) != null) return null;
@@ -164,9 +169,18 @@ class DanceEditorForm extends StatelessWidget {
       return controller.compoundShorthandDraft(shorthand);
     }
     final mine = userFigureShorthands?.resolve(token);
-    return mine == null
-        ? null
-        : controller.userFigureShorthandDraft(mine, beats: beats);
+    if (mine == null) return null;
+    final counted = beats != null && beats > 0;
+    if (counted &&
+        !ParamSpec(ParamKind.beats, defaultValue: 8).validate(beats)) {
+      return null;
+    }
+    final draft = controller.userFigureShorthandDraft(
+      mine,
+      beats: counted ? beats : null,
+    );
+    if (draft != null && unread != null) draft.note = unread;
+    return draft;
   }
 
   /// Expands a `;` line some of whose clauses are compound or own-figure
@@ -208,13 +222,20 @@ class DanceEditorForm extends StatelessWidget {
   }
 
   /// Whether [clause] is a plain shorthand, counted or not, whose figures may
-  /// include a custom one the user chose.
+  /// include a custom one the user chose. A count it cannot take is not one.
   bool _isPlainShorthandClause(String clause) {
     final mappings = shorthandMappings;
     if (mappings == null) return false;
     if (mappings.resolve(clause) != null) return true;
     final split = splitShorthandCount(clause);
-    return split != null && mappings.resolve(split.text) != null;
+    final figures = split == null ? null : mappings.resolve(split.text);
+    if (split == null || figures == null) return false;
+    // A count the beats range refuses on a one-figure shorthand made the clause
+    // a custom figure the user did not choose, so the line is kept whole
+    // (#1879). A shorthand of several figures ignores any count.
+    return figures.length != 1 ||
+        split.unread != null ||
+        ParamSpec(ParamKind.beats, defaultValue: 8).validate(split.beats);
   }
 
   @override
