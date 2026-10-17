@@ -522,7 +522,13 @@ def gate_closes(fetcher: Any, pr: int, intended: Iterable[int]) -> tuple[bool, l
 # the keyword, exactly as GitHub does.
 _CLOSING_REF = re.compile(
     r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b[ \t]*:?[ \t]+"
-    r"(?:(?P<repo>[\w.-]+/[\w.-]+))?#(?P<num>\d+)",
+    r"(?:"
+    # `#12` or `owner/name#12`
+    r"(?P<repo>[\w.-]+/[\w.-]+)?#(?P<num>\d+)"
+    r"|"
+    # a full issue URL
+    r"https?://github\.com/(?P<urlrepo>[\w.-]+/[\w.-]+)/issues/(?P<urlnum>\d+)"
+    r")",
     re.IGNORECASE,
 )
 
@@ -532,11 +538,12 @@ def _closing_refs(text: str | None, repo: str) -> tuple[set[int], set[str]]:
     same: set[int] = set()
     other: set[str] = set()
     for m in _CLOSING_REF.finditer(text or ""):
-        ref_repo = m.group("repo")
+        ref_repo = m.group("repo") or m.group("urlrepo")
+        number = m.group("num") or m.group("urlnum")
         if ref_repo is None or ref_repo.lower() == repo.lower():
-            same.add(int(m.group("num")))
+            same.add(int(number))
         else:
-            other.add(f"{ref_repo}#{m.group('num')}")
+            other.add(f"{ref_repo}#{number}")
     return same, other
 
 

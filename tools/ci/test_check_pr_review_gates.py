@@ -825,6 +825,21 @@ def test_closes_via_rest_flags_a_missing_link_and_an_issue_branch() -> None:
     assert any("issue-716" in line for line in lines)
 
 
+def test_closes_via_rest_reads_a_keyword_followed_by_an_issue_url() -> None:
+    fetcher = FakeFetcher(
+        closes_rest(
+            body=(
+                "Fixes https://github.com/ibanner56/CallersCompendium/issues/21 "
+                "and resolves https://github.com/other/repo/issues/8"
+            )
+        ),
+        REFUSED,
+    )
+    ok, lines = gates.gate_closes(fetcher, 1, [21])
+    assert not ok
+    assert "other/repo#8" in lines[0] and "#21" not in lines[0].split("also close")[1]
+
+
 def test_closes_via_rest_ignores_words_that_merely_contain_a_keyword() -> None:
     fetcher = FakeFetcher(closes_rest(body="A prefixed #4 and disclosed #5"), REFUSED)
     ok, lines = gates.gate_closes(fetcher, 1, [])
