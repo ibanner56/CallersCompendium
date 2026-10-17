@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/app_bar_text_action.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
 
 /// Maps one of the user's own figures onto the shipped figure [target] that
@@ -220,12 +221,13 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
       appBar: AppBar(
         title: Text(l10n.userFigureSwitchTitle(targetName)),
         actions: [
-          TextButton(
+          AppBarTextAction(
             key: const ValueKey('user-figure-switch-save'),
+            label: l10n.userFigureSwitchAction,
+            icon: Icons.swap_horiz,
             onPressed: complete
                 ? () => Navigator.of(context).pop(_mapping)
                 : null,
-            child: Text(l10n.userFigureSwitchAction),
           ),
         ],
       ),

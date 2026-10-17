@@ -14,6 +14,7 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../utils/undo_snack_bar.dart';
 import 'import_review_screen.dart';
+import '../widgets/app_bar_text_action.dart';
 
 /// Builds a [Program] from a pasted, newline-separated list of dance titles
 /// (epic #291, sub-issue #312).
@@ -378,10 +379,11 @@ class _PlaintextProgramImportScreenState
       appBar: AppBar(
         title: Text(l10n.importTitleListTitle),
         actions: [
-          TextButton(
+          AppBarTextAction(
             key: const ValueKey('plaintext-import-commit'),
+            label: l10n.importAction,
+            icon: Icons.download_done,
             onPressed: _canCommit ? _commit : null,
-            child: Text(l10n.importAction),
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/plaintext_program_import_screen.dart';
+import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
@@ -166,7 +167,7 @@ void main() {
 
     await _pump(tester, repos);
 
-    TextButton commitButton() => tester.widget<TextButton>(
+    AppBarTextAction commitButton() => tester.widget<AppBarTextAction>(
       find.byKey(const ValueKey('plaintext-import-commit')),
     );
     expect(commitButton().onPressed, isNull);
