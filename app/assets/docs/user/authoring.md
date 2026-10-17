@@ -123,9 +123,17 @@ Any of these can say `beats`: `neighbor swing (16 beats)`,
 `neighbor swing 16 beats` or `16 beats neighbor swing`. A count in bars
 (`circle left 4 bars`) is kept as a note on the figure, because how many beats a bar holds depends on the dance's music.
 A count is never dropped: if the line states one the app cannot use (a second
-count on the same figure, or one too long to be beats), the line is kept whole as a custom figure. A line kept
-as a custom figure keeps your words as you typed them, count included, and the
-count you gave is also its beats.
+count on the same figure), the line is kept whole as a custom figure. A line
+kept as a custom figure keeps your words as you typed them, count included, and
+the count you gave is also its beats.
+
+A count too long to be beats, five digits or more (`circle left 10000 beats`,
+`(10000) circle left`), is not used as one. The figure is read as usual and takes
+the beats it has when you pick it from the list, and the number is kept in the
+figure's note (`10000 beats`) so you can see it was typed. If the rest of the
+line is not read as a figure, the whole line is kept as a custom figure, as you
+typed it. A count that is shorter but more than the 64 beats a figure can take
+(`circle left (100)`) keeps the whole line as a custom figure too.
 
 Pasting several lines into the box keeps them as one line, with a space where
 each line break was; type or paste one figure line at a time to get one figure

@@ -186,12 +186,24 @@ void main() {
     );
 
     test('a count too long to be beats is kept in a custom, not dropped', () {
-      for (final line in ['(99999) swing', 'swing [99999]']) {
+      for (final line in ['(99999) gibberish xyz', 'gibberish xyz [99999]']) {
         final f = parseFreeTextFigureEntry(line).single;
         expect(f.isCustom, isTrue, reason: line);
         expect(f.params['text'], line);
       }
     });
+
+    test(
+      'a count too long to be beats on a move is kept as a note (#1863)',
+      () {
+        final lead = parseFreeTextFigureEntry('(99999) swing').single;
+        expect(lead.move, 'swing');
+        expect(lead.note, '99999');
+        final tail = parseFreeTextFigureEntry('swing [99999]').single;
+        expect(tail.move, 'swing');
+        expect(tail.note, '99999');
+      },
+    );
 
     test('a bracketed count glued to the move is still a count', () {
       final lead = parseFreeTextFigureEntry('(16)swing').single;
@@ -203,7 +215,11 @@ void main() {
     });
 
     test('re-parse never drops a count a free-text custom kept', () {
-      for (final line in ['(99999) neighbors swing', '(16) swing (8)']) {
+      for (final line in [
+        '(99999) gibberish xyz',
+        '(99999) swing (8)',
+        '(16) swing (8)',
+      ]) {
         final custom = parseFreeTextFigureEntry(line);
         final out = reparseImportGapFigures(custom);
         expect(out.upgradedCount, 0, reason: line);
@@ -318,8 +334,8 @@ void main() {
         'circle left (64); turn alone (65)',
         // A second count on one clause: the parser would drop one.
         'circle left (8) (4); turn alone',
-        // A count too long to be beats.
-        'circle left (99999); turn alone',
+        // A count too long to be beats, on a clause that is not read.
+        'gibberish xyz (99999); turn alone',
       ]) {
         final f = parseFreeTextFigureEntry(line).single;
         expect(f.isCustom, isTrue, reason: line);
@@ -409,10 +425,18 @@ void main() {
       expectDefaultWithNote('circle left (${'9' * 40})', '9' * 40);
     });
 
-    test('a count over the 0..64 beats range follows the same default', () {
-      expectDefaultWithNote('circle left 65 beats', '65 beats');
-      expectDefaultWithNote('circle left (100)', '100');
-      expectDefaultWithNote('9999 circle left', '9999');
+    test('a count of up to four digits over the 0..64 range is left to the '
+        'range check, as before: a custom whose beats are the count', () {
+      for (final line in [
+        'circle left 65 beats',
+        'circle left (100)',
+        '9999 circle left',
+      ]) {
+        final f = parseFreeTextFigureEntry(line).single;
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.params['text'], line, reason: line);
+        expect(f.note, isNull, reason: line);
+      }
     });
 
     test('a count in range is still the beats, and 64 is the last one', () {
@@ -438,9 +462,6 @@ void main() {
         expect(first[0].note, '10000 beats');
         expect(first[0].params.containsKey('beats'), isFalse);
         expect(first[1].params['beats'], 4);
-        final over = parseFreeTextFigureEntry('circle left; turn alone (100)');
-        expect(over.map((f) => f.move), ['circle', 'turn_alone']);
-        expect(over[1].note, '100');
       },
     );
 

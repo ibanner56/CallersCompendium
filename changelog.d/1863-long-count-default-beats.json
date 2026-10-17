@@ -1,0 +1,14 @@
+{
+  "id": "1863-long-count-default-beats",
+  "user_visible": true,
+  "core": {
+    "fixed": [
+      "Free-text entry reads a line whose count is too long to be beats (five or more digits, such as `circle left 10000 beats`, `(10000) circle left` or `circle left; turn alone (10000)`) as the figure it names, with the beats the figure has when picked from the list, instead of keeping it as a custom figure with no beats (#1863). The number is kept in the figure's note on the figure it was typed with, so it is not dropped. A line the parser does not read in full is still kept whole as a custom figure, as typed."
+    ]
+  },
+  "app": {
+    "fixed": [
+      "Typing a figure with a count too long to be beats (`circle left 10000 beats`) in free-text entry now gives the figure with its usual beats, and the number is kept in its note, instead of a custom figure with no beats."
+    ]
+  }
+}

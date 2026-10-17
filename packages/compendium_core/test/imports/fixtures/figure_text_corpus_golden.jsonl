@@ -119,7 +119,7 @@
 {"in":"(,12) neighbors balance and swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\",\"prefix\":\"balance\"}}]"}
 {"in":"an empty text after a lone (16) keeps beats and the original line","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"an empty text after a lone (16) keeps beats and the original line\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"a digit run past four digits is not read as a beat count","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"a digit run past four digits is not read as a beat count\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"(99999) neighbors swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\"}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(99999) neighbors swing\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"(99999) neighbors swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\"}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\"},\"note\":\"99999\"}]"}
 {"in":"a four-digit run is still bounded-but-valid","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"a four-digit run is still bounded-but-valid\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"(9999) swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"},\"assumedSubject\":true}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(9999) swing\",\"beats\":9999},\"customOrigin\":\"importGap\"}]"}
 {"in":"swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"},\"assumedSubject\":true}]"}
@@ -4005,7 +4005,7 @@
 {"in":"a trailing prose annotation is NOT read as a beat count","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"a trailing prose annotation is NOT read as a beat count\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor swing (smooth)","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\"},\"note\":\"smooth\"}]"}
 {"in":"an absurdly long digit run is treated as text, not beats","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"an absurdly long digit run is treated as text, not beats\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"99999 Neighbor swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"99999 Neighbor swing\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"99999 Neighbor swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"99999 Neighbor swing\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\"},\"note\":\"99999\"}]"}
 {"in":"a trailing \"(0)\" is not stripped as a beat count","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"a trailing \\\"(0)\\\" is not stripped as a beat count\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor swing (0)","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\"}}]"}
 {"in":"a leading \"0 \" is left in the text, not stripped as a beat count","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"a leading \\\"0 \\\" is left in the text, not stripped as a beat count\"},\"customOrigin\":\"importGap\"}]"}
