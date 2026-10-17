@@ -43,10 +43,17 @@ class EnumDropdown<T> extends StatelessWidget {
     return DropdownButtonFormField<T>(
       key: ValueKey('$fieldKey-field'),
       initialValue: value,
+      // Fill the slot instead of sizing to the widest label, so a half-width
+      // dropdown (Progression beside Rating) ellipsizes at phone width rather
+      // than overflowing its row (#1868).
+      isExpanded: true,
       decoration: InputDecoration(labelText: label),
       items: [
         for (final v in values)
-          DropdownMenuItem(value: v, child: Text(labelOf(v))),
+          DropdownMenuItem(
+            value: v,
+            child: Text(labelOf(v), overflow: TextOverflow.ellipsis),
+          ),
       ],
       onChanged: (v) {
         if (v != null) onChanged(v);
