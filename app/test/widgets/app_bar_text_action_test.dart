@@ -166,12 +166,16 @@ void main() {
         ],
       )
       SliverAppBar(actions: [FilledButton.icon(onPressed: f)])
+      SliverAppBar(actions: <Widget>[TextButton(onPressed: f)])
+      AppBar(actions: const [OutlinedButton(onPressed: null)])
       AlertDialog(actions: [TextButton(onPressed: f, child: Text(z))])
     ''';
     final blocks = appBarActionBlocks(source);
-    expect(blocks, hasLength(2), reason: 'a dialog is not an AppBar');
-    expect(blocks.first, contains('TextButton('));
-    expect(blocks.last, contains('FilledButton.icon('));
+    expect(blocks, hasLength(4), reason: 'a dialog is not an AppBar');
+    expect(blocks[0], contains('TextButton('));
+    expect(blocks[1], contains('FilledButton.icon('));
+    expect(blocks[2], contains('TextButton('), reason: 'a typed list');
+    expect(blocks[3], contains('OutlinedButton('), reason: 'a const list');
   });
 }
 
@@ -188,7 +192,9 @@ String _withoutComments(String source) => source
 /// so a list spread over many lines is read whole.
 List<String> appBarActionBlocks(String source) {
   final blocks = <String>[];
-  for (final match in RegExp(r'\bactions:\s*\[').allMatches(source)) {
+  for (final match in RegExp(
+    r'\bactions:\s*(?:const\s+)?(?:<[^>]*>\s*)?\[',
+  ).allMatches(source)) {
     // The call this argument belongs to: the nearest unmatched '(' before it.
     var depth = 0;
     var i = match.start - 1;
