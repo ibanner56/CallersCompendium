@@ -80,7 +80,7 @@ void main() {
           matching: find.byType(IconButton),
         ),
       ),
-      containsSemantics(tooltip: 'Enregistrer', isButton: true),
+      isSemantics(tooltip: 'Enregistrer', isButton: true),
     );
     await tester.tap(find.byIcon(Icons.check));
     expect(pressed, 1);
