@@ -31,6 +31,8 @@ STALE = "a76f3e0f1d2c3b4a5968778695a4b3c2d1e0f9a8"
 
 
 class FakeFetcher:
+    repo = "ibanner56/CallersCompendium"
+
     def __init__(self, rest: dict[str, Any], graphql: Any = None) -> None:
         self._rest = rest
         self._graphql = graphql
@@ -45,6 +47,8 @@ class FakeFetcher:
     def graphql(self, query: str) -> Any:
         if self._graphql is None:
             raise AssertionError("unexpected GraphQL call")
+        if isinstance(self._graphql, Exception):
+            raise self._graphql
         return self._graphql
 
 
@@ -666,6 +670,185 @@ def test_closes_total_count_beyond_nodes_is_truncation_even_without_the_flag() -
     fetcher = FakeFetcher({}, closes_payload([990], total=9))
     ok, _ = gates.gate_closes(fetcher, 1, [990])
     assert not ok
+
+
+# --------------------------------------------------------------------------- #
+# REST fallback when GraphQL is refused (Claude Code cloud sessions)
+# --------------------------------------------------------------------------- #
+
+REFUSED = gates.GraphQLUnavailable(
+    "gh api graphql failed: gh: GitHub GraphQL is not available from Claude "
+    "Code sessions; use the REST API (HTTP 403)"
+)
+THREADS_PATH = "pulls/1/ccr/review_threads"
+
+
+def rest_thread(resolved: bool, path: str = "lib/a.dart") -> dict[str, Any]:
+    return {"resolved": resolved, "outdated": False, "path": path, "line": 1}
+
+
+def test_fetcher_classifies_only_the_graphql_refusal_as_unavailable() -> None:
+    fetcher = gates.GitHubFetcher("o/r")
+
+    def refused(args: Any) -> str:
+        raise gates.GateError(
+            "gh api graphql failed: gh: GitHub GraphQL is not available from "
+            "Claude Code sessions; use the REST API (HTTP 403)"
+        )
+
+    def rate_limited(args: Any) -> str:
+        raise gates.GateError("gh api graphql failed: API rate limit exceeded (HTTP 403)")
+
+    fetcher._gh = refused  # type: ignore[method-assign]
+    try:
+        fetcher.graphql("q")
+    except gates.GraphQLUnavailable:
+        pass
+    else:
+        raise AssertionError("the refusal must be GraphQLUnavailable")
+
+    fetcher._gh = rate_limited  # type: ignore[method-assign]
+    try:
+        fetcher.graphql("q")
+    except gates.GraphQLUnavailable:
+        raise AssertionError("a rate limit is not a refusal; it must not fall back")
+    except gates.GateError:
+        pass
+
+
+def test_threads_fall_back_to_rest_and_pass_when_all_resolved() -> None:
+    fetcher = FakeFetcher({THREADS_PATH: [[rest_thread(True)]]}, REFUSED)
+    ok, lines = gates.gate_threads(fetcher, 1)
+    assert ok, lines
+    assert "via REST" in lines[0]
+
+
+def test_threads_fall_back_to_rest_and_fail_on_unresolved() -> None:
+    fetcher = FakeFetcher(
+        {THREADS_PATH: [rest_thread(False, "lib/b.dart"), rest_thread(True)]}, REFUSED
+    )
+    ok, lines = gates.gate_threads(fetcher, 1)
+    assert not ok
+    assert "lib/b.dart" in lines[0] and "via REST" in lines[0]
+
+
+def test_rest_threads_at_the_page_size_cannot_prove_completeness() -> None:
+    full = [rest_thread(True)] * gates.REST_THREADS_MAX
+    fetcher = FakeFetcher({THREADS_PATH: full}, REFUSED)
+    ok, lines = gates.gate_threads(fetcher, 1)
+    assert not ok, lines
+    assert "truncated" in lines[0]
+
+
+def test_threads_report_both_failures_when_rest_fails_too() -> None:
+    class RestBroken(FakeFetcher):
+        def rest(self, path: str, *, paginate: bool = False) -> Any:
+            raise gates.GateError("HTTP 404")
+
+    try:
+        gates.gate_threads(RestBroken({}, REFUSED), 1)
+    except gates.GateError as exc:
+        assert "REST fallback also failed" in str(exc) and "HTTP 404" in str(exc)
+    else:
+        raise AssertionError("an unanswerable gate must raise, not pass")
+
+
+def test_a_graphql_failure_that_is_not_the_refusal_still_skips() -> None:
+    """No weaker REST answer for a transient failure: it stays unanswered."""
+    fetcher = FakeFetcher({}, gates.GateError("gh api graphql failed: timeout"))
+    try:
+        gates.gate_threads(fetcher, 1)
+    except gates.GraphQLUnavailable:
+        raise AssertionError("a timeout must not trigger the fallback")
+    except gates.GateError:
+        pass
+    assert fetcher.rest_calls == []
+
+
+def closes_rest(
+    body: str = "",
+    commits: list[str] | None = None,
+    title: str = "A change",
+    branch: str = "claude/a-change",
+) -> dict[str, Any]:
+    return {
+        "pulls/1": {"title": title, "body": body, "head": {"ref": branch}},
+        "pulls/1/commits": [[{"commit": {"message": m}} for m in (commits or [])]],
+    }
+
+
+def test_closes_fall_back_to_rest_and_pass_on_an_exact_match() -> None:
+    fetcher = FakeFetcher(closes_rest(body="Closes #1841.\n\nSupersedes #895."), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [1841])
+    assert ok, lines
+    assert "closes exactly #1841" in lines[0]
+    assert "sidebar" in lines[0], "the weaker evidence must be labelled"
+
+
+def test_closes_via_rest_flags_a_denial_that_still_links() -> None:
+    """#897 again, through the fallback: `Does not close #887` links it."""
+    fetcher = FakeFetcher(closes_rest(body="Closes #990. Does not close #887."), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [990])
+    assert not ok
+    assert "#887" in lines[0]
+
+
+def test_closes_via_rest_reads_commit_messages_and_the_title() -> None:
+    fetcher = FakeFetcher(
+        closes_rest(title="Fixes #12", commits=["Resolve: #13", "tidy"]), REFUSED
+    )
+    ok, lines = gates.gate_closes(fetcher, 1, [12])
+    assert not ok
+    assert "#13" in lines[0] and "#12" not in lines[0].split("also close")[1]
+
+
+def test_closes_via_rest_flags_another_repository() -> None:
+    fetcher = FakeFetcher(closes_rest(body="Closes other/repo#5"), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [])
+    assert not ok
+    assert "other/repo#5" in lines[0]
+
+
+def test_closes_via_rest_counts_a_same_repo_qualified_reference() -> None:
+    fetcher = FakeFetcher(
+        closes_rest(body="Closes ibanner56/CallersCompendium#7"), REFUSED
+    )
+    ok, lines = gates.gate_closes(fetcher, 1, [7])
+    assert ok, lines
+
+
+def test_closes_via_rest_flags_a_missing_link_and_an_issue_branch() -> None:
+    fetcher = FakeFetcher(closes_rest(body="Mentions #3", branch="feat/issue-716-x"), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [990])
+    assert not ok
+    assert any("#990" in line for line in lines)
+    assert any("issue-716" in line for line in lines)
+
+
+def test_closes_via_rest_ignores_words_that_merely_contain_a_keyword() -> None:
+    fetcher = FakeFetcher(closes_rest(body="A prefixed #4 and disclosed #5"), REFUSED)
+    ok, lines = gates.gate_closes(fetcher, 1, [])
+    assert ok, lines
+
+
+def test_run_gates_exits_zero_through_the_fallback() -> None:
+    rest = {
+        "pulls/1": {
+            "head": {"sha": HEAD, "ref": "claude/x"},
+            "title": "t",
+            "body": "Closes #9",
+        },
+        "pulls/1/reviews": [[review(REVIEWER, HEAD)]],
+        "pulls/1/comments": [[]],
+        THREADS_PATH: [rest_thread(True)],
+        "pulls/1/commits": [[]],
+    }
+    printed: list[str] = []
+    code = gates.run_gates(
+        FakeFetcher(rest, REFUSED), 1, ["closes", "threads", "review"], [9], out=printed.append
+    )
+    assert code == 0, printed
+    assert not any(line.startswith("SKIP") for line in printed), printed
 
 
 # --------------------------------------------------------------------------- #
