@@ -631,11 +631,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (mounted) await _runSearch();
   }
 
-  /// Seeds `_sort` (and, under "Last used", `_sortDir`) from the saved default
-  /// Collection sort order (ROADMAP G.6a; extended to a "Last used" mode by
-  /// issue #895 / ROADMAP G.6c), at most once and only if the user hasn't already chosen a
-  /// sort this session. A `null`/invalid stored value leaves the historical
-  /// default (`title`, ascending) in place. Called before the first search so
+  /// Seeds `_sort` and `_sortDir` from the saved default Collection sort order
+  /// (ROADMAP G.6a; extended to a "Last used" mode by issue #895 / ROADMAP
+  /// G.6c), at most once and only if the user hasn't already chosen a sort this
+  /// session. The direction comes from the last-used keys under "Last used",
+  /// otherwise from the default's own direction key (issue #1841), falling back
+  /// to the sort's natural direction. A `null`/invalid stored sort leaves the
+  /// historical default (`title`, ascending) in place. Called before the first search so
   /// the list opens in the default sort; a no-op on subsequent [_boot]s (e.g.
   /// a refresh).
   Future<void> _seedDefaultSort() async {

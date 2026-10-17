@@ -207,9 +207,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     _subscribe();
   }
 
-  /// Seeds `_sort` (and, under "Last used", `_sortDir`) from the saved default
-  /// Programs sort order (issue #895), at most once and only if the user
-  /// hasn't already chosen a sort this session. A `null`/invalid stored value
+  /// Seeds `_sort` and `_sortDir` from the saved default Programs sort order
+  /// (issue #895), at most once and only if the user hasn't already chosen a
+  /// sort this session. The direction comes from the last-used keys under
+  /// "Last used", otherwise from the default's own direction key (issue #1841),
+  /// falling back to the sort's natural direction. A `null`/invalid stored sort
   /// leaves the historical default (`title`, ascending) in place. Mirrors
   /// `dance_list_screen.dart`'s `_seedDefaultSort` exactly, including the
   /// (sort, direction) *pair* comparison at the end — a key-only comparison

@@ -1070,9 +1070,10 @@ void main() {
           );
         });
 
-        testWidgets('is shown again, on the saved direction, when switching '
-            'back from Last used to the same fixed sort would otherwise '
-            'carry a stale one', (tester) async {
+        testWidgets('picking a fixed sort after Last used resets to its '
+            'natural direction, even with a stale one left stored', (
+          tester,
+        ) async {
           final repos = openTestRepositories();
           await repos.settings.set(list.settingsKey, kLastUsedSortSentinel);
           await repos.settings.set(
