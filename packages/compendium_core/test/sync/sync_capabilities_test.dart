@@ -85,31 +85,51 @@ void main() {
       recordsByDevice: records,
     );
 
-    test('advertises glossary.v1 and gates glossary.v2 without advertising '
-        'it', () {
-      expect(build.advertised, {SyncCapabilities.glossaryV1});
-      expect(build.gatedCapabilities, {
-        SyncCapabilities.glossaryV1,
-        SyncCapabilities.glossaryV2,
-      });
-    });
+    test(
+      'advertises glossary.v1 and glossary.v2, and gates on both (#1023)',
+      () {
+        expect(build.advertised, {
+          SyncCapabilities.glossaryV1,
+          SyncCapabilities.glossaryV2,
+        });
+        expect(build.gatedCapabilities, {
+          SyncCapabilities.glossaryV1,
+          SyncCapabilities.glossaryV2,
+        });
+      },
+    );
 
-    test('rollout: with no record from any peer, every peer holds '
-        'glossary.v1 closed', () {
+    test('rollout: with no record from any peer, every peer holds both '
+        'closed', () {
       expect(closedBeside(['a', 'b'], const {}), {
         SyncCapabilities.glossaryV1: {'a', 'b'},
-        SyncCapabilities.glossaryV2: <String>{},
+        SyncCapabilities.glossaryV2: {'a', 'b'},
       });
     });
 
-    test('with every peer advertising what the build does, glossary.v1 is '
-        'open and glossary.v2 is closed with no device to name', () {
+    test('rollout: beside peers on the build before this one, which '
+        'advertise only glossary.v1, every peer holds glossary.v2 closed', () {
+      expect(
+        closedBeside(
+          ['a', 'b'],
+          {
+            'a': {SyncCapabilities.glossaryV1},
+            'b': {SyncCapabilities.glossaryV1},
+          },
+        ),
+        {
+          SyncCapabilities.glossaryV2: {'a', 'b'},
+        },
+      );
+    });
+
+    test('with every peer advertising what the build does, both are open', () {
       expect(
         closedBeside(
           ['a', 'b'],
           {'a': build.advertised, 'b': build.advertised},
         ),
-        {SyncCapabilities.glossaryV2: <String>{}},
+        isEmpty,
       );
     });
   });

@@ -4482,7 +4482,7 @@ in `packages/compendium_core/test/sync/sync_capabilities_test.dart`.
 settings (#709). The reference client advertises it from the change that
 syncs the two kinds (#1776); before that change it gated the two settings
 without advertising the capability, so they stayed on their device, with no
-notice, as `glossary.v2` does now.
+notice, as `glossary.v2`'s did until #1023 was complete.
 
 **`glossary.v2`.** Gates `glossaryEntry` records whose entry kind is `term` or
 `customFigure`, the user's own terms and figures (#1023), tombstones included:
@@ -4491,12 +4491,11 @@ a tombstone blob carries its body, so its kind. An entry of any other kind,
 A build that knows only `glossary.v1` would read such an entry as one it cannot
 use. It also gates the `user_figure_shorthands` setting, the shorthands for
 those figures, which a peer that cannot read the figures has no use for. The
-reference client gates it without advertising it until #1023 is complete, so
-until then those entries and that setting are held back on every pass, however
-many devices are attached and however up to date they are, and no notice is
-shown: no device holds it closed, so there is none to name. The build that
-first advertises it is subject to *Rollout*, and must change the tests that pin
-it as unadvertised.
+reference client advertises it from the change that completes #1023; before
+that change it gated them without advertising the capability, so they were
+held back on every pass with no notice. That change is subject to *Rollout*:
+a device on a build that lists only `glossary.v1` holds `glossary.v2` closed and
+is named for it, while what `glossary.v1` gates publishes past it.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed
