@@ -6518,6 +6518,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get importIssueCcUserFieldKeyAdjusted =>
+      'Caller\'s Companionのフィールドのキーを、有効かつ一意になるよう調整しました。名前はそのまま保持されます。';
+
+  @override
   String get importIssueUnparsedRating => '評価を読み取れませんでした。未評価のままです。';
 
   @override

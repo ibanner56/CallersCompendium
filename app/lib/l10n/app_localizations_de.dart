@@ -6869,6 +6869,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get importIssueCcUserFieldKeyAdjusted =>
+      'Der Schlüssel eines Caller\'s-Companion-Felds wurde angepasst, damit er gültig und eindeutig ist; sein Name bleibt erhalten.';
+
+  @override
   String get importIssueUnparsedRating =>
       'Eine Bewertung konnte nicht gelesen werden; nicht bewertet.';
 

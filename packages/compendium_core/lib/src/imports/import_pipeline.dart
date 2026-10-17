@@ -830,6 +830,7 @@ class ImportPipeline {
             createdAt: existing.createdAt,
             updatedAt: now,
             provenance: prov,
+            keepCustomFieldsFrom: existing,
           );
           await _dances.update(dance);
           committed.add(
@@ -1284,7 +1285,9 @@ class ImportPipeline {
   /// [authorIds] is null the draft's own ids are kept — free-text adapters
   /// resolve names at commit and pass the resolved list, while adapters that
   /// ship canonical ids directly (e.g. the generic archive/JSON adapter) pass
-  /// null to preserve them.
+  /// null to preserve them. [keepCustomFieldsFrom] is the dance being
+  /// re-imported over: its custom-field values for fields [src] does not carry
+  /// survive.
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
@@ -1292,6 +1295,7 @@ class ImportPipeline {
     required DateTime updatedAt,
     List<String>? authorIds,
     Provenance? provenance,
+    Dance? keepCustomFieldsFrom,
   }) => Dance(
     id: id,
     title: src.title,
@@ -1314,7 +1318,17 @@ class ImportPipeline {
     // Carried through whole, so a re-identified dance keeps a tune list
     // that could not be decoded instead of silently becoming empty.
     tunesSource: src.tunesSource,
-    customFields: src.customFields,
+    // A source that carries no custom fields (every adapter but the native
+    // archive and the CC user fields) must not erase the ones the person added
+    // to the dance since: `DanceRepository.update` deletes every stored value
+    // and rewrites only what the dance carries. On a re-import the draft's value
+    // wins for a field it carries; every other stored value is kept.
+    customFields: [
+      ...src.customFields,
+      if (keepCustomFieldsFrom != null)
+        for (final value in keepCustomFieldsFrom.customFields)
+          if (!src.customFields.any((v) => v.fieldId == value.fieldId)) value,
+    ],
     tagIds: src.tagIds,
     links: src.links,
     sourceCitations: src.sourceCitations,

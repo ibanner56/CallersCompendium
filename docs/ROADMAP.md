@@ -97,7 +97,7 @@ implementation notes and deviations against each item — is in
     - `CallersCompanionUsrAdapter` imports **dances end-to-end** through the
       existing pipeline (discover → fetch → parse → dedupe → commit), reusing
       `mapCallersCompanionDance`; `externalId` = CC `zk_Dance_ID`; `Rating` →
-      `Dance.rating`, `UserDefined_*` → calling notes.
+      `Dance.rating`, `UserDefined_*` → typed custom fields (#1890).
     - **Shared free-text parser now applied to CC figures** (shared-parser
       phase): `mapCallersCompanionDance` routes every body line through the core
       `parseFigureLine`, so recognized moves structure and the rest fall back to
@@ -121,7 +121,12 @@ implementation notes and deviations against each item — is in
       **Choreographers** through the shared import pipeline (resolve-or-create,
       no fabricated ids — see the 6.2–6.5 author-resolution sub-note above), so
       migrated dances carry their choreographer links. `UserDefined_*` fields
-      import as calling notes **by design** (not typed custom fields).
+      import as **text custom fields** (#1890; previously folded into calling
+      notes because the pipeline could not create a definition, a limitation
+      rather than a recorded decision). Dances imported before #1890 keep the
+      `Label: value` lines in their calling notes; they are not migrated, and a
+      re-import moves the values into typed fields while leaving the old notes
+      text alone.
     - **Venue linking/minting delivered** (#687, PR #700): when venue-entity
       mode is ON, `.USR` program commit now resolves each set's cleaned
       `Location` text to a venue entity via the shared fingerprint path

@@ -1,17 +1,21 @@
 import 'dart:typed_data';
 
+import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
 import '../model/enums.dart';
 import '../model/program.dart';
 import '../model/venue.dart';
+import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/dance_repository.dart';
 import '../storage/repositories/program_repository.dart';
 import '../storage/repositories/venue_repository.dart';
+import '../storage/shareable_text.dart';
 import '../util/uuid.dart';
 import 'callers_companion_programs.dart';
 import 'callers_companion_related_dances.dart';
 import 'callers_companion_usr_adapter.dart';
+import 'callers_companion_user_fields.dart';
 import 'callers_companion_usr_archive.dart';
 import 'dedupe.dart';
 import 'import_error.dart';
@@ -41,13 +45,19 @@ class CcUsrImportResult {
     this.programRestoreAt,
     List<String> insertedVenueIds = const [],
     List<ImportIssue> relatedDanceLinkIssues = const [],
+    List<String> insertedCustomFieldIds = const [],
+    List<String> restoredCustomFieldIds = const [],
+    List<ImportIssue> customFieldIssues = const [],
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
        restoredProgramIds = List.unmodifiable(restoredProgramIds),
        insertedVenueIds = List.unmodifiable(insertedVenueIds),
-       relatedDanceLinkIssues = List.unmodifiable(relatedDanceLinkIssues);
+       relatedDanceLinkIssues = List.unmodifiable(relatedDanceLinkIssues),
+       insertedCustomFieldIds = List.unmodifiable(insertedCustomFieldIds),
+       restoredCustomFieldIds = List.unmodifiable(restoredCustomFieldIds),
+       customFieldIssues = List.unmodifiable(customFieldIssues);
 
   /// The dance-side session (inserted dance ids, updated-dance prior states,
   /// created choreographer ids) — reverted via [ImportPipeline.undo].
@@ -97,6 +107,20 @@ class CcUsrImportResult {
   /// nothing to revert independently on [undo] — see [undo]'s doc).
   final List<ImportIssue> relatedDanceLinkIssues;
 
+  /// Ids of the custom-field definitions this import **created** for the CC
+  /// `UserDefined_*` columns. On [undo] each is hard-deleted unless a surviving
+  /// dance holds a value for it (the repository's own in-transaction guard).
+  final List<String> insertedCustomFieldIds;
+
+  /// Ids of tombstoned definitions this import revived because a CC column's
+  /// key matched them exactly. Tombstoned again on [undo] (same guard).
+  final List<String> restoredCustomFieldIds;
+
+  /// Non-fatal notes from matching CC user fields to definitions at commit
+  /// (a column whose key was taken by a field of another type). The
+  /// per-dance key notes (shared keys, unusable labels) are on the drafts.
+  final List<ImportIssue> customFieldIssues;
+
   /// Ids of the programs updated in place (re-imported) by this import.
   List<String> get updatedProgramIds => [
     for (final p in updatedProgramPriorStates) p.id,
@@ -133,13 +157,19 @@ class CallersCompanionUsrImporter {
   CallersCompanionUsrImporter(
     this._pipeline,
     this._programs,
-    this._venues, {
+    this._venues,
+    this._customFields, {
     CallersCompanionUsrAdapter? adapter,
   }) : _adapter = adapter ?? CallersCompanionUsrAdapter();
 
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
   final VenueRepository _venues;
+
+  /// Where the definitions behind the CC `UserDefined_*` columns are matched
+  /// and created. Takes part in [commit]'s all-or-nothing compensation and in
+  /// [undo].
+  final CustomFieldDefRepository _customFields;
 
   /// The [DanceRepository] the related-dance-link step (issue #688) reads
   /// and updates the just-committed dances through. Reused from [_pipeline]
@@ -232,15 +262,47 @@ class CallersCompanionUsrImporter {
     void Function(int done, int total)? onProgress,
   }) async {
     final mintId = newId ?? uuidV4;
-    final danceSession = await _pipeline.commit(
+    // Definitions first: a dance cannot commit a value for a field that does
+    // not exist yet (`DanceRepository` refuses it), and they are reverted with
+    // the rest of the import.
+    final fields = await _resolveUserFieldDefinitions(
       batch,
       now: now,
       newId: mintId,
-      resolutions: resolutions,
-      // Dances only: programs carry no tags.
-      defaultTagIds: defaultTagIds,
-      onProgress: onProgress,
     );
+    final ImportSession danceSession;
+    try {
+      danceSession = await _pipeline.commit(
+        fields.batch,
+        now: now,
+        newId: mintId,
+        resolutions: resolutions,
+        // Dances only: programs carry no tags.
+        defaultTagIds: defaultTagIds,
+        onProgress: onProgress,
+      );
+    } catch (_) {
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      rethrow;
+    }
+    // A definition no committed dance ended up using (every dance that carried
+    // its key was skipped) is dropped now rather than left as an orphan.
+    final keptInserted = <String>[];
+    for (final id in fields.inserted) {
+      if (await _customFields.isInUse(id)) {
+        keptInserted.add(id);
+      } else {
+        await _customFields.delete(id, permanent: true);
+      }
+    }
+    final keptRestored = <String>[];
+    for (final id in fields.restored) {
+      if (await _customFields.isInUse(id)) {
+        keptRestored.add(id);
+      } else {
+        await _customFields.delete(id);
+      }
+    }
 
     final danceIdByCcRowId = _danceIdByCcRowId(danceSession);
     final built = buildCcPrograms(
@@ -450,6 +512,7 @@ class CallersCompanionUsrImporter {
       }
       await _venues.hardDelete(insertedVenueIds);
       await _pipeline.undo(danceSession);
+      await _revertUserFieldDefinitions(keptInserted, keptRestored);
       rethrow;
     }
 
@@ -463,7 +526,209 @@ class CallersCompanionUsrImporter {
       programRestoreAt: restoredProgramIds.isEmpty ? null : now,
       insertedVenueIds: insertedVenueIds,
       relatedDanceLinkIssues: relatedDanceLinkIssues,
+      insertedCustomFieldIds: keptInserted,
+      restoredCustomFieldIds: keptRestored,
+      customFieldIssues: fields.issues,
     );
+  }
+
+  /// Matches or creates one text definition per CC user-field key carried by
+  /// [batch] (the label comes from the placeholder, see
+  /// [kCcUserFieldIdPrefix]), and returns [batch] with each placeholder field id
+  /// rewritten to the real definition id.
+  ///
+  /// Matching follows the native archive importer (`ShareMetadataImporter`):
+  /// a *live text* definition under the same key is reused untouched, and a
+  /// tombstoned *text* one is revived. A key held by a definition of **another
+  /// type** is never reused (that would store text in a number or choice field)
+  /// and `upsert` would refuse to create onto it, so the field is created under
+  /// `<key>_2`, `<key>_3`, … and a `cc_user_field_key_conflict` note is raised.
+  /// New definitions are text, hidden from the list, searchable, and shareable —
+  /// the default every new field gets.
+  Future<
+    ({
+      ImportBatchResult batch,
+      List<String> inserted,
+      List<String> restored,
+      List<ImportIssue> issues,
+    })
+  >
+  _resolveUserFieldDefinitions(
+    ImportBatchResult batch, {
+    required DateTime now,
+    required String Function() newId,
+  }) async {
+    // Key → label, in first-seen order; the first dance to use a key names it.
+    final labelByKey = <String, String>{};
+    for (final record in batch.records) {
+      for (final value in record.draft.dance.customFields) {
+        final field = ccUserFieldOfPlaceholder(value.fieldId);
+        if (field != null) labelByKey.putIfAbsent(field.key, () => field.label);
+      }
+    }
+    final needed = labelByKey.keys;
+    if (needed.isEmpty) {
+      return (
+        batch: batch,
+        inserted: const <String>[],
+        restored: const <String>[],
+        issues: const <ImportIssue>[],
+      );
+    }
+
+    final existing = await _customFields.listAllWithDeleted();
+    final byCanonical = <String, ({CustomFieldDef field, bool deleted})>{};
+    for (final item in existing) {
+      final canonical = normalizeShareableText(item.field.key);
+      final held = byCanonical[canonical];
+      // A live row beats a tombstone, then the smallest id: the precedence
+      // `ShareMetadataImporter` applies, so the choice is load-order free.
+      if (held == null ||
+          (held.deleted && !item.deleted) ||
+          (held.deleted == item.deleted &&
+              item.field.id.compareTo(held.field.id) < 0)) {
+        byCanonical[canonical] = item;
+      }
+    }
+
+    final usedIds = {for (final item in existing) item.field.id};
+    String freshId() {
+      for (var attempt = 0; attempt < 100; attempt++) {
+        final id = newId();
+        if (usedIds.add(id)) return id;
+      }
+      throw StateError('unable to allocate a unique custom field id');
+    }
+
+    final idByKey = <String, String>{};
+    final inserted = <String>[];
+    final restored = <String>[];
+    final issues = <ImportIssue>[];
+    // Canonical key → the CC column key this import resolved onto it, so a
+    // suffix candidate another column already claimed is skipped, not shared.
+    final createdFor = <String, String>{};
+    try {
+      for (final key in needed) {
+        final label = labelByKey[key]!;
+        var candidate = key;
+        for (var n = 2; ; n++) {
+          final canonical = normalizeShareableText(candidate);
+          final match = byCanonical[canonical];
+          if (match == null) {
+            final def = CustomFieldDef(
+              id: freshId(),
+              key: candidate,
+              label: label,
+              type: CustomFieldType.text,
+            );
+            final actualId = await _customFields.upsert(def, at: now);
+            inserted.add(actualId);
+            if (actualId != def.id) {
+              throw StateError(
+                'custom field "$candidate" resolved to an unexpected id',
+              );
+            }
+            byCanonical[canonical] = (field: def, deleted: false);
+            createdFor[canonical] = key;
+            idByKey[key] = def.id;
+            break;
+          }
+          final claimedByOther =
+              createdFor.containsKey(canonical) && createdFor[canonical] != key;
+          if (match.field.type == CustomFieldType.text && !claimedByOther) {
+            if (match.deleted) {
+              await _customFields.restore(match.field.id, at: now);
+              restored.add(match.field.id);
+              byCanonical[canonical] = (field: match.field, deleted: false);
+            }
+            // Claimed even when reused untouched: two columns must never
+            // resolve to one definition, or a dance would carry two values
+            // for the same field.
+            createdFor[canonical] = key;
+            idByKey[key] = match.field.id;
+            break;
+          }
+          candidate = '${key}_$n';
+        }
+        if (candidate != key) {
+          issues.add(
+            ImportIssue(
+              severity: ImportIssueSeverity.warning,
+              code: 'cc_user_field_key_conflict',
+              message:
+                  'Caller\'s Companion field "$label" could not use the key '
+                  '"$key" (a field of another type holds it); imported as '
+                  '"$candidate".',
+            ),
+          );
+        }
+      }
+    } catch (_) {
+      await _revertUserFieldDefinitions(inserted, restored);
+      rethrow;
+    }
+
+    // Only a draft that carries a placeholder is copied: a library-scale batch
+    // is mostly dances with no user columns.
+    ImportRecordPlan rewrite(ImportRecordPlan record) {
+      final values = record.draft.dance.customFields;
+      if (!values.any((v) => ccUserFieldOfPlaceholder(v.fieldId) != null)) {
+        return record;
+      }
+      return ImportRecordPlan(
+        draft: record.draft.copyWith(
+          dance: record.draft.dance.copyWith(
+            customFields: [
+              for (final value in values)
+                switch (ccUserFieldOfPlaceholder(value.fieldId)) {
+                  final field? => CustomFieldValue(
+                    fieldId: idByKey[field.key]!,
+                    value: value.value,
+                  ),
+                  null => value,
+                },
+            ],
+          ),
+        ),
+        verdict: record.verdict,
+      );
+    }
+
+    final rewritten = ImportBatchResult(
+      records: [for (final record in batch.records) rewrite(record)],
+      errors: batch.errors,
+      warnings: batch.warnings,
+      dedupeIndex: batch.dedupeIndex,
+    );
+    return (
+      batch: rewritten,
+      inserted: inserted,
+      restored: restored,
+      issues: issues,
+    );
+  }
+
+  /// Removes the definitions [inserted] and re-tombstones the ones [restored],
+  /// each guarded in the repository's own transaction: one a surviving dance
+  /// still holds a value for is left alone.
+  Future<void> _revertUserFieldDefinitions(
+    List<String> inserted,
+    List<String> restored,
+  ) async {
+    for (final id in inserted) {
+      try {
+        await _customFields.delete(id, permanent: true);
+      } on CustomFieldInUseException {
+        // A surviving dance holds a value for it.
+      }
+    }
+    for (final id in restored) {
+      try {
+        await _customFields.delete(id);
+      } on CustomFieldInUseException {
+        // A surviving dance holds a value for it.
+      }
+    }
   }
 
   /// Convenience end-to-end import of a `.USR` [bytes] payload: [plan]s and
@@ -575,6 +840,13 @@ class CallersCompanionUsrImporter {
     // untouched rather than orphaning that reference.
     await _venues.hardDelete(result.insertedVenueIds);
     await _pipeline.undo(result.danceSession);
+    // After the dances: the guard refuses to remove a definition a live dance
+    // still holds a value for, so the definitions can only go once this
+    // import's dances have.
+    await _revertUserFieldDefinitions(
+      result.insertedCustomFieldIds,
+      result.restoredCustomFieldIds,
+    );
     result._undone = true;
   }
 

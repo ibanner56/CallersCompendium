@@ -8751,6 +8751,10 @@
       }
     }
   },
+  "importIssueCcUserFieldKeyAdjusted": "A Caller's Companion field's key was adjusted to keep it valid and unique; its name is kept.",
+  "@importIssueCcUserFieldKeyAdjusted": {
+    "description": "Import note: a Caller's Companion user-defined field's label could not be used as-is for its custom-field key (it shares a key with another field on the dance, or has no letters or digits), so a derived key was used. The label is kept as the field's name."
+  },
   "importIssueUnparsedRating": "A rating couldn't be read; left unrated.",
   "@importIssueUnparsedRating": {
     "description": "Import note: a rating value couldn't be parsed and was left unrated."

@@ -10247,6 +10247,12 @@ abstract class AppLocalizations {
   /// **'The {field} date couldn\'t be read; left unset.'**
   String importIssueUnparsedDate(String field);
 
+  /// Import note: a Caller's Companion user-defined field's label could not be used as-is for its custom-field key (it shares a key with another field on the dance, or has no letters or digits), so a derived key was used. The label is kept as the field's name.
+  ///
+  /// In en, this message translates to:
+  /// **'A Caller\'s Companion field\'s key was adjusted to keep it valid and unique; its name is kept.'**
+  String get importIssueCcUserFieldKeyAdjusted;
+
   /// Import note: a rating value couldn't be parsed and was left unrated.
   ///
   /// In en, this message translates to:

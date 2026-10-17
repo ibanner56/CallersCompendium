@@ -6765,6 +6765,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importIssueCcUserFieldKeyAdjusted =>
+      'A Caller\'s Companion field\'s key was adjusted to keep it valid and unique; its name is kept.';
+
+  @override
   String get importIssueUnparsedRating =>
       'A rating couldn\'t be read; left unrated.';
 

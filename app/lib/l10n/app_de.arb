@@ -6734,6 +6734,10 @@
   "@importIssueUnparsedDate": {
     "x-sourceSha256": "db2976559bc7a91166b1bad756bd6c1e906372bfd313dca6838581059d945134"
   },
+  "importIssueCcUserFieldKeyAdjusted": "Der Schlüssel eines Caller's-Companion-Felds wurde angepasst, damit er gültig und eindeutig ist; sein Name bleibt erhalten.",
+  "@importIssueCcUserFieldKeyAdjusted": {
+    "x-sourceSha256": "36dff40d48874ab5a5beebbbfa40e8e49ad4f7c0fa315fa3aa981959f5a4151b"
+  },
   "importIssueUnparsedRating": "Eine Bewertung konnte nicht gelesen werden; nicht bewertet.",
   "@importIssueUnparsedRating": {
     "x-sourceSha256": "3b39c7847731c22d6957ded9a3cc76ca9552665fc03491f2af7d089390a44584"
