@@ -43,15 +43,39 @@ String rewriteTypedSpellings(String text) {
 typedef _Named = ({String move, Map<String, Object?> params});
 
 /// Caller phrasings that name a move but are not a taxonomy name. Each states
-/// only what its words say.
+/// only what its words say, except that `hey for four` states a full hey
+/// (decision: Isaac, 2026-10-17): a caller who means half a hey says so
+/// (`half hey`), so the bare phrasing is a full one.
 const Map<String, _Named> _typedPhrasings = {
-  'hey for four': (move: 'hey', params: {}),
+  'hey for four': (move: 'hey', params: {'length': 'full'}),
+  'hey for 4': (move: 'hey', params: {'length': 'full'}),
   'half hey': (move: 'hey', params: {'length': 'half'}),
   'half hey for four': (move: 'hey', params: {'length': 'half'}),
+  'half hey for 4': (move: 'hey', params: {'length': 'half'}),
   'full hey': (move: 'hey', params: {'length': 'full'}),
   'full hey for four': (move: 'hey', params: {'length': 'full'}),
+  'full hey for 4': (move: 'hey', params: {'length': 'full'}),
   'turn as a couple': (move: 'turn_as_couples', params: {}),
 };
+
+/// The phrasings whose length is the phrasing's default rather than the
+/// caller's words, so a count on the line chooses it instead: `(8) hey for
+/// four` is the half hey 8 beats is, not a full hey squeezed into 8. A line
+/// that names the length (`full hey for four`) keeps it whatever the count.
+/// This exception was the implementer's call, not part of the decision above;
+/// the alternative, a full hey whatever the count, was rejected because it
+/// stores a full hey with a half hey's beats, which contradicts itself.
+const Set<String> _lengthFromCount = {'hey for four', 'hey for 4'};
+
+/// [named] with the length a half hey's count chooses, for a phrasing in
+/// [_lengthFromCount] whose line stated [beats]; [named] itself otherwise. The
+/// half hey's beats come from the taxonomy's `paramBeats`, so they follow it.
+_Named _countedLength(String key, _Named named, int beats, Taxonomy taxonomy) {
+  if (beats <= 0 || !_lengthFromCount.contains(key)) return named;
+  final halfBeats = taxonomy.resolve(named.move)?.paramBeats?.byValue['half'];
+  if (halfBeats != beats) return named;
+  return (move: named.move, params: {...named.params, 'length': 'half'});
+}
 
 final RegExp _ampersand = RegExp(r'\s*&\s*');
 final RegExp _hyphen = RegExp(r'\s*-\s*');
@@ -157,7 +181,8 @@ final Map<String, String> _dancerWords = {
 /// miss (validation rejects the unknown param), and so is an unknown word in
 /// the dancer's place; nothing is guessed.
 ///
-/// The figure states only what the name and the dancer state plus [beats]:
+/// The figure states only what the name and the dancer state plus [beats],
+/// and for a phrasing in [_lengthFromCount] the length [beats] chooses:
 /// every other param reads as the taxonomy default, as for any bare name the
 /// import grammar reads (`chain`, `circle`). A move with a subject is marked
 /// [Figure.assumedSubject] (#460) unless the line stated a dancer, since the
@@ -175,7 +200,13 @@ Figure? figureFromTypedName(
     final key = _typedKey(text);
     if (key.isEmpty) return null;
     final whole = _lookup(key, taxonomy, dialect);
-    if (whole != null) return _figureFor(whole, beats, taxonomy);
+    if (whole != null) {
+      return _figureFor(
+        _countedLength(key, whole, beats, taxonomy),
+        beats,
+        taxonomy,
+      );
+    }
     return _dancerFigure(key, beats, taxonomy, dialect);
   } catch (_) {
     return null;

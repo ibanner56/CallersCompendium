@@ -179,7 +179,7 @@ void main() {
     test('hey for four, half hey, full hey', () {
       final four = parseFreeTextFigureEntry('hey for four').single;
       expect(four.move, 'hey');
-      expect(four.params, isEmpty);
+      expect(four.params, {'length': 'full'});
       expect(parseFreeTextFigureEntry('half hey').single.params, {
         'length': 'half',
       });
@@ -189,6 +189,41 @@ void main() {
       expect(parseFreeTextFigureEntry('full hey for four').single.params, {
         'length': 'full',
       });
+    });
+
+    test('hey for four is a full hey unless its count is a half hey', () {
+      for (final line in ['hey for four', 'Hey for 4', 'hey for 4.']) {
+        final hey = parseFreeTextFigureEntry(line).single;
+        expect(hey.move, 'hey', reason: line);
+        expect(hey.params['length'], 'full', reason: line);
+        expect(contraTaxonomy.effectiveParams(hey)['beats'], 16, reason: line);
+      }
+      // A count of a full hey's beats agrees with the default.
+      expect(parseFreeTextFigureEntry('(16) hey for four').single.params, {
+        'length': 'full',
+        'beats': 16,
+      });
+      // A count of a half hey's beats says which hey the caller means.
+      for (final line in [
+        '(8) hey for four',
+        '8 hey for 4',
+        'hey for four (8)',
+      ]) {
+        expect(parseFreeTextFigureEntry(line).single.params, {
+          'length': 'half',
+          'beats': 8,
+        }, reason: line);
+      }
+      // A length the line states wins over the count.
+      expect(parseFreeTextFigureEntry('(8) full hey for four').single.params, {
+        'length': 'full',
+        'beats': 8,
+      });
+      // A bare `hey` keeps the taxonomy default.
+      expect(
+        parseFreeTextFigureEntry('hey').single.params.containsKey('length'),
+        isFalse,
+      );
     });
 
     test('turn as a couple', () {
