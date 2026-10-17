@@ -7345,10 +7345,11 @@ void main() {
       expect(awaiting(result), isEmpty, reason: 'no other device to name');
     });
 
-    test('this build advertises glossary.v1 and gates the glossary\'s '
-        'kinds and settings on it (#709)', () async {
+    test('this build advertises glossary.v1 and glossary.v2 and gates the '
+        'glossary\'s kinds and settings on them (#709, #1023)', () async {
       expect(SyncCapabilityPolicy.build.advertised, {
         SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
       });
       expect(SyncCapabilityPolicy.build.gatedRecordKinds, {
         SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
@@ -7363,13 +7364,6 @@ void main() {
         'term': SyncCapabilities.glossaryV2,
         'customFigure': SyncCapabilities.glossaryV2,
       });
-      expect(
-        SyncCapabilityPolicy.build.advertised,
-        isNot(contains(SyncCapabilities.glossaryV2)),
-        reason:
-            'the user\'s own terms and figures stay on their device until '
-            'the whole of #1023 is in the build',
-      );
       final toggle = SyncMergeCandidate.fromBlob(
         _setting('show_custom_figures', 'true'),
       );
@@ -7377,7 +7371,7 @@ void main() {
         _setting('compound_shorthands', '[]'),
       );
       // The shorthands for the user's new figures wait on glossary.v2, with
-      // the figures themselves (#1023), which this build doesn't advertise.
+      // the figures themselves (#1023).
       final newFigureShorthands = SyncMergeCandidate.fromBlob(
         _setting('user_figure_shorthands', '[]'),
       );
@@ -7397,8 +7391,8 @@ void main() {
       ).syncNow();
       expect(publishedSettings(waiting), {'theme_mode'});
 
-      // ...and alone in its store, this build publishes the glossary.v1 ones,
-      // but not the shorthands for new figures: it doesn't advertise v2.
+      // ...and alone in its store, this build publishes them all, the
+      // shorthands for new figures included: it advertises glossary.v2.
       final alone = transportFor(const []);
       await coordinatorFor(
         _FakeStore(local: local),
@@ -7408,15 +7402,16 @@ void main() {
       expect(publishedSettings(alone), {
         'show_custom_figures',
         'compound_shorthands',
+        'user_figure_shorthands',
         'theme_mode',
       });
     });
 
     test('rollout: beside peers that have not written a capability record '
-        'yet, this build holds all of glossary.v1 back and names every '
-        'peer; once they advertise it that publishes, and glossary.v2, '
-        'which no build advertises yet, is held back and names no one '
-        '(#709, #1023)', () async {
+        'yet, this build holds all of the glossary back and names every '
+        'peer; beside peers on the previous build, it holds back only '
+        'glossary.v2 and names each; once every device advertises it, it '
+        'all publishes (#709, #1023)', () async {
       // The shipped policy, not a hand-built one: this is what an update
       // that first advertises a capability meets (sync-spec §6.15). Every
       // existing peer is on a build that has written no record, so each
@@ -7470,11 +7465,15 @@ void main() {
       }
       final everyDevice = ['p1', 'p2', 'p3'];
 
+      // What the build before this one advertised: glossary.v1 alone.
+      const previous = {SyncCapabilities.glossaryV1};
+
       Future<(SyncPassResult, _FakeTransport, _FakeStore)> pass(
-        Set<String> recorded,
+        Map<String, Set<String>> recorded,
       ) async {
         final records = [
-          for (final peer in recorded) capabilityOf(peer, build.advertised),
+          for (final MapEntry(key: peer, value: advertised) in recorded.entries)
+            capabilityOf(peer, advertised),
         ];
         final local = {
           for (final c in [...onV1, ...onV2, plain, ...records]) c.address: c,
@@ -7510,7 +7509,8 @@ void main() {
               .keys
               .toSet();
 
-      // 1. No peer has a record: all of glossary.v1 waits, every peer is named.
+      // 1. No peer has a record: all of the glossary waits, every peer is
+      // named, once, for both capabilities.
       var (result, transport, store) = await pass(const {});
       expect(publishedSettings(transport), {'theme_mode'});
       expect(manifestIds(transport, SyncRecordKind.glossaryEntry), isEmpty);
@@ -7523,23 +7523,22 @@ void main() {
       expect(awaiting(result), hasLength(3), reason: 'one report per peer');
       for (final report in awaiting(result)) {
         expect(report.message, contains(SyncCapabilities.glossaryV1));
-        expect(
-          report.message,
-          isNot(contains(SyncCapabilities.glossaryV2)),
-          reason: 'no peer holds glossary.v2 closed: this build does',
-        );
+        expect(report.message, contains(SyncCapabilities.glossaryV2));
       }
 
       // 2. Some have updated: only the ones that have not are named.
-      (result, transport, store) = await pass({'p1'});
+      (result, transport, store) = await pass({'p1': build.advertised});
       expect(
         publishedSettings(transport),
         isNot(contains('show_custom_figures')),
       );
       expect(awaiting(result).map((r) => r.peerId).toSet(), {'p2', 'p3'});
 
-      // 3. Every peer advertises what this build does: glossary.v1 publishes.
-      (result, transport, store) = await pass(everyDevice.toSet());
+      // 3. Every peer is on the previous build: glossary.v1 publishes, and
+      // glossary.v2 waits, each peer named once for it alone.
+      (result, transport, store) = await pass({
+        for (final peer in everyDevice) peer: previous,
+      });
       expect(
         publishedSettings(transport),
         containsAll([
@@ -7555,10 +7554,6 @@ void main() {
       for (final c in onV1) {
         expect(uploaded(transport), contains(c.wireHash));
       }
-
-      // ...while glossary.v2, which this build does not advertise, stays
-      // home with every peer up to date, and is reported to no one: no
-      // device holds it closed, so there is none to name.
       expect(
         publishedSettings(transport),
         isNot(contains('user_figure_shorthands')),
@@ -7566,6 +7561,45 @@ void main() {
       for (final c in onV2) {
         expect(uploaded(transport), isNot(contains(c.wireHash)));
         expect(store.publishedRecords, contains(c.address));
+      }
+      expect(awaiting(result).map((r) => r.peerId).toSet(), {'p1', 'p2', 'p3'});
+      expect(awaiting(result), hasLength(3), reason: 'one report per peer');
+      for (final report in awaiting(result)) {
+        expect(report.message, contains(SyncCapabilities.glossaryV2));
+        expect(
+          report.message,
+          isNot(contains(SyncCapabilities.glossaryV1)),
+          reason: 'nothing gated on glossary.v1 was held back',
+        );
+      }
+
+      // 4. Some have updated: glossary.v2 still waits, and only the peers
+      // still on the previous build are named.
+      (result, transport, store) = await pass({
+        'p1': build.advertised,
+        'p2': previous,
+        'p3': previous,
+      });
+      expect(manifestIds(transport, SyncRecordKind.glossaryEntry), {
+        'a-compound',
+      });
+      expect(awaiting(result).map((r) => r.peerId).toSet(), {'p2', 'p3'});
+
+      // 5. Every device advertises what this build does: it all publishes,
+      // and no one is named.
+      (result, transport, store) = await pass({
+        for (final peer in everyDevice) peer: build.advertised,
+      });
+      expect(
+        publishedSettings(transport),
+        containsAll(['show_custom_figures', 'user_figure_shorthands']),
+      );
+      expect(manifestIds(transport, SyncRecordKind.glossaryEntry), {
+        'a-compound',
+        'a-figure',
+      });
+      for (final c in [...onV1, ...onV2]) {
+        expect(uploaded(transport), contains(c.wireHash));
       }
       expect(awaiting(result), isEmpty);
     });
@@ -7604,34 +7638,27 @@ void main() {
                   const <String, String>{})
               .keys
               .toSet();
-      const both = SyncCapabilityPolicy(
-        advertised: {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
-        gatedRecordKinds: {
-          SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
-        },
-        gatedGlossaryEntryKinds: {
-          'term': SyncCapabilities.glossaryV2,
-          'customFigure': SyncCapabilities.glossaryV2,
-        },
-      );
+      // The shipped policy, which advertises both.
+      const both = SyncCapabilityPolicy.build;
 
-      // This build, alone in its store, does not advertise glossary.v2 yet:
-      // only the compound and the kind it does not know publish.
+      // Alone in its store, this build publishes every entry.
       final alone = transportFor(const []);
       var result = await coordinatorFor(
         _FakeStore(local: local),
         alone,
-        capabilities: SyncCapabilityPolicy.build,
+        capabilities: both,
       ).syncNow();
       expect(result.status, SyncPassStatus.completed);
-      expect(publishedEntries(alone), {'a-compound', 'a-future'});
-      expect(
-        uploaded(alone),
-        isNot(anyOf(contains(figure.wireHash), contains(gone.wireHash))),
-      );
+      expect(publishedEntries(alone), {
+        'a-compound',
+        'a-term',
+        'a-figure',
+        'a-gone-figure',
+        'a-future',
+      });
 
-      // A build that advertises both, beside a peer that only reads
-      // glossary.v1: the peer holds back only the new kinds, and is named.
+      // Beside a peer that only reads glossary.v1, the peer holds back only
+      // the new kinds, and is named.
       final v1Peer = capabilityOf('peer', {SyncCapabilities.glossaryV1});
       final olderPeer = transportFor(['peer']);
       result = await coordinatorFor(
@@ -7759,8 +7786,11 @@ void main() {
         reason: "the peer's entry arrived",
       );
       expect(await repos.settings.get(syncCapabilityRecordKey('device-a')), {
-        'capabilities': [SyncCapabilities.glossaryV1],
-      }, reason: 'this build advertises the capability');
+        'capabilities': [
+          SyncCapabilities.glossaryV1,
+          SyncCapabilities.glossaryV2,
+        ],
+      }, reason: 'this build advertises the capabilities');
 
       // Device C attaches, on a build that advertises nothing.
       transport.devices.add('older');

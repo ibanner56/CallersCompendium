@@ -69,11 +69,12 @@ final class SyncCapabilityPolicy {
   ///
   /// [SyncCapabilities.glossaryV2] (#1023) gates the user's own terms and
   /// figures, and the shorthands for those figures: a peer that can't read
-  /// the figures has no use for them. This build does not advertise it yet,
-  /// so they stay on their device, on every pass: no device holds it closed,
-  /// so none is named and no notice shows (sync-spec §6.15).
+  /// the figures has no use for them. This build advertises it too, now that
+  /// the whole of #1023 is in it: they publish once every other device
+  /// attached to the store advertises it, and until then a device that
+  /// doesn't is named in a held-back notice (sync-spec §6.15).
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
-    advertised: {SyncCapabilities.glossaryV1},
+    advertised: {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
     gatedRecordKinds: {
       SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
       SyncRecordKind.figureNote: SyncCapabilities.glossaryV1,
