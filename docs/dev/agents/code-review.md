@@ -118,13 +118,14 @@ than the newest one on the PR when the round started, so a review from an
 earlier round on the same head does not count. An inline-thread reply that
 `claude.yml` posts during the round also records such an entry, and would pass
 the step. To try again, remove the label and add it back. Re-running the failed
-job reuses its original event: it reviews that run's head even after a newer
-push, and runs even if the label has since been removed. By default the action
-hides the model's turns from the log, so a round with no review, or one where
-the action failed after Claude ran (at the 80-turn limit, for example), uploads
-its transcript as a `claude-review-transcript-<attempt>` artifact on the run,
-kept for 7 days. The Claude token's value and anything shaped like an Anthropic
-or GitHub token are replaced before upload, but the repository is public, so any
+job reuses its original event: after a newer push it files its review against
+that run's old head, although `gh pr diff` gives it the PR's current diff, and
+it runs even if the label has since been removed. By default the action hides
+the model's turns from the log, so a round with no review, or one where the
+action failed after Claude ran (at the 80-turn limit, for example), uploads its
+transcript as a `claude-review-transcript-<attempt>` artifact on the run, kept
+for 7 days. The Claude token's value and anything shaped like an Anthropic or
+GitHub token are replaced before upload, but the repository is public, so any
 signed-in GitHub user can download it. A round stopped by the 30-minute timeout,
 or cancelled by a newer push, writes no transcript.
 
