@@ -1540,6 +1540,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           pipeline,
           _repos.programs,
           _repos.venues,
+          _repos.customFieldDefs,
         );
         // Read up front: a BuildContext must not be used across an async gap,
         // and the commit below is one.

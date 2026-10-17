@@ -6,6 +6,7 @@ import '../data/active_dialect_scope.dart';
 import '../editor/figure_draft.dart';
 import '../widgets/figure_list_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
+import '../widgets/app_bar_text_action.dart';
 
 /// Full-screen editor for a single shorthand → figure(s) mapping (issue #420),
 /// modeled on `dialect_editor_screen.dart`. A shorthand [token] (left) is typed
@@ -172,10 +173,11 @@ class _ShorthandMappingEditorScreenState
           isNew ? l10n.shorthandEditorTitleNew : l10n.shorthandEditorTitleEdit,
         ),
         actions: [
-          TextButton(
+          AppBarTextAction(
             key: const ValueKey('shorthand-editor-save'),
+            label: l10n.commonSave,
+            icon: Icons.check,
             onPressed: _save,
-            child: Text(l10n.commonSave),
           ),
         ],
       ),

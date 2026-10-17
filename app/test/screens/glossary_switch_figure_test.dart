@@ -11,6 +11,7 @@ import 'package:compendium_app/src/screens/glossary/glossary_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
@@ -237,7 +238,7 @@ void main() {
       // Every parameter and value has a namesake in swing, so all are
       // chosen: the label "Balance" is swing's "balance".
       final save = find.byKey(const ValueKey('user-figure-switch-save'));
-      expect(tester.widget<TextButton>(save).onPressed, isNotNull);
+      expect(tester.widget<AppBarTextAction>(save).onPressed, isNotNull);
       await tester.tap(save);
       await settle(tester);
       expect(
@@ -325,7 +326,7 @@ void main() {
     );
     expect(
       tester
-          .widget<TextButton>(
+          .widget<AppBarTextAction>(
             find.byKey(const ValueKey('user-figure-switch-save')),
           )
           .onPressed,
@@ -357,7 +358,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     final save = find.byKey(const ValueKey('user-figure-switch-save'));
-    expect(tester.widget<TextButton>(save).onPressed, isNull);
+    expect(tester.widget<AppBarTextAction>(save).onPressed, isNull);
 
     await tester.tap(
       find.byKey(
@@ -367,7 +368,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('meltdown').last);
     await tester.pumpAndSettle();
-    expect(tester.widget<TextButton>(save).onPressed, isNotNull);
+    expect(tester.widget<AppBarTextAction>(save).onPressed, isNotNull);
   });
 
   testWidgets('two parameters can\'t become the same one, and the screen '
@@ -412,7 +413,7 @@ void main() {
     );
     expect(
       tester
-          .widget<TextButton>(
+          .widget<AppBarTextAction>(
             find.byKey(const ValueKey('user-figure-switch-save')),
           )
           .onPressed,

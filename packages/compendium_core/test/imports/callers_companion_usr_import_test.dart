@@ -165,6 +165,7 @@ void main() {
   late ChoreographerRepository choreographers;
   late ProgramRepository programs;
   late VenueRepository venues;
+  late CustomFieldDefRepository customFieldDefs;
   late ImportPipeline pipeline;
   late CallersCompanionUsrImporter importer;
   late String Function() nextId;
@@ -175,8 +176,14 @@ void main() {
     choreographers = ChoreographerRepository(db);
     programs = ProgramRepository(db);
     venues = VenueRepository(db);
+    customFieldDefs = CustomFieldDefRepository(db);
     pipeline = ImportPipeline(dances, choreographers);
-    importer = CallersCompanionUsrImporter(pipeline, programs, venues);
+    importer = CallersCompanionUsrImporter(
+      pipeline,
+      programs,
+      venues,
+      customFieldDefs,
+    );
     nextId = sequentialIds();
   });
 
@@ -210,6 +217,7 @@ void main() {
         pipeline,
         programs,
         venues,
+        customFieldDefs,
         adapter: CallersCompanionUsrAdapter(
           reader: (bytes, limits) async {
             reads++;
@@ -241,6 +249,7 @@ void main() {
           pipeline,
           programs,
           venues,
+          customFieldDefs,
           adapter: CallersCompanionUsrAdapter(
             reader: (bytes, limits) async {
               reads++;
@@ -275,6 +284,7 @@ void main() {
         pipeline,
         programs,
         venues,
+        customFieldDefs,
         adapter: CallersCompanionUsrAdapter(
           limits: const FmpReadLimits(maxTables: 1),
           reader: (bytes, limits) async {
@@ -553,6 +563,7 @@ void main() {
           pipeline,
           failing,
           venues,
+          customFieldDefs,
         );
 
         await expectLater(
@@ -594,6 +605,7 @@ void main() {
           pipeline,
           failing,
           venues,
+          customFieldDefs,
         );
         await expectLater(
           rollbackImporter.import(
@@ -904,6 +916,7 @@ void main() {
         pipeline,
         programs,
         countingVenues,
+        customFieldDefs,
       );
 
       final result = await spiedImporter.import(

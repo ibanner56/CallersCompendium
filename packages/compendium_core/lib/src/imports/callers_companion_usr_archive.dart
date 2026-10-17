@@ -561,6 +561,7 @@ CcDanceRecord ccDanceRecordFromColumns(
             ? 'User field $i'
             : label.trim(),
         value: value,
+        labelWasBlank: label == null || label.trim().isEmpty,
       ),
     );
   }

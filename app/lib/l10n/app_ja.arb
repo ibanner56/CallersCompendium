@@ -6734,6 +6734,14 @@
   "@importIssueUnparsedDate": {
     "x-sourceSha256": "db2976559bc7a91166b1bad756bd6c1e906372bfd313dca6838581059d945134"
   },
+  "importIssueCcUserFieldKeyAdjusted": "Caller's Companionのフィールドのキーを、有効かつ一意になるよう調整しました。名前はそのまま保持されます。",
+  "@importIssueCcUserFieldKeyAdjusted": {
+    "x-sourceSha256": "36dff40d48874ab5a5beebbbfa40e8e49ad4f7c0fa315fa3aa981959f5a4151b"
+  },
+  "importIssueCcUserFieldLabelMissing": "Caller's Companionのフィールドに名前がなかったため、汎用的な名前を付けました。",
+  "@importIssueCcUserFieldLabelMissing": {
+    "x-sourceSha256": "5d174a27f2278b0850acefee8e8c7881384cc5ab440400daa3f2a583c39d1583"
+  },
   "importIssueUnparsedRating": "評価を読み取れませんでした。未評価のままです。",
   "@importIssueUnparsedRating": {
     "x-sourceSha256": "3b39c7847731c22d6957ded9a3cc76ca9552665fc03491f2af7d089390a44584"

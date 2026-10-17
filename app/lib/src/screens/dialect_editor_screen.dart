@@ -6,6 +6,7 @@ import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
 import '../search/facet_labels.dart' show humanizeToken;
 import '../widgets/collapsible_section.dart';
+import '../widgets/app_bar_text_action.dart';
 
 /// Full-screen term editor for a single named [Dialect] (`docs/design/ux.md`
 /// §6). Edits the pieces a dialect can set — role terms (gendered terms live
@@ -599,10 +600,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         appBar: AppBar(
           title: Text(l10n.dialectEditorTitle(widget.initial.name)),
           actions: [
-            TextButton(
+            AppBarTextAction(
               key: const ValueKey('dialect-editor-save'),
+              label: l10n.commonSave,
+              icon: Icons.check,
               onPressed: _save,
-              child: Text(l10n.commonSave),
             ),
           ],
         ),

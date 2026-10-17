@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart';
 
+import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
@@ -9,6 +10,7 @@ import '../model/partial_date.dart';
 import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
 import 'author_tokenizer.dart';
+import 'callers_companion_user_fields.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
 import 'structured_draft.dart';
@@ -131,9 +133,10 @@ class CcDanceRecord {
 
   /// CC `UserDefined_1..3` user-defined fields, each a (label, value) pair.
   /// CC lets a caller define up to three custom columns (with `*_Name`
-  /// labels). The model's typed `customFields` need a custom-field *definition*
-  /// the import pipeline cannot create yet, so these are folded into the
-  /// dance's calling notes as labelled lines by [mapCallersCompanionDance].
+  /// labels). [mapCallersCompanionDance] maps each non-empty one to a text
+  /// custom-field value under a key derived from its label (see
+  /// `planCcUserFields`); the definition behind it is created or matched at
+  /// commit by `CallersCompanionUsrImporter`, not here.
   final List<CcUserField> userFields;
 
   /// The free-text transcription body, grouped by CC section.
@@ -145,9 +148,17 @@ class CcDanceRecord {
 /// `UserDefined_N`.
 @immutable
 class CcUserField {
-  const CcUserField({required this.label, required this.value});
+  const CcUserField({
+    required this.label,
+    required this.value,
+    this.labelWasBlank = false,
+  });
   final String label;
   final String value;
+
+  /// Whether the source had no UserDefined_N_Name, so [label] is a name the
+  /// reader made up. [mapCallersCompanionDance] notes it on the draft.
+  final bool labelWasBlank;
 }
 
 /// The result of [mapCallersCompanionDance]: a [Dance] draft plus the non-fatal
@@ -289,19 +300,27 @@ CcDanceMapping mapCallersCompanionDance(
   // Rating → 1..5 star scale, best-effort; out-of-range → warning + unset.
   final rating = _mapRating(record.rating, issues);
 
-  // Notes: Music + an unmapped-type note + any extra source notes + the CC
-  // user-defined fields (folded here because true customFields need a
-  // custom-field-definition import path the pipeline lacks — see the mapping
-  // doc / PR notes).
+  // CC user-defined fields → text custom-field values. The value's fieldId is a
+  // placeholder the importer resolves to a real definition at commit.
+  // Sanitized as the calling-notes path always was (#444): a label becomes a
+  // display name and a value free text, so control, bidi-override and invisible
+  // characters are stripped from both.
+  final userFieldPlan = planCcUserFields([
+    for (final field in record.userFields)
+      CcUserField(
+        label: _sanitizeLine(field.label) ?? '',
+        value: sanitizeImportedText(field.value).trim(),
+        labelWasBlank: field.labelWasBlank,
+      ),
+  ]);
+  issues.addAll(userFieldPlan.issues);
+
+  // Notes: Music + an unmapped-type note + any extra source notes.
   final notes = _joinNotes([
     if ((record.music ?? '').trim().isNotEmpty)
       'Music: ${record.music!.trim()}',
     ?typeNote,
     if ((record.notes ?? '').trim().isNotEmpty) record.notes!.trim(),
-    for (final field in record.userFields)
-      if (field.value.trim().isNotEmpty)
-        '${field.label.trim().isEmpty ? 'Note' : field.label.trim()}: '
-            '${field.value.trim()}',
   ]);
 
   // Body → figures (design §2). Each `(beats) text` line has its leading beats
@@ -347,6 +366,13 @@ CcDanceMapping mapCallersCompanionDance(
     difficultyLevelId: difficultyLevelId,
     mixedLevel: mixedLevel,
     rating: rating,
+    customFields: [
+      for (final field in userFieldPlan.fields)
+        CustomFieldValue(
+          fieldId: ccUserFieldPlaceholderId(field.key, field.label),
+          value: field.value,
+        ),
+    ],
     composedOn: composedOn,
     revisedOn: revisedOn,
     createdAt: now,

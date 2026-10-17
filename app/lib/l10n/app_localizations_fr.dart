@@ -6884,6 +6884,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get importIssueCcUserFieldKeyAdjusted =>
+      'La clé d\'un champ de Caller\'s Companion a été ajustée pour rester valide et unique ; son nom est conservé.';
+
+  @override
+  String get importIssueCcUserFieldLabelMissing =>
+      'Un champ de Caller\'s Companion n\'avait pas de nom ; un nom générique lui a été donné.';
+
+  @override
   String get importIssueUnparsedRating =>
       'Une évaluation n\'a pas pu être lue ; non évaluée.';
 

@@ -142,6 +142,7 @@ void main() {
     late ChoreographerRepository choreographers;
     late ProgramRepository programs;
     late VenueRepository venues;
+    late CustomFieldDefRepository customFieldDefs;
     late ImportPipeline pipeline;
     late CallersCompanionUsrImporter importer;
 
@@ -151,8 +152,14 @@ void main() {
       choreographers = ChoreographerRepository(db);
       programs = ProgramRepository(db);
       venues = VenueRepository(db);
+      customFieldDefs = CustomFieldDefRepository(db);
       pipeline = ImportPipeline(dances, choreographers);
-      importer = CallersCompanionUsrImporter(pipeline, programs, venues);
+      importer = CallersCompanionUsrImporter(
+        pipeline,
+        programs,
+        venues,
+        customFieldDefs,
+      );
     });
 
     tearDown(() => db.close());

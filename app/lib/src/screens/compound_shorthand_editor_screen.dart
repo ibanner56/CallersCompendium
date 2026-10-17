@@ -13,6 +13,7 @@ import '../glossary/custom_figures.dart';
 import '../widgets/compound_argument_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
 import '../widgets/user_figure_use_editor.dart';
+import '../widgets/app_bar_text_action.dart';
 
 /// Creates or edits one shorthand for one of the user's own figures: a token
 /// that stands for a compound (#709) or a new figure (#1023) with the values
@@ -307,10 +308,11 @@ class _CompoundShorthandEditorScreenState
           _isNew ? l10n.shorthandEditorTitleNew : l10n.shorthandEditorTitleEdit,
         ),
         actions: [
-          TextButton(
+          AppBarTextAction(
             key: const ValueKey('compound-shorthand-save'),
+            label: l10n.commonSave,
+            icon: Icons.check,
             onPressed: compounds == null || figures == null ? null : _save,
-            child: Text(l10n.commonSave),
           ),
         ],
       ),
