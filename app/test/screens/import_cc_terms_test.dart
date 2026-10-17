@@ -549,6 +549,38 @@ void main() {
       expect(find.text('Contra Corners'), findsOneWidget);
     });
 
+    testWidgets('a term of the user\'s own with a file term\'s name, and no '
+        'source like it, is not taken for that term: the row is offered, as '
+        'taken', (tester) async {
+      await runImport(
+        tester,
+        glossary: true,
+        existing: [
+          UserGlossaryEntry(
+            id: 'mine',
+            kindName: UserGlossaryEntryKind.term.name,
+            name: 'Swing',
+            definition: 'Partners turn as a couple.',
+            description: 'Partners turn as a couple.',
+            payload: glossaryTermPayload('contra'),
+            createdAt: DateTime.utc(2026, 10, 1),
+          ),
+        ],
+      );
+      expect(find.byType(ImportCcTermsScreen), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ImportCcTermsScreen),
+          matching: find.text('Swing'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cc-term-import-taken-2')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('with the Glossary hidden, no terms are offered', (
       tester,
     ) async {

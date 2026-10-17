@@ -393,8 +393,9 @@ left blank there becomes the definition.
   them, so *Ladies wait* and *Robins wait* are the same name.
 - A term longer than a Glossary entry can be says so, and can be added once
   **Edit** shortens it.
-- A term already in your Glossary from an earlier import of the same file isn't
-  offered again. If every term is, the step doesn't appear.
+- A term already in your Glossary as the file has it, from an earlier import of
+  the same file, isn't offered again. If every term is, the step doesn't
+  appear. A term of your own with the same name is a taken name, as above.
 
 The confirm button counts what is ticked (**Add 2 terms**). Afterwards, **Undo**
 on the message takes the terms back out. A term that doesn't fit because your

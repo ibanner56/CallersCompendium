@@ -1825,13 +1825,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final entries = await repos.userGlossary.listAll();
     final names = [for (final entry in entries) entry.name];
     // A term already in the Glossary as this file has it (an earlier import
-    // of the same file) is not offered again; nothing is shown when every
-    // term is.
+    // of the same file: its name, definition and source) is not offered
+    // again; nothing is shown when every term is. The definition is compared
+    // too, so a term of the user's own that shares a name, and like a CC row
+    // has no source, is not taken for this file's: that row is offered, as
+    // taken, to be left out or renamed.
     bool alreadyHere(CcTerm term) => entries.any(
       (entry) =>
           entry.kind == UserGlossaryEntryKind.term &&
           normalizeGlossaryName(entry.name) ==
               normalizeGlossaryName(stored(term.name)) &&
+          entry.definition == stored(term.definition ?? '') &&
           glossaryTermSource(entry.payload) == term.source,
     );
     final offered = [
