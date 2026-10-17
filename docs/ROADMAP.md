@@ -157,15 +157,18 @@ implementation notes and deviations against each item — is in
       dances in the sample `CallersCompanion2.USR` come across with a
       Phrase-joined body (162 `Phrase` rows) rather than bodyless. `InsertCall`
       call buttons also seed figure shorthands (#562), and the ingestion is
-      sanitized + fail-closed bounded (#561). One source table is confirmed
-      present in the real file but not yet mapped:
-      - `Term` → glossary import remains **blocked**: the Glossary view
-        exists (Experimental, read-only), and the table a `Term` row would
-        import into exists (schema v40, #709), and user-added terms exist
-        (#1023), but their sync and the `Term` import itself are not built
-        yet.
-        **Tracked in #1023.** It is now the only remaining unmapped CC table
-        for 6.5.
+      sanitized + fail-closed bounded (#561). The last source table confirmed
+      present in the real file, `Term`, is now mapped too:
+      - **`Term` → glossary import delivered** (#1023, #1869, #1874): the
+        reader pulls each `Term` row's name, definition, source and notes
+        out of a `.USR` file, and the import offers them as an opt-in,
+        previewed step after the shorthands, each added as one of the
+        user's own glossary terms with an Undo
+        ([design/imports.md](design/imports.md), user guide
+        [Imports & migration](user/imports.md)). User-added terms and
+        figures sync behind `glossary.v2` (#1876). This was the last
+        unmapped CC table for 6.5, so every table in this item is now
+        mapped. The box stays unticked until the maintainer calls 6.5 done.
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
@@ -287,19 +290,20 @@ implementation notes and deviations against each item — is in
     Caller's Box glossary and the glossary of Larry Jennings's *Give and Take*
     and written in the project's own words. A test requires every taxonomy
     figure to have one.
-  - **Remaining.** Maintainer decisions (2026-10-14, recorded in the PR that
-    delivered the view): each built-in figure shows a read-only shipped
-    definition and description, with a user-editable notes field; the shipped
-    glossary does not sync, but any user additions (own terms, notes on
-    figures) must. Still to build: own terms with the CC `Term` mapping in 6.5
-    (#1023).
+  - **Maintainer decisions** (2026-10-14, recorded in the PR that delivered
+    the view): each built-in figure shows a read-only shipped definition and
+    description, with a user-editable notes field; the shipped glossary does
+    not sync, but any user additions (own terms, notes on figures) must.
+    Own terms and the CC `Term` mapping in 6.5 are delivered (#1023, below).
   - **Delivered (#709):** notes on built-in figures, and the user's own
     compound figures behind a nested **Custom Figures** setting — added,
     edited and deleted in the Glossary, kept in backups (maintainer decisions
-    recorded in #709's consolidated spec, 2026-10-14). Own terms stay with
-    #1023. Both sync, with the Custom Figures setting and compound shorthands,
-    as the `glossaryEntry` and `figureNote` record kinds behind the sync
-    capability gate `glossary.v1` (sync-spec §4.3, §6.15): they wait until
+    recorded in #709's consolidated spec, 2026-10-14). Own terms followed with
+    #1023, which closed with #1876. All of these sync, with the Custom Figures
+    setting and compound shorthands, as the `glossaryEntry` and `figureNote`
+    record kinds behind the sync capability gates `glossary.v1` (compound
+    figures and notes) and `glossary.v2` (own terms and own figures)
+    (sync-spec §4.3, §6.15): each waits until
     every attached device runs a build that reads them, and the notice names
     the device holding them back. Clients also skip a record kind they do not
     know instead of refusing a peer's whole manifest (sync-spec §4.5).
