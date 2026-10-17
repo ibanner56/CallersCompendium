@@ -6372,6 +6372,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'このファイル内の関連ダンスのリンクの一部が無効だったため、スキップしました。';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'このファイルの用語集の用語の一部は、長すぎて保持できないか読み取れなかったため、取り込まれませんでした。';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Becketの方向を認識できませんでした。既定で時計回りにしました。';
 
@@ -8285,6 +8289,38 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count件のショートハンドを作成しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedUnreadableNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のコールボタンは、テキストをフィギュアとして読み取れないため除外されました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedRoomHint(int free, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      free,
+      locale: localeName,
+      other: 'あと$free件追加できます（上限$max件）。選択したままの先頭$free件だけが追加されます。',
+      zero: 'ショートハンドの一覧がいっぱい（$max件）のため、追加できません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedLimitSkipped(int skipped, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other:
+          '一覧がいっぱい（上限$max件）のため、$skipped件のショートハンドは追加されませんでした。追加するには、いずれかを削除してください。',
     );
     return '$_temp0';
   }

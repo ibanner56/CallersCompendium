@@ -6709,6 +6709,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Einige verknüpfte Tänze in dieser Datei waren ungültig und wurden übersprungen.';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'Einige Glossarbegriffe dieser Datei waren zu lang zum Speichern oder ließen sich nicht lesen und wurden ausgelassen.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Eine Becket-Richtung wurde nicht erkannt; Standard ist im Uhrzeigersinn.';
 
@@ -8709,6 +8713,47 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: '$count Abkürzungen angelegt',
       one: '1 Abkürzung angelegt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedUnreadableNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Aufruf-Schaltflächen wurden ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.',
+      one:
+          '1 Aufruf-Schaltfläche wurde ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedRoomHint(int free, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      free,
+      locale: localeName,
+      other:
+          'Es ist Platz für $free weitere Abkürzungen (Limit $max). Nur die ersten $free ausgewählten werden angelegt.',
+      one:
+          'Es ist Platz für 1 weitere Abkürzung (Limit $max). Nur die erste ausgewählte wird angelegt.',
+      zero:
+          'Deine Abkürzungsliste ist voll ($max); es kann nichts mehr hinzugefügt werden.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedLimitSkipped(int skipped, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other:
+          '$skipped Abkürzungen wurden nicht angelegt, weil die Liste voll ist (Limit $max). Lösche eine, um eine weitere hinzuzufügen.',
+      one:
+          '1 Abkürzung wurde nicht angelegt, weil die Liste voll ist (Limit $max). Lösche eine, um eine weitere hinzuzufügen.',
     );
     return '$_temp0';
   }

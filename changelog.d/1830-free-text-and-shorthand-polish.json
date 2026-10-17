@@ -1,0 +1,17 @@
+{
+  "id": "1830-free-text-and-shorthand-polish",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The shorthand editor no longer shows phrase labels such as A1 or an \"Under by N beats\" warning: a shorthand is a snippet, not a whole dance.",
+      "On a phone, the help under the free-text figure box is no longer cut off: the Add and Done buttons now sit beneath the box instead of squeezing it.",
+      "Seeding shorthands from a Caller's Companion file now says how many call buttons were left out because they do not read as figures, and, when the list has fewer free slots than there are buttons, how many more it can take.",
+      "When seeding reaches the limit of 500 shorthands, one message now says how many were added and how many were not, instead of two separate messages."
+    ]
+  },
+  "core": {
+    "added": [
+      "`countUnreadableInsertCalls` counts the call buttons that `buildInsertCallShorthandCandidates` leaves out because their text does not read as figures (#1830)."
+    ]
+  }
+}

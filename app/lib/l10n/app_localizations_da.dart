@@ -6636,6 +6636,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Nogle relaterede dansekoblinger i denne fil var ugyldige og blev sprunget over.';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'Nogle af filens ordlistetermer var for lange til at blive gemt eller kunne ikke læses og blev udeladt.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'En Becket-retning blev ikke genkendt; standard er med uret.';
 
@@ -8608,6 +8612,46 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other: 'Oprettede $count kortformer',
       one: 'Oprettede 1 kortform',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedUnreadableNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count opkaldsknapper blev udeladt, fordi deres tekst ikke kan læses som figurer.',
+      one:
+          '1 opkaldsknap blev udeladt, fordi dens tekst ikke kan læses som figurer.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedRoomHint(int free, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      free,
+      locale: localeName,
+      other:
+          'Der er plads til $free kortformer mere (grænse $max). Kun de første $free, du lader være markeret, tilføjes.',
+      one:
+          'Der er plads til 1 kortform mere (grænse $max). Kun den første, du lader være markeret, tilføjes.',
+      zero: 'Din liste over kortformer er fuld ($max), så intet kan tilføjes.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedLimitSkipped(int skipped, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other:
+          '$skipped kortformer blev ikke tilføjet, fordi listen er fuld (grænse $max). Slet en for at tilføje en ny.',
+      one:
+          '1 kortform blev ikke tilføjet, fordi listen er fuld (grænse $max). Slet en for at tilføje en ny.',
     );
     return '$_temp0';
   }

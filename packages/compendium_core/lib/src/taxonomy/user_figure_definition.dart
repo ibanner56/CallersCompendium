@@ -285,17 +285,39 @@ String glossaryEntryForm(Object? payload) {
   return defaultGlossaryEntryForm;
 }
 
-/// A term's payload (#1023): the dance [form] it is for, with every other key
-/// [previous] held carried through, so an edit here keeps what a newer build
-/// stored beside it. A term is a glossary entry with no figure; it has no
-/// other content of its own.
-Map<String, Object?> glossaryTermPayload(String form, {Object? previous}) => {
+/// The payload key of a term's source citation (#1023): where the term comes
+/// from, as free text (a Caller's Companion term's `Source`, such as "Give
+/// and Take - Larry Jennings"), kept as written.
+const String glossaryTermSourceKey = 'source';
+
+/// A term's payload (#1023): the dance [form] it is for, and its [source]
+/// citation when given, with every other key [previous] held carried through
+/// (its source too, when no [source] is given), so an edit here keeps what a
+/// newer build, or an import, stored beside it. A blank [source] removes the
+/// citation. A term is a glossary entry with no figure; it has no other
+/// content of its own.
+Map<String, Object?> glossaryTermPayload(
+  String form, {
+  Object? previous,
+  String? source,
+}) => {
   if (previous is Map)
     for (final entry in previous.entries)
-      if (entry.key is String && entry.key != 'form')
+      if (entry.key is String &&
+          entry.key != 'form' &&
+          (source == null || entry.key != glossaryTermSourceKey))
         entry.key as String: entry.value,
   'form': form,
+  if (source != null && source.trim().isNotEmpty) glossaryTermSourceKey: source,
 };
+
+/// A term's source citation ([glossaryTermSourceKey]), or null when its
+/// payload holds none, or holds something other than non-blank text.
+String? glossaryTermSource(Object? payload) {
+  if (payload is! Map) return null;
+  final source = payload[glossaryTermSourceKey];
+  return source is String && source.trim().isNotEmpty ? source : null;
+}
 
 /// Decodes a stored [UserFigureDefinition], or returns null when [raw] is not
 /// one this build can use: malformed, over a bound, or with any error from

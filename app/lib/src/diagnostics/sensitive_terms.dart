@@ -202,6 +202,8 @@ Future<Set<String>> collectSensitiveTerms(
       }
       // ...and its wording template.
       if (payload['template'] case final String template) add(template);
+      // A term's source citation (#1023), which can name a published author.
+      add(glossaryTermSource(payload));
       if (payload['figures'] case final List<Object?> figures) {
         for (final raw in figures) {
           if (raw is! Map) continue;

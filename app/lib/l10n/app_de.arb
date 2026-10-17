@@ -6598,6 +6598,10 @@
   "@importIssueUsrRelatedRowsSkipped": {
     "x-sourceSha256": "35f91356e72f9ee0df050fbf3bf9315f36f031b59b2f8e26b953ba95cbfb8c5b"
   },
+  "importIssueUsrTermsSkipped": "Einige Glossarbegriffe dieser Datei waren zu lang zum Speichern oder ließen sich nicht lesen und wurden ausgelassen.",
+  "@importIssueUsrTermsSkipped": {
+    "x-sourceSha256": "92d66e1277ce18d1dba9551039b5bc3805fdb41abfbc4162059338ced1864010"
+  },
   "importIssueDirectionUnmapped": "Eine Becket-Richtung wurde nicht erkannt; Standard ist im Uhrzeigersinn.",
   "@importIssueDirectionUnmapped": {
     "x-sourceSha256": "055717da02ed80a5a6563dcf6ff6cdbbe571b4a6cadea1549b53c6d88c973d32"
@@ -8481,6 +8485,18 @@
   "importShorthandSeedComplete": "{count, plural, =1{1 Abkürzung angelegt} other{{count} Abkürzungen angelegt}}",
   "@importShorthandSeedComplete": {
     "x-sourceSha256": "4b16fa73556a34ddd3b3e99d44b7d17d04410503bd5b3f367c763e98d681f8aa"
+  },
+  "importShorthandSeedUnreadableNote": "{count, plural, =1{1 Aufruf-Schaltfläche wurde ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.} other{{count} Aufruf-Schaltflächen wurden ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.}}",
+  "@importShorthandSeedUnreadableNote": {
+    "x-sourceSha256": "0ec6d6e0d9fbfd5fc20298be7553040b5c2ad552b7114d7c8e7e5d97e77e2e28"
+  },
+  "importShorthandSeedRoomHint": "{free, plural, =0{Deine Abkürzungsliste ist voll ({max}); es kann nichts mehr hinzugefügt werden.} =1{Es ist Platz für 1 weitere Abkürzung (Limit {max}). Nur die erste ausgewählte wird angelegt.} other{Es ist Platz für {free} weitere Abkürzungen (Limit {max}). Nur die ersten {free} ausgewählten werden angelegt.}}",
+  "@importShorthandSeedRoomHint": {
+    "x-sourceSha256": "2486bd93c8a033677b79c781f5a84d088bf2c106a2af5d1539e6e21f8442a368"
+  },
+  "importShorthandSeedLimitSkipped": "{skipped, plural, =1{1 Abkürzung wurde nicht angelegt, weil die Liste voll ist (Limit {max}). Lösche eine, um eine weitere hinzuzufügen.} other{{skipped} Abkürzungen wurden nicht angelegt, weil die Liste voll ist (Limit {max}). Lösche eine, um eine weitere hinzuzufügen.}}",
+  "@importShorthandSeedLimitSkipped": {
+    "x-sourceSha256": "e7d4eb6a17610c93cd026e329d45fc8c38bc0bd0e121c083b2d852d61de0b4df"
   },
   "themeEditorTitle": "Design bearbeiten",
   "@themeEditorTitle": {

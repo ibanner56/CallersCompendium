@@ -185,7 +185,7 @@ void main() {
     });
 
     test('every code is in CcUsrWarningCodes.all', () {
-      expect(CcUsrWarningCodes.all, hasLength(6));
+      expect(CcUsrWarningCodes.all, hasLength(7));
     });
   });
 

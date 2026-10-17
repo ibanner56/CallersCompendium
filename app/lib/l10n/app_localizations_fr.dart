@@ -6724,6 +6724,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Certains liens entre danses de ce fichier étaient invalides et ont été ignorés.';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'Certains termes de glossaire de ce fichier étaient trop longs pour être conservés ou illisibles, et ont été ignorés.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Une direction Becket n\'a pas été reconnue ; sens horaire par défaut.';
 
@@ -8728,6 +8732,47 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other: '$count abréviations créées',
       one: '1 abréviation créée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedUnreadableNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count boutons d’appel ont été ignorés, car leur texte n’est pas lisible comme des figures.',
+      one:
+          '1 bouton d’appel a été ignoré, car son texte n’est pas lisible comme des figures.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedRoomHint(int free, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      free,
+      locale: localeName,
+      other:
+          'Il reste de la place pour $free abréviations (limite $max). Seules les $free premières sélectionnées seront ajoutées.',
+      one:
+          'Il reste de la place pour 1 abréviation (limite $max). Seule la première sélectionnée sera ajoutée.',
+      zero:
+          'Votre liste d’abréviations est pleine ($max) : rien ne peut être ajouté.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedLimitSkipped(int skipped, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other:
+          '$skipped abréviations n’ont pas été ajoutées car la liste est pleine (limite $max). Supprimez-en une pour en ajouter une autre.',
+      one:
+          '1 abréviation n’a pas été ajoutée car la liste est pleine (limite $max). Supprimez-en une pour en ajouter une autre.',
     );
     return '$_temp0';
   }
