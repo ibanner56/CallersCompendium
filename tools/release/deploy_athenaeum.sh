@@ -47,6 +47,12 @@ heartbeat_attempts="${ATHENAEUM_HEARTBEAT_ATTEMPTS:-30}"
 container=athenaeum
 image="callers-compendium-athenaeum:${version}"
 
+# Everything below sits in one brace group. This script arrives on stdin
+# (`bash -s`), and bash reads a stdin script a line at a time, so a command that
+# reads stdin (git over an ssh remote does) would swallow the rest of the script
+# and the deploy would exit 0 half done. A brace group is parsed whole before it
+# runs, and the `exit` after it means bash never reads stdin again.
+{
 echo "Deploying Athenaeum ${version} from ${sha}"
 
 cd "$repo_dir"
@@ -103,3 +109,5 @@ if [ "$state" != "true ${image} 0" ]; then
 fi
 
 echo "Athenaeum ${version} (${sha}) is serving."
+}
+exit $?

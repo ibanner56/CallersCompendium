@@ -68,11 +68,14 @@ def _run(
     log = tmp / "calls.log"
     log.write_text("", encoding="utf-8")
     _write_stub(stubs / "sudo", '[ "$1" = "-n" ] && shift\nexec "$@"\n')
+    # Fed on stdin like the real `ssh ... bash -s`; the docker stub drains stdin,
+    # so a script that is not parsed whole loses its tail and fails below.
     # `docker build` also records which commit the checkout was on, so the test
     # can assert the image was built from the tagged tree.
     _write_stub(
         stubs / "docker",
         f"""echo "docker $*" >> '{log}'
+cat > /dev/null  # a stdin reader must not swallow the rest of the script
 case "$1" in
   build) echo "tree=$(cat marker.txt)" >> '{log}' ;;
   container) [ "{int(existing_container)}" = 1 ] || exit 1 ;;
@@ -89,7 +92,8 @@ exit 0
     env["ATHENAEUM_REPO_DIR"] = str(host)
     env["ATHENAEUM_HEARTBEAT_ATTEMPTS"] = "3"
     res = subprocess.run(
-        [find_bash(), str(SCRIPT), sha, version],
+        [find_bash(), "-s", "--", sha, version],
+        stdin=SCRIPT.open("rb"),
         env=env,
         capture_output=True,
         text=True,
