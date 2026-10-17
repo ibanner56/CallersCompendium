@@ -356,7 +356,7 @@ type during free-text entry that expand into whole figures.
 
 The **Seed figure shorthands** screen lists the buttons the app could read as
 figures and what each one would expand to. Buttons whose text does not read as a
-figure are left out without notice. Every button listed starts ticked, so untick
+figure are left out, and a note at the top says how many. Every button listed starts ticked, so untick
 the ones you do not want and choose the confirm button, which counts what you
 kept (**Seed 3 shorthands**), or choose **Skip** to move on. Nothing is added
 until you confirm.
@@ -365,9 +365,10 @@ Where a button offers two versions, you pick **Primary** or **Alternate**. And i
 a shorthand of that name already exists, the button is listed under **Already
 defined — skipped** and your existing one is left exactly as it is.
 
-The app keeps up to 500 figure shorthands. If you are at that number, buttons
-you confirm cannot be added; the app tells you so, and you can seed them after
-deleting some shorthands.
+The app keeps up to 500 figure shorthands. When fewer than that many slots are
+free, the screen says how many more it can take, and only the first ones you
+leave ticked are added. The message afterwards says how many were seeded and how
+many were not added; you can seed those after deleting some shorthands.
 
 ### Bring your glossary terms across
 

@@ -11,6 +11,7 @@ import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -4425,5 +4426,33 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('partners'), findsWidgets);
     });
+  });
+
+  // #1830: at phone width the Add/Done buttons beside the free-text field left
+  // it so narrow that the help below it was cut off with an ellipsis.
+  testWidgets('free-text box shows its whole help at phone width', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      <FigureDraft>[],
+      freeTextEntry: true,
+      surfaceSize: const Size(360, 800),
+    );
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+
+    final help = find.textContaining('Enter adds it');
+    expect(help, findsOneWidget);
+    final paragraph = tester.renderObject<RenderParagraph>(help);
+    expect(paragraph.didExceedMaxLines, isFalse);
+    // And the field keeps the width of the box: the buttons sit beneath it.
+    final field = tester.getRect(
+      find.byKey(const ValueKey('figure-free-text-field')),
+    );
+    final add = tester.getRect(
+      find.byKey(const ValueKey('figure-free-text-submit')),
+    );
+    expect(add.top, greaterThanOrEqualTo(field.bottom));
   });
 }

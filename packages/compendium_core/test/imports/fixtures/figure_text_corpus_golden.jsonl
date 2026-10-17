@@ -3605,7 +3605,7 @@
 {"in":"Rory O'More and swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"balance\":false},\"note\":\"and swing\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Rory O'More and swing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor Rory O'More","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor Rory O'More\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"square through four","fanOut":"[{\"schemaVersion\":1,\"move\":\"square_through\",\"params\":{\"places\":4}}]"}
-{"in":"Partner gate","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Partner gate\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Partner gate","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Partner gate\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"gate\",\"params\":{\"who\":\"partners\"}}]"}
 {"in":"Neighbor gate up","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor gate up\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Partner gate counterclockwise","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Partner gate counterclockwise\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Partner gate 3/4","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Partner gate 3/4\"},\"customOrigin\":\"importGap\"}]"}
@@ -3771,7 +3771,7 @@
 {"in":"\"give-and-take men partner\" (giver not leading) → custom","scrub":"\"give-and-take role1s partner\" (giver not leading) → custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"give-and-take role1s partner\\\" (giver not leading) → custom\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"give-and-take men partner","scrub":"give-and-take role1s partner","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"give-and-take role1s partner\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"\"Men give-and-take\" (no target) → custom","scrub":"\"role1s give-and-take\" (no target) → custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"role1s give-and-take\\\" (no target) → custom\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Men give-and-take","scrub":"role1s give-and-take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s give-and-take\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Men give-and-take","scrub":"role1s give-and-take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s give-and-take\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"give_and_take\",\"params\":{\"who\":\"role1s\"}}]"}
 {"in":"\"turn contra corners ones\" (couple not leading) → custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"turn contra corners ones\\\" (couple not leading) → custom\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"turn contra corners ones","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"turn contra corners ones\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"\"Ones contra corners\" (no \"turn\") → custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"Ones contra corners\\\" (no \\\"turn\\\") → custom\"},\"customOrigin\":\"importGap\"}]"}

@@ -12968,6 +12968,24 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Seeded 1 shorthand} other{Seeded {count} shorthands}}'**
   String importShorthandSeedComplete(int count);
 
+  /// Note on the shorthand-seeding step: {count} call buttons in the file were left out because their text does not read as figures.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 call button was left out because its text does not read as figures.} other{{count} call buttons were left out because their text does not read as figures.}}'**
+  String importShorthandSeedUnreadableNote(int count);
+
+  /// Hint on the shorthand-seeding step when fewer shorthand slots are free than there are candidates; {free} is the free slots, {max} the limit.
+  ///
+  /// In en, this message translates to:
+  /// **'{free, plural, =0{Your shorthand list is full ({max}), so none of these can be added.} =1{There is room for 1 more shorthand (limit {max}). Only the first one you leave selected will be added.} other{There is room for {free} more shorthands (limit {max}). Only the first {free} you leave selected will be added.}}'**
+  String importShorthandSeedRoomHint(int free, int max);
+
+  /// Second line of the snackbar after seeding hit the shorthand limit; {skipped} is how many chosen shorthands were not added, {max} the limit.
+  ///
+  /// In en, this message translates to:
+  /// **'{skipped, plural, =1{1 shorthand was not added because the list is full (limit {max}). Delete one to add another.} other{{skipped} shorthands were not added because the list is full (limit {max}). Delete one to add another.}}'**
+  String importShorthandSeedLimitSkipped(int skipped, int max);
+
   /// App-bar title for the theme editor.
   ///
   /// In en, this message translates to:

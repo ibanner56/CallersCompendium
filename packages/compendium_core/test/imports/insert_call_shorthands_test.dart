@@ -202,4 +202,46 @@ void main() {
       expect(partition.conflicting.map((c) => c.token), ['Circle']);
     });
   });
+
+  group('countUnreadableInsertCalls (#1830)', () {
+    int count(List<CcInsertCall> buttons) =>
+        countUnreadableInsertCalls(buttons, taxonomy: contraTaxonomy);
+
+    test('counts the buttons whose text does not read as figures', () {
+      expect(
+        count([
+          CcInsertCall(label: 'Circle', text: 'circle left 3/4', beats: 8),
+          CcInsertCall(label: 'Zork', text: 'frobnicate the quux', beats: 8),
+          CcInsertCall(label: 'Blarg', text: 'wibble the wobble', beats: 8),
+        ]),
+        2,
+      );
+    });
+
+    test('counts a token once, and not at all when another button reads', () {
+      expect(
+        count([
+          CcInsertCall(label: 'Zork', text: 'frobnicate', beats: 8),
+          CcInsertCall(label: 'zork', text: 'wibble', beats: 8),
+          CcInsertCall(label: 'Circle', text: 'circle left 3/4', beats: 8),
+          CcInsertCall(label: 'circle', text: 'frobnicate', beats: 8),
+        ]),
+        1,
+      );
+    });
+
+    test('ignores buttons with no usable token', () {
+      expect(
+        count([
+          CcInsertCall(label: '  ', text: 'frobnicate', beats: 8),
+          CcInsertCall(
+            label: 'x' * (maxShorthandTokenLength + 1),
+            text: 'frobnicate',
+            beats: 8,
+          ),
+        ]),
+        0,
+      );
+    });
+  });
 }
