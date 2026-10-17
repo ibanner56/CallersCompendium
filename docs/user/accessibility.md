@@ -69,7 +69,7 @@ For calling on a dim stage, **Dark** and **High contrast** are the natural choic
 — they keep the screen from glaring at the room while staying readable for you. If
 you navigate with a keyboard, you'll notice that focus outlines are clearly
 visible as you move between controls, and they're especially strong in **High
-Contrast**.
+contrast**.
 
 **A stage theme just for calling.** Perform mode opens on its own dark,
 high-contrast look — built for a contrast ratio of at least 7 to 1 under stage

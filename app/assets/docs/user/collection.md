@@ -52,8 +52,8 @@ sort by:
 - **Last called** — the dances you have programmed most recently, first.
 - **Best match** — how well each dance matches your words. This one is offered
   only for a short search — one or two characters — in **All fields**, with no
-  **Filters**, **Advanced** or **By phrase** choices set. For anything else the
-  list sorts by **Title**.
+  **Filters**, **Advanced** or **By phrase** choices set. If Best match is
+  selected and your search stops qualifying, the list switches back to **Title**.
 
 The arrow button beside **Sort** flips between ascending and descending order.
 To have the list always open in one direction, set **Collection sort order**

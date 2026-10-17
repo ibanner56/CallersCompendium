@@ -230,7 +230,7 @@ There's a **High contrast** theme for maximum legibility — see the
   accent regardless of their formation, so a mixer-flagged Improper reads as
   a mixer rather than a contra. The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
-  on colour, and the accents adapt to the High Contrast theme. On by default; turn
+  on colour, and the accents adapt to the High contrast theme. On by default; turn
   it off to hide the tints.
 
 ### Formation colours
