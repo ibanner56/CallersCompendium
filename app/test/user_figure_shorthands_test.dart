@@ -572,6 +572,30 @@ void main() {
       expect(figure.params['text'], 'zm; ns (100)');
     });
 
+    testWidgets('a count over 64 on a plain shorthand of several figures is '
+        'ignored, a custom figure among them included (#1879)', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      final controller = ShorthandMappingsScope.controllerOf(
+        tester.element(find.byType(DanceEditorScreen)),
+      );
+      await tester.runAsync(
+        () => repos.settings.set(kShorthandMappingsKey, [
+          ShorthandMapping(
+            token: 'cb',
+            figures: [swing(), customFigure('my own thing')],
+          ).toJson(),
+        ]),
+      );
+      await tester.runAsync(controller.load);
+      await tester.pumpAndSettle();
+      await typeLine(tester, 'zm; cb (100)');
+      final figures = await saved(tester, repos);
+      expect(figures, hasLength(3));
+      expect(userFigureUseOf(figures[0]), isNotNull);
+      expect(figures[1].move, 'swing');
+      expect(figures[2].params['text'], 'my own thing');
+    });
+
     testWidgets('65 clauses are not expanded', (tester) async {
       final repos = await pump(tester, shorthands: [shorthand()]);
       await typeLine(tester, List.filled(65, 'zm').join('; '));

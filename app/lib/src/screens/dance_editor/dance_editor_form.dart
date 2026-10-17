@@ -228,10 +228,13 @@ class DanceEditorForm extends StatelessWidget {
     if (mappings == null) return false;
     if (mappings.resolve(clause) != null) return true;
     final split = splitShorthandCount(clause);
-    if (split == null || mappings.resolve(split.text) == null) return false;
-    // A count the beats range refuses made the clause a custom figure the user
-    // did not choose, so the line is kept whole (#1879).
-    return split.unread != null ||
+    final figures = split == null ? null : mappings.resolve(split.text);
+    if (split == null || figures == null) return false;
+    // A count the beats range refuses on a one-figure shorthand made the clause
+    // a custom figure the user did not choose, so the line is kept whole
+    // (#1879). A shorthand of several figures ignores any count.
+    return figures.length != 1 ||
+        split.unread != null ||
         ParamSpec(ParamKind.beats, defaultValue: 8).validate(split.beats);
   }
 
