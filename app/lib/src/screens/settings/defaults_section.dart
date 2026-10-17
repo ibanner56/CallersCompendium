@@ -841,6 +841,12 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Future<void> _onDefaultCollectionSortChanged(
     SortDefaultSetting<CollectionSort> value,
   ) async {
+    // `DropdownButton` also reports a tap on the item already selected; that
+    // is not a change, so it must not reset a chosen direction. Only once the
+    // stored value has loaded: before that, `value` is compared to a guess.
+    if (_defaultCollectionSort != null && value == _defaultCollectionSort) {
+      return;
+    }
     final direction = value.isLastUsed
         ? _defaultCollectionSortDirection
         : value.sort.searchSort.defaultDirection;
@@ -885,6 +891,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Future<void> _onDefaultProgramSortChanged(
     SortDefaultSetting<ProgramSort> value,
   ) async {
+    // As in [_onDefaultCollectionSortChanged]: re-selecting is not a change.
+    if (_defaultProgramSort != null && value == _defaultProgramSort) return;
     final direction = value.isLastUsed
         ? _defaultProgramSortDirection
         : value.sort.defaultDirection;

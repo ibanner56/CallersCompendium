@@ -1123,6 +1123,32 @@ void main() {
           );
         });
 
+        testWidgets('re-selecting the current sort keeps a chosen direction', (
+          tester,
+        ) async {
+          final repos = openTestRepositories();
+          await _pumpDefaults(tester, repos);
+          await tester.tap(
+            find.descendant(
+              of: find.byKey(ValueKey(list.directionKey)),
+              matching: find.text('Descending'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // The dropdown reports a tap on the already-selected item too.
+          await tester.tap(find.byKey(ValueKey(list.sortKey)));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Title').last);
+          await tester.pumpAndSettle();
+
+          expect(selected(tester, list.directionKey), SortDirection.descending);
+          expect(
+            await repos.settings.get(list.directionSettingsKey),
+            SortDirection.descending.name,
+          );
+        });
+
         testWidgets('a late direction read does not clobber a direction '
             'chosen in-session', (tester) async {
           final opened = openTestRepositoriesWithDelayedSettingsRead();
