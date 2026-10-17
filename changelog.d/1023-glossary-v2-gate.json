@@ -3,7 +3,7 @@
   "user_visible": false,
   "core": {
     "added": [
-      "Add the `glossary.v2` sync capability (`SyncCapabilities.glossaryV2`) and `SyncCapabilityPolicy.gatedGlossaryEntryKinds`: a `glossaryEntry` record whose entry kind is `term` or `customFigure` waits for `glossary.v2`, read from the record's body (tombstones included) through the new `body` argument of `capabilityFor`. Every other entry kind stays on `glossary.v1`. This build gates the two kinds but does not advertise the capability yet (#1023)."
+      "Add the `glossary.v2` sync capability (`SyncCapabilities.glossaryV2`) and `SyncCapabilityPolicy.gatedGlossaryEntryKinds`: a `glossaryEntry` record whose entry kind is `term` or `customFigure` waits for `glossary.v2`, read from the record's body (tombstones included) through the new `body` argument of `capabilityFor`. Every other entry kind stays on `glossary.v1` (#1023)."
     ],
     "changed": [
       "Sync spec §6.15 permits a soft reference from ungated to gated data: one that carries its own fallback, so a device without the referent shows the fallback and never refuses, drops or rewrites the referring data (#1023)."
