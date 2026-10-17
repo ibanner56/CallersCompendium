@@ -9,8 +9,9 @@
 # Only a true APPROVE is green. The verdict is the first line of the review body
 # that claude-code-review.yml posts (`## Review verdict: <...>`, defined by
 # .github/skills/code-review/SKILL.md). Reading it from the review entry, not from
-# the `claude-review` check, matters: that check is green even when no review was
-# posted (docs/dev/agents/code-review.md).
+# the `claude-review` check, matters: the check carries no verdict, and it is
+# green with no review when the action skips itself on a PR that edits
+# claude-code-review.yml (docs/dev/agents/code-review.md).
 #
 # This is a separate workflow because a PR that edits claude-code-review.yml may
 # change nothing else (the `Claude workflow isolation` job), and the labels,
