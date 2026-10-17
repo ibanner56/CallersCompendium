@@ -80,6 +80,27 @@ reasoning below when a gate fails, or when you are checking by hand.
 - **The PR closes only the issues you intend** (below).
 - **State verified from the remote**, not from memory or a stale local checkout.
 
+## When GraphQL is refused (Claude Code cloud sessions)
+
+Claude Code cloud sessions answer `gh api graphql` with HTTP 403 ("GitHub
+GraphQL is not available from Claude Code sessions"). On that one error the
+script answers `threads` and `closes` from REST instead of reporting SKIP, and
+labels the evidence line "via REST":
+
+- **`threads`** reads the CCR route `GET /repos/{owner}/{repo}/pulls/{n}/ccr/review_threads`.
+  That route reports no total, so a list of 30 or more threads FAILs ("cannot
+  prove the list is not truncated") rather than passing; check those from an
+  environment with GraphQL.
+- **`closes`** cannot read `closingIssuesReferences` over REST, so it parses the
+  closing keywords from the PR title, body and commit messages, plus the branch
+  name, the same things GitHub links from. **It cannot see a link added by hand
+  in the PR sidebar**, so its PASS is weaker than GraphQL's; the evidence line
+  says so. A denial such as `Does not close #887` still counts, as it does on
+  GitHub.
+
+Any other GraphQL failure (timeout, auth, rate limit) is still a SKIP, and exit
+2 still means a gate went unanswered.
+
 ## A branch name can close an issue on its own
 
 GitHub creates a linked-issue relationship from the **branch name**, not just

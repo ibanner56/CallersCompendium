@@ -44,6 +44,13 @@ Exit codes: 0 all gates pass, 1 at least one gate failed, 2 at least one gate
 could not be answered (bad input, or ``gh`` missing or unauthenticated). 2
 dominates 1, so an environment problem never reads as a clean run.
 
+Where the environment refuses GraphQL outright (Claude Code cloud sessions
+answer ``gh api graphql`` with HTTP 403), ``threads`` and ``closes`` answer from
+REST instead and label their evidence "via REST". ``threads`` uses the CCR
+review-threads route; ``closes`` parses the closing keywords out of the PR title,
+body, commit messages and branch, so it cannot see a link added by hand in the PR
+sidebar. Any other GraphQL failure is still a SKIP.
+
 Requires the ``gh`` CLI, authenticated. Network access is confined to
 ``GitHubFetcher``; the gate logic is pure and is exercised offline by
 ``test_check_pr_review_gates.py``.
@@ -104,6 +111,22 @@ class GateError(RuntimeError):
     """The environment could not answer the question (exit 2, not a failure)."""
 
 
+class GraphQLUnavailable(GateError):
+    """This environment refuses GraphQL outright (not a transient failure).
+
+    Claude Code cloud sessions answer ``gh api graphql`` with HTTP 403 and
+    "GitHub GraphQL is not available from Claude Code sessions", pointing at REST
+    routes instead. ``threads`` and ``closes`` catch this one error and answer
+    from REST; any other GraphQL failure (network, auth, rate limit) is still a
+    plain :class:`GateError`, so it is reported as SKIP rather than answered by a
+    weaker check.
+    """
+
+
+# The refusal's own wording; matched case-insensitively against gh's stderr.
+_GRAPHQL_REFUSED = "graphql is not available"
+
+
 # --------------------------------------------------------------------------- #
 # Fetching
 # --------------------------------------------------------------------------- #
@@ -142,8 +165,8 @@ class GitHubFetcher:
 
     def graphql(self, query: str) -> Any:
         owner, _, name = self.repo.partition("/")
-        return json.loads(
-            self._gh(
+        try:
+            out = self._gh(
                 [
                     "api",
                     "graphql",
@@ -155,7 +178,11 @@ class GitHubFetcher:
                     f"name={name}",
                 ]
             )
-        )
+        except GateError as exc:
+            if _GRAPHQL_REFUSED in str(exc).lower():
+                raise GraphQLUnavailable(str(exc)) from exc
+            raise
+        return json.loads(out)
 
 
 def detect_repo() -> str:
@@ -327,7 +354,10 @@ query($owner: String!, $name: String!) {
 
 def gate_threads(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
     """No unresolved review threads -- and prove the page was not truncated."""
-    payload = fetcher.graphql(THREADS_QUERY % pr)
+    try:
+        payload = fetcher.graphql(THREADS_QUERY % pr)
+    except GraphQLUnavailable as exc:
+        return _threads_via_rest(fetcher, pr, exc)
     threads = _dig(payload, "data", "repository", "pullRequest", "reviewThreads")
     if threads is None:
         raise GateError(f"could not read review threads for PR #{pr}")
@@ -344,6 +374,36 @@ def gate_threads(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
         paths = ", ".join(sorted({n.get("path") or "?" for n in unresolved})[:5])
         return False, [f"{len(unresolved)} of {total} thread(s) unresolved: {paths}"]
     return True, [f"0 of {total} thread(s) unresolved"]
+
+
+# The CCR review-threads route (Claude Code sessions only) is not documented to
+# paginate or report a total, so a full-looking page cannot be told from a
+# truncated one. GitHub's default page size is 30: at or above it, say so rather
+# than read the list as everything.
+REST_THREADS_MAX = 30
+
+
+def _threads_via_rest(fetcher: Any, pr: int, cause: Exception) -> tuple[bool, list[str]]:
+    """`threads` without GraphQL: the CCR route lists each thread's state."""
+    try:
+        threads = _flatten_pages(
+            fetcher.rest(f"pulls/{pr}/ccr/review_threads", paginate=True)
+        )
+    except GateError as exc:
+        raise GateError(f"{cause}; REST fallback also failed: {exc}") from exc
+    via = "via REST (GraphQL unavailable)"
+    if len(threads) >= REST_THREADS_MAX:
+        return False, [
+            f"{len(threads)} thread(s) {via} -- cannot prove the list is not "
+            "truncated; check from an environment with GraphQL"
+        ]
+    unresolved = [t for t in threads if not t.get("resolved")]
+    if unresolved:
+        paths = ", ".join(sorted({t.get("path") or "?" for t in unresolved})[:5])
+        return False, [
+            f"{len(unresolved)} of {len(threads)} thread(s) unresolved {via}: {paths}"
+        ]
+    return True, [f"0 of {len(threads)} thread(s) unresolved {via}"]
 
 
 def _check_runs(fetcher: Any, head: str) -> tuple[list[dict[str, Any]], int | None]:
@@ -409,7 +469,10 @@ query($owner: String!, $name: String!) {
 
 def gate_closes(fetcher: Any, pr: int, intended: Iterable[int]) -> tuple[bool, list[str]]:
     """The PR must close exactly the issues you named -- no more, no fewer."""
-    payload = fetcher.graphql(CLOSES_QUERY % pr)
+    try:
+        payload = fetcher.graphql(CLOSES_QUERY % pr)
+    except GraphQLUnavailable as exc:
+        return _closes_via_rest(fetcher, pr, intended, exc)
     pull = _dig(payload, "data", "repository", "pullRequest")
     if pull is None:
         raise GateError(f"could not read closing references for PR #{pr}")
@@ -452,6 +515,91 @@ def gate_closes(fetcher: Any, pr: int, intended: Iterable[int]) -> tuple[bool, l
         return False, problems
     listed = ", ".join(f"#{n}" for n in sorted(actual)) or "nothing"
     return True, [f"closes exactly {listed}"]
+
+
+# GitHub's closing keywords (docs: "Linking a pull request to an issue"). A
+# denial ("does not close #887") still links, so the match ignores what precedes
+# the keyword, exactly as GitHub does.
+_CLOSING_REF = re.compile(
+    r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b[ \t]*:?[ \t]+"
+    r"(?:"
+    # `#12` or `owner/name#12`
+    r"(?P<repo>[\w.-]+/[\w.-]+)?#(?P<num>\d+)"
+    r"|"
+    # a full issue URL
+    r"https?://github\.com/(?P<urlrepo>[\w.-]+/[\w.-]+)/issues/(?P<urlnum>\d+)"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _closing_refs(text: str | None, repo: str) -> tuple[set[int], set[str]]:
+    """(same-repo issue numbers, other-repo `owner/name#N` references)."""
+    same: set[int] = set()
+    other: set[str] = set()
+    for m in _CLOSING_REF.finditer(text or ""):
+        ref_repo = m.group("repo") or m.group("urlrepo")
+        number = m.group("num") or m.group("urlnum")
+        if ref_repo is None or ref_repo.lower() == repo.lower():
+            same.add(int(number))
+        else:
+            other.add(f"{ref_repo}#{number}")
+    return same, other
+
+
+def _closes_via_rest(
+    fetcher: Any, pr: int, intended: Iterable[int], cause: Exception
+) -> tuple[bool, list[str]]:
+    """`closes` without GraphQL: read the closing keywords out of the PR.
+
+    GraphQL's ``closingIssuesReferences`` is not exposed by REST, so this parses
+    what creates the links -- the PR title and body, its commit messages, and the
+    branch name. It cannot see a link added by hand from the PR sidebar, and says
+    so in its evidence line; a PASS here is weaker than GraphQL's.
+    """
+    try:
+        pull = fetcher.rest(f"pulls/{pr}")
+        commits = _flatten_pages(fetcher.rest(f"pulls/{pr}/commits", paginate=True))
+    except GateError as exc:
+        raise GateError(f"{cause}; REST fallback also failed: {exc}") from exc
+    repo = getattr(fetcher, "repo", "")
+    texts = [pull.get("title"), pull.get("body")] + [
+        _dig(c, "commit", "message") for c in commits
+    ]
+    actual: set[int] = set()
+    other: set[str] = set()
+    for text in texts:
+        same, foreign = _closing_refs(text, repo)
+        actual |= same
+        other |= foreign
+    expected = set(intended)
+
+    problems: list[str] = []
+    unexpected = sorted(actual - expected)
+    missing = sorted(expected - actual)
+    if unexpected or other:
+        problems.append(
+            "will also close "
+            + ", ".join([f"#{n}" for n in unexpected] + sorted(other))
+            + " -- check the branch name and any sentence containing a closing "
+            "verb next to the number (a denial still links)"
+        )
+    if missing:
+        problems.append("will NOT close " + ", ".join(f"#{n}" for n in missing))
+    branch = _dig(pull, "head", "ref") or ""
+    if re.search(r"issue-\d+", branch):
+        problems.append(
+            f"branch name {branch!r} contains issue-<N>, which creates a closing "
+            "link on its own"
+        )
+    note = (
+        "via REST (GraphQL unavailable): parsed from the PR title, body, commit "
+        "messages and branch; a link added by hand in the PR sidebar is not visible"
+    )
+    if problems:
+        return False, [*problems, note]
+    listed = ", ".join(f"#{n}" for n in sorted(actual)) or "nothing"
+    return True, [f"closes exactly {listed} {note}"]
 
 
 def _dig(payload: Any, *keys: str) -> Any:
