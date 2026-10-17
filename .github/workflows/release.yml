@@ -1959,6 +1959,91 @@ jobs:
           done
           echo "All ${#artifacts[@]} artifact(s) passed provenance + SBOM verification."
 
+  # Deploy the Athenaeum sync server for this tag BEFORE any client can reach
+  # the release: the mobile uploads and the update manifest both need this job,
+  # because a client that ships ahead of its server talks to a service that does
+  # not know it. It runs after `verify` (never deploy artifacts whose provenance
+  # failed) behind its own approval, and a failure here fails the run, so
+  # `publish_mobile` and `pages` never start.
+  #
+  # It runs for an existing-tag recovery too (the manifest still waits on it).
+  # That is safe: it rebuilds the same immutable commit under the same image tag.
+  #
+  # The remote commands live in tools/release/deploy_athenaeum.sh and are piped
+  # over SSH from the checkout of `source_sha`, so what runs on the host is what
+  # the tag contains. Tag and SHA reach the remote shell as positional arguments
+  # to `bash -s`, never spliced into a command line; `meta` has already
+  # restricted them to vX.Y.Z[-beta] and a commit SHA.
+  #
+  # Unlike the signing legs this job does NOT no-op without its credentials:
+  # a release that cannot reach its server must stop, not skip the deploy.
+  #
+  # LEAST PRIVILEGE: read-only token. The SSH key, pinned host key and host
+  # coordinates live in the `release-server-deploy` environment so only this
+  # approved job can read them (docs/dev/releasing.md#deploying-the-athenaeum-server).
+  deploy_server:
+    name: Deploy Athenaeum server
+    needs: [meta, verify]
+    if: >-
+      github.repository == 'ibanner56/CallersCompendium' &&
+      needs.meta.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    environment: release-server-deploy
+    timeout-minutes: 30
+    # Two releases must not build and swap the one container at the same time.
+    concurrency:
+      group: athenaeum-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.source_sha }}
+          persist-credentials: false
+
+      - name: Deploy the tagged commit to the Athenaeum host
+        env:
+          SOURCE_SHA: ${{ needs.meta.outputs.source_sha }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          DEPLOY_HOST: ${{ vars.ATHENAEUM_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.ATHENAEUM_DEPLOY_USER }}
+          DEPLOY_PORT: ${{ vars.ATHENAEUM_DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.ATHENAEUM_DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.ATHENAEUM_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::${name} is not set in the release-server-deploy environment; the server cannot be deployed, so the release stops here."
+              exit 1
+            fi
+          done
+
+          umask 077
+          key_file="$RUNNER_TEMP/athenaeum_deploy_key"
+          known_hosts="$RUNNER_TEMP/athenaeum_known_hosts"
+          trap 'rm -f "$key_file" "$known_hosts"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$key_file"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$known_hosts"
+
+          # The host key is pinned (never trust-on-first-use) and the key file
+          # is the only identity offered. ServerAlive keeps the connection up
+          # through the quiet stretches of `docker build`.
+          ssh_args=(
+            -i "$key_file"
+            -p "${DEPLOY_PORT:-22}"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$known_hosts"
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=10
+          )
+          ssh "${ssh_args[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            bash -s -- "$SOURCE_SHA" "$VERSION" \
+            < tools/release/deploy_athenaeum.sh
+
   # Publish mobile artifacts to their respective app stores: the iOS .ipa to
   # TestFlight/App Store Connect and the Android .aab to Google Play. Each store
   # is a clean no-op until its credentials exist, and each is attempted
@@ -1968,7 +2053,7 @@ jobs:
   # versionCode); see docs/dev/releasing.md#upload-to-google-play.
   publish_mobile:
     name: Publish mobile artifacts
-    needs: [meta, verify]
+    needs: [meta, verify, deploy_server]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
       needs.meta.outputs.is_release == 'true' &&
@@ -2124,7 +2209,7 @@ jobs:
   # the client 404s gracefully, so shipping this before Pages is enabled is safe.
   pages:
     name: Publish update manifest to Pages
-    needs: [meta, publish_draft, verify]
+    needs: [meta, publish_draft, verify, deploy_server]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
       needs.meta.outputs.is_release == 'true'

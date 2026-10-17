@@ -488,6 +488,13 @@ declaring success. To roll back, stop the new tag and restart the previous
 image; do not replace the volume or pepper. Keep the previous image until the
 post-upgrade retention and break-glass checks complete.
 
+The release workflow performs this upgrade itself: its `deploy_server` job builds
+`callers-compendium-athenaeum:<version>` from the tagged commit and swaps the
+container before the mobile uploads and the update manifest
+([Deploying the Athenaeum server](releasing.md#deploying-the-athenaeum-server)).
+A failed job after the old container is removed leaves you to roll back by hand
+as above.
+
 Before beta or public client distribution, deploy and smoke-test the compatible
 Athenaeum service first. Record the image digest, proxy probe results, alert
 exercise, retention result, break-glass audit result, and lost-ID support result

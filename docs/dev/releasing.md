@@ -34,6 +34,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
 - [Safety model](#safety-model) — 15 lines
 - [Cutting a release](#cutting-a-release) — 202 lines
+- [Deploying the Athenaeum server](#deploying-the-athenaeum-server) — 52 lines
 - [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 93 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
@@ -115,7 +116,10 @@ and produces no Android artifact.
   `contents: read` only. The `publish_draft` job elevates
   to `contents: write` (plus `id-token`/`attestations: write` for the provenance
   and SBOM attestations); the approval-gated `publish_mobile` job remains
-  read-only; the `verify` job is read-only (`attestations: read` to query the
+  read-only; the approval-gated `deploy_server` job is read-only and is the only
+  job that can read the server SSH credentials (see
+  [Deploying the Athenaeum server](#deploying-the-athenaeum-server)); the `verify`
+  job is read-only (`attestations: read` to query the
   attestations API — no write, no `id-token`); and the `pages` job elevates to
   `contents: write`
   **only** — just enough to push the manifest to the `gh-pages` branch (see
@@ -338,9 +342,14 @@ and produces no Android artifact.
    publish a draft whose `verify` job failed or was skipped** — a red `verify`
    means the attestations don't check out. See
    [Verifying attestations](#verifying-attestations).
+   `deploy_server` then waits for the `release-server-deploy` approval; see step 9.
 8. **Publish** the draft manually once the `verify` job is green and the draft
    looks right.
-9. **Approve the `pages` job** (`release-manifest` environment) **after** the
+9. **Approve the `deploy_server` job** (`release-server-deploy` environment) once
+   `verify` is green. It deploys this tag's Athenaeum server before the mobile
+   uploads and the update manifest can start; if it fails, neither runs. See
+   [Deploying the Athenaeum server](#deploying-the-athenaeum-server).
+10. **Approve the `pages` job** (`release-manifest` environment) **after** the
    draft is public. `pages` needs `verify`, checks that the release is no longer a
    draft and that its manifests download anonymously, verifies every manifest
    signature against the pinned key, and only then pushes `gh-pages`. Approving
@@ -351,6 +360,58 @@ Runs are serialized **per target tag**: a tag push and a recovery dispatch for t
 same tag share one concurrency group and queue rather than racing on the draft.
 (GitHub keeps only one *pending* run per group, so a third run queued behind an
 in-flight one replaces the second.)
+
+## Deploying the Athenaeum server
+
+The `deploy_server` job puts the server for the tagged commit into production
+before any client can reach the release. `publish_mobile` (TestFlight, Google
+Play) and `pages` (the update manifest) both `need` it, so a failed deploy stops
+the run before either starts. It runs after `verify`, behind its own
+`release-server-deploy` approval, and it also runs on an existing-tag recovery
+(rebuilding the same commit under the same image tag is idempotent, and the
+manifest still waits on it). A build-only `workflow_dispatch` dry run skips it.
+
+It SSHes to the host and pipes
+[`tools/release/deploy_athenaeum.sh`](../../tools/release/deploy_athenaeum.sh)
+from the tagged commit into `bash -s`, passing the commit SHA and the release
+version as arguments. On the host the script:
+
+1. fetches that exact commit into `/opt/CallersCompendium` and checks it out
+   detached (the tag's commit, not whatever `main` is now);
+2. builds `callers-compendium-athenaeum:<version>` (`0.7.0-beta`, the tag without
+   its `v`) from `server/Dockerfile`: **before** touching the running container,
+   so a failed build leaves the previous release serving;
+3. stops and removes the `athenaeum` container, and starts the new image with the
+   flags in [the operations runbook](athenaeum-operations.md);
+4. waits for `http://127.0.0.1:33333/heartbeat` and confirms the container is
+   running the new image with no restarts.
+
+Any failing command fails the job, and so the release. A failure after step 2 can
+leave the new container down or crash-looping; the previous image is still on the
+host, so roll back as the runbook's *Upgrade, rollback, and release order* says,
+fix forward, and re-run the failed job (or recover the tag).
+
+### Maintainer: the `release-server-deploy` environment (one-time)
+
+Create the environment under **Settings → Environments** with **Required
+reviewers** (it is the approval gate), and restrict deployment to `v*` tags if you
+want the key unusable from branches. Unlike the signing legs, a missing value
+fails the job rather than skipping it.
+
+| Kind | Name | Value |
+|------|------|-------|
+| Secret | `ATHENAEUM_DEPLOY_SSH_KEY` | Private key (OpenSSH format) for the deploy account |
+| Secret | `ATHENAEUM_DEPLOY_KNOWN_HOSTS` | The host's `known_hosts` line(s), e.g. `ssh-keyscan -t ed25519 <host>` checked against the host's own fingerprint. Pinned: the connection fails on any other key |
+| Variable | `ATHENAEUM_DEPLOY_HOST` | Hostname or IP |
+| Variable | `ATHENAEUM_DEPLOY_USER` | Account the job logs in as |
+| Variable | `ATHENAEUM_DEPLOY_PORT` | Optional; defaults to `22` |
+
+The account needs passwordless `sudo` for `docker` (the script uses `sudo -n`,
+which fails instead of prompting), read access to `/opt/CallersCompendium` with
+`origin` able to fetch, and `curl`. Prefer a dedicated key, and constrain it on
+the host (`authorized_keys` options such as `restrict`, plus `from=` for GitHub's
+runner ranges if you accept maintaining them): the key can run arbitrary commands
+as that account, so its protection is the environment's reviewers.
 
 ## CHANGELOG-driven release notes
 
