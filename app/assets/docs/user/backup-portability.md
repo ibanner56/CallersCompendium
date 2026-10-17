@@ -45,6 +45,10 @@ goes: a cloud drive, your Files area, an email to yourself, or a folder
 of your choosing. When it's done, you'll see a **Backup exported.**
 confirmation.
 
+The app won't write a backup larger than it can restore. If your collection is
+too large to export as a single backup, it says so, shows the size and the
+limit, and saves nothing — your data is unchanged.
+
 ### An integrity check, not a lock
 
 A backup is plain, readable text — open it in any text editor and you'll
@@ -115,12 +119,18 @@ setting up a new device or recovering after a problem.
 On success, you'll see a **Backup restored.** confirmation. If any
 dance, program or other core item in the file can't be read, the restore
 stops *before* anything changes and tells you; only optional extras (custom
-dialects and themes) can be skipped, and the app tells you how many. If the file is invalid or
+dialects and themes, and any of your own figures, terms or notes the app can't
+store) can be skipped, and the app tells you how many problems it skipped. If the file is invalid or
 corrupt, comes from a newer version of the app that this one can't
 read, or has no app-settings section (an older, hand-edited or incomplete
 file that couldn't say what your settings, themes and dialects should
 become), the restore stops *before* any of your current data is touched —
-so you never lose what you already have by trying.
+so you never lose what you already have by trying. A file too large to be a
+backup is refused the same way, with its size and the limit.
+
+If you use [Device Sync](./settings.md#device-sync) with another device that
+runs a newer version of the app, a restore keeps the details that version added
+to your records, so the next sync doesn't remove them from your other devices.
 
 > **If your settings don't come back, your dances still did.** Occasionally a
 > restore succeeds for your content but fails while re-applying your saved

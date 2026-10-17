@@ -12,7 +12,9 @@ site/
 ├── index.html      # the page
 ├── styles.css      # styling (dark-mode aware, responsive, a11y-minded)
 ├── app.js          # fetches beta.json and renders the download cards
-└── assets/         # logo, favicon, social card, (future) screenshots
+├── CNAME           # the custom domain
+├── privacy/        # the privacy policy page
+└── assets/         # logo, favicon, social card, screenshots
 ```
 
 ## The user guides are generated

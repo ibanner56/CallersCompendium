@@ -203,7 +203,7 @@ The **Appearance** section controls how the app looks.
 A gallery of built-in themes: **System** (follows your device), **Light**,
 **Dark**, and a set of named color palettes, including high-contrast and
 editor-inspired schemes. Selecting a theme previews and applies it right away.
-There's a **High Contrast** theme for maximum legibility — see the
+There's a **High contrast** theme for maximum legibility — see the
 [Accessibility guide](./accessibility.md) for when it helps.
 
 ### Custom themes
@@ -281,7 +281,7 @@ role names and wording the app uses when it describes dances.
   reads as, and a new dance starts with no figures unless you have saved
   starting figures. See [Free-text entry](./authoring.md#free-text-entry).
 - **Figure shorthands** — map short tokens to one or more figures you can insert
-  during free-text entry. See
+  during free-text entry. This row is greyed out until **Free-text entry** is on. See
   [Figure shorthands](./authoring.md#figure-shorthands).
 - **Walkthrough snippets** — manage your personal, per-figure walkthrough
   wording. These settings are independent of canonical figure text.
@@ -353,6 +353,14 @@ be changed on each item later — they save you repetitive setup.
 Choose which details appear on each dance row in your collection: **Authors**,
 **Times called**, **Formation**, **Status**, **Level**, **Rating**, **Tags**, and
 **Custom fields**. All of them are shown by default.
+
+### Shared dance fields
+
+Choose which details appear when you share, copy, or export a program or dance:
+**Authors**, **Formation**, **Level**, **Mixer**, **Status**, **Phrase**,
+**Calling notes**, **Walkthrough**, and **Tunes**. Authors are shown by default
+and tunes are hidden until you turn them on. See
+[Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 
 ### Collection filters
 

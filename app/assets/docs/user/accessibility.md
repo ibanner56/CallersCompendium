@@ -58,14 +58,14 @@ Open **Settings › Appearance** to choose how the app looks. You'll find:
   switches when your device does.
 - **Light** — a bright theme for well-lit rooms and daytime prep.
 - **Dark** — an easy-on-the-eyes theme that suits calling on a dark stage.
-- **High Contrast** — a dedicated theme tuned for strong legibility, with bold
+- **High contrast** — a dedicated theme tuned for strong legibility, with bold
   separation between text and background.
 
 There are additional palettes and custom themes to explore as well, but those four
 are the ones most people reach for first — see
 [Settings › Appearance](./settings.md#appearance).
 
-For calling on a dim stage, **Dark** and **High Contrast** are the natural choices
+For calling on a dim stage, **Dark** and **High contrast** are the natural choices
 — they keep the screen from glaring at the room while staying readable for you. If
 you navigate with a keyboard, you'll notice that focus outlines are clearly
 visible as you move between controls, and they're especially strong in **High
@@ -134,15 +134,20 @@ suits you. While a dance's walkthrough overlay is open, those keys pause — the
 **up** and **down** keys scroll the walkthrough instead — and **Esc** closes it,
 so reading ahead never changes your slot.
 
-**Reordering without dragging.** Anything that supports dragging — program slots,
-figures — also offers **move-up** and **move-down** actions. Figures additionally
-offer cut and paste. You never *need* to drag to reorder something.
+**Reordering without dragging.** Program slots and figures also offer **move-up**
+and **move-down** actions, and figures additionally offer cut and paste, so you
+never *need* to drag them. A few settings lists — matrix columns, difficulty
+levels and custom-field choices — have no move buttons, so you drag those.
 
 **Figure actions menu.** Tab to a figure's **⋮** button and press **Space** or
 **Enter** to open its actions menu. Focus lands on the first action you can use,
 the **up** and **down** arrow keys move between actions (skipping any that are
 unavailable, such as Move up on the first figure), **Enter** runs the highlighted
 one, and **Esc** closes the menu and returns focus to the **⋮** button.
+
+**Add figure menu.** Open it with **Space** or **Enter** and focus lands on its
+first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
+meanwhile** and **Add modifier**.
 
 **Always know where you are.** Interactive controls show a visible focus outline
 as you move through them, so you can always see which control has focus.

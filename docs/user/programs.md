@@ -26,7 +26,9 @@ Each program in the list shows its title, event date, venue, slot count, and a
 status label (**Draft**, **Finalized**, or **Performed**). The slot count is
 the number of dances the evening is planned for, so alternates and breaks are
 not counted. Use the sort button to order the list by **Title**, **Recently
-updated**, or **Event date**, and the arrow beside it to flip the direction.
+updated**, or **Event date**, and the arrow beside it to flip the direction. To choose which sort and
+direction the list opens with, see
+[Settings › Defaults](./settings.md#display-defaults).
 
 - **Start one** with **New program**. If you have set up a **Starting program**
   template in [Settings › Defaults](./settings.md#program-defaults), the new
@@ -84,8 +86,6 @@ just the ones you already have. When several dances share the exact title, a
 review screen lets you pick the one you meant instead of guessing. It needs an
 internet connection, and anything it still can't place stays a note for you to
 sort out by hand.
-
-You can paste up to 100 titles at a time.
 
 ### Import a program from ContraDB
 

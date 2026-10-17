@@ -50,11 +50,14 @@ sort by:
 - **Recently added** — newest additions first, handy just after an
   [import](./glossary.md#import).
 - **Last called** — the dances you have programmed most recently, first.
-- **Best match** — how well each dance matches your words. This one appears only
-  while you have a plain-text search active (see below), and it is the order the
-  app uses to put the strongest matches at the top.
+- **Best match** — how well each dance matches your words. This one is offered
+  only for a short search — one or two characters — in **All fields**, with no
+  **Filters**, **Advanced** or **By phrase** choices set. For anything else the
+  list sorts by **Title**.
 
 The arrow button beside **Sort** flips between ascending and descending order.
+To have the list always open in one direction, set **Collection sort order**
+under [Settings › Defaults](./settings.md#display-defaults).
 When the toolbar runs out of room — on a narrow screen, or beside a long
 **Collection** title — the import, sort, arrow and group-by buttons move, one at
 a time, into the **More actions** (**⋮**) menu instead.
@@ -298,8 +301,10 @@ On a narrow screen, the less-used actions are in the **More actions** menu.
 To put in a dance by hand, choose **New dance**. This opens the editor, where the
 **title** is the only required field. Figure entry is keyboard-first: start
 typing a move and accept a match from the type-ahead, with a running beat count
-keeping you honest as you go. If a move is unusual and nothing matches, type it in
-as free text — it is still recorded as a figure.
+keeping you honest as you go. If a move is unusual and nothing matches, type it
+in as free text — it is still recorded as a figure. With **Free-text entry** on,
+you can type a whole line at once; see
+[Free-text entry](./authoring.md#free-text-entry).
 
 When you save, the dance is immediately selected in the detail pane so you can
 review it without having to find it in the list — on a tablet or desktop, where
