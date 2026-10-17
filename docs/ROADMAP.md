@@ -254,9 +254,10 @@ implementation notes and deviations against each item — is in
   - **Delivered — screenshots pass (#703):** optimized screenshots now illustrate
     the Collection, dance detail, Programs builder and matrix, Perform mode,
     Settings/Dialect, import review, and dance editor. GitHub and the hosted
-    `/guide/` Pages site render them; the bundled in-app reader intentionally
-    shows their descriptive alt text instead. Guides remain complete without
-    images so the offline reader is fully usable.
+    `/guide/` Pages site render them. The bundled in-app reader first showed only
+    their descriptive alt text; it now bundles and renders the same PNGs
+    (#1897), falling back to the alt text if one cannot load. Guides remain
+    complete without images so the offline reader is fully usable.
   - **Remaining**
     - Per-platform install page — the public landing page ([site/](../site/), #408) now surfaces per-platform downloads, and the [Installation guide](user/installation.md) covers first-launch steps; a dedicated install page is optional.
     - Beta-program page — tracked under 7.3.

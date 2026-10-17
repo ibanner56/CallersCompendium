@@ -160,7 +160,8 @@ below.
 - **Naming:** lowercase, hyphen-separated, `screen-topic.png` — for example
   `perform-mode-dark.png`, `programs-matrix.png`. Group a series with a shared
   prefix.
-- **Format:** PNG for screenshots, SVG for diagrams and wireframes.
+- **Format:** PNG for screenshots, SVG for diagrams and wireframes. Only PNGs are
+  bundled into the app; an SVG shows as its alt text there.
 - **Size and cropping:** crop to the relevant region; keep each file small (aim
   well under 500 KB). Capture at a standard zoom so text is legible.
 - **Themes:** show Perform-mode shots on the dark-stage theme to convey its
@@ -250,9 +251,10 @@ Four things follow from that:
   ```
 
 - **Write for all three.** A guide must read correctly on GitHub, in the app's
-  panel, and on the web. GitHub and Pages show image assets; the app shows their
-  alt text as a caption, so every image needs useful descriptive alt text and
-  every procedure must stand on its own words. Headings stay plain text.
+  panel, and on the web. GitHub, Pages and the app all show the image assets (the
+  app falls back to the alt text as a caption if one cannot load, and screen
+  readers get the alt text), so every image needs useful descriptive alt text
+  and every procedure must stand on its own words. Headings stay plain text.
 - **New guides need no registration** — every consumer discovers whatever is in
   `docs/user/`. This style guide is deliberately excluded from both the app
   bundle and the website, because it is for contributors rather than callers;

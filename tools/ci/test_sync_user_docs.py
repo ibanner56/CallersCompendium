@@ -41,6 +41,8 @@ def _image_cases() -> None:
             (images / "shot.png").write_bytes(b"png")
             (images / "README.md").write_text("contributor doc", encoding="utf-8")
             (images / ".DS_Store").write_bytes(b"finder metadata")
+            (images / "diagram.svg").write_text("<svg/>", encoding="utf-8")
+            (images / "shot.jpg").write_bytes(b"jpg")
             sync_user_docs.DOCS_ROOT = docs
             sync_user_docs.USER_DOCS = docs / "user"
             sync_user_docs.IMAGES_DIR = images
