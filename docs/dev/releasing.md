@@ -394,8 +394,11 @@ fix forward, and re-run the failed job (or recover the tag).
 ### Maintainer: the `release-server` environment (one-time)
 
 Create the environment under **Settings → Environments** with **Required
-reviewers** (it is the approval gate), and restrict deployment to `v*` tags if you
-want the key unusable from branches. Unlike the signing legs, a missing value
+reviewers** (it is the approval gate). Under **Deployment branches and tags**,
+allow exactly the tag rule `v*` (tag pushes) and the branch `main` (an
+[existing-tag recovery](#recovering-a-failed-existing-tag-run) is dispatched from
+`main`, so without it the recovery's deploy, mobile and manifest jobs are refused);
+no other branch can reach the key. Unlike the signing legs, a missing value
 fails the job rather than skipping it.
 
 | Kind | Name | Value |
