@@ -450,12 +450,13 @@ void main() {
     expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
   });
 
-  group('a restore that is not a full replace', () {
-    // Kept parts belong to the peer's copy of a record, so a writer that edits
-    // the records it matches, as a merge restore and an archive import do,
-    // keeps them: the record it writes is stamped newer than the peer's copy,
-    // and a body without the parts would win and strip them from the peer.
-    // Only a restore that replaces the whole library clears them.
+  group('restores and imports', () {
+    // Kept parts belong to the peer's copy of a record, so a writer that writes
+    // records, as a restore of either mode and an archive import do, keeps
+    // them: the record it writes is stamped newer than the peer's copy, and a
+    // body without the parts would win and strip them from the peer. A row for
+    // a record the writer leaves no longer existing is dropped by the next
+    // snapshot, not by the writer.
     Tag tag() => Tag(id: 't1', name: 'Tag');
 
     CompendiumArchive archiveOf(List<Program> programs) =>
@@ -516,81 +517,181 @@ void main() {
       },
     );
 
-    test('a merge restore keeps what the records it writes kept', () async {
-      // The archive carries tag t1 as the peer's copy has it, bar the field
-      // this build does not know. A merge restore writes the tag, stamped at
-      // restore time, so it is the newest copy: if the kept part went with the
-      // write, the body without it would win last-writer-wins and strip the field
-      // from the peer on every device (spec §6.7).
-      final peer = newerTag();
-      await apply(peer);
-      await apply(newerProgram(program()));
-      expect(
-        await repositories.syncLocal.listRetainedSyncFields(),
-        hasLength(2),
-      );
+    for (final mode in RestoreMode.values) {
+      test('a ${mode.name} restore keeps what the records it writes kept', () async {
+        // The archive carries tag t1 as the peer's copy has it, bar the field
+        // this build does not know. A restore writes the tag, stamped at restore
+        // time, so it is the newest copy: if the kept part went with the write,
+        // the body without it would win last-writer-wins and strip the field
+        // from the peer on every device (spec §6.7). That holds for a replace as
+        // for a merge, though a replace deletes the old record first.
+        final peer = newerTag();
+        await apply(peer);
+        await apply(newerProgram(program()));
+        expect(
+          await repositories.syncLocal.listRetainedSyncFields(),
+          hasLength(2),
+        );
 
-      final result = await ArchiveRestorer(repositories).restore(
-        CompendiumArchive(
-          exportedAt: _stamp,
-          tags: [tag()],
-          programs: [program(title: 'From the backup')],
-        ),
-        mode: RestoreMode.merge,
-      );
-
-      expect(result.errors, isEmpty);
-      expect(
-        (await repositories.syncLocal.listRetainedSyncFields())
-            .map((row) => row.recordId)
-            .toSet(),
-        {'t1', 'p1'},
-        reason:
-            'a merge restore edits the records it matches as a local '
-            'edit does, which keeps what a peer\'s newer build put there',
-      );
-      await expectTagStillCarriesWhatWasKept();
-
-      final mine = await published(peer.address);
-      expect(
-        mine.blob.updatedAt.isAfter(peer.updatedAt),
-        isTrue,
-        reason: 'the restore stamped the tag, so it is the newer copy',
-      );
-      final plan = const SyncMergeEngine().plan(
-        local: {peer.address: mine},
-        baseline: {
-          peer.address: SyncBaselineEntry(
-            kind: peer.kind,
-            recordId: peer.id,
-            wireHash: SyncMergeCandidate(blob: peer).wireHash,
+        final result = await ArchiveRestorer(repositories).restore(
+          CompendiumArchive(
+            exportedAt: _stamp,
+            tags: [tag()],
+            programs: [program(title: 'From the backup')],
           ),
-        },
-        peers: [
-          {peer.address: SyncMergeCandidate(blob: peer, peerId: 'peer-a')},
-        ],
-      );
-      expect(plan.reports, isEmpty);
-      final upload = plan.uploads.single;
-      expect(
-        upload.winner!.blob.body['payNoteV2'],
-        'cash on the night',
-        reason:
-            'what this device would upload to the peer must still carry '
-            'the part the peer\'s newer build put on the tag',
-      );
+          mode: mode,
+        );
+
+        expect(result.errors, isEmpty);
+        expect(
+          (await repositories.syncLocal.listRetainedSyncFields())
+              .map((row) => row.recordId)
+              .toSet(),
+          {'t1', 'p1'},
+          reason:
+              'a ${mode.name} restore writes the records it matches as a local '
+              'edit does, which keeps what a peer\'s newer build put there',
+        );
+        await expectTagStillCarriesWhatWasKept();
+
+        final mine = await published(peer.address);
+        expect(
+          mine.blob.updatedAt.isAfter(peer.updatedAt),
+          isTrue,
+          reason: 'the restore stamped the tag, so it is the newer copy',
+        );
+        final plan = const SyncMergeEngine().plan(
+          local: {peer.address: mine},
+          baseline: {
+            peer.address: SyncBaselineEntry(
+              kind: peer.kind,
+              recordId: peer.id,
+              wireHash: SyncMergeCandidate(blob: peer).wireHash,
+            ),
+          },
+          peers: [
+            {peer.address: SyncMergeCandidate(blob: peer, peerId: 'peer-a')},
+          ],
+        );
+        expect(plan.reports, isEmpty);
+        final upload = plan.uploads.single;
+        expect(
+          upload.winner!.blob.body['payNoteV2'],
+          'cash on the night',
+          reason:
+              'what this device would upload to the peer must still carry '
+              'the part the peer\'s newer build put on the tag',
+        );
+      });
+    }
+
+    group('settings', () {
+      // A restore does not write the settings table: `BackupService` applies
+      // the backup's app settings after the core commit, with the same
+      // `SettingsRepository.set` and `remove` used below, which stamp the
+      // moment of the restore.
+      SyncRecordBlob dialects({Map<String, Object?> extra = const {}}) =>
+          SyncRecordBlob(
+            kind: SyncRecordKind.setting,
+            id: 'custom_dialects',
+            updatedAt: _stamp,
+            deletedAt: null,
+            existenceAt: _stamp,
+            body: {
+              'value': ['Contra'],
+              ...extra,
+            },
+          );
+
+      Future<void> replaceRestore() async {
+        final result = await ArchiveRestorer(
+          repositories,
+        ).restore(archiveOf(const []));
+        expect(result.errors, isEmpty);
+      }
+
+      test('a setting kept whole is still kept and shared back', () async {
+        // A key this build does not sync is kept whole and is in no table a
+        // replace clears, so there is nothing it replaced.
+        final peer = SyncRecordBlob(
+          kind: SyncRecordKind.setting,
+          id: 'a_setting_added_later',
+          updatedAt: _stamp,
+          deletedAt: null,
+          existenceAt: _stamp,
+          body: const {
+            'value': {'on': true},
+          },
+        );
+        await apply(peer);
+
+        await replaceRestore();
+
+        final mine = await published(peer.address);
+        expect(mine.wireHash, SyncMergeCandidate(blob: peer).wireHash);
+        expect(
+          await repositories.syncLocal.listRetainedSyncFields(),
+          hasLength(1),
+        );
+      });
+
+      test('the value the backup applies afterwards is shared with the part '
+          'kept for it', () async {
+        final peer = dialects(extra: const {'addedLater': 'kept'});
+        await apply(peer);
+
+        await replaceRestore();
+        await repositories.settings.set('custom_dialects', ['Contra']);
+
+        final mine = await published(peer.address);
+        expect(mine.blob.updatedAt.isAfter(peer.updatedAt), isTrue);
+        expect(mine.blob.body['addedLater'], 'kept');
+      });
+
+      test('a setting the backup lacks is removed with its kept part still '
+          'beside the tombstone, as for a local removal', () async {
+        final peer = dialects(extra: const {'addedLater': 'kept'});
+        await apply(peer);
+
+        await replaceRestore();
+        await repositories.settings.remove('custom_dialects');
+
+        final mine = await published(peer.address);
+        expect(mine.blob.deletedAt, isNotNull);
+        expect(
+          (await repositories.syncLocal.listRetainedSyncFields()).map(
+            (row) => row.recordId,
+          ),
+          ['custom_dialects'],
+        );
+      });
     });
 
-    test('a replace restore clears everything that was kept', () async {
+    test('a replace restore leaves the kept parts of records the backup '
+        'lacks to the next snapshot, which drops them', () async {
       await apply(newerTag());
       await apply(newerProgram(program()));
 
+      // The backup holds the tag but not the program, so the replace deletes
+      // p1 and writes nothing in its place.
       final result = await ArchiveRestorer(
         repositories,
-      ).restore(archiveOf([program()]));
-
+      ).restore(CompendiumArchive(exportedAt: _stamp, tags: [tag()]));
       expect(result.errors, isEmpty);
-      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+      expect(await repositories.programs.getById('p1'), isNull);
+
+      await storage.snapshot();
+
+      expect(
+        (await repositories.syncLocal.listRetainedSyncFields()).map(
+          (row) => row.recordId,
+        ),
+        ['t1'],
+        reason:
+            'the sweep every snapshot runs drops the row of a record that '
+            'no longer exists, so a replace need not clear the table',
+      );
+      await expectTagStillCarriesWhatWasKept();
     });
   });
 
