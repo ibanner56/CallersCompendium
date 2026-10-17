@@ -6636,6 +6636,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Nogle relaterede dansekoblinger i denne fil var ugyldige og blev sprunget over.';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'Nogle af filens ordlistetermer var for lange til at blive gemt eller kunne ikke læses og blev udeladt.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'En Becket-retning blev ikke genkendt; standard er med uret.';
 

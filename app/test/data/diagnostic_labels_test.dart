@@ -132,6 +132,7 @@ void main() {
       'usr_lines_dropped',
       'usr_sets_skipped',
       'usr_related_rows_skipped',
+      'usr_terms_skipped',
     };
 
     test('every produced code is mapped (no silent English leak)', () {

@@ -148,6 +148,17 @@ const int kMaxCcFiguresPerDance = 512;
 /// closed** with a [FmpResourceLimitException].
 const int kMaxCcInsertCallRows = 20000;
 
+/// Maximum number of Caller's Companion `Term` rows the CC-schema layer
+/// (`extractCcUsrArchive`) will read as glossary terms (#1023).
+///
+/// A **CC-semantic** bound applied on top of [kMaxFmpRecords], for the same
+/// reason as [kMaxCcInsertCallRows]: a hand-built [FmpDatabase] bypasses the
+/// byte reader, and a hostile file could aim its whole record budget at the
+/// `Term` table. A real CallersCompanion2.USR file has a handful of rows (the one
+/// seen has 2); 20k is vast headroom while refusing a pathological table.
+/// Exceeding it **fails closed** with a [FmpResourceLimitException].
+const int kMaxCcTermRows = 20000;
+
 /// Maximum number of Caller's Companion `Dance_Related` rows the CC-schema
 /// layer (`extractCcUsrArchive`) will join into related-dance pairs (issue
 /// #688).
@@ -193,7 +204,8 @@ const int kMaxCcBodyLineLength = 2000;
 /// [maxSectors]/[maxTables]/[maxRecords] bound the raw FileMaker container read;
 /// [maxPhraseRows]/[maxFiguresPerDance]/[maxBodyLineLength] bound the CC
 /// `Phrase`-table join layered on top; [maxInsertCallRows] bounds the
-/// `InsertCall` shorthand-seeding scan; [maxDanceRelatedRows]/
+/// `InsertCall` shorthand-seeding scan; [maxTermRows] bounds the `Term`
+/// glossary-term scan; [maxDanceRelatedRows]/
 /// [maxRelatedDancesPerDance] bound the `Dance_Related` join (see the per-field
 /// dartdoc).
 class FmpReadLimits {
@@ -205,6 +217,7 @@ class FmpReadLimits {
     this.maxFiguresPerDance = kMaxCcFiguresPerDance,
     this.maxBodyLineLength = kMaxCcBodyLineLength,
     this.maxInsertCallRows = kMaxCcInsertCallRows,
+    this.maxTermRows = kMaxCcTermRows,
     this.maxDanceRelatedRows = kMaxCcDanceRelatedRows,
     this.maxRelatedDancesPerDance = kMaxCcRelatedDancesPerDance,
   });
@@ -216,6 +229,7 @@ class FmpReadLimits {
   final int maxFiguresPerDance;
   final int maxBodyLineLength;
   final int maxInsertCallRows;
+  final int maxTermRows;
   final int maxDanceRelatedRows;
   final int maxRelatedDancesPerDance;
 }

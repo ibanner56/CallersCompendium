@@ -10043,6 +10043,12 @@ abstract class AppLocalizations {
   /// **'Some related-dance links in this file were invalid and were skipped.'**
   String get importIssueUsrRelatedRowsSkipped;
 
+  /// Import review warning: .USR Term rows (the user's own glossary terms) were skipped, because a field was longer than a glossary entry can be or the Term table's term column could not be found (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Some of this file\'s glossary terms were too long to keep, or couldn\'t be read, and were left out.'**
+  String get importIssueUsrTermsSkipped;
+
   /// Import note: a Becket rotation direction wasn't 'CW' or 'CCW' and was defaulted to clockwise.
   ///
   /// In en, this message translates to:

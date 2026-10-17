@@ -8565,6 +8565,10 @@
   "@importIssueUsrRelatedRowsSkipped": {
     "description": "Import review warning: .USR Dance_Related rows with a missing or self-referential dance id were skipped."
   },
+  "importIssueUsrTermsSkipped": "Some of this file's glossary terms were too long to keep, or couldn't be read, and were left out.",
+  "@importIssueUsrTermsSkipped": {
+    "description": "Import review warning: .USR Term rows (the user's own glossary terms) were skipped, because a field was longer than a glossary entry can be or the Term table's term column could not be found (#1023)."
+  },
   "importIssueDirectionUnmapped": "A Becket direction wasn't recognized; defaulted to clockwise.",
   "@importIssueDirectionUnmapped": {
     "description": "Import note: a Becket rotation direction wasn't 'CW' or 'CCW' and was defaulted to clockwise."

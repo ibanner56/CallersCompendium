@@ -6598,6 +6598,10 @@
   "@importIssueUsrRelatedRowsSkipped": {
     "x-sourceSha256": "35f91356e72f9ee0df050fbf3bf9315f36f031b59b2f8e26b953ba95cbfb8c5b"
   },
+  "importIssueUsrTermsSkipped": "このファイルの用語集の用語の一部は、長すぎて保持できないか読み取れなかったため、取り込まれませんでした。",
+  "@importIssueUsrTermsSkipped": {
+    "x-sourceSha256": "92d66e1277ce18d1dba9551039b5bc3805fdb41abfbc4162059338ced1864010"
+  },
   "importIssueDirectionUnmapped": "Becketの方向を認識できませんでした。既定で時計回りにしました。",
   "@importIssueDirectionUnmapped": {
     "x-sourceSha256": "055717da02ed80a5a6563dcf6ff6cdbbe571b4a6cadea1549b53c6d88c973d32"

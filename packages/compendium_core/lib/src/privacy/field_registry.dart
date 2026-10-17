@@ -397,16 +397,28 @@ final Map<String, DataClassification> fieldClassifications = {
   'user_glossary_entries.keywords_json': _userGlossaryText,
   'user_glossary_entries.notes': _userGlossaryNotes,
   'user_glossary_entries.payload_json': const DataClassification(
-    term: DpvTerm.nonPersonal,
-    subject: DataSubject.none,
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.thirdParty,
     egress: EgressClass.shareable,
     note:
         'The kind\'s payload: a compound\'s figures and parameters; a '
         'figure of your own\'s parameters, choice and flag labels, defaults '
-        'and wording template; or a term\'s dance form (#1023). Each kind '
-        'also keeps keys a newer build wrote. Choreography, classified by intent '
-        'as the glossary text is: the user writes it to describe a figure, '
-        'about no person. Travels as the entry does.',
+        'and wording template; or a term\'s dance form and source citation '
+        '(#1023). Each kind also keeps keys a newer build wrote. The source '
+        'citation, which a Caller\'s Companion import brings in (its '
+        '`Source`, such as "Give and Take - Larry Jennings"), credits a '
+        'published work and often its author by name: a choreographer or '
+        'writer who never touches this app, so the column\'s subject is '
+        'thirdParty, as published_sources.author\'s is. Its category is '
+        'unclassified personal data, as published_sources.notes\' is, not a '
+        'name: a citation is free text that mixes a title with an author. '
+        'The rest of the payload is choreography about no person. '
+        'Shareable, as that published credit is: public by definition, and '
+        'the entry travels as the glossary text does. This is the '
+        'implementer\'s call; keeping subject none was rejected because the '
+        'glossary text\'s rule (classified by intent) gives the citation an '
+        'intent to credit a person, and a column of its own for one optional '
+        'string was rejected as out of proportion.',
   ),
   'user_glossary_entries.created_at': const DataClassification(
     term: DpvTerm.nonPersonal,
