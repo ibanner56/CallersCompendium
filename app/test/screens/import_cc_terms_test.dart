@@ -54,9 +54,11 @@ void main() {
                     terms: terms,
                     nameTaken: nameTaken ?? (_) => false,
                     // As the import stores text, for Larks and Robins.
-                    stored: (text) => canonicalizeGlossaryText(
-                      text.trim(),
-                      Dialect.larksRobins,
+                    stored: (text) => normalizeShareableText(
+                      canonicalizeGlossaryText(
+                        text.trim(),
+                        Dialect.larksRobins,
+                      ),
                     ),
                   ),
                 ),
@@ -586,7 +588,9 @@ void main() {
     });
 
     testWidgets('a term imported before is known again when the file writes '
-        'its text decomposed, as stored it is composed (NFC)', (tester) async {
+        'its name and text decomposed, as stored they are composed (NFC)', (
+      tester,
+    ) async {
       await runImport(
         tester,
         glossary: true,
@@ -594,7 +598,7 @@ void main() {
           // The file writes its accents decomposed, e + U+0301, which the
           // fixture spells as SCSU does: SQU (0x0E) quoting the code point.
           const MapEntry(23, {
-            1: 'Caf\u00e9 Turn',
+            1: 'Cafe\u000e\u0003\u0001 Turn',
             2: 'Cafe\u000e\u0003\u0001 style.',
             3: 'Le Cafe\u000e\u0003\u0001 - Anon',
             4: '1',
@@ -616,12 +620,43 @@ void main() {
         ],
       );
       expect(find.byType(ImportCcTermsScreen), findsOneWidget);
+      expect(find.text('Contra Corners'), findsOneWidget);
       expect(
         find.descendant(
           of: find.byType(ImportCcTermsScreen),
-          matching: find.text('Caf\u00e9 Turn'),
+          // In either form: the row would show the name as the file has it.
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is Text &&
+                normalizeShareableText(w.data ?? '') == 'Caf\u00e9 Turn',
+          ),
         ),
         findsNothing,
+      );
+    });
+
+    testWidgets('two terms in the file whose names differ only in how an '
+        'accent is written are the same name', (tester) async {
+      await runImport(
+        tester,
+        glossary: true,
+        moreTerms: [
+          const MapEntry(23, {1: 'Caf\u00e9 Turn', 2: 'Turn.', 4: '1'}),
+          // e + U+0301, as SCSU quotes it (SQU, 0x0E).
+          const MapEntry(24, {
+            1: 'Cafe\u000e\u0003\u0001 Turn',
+            2: 'Turn.',
+            4: '1',
+          }),
+        ],
+      );
+      expect(
+        find.byKey(const ValueKey('cc-term-import-taken-3')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('cc-term-import-taken-4')),
+        findsOneWidget,
       );
     });
 

@@ -1818,8 +1818,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     required ShorthandMappingsController? shorthands,
     required bool accessibleNavigation,
   }) async {
+    // As the glossary stores it: canonical, and composed (NFC), whatever form
+    // the file writes it in, so every comparison below, and the screen's,
+    // sees a name or text as it would be kept.
     String stored(String text) =>
-        canonicalizeGlossaryText(text.trim(), dialect);
+        normalizeShareableText(canonicalizeGlossaryText(text.trim(), dialect));
     // Read now, after the dances and shorthands were written: a shorthand
     // just seeded takes its name too.
     final entries = await repos.userGlossary.listAll();
@@ -1829,15 +1832,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // again; nothing is shown when every term is. The definition is compared
     // too, so a term of the user's own that shares a name, and like a CC row
     // has no source, is not taken for this file's: that row is offered, as
-    // taken, to be left out or renamed. Both are compared composed (NFC), as
-    // the glossary stores them, whatever form the file writes them in.
+    // taken, to be left out or renamed. Each is compared composed (NFC), as
+    // the glossary stores it.
     bool alreadyHere(CcTerm term) => entries.any(
       (entry) =>
           entry.kind == UserGlossaryEntryKind.term &&
           normalizeGlossaryName(entry.name) ==
               normalizeGlossaryName(stored(term.name)) &&
-          entry.definition ==
-              normalizeShareableText(stored(term.definition ?? '')) &&
+          entry.definition == stored(term.definition ?? '') &&
           glossaryTermSource(entry.payload) ==
               switch (term.source) {
                 final source? => normalizeShareableText(source),
