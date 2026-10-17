@@ -462,8 +462,11 @@ declines the collapse.
   a `term`, with an Undo (maintainer, 2026-10-16:
   a row's description starts as its definition; one with no definition is
   offered unticked until it has one, its notes kept as the entry's notes; and
-  a row whose name is taken can only be skipped, never added marked *Rename
-  needed*).
+  a row whose name is taken is never added marked *Rename needed*). As this
+  change decided (not the maintainer), a taken row can be left out, or renamed
+  with **Edit** and then added. A term already in the glossary with the row's
+  stored name, definition and source is taken to be an earlier import of the
+  same file and is not offered again.
 - Follow-ups: approximating dialect from `Elements`/button phrasing (#563).
 - Fixture: the publicly downloadable demo `.USR` (kept out of the repo until
   redistribution permission is clarified; local test asset otherwise). CI runs
