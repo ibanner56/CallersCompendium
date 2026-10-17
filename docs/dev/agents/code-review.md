@@ -113,13 +113,18 @@ label once you no longer need reviews.
 A round can also end with Claude finished and no review posted: the model ends
 its turn without submitting (#1893 had three such rounds). The job then fails
 its `Check that the round posted a review` step, so `claude-review` is red on
-that head. The step accepts only a `claude[bot]` review of the head newer than
-the newest Claude review on the PR when the round started, so a review from an
-earlier round on the same head does not count. Re-run the failed job, or remove
-the label and add it back, to try again. By default the action hides the model's
-turns from the log, so such a round uploads its transcript as a
-`claude-review-transcript-<attempt>` artifact on the run, kept for 7 days. Token
-values are replaced before upload, but the repository is public, so any
+that head. The step accepts only a `claude[bot]` review entry of the head newer
+than the newest one on the PR when the round started, so a review from an
+earlier round on the same head does not count. An inline-thread reply that
+`claude.yml` posts during the round also records such an entry, and would pass
+the step. To try again, remove the label and add it back. Re-running the failed
+job reuses its original event: it reviews that run's head even after a newer
+push, and runs even if the label has since been removed. By default the action
+hides the model's turns from the log, so a round with no review, or one where
+the action failed after Claude ran (at the 80-turn limit, for example), uploads
+its transcript as a `claude-review-transcript-<attempt>` artifact on the run,
+kept for 7 days. The Claude token's value and anything shaped like an Anthropic
+or GitHub token are replaced before upload, but the repository is public, so any
 signed-in GitHub user can download it. A round stopped by the 30-minute timeout,
 or cancelled by a newer push, writes no transcript.
 
@@ -226,9 +231,10 @@ Traps:
 - **A green `claude-review` check does not prove a review happened.** The
   action skips itself, and still reports success, when the workflow file
   differs from `main`'s copy. So a PR that edits `claude-code-review.yml` is
-  never reviewed by it (observed on #1736). The job's review check does not run
-  then, because Claude did not; every round in which Claude finished goes red
-  without a review. The review entry is the evidence;
+  never reviewed by it (observed on #1736). The job's `Check that the round
+  posted a review` step does not run then, because Claude did not. Otherwise a
+  round in which Claude finished goes red unless a new `claude[bot]` review
+  entry of the head appeared. The review entry is the evidence;
   `check_pr_review_gates.py review <N> --reviewer claude` reads that entry, not
   the check.
 - **A PR that changes `claude-code-review.yml` may change nothing else.**
