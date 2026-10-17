@@ -455,6 +455,12 @@ void main() {
         expect(last[0].note, isNull);
         expect(last[1].note, '10000');
         expect(last[1].params.containsKey('beats'), isFalse);
+        final alone = parseFreeTextFigureEntry(
+          'circle left (10000); turn alone',
+        );
+        expect(alone.map((f) => f.move), ['circle', 'turn_alone']);
+        expect(alone[0].note, '10000');
+        expect(alone[1].note, isNull);
         final first = parseFreeTextFigureEntry(
           '10000 beats circle left; turn alone (4)',
         );
