@@ -289,8 +289,9 @@ code as much as prose. Two rules:
 
 - Follow the [user-docs style guide](docs/user/style-guide.md) — voice,
   terminology, accessibility, and the hub's structure.
-- After editing any guide, run `python3 tools/ci/sync_user_docs.py --write` and
-  commit the regenerated `app/assets/docs/`. A CI check fails if they drift.
+- After editing any guide or guide image, run
+  `python3 tools/ci/sync_user_docs.py --write` and commit the regenerated
+  `app/assets/docs/`. A CI check fails if they drift.
 
 The hosted pages are **generated at publish time** by
 `tools/site/render_user_docs.py` and never committed, so there is nothing to
