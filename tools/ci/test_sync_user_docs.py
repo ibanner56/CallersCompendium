@@ -39,6 +39,7 @@ def _image_cases() -> None:
             images.mkdir(parents=True)
             (docs / "user" / "settings.md").write_text("# S\n", encoding="utf-8")
             (images / "shot.png").write_bytes(b"png")
+            (images / "Upper.PNG").write_bytes(b"png")
             (images / "README.md").write_text("contributor doc", encoding="utf-8")
             (images / ".DS_Store").write_bytes(b"finder metadata")
             (images / "diagram.svg").write_text("<svg/>", encoding="utf-8")
@@ -50,19 +51,26 @@ def _image_cases() -> None:
             assert set(sync_user_docs._collect_sources()) == {
                 "user/settings.md",
                 "user/images/shot.png",
+                "user/images/Upper.PNG",
             }
 
             def write_guide(body: str) -> dict:
                 (docs / "user" / "settings.md").write_text(body, encoding="utf-8")
                 return sync_user_docs._collect_sources()
 
-            # A present PNG (any case), an SVG, and a remote image are fine.
+            # A present PNG (incl. an uppercase suffix, matched exactly), an
+            # SVG, and a remote image are fine.
             assert not sync_user_docs.missing_image_references(
                 write_guide(
-                    "![a](images/shot.png) ![b](images/SHOT.PNG) "
+                    "![a](images/shot.png) ![b](images/Upper.PNG) "
                     "![c](images/diagram.svg) ![d](https://x.test/y.png)\n"
                 )
             )
+            # A name differing only in case is reported: the app's asset
+            # lookup is exact, so it would show the caption, not the image.
+            assert sync_user_docs.missing_image_references(
+                write_guide("![a](images/SHOT.PNG)\n")
+            ) == ["user/settings.md -> images/SHOT.PNG"]
             # A PNG reference with no file is reported with its guide.
             assert sync_user_docs.missing_image_references(
                 write_guide("![a](images/shot.png)\n![b](images/gone.png)\n")

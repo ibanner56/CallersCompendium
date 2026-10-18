@@ -119,14 +119,17 @@ def missing_image_references(mapping: dict[str, Path]) -> list[str]:
     change -- exactly the change that adds a reference -- so a reference whose
     PNG was never committed would otherwise merge and fail an unrelated PR.
     """
-    bundled = {rel.lower() for rel in mapping}
+    # Exact names: the app looks the asset up by its exact key, so a reference
+    # differing only in case would show the caption there. Only the ``.png``
+    # suffix is matched case-insensitively (as the mirroring filter does).
+    bundled = set(mapping)
     missing: list[str] = []
     for rel, source in sorted(mapping.items()):
         if not rel.endswith(".md"):
             continue
         text = source.read_text(encoding="utf-8")
         for match in _IMAGE_REFERENCE.finditer(text):
-            if f"user/images/{match.group(1)}".lower() not in bundled:
+            if f"user/images/{match.group(1)}" not in bundled:
                 missing.append(f"{rel} -> images/{match.group(1)}")
     return missing
 
