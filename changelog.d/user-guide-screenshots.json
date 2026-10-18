@@ -1,0 +1,12 @@
+{
+  "id": "user-guide-screenshots",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The in-app User Guide now shows the screenshots the guides describe, offline, instead of only a line of italic text. Screen readers announce each picture by its description, and if a picture ever fails to load the description is shown in its place."
+    ],
+    "changed": [
+      "The guide screenshots were retaken from the current app, and the descriptions beside them were updated to match."
+    ]
+  }
+}

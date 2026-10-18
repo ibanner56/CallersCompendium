@@ -52,7 +52,7 @@ one; a gate will fail, and the edit is lost at the next regeneration.
 | Generated | From | By |
 | --- | --- | --- |
 | the field-catalogue block of [`data-classification.md`](data-classification.md) | `packages/compendium_core/lib/src/privacy/field_registry.dart` | `packages/compendium_core/tool/generate_data_classification_doc.dart` |
-| `app/assets/docs/user/*.md` (the in-app User Guide bundle) | `docs/user/*.md` | `tools/ci/sync_user_docs.py` |
+| `app/assets/docs/user/*.md` and `app/assets/docs/user/images/*.png` (the in-app User Guide bundle) | `docs/user/*.md` and `docs/user/images/*.png` | `tools/ci/sync_user_docs.py` |
 | the `/guide/` section of the Pages site | `docs/user/*.md` | `tools/site/render_user_docs.py` |
 | `app/lib/l10n/*.dart` | `app/lib/l10n/*.arb` | `flutter gen-l10n` |
 | `packages/compendium_core/lib/src/storage/database.g.dart` | `tables.dart` | `build_runner` (drift) |

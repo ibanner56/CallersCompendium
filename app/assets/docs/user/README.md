@@ -112,8 +112,9 @@ Programs, and Settings in the app's main navigation, and also has a link at
 
 The in-app copy is the same text you are reading now, with two differences:
 
-- It is **text only**. Any illustration appears as its description in italics
-  rather than a picture.
+- Screenshots are bundled with the app and appear in the guide offline. Each
+  has a text description that screen readers announce; if a picture ever fails
+  to load, that description is shown in italics instead.
 - Links between guides open in the panel, and **Back** returns you to where you
   were. Links out to the web open in your browser — nothing is fetched unless
   you choose to open it.

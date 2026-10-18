@@ -90,10 +90,10 @@ The built-in dialects carry a **Preset** badge and are read-only, so you can't
 change their wording by accident. Your own dialects appear in the same list and
 can be edited freely.
 
-![The Settings Dialect section showing the active-dialect picker and controls for managing custom role and move terms](images/settings-dialect.png)
+![The Settings Dialect section listing the Canonical, Larks/Robins, and Leads/Follows presets with Larks/Robins selected, above switches for canonical figure text and discouraged terms](images/settings-dialect.png)
 
-*The Dialect section manages the active dialect and the wording of your own
-custom dialects.*
+*The Dialect section lists the built-in presets and your own dialects, with the
+active one selected.*
 
 ## Make your own dialect
 

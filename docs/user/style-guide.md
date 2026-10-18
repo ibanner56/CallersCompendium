@@ -146,28 +146,32 @@ Every image in the user docs **must** have alt text. This is not optional.
 
 ## Screenshots and images
 
-**The in-app user guide is text-only.** The guides are bundled into the app and
-the in-app reader does not render images — it shows the alt text as a caption
-instead. GitHub and the hosted Pages guide render screenshots as images. A guide
-that *needs* a picture to make sense is still broken for readers in the app, so
-every illustration remains an enhancement rather than a load-bearing step.
+**Screenshots appear in the app, on GitHub and on the hosted Pages guide.** The
+in-app reader shows each bundled image and gives screen readers its alt text. If
+an image cannot be loaded, the reader falls back to the alt text as a caption.
+Screen-reader and low-vision readers get the alt text, not the pixels, so a guide
+that *needs* a picture to make sense is still broken for them: every
+illustration remains an enhancement rather than a load-bearing step.
 
-Write every explanation so it stands on its own words. If you do add an image,
-treat it as an enhancement, never as a load-bearing part of a procedure, and
-follow the rules below.
+Write every explanation so it stands on its own words. Treat an image as an
+enhancement, never as a load-bearing part of a procedure, and follow the rules
+below.
 
 - **Naming:** lowercase, hyphen-separated, `screen-topic.png` — for example
   `perform-mode-dark.png`, `programs-matrix.png`. Group a series with a shared
   prefix.
-- **Format:** PNG for screenshots, SVG for diagrams and wireframes.
+- **Format:** PNG for screenshots, SVG for diagrams and wireframes. Only PNGs are
+  bundled into the app; an SVG shows as its alt text there.
 - **Size and cropping:** crop to the relevant region; keep each file small (aim
   well under 500 KB). Capture at a standard zoom so text is legible.
 - **Themes:** show Perform-mode shots on the dark-stage theme to convey its
   high-contrast intent; show general screens on the default light theme unless the
   guide is specifically about appearance.
 - **Store images** in [`images/`](images/) and reference them with relative paths.
-  The Pages build publishes these assets beside the hosted guides; the in-app
-  bundle deliberately keeps only the alt text.
+  The Pages build publishes these assets beside the hosted guides, and
+  `tools/ci/sync_user_docs.py` mirrors them into the in-app bundle
+  (`app/assets/docs/user/images/`). Run it with `--write` after adding or
+  replacing an image, or the drift check fails.
 
 ## Describing platform behavior neutrally
 
@@ -247,9 +251,10 @@ Four things follow from that:
   ```
 
 - **Write for all three.** A guide must read correctly on GitHub, in the app's
-  panel, and on the web. GitHub and Pages show image assets; the app shows their
-  alt text as a caption, so every image needs useful descriptive alt text and
-  every procedure must stand on its own words. Headings stay plain text.
+  panel, and on the web. GitHub, Pages and the app all show the image assets (the
+  app falls back to the alt text as a caption if one cannot load, and screen
+  readers get the alt text), so every image needs useful descriptive alt text
+  and every procedure must stand on its own words. Headings stay plain text.
 - **New guides need no registration** — every consumer discovers whatever is in
   `docs/user/`. This style guide is deliberately excluded from both the app
   bundle and the website, because it is for contributors rather than callers;

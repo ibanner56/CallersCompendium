@@ -140,8 +140,11 @@ flutter:
     # In-app User Guide: the offline copy of the user documentation, mirrored
     # from /docs/user by tools/ci/sync_user_docs.py and kept in sync by a CI
     # drift-check. Rendered from these bundled assets so the guide works fully
-    # offline. Text-only for now — images are rendered as alt-text captions.
+    # offline. The screenshots the guides embed live in images/ and are
+    # mirrored the same way; the reader renders them, and falls back to the
+    # alt text as a caption for an image it cannot load.
     - assets/docs/user/
+    - assets/docs/user/images/
     # First-run seed: the bundled, offline-generated Compendium archive for
     # "The Baby Rose" by David Kaynor, inserted once on a fresh/empty first
     # launch so the collection is never empty (see src/data/seed_service.dart;

@@ -25,7 +25,8 @@ as ``UserGuideDocs.slugify``, relative ``*.md`` links are rewritten to their
 rendered ``.html`` counterparts, and links that leave ``docs/user/`` (design
 docs, ``CONTRIBUTING.md``, the contributor-only style guide) are rewritten to
 GitHub URLs — mirroring ``UserGuideDocs.resolveLink``. Images render as real
-``<img>`` elements on Pages; the in-app reader still renders their alt text.
+``<img>`` elements on Pages; the in-app reader shows the same bundled files and
+falls back to their alt text only if one cannot load.
 
 **Link integrity is enforced.** A relative link to a guide that doesn't exist,
 a ``#fragment`` with no matching heading, two headings in one guide that slug to
