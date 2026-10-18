@@ -12,7 +12,7 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Changed
 
-- The `compendium_core` dependency advances to `0.9.0`, taking the schema from v39 → v40 for syncing your own figures and your notes on built-in figures. The generated sync allow-list now accepts the `glossaryEntry` record kind (`createdAt`, `definition`, `description`, `id`, `keywords`, `kind`, `name`, `notes`, `payload`) and the `figureNote` record kind (`id`, `notes`), and the sync code skips record kinds it does not know in a peer manifest. Deploy this server before clients on app `0.8.0`: older servers reject the new fields with `422`. The server's own code is unchanged.
+- The `compendium_core` dependency advances to `0.9.0`, taking the schema from v39 → v40 for syncing your own figures and your notes on built-in figures. The generated sync allow-list now accepts the `glossaryEntry` record kind (`createdAt`, `definition`, `description`, `id`, `keywords`, `kind`, `name`, `notes`, `payload`) and the `figureNote` record kind (`id`, `notes`). Deploy this server before clients on app `0.8.0`: older servers reject the new records and fields. Clients can now skip record kinds they do not know in a peer manifest; the server still decodes manifests strictly and rejects them. The server's own code is unchanged.
 
 ## [0.3.0] - 2026-10-14
 

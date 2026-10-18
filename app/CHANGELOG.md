@@ -139,7 +139,7 @@ from that tag, so new entries need no visible or manually maintained suffix.
 ### Data / Migrations
 
 - The database moves from schema v39 → 40 to hold your own glossary entries and your notes on built-in figures. Nothing in your library changes.
-- The Contra taxonomy moves from v36 → 37: a courtesy turn now reads as counterclockwise unless a direction is stated, and a circular hey can name the group passed second. This is a documentary marker only and does not rewrite the database.
+- The Contra taxonomy moves from v36 → 37: a courtesy turn now reads as counterclockwise unless a direction is stated, and a circular hey can name the group passed second. Your dances are not changed; the app rebuilds its search index once after updating.
 
 ## [0.7.0] - 2026-10-14
 
