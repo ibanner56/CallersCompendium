@@ -1,9 +1,0 @@
-{
-  "id": "1868-dance-editor-narrow-dropdown",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "The dance editor's Progression field no longer overflows its row on a phone-width screen; a long choice is shortened with an ellipsis instead."
-    ]
-  }
-}

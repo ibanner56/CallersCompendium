@@ -1,9 +1,0 @@
-{
-  "id": "1821-add-figure-menu-keyboard",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "The Add figure menu can now be used from the keyboard. Opening it with Space or Enter puts focus on its first choice, so Enter picks Add figure and the arrow keys reach Add meanwhile and Add modifier, instead of moving to the fields behind the menu."
-    ]
-  }
-}

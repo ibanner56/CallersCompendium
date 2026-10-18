@@ -1,9 +1,0 @@
-{
-  "id": "macos-install-notice-wording",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "On macOS, the notice shown when the app is running from a read-only location now says the app \"may\" not be installed instead of claiming it isn't, and names both causes: the downloaded disk image or archive, or a temporary read-only location that macOS set up for it. It asks you to move or copy the app into Applications in Finder and open it from there, and tells you that if the app is already in Applications you can dismiss the notice."
-    ]
-  }
-}

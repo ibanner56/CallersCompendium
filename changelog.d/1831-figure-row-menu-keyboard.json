@@ -1,9 +1,0 @@
-{
-  "id": "1831-figure-row-menu-keyboard",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "A figure's \u22ee actions menu can now be used from the keyboard. Space or Enter on the \u22ee button opens it (they used to open the figure instead), focus lands on the first available action, the arrow keys move between actions, and Enter runs the one you pick."
-    ]
-  }
-}

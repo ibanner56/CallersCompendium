@@ -1,9 +1,0 @@
-{
-  "id": "merge-restore-keeps-retained-parts",
-  "user_visible": false,
-  "core": {
-    "fixed": [
-      "A merge restore keeps the retained_sync_fields rows of the records it writes, as an archive import does, so a restored record still carries the details a newer version of the app added. Before, it cleared them while stamping the record newer than the peer's copy, and Device Sync then shared the body without the details."
-    ]
-  }
-}
