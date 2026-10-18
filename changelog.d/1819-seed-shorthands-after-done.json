@@ -1,9 +1,0 @@
-{
-  "id": "1819-seed-shorthands-after-done",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Seeding figure shorthands from a Caller's Companion import now saves the ones you ticked and shows the confirmation, even after you press Done on the import summary."
-    ]
-  }
-}

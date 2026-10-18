@@ -1,9 +1,0 @@
-{
-  "id": "709-dance-editor-custom-figures",
-  "user_visible": true,
-  "app": {
-    "added": [
-      "With Custom Figures on, the dance editor offers your own figures when you choose a figure's move. A row that is one of yours shows its name and the values you chose, and is replaced by the figures it stands for when you save the dance; if your figure has been deleted or can no longer be expanded, the row is kept as a custom figure with its name."
-    ]
-  }
-}

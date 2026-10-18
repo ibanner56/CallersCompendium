@@ -1,9 +1,0 @@
-{
-  "id": "1820-free-text-beats",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "A figure typed in with Free-text entry and no beat count, such as \"neighbor balance & swing\", now shows the figure's usual beats in the editor instead of 0, and counts them in the beat total. This applies to figures you add from now on; dances you already saved are not changed."
-    ]
-  }
-}

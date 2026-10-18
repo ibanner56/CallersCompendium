@@ -1,9 +1,0 @@
-{
-  "id": "1023-user-figure-switch-core",
-  "user_visible": false,
-  "core": {
-    "added": [
-      "Switching a figure of your own to the shipped figure of its name (#1023, maintainer decision 5): `shippedFigureNamed` finds the shipped move or alias a name belongs to; `UserFigureSwitch` maps each of the figure's parameters onto one of the target's (`userFigureSwitchTargets`: a choice onto any parameter taking words, another kind onto one of its kind taking all its values, never beats or an alias's pins) and each choice value onto one of its words (`userFigureSwitchValues`), checked complete by `userFigureSwitchProblems`; `switchUserFigureUsesIn` rewrites each attached use as the target, its beats always stated, freezing what it can't map as plain text; `CompendiumRepositories.switchUserFigureToBuiltIn` switches the live dances and retires the figure in one transaction."
-    ]
-  }
-}
