@@ -51,6 +51,22 @@ def _image_cases() -> None:
                 "user/settings.md",
                 "user/images/shot.png",
             }
+
+            def write_guide(body: str) -> dict:
+                (docs / "user" / "settings.md").write_text(body, encoding="utf-8")
+                return sync_user_docs._collect_sources()
+
+            # A present PNG (any case), an SVG, and a remote image are fine.
+            assert not sync_user_docs.missing_image_references(
+                write_guide(
+                    "![a](images/shot.png) ![b](images/SHOT.PNG) "
+                    "![c](images/diagram.svg) ![d](https://x.test/y.png)\n"
+                )
+            )
+            # A PNG reference with no file is reported with its guide.
+            assert sync_user_docs.missing_image_references(
+                write_guide("![a](images/shot.png)\n![b](images/gone.png)\n")
+            ) == ["user/settings.md -> images/gone.png"]
     finally:
         (
             sync_user_docs.DOCS_ROOT,

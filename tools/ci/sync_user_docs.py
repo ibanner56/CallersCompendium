@@ -28,6 +28,9 @@ Modes:
   * ``--check`` (CI): regenerate into a temp dir and compare, byte-for-byte, with
     the committed ``app/assets/docs/``. Fails on any drift — a changed, missing,
     or stale file — so a docs edit that forgets to regenerate can't ship.
+    It also fails when a guide references a bundled ``images/*.png`` that does
+    not exist, because the app suite that checks this too is skipped for a
+    Markdown-only change.
   * ``--write`` / default (local fix): (re)write ``app/assets/docs/`` in place.
 
 Exit codes: 0 = in sync / written, 1 = drift (``--check`` only), 2 = bad input.
@@ -37,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import re
 import shutil
 import sys
 import tempfile
@@ -55,6 +59,13 @@ EXCLUDED_GUIDES = {"style-guide.md"}
 # reader decodes raster images, not the SVG diagrams Pages can show.
 IMAGES_DIR = USER_DOCS / "images"
 BUNDLED_IMAGE_SUFFIX = ".png"
+
+# A guide's reference to a bundled screenshot: ``![alt](images/name.png)``. Only
+# PNGs are bundled, so only they are checked (an SVG shows as alt text in the
+# app). Mirrors the reference pattern in user_guide_screen_test.dart.
+_IMAGE_REFERENCE = re.compile(
+    r"!\[[^\]]*\]\(images/([^)\s]+\.png)\)", re.IGNORECASE
+)
 
 # Finder can create this metadata file while the checker walks the local bundle.
 # It is not documentation and is excluded by app/.gitignore, so it must not make
@@ -101,6 +112,25 @@ def _collect_sources() -> dict[str, Path]:
     return mapping
 
 
+def missing_image_references(mapping: dict[str, Path]) -> list[str]:
+    """``guide -> image`` for each bundled-PNG reference with no mirrored file.
+
+    The app suite also checks this, but CI skips that suite for a Markdown-only
+    change -- exactly the change that adds a reference -- so a reference whose
+    PNG was never committed would otherwise merge and fail an unrelated PR.
+    """
+    bundled = {rel.lower() for rel in mapping}
+    missing: list[str] = []
+    for rel, source in sorted(mapping.items()):
+        if not rel.endswith(".md"):
+            continue
+        text = source.read_text(encoding="utf-8")
+        for match in _IMAGE_REFERENCE.finditer(text):
+            if f"user/images/{match.group(1)}".lower() not in bundled:
+                missing.append(f"{rel} -> images/{match.group(1)}")
+    return missing
+
+
 def build_bundle(dest_root: Path) -> dict[str, Path]:
     """Write the mirrored bundle into ``dest_root``; return the source mapping."""
     mapping = _collect_sources()
@@ -124,6 +154,15 @@ def _relative_files(root: Path) -> set[str]:
 
 
 def _check() -> int:
+    unresolved = missing_image_references(_collect_sources())
+    for ref in unresolved:
+        print(f"::error::guide image reference has no image file: {ref}")
+    if unresolved:
+        print(
+            "::error::Add the PNG under docs/user/images/ (then run "
+            "`python3 tools/ci/sync_user_docs.py --write`) or fix the reference."
+        )
+        return 1
     with tempfile.TemporaryDirectory() as tmp:
         expected_root = Path(tmp) / "docs"
         build_bundle(expected_root)
