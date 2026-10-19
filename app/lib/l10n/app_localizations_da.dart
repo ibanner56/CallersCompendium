@@ -9603,11 +9603,21 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Viser dine egne figurer i ordlisten, hvor du kan tilføje og redigere dem, og tilbyder dem, når du redigerer en dans. Slår du det fra, skjules de, men de slettes ikke.';
+      'Lader dig tilføje og redigere dine egne figurer, og tilbyder dem, når du redigerer en dans. Ordlisten er ikke nødvendig. Slår du det fra, skjules de, men de slettes ikke.';
 
   @override
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
-      'Slå Vis ordliste til for at bruge dine egne figurer.';
+  String get settingsExperimentalCustomFiguresManageTitle => 'Dine figurer';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageSubtitle =>
+      'Tilføj, rediger og slet dine egne figurer.';
+
+  @override
+  String get customFiguresTitle => 'Egne figurer';
+
+  @override
+  String get customFiguresEmpty =>
+      'Du har ikke lavet nogen egne figurer endnu. Vælg + for at tilføje en.';
 
   @override
   String get glossaryAddCustomFigure => 'Tilføj din egen figur';

@@ -14312,23 +14312,41 @@ abstract class AppLocalizations {
   /// **'These templates omit available slots and may hide figure details:\n{figures}\n\nSave anyway?'**
   String dialectEditorMoveWordingConfirmBody(String figures);
 
-  /// Title of the switch, nested under Show Glossary, that shows the user's own compound figures in the Glossary (#709).
+  /// Title of the switch that turns on the user's own figures (#709).
   ///
   /// In en, this message translates to:
   /// **'Custom Figures'**
   String get settingsExperimentalShowCustomFiguresTitle;
 
-  /// Subtitle of the Custom Figures switch while Show Glossary is on.
+  /// Subtitle of the Custom Figures switch.
   ///
   /// In en, this message translates to:
-  /// **'Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn\'t delete them.'**
+  /// **'Lets you add and edit your own figures, and offers them when you edit a dance. It doesn\'t need the Glossary. Turning this off hides them; it doesn\'t delete them.'**
   String get settingsExperimentalShowCustomFiguresSubtitle;
 
-  /// Subtitle of the Custom Figures switch while it is disabled because Show Glossary is off.
+  /// Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited.
   ///
   /// In en, this message translates to:
-  /// **'Turn on Show Glossary to use your own figures.'**
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary;
+  /// **'Your figures'**
+  String get settingsExperimentalCustomFiguresManageTitle;
+
+  /// Subtitle of the row that opens the Custom Figures screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Add, edit and delete your own figures.'**
+  String get settingsExperimentalCustomFiguresManageSubtitle;
+
+  /// App bar title of the Custom Figures screen, which lists the user's own figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Figures'**
+  String get customFiguresTitle;
+
+  /// Shown on the Custom Figures screen when the user has no figures of their own yet.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t made any figures of your own yet. Choose + to add one.'**
+  String get customFiguresEmpty;
 
   /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure.
   ///

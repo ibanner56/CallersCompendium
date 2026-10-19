@@ -9434,13 +9434,25 @@
   "@settingsExperimentalShowCustomFiguresTitle": {
     "x-sourceSha256": "5678ffb9929561067862bd046b5b3a21f57923e2403c78826dece4b932e87462"
   },
-  "settingsExperimentalShowCustomFiguresSubtitle": "自分のフィギュアを用語集に表示し、そこで追加や編集ができます。ダンスの編集時にも選べます。オフにすると非表示になりますが、削除はされません。",
+  "settingsExperimentalShowCustomFiguresSubtitle": "自分のフィギュアを追加・編集でき、ダンスの編集時にも選べます。用語集は不要です。オフにすると非表示になりますが、削除はされません。",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
     "x-sourceSha256": "1a77089cccd357d0a8a5b72258e36ce5746af7de119ec5c03b9c23fa4909d1eb"
   },
-  "settingsExperimentalShowCustomFiguresNeedsGlossary": "自分のフィギュアを使うには、「用語集を表示」をオンにしてください。",
-  "@settingsExperimentalShowCustomFiguresNeedsGlossary": {
-    "x-sourceSha256": "a16be7f1d091598c36c894c3eae0bc9e75db61dd9e39485af1068976d598ac03"
+  "settingsExperimentalCustomFiguresManageTitle": "自分のフィギュア",
+  "@settingsExperimentalCustomFiguresManageTitle": {
+    "description": "Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited."
+  },
+  "settingsExperimentalCustomFiguresManageSubtitle": "自分のフィギュアを追加、編集、削除します。",
+  "@settingsExperimentalCustomFiguresManageSubtitle": {
+    "description": "Subtitle of the row that opens the Custom Figures screen."
+  },
+  "customFiguresTitle": "カスタムフィギュア",
+  "@customFiguresTitle": {
+    "description": "App bar title of the Custom Figures screen, which lists the user's own figures."
+  },
+  "customFiguresEmpty": "自分のフィギュアはまだありません。「+」を選んで追加してください。",
+  "@customFiguresEmpty": {
+    "description": "Shown on the Custom Figures screen when the user has no figures of their own yet."
   },
   "glossaryAddCustomFigure": "自分のフィギュアを追加",
   "@glossaryAddCustomFigure": {

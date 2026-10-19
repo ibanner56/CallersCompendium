@@ -1,18 +1,16 @@
 import 'package:flutter/widgets.dart';
 
-import 'show_glossary_scope.dart';
-
-/// Persisted-settings key for the Experimental "Custom Figures" toggle (#709),
-/// nested under "Show Glossary". Stored as a `bool`; unset means off (the
-/// default).
+/// Persisted-settings key for the Experimental "Custom Figures" toggle (#709).
+/// Stored as a `bool`; unset means off (the default).
 const String kShowCustomFiguresKey = 'show_custom_figures';
 
 /// Exposes the "Custom Figures" setting as a live [ValueNotifier] to the
 /// widget tree.
 ///
-/// When `true` — and only while "Show Glossary" is on too — the user's own
-/// compound figures are listed in the Glossary and can be added and edited
-/// there, and the dance editor offers them as a figure's move. When `false`
+/// When `true` the user's own figures can be added and edited from the Custom
+/// Figures screen in the Experimental settings, and from the Glossary while it
+/// is shown, and the dance editor offers them as a figure's move. It does not
+/// depend on "Show Glossary". When `false`
 /// they are hidden, never deleted: turning it back on shows them again. A
 /// dance-editor row that already holds one still expands when the dance is
 /// saved (#709).
@@ -28,9 +26,6 @@ class ShowCustomFiguresScope extends InheritedNotifier<ValueNotifier<bool>> {
   /// Whether the setting is on. Registers a rebuild dependency. Returns
   /// `false`, the default, when there is no [ShowCustomFiguresScope]
   /// ancestor.
-  ///
-  /// This is the setting alone; whether custom figures are shown also needs
-  /// "Show Glossary" on, which [customFiguresShown] combines.
   static bool of(BuildContext context) {
     final scope = context
         .dependOnInheritedWidgetOfExactType<ShowCustomFiguresScope>();
@@ -52,8 +47,7 @@ class ShowCustomFiguresScope extends InheritedNotifier<ValueNotifier<bool>> {
   }
 }
 
-/// Whether the user's own compound figures are shown: "Show Glossary" and,
-/// nested under it, "Custom Figures" are both on. Registers a rebuild
-/// dependency on both.
+/// Whether the user's own figures are shown: "Custom Figures" is on, whether
+/// or not the Glossary is. Registers a rebuild dependency.
 bool customFiguresShown(BuildContext context) =>
-    ShowGlossaryScope.of(context) && ShowCustomFiguresScope.of(context);
+    ShowCustomFiguresScope.of(context);

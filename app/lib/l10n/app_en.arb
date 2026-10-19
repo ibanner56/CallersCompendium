@@ -12537,15 +12537,27 @@
   },
   "settingsExperimentalShowCustomFiguresTitle": "Custom Figures",
   "@settingsExperimentalShowCustomFiguresTitle": {
-    "description": "Title of the switch, nested under Show Glossary, that shows the user's own compound figures in the Glossary (#709)."
+    "description": "Title of the switch that turns on the user's own figures (#709)."
   },
-  "settingsExperimentalShowCustomFiguresSubtitle": "Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn't delete them.",
+  "settingsExperimentalShowCustomFiguresSubtitle": "Lets you add and edit your own figures, and offers them when you edit a dance. It doesn't need the Glossary. Turning this off hides them; it doesn't delete them.",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
-    "description": "Subtitle of the Custom Figures switch while Show Glossary is on."
+    "description": "Subtitle of the Custom Figures switch."
   },
-  "settingsExperimentalShowCustomFiguresNeedsGlossary": "Turn on Show Glossary to use your own figures.",
-  "@settingsExperimentalShowCustomFiguresNeedsGlossary": {
-    "description": "Subtitle of the Custom Figures switch while it is disabled because Show Glossary is off."
+  "settingsExperimentalCustomFiguresManageTitle": "Your figures",
+  "@settingsExperimentalCustomFiguresManageTitle": {
+    "description": "Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited."
+  },
+  "settingsExperimentalCustomFiguresManageSubtitle": "Add, edit and delete your own figures.",
+  "@settingsExperimentalCustomFiguresManageSubtitle": {
+    "description": "Subtitle of the row that opens the Custom Figures screen."
+  },
+  "customFiguresTitle": "Custom Figures",
+  "@customFiguresTitle": {
+    "description": "App bar title of the Custom Figures screen, which lists the user's own figures."
+  },
+  "customFiguresEmpty": "You haven't made any figures of your own yet. Choose + to add one.",
+  "@customFiguresEmpty": {
+    "description": "Shown on the Custom Figures screen when the user has no figures of their own yet."
   },
   "glossaryAddCustomFigure": "Add your own figure",
   "@glossaryAddCustomFigure": {

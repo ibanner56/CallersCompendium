@@ -9560,11 +9560,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn\'t delete them.';
+      'Lets you add and edit your own figures, and offers them when you edit a dance. It doesn\'t need the Glossary. Turning this off hides them; it doesn\'t delete them.';
 
   @override
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
-      'Turn on Show Glossary to use your own figures.';
+  String get settingsExperimentalCustomFiguresManageTitle => 'Your figures';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageSubtitle =>
+      'Add, edit and delete your own figures.';
+
+  @override
+  String get customFiguresTitle => 'Custom Figures';
+
+  @override
+  String get customFiguresEmpty =>
+      'You haven\'t made any figures of your own yet. Choose + to add one.';
 
   @override
   String get glossaryAddCustomFigure => 'Add your own figure';

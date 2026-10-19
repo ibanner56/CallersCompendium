@@ -10,6 +10,7 @@ import '../../data/show_glossary_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
+import '../glossary/custom_figures_screen.dart';
 import 'device_sync_section.dart';
 
 /// The Experimental settings section for features still in development.
@@ -39,12 +40,12 @@ class ExperimentalSection extends StatelessWidget {
 }
 
 /// The Glossary and Custom Figures section (issues #695, #709): a switch that
-/// adds or removes the Glossary navigation destination, and nested under it a
-/// switch for the user's own compound figures.
+/// adds or removes the Glossary navigation destination, and a switch for the
+/// user's own figures with, once it is on, a row that opens them to be added
+/// and edited, as the figure-shorthands row does under free-text entry.
 ///
-/// The nested switch stays visible but disabled while the Glossary is off,
-/// keeping its value, as the figure-shorthands entry does under free-text
-/// entry: turning the Glossary back on restores it as it was.
+/// The two switches are independent: your own figures work with the Glossary
+/// off, so the row is the way to reach them then.
 class _GlossarySection extends StatelessWidget {
   const _GlossarySection();
 
@@ -70,7 +71,7 @@ class _GlossarySection extends StatelessWidget {
     return CollapsibleSection(
       sectionKey: const ValueKey('glossary-section'),
       title: l10n.settingsExperimentalGlossaryHeader,
-      expanded: show,
+      expanded: show || custom,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -87,16 +88,27 @@ class _GlossarySection extends StatelessWidget {
             key: const ValueKey('experimental-show-custom-figures'),
             secondary: const Icon(Icons.dashboard_customize_outlined),
             value: custom,
-            onChanged: show
-                ? (value) => _onCustomChanged(context, value)
-                : null,
+            onChanged: (value) => _onCustomChanged(context, value),
             title: Text(l10n.settingsExperimentalShowCustomFiguresTitle),
-            subtitle: Text(
-              show
-                  ? l10n.settingsExperimentalShowCustomFiguresSubtitle
-                  : l10n.settingsExperimentalShowCustomFiguresNeedsGlossary,
-            ),
+            subtitle: Text(l10n.settingsExperimentalShowCustomFiguresSubtitle),
             isThreeLine: true,
+          ),
+          ListTile(
+            key: const ValueKey('experimental-custom-figures-open'),
+            enabled: custom,
+            leading: const Icon(Icons.edit_outlined),
+            title: Text(l10n.settingsExperimentalCustomFiguresManageTitle),
+            subtitle: Text(
+              l10n.settingsExperimentalCustomFiguresManageSubtitle,
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: custom
+                ? () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CustomFiguresScreen(),
+                    ),
+                  )
+                : null,
           ),
         ],
       ),

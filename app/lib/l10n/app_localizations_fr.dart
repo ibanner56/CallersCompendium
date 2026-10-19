@@ -9730,11 +9730,21 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Affiche vos propres figures dans le glossaire, où vous pouvez les ajouter et les modifier, et les propose quand vous modifiez une danse. Désactiver cette option les masque sans les supprimer.';
+      'Vous permet d\'ajouter et de modifier vos propres figures, et les propose quand vous modifiez une danse. Le glossaire n\'est pas nécessaire. Désactiver cette option les masque sans les supprimer.';
 
   @override
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
-      'Activez Afficher le glossaire pour utiliser vos propres figures.';
+  String get settingsExperimentalCustomFiguresManageTitle => 'Vos figures';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageSubtitle =>
+      'Ajoutez, modifiez et supprimez vos propres figures.';
+
+  @override
+  String get customFiguresTitle => 'Figures personnalisées';
+
+  @override
+  String get customFiguresEmpty =>
+      'Vous n\'avez pas encore créé de figure. Choisissez + pour en ajouter une.';
 
   @override
   String get glossaryAddCustomFigure => 'Ajouter votre propre figure';

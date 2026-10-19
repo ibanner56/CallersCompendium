@@ -9222,11 +9222,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      '自分のフィギュアを用語集に表示し、そこで追加や編集ができます。ダンスの編集時にも選べます。オフにすると非表示になりますが、削除はされません。';
+      '自分のフィギュアを追加・編集でき、ダンスの編集時にも選べます。用語集は不要です。オフにすると非表示になりますが、削除はされません。';
 
   @override
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
-      '自分のフィギュアを使うには、「用語集を表示」をオンにしてください。';
+  String get settingsExperimentalCustomFiguresManageTitle => '自分のフィギュア';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageSubtitle =>
+      '自分のフィギュアを追加、編集、削除します。';
+
+  @override
+  String get customFiguresTitle => 'カスタムフィギュア';
+
+  @override
+  String get customFiguresEmpty => '自分のフィギュアはまだありません。「+」を選んで追加してください。';
 
   @override
   String get glossaryAddCustomFigure => '自分のフィギュアを追加';

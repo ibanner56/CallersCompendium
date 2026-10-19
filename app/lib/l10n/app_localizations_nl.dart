@@ -9671,11 +9671,21 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
+      'Laat je je eigen figuren toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. De woordenlijst is hiervoor niet nodig. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
 
   @override
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
-      'Zet Woordenlijst tonen aan om je eigen figuren te gebruiken.';
+  String get settingsExperimentalCustomFiguresManageTitle => 'Je figuren';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageSubtitle =>
+      'Voeg je eigen figuren toe, bewerk of verwijder ze.';
+
+  @override
+  String get customFiguresTitle => 'Eigen figuren';
+
+  @override
+  String get customFiguresEmpty =>
+      'Je hebt nog geen eigen figuren gemaakt. Kies + om er een toe te voegen.';
 
   @override
   String get glossaryAddCustomFigure => 'Eigen figuur toevoegen';

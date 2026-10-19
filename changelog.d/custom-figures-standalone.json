@@ -1,0 +1,12 @@
+{
+  "id": "custom-figures-standalone",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Experimental settings now has a **Your figures** row that opens your own figures, where you can add, edit and delete them, as the figure shorthands do."
+    ],
+    "changed": [
+      "Custom Figures no longer needs Show Glossary: you can turn it on, edit your figures and use them in dances with the Glossary hidden."
+    ]
+  }
+}

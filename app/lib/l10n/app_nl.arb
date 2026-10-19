@@ -9434,13 +9434,25 @@
   "@settingsExperimentalShowCustomFiguresTitle": {
     "x-sourceSha256": "5678ffb9929561067862bd046b5b3a21f57923e2403c78826dece4b932e87462"
   },
-  "settingsExperimentalShowCustomFiguresSubtitle": "Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. Als je dit uitzet, worden ze verborgen, niet verwijderd.",
+  "settingsExperimentalShowCustomFiguresSubtitle": "Laat je je eigen figuren toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. De woordenlijst is hiervoor niet nodig. Als je dit uitzet, worden ze verborgen, niet verwijderd.",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
     "x-sourceSha256": "1a77089cccd357d0a8a5b72258e36ce5746af7de119ec5c03b9c23fa4909d1eb"
   },
-  "settingsExperimentalShowCustomFiguresNeedsGlossary": "Zet Woordenlijst tonen aan om je eigen figuren te gebruiken.",
-  "@settingsExperimentalShowCustomFiguresNeedsGlossary": {
-    "x-sourceSha256": "a16be7f1d091598c36c894c3eae0bc9e75db61dd9e39485af1068976d598ac03"
+  "settingsExperimentalCustomFiguresManageTitle": "Je figuren",
+  "@settingsExperimentalCustomFiguresManageTitle": {
+    "description": "Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited."
+  },
+  "settingsExperimentalCustomFiguresManageSubtitle": "Voeg je eigen figuren toe, bewerk of verwijder ze.",
+  "@settingsExperimentalCustomFiguresManageSubtitle": {
+    "description": "Subtitle of the row that opens the Custom Figures screen."
+  },
+  "customFiguresTitle": "Eigen figuren",
+  "@customFiguresTitle": {
+    "description": "App bar title of the Custom Figures screen, which lists the user's own figures."
+  },
+  "customFiguresEmpty": "Je hebt nog geen eigen figuren gemaakt. Kies + om er een toe te voegen.",
+  "@customFiguresEmpty": {
+    "description": "Shown on the Custom Figures screen when the user has no figures of their own yet."
   },
   "glossaryAddCustomFigure": "Eigen figuur toevoegen",
   "@glossaryAddCustomFigure": {
