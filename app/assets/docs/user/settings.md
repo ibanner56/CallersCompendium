@@ -600,11 +600,14 @@ also come from a Caller's Companion file (see [Bring your glossary terms
 across](./imports.md#bring-your-glossary-terms-across)); such a term's page shows
 its **Source** as the file had it.
 
-**Custom Figures**, under Show Glossary, lists your own figures in the
-Glossary. It is **off by default**, and it can only be turned on while Show
-Glossary is on. While it is on:
+**Custom Figures** lets you make your own figures and use them in dances. It
+is **off by default**, and it doesn't need Show Glossary: with the Glossary
+hidden you can still turn it on, and use your figures everywhere. While it is
+on, a **Your figures** row appears under the switch; open it to see your
+figures, choose **+** to add one, or select one to **Edit** or **Delete** it.
+The Glossary lists them too, when it is shown. While it is on:
 
-- Choose **+** in the Glossary to add a figure of your own: a name, a
+- Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name, a
   definition and a description (all required), other names it can be found by,
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
