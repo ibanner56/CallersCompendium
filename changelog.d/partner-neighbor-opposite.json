@@ -1,0 +1,14 @@
+{
+  "id": "partner-neighbor-opposite",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A custom figure's who and whom parameters now offer partners as the opposite of neighbors (including next, third and other neighbors), and neighbors as the opposite of partners."
+    ]
+  },
+  "core": {
+    "added": [
+      "ParamOpposites treats partners and the neighbor series as opposites for dancer sets."
+    ]
+  }
+}
