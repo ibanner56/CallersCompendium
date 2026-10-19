@@ -116,9 +116,7 @@ void main() {
       for (final bad in [
         entry().copyWith(name: '  '),
         entry().copyWith(definition: ''),
-        entry().copyWith(
-          description: 'd' * (maxUserGlossaryTextLength + 1),
-        ),
+        entry().copyWith(description: 'd' * (maxUserGlossaryTextLength + 1)),
         entry().copyWith(name: 'x' * (maxUserGlossaryNameLength + 1)),
         entry().copyWith(
           keywords: [for (var i = 0; i <= maxUserGlossaryKeywords; i++) 'k$i'],

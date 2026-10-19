@@ -604,8 +604,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
 
     final errors = <String>[];
     final name = _name.text.trim();
-    final requiredMissing =
-        name.isEmpty || _definition.text.trim().isEmpty;
+    final requiredMissing = name.isEmpty || _definition.text.trim().isEmpty;
     if (requiredMissing) errors.add(l10n.compoundEditorRequired);
 
     final keys = [for (final p in _params) p.key];
