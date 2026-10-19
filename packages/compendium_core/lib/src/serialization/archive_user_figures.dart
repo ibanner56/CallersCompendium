@@ -111,7 +111,11 @@ UserGlossaryEntry? _userFigureFromJson(Object? raw) {
   }
   final name = _text(raw['name'], maxUserGlossaryNameLength);
   final definition = _text(raw['definition'], maxUserGlossaryTextLength);
-  final description = _text(raw['description'], maxUserGlossaryTextLength);
+  // Optional: absent or empty reads as no description.
+  final rawDescription = raw['description'];
+  final description = rawDescription == null || rawDescription == ''
+      ? ''
+      : _text(rawDescription, maxUserGlossaryTextLength);
   final rawKeywords = raw['keywords'] ?? const <Object?>[];
   if (name == null ||
       definition == null ||

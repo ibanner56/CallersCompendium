@@ -605,9 +605,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     final errors = <String>[];
     final name = _name.text.trim();
     final requiredMissing =
-        name.isEmpty ||
-        _definition.text.trim().isEmpty ||
-        _description.text.trim().isEmpty;
+        name.isEmpty || _definition.text.trim().isEmpty;
     if (requiredMissing) errors.add(l10n.compoundEditorRequired);
 
     final keys = [for (final p in _params) p.key];
@@ -961,7 +959,6 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
               'compound-description',
               _description,
               l10n.compoundEditorDescription,
-              required: true,
               maxLines: 8,
             ),
             field(

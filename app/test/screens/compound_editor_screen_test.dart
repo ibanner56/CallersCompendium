@@ -350,17 +350,38 @@ void main() {
     });
   });
 
-  testWidgets('a name, a definition and a description are required', (
-    tester,
-  ) async {
+  testWidgets('a name and a definition are required', (tester) async {
     final repos = await pump(tester);
     await save(tester);
     expect(
-      find.text('Give the figure a name, a definition and a description.'),
+      find.text('Give the figure a name and a definition.'),
       findsOneWidget,
     );
-    expect(find.text('Required'), findsNWidgets(3));
+    expect(find.text('Required'), findsNWidgets(2));
     expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
+  });
+
+  testWidgets('More Details is optional: a figure saves without it', (
+    tester,
+  ) async {
+    final repos = await pump(tester, initial: twoPullBys());
+    expect(find.text('More Details'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-name')),
+      'zoomies',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-definition')),
+      'A zoom.',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-description')),
+      '',
+    );
+    await save(tester);
+    final saved = (await tester.runAsync(repos.userGlossary.listAll))!.single;
+    expect(saved.name, 'zoomies');
+    expect(saved.description, isEmpty);
   });
 
   testWidgets('a name a built-in figure has is refused', (tester) async {

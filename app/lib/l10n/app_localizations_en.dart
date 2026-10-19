@@ -9663,7 +9663,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'One sentence, shown in the Glossary list.';
 
   @override
-  String get compoundEditorDescription => 'Description';
+  String get compoundEditorDescription => 'More Details';
 
   @override
   String get compoundEditorKeywords => 'Other names';
@@ -9683,7 +9683,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get compoundEditorRequired =>
-      'Give the figure a name, a definition and a description.';
+      'Give the figure a name and a definition.';
 
   @override
   String get compoundEditorParams => 'Parameters';

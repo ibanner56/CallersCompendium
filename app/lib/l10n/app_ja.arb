@@ -9436,23 +9436,27 @@
   },
   "settingsExperimentalShowCustomFiguresSubtitle": "自分のフィギュアを追加・編集でき、ダンスの編集時にも選べます。用語集は不要です。オフにすると非表示になりますが、削除はされません。",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
-    "x-sourceSha256": "1a77089cccd357d0a8a5b72258e36ce5746af7de119ec5c03b9c23fa4909d1eb"
+    "x-sourceSha256": "5ce2c57ca69de578c904a491d2536e64b58451a23db4430c7b18e72b81aee958"
   },
   "settingsExperimentalCustomFiguresManageTitle": "自分のフィギュア",
   "@settingsExperimentalCustomFiguresManageTitle": {
-    "description": "Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited."
+    "description": "Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited.",
+    "x-sourceSha256": "b58d48fd3e37bbdfd6207536063ccea18768a760eaeb9deba03c202b9f0d2ddb"
   },
   "settingsExperimentalCustomFiguresManageSubtitle": "自分のフィギュアを追加、編集、削除します。",
   "@settingsExperimentalCustomFiguresManageSubtitle": {
-    "description": "Subtitle of the row that opens the Custom Figures screen."
+    "description": "Subtitle of the row that opens the Custom Figures screen.",
+    "x-sourceSha256": "512110c835d7c96d214efde7f79b9b2f85723979371dda0f3615a4ffbdbc5c60"
   },
   "customFiguresTitle": "カスタムフィギュア",
   "@customFiguresTitle": {
-    "description": "App bar title of the Custom Figures screen, which lists the user's own figures."
+    "description": "App bar title of the Custom Figures screen, which lists the user's own figures.",
+    "x-sourceSha256": "5678ffb9929561067862bd046b5b3a21f57923e2403c78826dece4b932e87462"
   },
   "customFiguresEmpty": "自分のフィギュアはまだありません。「+」を選んで追加してください。",
   "@customFiguresEmpty": {
-    "description": "Shown on the Custom Figures screen when the user has no figures of their own yet."
+    "description": "Shown on the Custom Figures screen when the user has no figures of their own yet.",
+    "x-sourceSha256": "9cb149deb9a7c7ffd120fcd93aa1aac7504a56dc0d1098a31066cf66adc0cce1"
   },
   "glossaryAddCustomFigure": "自分のフィギュアを追加",
   "@glossaryAddCustomFigure": {
@@ -9554,9 +9558,9 @@
   "@compoundEditorDefinitionHelper": {
     "x-sourceSha256": "047f42e5ecfb3bcaec8bf2492e2a2a02eac1e35810b3311a1ef26341f09a1eae"
   },
-  "compoundEditorDescription": "説明",
+  "compoundEditorDescription": "詳細",
   "@compoundEditorDescription": {
-    "x-sourceSha256": "526e0087cc3f254d9f86f6c7d8e23d954c4dfda2b312efc29194ae8a860106ba"
+    "x-sourceSha256": "0c5bd1ad443efff631fcaeafc36a11d8931a3a537fd822e05dd9bedceb355840"
   },
   "compoundEditorKeywords": "別名",
   "@compoundEditorKeywords": {
@@ -9578,9 +9582,9 @@
   "@compoundEditorFieldRequired": {
     "x-sourceSha256": "4850b174b713d88cfc63de107830d5388929020e78abc91fc19bba7a6821625f"
   },
-  "compoundEditorRequired": "フィギュアの名前、定義、説明を入力してください。",
+  "compoundEditorRequired": "フィギュアに名前と定義を付けてください。",
   "@compoundEditorRequired": {
-    "x-sourceSha256": "0bf8c1329f7e5958c2355a8f5139d9ba770fa3a1eb056c47747559cd15aaf445"
+    "x-sourceSha256": "f7513357c38691b39340cf301561aa733eb7c9cea8b6c6881b46dfc4738555b9"
   },
   "compoundEditorParams": "パラメーター",
   "@compoundEditorParams": {

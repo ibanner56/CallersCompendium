@@ -12671,9 +12671,9 @@
   "@compoundEditorDefinitionHelper": {
     "description": "Helper text of a custom figure's definition field."
   },
-  "compoundEditorDescription": "Description",
+  "compoundEditorDescription": "More Details",
   "@compoundEditorDescription": {
-    "description": "Label of a custom figure's description field."
+    "description": "Label of a custom figure's optional \"More Details\" field, which holds its longer description."
   },
   "compoundEditorKeywords": "Other names",
   "@compoundEditorKeywords": {
@@ -12695,7 +12695,7 @@
   "@compoundEditorFieldRequired": {
     "description": "Error under an empty required field in the custom figure editor."
   },
-  "compoundEditorRequired": "Give the figure a name, a definition and a description.",
+  "compoundEditorRequired": "Give the figure a name and a definition.",
   "@compoundEditorRequired": {
     "description": "Error shown when saving a custom figure with a required field empty."
   },

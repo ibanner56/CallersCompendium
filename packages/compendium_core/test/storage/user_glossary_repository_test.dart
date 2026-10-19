@@ -116,7 +116,9 @@ void main() {
       for (final bad in [
         entry().copyWith(name: '  '),
         entry().copyWith(definition: ''),
-        entry().copyWith(description: '​'),
+        entry().copyWith(
+          description: 'd' * (maxUserGlossaryTextLength + 1),
+        ),
         entry().copyWith(name: 'x' * (maxUserGlossaryNameLength + 1)),
         entry().copyWith(
           keywords: [for (var i = 0; i <= maxUserGlossaryKeywords; i++) 'k$i'],
@@ -128,6 +130,13 @@ void main() {
         );
       }
       expect(await glossary.listAll(), isEmpty);
+    });
+
+    test('a description is optional: empty or blank is stored empty', () async {
+      await glossary.upsert(entry().copyWith(description: ''));
+      expect((await glossary.getById('e1'))!.description, isEmpty);
+      await glossary.upsert(entry().copyWith(description: '​'));
+      expect((await glossary.getById('e1'))!.description, isEmpty);
     });
 
     test('a payload that cannot be stored is refused, not thrown as an '

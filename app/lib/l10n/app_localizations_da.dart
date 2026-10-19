@@ -9707,7 +9707,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Én sætning, der vises i ordlisten.';
 
   @override
-  String get compoundEditorDescription => 'Beskrivelse';
+  String get compoundEditorDescription => 'Flere detaljer';
 
   @override
   String get compoundEditorKeywords => 'Andre navne';
@@ -9726,8 +9726,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get compoundEditorFieldRequired => 'Påkrævet';
 
   @override
-  String get compoundEditorRequired =>
-      'Giv figuren et navn, en definition og en beskrivelse.';
+  String get compoundEditorRequired => 'Giv figuren et navn og en definition.';
 
   @override
   String get compoundEditorParams => 'Parametre';

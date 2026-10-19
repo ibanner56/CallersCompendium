@@ -9322,7 +9322,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get compoundEditorDefinitionHelper => '1文で入力します。用語集の一覧に表示されます。';
 
   @override
-  String get compoundEditorDescription => '説明';
+  String get compoundEditorDescription => '詳細';
 
   @override
   String get compoundEditorKeywords => '別名';
@@ -9340,7 +9340,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get compoundEditorFieldRequired => '必須';
 
   @override
-  String get compoundEditorRequired => 'フィギュアの名前、定義、説明を入力してください。';
+  String get compoundEditorRequired => 'フィギュアに名前と定義を付けてください。';
 
   @override
   String get compoundEditorParams => 'パラメーター';

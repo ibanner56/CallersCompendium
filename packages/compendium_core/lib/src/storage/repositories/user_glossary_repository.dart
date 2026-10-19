@@ -258,11 +258,11 @@ class UserGlossaryRepository {
       'definition',
       maxUserGlossaryTextLength,
     );
-    final description = _requiredText(
-      entry.description,
-      'description',
-      maxUserGlossaryTextLength,
-    );
+    // The description is optional (stored empty when there is none).
+    final description = _text(entry.description);
+    if (description.length > maxUserGlossaryTextLength) {
+      throw const UserGlossaryEntryInvalid('description');
+    }
     final keywords = [
       for (final keyword in entry.keywords)
         if (_text(keyword) case final k when k.isNotEmpty) k,

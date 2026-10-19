@@ -9819,7 +9819,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ein Satz, der in der Glossarliste angezeigt wird.';
 
   @override
-  String get compoundEditorDescription => 'Beschreibung';
+  String get compoundEditorDescription => 'Weitere Details';
 
   @override
   String get compoundEditorKeywords => 'Andere Namen';
@@ -9838,7 +9838,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get compoundEditorRequired =>
-      'Gib der Figur einen Namen, eine Definition und eine Beschreibung.';
+      'Gib der Figur einen Namen und eine Definition.';
 
   @override
   String get compoundEditorParams => 'Parameter';

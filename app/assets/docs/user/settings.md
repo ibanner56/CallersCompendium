@@ -587,8 +587,8 @@ the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
 app is set to; only the Glossary's labels and buttons are translated.
 
-**Your terms** are words you define yourself, with no figure: a name, a
-definition and a description (all required), other names they can be found by,
+**Your terms** are words you define yourself, with no figure: a name and a
+definition (both required), **More Details** (optional), other names they can be found by,
 notes, and the **Dance form** they're for. They are listed in the Glossary
 alongside the built-in figures, marked **Custom**, and found the same way.
 Choose **+** in the Glossary to add one (with Custom Figures on, choose
@@ -607,8 +607,8 @@ on, a **Your figures** row appears under the switch; open it to see your
 figures, choose **+** to add one, or select one to **Edit** or **Delete** it.
 The Glossary lists them too, when it is shown. While it is on:
 
-- Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name, a
-  definition and a description (all required), other names it can be found by,
+- Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name and a
+  definition (both required), **More Details** (optional), other names it can be found by,
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
   come with the app when you save a dance, a **New figure**, which stays
@@ -620,7 +620,7 @@ The Glossary lists them too, when it is shown. While it is on:
 - To start from a figure that comes with the app, open it in the Glossary and
   choose **Copy as your own figure**. The editor opens on a new figure named
   after it with **(copy)** (numbered if you already have one), with its
-  definition and description, its beats, its wording, and the parameters that
+  definition and More Details, its beats, its wording, and the parameters that
   wording uses, with their defaults (a variant, such as *pull by neighbors*,
   starts from its own). The wording is the figure's plain one where the app
   words it in a way of its own, so read it through before you save. Its

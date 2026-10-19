@@ -645,13 +645,14 @@ class _GlossaryCustomFigureDetailState
             style: theme.textTheme.bodyLarge,
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.sm),
-          child: Text(
-            _renderer.renderFreeText(entry.description, dialect),
-            key: const ValueKey('glossary-description'),
+        if (entry.description.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: Text(
+              _renderer.renderFreeText(entry.description, dialect),
+              key: const ValueKey('glossary-description'),
+            ),
           ),
-        ),
         // Where a term comes from, as it was written: a Caller's Companion
         // term's source (#1023). Kept whole, so not rendered in the dialect.
         if (item.isTerm)

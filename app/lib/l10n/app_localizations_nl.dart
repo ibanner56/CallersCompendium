@@ -9775,7 +9775,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Eén zin, getoond in de woordenlijst.';
 
   @override
-  String get compoundEditorDescription => 'Beschrijving';
+  String get compoundEditorDescription => 'Meer details';
 
   @override
   String get compoundEditorKeywords => 'Andere namen';
@@ -9795,7 +9795,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get compoundEditorRequired =>
-      'Geef de figuur een naam, een definitie en een beschrijving.';
+      'Geef de figuur een naam en een definitie.';
 
   @override
   String get compoundEditorParams => 'Parameters';

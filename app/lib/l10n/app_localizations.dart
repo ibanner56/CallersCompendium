@@ -14498,10 +14498,10 @@ abstract class AppLocalizations {
   /// **'One sentence, shown in the Glossary list.'**
   String get compoundEditorDefinitionHelper;
 
-  /// Label of a custom figure's description field.
+  /// Label of a custom figure's optional "More Details" field, which holds its longer description.
   ///
   /// In en, this message translates to:
-  /// **'Description'**
+  /// **'More Details'**
   String get compoundEditorDescription;
 
   /// Label of a custom figure's optional keywords field, which search also finds it by.
@@ -14537,7 +14537,7 @@ abstract class AppLocalizations {
   /// Error shown when saving a custom figure with a required field empty.
   ///
   /// In en, this message translates to:
-  /// **'Give the figure a name, a definition and a description.'**
+  /// **'Give the figure a name and a definition.'**
   String get compoundEditorRequired;
 
   /// Heading of the custom figure editor's parameters, the values asked for each time the figure is used.
