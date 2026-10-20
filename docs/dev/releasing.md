@@ -34,6 +34,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
 - [Safety model](#safety-model) — 15 lines
 - [Cutting a release](#cutting-a-release) — 202 lines
+- [Release cadence](#release-cadence) — 31 lines
 - [Deploying the Athenaeum server](#deploying-the-athenaeum-server) — 52 lines
 - [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 93 lines
@@ -363,6 +364,37 @@ Runs are serialized **per target tag**: a tag push and a recovery dispatch for t
 same tag share one concurrency group and queue rather than racing on the draft.
 (GitHub keeps only one *pending* run per group, so a third run queued behind an
 in-flight one replaces the second.)
+
+## Release cadence
+
+This is policy, not behaviour the release tooling enforces. There is no beta
+cohort beyond the maintainer, so the rules below make
+the maintainer's own soak and the mechanical gates carry the weight a tester
+pool would otherwise share.
+
+**Beta**
+
+- Cut a beta only when a release candidate exists. There is no calendar cadence.
+- Soak each beta for **7 days** before promoting it.
+- The maintainer validates the beta on **iOS, macOS and Windows**. Android and
+  Linux are the maintainer's daily devices, kept on the current build, so they
+  are exercised by ordinary use rather than a separate pass.
+- A beta passes when the library opens, the upgrade migration completes, a
+  backup/restore round-trips, and the updater offers the next build.
+- A release with a schema or taxonomy change always gets a full beta soak first.
+- No beta cohort is recruited yet. Revisit if stable users ask for early builds.
+
+**Stable**
+
+- Release when there is user-visible content, roughly every 6-8 weeks, with an
+  immediate patch when a fix is waiting.
+- A stable tag follows a beta that completed its 7-day soak with no new
+  problems. Only a hotfix skips the soak, and its diff stays minimal.
+- Use staged rollout on the stores (for example 20% then 100%). Pause the
+  rollout on any crash or data-loss report in the first 48-72 hours. The desktop
+  updater has no staged rollout, so the soak is its only guard.
+- Data loss, updater breakage and launch failures ship as soon as the fix is
+  verified.
 
 ## Deploying the Athenaeum server
 
