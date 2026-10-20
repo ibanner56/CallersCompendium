@@ -563,9 +563,11 @@ void main() {
         WordingIssueCode.ambiguous,
       );
       // Nested in parentheses, as deep as a template allows.
-      var nested = 's is rock and roll';
+      // Two readings of "s is rock and roll" reach each "(": unless each is
+      // read once, every level doubles the work.
+      var nested = 'roll';
       for (var i = 0; i < 25; i++) {
-        nested = 's is rock and ($nested)';
+        nested = 's is rock and roll and ($nested)';
       }
       final nestedStored = checkWording('[if $nested then x]', mine).stored;
       if (nestedStored != null) wordingForEditing(nestedStored, mine);
