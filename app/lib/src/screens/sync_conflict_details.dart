@@ -496,6 +496,8 @@ class SyncConflictComparison extends StatelessWidget {
       try {
         return Dialect.fromJson(json.cast<String, Object?>());
       } on Object {
+        // diagnostics: silent — a synced dialect that doesn't read only
+        // shows its wordings' conditions as stored; nothing is lost.
         return Dialect.canonical;
       }
     }
