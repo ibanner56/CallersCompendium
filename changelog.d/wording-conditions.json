@@ -8,7 +8,7 @@
     "changed": [
       "A parameter of your own figure can no longer be named `if`, `then`, `else`, `not`, `and`, `or` or `is`. A figure that already has one is marked **Needs repair** until you rename it.",
       "The message under a move wording template that can't be read now says what is wrong and where, instead of only that it is invalid.",
-      "Square brackets in a wording that start with the word “if” now hold a condition. A template saved earlier with such brackets still reads as before until you change it; to edit it, start those brackets with other words."
+      "Square brackets in a wording that start with the word “if” now hold a condition. A template saved earlier with such brackets reads as before: the editor shows them starting with an empty `[]`, which keeps them as words."
     ]
   },
   "core": {

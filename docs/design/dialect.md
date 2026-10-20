@@ -208,7 +208,11 @@ session for this change; the PR that adds it lists each one as he made it.
   showed it in its stored form, while its conditions still fit what it may
   test: one for a figure not on this device, or one saved before conditions
   whose brackets start with "if" (which now reads as a condition), saves
-  untouched. Renaming or swapping role or dancer words in the dialect editor,
+  untouched. Shown, such brackets start with an empty `[]`, which renders as
+  nothing and keeps "if" as a word, so an edit keeps their meaning too; an
+  imported branch's "else" shows as `[else]`, and an else branch starting
+  with "if" starts with `[]`, for the same reason. Nesting deeper than
+  `maxWordingNesting` (64) is refused before it is read. Renaming or swapping role or dancer words in the dialect editor,
   or a choice's label in a figure's editor, shows each wording again in the
   new words from what it last read as, so it keeps its meaning. A condition
   names a parameter by its name, so renaming the parameter, or removing a

@@ -184,7 +184,9 @@ void main() {
   });
 
   testWidgets('a wording saved before conditions whose brackets start with '
-      '"if" saves untouched, and says why once edited', (tester) async {
+      '"if" keeps its meaning, and says why once the [] is taken out', (
+    tester,
+  ) async {
     const legacy = '[if needed, ]{who} swing';
     final popped = await open(
       tester,
@@ -193,16 +195,24 @@ void main() {
         moveWordings: const {'swing': legacy},
       ),
     );
+    // Shown with an empty `[]` first, so the brackets keep their meaning.
+    expect(
+      tester.widget<TextField>(field()).controller!.text,
+      '[[]if needed, ]{who} swing',
+    );
     expect(error(), findsNothing);
+    await tester.enterText(field(), '[[]if needed, ]{who} swings');
+    await tester.pump();
+    expect(error(), findsNothing);
+    // Without it, the brackets hold a condition, and the message says so.
     await tester.enterText(field(), '$legacy!');
     await tester.pump();
     expect(
       tester.widget<Text>(error()).data,
       startsWith('Square brackets that start with “if” hold a condition'),
     );
-    await tester.enterText(field(), legacy);
+    await tester.enterText(field(), '[[]if needed, ]{who} swing');
     await tester.pump();
-    expect(error(), findsNothing);
     await save(tester);
     expect(popped()?.moveWordings['swing'], legacy);
   });

@@ -645,6 +645,76 @@ void main() {
       expect(saved.error?.data['max'], '$kMaxMoveWordingLength');
     });
 
+    test('nesting too deep is refused unread, and a long unknown value is '
+        'quick to explain', () {
+      expect(
+        checkWording(
+          '[if ${'(' * 65}prefix${')' * 65} then x]',
+          swing,
+        ).error?.code,
+        WordingIssueCode.tooDeep,
+      );
+      expect(
+        checkWording('[if ${'(' * 60}prefix${')' * 60} then x]', swing).stored,
+        '[{?if prefix}x]',
+      );
+      expect(
+        checkWording('${'[' * 65}x${']' * 65}', swing).error?.code,
+        WordingIssueCode.tooDeep,
+      );
+      // The largest options a figure can have, and an unknown value as long
+      // as typing allows: "Did you mean" mustn't compare it with each one.
+      final big = renderer.userFigureWordingVocabulary(
+        UserFigureDefinition(
+          template: '{move}',
+          defaultBeats: 8,
+          params: [
+            UserFigureParam(
+              key: 'style',
+              kind: ParamKind.choice,
+              choices: [
+                for (var i = 0; i < 32; i++)
+                  UserFigureChoice(id: 'c$i', label: '${'rock ' * 39}x$i'),
+              ],
+            ),
+          ],
+        ),
+        larks,
+      );
+      final watch = Stopwatch()..start();
+      final long = checkWording(
+        '[if style is ${'rocks ' * (wordingTypedLimit(big) ~/ 6 - 10)}then x]',
+        big,
+      );
+      expect(long.error?.code, WordingIssueCode.unknownValue);
+      expect(watch.elapsedMilliseconds, lessThan(1000));
+    });
+
+    test('a plain group starting with "if", saved before conditions or '
+        'imported, reads back as it was', () {
+      for (final stored in [
+        '[if roll then {move}] x',
+        '[if needed, ]{move}',
+        "[{?if roll}a{?else}[if roll then b]]",
+        "[if roll then {move}] [{?if roll}a]",
+      ]) {
+        final shown = wordingForEditing(stored, mine);
+        final read = checkWording(shown, mine);
+        expect(read.error, isNull, reason: shown);
+        for (final holds in [true, false]) {
+          for (final slotValue in ['S', '']) {
+            String render(String template) => assembleWordingNodes(
+              parseStoredWording(template)!,
+              (slot) => slotValue,
+              (_) => holds,
+            ).text;
+            expect(render(read.stored!), render(stored), reason: shown);
+          }
+        }
+      }
+      expect(wordingForEditing('[{who} ]{move}', mine), '[{who} ]{move}');
+    });
+
     test('a label may start with a word conditions use, or hold a comma', () {
       final mine = renderer.userFigureWordingVocabulary(
         UserFigureDefinition(

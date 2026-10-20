@@ -931,6 +931,7 @@ enum WordingIssueCode {
   conditionInBraces,
   tooLongStored,
   tooLongTyped,
+  tooDeep,
   // Conditions.
   missingCondition,
   missingThen,
@@ -1019,9 +1020,11 @@ final class WordingCheck {
 // ---------------------------------------------------------------------------
 
 /// The longest text [checkWording] reads against [vocabulary]: longer than
-/// any template within the stored cap can show, since each of its values,
-/// at least three characters stored (`'x'`), can show as the longest word a
-/// value has, with the parentheses an explicit reading adds around it.
+/// any template within the stored cap can show. Its words and markers show
+/// at most twice as long as stored (`{?if a}` as `if a then `, `else` as
+/// `[else]`), and each of its values, at least three characters stored
+/// (`'x'`), at most as the longest word a value has, with the parentheses
+/// an explicit reading adds around it.
 int wordingTypedLimit(WordingVocabulary vocabulary) {
   var longest = 0;
   for (final name in vocabulary.names) {
@@ -1034,6 +1037,29 @@ int wordingTypedLimit(WordingVocabulary vocabulary) {
   }
   return 2 * kMaxMoveWordingLength +
       (kMaxMoveWordingLength ~/ 3) * (longest + 16);
+}
+
+/// Most square brackets and parentheses a template may nest inside each
+/// other.
+const int maxWordingNesting = 64;
+
+/// How deep [text] nests square brackets and parentheses, slots skipped.
+int _nestingDepth(String text) {
+  var depth = 0;
+  var deepest = 0;
+  for (var i = 0; i < text.length; i++) {
+    final char = text[i];
+    if (char == '{') {
+      final close = text.indexOf('}', i);
+      if (close >= 0) i = close;
+    } else if (char == '[' || char == '(') {
+      depth++;
+      if (depth > deepest) deepest = depth;
+    } else if ((char == ']' || char == ')') && depth > 0) {
+      depth--;
+    }
+  }
+  return deepest;
 }
 
 /// A conditional group a help text can offer as an example, testing what
@@ -1052,9 +1078,29 @@ List<String> wordingTestableNames(WordingVocabulary vocabulary) =>
 /// shows as stored, so the editor reports it.
 String wordingForEditing(String stored, WordingVocabulary vocabulary) {
   final nodes = parseStoredWording(stored);
-  if (nodes == null || !wordingHasConditions(nodes)) return stored.trim();
+  if (nodes == null ||
+      (!wordingHasConditions(nodes) && !_hasGroupStartingWithIf(nodes))) {
+    return stored.trim();
+  }
   return displayWordingText(nodes, vocabulary);
 }
+
+/// Whether a plain group in [nodes] starts with the word "if": saved before
+/// conditions, or imported, it would read as a condition as typed.
+bool _hasGroupStartingWithIf(List<WordingNode> nodes) => nodes.any(
+  (node) => switch (node) {
+    WordingText() => false,
+    WordingGroup(:final children) =>
+      _groupStartsWithIf(children) || _hasGroupStartingWithIf(children),
+    WordingChoice(:final branches, :final otherwise) =>
+      branches.any((b) => _hasGroupStartingWithIf(b.children)) ||
+          (otherwise != null && _hasGroupStartingWithIf(otherwise)),
+  },
+);
+
+bool _groupStartsWithIf(List<WordingNode> children) =>
+    children.firstOrNull is WordingText &&
+    _startsWithIf((children.first as WordingText).text);
 
 /// [condition] in the display form, in the words of [vocabulary]. With
 /// [explicit], each test in a chain is wrapped in parentheses, so the text
@@ -1118,7 +1164,9 @@ String displayWordingText(
         case WordingText(:final text):
           out.write(text);
         case WordingGroup(:final children):
-          out.write('[');
+          // A plain group starting with "if" starts with an empty `[]`, so
+          // it doesn't read as a condition.
+          out.write(_groupStartsWithIf(children) ? '[[]' : '[');
           write(children);
           out.write(']');
         case WordingChoice(:final branches, :final otherwise):
@@ -1170,6 +1218,15 @@ WordingCheck checkWording(String text, WordingVocabulary vocabulary) {
     return WordingCheck(null, [
       WordingIssue(WordingIssueCode.tooLongTyped, 0, text.length, {
         'max': '$typedLimit',
+      }),
+    ]);
+  }
+  // Nested deeper than any wording needs: refused before reading, so the
+  // reader never runs out of stack.
+  if (_nestingDepth(text) > maxWordingNesting) {
+    return WordingCheck(null, [
+      WordingIssue(WordingIssueCode.tooDeep, 0, text.length, {
+        'max': '$maxWordingNesting',
       }),
     ]);
   }
@@ -2830,12 +2887,17 @@ String? _suggest(String found, Iterable<String> candidates) {
   if (target.isEmpty) return null;
   String? best;
   var bestDistance = 1 << 30;
+  final limit = target.length <= 4 ? 1 : (target.length <= 8 ? 2 : 3);
   for (final candidate in candidates) {
     final c = candidate.toLowerCase();
     if (c == target) continue;
-    final distance = _editDistance(target, c);
-    final limit = target.length <= 4 ? 1 : (target.length <= 8 ? 2 : 3);
     final prefix = c.startsWith(target) || target.startsWith(c);
+    // Words whose lengths differ by more than the limit are that far
+    // apart at least, and one that begins the other is exactly its length
+    // difference away: neither needs the whole table worked out.
+    final gap = (target.length - c.length).abs();
+    if (gap > limit && !prefix) continue;
+    final distance = prefix ? gap : _editDistance(target, c);
     if ((distance <= limit || (prefix && target.length >= 3)) &&
         distance < bestDistance) {
       best = candidate;

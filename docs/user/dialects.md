@@ -217,8 +217,9 @@ looks like you meant that.
 
 Square brackets that start with "if" always hold a condition. A template you
 saved before conditions arrived, with brackets that start with "if" as
-ordinary words, keeps reading as it did until you change it; to change it,
-start those brackets with other words.
+ordinary words, keeps reading as it did: the editor shows those brackets
+starting with an empty `[]`, as in `[[]if needed, ]`, which keeps "if" as a
+word. Leave the `[]` in place when you change the template. It shows nothing.
 
 Older versions of the app can't read conditions: on a device that hasn't been
 updated, a move with a conditional template keeps its normal wording, and one
