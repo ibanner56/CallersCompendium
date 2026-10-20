@@ -111,11 +111,11 @@ UserGlossaryEntry? _userFigureFromJson(Object? raw) {
   }
   final name = _text(raw['name'], maxUserGlossaryNameLength);
   final definition = _text(raw['definition'], maxUserGlossaryTextLength);
-  // Optional: absent or empty reads as no description.
+  // Optional: absent or blank reads as no description.
   final rawDescription = raw['description'];
-  final description = rawDescription == null || rawDescription == ''
+  final description = rawDescription == null
       ? ''
-      : _text(rawDescription, maxUserGlossaryTextLength);
+      : _optionalText(rawDescription, maxUserGlossaryTextLength);
   final rawKeywords = raw['keywords'] ?? const <Object?>[];
   if (name == null ||
       definition == null ||
@@ -140,6 +140,14 @@ UserGlossaryEntry? _userFigureFromJson(Object? raw) {
     payload: payload,
     createdAt: createdAt.toUtc(),
   );
+}
+
+/// [raw] scrubbed, when it is text of at most [max] code units; blank is
+/// allowed and reads as empty.
+String? _optionalText(Object? raw, int max) {
+  if (raw is! String) return null;
+  final text = sanitizeImportedText(raw).trim();
+  return text.length > max ? null : text;
 }
 
 /// [raw] scrubbed, when it is non-blank text of at most [max] code units.

@@ -9809,6 +9809,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHiddenTerm(String name) {
+    return '“$name” er allerede navnet på et af dine egne begreber. De vises i ordlisten, mens Vis ordliste er slået til. Vælg et andet navn.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Tilføj mindst én figur.';
 
   @override

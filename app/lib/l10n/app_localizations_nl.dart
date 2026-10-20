@@ -9878,6 +9878,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHiddenTerm(String name) {
+    return '“$name” is al de naam van een van je eigen termen. Die staan in de woordenlijst zolang Woordenlijst tonen aanstaat. Kies een andere naam.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Voeg ten minste één figuur toe.';
 
   @override

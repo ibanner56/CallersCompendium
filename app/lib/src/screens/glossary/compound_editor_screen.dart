@@ -7,6 +7,7 @@ import '../../data/active_dialect_scope.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
+import '../../data/show_glossary_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
@@ -641,15 +642,24 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         exceptUserFigureId: widget.initial?.id,
       );
       if (collisionsWith(others).isNotEmpty) {
-        // While Custom Figures is off the Glossary lists only terms, so a
-        // clash with one of the user's figures says where that figure is.
-        final shown = customFiguresShown(context)
-            ? others
-            : others.where((e) => e.kind == UserGlossaryEntryKind.term);
+        // A term is listed only while the Glossary is shown, and a figure
+        // while Custom Figures is on, so a clash with one that is hidden says
+        // where it is.
+        final glossaryShown = ShowGlossaryScope.of(context);
+        final figuresShown = customFiguresShown(context);
+        bool isShown(UserGlossaryEntry e) =>
+            e.kind == UserGlossaryEntryKind.term ? glossaryShown : figuresShown;
         errors.add(
-          collisionsWith(shown).isEmpty
-              ? l10n.compoundEditorNameTakenHidden(name)
-              : l10n.compoundEditorNameTaken(name),
+          collisionsWith(others.where(isShown)).isNotEmpty
+              ? l10n.compoundEditorNameTaken(name)
+              : others.any(
+                  (e) =>
+                      !isShown(e) &&
+                      e.kind == UserGlossaryEntryKind.term &&
+                      collisionsWith([e]).isNotEmpty,
+                )
+              ? l10n.compoundEditorNameTakenHiddenTerm(name)
+              : l10n.compoundEditorNameTakenHidden(name),
         );
       }
     }

@@ -9766,6 +9766,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHiddenTerm(String name) {
+    return '“$name” is already the name of one of your own terms. Those are listed in the Glossary while Show Glossary is on. Choose another name.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Add at least one figure.';
 
   @override

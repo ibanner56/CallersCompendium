@@ -14666,6 +14666,12 @@ abstract class AppLocalizations {
   /// **'“{name}” is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.'**
   String compoundEditorNameTakenHidden(String name);
 
+  /// Error shown when saving a figure under a name one of the user's own terms already has, while Show Glossary is off and that term is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” is already the name of one of your own terms. Those are listed in the Glossary while Show Glossary is on. Choose another name.'**
+  String compoundEditorNameTakenHiddenTerm(String name);
+
   /// Error shown when saving a custom figure with no figures.
   ///
   /// In en, this message translates to:

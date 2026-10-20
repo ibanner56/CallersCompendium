@@ -9921,6 +9921,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHiddenTerm(String name) {
+    return '„$name“ ist bereits der Name eines deiner eigenen Begriffe. Diese stehen im Glossar, solange Glossar anzeigen eingeschaltet ist. Wähle einen anderen Namen.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Füge mindestens eine Figur hinzu.';
 
   @override

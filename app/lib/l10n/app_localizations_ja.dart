@@ -9419,6 +9419,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHiddenTerm(String name) {
+    return '「$name」はすでに自分の用語の名前です。用語は「用語集を表示」がオンの間、用語集に表示されます。別の名前を選んでください。';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'フィギュアを1つ以上追加してください。';
 
   @override

@@ -9670,6 +9670,10 @@
   "@compoundEditorNameTakenHidden": {
     "x-sourceSha256": "5ee866fe42345995b7ed626d64e97bec1b8acdc583e8e62d068f0b43aa75aab5"
   },
+  "compoundEditorNameTakenHiddenTerm": "„{name}“ ist bereits der Name eines deiner eigenen Begriffe. Diese stehen im Glossar, solange Glossar anzeigen eingeschaltet ist. Wähle einen anderen Namen.",
+  "@compoundEditorNameTakenHiddenTerm": {
+    "x-sourceSha256": "b29b840aeb7660239612eaf3d395c27e422c6aa8c16d55207e296be121fee7bc"
+  },
   "compoundEditorNoFigures": "Füge mindestens eine Figur hinzu.",
   "@compoundEditorNoFigures": {
     "x-sourceSha256": "077dee789ee7f11036fcd87132392a01ed1e1e808a55b857280846be61e40d8c"
