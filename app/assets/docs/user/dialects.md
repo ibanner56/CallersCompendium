@@ -215,6 +215,11 @@ condition's wording, put those words in their own square brackets:
 `[if who is ones then [everyone else] swing]`. The editor warns you when it
 looks like you meant that.
 
+Square brackets that start with "if" always hold a condition. A template you
+saved before conditions arrived, with brackets that start with "if" as
+ordinary words, keeps reading as it did until you change it; to change it,
+start those brackets with other words.
+
 Older versions of the app can't read conditions: on a device that hasn't been
 updated, a move with a conditional template keeps its normal wording, and one
 of your own figures using one is marked **Needs repair** there.

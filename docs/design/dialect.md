@@ -195,6 +195,19 @@ session for this change; the PR that adds it lists each one as he made it.
   take (`wordingConditionsFit`) makes a dialect wording unused, as an unknown
   slot does, and a figure of your own's definition invalid
   (`UserFigureIssueCodes.badCondition`).
+- **Shown so it reads back the same.** The editors show a stored condition in
+  its plain words only when reading them back gives the same condition
+  (`readableWordingCondition`); otherwise explicitly, a value of several
+  words or one spelled like an operator in `is in (…)` and each test of a
+  chain in parentheses. A list of one value is stored as the value, so
+  `is in (x)` and `is x` keep the same stored form.
+- **What isn't edited isn't read again.** An editor keeps a wording left as it
+  showed it in its stored form, while its conditions still fit what it may
+  test: one for a figure not on this device, or one saved before conditions
+  whose brackets start with "if" (which now reads as a condition), saves
+  untouched. Renaming or swapping role or dancer words in the dialect editor
+  shows each wording again in the new words from what it last read as, so
+  its meaning never follows a word to another value.
 - **Warnings, not errors**, for wording that saves but likely not as meant:
   `else` after "everyone" and its kin (the words "everyone else" go in their own
   `[…]`, where `else` is ordinary wording), `otherwise` or `elif` in a branch,
