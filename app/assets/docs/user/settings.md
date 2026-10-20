@@ -587,6 +587,10 @@ the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
 app is set to; only the Glossary's labels and buttons are translated.
 
+While [Device Sync](#device-sync) is on and a store is connected, a **Sync now**
+button sits beside **+** in the Glossary toolbar, the same as on Collection and
+Programs, so your terms and notes can be pulled from another device.
+
 **Your terms** are words you define yourself, with no figure: a name and a
 definition (both required), **More Details** (optional), other names they can be found by,
 notes, and the **Dance form** they're for. They are listed in the Glossary
