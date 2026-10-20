@@ -211,9 +211,14 @@ session for this change; the PR that adds it lists each one as he made it.
   untouched. Shown, such brackets start with an empty `[]`, which renders as
   nothing and keeps "if" as a word, so an edit keeps their meaning too; an
   imported branch's "else" shows as `[else]`, and an else branch starting
-  with "if" starts with `[]`, for the same reason. Nesting deeper than
-  `maxWordingNesting` (64) is refused before it is read. Renaming or swapping role or dancer words in the dialect editor,
-  or a choice's label in a figure's editor, shows each wording again in the
+  with "if" starts with `[]`, for the same reason. These add a few characters
+  to the stored form once the wording is edited, so one at the 512 cap may
+  need shortening then. Brackets or parentheses nested deeper than
+  `maxWordingNesting` (64), counted through any brace that isn't a slot, and
+  a run of more `not`s than that, are refused: the reader never needs more
+  stack than that depth. Renaming or swapping role or dancer words in the
+  dialect editor, or a choice's label in a figure's editor, shows each
+  wording again in the
   new words from what it last read as, so it keeps its meaning. A condition
   names a parameter by its name, so renaming the parameter, or removing a
   choice it tests, leaves the wording as typed, and the editor reports what
