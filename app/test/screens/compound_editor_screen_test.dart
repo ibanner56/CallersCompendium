@@ -395,6 +395,39 @@ void main() {
       expect(decodeUserFigureDefinition(saved.payload)!.template, template);
     });
 
+    testWidgets('renaming a choice a condition tests shows the wording in '
+        'the new label, and keeps what it tests', (tester) async {
+      const template =
+          "[{?if style is 'abc12345'}{who} zoom fast{?else}{who} zoom]";
+      final repos = await pump(tester, initial: zoom(template: template));
+      Finder wording() => find.byKey(const ValueKey('user-figure-wording'));
+      String text() => tester.widget<TextField>(wording()).controller!.text;
+      expect(text(), '[if style is fast then {who} zoom fast else {who} zoom]');
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-param-1-choice-0')),
+        'quick',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        text(),
+        '[if style is quick then {who} zoom fast else {who} zoom]',
+      );
+      // An edit after the rename reads in the new label.
+      await tester.enterText(
+        wording(),
+        '[if style is quick then {who} zoom quick else {who} zoom]',
+      );
+      await tester.pumpAndSettle();
+      await save(tester);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('zoom-id'),
+      ))!;
+      expect(
+        decodeUserFigureDefinition(saved.payload)!.template,
+        "[{?if style is 'abc12345'}{who} zoom quick{?else}{who} zoom]",
+      );
+    });
+
     testWidgets('a wording saved before conditions whose brackets start '
         'with "if" saves untouched', (tester) async {
       const legacy = '[if needed, ]{who} zoom [{style}]';

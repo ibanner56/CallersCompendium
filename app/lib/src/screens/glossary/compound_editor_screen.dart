@@ -268,13 +268,13 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     final stored = _template.text;
     _template.text = wordingForEditing(stored, _templateVocabulary(dialect));
     _shownTemplate = (stored: stored, shown: _template.text);
+    _readTemplate = _shownTemplate;
   }
 
   /// The wording as loaded, its words in the dialect and its conditions as
   /// stored, with the text shown for it: left as shown, it is kept as stored
   /// and not read again ([_templateCheck]), so a wording saved before
-  /// conditions whose brackets start with "if" still saves, and a condition
-  /// keeps the choice it tests while the choice is renamed.
+  /// conditions whose brackets start with "if" still saves.
   ({String stored, String shown})? _shownTemplate;
 
   /// What the wording's conditions may test, from the parameters as now
@@ -400,10 +400,50 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     super.dispose();
   }
 
-  void _changed() => setState(() {
+  /// Anything but the wording edited: a parameter or a choice may have been
+  /// renamed, so the wording, while as last read, is shown again in the new
+  /// words from what it means ([_readTemplate]).
+  void _changed() {
+    _reshowTemplate();
+    _edited();
+  }
+
+  void _edited() => setState(() {
     _dirty = true;
     _errors = const [];
   });
+
+  /// The wording edited: what it now reads as is remembered, so a later
+  /// rename shows it again keeping that meaning. It isn't rewritten while
+  /// being typed.
+  void _templateEdited() {
+    final stored = _templateCheck(ActiveDialectScope.of(context)).stored;
+    if (stored != null) _readTemplate = (stored: stored, shown: _template.text);
+    _edited();
+  }
+
+  /// The wording as last read, its words in the dialect and its conditions as
+  /// stored, with the text it was read from.
+  ({String stored, String shown})? _readTemplate;
+
+  void _reshowTemplate() {
+    final read = _readTemplate;
+    if (read == null || read.shown != _template.text) return;
+    final nodes = parseStoredWording(read.stored);
+    if (nodes == null || !wordingHasConditions(nodes)) return;
+    final dialect = ActiveDialectScope.of(context);
+    final vocabulary = _templateVocabulary(dialect);
+    // A condition testing what was just removed keeps its words, which the
+    // check then reports.
+    if (!wordingConditionsFit(nodes, vocabulary.subjects)) return;
+    final shown = wordingForEditing(read.stored, vocabulary);
+    if (shown == _template.text) return;
+    if (_shownTemplate?.shown == _template.text) {
+      _shownTemplate = (stored: _shownTemplate!.stored, shown: shown);
+    }
+    _readTemplate = (stored: read.stored, shown: shown);
+    _template.text = shown;
+  }
 
   // ---------------------------------------------------------------- model --
 
@@ -1456,13 +1496,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
               replacementString: ' ',
             ),
           ],
-          maxLength: kMaxMoveWordingLength,
-          // Counted, never cut: a stored wording can show longer than it is
-          // stored, and the check says when it is too long to save.
-          maxLengthEnforcement: MaxLengthEnforcement.none,
           minLines: 1,
           maxLines: 3,
-          onChanged: (_) => _changed(),
+          onChanged: (_) => _templateEdited(),
           decoration: InputDecoration(
             labelText: l10n.userFigureEditorWording,
             helperText: l10n.userFigureEditorWordingSlots(

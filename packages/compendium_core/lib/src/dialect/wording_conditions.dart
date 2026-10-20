@@ -2418,8 +2418,9 @@ final class _DisplayReader {
         final close = text.indexOf(')', listOpen);
         final end = close < 0 ? text.length : close;
         final inner = unquote(text.substring(listOpen + 1, end));
-        _failAt(k, 4, WordingIssueCode.quotedValue, listOpen, end, {
-          'found': text.substring(listOpen, end).trim(),
+        final shownEnd = close < 0 ? end : end + 1;
+        _failAt(k, 4, WordingIssueCode.quotedValue, listOpen, shownEnd, {
+          'found': text.substring(listOpen, shownEnd).trim(),
           'fix': '$opText in ($inner)',
         });
         return;

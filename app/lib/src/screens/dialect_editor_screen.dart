@@ -1,7 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
@@ -111,7 +110,20 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
 
   /// The key a wording is kept under: a move or figure, and a branch.
   static String _wordingKey(String id, [String? branch]) =>
-      branch == null ? id : '$id/$branch';
+      branch == null ? id : '$id$_branchSeparator$branch';
+
+  /// What joins a move and a branch in a [_wordingKey]: a character no key
+  /// or branch holds.
+  static const String _branchSeparator = '\u0000';
+
+  /// Forgets what the editor showed and read for the wording [id], any
+  /// branch included: a wording added again starts afresh.
+  void _forgetWording(String id) {
+    bool isOf(String key) =>
+        key == id || key.startsWith('$id$_branchSeparator');
+    _shownWordings.removeWhere((key, _) => isOf(key));
+    _readWordings.removeWhere((key, _) => isOf(key));
+  }
 
   /// [stored], the wording [id] as a dialect stores it, as the editor shows
   /// it: its conditions in [dialect]'s words.
@@ -147,7 +159,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     final nodes = parseStoredWording(shown.stored);
     // What it may test doesn't depend on the dialect's words.
     final vocabulary = _wordingVocabulary(
-      key.split('/').first,
+      key.split(_branchSeparator).first,
       Dialect.canonical,
       UserFiguresScope.catalogOf(context),
     );
@@ -698,11 +710,13 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
 
   void _removeMoveWording(String moveId) {
     _wordingCtrls.remove(moveId)?.dispose();
+    _forgetWording(moveId);
     _onEdited();
   }
 
   void _removeBranchMoveWording(String moveId) {
     final controllers = _branchWordingCtrls.remove(moveId);
+    _forgetWording(moveId);
     if (controllers != null) {
       for (final controller in controllers.values) {
         controller.dispose();
@@ -723,6 +737,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         }
       }
       _branchWordingCtrls.clear();
+      _shownWordings.clear();
+      _readWordings.clear();
       _working = _assemble();
       _issues = _working.validate();
       _invalidMoveWordings = _invalidMoveWordingKeys();
@@ -1159,9 +1175,6 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   }
 }
 
-/// A dialect entry's label: a move's name, or, for a figure of your own's
-/// `userFigure:<id>` key (#1023), the figure's name in [dialect], or a note
-/// that it isn't on this device when [userFigures] lacks it.
 /// What a condition in the wording [id] may test, and the words its values
 /// are written with, in [dialect]: a move's, or a figure of your own's.
 WordingVocabulary _wordingVocabulary(
@@ -1194,6 +1207,9 @@ WordingCheck _checkWording(
   UserFigureCatalog userFigures,
 ) => checkWording(text.trim(), _wordingVocabulary(id, dialect, userFigures));
 
+/// A dialect entry's label: a move's name, or, for a figure of your own's
+/// `userFigure:<id>` key (#1023), the figure's name in [dialect], or a note
+/// that it isn't on this device when [userFigures] lacks it.
 String _entryLabel(
   String id,
   UserFigureCatalog userFigures,
@@ -1405,10 +1421,6 @@ class _MoveWordingsEditor extends StatelessWidget {
           TextField(
             key: ValueKey('dialect-wording-$id'),
             controller: controller,
-            maxLength: kMaxMoveWordingLength,
-            // Counted, never cut: a stored wording can show longer than it is
-            // stored, and the check says when it is too long to save.
-            maxLengthEnforcement: MaxLengthEnforcement.none,
             decoration: InputDecoration(
               labelText: l10n.dialectEditorMoveWordingLabel,
               hintText: _renderer.moveWordingTemplate(id),
@@ -1528,10 +1540,6 @@ class _MoveWordingsEditor extends StatelessWidget {
           TextField(
             key: ValueKey('dialect-wording-$id'),
             controller: controller,
-            maxLength: kMaxMoveWordingLength,
-            // Counted, never cut: a stored wording can show longer than it is
-            // stored, and the check says when it is too long to save.
-            maxLengthEnforcement: MaxLengthEnforcement.none,
             decoration: InputDecoration(
               labelText: l10n.dialectEditorMoveWordingLabel,
               hintText: definition == null
@@ -1657,10 +1665,6 @@ class _MoveWordingsEditor extends StatelessWidget {
           TextField(
             key: ValueKey('dialect-wording-$moveId-$branch'),
             controller: controller,
-            maxLength: kMaxMoveWordingLength,
-            // Counted, never cut: a stored wording can show longer than it is
-            // stored, and the check says when it is too long to save.
-            maxLengthEnforcement: MaxLengthEnforcement.none,
             decoration: InputDecoration(
               labelText: l10n.dialectEditorMoveWordingLabel,
               hintText: _renderer.moveWordingBranchTemplate(moveId, branch),

@@ -10468,5 +10468,5 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get wordingIssueNothingToTest =>
-      'Cette formulation ne peut rien tester ici : la figure à laquelle elle appartient n’est pas sur cet appareil, ses conditions ne peuvent donc pas être vérifiées. Modifiez-la sur un appareil qui a la figure, ou retirez la condition.';
+      'Cette formulation ne peut rien tester ici : la figure à laquelle elle appartient n’est pas sur cet appareil, ou cette version de l’application ne la connaît pas, ses conditions ne peuvent donc pas être vérifiées. Modifiez-la sur un appareil qui a la figure, ou retirez la condition.';
 }

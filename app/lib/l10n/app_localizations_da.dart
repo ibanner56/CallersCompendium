@@ -10337,5 +10337,5 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get wordingIssueNothingToTest =>
-      'Denne formulering kan ikke teste noget her: den figur, den hører til, er ikke på denne enhed, så dens betingelser kan ikke kontrolleres. Ret den på en enhed, der har figuren, eller fjern betingelsen.';
+      'Denne formulering kan ikke teste noget her: den figur, den hører til, er ikke på denne enhed, eller denne version af appen kender den ikke, så dens betingelser kan ikke kontrolleres. Ret den på en enhed, der har figuren, eller fjern betingelsen.';
 }

@@ -15384,7 +15384,7 @@ abstract class AppLocalizations {
   /// A condition is written in a wording whose figure is not on this device.
   ///
   /// In en, this message translates to:
-  /// **'This wording can’t test anything here: the figure it belongs to isn’t on this device, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.'**
+  /// **'This wording can’t test anything here: the figure it belongs to isn’t on this device, or this version of the app doesn’t know it, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.'**
   String get wordingIssueNothingToTest;
 }
 

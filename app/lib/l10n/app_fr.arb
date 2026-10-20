@@ -10122,8 +10122,8 @@
   "@wordingIssueValueAfterConnective": {
     "x-sourceSha256": "1712e23d6a809549de82b017341e889c5ae2afc8d5aa5d68fb037ea5e1441a58"
   },
-  "wordingIssueNothingToTest": "Cette formulation ne peut rien tester ici : la figure à laquelle elle appartient n’est pas sur cet appareil, ses conditions ne peuvent donc pas être vérifiées. Modifiez-la sur un appareil qui a la figure, ou retirez la condition.",
+  "wordingIssueNothingToTest": "Cette formulation ne peut rien tester ici : la figure à laquelle elle appartient n’est pas sur cet appareil, ou cette version de l’application ne la connaît pas, ses conditions ne peuvent donc pas être vérifiées. Modifiez-la sur un appareil qui a la figure, ou retirez la condition.",
   "@wordingIssueNothingToTest": {
-    "x-sourceSha256": "eca111ef56468b02b6594947dff540a15806a22df305cafee8e6baf0e6e09de8"
+    "x-sourceSha256": "1567f7dbe61a1cd282a6667fccdc8f21cf62d11ed0367752e1f29b7fa9c4a063"
   }
 }

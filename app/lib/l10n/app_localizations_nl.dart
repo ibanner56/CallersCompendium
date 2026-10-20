@@ -10409,5 +10409,5 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get wordingIssueNothingToTest =>
-      'Deze formulering kan hier niets testen: de figuur waar ze bij hoort staat niet op dit apparaat, dus haar voorwaarden kunnen niet gecontroleerd worden. Wijzig haar op een apparaat met die figuur, of verwijder de voorwaarde.';
+      'Deze formulering kan hier niets testen: de figuur waar ze bij hoort staat niet op dit apparaat, of deze versie van de app kent haar niet, dus haar voorwaarden kunnen niet gecontroleerd worden. Wijzig haar op een apparaat met die figuur, of verwijder de voorwaarde.';
 }
