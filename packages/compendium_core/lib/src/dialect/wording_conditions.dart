@@ -1043,6 +1043,26 @@ int wordingTypedLimit(WordingVocabulary vocabulary) {
 /// other.
 const int maxWordingNesting = 64;
 
+/// How many times [text] holds the word "not", as the reader finds it: the
+/// most a condition can be negated inside another, however its `not`s sit
+/// between parentheses.
+int _notCount(String text) {
+  var count = 0;
+  for (
+    var i = text.indexOf(_notPrefix);
+    i >= 0;
+    i = text.indexOf(_notPrefix, i + 1)
+  ) {
+    if ((i == 0 || !_isWordChar(text[i - 1])) &&
+        (i + 3 == text.length || !_isWordChar(text[i + 3]))) {
+      count++;
+    }
+  }
+  return count;
+}
+
+final RegExp _notPrefix = RegExp('not', caseSensitive: false);
+
 /// How deep [text] nests square brackets and parentheses, slots skipped.
 int _nestingDepth(String text) {
   var depth = 0;
@@ -1226,7 +1246,8 @@ WordingCheck checkWording(String text, WordingVocabulary vocabulary) {
   }
   // Nested deeper than any wording needs: refused before reading, as a run of
   // `not`s is while reading, so the reader never runs out of stack.
-  if (_nestingDepth(text) > maxWordingNesting) {
+  if (_nestingDepth(text) > maxWordingNesting ||
+      _notCount(text) > maxWordingNesting) {
     return WordingCheck(null, [
       WordingIssue(WordingIssueCode.tooDeep, 0, text.length, {
         'max': '$maxWordingNesting',

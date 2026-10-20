@@ -698,6 +698,14 @@ void main() {
         checkWording('[if ${'not ' * 60}style then x]', big).error,
         isNull,
       );
+      // Nor can `not`s between parentheses multiply it.
+      expect(
+        checkWording(
+          '[if ${'(${'not ' * 10}' * 30}style${')' * 30} then x]',
+          big,
+        ).error?.code,
+        WordingIssueCode.tooDeep,
+      );
       // A long chain is read in one pass, however long typing allows.
       watch.reset();
       final chain = checkWording(
