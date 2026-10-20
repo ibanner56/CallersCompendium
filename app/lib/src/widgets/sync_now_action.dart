@@ -15,8 +15,8 @@ import '../sync/sync_coordinator.dart'
     show SyncFailureCauseTier, SyncPassStatus;
 import '../sync/sync_scope.dart';
 
-/// A toolbar button that starts a manual Device Sync pass from the Collection
-/// and Programs pages: a second entry point to the one path Settings ▸ Sync
+/// A toolbar button that starts a manual Device Sync pass from the Collection,
+/// Programs and Glossary pages: a second entry point to the one path Settings ▸ Sync
 /// now already uses ([SyncController.syncNow]), with no sync logic of its own.
 ///
 /// Renders nothing unless Device Sync is on **and** a store is paired — the

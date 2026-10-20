@@ -3902,7 +3902,7 @@ transaction that already committed locally.
 - Debounced 30s after a local change.
 - After a transient failure, the automatic retry above.
 - Manually via "Sync now" — from Settings, or from the sync glyph on the
-  Collection and Programs toolbars (shown only while sync is on and paired) —
+  Collection, Programs and Glossary toolbars (shown only while sync is on and paired) —
   a **delta pass**, identical to an automatic one. A
   **full re-verify** (rehash every local record, reconcile against every peer)
   is available behind a long-press or a Settings action, because on 11,500
