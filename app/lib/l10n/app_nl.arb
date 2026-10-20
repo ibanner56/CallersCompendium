@@ -10125,5 +10125,9 @@
   "wordingIssueNothingToTest": "Deze formulering kan hier niets testen: de figuur waar ze bij hoort staat niet op dit apparaat, of deze versie van de app kent haar niet, dus haar voorwaarden kunnen niet gecontroleerd worden. Wijzig haar op een apparaat met die figuur, of verwijder de voorwaarde.",
   "@wordingIssueNothingToTest": {
     "x-sourceSha256": "1567f7dbe61a1cd282a6667fccdc8f21cf62d11ed0367752e1f29b7fa9c4a063"
+  },
+  "wordingIssueTooLongTyped": "Deze formulering is te lang om te lezen: getypt is ze langer dan {max} tekens. Maak haar korter.",
+  "@wordingIssueTooLongTyped": {
+    "x-sourceSha256": "414a08da598da5efc8a9932c58450b1a53cd1077f740b44e56b2d2c50ad38d25"
   }
 }

@@ -10410,4 +10410,9 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get wordingIssueNothingToTest =>
       'Deze formulering kan hier niets testen: de figuur waar ze bij hoort staat niet op dit apparaat, of deze versie van de app kent haar niet, dus haar voorwaarden kunnen niet gecontroleerd worden. Wijzig haar op een apparaat met die figuur, of verwijder de voorwaarde.';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'Deze formulering is te lang om te lezen: getypt is ze langer dan $max tekens. Maak haar korter.';
+  }
 }

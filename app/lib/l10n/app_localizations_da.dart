@@ -10338,4 +10338,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get wordingIssueNothingToTest =>
       'Denne formulering kan ikke teste noget her: den figur, den hører til, er ikke på denne enhed, eller denne version af appen kender den ikke, så dens betingelser kan ikke kontrolleres. Ret den på en enhed, der har figuren, eller fjern betingelsen.';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'Denne formulering er for lang til at blive læst: som skrevet er den over $max tegn. Gør den kortere.';
+  }
 }

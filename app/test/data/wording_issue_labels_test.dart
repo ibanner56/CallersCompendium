@@ -43,6 +43,7 @@ void main() {
     WordingIssueCode.badSlot: ['FOUND', 'FIX'],
     WordingIssueCode.conditionInBraces: ['FOUND', 'FIX'],
     WordingIssueCode.tooLongStored: ['MAX'],
+    WordingIssueCode.tooLongTyped: ['MAX'],
     WordingIssueCode.missingCondition: ['WORD', 'EXAMPLE'],
     WordingIssueCode.missingThen: ['CONDITION'],
     WordingIssueCode.colonForThen: ['CONDITION'],

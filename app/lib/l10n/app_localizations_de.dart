@@ -10453,4 +10453,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get wordingIssueNothingToTest =>
       'Dieser Wortlaut kann hier nichts prüfen: Die Figur, zu der er gehört, ist nicht auf diesem Gerät, oder diese Version der App kennt sie nicht, daher lassen sich seine Bedingungen nicht prüfen. Ändere ihn auf einem Gerät, das die Figur hat, oder entferne die Bedingung.';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'Dieser Wortlaut ist zu lang zum Lesen: Getippt hat er mehr als $max Zeichen. Kürze ihn.';
+  }
 }

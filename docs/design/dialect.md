@@ -183,9 +183,10 @@ session for this change; the PR that adds it lists each one as he made it.
   than its words, but raising the cap was rejected: a build before
   conditions truncates a longer template on reading a dialect, and would sync
   the broken copy back. The editors refuse, with a message, a template that is
-  too long once stored; they never cut one short. Typed text over twice the
-  cap is refused the same way before it is read, which bounds how long
-  reading any text a caller can type takes.
+  too long once stored; they never cut one short. Typed text longer than any
+  template within the cap can show (`wordingTypedLimit`, from the longest
+  word a value has) is refused before it is read, with its own message, which
+  bounds how long reading any text a caller can type takes.
 - **Older builds fall back.** A build before conditions refuses a brace holding
   anything but a slot name, so it reads a stored condition as a malformed
   template: a dialect wording falls back to the normal wording, and a figure of

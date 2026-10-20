@@ -13844,5 +13844,15 @@
   "wordingIssueNothingToTest": "This wording can’t test anything here: the figure it belongs to isn’t on this device, or this version of the app doesn’t know it, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.",
   "@wordingIssueNothingToTest": {
     "description": "A condition is written in a wording whose figure is not on this device."
+  },
+  "wordingIssueTooLongTyped": "This wording is too long to read: it’s over {max} characters as typed. Shorten it.",
+  "@wordingIssueTooLongTyped": {
+    "description": "Typed wording far longer than any template that can be saved.",
+    "placeholders": {
+      "max": {
+        "type": "String",
+        "example": "6464"
+      }
+    }
   }
 }

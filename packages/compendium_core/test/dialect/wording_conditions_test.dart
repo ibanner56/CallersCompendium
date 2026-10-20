@@ -609,6 +609,42 @@ void main() {
       );
     });
 
+    test('a saved template is never too long to show again, and typed '
+        'text far longer than any is refused unread', () {
+      final labels = [
+        for (var i = 0; i < 32; i++)
+          UserFigureChoice(id: 'c$i', label: '${'long ' * 39}label $i'),
+      ];
+      final definition = UserFigureDefinition(
+        template: '{move}',
+        defaultBeats: 8,
+        params: [
+          UserFigureParam(
+            key: 'style',
+            kind: ParamKind.choice,
+            choices: labels,
+          ),
+        ],
+      );
+      final long = renderer.userFigureWordingVocabulary(definition, larks);
+      final stored =
+          "[{?if style is in (${[for (var i = 0; i < 32; i++) "'c$i'"].join(', ')})}x]";
+      expect(stored.length, lessThanOrEqualTo(kMaxMoveWordingLength));
+      final shown = wordingForEditing(stored, long);
+      expect(shown.length, greaterThan(2 * kMaxMoveWordingLength));
+      expect(checkWording(shown, long).stored, stored);
+
+      final typed = checkWording(
+        '{move} ${'x' * wordingTypedLimit(swing)}',
+        swing,
+      );
+      expect(typed.error?.code, WordingIssueCode.tooLongTyped);
+      expect(typed.error?.data['max'], '${wordingTypedLimit(swing)}');
+      final saved = checkWording('{move} ${'x' * 600}', swing);
+      expect(saved.error?.code, WordingIssueCode.tooLongStored);
+      expect(saved.error?.data['max'], '$kMaxMoveWordingLength');
+    });
+
     test('a label may start with a word conditions use, or hold a comma', () {
       final mine = renderer.userFigureWordingVocabulary(
         UserFigureDefinition(
@@ -648,17 +684,30 @@ void main() {
         "[{?if roll}if you like else stop]",
         "[{?if roll}if ok then a else b]",
         "[{?if roll}{move} else {beats}{?else}else]",
+        // Letters and digits the reader doesn't count as part of a word.
+        "[{?if roll}a中else b]",
+        "[{?if roll}a µelse b]",
+        "[{?if roll}a ²else b]",
+        "[{?if roll}a 𐐀else b]",
+        "[{?if roll}a else中 b]",
+        "[{?if roll}éelse elseé ELSE else's]",
+        "[{?if roll}{move}else{beats}]",
+        // An else branch starting with "if" is not an else if.
+        "[{?if roll}a{?else}if roll then b]",
+        "[{?if roll}a{?else}  IF so]",
       ]) {
         final shown = wordingForEditing(stored, mine);
         final read = checkWording(shown, mine);
         expect(read.error, isNull, reason: shown);
         for (final holds in [true, false]) {
-          String render(String template) => assembleWordingNodes(
-            parseStoredWording(template)!,
-            (slot) => 'S',
-            (_) => holds,
-          ).text;
-          expect(render(read.stored!), render(stored), reason: shown);
+          for (final slotValue in ['S', '']) {
+            String render(String template) => assembleWordingNodes(
+              parseStoredWording(template)!,
+              (slot) => slotValue,
+              (_) => holds,
+            ).text;
+            expect(render(read.stored!), render(stored), reason: shown);
+          }
         }
       }
     });

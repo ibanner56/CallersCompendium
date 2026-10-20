@@ -930,6 +930,7 @@ enum WordingIssueCode {
   badSlot,
   conditionInBraces,
   tooLongStored,
+  tooLongTyped,
   // Conditions.
   missingCondition,
   missingThen,
@@ -1017,6 +1018,24 @@ final class WordingCheck {
 // Display form: writing
 // ---------------------------------------------------------------------------
 
+/// The longest text [checkWording] reads against [vocabulary]: longer than
+/// any template within the stored cap can show, since each of its values,
+/// at least three characters stored (`'x'`), can show as the longest word a
+/// value has, with the parentheses an explicit reading adds around it.
+int wordingTypedLimit(WordingVocabulary vocabulary) {
+  var longest = 0;
+  for (final name in vocabulary.names) {
+    if (name.name.length > longest) longest = name.name.length;
+    for (final value in name.values) {
+      for (final word in [value.word, ...value.alsoWords]) {
+        if (word.length > longest) longest = word.length;
+      }
+    }
+  }
+  return 2 * kMaxMoveWordingLength +
+      (kMaxMoveWordingLength ~/ 3) * (longest + 16);
+}
+
 /// A conditional group a help text can offer as an example, testing what
 /// [vocabulary] has: `[if who is neighbors then … else …]`.
 String wordingConditionExample(WordingVocabulary vocabulary) =>
@@ -1079,18 +1098,19 @@ String displayWordingText(
 ) {
   final out = StringBuffer();
   late final void Function(List<WordingNode>) write;
-  // The word "else" in a branch's words (only an imported template can
-  // hold one) goes in brackets of its own, `[else]`, where it is wording:
-  // holding no slot, it is always shown, so the branch reads back as it was
-  // around it, slots and all.
-  void writeBranch(List<WordingNode> nodes) => write([
+  // A branch's words read back as they were (only an imported template can
+  // hold words that wouldn't): each "else" the reader would take as the
+  // keyword goes in brackets of its own, `[else]`, where it is wording and,
+  // holding no slot, always shown; and an else branch starting with "if",
+  // which would read as `else if`, starts with an empty `[]`, which shows
+  // nothing.
+  void writeBranch(List<WordingNode> nodes, {bool otherwise = false}) => write([
+    if (otherwise &&
+        nodes.firstOrNull is WordingText &&
+        _startsWithIf((nodes.first as WordingText).text))
+      const WordingGroup([]),
     for (final node in nodes)
-      if (node is WordingText && _elseWord.hasMatch(node.text))
-        WordingText(
-          node.text.replaceAllMapped(_elseWord, (m) => '${m[1]}[${m[2]}]'),
-        )
-      else
-        node,
+      if (node is WordingText) WordingText(_bracketElse(node.text)) else node,
   ]);
   write = (nodes) {
     for (final node in nodes) {
@@ -1113,7 +1133,7 @@ String displayWordingText(
           }
           if (otherwise != null) {
             out.write(' else ');
-            writeBranch(otherwise);
+            writeBranch(otherwise, otherwise: true);
           }
           out.write(']');
       }
@@ -1143,12 +1163,13 @@ String displayWordingText(
 /// condition with two readings is refused, naming both, rather than one
 /// chosen silently.
 WordingCheck checkWording(String text, WordingVocabulary vocabulary) {
-  // Far over what can be stored: refused before reading, so no text a
-  // caller can type keeps the reader long.
-  if (text.trim().length > 2 * kMaxMoveWordingLength) {
+  // Longer than any stored template can show: refused before reading, so no
+  // text a caller can type keeps the reader long.
+  final typedLimit = wordingTypedLimit(vocabulary);
+  if (text.trim().length > typedLimit) {
     return WordingCheck(null, [
-      WordingIssue(WordingIssueCode.tooLongStored, 0, text.length, {
-        'max': '$kMaxMoveWordingLength',
+      WordingIssue(WordingIssueCode.tooLongTyped, 0, text.length, {
+        'max': '$typedLimit',
       }),
     ]);
   }
@@ -1234,11 +1255,6 @@ final RegExp _conditionShape = RegExp(
 );
 final RegExp _firstWord = RegExp(r'\w+');
 final RegExp _spaces = RegExp(r'\s+');
-final RegExp _elseWord = RegExp(
-  r"(^|[^\p{L}\p{N}_'’])(else)(?=$|[^\p{L}\p{N}_'’])",
-  caseSensitive: false,
-  unicode: true,
-);
 final RegExp _orBetween = RegExp(r'\s+or\s+', caseSensitive: false);
 
 bool _isWordChar(String char) {
@@ -1252,6 +1268,44 @@ bool _isWordChar(String char) {
 }
 
 bool _isSpace(String char) => char.trim().isEmpty;
+
+/// [text], a branch's words, with each "else" the display reader would take
+/// as the keyword written `[else]`: by the reader's own test of where a word
+/// starts and ends ([_isWordChar]), slots skipped as it skips them.
+String _bracketElse(String text) {
+  final out = StringBuffer();
+  var i = 0;
+  while (i < text.length) {
+    if (text[i] == '{') {
+      final close = text.indexOf('}', i);
+      if (close >= 0) {
+        out.write(text.substring(i, close + 1));
+        i = close + 1;
+        continue;
+      }
+    }
+    if (i + 4 <= text.length &&
+        text.substring(i, i + 4).toLowerCase() == 'else' &&
+        (i == 0 || !_isWordChar(text[i - 1])) &&
+        (i + 4 == text.length || !_isWordChar(text[i + 4]))) {
+      out.write('[${text.substring(i, i + 4)}]');
+      i += 4;
+      continue;
+    }
+    out.write(text[i]);
+    i++;
+  }
+  return out.toString();
+}
+
+/// Whether [text] starts, after spaces, with the word "if", as the reader
+/// takes it after `else`.
+bool _startsWithIf(String text) {
+  final start = text.length - text.trimLeft().length;
+  return start + 2 <= text.length &&
+      text.substring(start, start + 2).toLowerCase() == 'if' &&
+      (start + 2 == text.length || !_isWordChar(text[start + 2]));
+}
 
 bool _isDigit(String char) {
   final code = char.codeUnitAt(0);

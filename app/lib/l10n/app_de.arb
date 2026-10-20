@@ -10125,5 +10125,9 @@
   "wordingIssueNothingToTest": "Dieser Wortlaut kann hier nichts prüfen: Die Figur, zu der er gehört, ist nicht auf diesem Gerät, oder diese Version der App kennt sie nicht, daher lassen sich seine Bedingungen nicht prüfen. Ändere ihn auf einem Gerät, das die Figur hat, oder entferne die Bedingung.",
   "@wordingIssueNothingToTest": {
     "x-sourceSha256": "1567f7dbe61a1cd282a6667fccdc8f21cf62d11ed0367752e1f29b7fa9c4a063"
+  },
+  "wordingIssueTooLongTyped": "Dieser Wortlaut ist zu lang zum Lesen: Getippt hat er mehr als {max} Zeichen. Kürze ihn.",
+  "@wordingIssueTooLongTyped": {
+    "x-sourceSha256": "414a08da598da5efc8a9932c58450b1a53cd1077f740b44e56b2d2c50ad38d25"
   }
 }

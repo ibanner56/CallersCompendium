@@ -10125,5 +10125,9 @@
   "wordingIssueNothingToTest": "Cette formulation ne peut rien tester ici : la figure à laquelle elle appartient n’est pas sur cet appareil, ou cette version de l’application ne la connaît pas, ses conditions ne peuvent donc pas être vérifiées. Modifiez-la sur un appareil qui a la figure, ou retirez la condition.",
   "@wordingIssueNothingToTest": {
     "x-sourceSha256": "1567f7dbe61a1cd282a6667fccdc8f21cf62d11ed0367752e1f29b7fa9c4a063"
+  },
+  "wordingIssueTooLongTyped": "Cette formulation est trop longue pour être lue : elle dépasse {max} caractères telle que tapée. Raccourcissez-la.",
+  "@wordingIssueTooLongTyped": {
+    "x-sourceSha256": "414a08da598da5efc8a9932c58450b1a53cd1077f740b44e56b2d2c50ad38d25"
   }
 }

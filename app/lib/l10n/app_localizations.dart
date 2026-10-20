@@ -15386,6 +15386,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This wording can’t test anything here: the figure it belongs to isn’t on this device, or this version of the app doesn’t know it, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.'**
   String get wordingIssueNothingToTest;
+
+  /// Typed wording far longer than any template that can be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording is too long to read: it’s over {max} characters as typed. Shorten it.'**
+  String wordingIssueTooLongTyped(String max);
 }
 
 class _AppLocalizationsDelegate

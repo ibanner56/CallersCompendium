@@ -9938,4 +9938,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get wordingIssueNothingToTest =>
       'この文言はここでは何も調べられません。この文言のフィギュアがこのデバイスにないか、このバージョンのアプリが知らないため、条件を確認できません。フィギュアがあるデバイスで変更するか、条件を削除してください。';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'この文言は長すぎて読み取れません。入力した文字数が $max 文字を超えています。短くしてください。';
+  }
 }

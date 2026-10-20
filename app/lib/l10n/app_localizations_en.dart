@@ -10294,4 +10294,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wordingIssueNothingToTest =>
       'This wording can’t test anything here: the figure it belongs to isn’t on this device, or this version of the app doesn’t know it, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'This wording is too long to read: it’s over $max characters as typed. Shorten it.';
+  }
 }
