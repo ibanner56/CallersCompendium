@@ -9961,7 +9961,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get userFigureEditorParamNames =>
-      'Begin de naam van elke parameter met een letter, gebruik alleen letters, cijfers en _, en geef elke parameter een andere naam. Een naam kan niet move, beats, text, een rol of het tegenovergestelde van een andere parameter zijn, zoals otherHand.';
+      'Begin de naam van elke parameter met een letter, gebruik alleen letters, cijfers en _, en geef elke parameter een andere naam. Een naam kan niet move, beats, text, een rol, het tegenovergestelde van een andere parameter, zoals otherHand, of een woord waarmee voorwaarden geschreven worden zijn: if, then, else, not, and, or, is.';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -10131,4 +10131,298 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get compoundParamKindText => 'tekst';
+
+  @override
+  String wordingConditionsHelp(String example) {
+    return 'Gebruik vierkante haken met if, then en else om het in sommige gevallen anders te formuleren, zoals $example';
+  }
+
+  @override
+  String wordingConditionsNames(String names) {
+    return 'Een voorwaarde kan testen: $names';
+  }
+
+  @override
+  String wordingIssueUnclosedGroup(String context) {
+    return 'Een “[” is niet gesloten: “$context”. Voeg “]” toe waar dat deel eindigt.';
+  }
+
+  @override
+  String wordingIssueStrayCloseBracket(String context) {
+    return 'Er staat een “]” zonder “[” ervoor, bij “$context”. Verwijder die, of voeg “[” toe waar dat deel begint.';
+  }
+
+  @override
+  String wordingIssueUnclosedSlot(
+    String brace,
+    String closeBrace,
+    String context,
+    String example,
+  ) {
+    return 'De “$brace” in “$context” is niet gesloten. Voeg “$closeBrace” toe na de naam, zoals $example.';
+  }
+
+  @override
+  String wordingIssueStrayCloseBrace(
+    String brace,
+    String closeBrace,
+    String context,
+  ) {
+    return 'Er staat een “$closeBrace” zonder “$brace” ervoor, bij “$context”. Verwijder die, of voeg “$brace” toe voor de naam.';
+  }
+
+  @override
+  String wordingIssueBadSlot(String found, String fix) {
+    return '“$found” is geen plaatshouder: zet precies één naam tussen accolades, zoals $fix.';
+  }
+
+  @override
+  String wordingIssueConditionInBraces(String found, String fix) {
+    return 'Accolades bevatten één naam, geen voorwaarde: “$found”. Gebruik vierkante haken om een formulering alleen in sommige gevallen te tonen: $fix';
+  }
+
+  @override
+  String wordingIssueTooLongStored(String max) {
+    return 'Deze formulering is te lang om op te slaan: opgeslagen is ze langer dan $max tekens (een voorwaarde neemt opgeslagen iets meer ruimte in dan getypt). Maak haar korter of gebruik minder voorwaarden.';
+  }
+
+  @override
+  String wordingIssueMissingCondition(String word, String example) {
+    return 'Schrijf na “$word” wat er getest moet worden, bijvoorbeeld “$example”.';
+  }
+
+  @override
+  String wordingIssueMissingThen(String condition) {
+    return 'Schrijf na de voorwaarde “$condition” het woord “then” en de formulering die in dat geval getoond wordt.';
+  }
+
+  @override
+  String wordingIssueColonForThen(String condition) {
+    return 'Schrijf “then” in plaats van “:” na “$condition”.';
+  }
+
+  @override
+  String wordingIssueUnknownName(String found, String names) {
+    return '“$found” is niet iets wat deze formulering kan testen. Je kunt testen: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return '“$found” is niet iets wat deze formulering kan testen. Bedoelde je “$suggestion”? Je kunt testen: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIf(String found, String names) {
+    return 'Vierkante haken die met “if” beginnen bevatten een voorwaarde, en “$found” is niet iets wat deze formulering kan testen. Je kunt testen: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIfSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return 'Vierkante haken die met “if” beginnen bevatten een voorwaarde, en “$found” is niet iets wat deze formulering kan testen. Bedoelde je “$suggestion”? Je kunt testen: $names.';
+  }
+
+  @override
+  String wordingIssueNameInBraces(String name, String found) {
+    return 'Schrijf in een voorwaarde de naam zonder accolades: “$name”, niet “$found”.';
+  }
+
+  @override
+  String wordingIssueIsntForIsNot(String found, String fix) {
+    return 'Schrijf “is not” in plaats van “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueSymbolForWord(String word, String found, String fix) {
+    return 'Schrijf “$word” in plaats van “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueQuotedValue(String fix) {
+    return 'Laat de aanhalingstekens weg: “$fix”.';
+  }
+
+  @override
+  String wordingIssueUnknownValue(String found, String name, String values) {
+    return '“$found” is geen van de waarden die $name kan hebben. $name kan zijn: $values.';
+  }
+
+  @override
+  String wordingIssueUnknownValueSuggest(
+    String found,
+    String name,
+    String suggestion,
+    String values,
+  ) {
+    return '“$found” is geen van de waarden die $name kan hebben. Bedoelde je “$suggestion”? $name kan zijn: $values.';
+  }
+
+  @override
+  String wordingIssueExpectedValue(
+    String before,
+    String name,
+    String example,
+    String values,
+  ) {
+    return 'Schrijf na “$before” een waarde die $name kan hebben, zoals “$example”. $name kan zijn: $values.';
+  }
+
+  @override
+  String wordingIssueListNeedsParens(String fix) {
+    return 'Zet de waarden na “is in” tussen haakjes: “$fix”.';
+  }
+
+  @override
+  String wordingIssueOneOfForIsIn(String word, String found, String fix) {
+    return 'Schrijf “$word” in plaats van “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueEmptyList(String example) {
+    return 'De haakjes na “is in” zijn leeg. Noem minstens één waarde, zoals “$example”.';
+  }
+
+  @override
+  String wordingIssueUnclosedParen(String context, String before) {
+    return 'Een “(” is niet gesloten: “$context”. Voeg “)” toe na “$before”.';
+  }
+
+  @override
+  String wordingIssueStrayCloseParen(String context) {
+    return 'Er staat een “)” zonder “(” ervoor, bij “$context”. Verwijder die, of voeg de “(” toe waar die begint.';
+  }
+
+  @override
+  String get wordingIssueEmptyParens =>
+      'Er staat niets tussen “(” en “)”. Zet er een voorwaarde in, of verwijder ze.';
+
+  @override
+  String wordingIssueExpectedConnective(String before, String found) {
+    return 'Schrijf na “$before” “and”, “or” of “then”: “$found” kan daar niet staan.';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveInParens(String before, String found) {
+    return 'Schrijf na “$before” “and”, “or” of “)”: “$found” kan daar niet staan.';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveList(String before, String fix) {
+    return 'Schrijf na “$before” “and”, “or” of “then”. Zet de waarden in een lijst om op meer dan één te testen: “$fix”.';
+  }
+
+  @override
+  String wordingIssueExpectedListSeparator(String before, String found) {
+    return 'Zet in de lijst “$before” een komma voor “$found”, of sluit de lijst af met “)”.';
+  }
+
+  @override
+  String wordingIssueMixedAndOr(String found, String fixA, String fixB) {
+    return '“$found” mengt “and” en “or”, dus het is niet duidelijk wat eerst komt. Voeg haakjes toe: “$fixA” of “$fixB”.';
+  }
+
+  @override
+  String wordingIssueFlagCompare(String name) {
+    return '$name staat aan of uit en wordt dus niet met een waarde vergeleken. Schrijf “if $name” voor aan, of “if not $name” voor uit.';
+  }
+
+  @override
+  String wordingIssuePresenceOnly(String name) {
+    return 'Bij $name kun je alleen testen of het ingevuld is. Schrijf “$name is empty”, “$name is not empty” of gewoon “$name”.';
+  }
+
+  @override
+  String wordingIssueNotANumber(String name, String op) {
+    return '$name is geen getal en kan dus niet “$op” iets zijn. Gebruik “$name is …” of “$name is in (…)”.';
+  }
+
+  @override
+  String wordingIssueExpectedNumber(String op, String example, String found) {
+    return 'Schrijf na “$op” een getal, zoals $example: “$found” is er geen.';
+  }
+
+  @override
+  String wordingIssueNumberOutOfRange(
+    String name,
+    String min,
+    String max,
+    String found,
+  ) {
+    return '$name loopt van $min tot $max, dus $found valt erbuiten.';
+  }
+
+  @override
+  String wordingIssueNumberNotWhole(String name, String found) {
+    return '$name telt in hele getallen, dus $found kan geen van de waarden zijn.';
+  }
+
+  @override
+  String wordingIssueNumberNotQuarter(String name, String found) {
+    return '$name gaat in kwartslagen, zoals 0.25, 0.5, ¾ of 1½, dus $found kan geen van de waarden zijn.';
+  }
+
+  @override
+  String wordingIssueNegatedComparison(String fix, String found) {
+    return 'Schrijf “$fix” in plaats van “$found”.';
+  }
+
+  @override
+  String wordingIssueAmbiguous(String found, String readingA, String readingB) {
+    return '“$found” kan op twee manieren gelezen worden: “$readingA” of “$readingB”. Schrijf wat je bedoelt.';
+  }
+
+  @override
+  String get wordingIssueSecondElse =>
+      'Dit deel heeft al een “else”, dus een tweede kan niet volgen. Hoort “else” hier bij de formulering, zet die woorden dan tussen eigen vierkante haken, zoals “[everyone else]”.';
+
+  @override
+  String wordingIssueElseAfterWord(String phrase) {
+    return '“else” begint hier de formulering voor alle andere gevallen. Bedoelde je de woorden “$phrase”, zet ze dan tussen eigen vierkante haken: “[$phrase]”.';
+  }
+
+  @override
+  String wordingIssueOtherwiseWord(String found) {
+    return '“$found” wordt hier als formulering getoond. Schrijf “else” om een formulering voor alle andere gevallen te geven.';
+  }
+
+  @override
+  String wordingIssueEmptyMeansNoValue(String name, String fix) {
+    return '“$name is empty” test of $name geen waarde heeft, niet op de optie “empty”. Schrijf “$fix” om op die optie te testen.';
+  }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '“$found” na “$word” is een waarde, niet iets om te testen. Herhaal wat je test, “$fixA”, of zet de waarden in een lijst: “$fixB”.';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'Deze formulering kan hier niets testen: de figuur waar ze bij hoort staat niet op dit apparaat, of deze versie van de app kent haar niet, dus haar voorwaarden kunnen niet gecontroleerd worden. Wijzig haar op een apparaat met die figuur, of verwijder de voorwaarde.';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'Deze formulering is te lang om te lezen: getypt is ze langer dan $max tekens. Maak haar korter.';
+  }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'Deze formulering zet te veel vierkante haken of haakjes in elkaar: er kunnen er hoogstens $max genest worden. Haal er een paar weg.';
+  }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'Deze voorwaarde zet te veel “not” in elkaar: hoogstens $max. Haal er een paar weg: twee “not” achter elkaar heffen elkaar op.';
+  }
 }

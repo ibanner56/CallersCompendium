@@ -9847,7 +9847,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get userFigureEditorParamNames =>
-      'Start each parameter\'s name with a letter, use only letters, digits and _, and give each a different name. A name can\'t be move, beats, text, a role, or another parameter\'s opposite, such as otherHand.';
+      'Start each parameter\'s name with a letter, use only letters, digits and _, and give each a different name. A name can\'t be move, beats, text, a role, another parameter\'s opposite, such as otherHand, or a word conditions are built from: if, then, else, not, and, or, is.';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -10015,4 +10015,298 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get compoundParamKindText => 'text';
+
+  @override
+  String wordingConditionsHelp(String example) {
+    return 'To word it differently in some cases, use square brackets with if, then and else, like $example';
+  }
+
+  @override
+  String wordingConditionsNames(String names) {
+    return 'A condition can test: $names';
+  }
+
+  @override
+  String wordingIssueUnclosedGroup(String context) {
+    return 'A “[” isn’t closed: “$context”. Add “]” where that part ends.';
+  }
+
+  @override
+  String wordingIssueStrayCloseBracket(String context) {
+    return 'There’s a “]” with no “[” before it, near “$context”. Remove it, or add “[” where that part starts.';
+  }
+
+  @override
+  String wordingIssueUnclosedSlot(
+    String brace,
+    String closeBrace,
+    String context,
+    String example,
+  ) {
+    return 'The “$brace” in “$context” isn’t closed. Add “$closeBrace” after the name, like $example.';
+  }
+
+  @override
+  String wordingIssueStrayCloseBrace(
+    String brace,
+    String closeBrace,
+    String context,
+  ) {
+    return 'There’s a “$closeBrace” with no “$brace” before it, near “$context”. Remove it, or add “$brace” before the name.';
+  }
+
+  @override
+  String wordingIssueBadSlot(String found, String fix) {
+    return '“$found” isn’t a slot: put just one name in braces, like $fix.';
+  }
+
+  @override
+  String wordingIssueConditionInBraces(String found, String fix) {
+    return 'Braces hold one name, not a condition: “$found”. To show wording only in some cases, use square brackets: $fix';
+  }
+
+  @override
+  String wordingIssueTooLongStored(String max) {
+    return 'This wording is too long to save: as saved, it’s over $max characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.';
+  }
+
+  @override
+  String wordingIssueMissingCondition(String word, String example) {
+    return 'After “$word”, write what to test, for example “$example”.';
+  }
+
+  @override
+  String wordingIssueMissingThen(String condition) {
+    return 'After the condition “$condition”, write “then” and the wording to show in that case.';
+  }
+
+  @override
+  String wordingIssueColonForThen(String condition) {
+    return 'Write “then” instead of “:” after “$condition”.';
+  }
+
+  @override
+  String wordingIssueUnknownName(String found, String names) {
+    return '“$found” isn’t something this wording can test. You can test: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return '“$found” isn’t something this wording can test. Did you mean “$suggestion”? You can test: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIf(String found, String names) {
+    return 'Square brackets that start with “if” hold a condition, and “$found” isn’t something this wording can test. You can test: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIfSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return 'Square brackets that start with “if” hold a condition, and “$found” isn’t something this wording can test. Did you mean “$suggestion”? You can test: $names.';
+  }
+
+  @override
+  String wordingIssueNameInBraces(String name, String found) {
+    return 'In a condition, write the name without braces: “$name”, not “$found”.';
+  }
+
+  @override
+  String wordingIssueIsntForIsNot(String found, String fix) {
+    return 'Write “is not” instead of “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueSymbolForWord(String word, String found, String fix) {
+    return 'Write “$word” instead of “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueQuotedValue(String fix) {
+    return 'Leave out the quotation marks: “$fix”.';
+  }
+
+  @override
+  String wordingIssueUnknownValue(String found, String name, String values) {
+    return '“$found” isn’t one of the values $name can have. $name can be: $values.';
+  }
+
+  @override
+  String wordingIssueUnknownValueSuggest(
+    String found,
+    String name,
+    String suggestion,
+    String values,
+  ) {
+    return '“$found” isn’t one of the values $name can have. Did you mean “$suggestion”? $name can be: $values.';
+  }
+
+  @override
+  String wordingIssueExpectedValue(
+    String before,
+    String name,
+    String example,
+    String values,
+  ) {
+    return 'After “$before”, write a value $name can have, like “$example”. $name can be: $values.';
+  }
+
+  @override
+  String wordingIssueListNeedsParens(String fix) {
+    return 'Put the values after “is in” in parentheses: “$fix”.';
+  }
+
+  @override
+  String wordingIssueOneOfForIsIn(String word, String found, String fix) {
+    return 'Write “$word” instead of “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueEmptyList(String example) {
+    return 'The parentheses after “is in” are empty. List at least one value, like “$example”.';
+  }
+
+  @override
+  String wordingIssueUnclosedParen(String context, String before) {
+    return 'A “(” isn’t closed: “$context”. Add “)” after “$before”.';
+  }
+
+  @override
+  String wordingIssueStrayCloseParen(String context) {
+    return 'There’s a “)” with no “(” before it, near “$context”. Remove it, or add the “(” where it starts.';
+  }
+
+  @override
+  String get wordingIssueEmptyParens =>
+      'There’s nothing between “(” and “)”. Put a condition inside, or remove them.';
+
+  @override
+  String wordingIssueExpectedConnective(String before, String found) {
+    return 'After “$before”, write “and”, “or” or “then”: “$found” can’t go there.';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveInParens(String before, String found) {
+    return 'After “$before”, write “and”, “or” or “)”: “$found” can’t go there.';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveList(String before, String fix) {
+    return 'After “$before”, write “and”, “or” or “then”. To test for more than one value, list them: “$fix”.';
+  }
+
+  @override
+  String wordingIssueExpectedListSeparator(String before, String found) {
+    return 'In the list “$before”, put a comma before “$found”, or end the list with “)”.';
+  }
+
+  @override
+  String wordingIssueMixedAndOr(String found, String fixA, String fixB) {
+    return '“$found” mixes “and” and “or”, so it isn’t clear which goes first. Add parentheses: “$fixA” or “$fixB”.';
+  }
+
+  @override
+  String wordingIssueFlagCompare(String name) {
+    return '$name is either on or off, so it isn’t compared with a value. Write “if $name” for on, or “if not $name” for off.';
+  }
+
+  @override
+  String wordingIssuePresenceOnly(String name) {
+    return '$name can only be tested for whether it’s filled in. Write “$name is empty”, “$name is not empty”, or just “$name”.';
+  }
+
+  @override
+  String wordingIssueNotANumber(String name, String op) {
+    return '$name isn’t a number, so it can’t be “$op” something. Use “$name is …” or “$name is in (…)”.';
+  }
+
+  @override
+  String wordingIssueExpectedNumber(String op, String example, String found) {
+    return 'After “$op”, write a number, like $example: “$found” isn’t one.';
+  }
+
+  @override
+  String wordingIssueNumberOutOfRange(
+    String name,
+    String min,
+    String max,
+    String found,
+  ) {
+    return '$name goes from $min to $max, so $found is out of range.';
+  }
+
+  @override
+  String wordingIssueNumberNotWhole(String name, String found) {
+    return '$name counts in whole numbers, so $found can’t be one of its values.';
+  }
+
+  @override
+  String wordingIssueNumberNotQuarter(String name, String found) {
+    return '$name goes in quarter turns, like 0.25, 0.5, ¾ or 1½, so $found can’t be one of its values.';
+  }
+
+  @override
+  String wordingIssueNegatedComparison(String fix, String found) {
+    return 'Write “$fix” instead of “$found”.';
+  }
+
+  @override
+  String wordingIssueAmbiguous(String found, String readingA, String readingB) {
+    return '“$found” can be read two ways: “$readingA” or “$readingB”. Write the one you mean.';
+  }
+
+  @override
+  String get wordingIssueSecondElse =>
+      'This part already has an “else”, so a second can’t follow it. If “else” is part of the wording here, put those words in their own square brackets, like “[everyone else]”.';
+
+  @override
+  String wordingIssueElseAfterWord(String phrase) {
+    return '“else” here starts the wording for every other case. If you meant the words “$phrase”, put them in their own square brackets: “[$phrase]”.';
+  }
+
+  @override
+  String wordingIssueOtherwiseWord(String found) {
+    return '“$found” shows as wording here. To give wording for every other case, write “else”.';
+  }
+
+  @override
+  String wordingIssueEmptyMeansNoValue(String name, String fix) {
+    return '“$name is empty” tests whether $name has no value, not for its choice “empty”. To test for that choice, write “$fix”.';
+  }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '“$found” after “$word” is a value, not something to test. Say what you’re testing again, “$fixA”, or list the values: “$fixB”.';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'This wording can’t test anything here: the figure it belongs to isn’t on this device, or this version of the app doesn’t know it, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'This wording is too long to read: it’s over $max characters as typed. Shorten it.';
+  }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'This wording puts too many square brackets or parentheses inside each other: at most $max can be nested. Take some out.';
+  }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'This condition puts too many “not”s inside each other: at most $max. Take some out: two “not”s in a row cancel out.';
+  }
 }

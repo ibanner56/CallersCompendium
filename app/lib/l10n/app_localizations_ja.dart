@@ -9499,7 +9499,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get userFigureEditorParamNames =>
-      '各パラメーター名は文字で始め、文字・数字・_ だけを使い、それぞれ異なる名前にしてください。move、beats、text、役割名、otherHand のような他のパラメーターの反対は名前に使えません。';
+      '各パラメーター名は文字で始め、文字・数字・_ だけを使い、それぞれ異なる名前にしてください。move、beats、text、役割名、otherHand のような他のパラメーターの反対、条件を書くための語(if、then、else、not、and、or、is)は名前に使えません。';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -9659,4 +9659,298 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get compoundParamKindText => 'テキスト';
+
+  @override
+  String wordingConditionsHelp(String example) {
+    return '場合によって言い方を変えるには、if・then・else を使った角かっこを使います。例: $example';
+  }
+
+  @override
+  String wordingConditionsNames(String names) {
+    return '条件で調べられるもの: $names';
+  }
+
+  @override
+  String wordingIssueUnclosedGroup(String context) {
+    return '「[」が閉じられていません: 「$context」。その部分が終わるところに「]」を追加してください。';
+  }
+
+  @override
+  String wordingIssueStrayCloseBracket(String context) {
+    return '「$context」の近くに、前に「[」のない「]」があります。削除するか、その部分が始まるところに「[」を追加してください。';
+  }
+
+  @override
+  String wordingIssueUnclosedSlot(
+    String brace,
+    String closeBrace,
+    String context,
+    String example,
+  ) {
+    return '「$context」の「$brace」が閉じられていません。$example のように、名前の後に「$closeBrace」を追加してください。';
+  }
+
+  @override
+  String wordingIssueStrayCloseBrace(
+    String brace,
+    String closeBrace,
+    String context,
+  ) {
+    return '「$context」の近くに、前に「$brace」のない「$closeBrace」があります。削除するか、名前の前に「$brace」を追加してください。';
+  }
+
+  @override
+  String wordingIssueBadSlot(String found, String fix) {
+    return '「$found」はスロットではありません。$fix のように、波かっこには名前を一つだけ入れてください。';
+  }
+
+  @override
+  String wordingIssueConditionInBraces(String found, String fix) {
+    return '波かっこに入れるのは名前一つで、条件ではありません: 「$found」。場合によってだけ文言を表示するには、角かっこを使います: $fix';
+  }
+
+  @override
+  String wordingIssueTooLongStored(String max) {
+    return 'この文言は長すぎて保存できません。保存すると $max 文字を超えます(条件は、入力したときより保存したときのほうが少し長くなることがあります)。短くするか、条件を減らしてください。';
+  }
+
+  @override
+  String wordingIssueMissingCondition(String word, String example) {
+    return '「$word」の後に、調べる内容を書いてください。例: 「$example」。';
+  }
+
+  @override
+  String wordingIssueMissingThen(String condition) {
+    return '条件「$condition」の後に「then」と、その場合に表示する文言を書いてください。';
+  }
+
+  @override
+  String wordingIssueColonForThen(String condition) {
+    return '「$condition」の後には「:」ではなく「then」と書いてください。';
+  }
+
+  @override
+  String wordingIssueUnknownName(String found, String names) {
+    return '「$found」はこの文言で調べられるものではありません。調べられるもの: $names。';
+  }
+
+  @override
+  String wordingIssueUnknownNameSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return '「$found」はこの文言で調べられるものではありません。「$suggestion」のことですか？ 調べられるもの: $names。';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIf(String found, String names) {
+    return '「if」で始まる角かっこには条件が入りますが、「$found」はこの文言で調べられるものではありません。調べられるもの: $names。';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIfSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return '「if」で始まる角かっこには条件が入りますが、「$found」はこの文言で調べられるものではありません。「$suggestion」のことですか？ 調べられるもの: $names。';
+  }
+
+  @override
+  String wordingIssueNameInBraces(String name, String found) {
+    return '条件の中では、名前を波かっこなしで書いてください: 「$found」ではなく「$name」。';
+  }
+
+  @override
+  String wordingIssueIsntForIsNot(String found, String fix) {
+    return '「$found」ではなく「is not」と書いてください: 「$fix」。';
+  }
+
+  @override
+  String wordingIssueSymbolForWord(String word, String found, String fix) {
+    return '「$found」ではなく「$word」と書いてください: 「$fix」。';
+  }
+
+  @override
+  String wordingIssueQuotedValue(String fix) {
+    return '引用符を外してください: 「$fix」。';
+  }
+
+  @override
+  String wordingIssueUnknownValue(String found, String name, String values) {
+    return '「$found」は $name が取れる値ではありません。$name の値: $values。';
+  }
+
+  @override
+  String wordingIssueUnknownValueSuggest(
+    String found,
+    String name,
+    String suggestion,
+    String values,
+  ) {
+    return '「$found」は $name が取れる値ではありません。「$suggestion」のことですか？ $name の値: $values。';
+  }
+
+  @override
+  String wordingIssueExpectedValue(
+    String before,
+    String name,
+    String example,
+    String values,
+  ) {
+    return '「$before」の後に、$name が取れる値を書いてください。例: 「$example」。$name の値: $values。';
+  }
+
+  @override
+  String wordingIssueListNeedsParens(String fix) {
+    return '「is in」の後の値は丸かっこで囲んでください: 「$fix」。';
+  }
+
+  @override
+  String wordingIssueOneOfForIsIn(String word, String found, String fix) {
+    return '「$found」ではなく「$word」と書いてください: 「$fix」。';
+  }
+
+  @override
+  String wordingIssueEmptyList(String example) {
+    return '「is in」の後の丸かっこが空です。値を一つ以上入れてください。例: 「$example」。';
+  }
+
+  @override
+  String wordingIssueUnclosedParen(String context, String before) {
+    return '「(」が閉じられていません: 「$context」。「$before」の後に「)」を追加してください。';
+  }
+
+  @override
+  String wordingIssueStrayCloseParen(String context) {
+    return '「$context」の近くに、前に「(」のない「)」があります。削除するか、始まるところに「(」を追加してください。';
+  }
+
+  @override
+  String get wordingIssueEmptyParens =>
+      '「(」と「)」の間に何もありません。条件を入れるか、かっこを削除してください。';
+
+  @override
+  String wordingIssueExpectedConnective(String before, String found) {
+    return '「$before」の後には「and」「or」「then」のいずれかを書いてください。「$found」はそこに置けません。';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveInParens(String before, String found) {
+    return '「$before」の後には「and」「or」「)」のいずれかを書いてください。「$found」はそこに置けません。';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveList(String before, String fix) {
+    return '「$before」の後には「and」「or」「then」のいずれかを書いてください。複数の値を調べるには、並べて書きます: 「$fix」。';
+  }
+
+  @override
+  String wordingIssueExpectedListSeparator(String before, String found) {
+    return 'リスト「$before」で、「$found」の前にコンマを入れるか、「)」でリストを閉じてください。';
+  }
+
+  @override
+  String wordingIssueMixedAndOr(String found, String fixA, String fixB) {
+    return '「$found」には「and」と「or」が混ざっていて、どちらが先か分かりません。かっこを付けてください: 「$fixA」または「$fixB」。';
+  }
+
+  @override
+  String wordingIssueFlagCompare(String name) {
+    return '$name はオンかオフのどちらかなので、値とは比べません。オンなら「if $name」、オフなら「if not $name」と書いてください。';
+  }
+
+  @override
+  String wordingIssuePresenceOnly(String name) {
+    return '$name は入力されているかどうかしか調べられません。「$name is empty」「$name is not empty」、または単に「$name」と書いてください。';
+  }
+
+  @override
+  String wordingIssueNotANumber(String name, String op) {
+    return '$name は数値ではないので、「$op」は使えません。「$name is …」か「$name is in (…)」を使ってください。';
+  }
+
+  @override
+  String wordingIssueExpectedNumber(String op, String example, String found) {
+    return '「$op」の後に $example のような数値を書いてください。「$found」は数値ではありません。';
+  }
+
+  @override
+  String wordingIssueNumberOutOfRange(
+    String name,
+    String min,
+    String max,
+    String found,
+  ) {
+    return '$name は $min から $max までなので、$found は範囲外です。';
+  }
+
+  @override
+  String wordingIssueNumberNotWhole(String name, String found) {
+    return '$name は整数で数えるので、$found は値になりません。';
+  }
+
+  @override
+  String wordingIssueNumberNotQuarter(String name, String found) {
+    return '$name は 0.25、0.5、¾、1½ のように 4 分の 1 回転単位なので、$found は値になりません。';
+  }
+
+  @override
+  String wordingIssueNegatedComparison(String fix, String found) {
+    return '「$found」ではなく「$fix」と書いてください。';
+  }
+
+  @override
+  String wordingIssueAmbiguous(String found, String readingA, String readingB) {
+    return '「$found」は 2 通りに読めます: 「$readingA」または「$readingB」。意図したほうを書いてください。';
+  }
+
+  @override
+  String get wordingIssueSecondElse =>
+      'この部分にはすでに「else」があるので、二つ目は続けられません。ここで「else」が文言の一部なら、「[everyone else]」のように、その言葉を専用の角かっこで囲んでください。';
+
+  @override
+  String wordingIssueElseAfterWord(String phrase) {
+    return 'ここの「else」は、それ以外のすべての場合の文言の始まりになります。「$phrase」という言葉のつもりなら、専用の角かっこで囲んでください: 「[$phrase]」。';
+  }
+
+  @override
+  String wordingIssueOtherwiseWord(String found) {
+    return '「$found」はここでは文言として表示されます。それ以外のすべての場合の文言を書くには「else」と書いてください。';
+  }
+
+  @override
+  String wordingIssueEmptyMeansNoValue(String name, String fix) {
+    return '「$name is empty」は $name に値がないかを調べるもので、選択肢「empty」を調べるものではありません。その選択肢を調べるには「$fix」と書いてください。';
+  }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '「$word」の後の「$found」は値で、調べるものではありません。調べる対象をもう一度書くか(「$fixA」)、値を並べて書いてください: 「$fixB」。';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'この文言はここでは何も調べられません。この文言のフィギュアがこのデバイスにないか、このバージョンのアプリが知らないため、条件を確認できません。フィギュアがあるデバイスで変更するか、条件を削除してください。';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'この文言は長すぎて読み取れません。入力した文字数が $max 文字を超えています。短くしてください。';
+  }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'この文言は角かっこや丸かっこを入れ子にしすぎています。入れ子にできるのは $max 段までです。いくつか外してください。';
+  }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'この条件は「not」を入れ子にしすぎています。入れ子にできるのは $max 個までです。いくつか外してください。「not」が二つ続くと打ち消し合います。';
+  }
 }

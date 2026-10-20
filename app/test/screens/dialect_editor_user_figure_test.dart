@@ -34,6 +34,9 @@ void main() {
     createdAt: DateTime.utc(2026, 10, 16),
   );
 
+  /// The repositories the last [pump] opened.
+  late CompendiumRepositories repositories;
+
   /// Opens the editor on [initial]; returns what Save pops.
   Future<Dialect? Function()> pump(
     WidgetTester tester, {
@@ -42,6 +45,7 @@ void main() {
     bool storeFigure = true,
   }) async {
     final repos = openTestRepositories();
+    repositories = repos;
     if (storeFigure) {
       await tester.runAsync(() => repos.userGlossary.upsert(zoom()));
     }
@@ -267,5 +271,31 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a conditional wording for a figure that loads after the editor '
+      'opens is shown in its words, and saves as it was', (tester) async {
+    const stored = "[{?if who is 'role2s'}R{?else}O]";
+    final popped = await pump(
+      tester,
+      storeFigure: false,
+      initial: Dialect.larksRobins.copyWith(
+        name: 'Mine',
+        moveWordings: {key: stored},
+      ),
+    );
+    await open(tester, 'dialect-wordings-toggle');
+    final field = find.byKey(ValueKey('dialect-wording-$key'));
+    String text() => tester.widget<TextField>(field).controller!.text;
+    expect(text(), '[if who is role2s then R else O]');
+
+    await tester.runAsync(() => repositories.userGlossary.upsert(zoom()));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pumpAndSettle();
+    expect(text(), '[if who is robins then R else O]');
+    await save(tester);
+    expect(popped()!.moveWordings[key], stored);
   });
 }

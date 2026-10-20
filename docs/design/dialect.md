@@ -65,10 +65,12 @@ built figure.
   it (the stored `chain.hand` the role already implies, or an alias-pinned
   param); slots owned by a display base renderer have no forced form and read as
   the plain slot. Display-only: canonical text is unaffected.
+  A `[if … then … else …]` group words the line differently in some cases
+  (see [Conditional wording](#conditional-wording)).
   Malformed or empty templates fall back to the normal renderer. The editor
   warns when a template omits available slots and requires confirmation before
   saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
-  each, and limited to 256 entries per dialect.
+  each as stored, conditions included, and limited to 256 entries per dialect.
 - `moveWordingBranches` stores fixed branch-specific templates for
   `form_a_long_wave` (`inOnly`, `outOnly`, `inAndOut`, `neither`) and
   `promenade` (`ordinary`, `singleFile`). The editor reveals these branches only
@@ -81,7 +83,7 @@ built figure.
   forms; its single-file rendering supplies the fixed `single file` prefix.
   Legacy circle branch data retains its ordinary template and discards the
   single-file template. Branch templates are display-only and share the
-  512-code-unit/256-entry limits.
+  512-code-unit/256-entry limits, and may hold conditions too.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
   Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
   presets — a user who wants them enters them through the custom role-terms
@@ -100,6 +102,132 @@ built figure.
   name that no longer resolves — renamed, deleted, or not yet synced to this
   device — silently falls back to the active dialect. Rename and delete never
   write to programs. Inside Perform the quick-switch is then session-local.
+
+## Conditional wording
+
+A wording template, a dialect's move wording (`moveWordings`,
+`moveWordingBranches`, and its wording for a figure of your own) or a figure
+of your own's own template (#1023), may word its line differently in some
+cases with a **conditional group**:
+
+```text
+[if who is neighbors then neighbor swing else if who is in (partners, shadows) then {who} swing else {who} swing]
+```
+
+`wording_conditions.dart` holds the language: its reader, the stored form,
+rendering, and the issues a caller is shown.
+
+**The language.** These choices were made by Isaac (maintainer) in the design
+session for this change; the PR that adds it lists each one as he made it.
+
+- A group is `[if` *condition* `then` *wording*, any number of `else if`
+  *condition* `then` *wording*, and at most one `else` *wording*, then `]`. A
+  `[…]` that does not start with `if` keeps its meaning (left out when its slots
+  are empty). The wording of the first condition that holds is shown; with none
+  and no `else`, nothing.
+- A test is a *name* (a switch is on, or a detail is filled in), or a name
+  followed by `is` and one of: a value, `not` a value, `in (`values`)`,
+  `not in (`values`)`, `empty`, `not empty`, `more than`, `less than`,
+  `at least` or `at most` and a number. `not` negates; `and` and `or` join, and
+  mixing them needs parentheses.
+- Only `is not` negates `is`; `isn't` is refused with a message offering
+  `is not`.
+- A name is anything the template could use as a slot, computed ones included:
+  a figure of your own's opposites (`otherWho`), and a move's other slots (a
+  long wave's `subject`), as well as a move's parameters its templates do not
+  show as slots (the long wave's `in` and `out`).
+- **Reserved words.** A parameter of a figure of your own may not be named
+  `if`, `then`, `else`, `not`, `and`, `or` or `is` (`wordingReservedWords`,
+  ignoring case), the words that can stand where a name does. The other words
+  (`in`, `empty`, `more`, `than`, `at`, `least`, `most`) are read only after
+  `is`, so a parameter may be named any of them, and no built-in parameter or
+  slot needs renaming (`wording_conditions_test.dart` sweeps the taxonomy). A
+  stored figure with a parameter named a reserved word reads as **Needs
+  repair** and is repaired by renaming it: Custom Figures had only just
+  shipped, and Isaac judged that acceptable (same session, same PR).
+- Error messages are part of the language, not decoration: each one says what is
+  wrong, quotes the words it is about, and how to fix it, often with the
+  corrected words (`wording_issue_labels.dart`, one message per
+  `WordingIssueCode`; the standard is a caller fixing a condition from the
+  message alone).
+
+**Implementer's choices** (decided in the change, with the alternative):
+
+- **Words are read by where they stand.** A name only where a test starts, an
+  operator only after `is`, a value only where one is due, matched against the
+  values that name has (`WordingVocabulary`); `is in` is the operator only
+  before `(`, so `direction is in` compares with the direction "in". Every
+  reading is tried, and a condition with two is refused, naming both in a form
+  that has one (`style is rock and roll`, with choices "rock" and "rock and
+  roll" and a switch `roll`). The rejected alternative, longest match wins,
+  would choose silently.
+- **A value is written in the words shown**: a role in the dialect's term
+  (singular or plural), a dancer in its substitution or plain name, a choice by
+  its label, a built-in value by its plain name ("right diagonal") or its
+  rendered word; numbers as digits, and a turn as `1.5`, `1½`, `once` or
+  `twice`. The words are English, as rendered dances are; localizing them is not
+  part of this change.
+- **`is empty` always means no value**, never a choice labelled "empty"; a
+  warning says so and offers `is in (empty)`. Free text and text-only slots are
+  tested only for being filled in; a switch only bare or with `not`;
+  `is not more than` is refused for `is at most`.
+- **Stored by meaning.** The stored form holds each condition in a `{?…}`
+  marker, its values as tokens and choice ids:
+  `[{?if who is in ('neighbors', 'nextNeighbors')}…{?else}…]`. Renaming a role,
+  a dancer word or a choice never changes what a stored condition tests, and the
+  editor shows it in the current words (`wordingForEditing`). A template with no
+  condition is stored exactly as typed. A figure of your own's literal words are
+  canonicalized around the markers (`mapUserFigureTemplateText` keeps them as
+  written).
+- **The 512 cap is on the stored form.** A stored condition can be longer
+  than its words, but raising the cap was rejected: a build before
+  conditions truncates a longer template on reading a dialect, and would sync
+  the broken copy back. The editors refuse, with a message, a template that is
+  too long once stored; they never cut one short. Typed text longer than any
+  template within the cap can show (`wordingTypedLimit`, from the longest
+  word a value has) is refused before it is read, with its own message, which
+  bounds how long reading any text a caller can type takes.
+- **Older builds fall back.** A build before conditions refuses a brace holding
+  anything but a slot name, so it reads a stored condition as a malformed
+  template: a dialect wording falls back to the normal wording, and a figure of
+  your own reads as needing repair while dances show their stored lines. Gating
+  the data behind a sync capability (§6.15 of the sync spec) was rejected for
+  the beta, as #1899 was.
+- **Fit is checked where it is used.** A stored condition testing a name the
+  move or figure lacks, a value it does not have, or in a way its kind does not
+  take (`wordingConditionsFit`) makes a dialect wording unused, as an unknown
+  slot does, and a figure of your own's definition invalid
+  (`UserFigureIssueCodes.badCondition`).
+- **Shown so it reads back the same.** The editors show a stored condition in
+  its plain words only when reading them back gives the same condition
+  (`readableWordingCondition`); otherwise explicitly, a value of several
+  words or one spelled like an operator in `is in (…)` and each test of a
+  chain in parentheses. A list of one value is stored as the value, so
+  `is in (x)` and `is x` keep the same stored form.
+- **What isn't edited isn't read again.** An editor keeps a wording left as it
+  showed it in its stored form, while its conditions still fit what it may
+  test: one for a figure not on this device, or one saved before conditions
+  whose brackets start with "if" (which now reads as a condition), saves
+  untouched. Shown, such brackets start with an empty `[]`, which renders as
+  nothing and keeps "if" as a word, so an edit keeps their meaning too; an
+  imported branch's "else" shows as `[else]`, and an else branch starting with
+  "if" starts with `[]`, for the same reason. These add a few characters to
+  the stored form once the wording is edited, so one at the 512 cap may need
+  shortening then. Brackets or parentheses nested deeper than
+  `maxWordingNesting` (64), counted through any brace that isn't a slot, and
+  `not`s negating one another deeper than that, are refused, each with a
+  message of its own: the reader never needs more stack than that depth.
+  Renaming or swapping role or dancer words in the dialect editor, or a
+  choice's label in a figure's editor, shows each wording again in the new
+  words from what it last read as, so it keeps its meaning. A condition names
+  a parameter by its name, so renaming the parameter, or removing a choice it
+  tests, leaves the wording as typed, and the editor reports what it no longer
+  has; a wording that didn't read when the words changed stays as typed, and
+  is read in the new words.
+- **Warnings, not errors**, for wording that saves but likely not as meant:
+  `else` after "everyone" and its kin (the words "everyone else" go in their own
+  `[…]`, where `else` is ordinary wording), `otherwise` or `elif` in a branch,
+  and the `is empty` rule above.
 
 ## Rendering pipeline (pure functions, golden-tested)
 

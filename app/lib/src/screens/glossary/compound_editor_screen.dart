@@ -8,6 +8,7 @@ import '../../data/dialect_library_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/show_glossary_scope.dart';
+import '../../data/wording_issue_labels.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
@@ -15,6 +16,7 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/user_figure_argument_editor.dart';
+import '../../widgets/wording_condition_notes.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
 
 final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
@@ -213,7 +215,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     // A term has no figure to load, nor does one being given its first.
     if (initial.kind == UserGlossaryEntryKind.term) return;
     if (_kind == UserGlossaryEntryKind.customFigure) {
-      _seedFigure(initial.payload, shown);
+      _seedFigure(initial.payload, shown, dialect);
     } else {
       _seedDefinition(initial.payload, shown);
     }
@@ -223,7 +225,11 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// compound, so a broken one can be repaired. Its words are shown in the
   /// active dialect through [shown]; the template's slots are kept as
   /// written.
-  void _seedFigure(Object? payload, String Function(String) shown) {
+  void _seedFigure(
+    Object? payload,
+    String Function(String) shown,
+    Dialect dialect,
+  ) {
     if (payload is! Map) return;
     if (payload['template'] case final String template) {
       _template.text = mapUserFigureTemplateText(template, shown);
@@ -258,6 +264,51 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         _params.add(row);
       }
     }
+    // Its conditions are shown in words once its parameters are known.
+    final stored = _template.text;
+    _template.text = wordingForEditing(stored, _templateVocabulary(dialect));
+    _shownTemplate = (stored: stored, shown: _template.text);
+    _readTemplate = _shownTemplate;
+    _templateWords = _wordsOf(_templateVocabulary(dialect));
+  }
+
+  /// The wording as loaded, its words in the dialect and its conditions as
+  /// stored, with the text shown for it: left as shown, it is kept as stored
+  /// and not read again ([_templateCheck]), so a wording saved before
+  /// conditions whose brackets start with "if" still saves.
+  ({String stored, String shown})? _shownTemplate;
+
+  /// What the wording's conditions may test, from the parameters as now
+  /// edited, with their values' words in [dialect].
+  WordingVocabulary _templateVocabulary(Dialect dialect) {
+    String stored(String text) => canonicalizeGlossaryText(text, dialect);
+    return _renderer.userFigureWordingVocabulary(
+      UserFigureDefinition(
+        template: '{$userFigureMoveSlot}',
+        defaultBeats: 0,
+        params: [for (final p in _params) _figureParam(p, stored)],
+      ),
+      dialect,
+    );
+  }
+
+  /// The wording as typed, read against the parameters as now edited: its
+  /// stored form, or why it can't be saved. One still as loaded is its
+  /// stored form ([_shownTemplate]).
+  WordingCheck _templateCheck(Dialect dialect) {
+    final text = _template.text.replaceAll(_lineBreaks, ' ').trim();
+    final vocabulary = _templateVocabulary(dialect);
+    final shown = _shownTemplate;
+    final nodes = shown == null ? null : parseStoredWording(shown.stored);
+    // Kept while its conditions still fit the parameters; once one tests a
+    // parameter since removed, it is read again, to say which.
+    if (shown != null &&
+        shown.shown.trim() == text &&
+        nodes != null &&
+        wordingConditionsFit(nodes, vocabulary.subjects)) {
+      return WordingCheck(shown.stored.trim(), const []);
+    }
+    return checkWording(text, vocabulary);
   }
 
   /// Loads a stored definition leniently, so a broken one can be repaired:
@@ -350,10 +401,66 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     super.dispose();
   }
 
-  void _changed() => setState(() {
+  /// Anything but the wording edited: a parameter or a choice may have been
+  /// renamed, so the wording, while as last read, is shown again in the new
+  /// words from what it means ([_readTemplate]).
+  void _changed() {
+    _reshowTemplate();
+    _edited();
+  }
+
+  void _edited() => setState(() {
     _dirty = true;
     _errors = const [];
   });
+
+  /// The wording edited: what it now reads as is remembered, so a later
+  /// rename shows it again keeping that meaning. It isn't rewritten while
+  /// being typed.
+  void _templateEdited() {
+    final dialect = ActiveDialectScope.of(context);
+    final stored = _templateCheck(dialect).stored;
+    if (stored != null) {
+      _readTemplate = (stored: stored, shown: _template.text);
+      _templateWords = _wordsOf(_templateVocabulary(dialect));
+    }
+    _edited();
+  }
+
+  /// The wording as last read, its words in the dialect and its conditions as
+  /// stored, with the text it was read from.
+  ({String stored, String shown})? _readTemplate;
+
+  /// The words the wording was last read or shown in: what names it may
+  /// test and each value's words. Only a change to them shows it again.
+  String? _templateWords;
+
+  static String _wordsOf(WordingVocabulary vocabulary) => [
+    for (final name in vocabulary.names)
+      '${name.name}:${[for (final v in name.values) '${v.value}=${v.word}'].join(',')}',
+  ].join(';');
+
+  void _reshowTemplate() {
+    final read = _readTemplate;
+    if (read == null || read.shown != _template.text) return;
+    final nodes = parseStoredWording(read.stored);
+    if (nodes == null || !wordingHasConditions(nodes)) return;
+    final dialect = ActiveDialectScope.of(context);
+    final vocabulary = _templateVocabulary(dialect);
+    final words = _wordsOf(vocabulary);
+    if (words == _templateWords) return;
+    _templateWords = words;
+    // A condition testing what was just removed keeps its words, which the
+    // check then reports.
+    if (!wordingConditionsFit(nodes, vocabulary.subjects)) return;
+    final shown = wordingForEditing(read.stored, vocabulary);
+    if (shown == _template.text) return;
+    if (_shownTemplate?.shown == _template.text) {
+      _shownTemplate = (stored: _shownTemplate!.stored, shown: shown);
+    }
+    _readTemplate = (stored: read.stored, shown: shown);
+    _template.text = shown;
+  }
 
   // ---------------------------------------------------------------- model --
 
@@ -454,8 +561,14 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   }
 
   /// The new figure as it stands, its words passed through [store] (the save
-  /// canonicalizes them; the preview passes the same).
-  UserFigureDefinition _figureNow(String Function(String) store) {
+  /// canonicalizes them; the preview passes the same). With [dialect], its
+  /// wording is stored as [_templateCheck] reads it there, conditions by
+  /// meaning; one that can't be read is kept as typed, which the save
+  /// refuses with [_templateCheck]'s reason.
+  UserFigureDefinition _figureNow(
+    String Function(String) store, {
+    Dialect? dialect,
+  }) {
     final source = widget.initial ?? widget.copyOf;
     final initialPayload = source?.payload;
     // A term given a figure keeps the keys it stored that a figure does not
@@ -470,7 +583,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       form: _form,
       // One line: a break reads as a space, not as nothing.
       template: mapUserFigureTemplateText(
-        _template.text.replaceAll(_lineBreaks, ' ').trim(),
+        (dialect == null ? null : _templateCheck(dialect).stored) ??
+            _template.text.replaceAll(_lineBreaks, ' ').trim(),
         store,
       ),
       defaultBeats: int.tryParse(_beats.text.trim()) ?? -1,
@@ -523,7 +637,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// rendered.
   String? _preview(Dialect dialect) {
     String stored(String text) => canonicalizeGlossaryText(text, dialect);
-    final figure = _figureNow(stored);
+    if (_templateCheck(dialect).hasErrors) return null;
+    final figure = _figureNow(stored, dialect: dialect);
     if (validateUserFigure(
       figure,
     ).any((i) => i.severity == ValidationSeverity.error)) {
@@ -670,14 +785,27 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       payload = glossaryTermPayload(_form, previous: widget.initial?.payload);
       unused = const [];
     } else if (_kind == UserGlossaryEntryKind.customFigure) {
+      final templateError = _templateCheck(dialect).error;
+      if (templateError != null) {
+        errors.add(wordingIssueMessage(l10n, templateError));
+      }
       final figure = _figureNow(
         (text) => canonicalizeGlossaryText(text, dialect),
+        dialect: dialect,
       );
       final issues = validateUserFigure(figure);
       for (final issue in issues) {
         if (issue.severity != ValidationSeverity.error) continue;
+        // The wording's own reason is reported above.
+        if (templateError != null &&
+            (issue.code == UserFigureIssueCodes.badTemplate ||
+                issue.code == UserFigureIssueCodes.badCondition ||
+                issue.code == UserFigureIssueCodes.unknownSlot)) {
+          continue;
+        }
         final message = switch (issue.code) {
-          UserFigureIssueCodes.badTemplate => l10n.userFigureEditorBadWording,
+          UserFigureIssueCodes.badTemplate ||
+          UserFigureIssueCodes.badCondition => l10n.userFigureEditorBadWording,
           UserFigureIssueCodes.unknownSlot => l10n.userFigureEditorUnknownSlot(
             '{${issue.data['slot']}}',
           ),
@@ -1362,6 +1490,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     final slots = _figureNow((text) => text).slots;
     final preview = _preview(dialect);
     final theme = Theme.of(context);
+    final vocabulary = _templateVocabulary(dialect);
+    final check = _templateCheck(dialect);
     return [
       heading(
         l10n.userFigureEditorWording,
@@ -1383,10 +1513,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
               replacementString: ' ',
             ),
           ],
-          maxLength: kMaxMoveWordingLength,
           minLines: 1,
           maxLines: 3,
-          onChanged: (_) => _changed(),
+          onChanged: (_) => _templateEdited(),
           decoration: InputDecoration(
             labelText: l10n.userFigureEditorWording,
             helperText: l10n.userFigureEditorWordingSlots(
@@ -1395,6 +1524,19 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
             helperMaxLines: 3,
             border: const OutlineInputBorder(),
           ),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          0,
+        ),
+        child: WordingConditionNotes(
+          vocabulary: vocabulary,
+          check: check,
+          errorKey: const ValueKey('user-figure-wording-error'),
         ),
       ),
       Padding(

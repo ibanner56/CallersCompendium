@@ -9890,7 +9890,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get userFigureEditorParamNames =>
-      'Start hvert parameternavn med et bogstav, brug kun bogstaver, tal og _, og giv hver et forskelligt navn. Et navn kan ikke være move, beats, text, en rolle eller en anden parameters modsætning, f.eks. otherHand.';
+      'Start hvert parameternavn med et bogstav, brug kun bogstaver, tal og _, og giv hver et forskelligt navn. Et navn kan ikke være move, beats, text, en rolle, en anden parameters modsætning, f.eks. otherHand, eller et ord, som betingelser bygges af: if, then, else, not, and, or, is.';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -10059,4 +10059,298 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get compoundParamKindText => 'tekst';
+
+  @override
+  String wordingConditionsHelp(String example) {
+    return 'Brug firkantede parenteser med if, then og else for at formulere det anderledes i nogle tilfælde, som $example';
+  }
+
+  @override
+  String wordingConditionsNames(String names) {
+    return 'En betingelse kan teste: $names';
+  }
+
+  @override
+  String wordingIssueUnclosedGroup(String context) {
+    return 'En “[” er ikke lukket: “$context”. Tilføj “]”, hvor den del slutter.';
+  }
+
+  @override
+  String wordingIssueStrayCloseBracket(String context) {
+    return 'Der er en “]” uden “[” foran, ved “$context”. Fjern den, eller tilføj “[”, hvor den del begynder.';
+  }
+
+  @override
+  String wordingIssueUnclosedSlot(
+    String brace,
+    String closeBrace,
+    String context,
+    String example,
+  ) {
+    return '“$brace” i “$context” er ikke lukket. Tilføj “$closeBrace” efter navnet, som $example.';
+  }
+
+  @override
+  String wordingIssueStrayCloseBrace(
+    String brace,
+    String closeBrace,
+    String context,
+  ) {
+    return 'Der er en “$closeBrace” uden “$brace” foran, ved “$context”. Fjern den, eller tilføj “$brace” før navnet.';
+  }
+
+  @override
+  String wordingIssueBadSlot(String found, String fix) {
+    return '“$found” er ikke en pladsholder: sæt kun ét navn i krøllede parenteser, som $fix.';
+  }
+
+  @override
+  String wordingIssueConditionInBraces(String found, String fix) {
+    return 'Krøllede parenteser rummer ét navn, ikke en betingelse: “$found”. Brug firkantede parenteser for kun at vise en formulering i nogle tilfælde: $fix';
+  }
+
+  @override
+  String wordingIssueTooLongStored(String max) {
+    return 'Denne formulering er for lang til at blive gemt: gemt er den over $max tegn (en betingelse kan fylde lidt mere gemt end skrevet). Gør den kortere, eller brug færre betingelser.';
+  }
+
+  @override
+  String wordingIssueMissingCondition(String word, String example) {
+    return 'Efter “$word” skal du skrive, hvad der skal testes, for eksempel “$example”.';
+  }
+
+  @override
+  String wordingIssueMissingThen(String condition) {
+    return 'Efter betingelsen “$condition” skal du skrive “then” og den formulering, der skal vises i det tilfælde.';
+  }
+
+  @override
+  String wordingIssueColonForThen(String condition) {
+    return 'Skriv “then” i stedet for “:” efter “$condition”.';
+  }
+
+  @override
+  String wordingIssueUnknownName(String found, String names) {
+    return '“$found” er ikke noget, denne formulering kan teste. Du kan teste: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return '“$found” er ikke noget, denne formulering kan teste. Mente du “$suggestion”? Du kan teste: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIf(String found, String names) {
+    return 'Firkantede parenteser, der begynder med “if”, rummer en betingelse, og “$found” er ikke noget, denne formulering kan teste. Du kan teste: $names.';
+  }
+
+  @override
+  String wordingIssueUnknownNameAfterIfSuggest(
+    String found,
+    String suggestion,
+    String names,
+  ) {
+    return 'Firkantede parenteser, der begynder med “if”, rummer en betingelse, og “$found” er ikke noget, denne formulering kan teste. Mente du “$suggestion”? Du kan teste: $names.';
+  }
+
+  @override
+  String wordingIssueNameInBraces(String name, String found) {
+    return 'Skriv navnet uden krøllede parenteser i en betingelse: “$name”, ikke “$found”.';
+  }
+
+  @override
+  String wordingIssueIsntForIsNot(String found, String fix) {
+    return 'Skriv “is not” i stedet for “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueSymbolForWord(String word, String found, String fix) {
+    return 'Skriv “$word” i stedet for “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueQuotedValue(String fix) {
+    return 'Udelad anførselstegnene: “$fix”.';
+  }
+
+  @override
+  String wordingIssueUnknownValue(String found, String name, String values) {
+    return '“$found” er ikke en af de værdier, $name kan have. $name kan være: $values.';
+  }
+
+  @override
+  String wordingIssueUnknownValueSuggest(
+    String found,
+    String name,
+    String suggestion,
+    String values,
+  ) {
+    return '“$found” er ikke en af de værdier, $name kan have. Mente du “$suggestion”? $name kan være: $values.';
+  }
+
+  @override
+  String wordingIssueExpectedValue(
+    String before,
+    String name,
+    String example,
+    String values,
+  ) {
+    return 'Efter “$before” skal du skrive en værdi, $name kan have, som “$example”. $name kan være: $values.';
+  }
+
+  @override
+  String wordingIssueListNeedsParens(String fix) {
+    return 'Sæt værdierne efter “is in” i parentes: “$fix”.';
+  }
+
+  @override
+  String wordingIssueOneOfForIsIn(String word, String found, String fix) {
+    return 'Skriv “$word” i stedet for “$found”: “$fix”.';
+  }
+
+  @override
+  String wordingIssueEmptyList(String example) {
+    return 'Parentesen efter “is in” er tom. Angiv mindst én værdi, som “$example”.';
+  }
+
+  @override
+  String wordingIssueUnclosedParen(String context, String before) {
+    return 'En “(” er ikke lukket: “$context”. Tilføj “)” efter “$before”.';
+  }
+
+  @override
+  String wordingIssueStrayCloseParen(String context) {
+    return 'Der er en “)” uden “(” foran, ved “$context”. Fjern den, eller tilføj “(”, hvor den begynder.';
+  }
+
+  @override
+  String get wordingIssueEmptyParens =>
+      'Der er intet mellem “(” og “)”. Sæt en betingelse ind, eller fjern dem.';
+
+  @override
+  String wordingIssueExpectedConnective(String before, String found) {
+    return 'Efter “$before” skal du skrive “and”, “or” eller “then”: “$found” kan ikke stå der.';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveInParens(String before, String found) {
+    return 'Efter “$before” skal du skrive “and”, “or” eller “)”: “$found” kan ikke stå der.';
+  }
+
+  @override
+  String wordingIssueExpectedConnectiveList(String before, String fix) {
+    return 'Efter “$before” skal du skrive “and”, “or” eller “then”. List værdierne for at teste for mere end én: “$fix”.';
+  }
+
+  @override
+  String wordingIssueExpectedListSeparator(String before, String found) {
+    return 'Sæt et komma før “$found” i listen “$before”, eller afslut listen med “)”.';
+  }
+
+  @override
+  String wordingIssueMixedAndOr(String found, String fixA, String fixB) {
+    return '“$found” blander “and” og “or”, så det er uklart, hvad der kommer først. Tilføj parenteser: “$fixA” eller “$fixB”.';
+  }
+
+  @override
+  String wordingIssueFlagCompare(String name) {
+    return '$name er enten til eller fra, så den sammenlignes ikke med en værdi. Skriv “if $name” for til eller “if not $name” for fra.';
+  }
+
+  @override
+  String wordingIssuePresenceOnly(String name) {
+    return '$name kan kun testes for, om den er udfyldt. Skriv “$name is empty”, “$name is not empty” eller bare “$name”.';
+  }
+
+  @override
+  String wordingIssueNotANumber(String name, String op) {
+    return '$name er ikke et tal, så den kan ikke være “$op” noget. Brug “$name is …” eller “$name is in (…)”.';
+  }
+
+  @override
+  String wordingIssueExpectedNumber(String op, String example, String found) {
+    return 'Skriv et tal efter “$op”, som $example: “$found” er ikke et tal.';
+  }
+
+  @override
+  String wordingIssueNumberOutOfRange(
+    String name,
+    String min,
+    String max,
+    String found,
+  ) {
+    return '$name går fra $min til $max, så $found er uden for området.';
+  }
+
+  @override
+  String wordingIssueNumberNotWhole(String name, String found) {
+    return '$name tæller i hele tal, så $found kan ikke være en af dens værdier.';
+  }
+
+  @override
+  String wordingIssueNumberNotQuarter(String name, String found) {
+    return '$name går i kvarte omgange, som 0.25, 0.5, ¾ eller 1½, så $found kan ikke være en af dens værdier.';
+  }
+
+  @override
+  String wordingIssueNegatedComparison(String fix, String found) {
+    return 'Skriv “$fix” i stedet for “$found”.';
+  }
+
+  @override
+  String wordingIssueAmbiguous(String found, String readingA, String readingB) {
+    return '“$found” kan læses på to måder: “$readingA” eller “$readingB”. Skriv den, du mener.';
+  }
+
+  @override
+  String get wordingIssueSecondElse =>
+      'Denne del har allerede et “else”, så et til kan ikke følge efter. Hvis “else” her er en del af formuleringen, så sæt de ord i deres egne firkantede parenteser, som “[everyone else]”.';
+
+  @override
+  String wordingIssueElseAfterWord(String phrase) {
+    return '“else” begynder her formuleringen for alle andre tilfælde. Hvis du mente ordene “$phrase”, så sæt dem i deres egne firkantede parenteser: “[$phrase]”.';
+  }
+
+  @override
+  String wordingIssueOtherwiseWord(String found) {
+    return '“$found” vises her som formulering. Skriv “else” for at give en formulering for alle andre tilfælde.';
+  }
+
+  @override
+  String wordingIssueEmptyMeansNoValue(String name, String fix) {
+    return '“$name is empty” tester, om $name ikke har nogen værdi, ikke for valgmuligheden “empty”. Skriv “$fix” for at teste for den valgmulighed.';
+  }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '“$found” efter “$word” er en værdi, ikke noget, der testes. Gentag, hvad du tester, “$fixA”, eller list værdierne: “$fixB”.';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'Denne formulering kan ikke teste noget her: den figur, den hører til, er ikke på denne enhed, eller denne version af appen kender den ikke, så dens betingelser kan ikke kontrolleres. Ret den på en enhed, der har figuren, eller fjern betingelsen.';
+
+  @override
+  String wordingIssueTooLongTyped(String max) {
+    return 'Denne formulering er for lang til at blive læst: som skrevet er den over $max tegn. Gør den kortere.';
+  }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'Denne formulering sætter for mange firkantede parenteser eller parenteser inden i hinanden: højst $max kan indlejres. Fjern nogle.';
+  }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'Denne betingelse sætter for mange “not” inden i hinanden: højst $max. Fjern nogle: to “not” i træk ophæver hinanden.';
+  }
 }

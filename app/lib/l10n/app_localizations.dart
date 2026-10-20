@@ -14807,7 +14807,7 @@ abstract class AppLocalizations {
   /// Shown when a parameter of a new figure has a name that can't be used.
   ///
   /// In en, this message translates to:
-  /// **'Start each parameter\'s name with a letter, use only letters, digits and _, and give each a different name. A name can\'t be move, beats, text, a role, or another parameter\'s opposite, such as otherHand.'**
+  /// **'Start each parameter\'s name with a letter, use only letters, digits and _, and give each a different name. A name can\'t be move, beats, text, a role, another parameter\'s opposite, such as otherHand, or a word conditions are built from: if, then, else, not, and, or, is.'**
   String get userFigureEditorParamNames;
 
   /// Label of one choice of a parameter of a new figure.
@@ -15055,6 +15055,355 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'text'**
   String get compoundParamKindText;
+
+  /// Help under a wording template's field: how to write a condition.
+  ///
+  /// In en, this message translates to:
+  /// **'To word it differently in some cases, use square brackets with if, then and else, like {example}'**
+  String wordingConditionsHelp(String example);
+
+  /// Help under a wording template's field: the names a condition may test.
+  ///
+  /// In en, this message translates to:
+  /// **'A condition can test: {names}'**
+  String wordingConditionsNames(String names);
+
+  /// A wording template opens a square bracket and never closes it.
+  ///
+  /// In en, this message translates to:
+  /// **'A “[” isn’t closed: “{context}”. Add “]” where that part ends.'**
+  String wordingIssueUnclosedGroup(String context);
+
+  /// A wording template closes a square bracket it never opened.
+  ///
+  /// In en, this message translates to:
+  /// **'There’s a “]” with no “[” before it, near “{context}”. Remove it, or add “[” where that part starts.'**
+  String wordingIssueStrayCloseBracket(String context);
+
+  /// A wording template opens a brace and never closes it. brace and closeBrace are the brace characters.
+  ///
+  /// In en, this message translates to:
+  /// **'The “{brace}” in “{context}” isn’t closed. Add “{closeBrace}” after the name, like {example}.'**
+  String wordingIssueUnclosedSlot(
+    String brace,
+    String closeBrace,
+    String context,
+    String example,
+  );
+
+  /// A wording template closes a brace it never opened. brace and closeBrace are the brace characters.
+  ///
+  /// In en, this message translates to:
+  /// **'There’s a “{closeBrace}” with no “{brace}” before it, near “{context}”. Remove it, or add “{brace}” before the name.'**
+  String wordingIssueStrayCloseBrace(
+    String brace,
+    String closeBrace,
+    String context,
+  );
+
+  /// A wording template's braces hold something other than one name.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” isn’t a slot: put just one name in braces, like {fix}.'**
+  String wordingIssueBadSlot(String found, String fix);
+
+  /// A wording template puts a condition in braces instead of square brackets. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Braces hold one name, not a condition: “{found}”. To show wording only in some cases, use square brackets: {fix}'**
+  String wordingIssueConditionInBraces(String found, String fix);
+
+  /// A wording template is over the length it may be saved at.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording is too long to save: as saved, it’s over {max} characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.'**
+  String wordingIssueTooLongStored(String max);
+
+  /// A condition is missing after a word that needs one. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After “{word}”, write what to test, for example “{example}”.'**
+  String wordingIssueMissingCondition(String word, String example);
+
+  /// A condition is not followed by then. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After the condition “{condition}”, write “then” and the wording to show in that case.'**
+  String wordingIssueMissingThen(String condition);
+
+  /// A condition is followed by a colon instead of then. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write “then” instead of “:” after “{condition}”.'**
+  String wordingIssueColonForThen(String condition);
+
+  /// A condition tests a name the figure doesn't have.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” isn’t something this wording can test. You can test: {names}.'**
+  String wordingIssueUnknownName(String found, String names);
+
+  /// A condition tests a name the figure doesn't have, with the closest name it does.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” isn’t something this wording can test. Did you mean “{suggestion}”? You can test: {names}.'**
+  String wordingIssueUnknownNameSuggest(
+    String found,
+    String suggestion,
+    String names,
+  );
+
+  /// The word after if, at the start of square brackets, is not a name the figure has. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Square brackets that start with “if” hold a condition, and “{found}” isn’t something this wording can test. You can test: {names}.'**
+  String wordingIssueUnknownNameAfterIf(String found, String names);
+
+  /// The word after if, at the start of square brackets, is not a name the figure has, with the closest one it does. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Square brackets that start with “if” hold a condition, and “{found}” isn’t something this wording can test. Did you mean “{suggestion}”? You can test: {names}.'**
+  String wordingIssueUnknownNameAfterIfSuggest(
+    String found,
+    String suggestion,
+    String names,
+  );
+
+  /// A condition names what it tests in braces.
+  ///
+  /// In en, this message translates to:
+  /// **'In a condition, write the name without braces: “{name}”, not “{found}”.'**
+  String wordingIssueNameInBraces(String name, String found);
+
+  /// A condition uses isn't, which the wording language doesn't accept. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write “is not” instead of “{found}”: “{fix}”.'**
+  String wordingIssueIsntForIsNot(String found, String fix);
+
+  /// A condition uses a symbol such as = or && instead of the word for it. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write “{word}” instead of “{found}”: “{fix}”.'**
+  String wordingIssueSymbolForWord(String word, String found, String fix);
+
+  /// A condition puts a value in quotation marks.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave out the quotation marks: “{fix}”.'**
+  String wordingIssueQuotedValue(String fix);
+
+  /// A condition compares a name with a value it can't have.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” isn’t one of the values {name} can have. {name} can be: {values}.'**
+  String wordingIssueUnknownValue(String found, String name, String values);
+
+  /// A condition compares a name with a value it can't have, with the closest value it can.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” isn’t one of the values {name} can have. Did you mean “{suggestion}”? {name} can be: {values}.'**
+  String wordingIssueUnknownValueSuggest(
+    String found,
+    String name,
+    String suggestion,
+    String values,
+  );
+
+  /// A condition is missing the value it compares with.
+  ///
+  /// In en, this message translates to:
+  /// **'After “{before}”, write a value {name} can have, like “{example}”. {name} can be: {values}.'**
+  String wordingIssueExpectedValue(
+    String before,
+    String name,
+    String example,
+    String values,
+  );
+
+  /// A condition lists values after is in without parentheses. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Put the values after “is in” in parentheses: “{fix}”.'**
+  String wordingIssueListNeedsParens(String fix);
+
+  /// A condition uses a phrase such as one of instead of is in. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write “{word}” instead of “{found}”: “{fix}”.'**
+  String wordingIssueOneOfForIsIn(String word, String found, String fix);
+
+  /// A condition's list of values is empty. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'The parentheses after “is in” are empty. List at least one value, like “{example}”.'**
+  String wordingIssueEmptyList(String example);
+
+  /// A condition opens a parenthesis and never closes it.
+  ///
+  /// In en, this message translates to:
+  /// **'A “(” isn’t closed: “{context}”. Add “)” after “{before}”.'**
+  String wordingIssueUnclosedParen(String context, String before);
+
+  /// A condition closes a parenthesis it never opened.
+  ///
+  /// In en, this message translates to:
+  /// **'There’s a “)” with no “(” before it, near “{context}”. Remove it, or add the “(” where it starts.'**
+  String wordingIssueStrayCloseParen(String context);
+
+  /// A condition has empty parentheses.
+  ///
+  /// In en, this message translates to:
+  /// **'There’s nothing between “(” and “)”. Put a condition inside, or remove them.'**
+  String get wordingIssueEmptyParens;
+
+  /// A word follows a complete condition where only and, or or then may. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After “{before}”, write “and”, “or” or “then”: “{found}” can’t go there.'**
+  String wordingIssueExpectedConnective(String before, String found);
+
+  /// A word follows a complete condition inside parentheses where only and, or or a closing parenthesis may. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After “{before}”, write “and”, “or” or “)”: “{found}” can’t go there.'**
+  String wordingIssueExpectedConnectiveInParens(String before, String found);
+
+  /// A condition names two values one after the other. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After “{before}”, write “and”, “or” or “then”. To test for more than one value, list them: “{fix}”.'**
+  String wordingIssueExpectedConnectiveList(String before, String fix);
+
+  /// Two values in a list are not separated by a comma.
+  ///
+  /// In en, this message translates to:
+  /// **'In the list “{before}”, put a comma before “{found}”, or end the list with “)”.'**
+  String wordingIssueExpectedListSeparator(String before, String found);
+
+  /// A condition mixes and and or without parentheses. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” mixes “and” and “or”, so it isn’t clear which goes first. Add parentheses: “{fixA}” or “{fixB}”.'**
+  String wordingIssueMixedAndOr(String found, String fixA, String fixB);
+
+  /// A condition compares a switch with a value. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is either on or off, so it isn’t compared with a value. Write “if {name}” for on, or “if not {name}” for off.'**
+  String wordingIssueFlagCompare(String name);
+
+  /// A condition compares free text, or a slot that is only text, with a value. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} can only be tested for whether it’s filled in. Write “{name} is empty”, “{name} is not empty”, or just “{name}”.'**
+  String wordingIssuePresenceOnly(String name);
+
+  /// A condition uses a number comparison on something that isn't a number. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} isn’t a number, so it can’t be “{op}” something. Use “{name} is …” or “{name} is in (…)”.'**
+  String wordingIssueNotANumber(String name, String op);
+
+  /// A condition is missing the number it compares with. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'After “{op}”, write a number, like {example}: “{found}” isn’t one.'**
+  String wordingIssueExpectedNumber(String op, String example, String found);
+
+  /// A condition compares with a number outside what the name can be.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} goes from {min} to {max}, so {found} is out of range.'**
+  String wordingIssueNumberOutOfRange(
+    String name,
+    String min,
+    String max,
+    String found,
+  );
+
+  /// A condition compares a whole-number name with a fraction.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} counts in whole numbers, so {found} can’t be one of its values.'**
+  String wordingIssueNumberNotWhole(String name, String found);
+
+  /// A condition compares an amount of turn with a value that isn't a whole number of quarter turns.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} goes in quarter turns, like 0.25, 0.5, ¾ or 1½, so {found} can’t be one of its values.'**
+  String wordingIssueNumberNotQuarter(String name, String found);
+
+  /// A condition writes is not before a number comparison. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Write “{fix}” instead of “{found}”.'**
+  String wordingIssueNegatedComparison(String fix, String found);
+
+  /// A condition's words have two readings. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” can be read two ways: “{readingA}” or “{readingB}”. Write the one you mean.'**
+  String wordingIssueAmbiguous(String found, String readingA, String readingB);
+
+  /// A conditional part has two else words. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'This part already has an “else”, so a second can’t follow it. If “else” is part of the wording here, put those words in their own square brackets, like “[everyone else]”.'**
+  String get wordingIssueSecondElse;
+
+  /// Warning: else follows a word it may have been meant to go with. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'“else” here starts the wording for every other case. If you meant the words “{phrase}”, put them in their own square brackets: “[{phrase}]”.'**
+  String wordingIssueElseAfterWord(String phrase);
+
+  /// Warning: a branch uses a word like otherwise where else may have been meant. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” shows as wording here. To give wording for every other case, write “else”.'**
+  String wordingIssueOtherwiseWord(String found);
+
+  /// Warning: a condition tests is empty on a name that has a choice called empty. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name} is empty” tests whether {name} has no value, not for its choice “empty”. To test for that choice, write “{fix}”.'**
+  String wordingIssueEmptyMeansNoValue(String name, String fix);
+
+  /// A condition writes a second value after and/or instead of a second test. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” after “{word}” is a value, not something to test. Say what you’re testing again, “{fixA}”, or list the values: “{fixB}”.'**
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  );
+
+  /// A condition is written in a wording whose figure is not on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording can’t test anything here: the figure it belongs to isn’t on this device, or this version of the app doesn’t know it, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.'**
+  String get wordingIssueNothingToTest;
+
+  /// Typed wording far longer than any template that can be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording is too long to read: it’s over {max} characters as typed. Shorten it.'**
+  String wordingIssueTooLongTyped(String max);
+
+  /// A wording nests brackets or parentheses deeper than allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording puts too many square brackets or parentheses inside each other: at most {max} can be nested. Take some out.'**
+  String wordingIssueTooDeep(String max);
+
+  /// A condition nests not deeper than allowed. The word not is the wording language's own: keep it in English.
+  ///
+  /// In en, this message translates to:
+  /// **'This condition puts too many “not”s inside each other: at most {max}. Take some out: two “not”s in a row cancel out.'**
+  String wordingIssueTooManyNots(String max);
 }
 
 class _AppLocalizationsDelegate

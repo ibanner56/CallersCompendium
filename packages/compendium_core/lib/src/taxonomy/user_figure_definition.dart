@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
+import '../dialect/wording_conditions.dart';
 import '../model/enums.dart';
 import '../util/text_sanitizer.dart';
 import '../validation/validation.dart';
@@ -41,27 +42,36 @@ const int maxGlossaryEntryFormLength = 32;
 
 /// Keys a declared parameter may not take, compared ignoring case: the
 /// reserved slots, the free-text key a figure's fallback line is stored
-/// under, and the role tokens, which read as role words rather than slots.
+/// under, the role tokens, which read as role words rather than slots, and
+/// the words a condition is built from ([wordingReservedWords]).
 final Set<String> _reservedParamKeys = {
   userFigureMoveSlot,
   userFigureBeatsSlot,
   'text',
   ...roleTokens,
+  // The words a condition is built from where a name can stand.
+  ...wordingReservedWords,
 };
 
 final RegExp _paramKeyShape = RegExp(r'^[A-Za-z][A-Za-z0-9_]*$');
 final RegExp _choiceIdShape = RegExp(r'^[a-z0-9]{1,16}$');
 final RegExp _wordingSlot = RegExp(r'\{!?(\w+)\}');
 
-/// [template] with [map] applied to its literal text only, its slots kept
-/// exactly as written: how a template's words are canonicalized for storage
-/// and rendered in a dialect for editing (#1023), so a role word never
-/// reaches inside a `{…}` and a slot's key is never taken for a role word.
+/// A slot, or a stored condition marker (`{?if …}`, `{?else}`): what
+/// [mapUserFigureTemplateText] keeps as written.
+final RegExp _wordingSlotOrMarker = RegExp(r'\{(?:!?\w+|\?[^{}]*)\}');
+
+/// [template] with [map] applied to its literal text only, its slots and
+/// stored conditions kept exactly as written: how a template's words are
+/// canonicalized for storage and rendered in a dialect for editing (#1023),
+/// so a role word never reaches inside a `{…}`, a slot's key is never taken
+/// for a role word, and a condition's values stay the tokens and ids they
+/// are stored as.
 String mapUserFigureTemplateText(
   String template,
   String Function(String text) map,
 ) => template.splitMapJoin(
-  _wordingSlot,
+  _wordingSlotOrMarker,
   onMatch: (match) => match[0]!,
   onNonMatch: map,
 );
@@ -164,7 +174,8 @@ final class UserFigureParam {
 
 /// A figure of your own (#1023): its parameters and the template its line is
 /// rendered from, in the #822 wording syntax (`{slot}`, `{!slot}`,
-/// `[optional group]`).
+/// `[optional group]`) and its conditional groups, stored by meaning
+/// (`wording_conditions.dart`).
 ///
 /// The payload of a `customFigure` glossary entry; the entry carries the
 /// name, definition and description. Like a compound it carries no taxonomy
@@ -230,10 +241,27 @@ final class UserFigureDefinition {
     },
   };
 
+  /// What a condition in the template may test, with each name's spec: the
+  /// [slots], the reserved [userFigureMoveSlot] being only text.
+  Map<String, ParamSpec?> get wordingSubjects => {
+    userFigureMoveSlot: null,
+    userFigureBeatsSlot: const ParamSpec(ParamKind.beats, defaultValue: null),
+    for (final p in params) ...{
+      p.key: p.spec,
+      if (p.key.isNotEmpty &&
+          ParamOpposites.coverage(p.kind) != OppositeCoverage.none)
+        userFigureOppositeSlot(p.key): ParamSpec(p.kind, defaultValue: null),
+    },
+  };
+
   /// The declared parameters the template never uses, by key. A parameter
-  /// whose opposite is used counts as used.
+  /// whose opposite is used counts as used, and so does one a condition
+  /// tests: it changes how the figure reads.
   Set<String> get unusedParams {
-    final used = userFigureTemplateSlots(template);
+    final used = {
+      ...userFigureTemplateSlots(template),
+      ...wordingTestedNames(parseStoredWording(template) ?? const []),
+    };
     return {
       for (final p in params)
         if (!used.contains(p.key) &&
@@ -448,6 +476,10 @@ abstract final class UserFigureIssueCodes {
   /// The form is empty.
   static const badForm = 'user_figure_bad_form';
 
+  /// A condition in the template tests a name the figure does not offer, a
+  /// value it does not have, or in a way its kind does not take.
+  static const badCondition = 'user_figure_bad_condition';
+
   /// A declared parameter the template never uses. A warning: the user may
   /// save anyway (#822's missing-slot confirm, maintainer decision 12).
   static const unusedParam = 'user_figure_unused_param';
@@ -585,6 +617,15 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
         {'slot': slot},
       );
     }
+  }
+  final nodes = parseStoredWording(definition.template);
+  if (nodes != null &&
+      !wordingConditionsFit(nodes, definition.wordingSubjects)) {
+    error(
+      UserFigureIssueCodes.badCondition,
+      'a condition in the template tests something the figure does not '
+      'offer, or a value it does not have',
+    );
   }
   for (final key in definition.unusedParams) {
     issues.add(

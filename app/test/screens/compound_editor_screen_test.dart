@@ -365,6 +365,186 @@ void main() {
       )!.param('style')!.choices.single;
       expect((choice.id, choice.label), ('abc12345', 'quick'));
     });
+
+    testWidgets('a stored condition shows in words and saves back by '
+        'meaning', (tester) async {
+      const template =
+          "[{?if style is 'abc12345' and who is 'role1s'}role1s zoom fast"
+          '{?else}{who} zoom]';
+      final repos = await pump(tester, initial: zoom(template: template));
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('user-figure-wording')),
+            )
+            .controller!
+            .text,
+        '[if style is fast and who is larks then larks zoom fast else '
+        '{who} zoom]',
+      );
+      expect(
+        find.byKey(const ValueKey('user-figure-wording-error')),
+        findsNothing,
+      );
+      // No default style: the else wording.
+      expect(find.text('Reads as: larks zoom'), findsOneWidget);
+      await save(tester);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('zoom-id'),
+      ))!;
+      expect(decodeUserFigureDefinition(saved.payload)!.template, template);
+    });
+
+    testWidgets('renaming a choice a condition tests shows the wording in '
+        'the new label, and keeps what it tests', (tester) async {
+      const template =
+          "[{?if style is 'abc12345'}{who} zoom fast{?else}{who} zoom]";
+      final repos = await pump(tester, initial: zoom(template: template));
+      Finder wording() => find.byKey(const ValueKey('user-figure-wording'));
+      String text() => tester.widget<TextField>(wording()).controller!.text;
+      expect(text(), '[if style is fast then {who} zoom fast else {who} zoom]');
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-param-1-choice-0')),
+        'quick',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        text(),
+        '[if style is quick then {who} zoom fast else {who} zoom]',
+      );
+      // An edit after the rename reads in the new label.
+      await tester.enterText(
+        wording(),
+        '[if style is quick then {who} zoom quick else {who} zoom]',
+      );
+      await tester.pumpAndSettle();
+      await save(tester);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('zoom-id'),
+      ))!;
+      expect(
+        decodeUserFigureDefinition(saved.payload)!.template,
+        "[{?if style is 'abc12345'}{who} zoom quick{?else}{who} zoom]",
+      );
+    });
+
+    testWidgets('a wording saved before conditions whose brackets start '
+        'with "if" saves untouched', (tester) async {
+      const legacy = '[if needed, ]{who} zoom [{style}]';
+      final repos = await pump(tester, initial: zoom(template: legacy));
+      expect(
+        find.byKey(const ValueKey('user-figure-wording-error')),
+        findsNothing,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-description')),
+        'Faster.',
+      );
+      await save(tester);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('zoom-id'),
+      ))!;
+      expect(decodeUserFigureDefinition(saved.payload)!.template, legacy);
+    });
+
+    testWidgets('a mistake in a condition is explained under the wording, '
+        'and stops the save with the same words', (tester) async {
+      final repos = await pump(tester, initial: zoom());
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        '[if style is fats then {who} zoom fast else {who} zoom]',
+      );
+      await tester.pumpAndSettle();
+      const expected =
+          '“fats” isn’t one of the values style can have. Did you mean '
+          '“fast”? style can be: fast.';
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('user-figure-wording-error')),
+            )
+            .data,
+        expected,
+      );
+      expect(
+        find.text('Finish the wording to see how it reads.'),
+        findsOneWidget,
+      );
+      await save(tester);
+      expect(find.byType(CompoundEditorScreen), findsOneWidget);
+      expect(find.textContaining(expected), findsNWidgets(2));
+      expect(
+        await tester.runAsync(repos.userGlossary.listAll),
+        isEmpty,
+        reason: 'not saved',
+      );
+    });
+
+    testWidgets('a figure stored with a parameter named a reserved word opens '
+        'to be repaired, and saves once renamed', (tester) async {
+      final broken = UserGlossaryEntry(
+        id: 'broken-id',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'zoom',
+        definition: 'A zoom.',
+        description: 'Fast.',
+        payload: const {
+          'form': 'contra',
+          'template': '{move}[ {is}]',
+          'defaultBeats': 6,
+          'params': [
+            {'key': 'is', 'kind': 'flag', 'label': 'fast'},
+          ],
+        },
+        createdAt: created,
+      );
+      expect(decodeUserFigureDefinition(broken.payload), isNull);
+      final repos = await pump(tester, initial: broken);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('compound-param-0-name')),
+            )
+            .controller!
+            .text,
+        'is',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-param-0-name')),
+        'quick',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        '{move}[if quick then  fast]',
+      );
+      await tester.pumpAndSettle();
+      await save(tester);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('broken-id'),
+      ))!;
+      final repaired = decodeUserFigureDefinition(saved.payload)!;
+      expect(repaired.params.single.key, 'quick');
+      expect(repaired.template, '{move}[{?if quick} fast]');
+    });
+
+    testWidgets('a parameter may not be named a word conditions use', (
+      tester,
+    ) async {
+      final repos = await pump(tester);
+      await fillRequired(tester);
+      await chooseNewFigure(tester);
+      await addParam(tester, 0, 'if');
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        '{move} {if}',
+      );
+      await save(tester);
+      expect(
+        find.textContaining('if, then, else, not, and, or, is'),
+        findsOneWidget,
+      );
+      expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
+    });
   });
 
   testWidgets('a name and a definition are required', (tester) async {
