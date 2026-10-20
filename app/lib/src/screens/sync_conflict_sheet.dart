@@ -25,8 +25,8 @@ const double kSyncConflictDialogBreakpoint = 600;
 ///
 /// A dialog on a wide window, a bottom sheet on a narrow one. Returns once it
 /// closes. Callers must not open it over Perform or an unsaved editor; the
-/// surfaces that do open it — the Collection and Programs toolbars and Device
-/// Sync settings — are neither.
+/// surfaces that do open it — the Collection, Programs and Glossary toolbars and
+/// Device Sync settings — are neither.
 ///
 /// With [reconsider], it offers choices already made again — the undo of a
 /// choice — between the versions they were made between, held in memory.

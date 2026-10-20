@@ -1,5 +1,5 @@
-// Guards the toolbar "Sync now" glyph on Collection and Programs (#1421): a
-// second entry to the manual trigger Settings already has.
+// Guards the toolbar "Sync now" glyph on Collection, Programs and Glossary
+// (#1421): a second entry to the manual trigger Settings already has.
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -14,6 +14,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
+import 'package:compendium_app/src/screens/glossary/glossary_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 import 'package:compendium_app/src/screens/sync_conflict_sheet.dart';
@@ -190,11 +191,12 @@ Future<void> _queueConflict(CompendiumRepositories repos, String key) async {
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
-  // The same behaviour is required of both pages, so each case runs against
-  // both rather than being asserted once for whichever page came first.
+  // The same behaviour is required of every page, so each case runs against
+  // each rather than being asserted once for whichever page came first.
   final pages = <String, Widget Function()>{
     'Collection': () => const DanceListScreen(),
     'Programs': () => const ProgramsListScreen(),
+    'Glossary': () => const GlossaryScreen(),
   };
 
   for (final MapEntry(key: name, value: build) in pages.entries) {

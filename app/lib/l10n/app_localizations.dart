@@ -1970,7 +1970,7 @@ abstract class AppLocalizations {
   /// **'Connect a store before syncing.'**
   String get settingsSyncNotPairedNow;
 
-  /// Tooltip of the toolbar button on the Collection and Programs pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired.
+  /// Tooltip of the toolbar button on the Collection, Programs and Glossary pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired.
   ///
   /// In en, this message translates to:
   /// **'Sync now'**
