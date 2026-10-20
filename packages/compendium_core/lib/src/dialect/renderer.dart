@@ -10,6 +10,7 @@ import '../util/text_sanitizer.dart';
 import 'dialect.dart';
 import 'discouraged_terms.dart';
 import 'substitution.dart';
+import 'wording_conditions.dart';
 
 /// The canonical role tokens recognized specially everywhere (rendering and
 /// canonicalization). Singular and plural forms of the two contra roles.
@@ -60,10 +61,14 @@ typedef _DisplayBaseRenderer =
 /// placeholders. This is deliberate: callers may eventually provide the
 /// template text, but they can only control literal surrounding text, never
 /// substitution values. An unknown slot is empty, and an optional bracketed
-/// group is omitted when all of its slots are empty. The final whitespace
-/// collapse keeps omitted slots from leaving double spaces or dangling
-/// separators.
-String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
+/// group is omitted when all of its slots are empty. A conditional group
+/// (`wording_conditions.dart`) shows the wording [evaluate] picks; with no
+/// [evaluate], no condition holds. The final whitespace collapse keeps
+/// omitted slots from leaving double spaces or dangling separators.
+String _assembleDisplayTemplate(
+  _DisplayTemplate displayTemplate, {
+  bool Function(WordingCondition condition)? evaluate,
+}) {
   final slots = displayTemplate.slots;
   final template = displayTemplate.template;
   var index = 0;
@@ -71,6 +76,15 @@ String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
   // A `!name` key falls back to the plain slot when nothing was forced (e.g.
   // slots owned by a display base renderer).
   String valueOf(String key) => slots[key] ?? slots[_slotBase(key)] ?? '';
+
+  final nodes = parseStoredWording(template);
+  if (nodes != null) {
+    return FigureRenderer._collapseSpaces(
+      assembleWordingNodes(nodes, valueOf, evaluate ?? (_) => false).text,
+    );
+  }
+  // Not well formed (only a template written in code can reach here): the
+  // lenient reading, as before conditions.
 
   String substitute(String source) => source.replaceAllMapped(
     _wordingPlaceholder,
@@ -552,10 +566,20 @@ class FigureRenderer {
                 ).slots,
               }, wording)
             : _displayTemplate(wordingSlots, wording);
-        final line = _assembleDisplayTemplate((
-          slots: displayTemplate.slots,
-          template: wording,
-        ));
+        final subjects = {
+          for (final MapEntry(key: name, value: spec) in _moveWordingSubjects(
+            def,
+          ).entries)
+            name: WordingSubject(
+              spec,
+              spec == null ? displayTemplate.slots[name] : params[name],
+            ),
+        };
+        final line = _assembleDisplayTemplate(
+          (slots: displayTemplate.slots, template: wording),
+          evaluate: (condition) =>
+              evaluateWordingCondition(condition, subjects),
+        );
         final displayLine = def.id == 'circle' && params['singleFile'] == true
             ? (line.trimLeft().startsWith('single file ')
                   ? line
@@ -1035,34 +1059,46 @@ class FigureRenderer {
     return slots;
   }
 
+  /// Whether [template] is a well-formed STORED wording template
+  /// ([parseStoredWording]): its brackets and braces close, each brace holds a
+  /// slot name or a condition marker, and each condition reads. Whether its
+  /// conditions fit a move or figure is checked where that is known
+  /// ([wordingConditionsFit]).
   static bool isValidMoveWordingTemplate(String template) {
     final trimmed = template.trim();
-    if (trimmed.isEmpty || trimmed.length > kMaxMoveWordingLength) {
+    if (trimmed.isEmpty || trimmed.length > kMaxStoredWordingLength) {
       return false;
     }
-    var depth = 0;
-    for (var i = 0; i < trimmed.length; i++) {
-      final char = trimmed[i];
-      if (char == '[') {
-        depth++;
-      } else if (char == ']') {
-        if (depth == 0) return false;
-        depth--;
-      } else if (char == '{') {
-        final close = trimmed.indexOf('}', i + 1);
-        if (close < 0) return false;
-        final name = trimmed.substring(i + 1, close);
-        if (!RegExp(r'^!?\w+$').hasMatch(name)) return false;
-        i = close;
-      } else if (char == '}') {
-        return false;
-      }
-    }
-    return depth == 0;
+    return parseStoredWording(trimmed) != null;
   }
 
   static bool _isUsableMoveWording(String? wording) =>
       wording != null && isValidMoveWordingTemplate(wording);
+
+  /// Whether [wording], a well-formed stored template for [moveId], tests
+  /// only what the move has, as each test allows.
+  bool _wordingFitsMove(String moveId, String wording) {
+    final def = taxonomy.resolve(moveId);
+    final nodes = parseStoredWording(wording);
+    if (def == null || nodes == null) return false;
+    return wordingConditionsFit(nodes, _moveWordingSubjects(def));
+  }
+
+  static final Expando<Map<String, ParamSpec?>> _moveSubjectsMemo = Expando();
+
+  /// What a wording template for [def] may test, with each name's spec: the
+  /// move's parameters, and every other slot its templates offer (such as a
+  /// long wave's `subject`), which is only text. Memoized per move.
+  Map<String, ParamSpec?> _moveWordingSubjects(MoveDef def) =>
+      _moveSubjectsMemo[def] ??= {
+        ...def.params,
+        for (final slot in {
+          ...moveWordingSlots(def.id),
+          for (final branch in moveWordingBranchIds(def.id))
+            ...moveWordingBranchSlots(def.id, branch),
+        })
+          if (!def.params.containsKey(slot)) slot: null,
+      };
 
   static const Map<String, Map<String, Set<String>>> _moveWordingBranchSlots = {
     'form_a_long_wave': {
@@ -1094,13 +1130,16 @@ class FigureRenderer {
     final branch = _moveWordingBranch(moveId, params);
     if (branch != null) {
       final branchWording = dialect.moveWordingBranches[moveId]?[branch];
-      if (_isCompleteBranchWording(moveId, branch, branchWording)) {
+      if (_isCompleteBranchWording(moveId, branch, branchWording) &&
+          _wordingFitsMove(moveId, branchWording!)) {
         return branchWording;
       }
       if (branch != _moveWordingDefaultBranches[moveId]) return null;
     }
     final legacy = dialect.moveWordings[moveId];
-    return _isUsableMoveWording(legacy) ? legacy : null;
+    return _isUsableMoveWording(legacy) && _wordingFitsMove(moveId, legacy!)
+        ? legacy
+        : null;
   }
 
   static bool _isCompleteBranchWording(
@@ -1132,6 +1171,143 @@ class FigureRenderer {
       default:
         return null;
     }
+  }
+
+  /// What a wording template for [moveId] may test in [dialect], and the
+  /// words each value is written with there: the move's parameters and the
+  /// other slots its templates offer ([_moveWordingSubjects]). Empty for a
+  /// move this taxonomy does not know.
+  WordingVocabulary moveWordingVocabulary(String moveId, Dialect dialect) {
+    final def = taxonomy.resolve(moveId);
+    if (def == null) return WordingVocabulary(const []);
+    return WordingVocabulary([
+      for (final MapEntry(key: name, value: spec) in _moveWordingSubjects(
+        def,
+      ).entries)
+        WordingName(
+          name,
+          spec,
+          spec == null ? const [] : _wordingValueWords(name, spec, dialect),
+        ),
+    ]);
+  }
+
+  /// What a wording template for the figure of your own [definition] may
+  /// test in [dialect] ([UserFigureDefinition.wordingSubjects]), with each
+  /// value's words: a choice by its label, shown in [dialect] as stored
+  /// labels are, and every other kind as a built-in figure's is.
+  WordingVocabulary userFigureWordingVocabulary(
+    UserFigureDefinition definition,
+    Dialect dialect,
+  ) => WordingVocabulary([
+    for (final MapEntry(key: name, value: spec)
+        in definition.wordingSubjects.entries)
+      WordingName(name, spec, switch (spec?.kind) {
+        null => const [],
+        ParamKind.choice => _distinctValueWords([
+          for (final choice
+              in definition.param(name)?.choices ?? const <UserFigureChoice>[])
+            WordingValueWords(
+              choice.id,
+              renderFreeText(choice.label, dialect).trim(),
+            ),
+        ]),
+        _ => _wordingValueWords('value', spec!, dialect),
+      }),
+  ]);
+
+  /// The words of each value of [spec] in [dialect], for a condition: the
+  /// word a value is shown with first, then others it may be typed as. A
+  /// number has none but a rotation's `once` and `twice`.
+  List<WordingValueWords> _wordingValueWords(
+    String name,
+    ParamSpec spec,
+    Dialect dialect,
+  ) {
+    final List<String> domain;
+    switch (spec.kind) {
+      case ParamKind.rotation:
+        return const [
+          WordingValueWords(1, 'once'),
+          WordingValueWords(2, 'twice'),
+        ];
+      case ParamKind.places || ParamKind.beats || ParamKind.text:
+      case ParamKind.flag:
+        return const [];
+      case ParamKind.dancerSet || ParamKind.dancerPair:
+        domain = spec.choices ?? ParamVocab.dancerSets;
+      case ParamKind.handedness || ParamKind.shoulder:
+        domain = spec.choices ?? ParamVocab.sides;
+      case ParamKind.spinDirection:
+        domain = spec.choices ?? ParamVocab.spins;
+      case ParamKind.fraction:
+        domain = spec.choices ?? ParamVocab.fractions;
+      case ParamKind.direction:
+        domain = spec.choices ?? ParamVocab.directions;
+      case ParamKind.choice:
+        domain = spec.choices ?? const [];
+    }
+    final dancers =
+        spec.kind == ParamKind.dancerSet || spec.kind == ParamKind.dancerPair;
+    return _distinctValueWords([
+      for (final token in domain)
+        if (token != ParamVocab.unspecified)
+          if (dancers)
+            _dancerValueWords(token, dialect)
+          else
+            WordingValueWords(token, _humanize(token), [
+              _renderValue(name, token, spec, dialect, false, false, false),
+            ]),
+    ]);
+  }
+
+  /// A dancer token's words: its role term (plural, then singular), its
+  /// single-dancer term ("first Lark"), or its dialect substitution, then
+  /// its plain name and singular subject ("neighbors", "neighbor").
+  WordingValueWords _dancerValueWords(String token, Dialect dialect) {
+    if (token == 'role1s' || token == 'role2s') {
+      final term = dialect.roles[token.substring(0, token.length - 1)];
+      return WordingValueWords(token, _roleTerm(token, dialect), [
+        ?term?.singular,
+      ]);
+    }
+    final single = _singleDancerTerm(token, dialect);
+    if (single != null) return WordingValueWords(token, single);
+    final humanized = _humanize(token);
+    return WordingValueWords(token, dialect.dancers[token] ?? humanized, [
+      humanized,
+      ?_singularDancerSets[token],
+    ]);
+  }
+
+  /// [values] with each word belonging to one value only: an other word two
+  /// values share, or one that is another value's shown word, is dropped,
+  /// so it can never read as the wrong value. Two values shown with the
+  /// same word keep it, and a condition using it is refused as having two
+  /// readings.
+  static List<WordingValueWords> _distinctValueWords(
+    List<WordingValueWords> values,
+  ) {
+    String key(String word) => _collapseSpaces(word).toLowerCase();
+    final shown = <String, int>{};
+    final all = <String, int>{};
+    for (final v in values) {
+      shown.update(key(v.word), (n) => n + 1, ifAbsent: () => 1);
+      for (final word in {key(v.word), ...v.alsoWords.map(key)}) {
+        all.update(word, (n) => n + 1, ifAbsent: () => 1);
+      }
+    }
+    return [
+      for (final v in values)
+        WordingValueWords(v.value, v.word, [
+          for (final word in {...v.alsoWords})
+            if (key(word).isNotEmpty &&
+                key(word) != key(v.word) &&
+                !shown.containsKey(key(word)) &&
+                all[key(word)] == 1)
+              word,
+        ]),
+    ];
   }
 
   /// Returns the fixed branch IDs supported by [moveId].
@@ -1712,11 +1888,13 @@ class FigureRenderer {
     final definition = view?.definition;
     if (view == null || definition == null) return null;
     final slots = <String, String>{};
+    final subjects = <String, WordingSubject>{};
     for (final param in definition.params) {
       final value = use.args.containsKey(param.key)
           ? use.args[param.key]
           : param.defaultValue;
       if (value != null && !param.spec.validate(value)) return null;
+      subjects[param.key] = WordingSubject(param.spec, value);
       slots[param.key] = _renderUserFigureValue(
         param,
         value,
@@ -1727,6 +1905,10 @@ class FigureRenderer {
       );
       if (ParamOpposites.coverage(param.kind) != OppositeCoverage.none) {
         final opposite = ParamOpposites.of(param.kind, value);
+        subjects[userFigureOppositeSlot(param.key)] = WordingSubject(
+          ParamSpec(param.kind, defaultValue: null),
+          opposite,
+        );
         slots[userFigureOppositeSlot(param.key)] = opposite == null
             ? ''
             : _renderValue(
@@ -1750,15 +1932,25 @@ class FigureRenderer {
         (forCanonical ? null : dialectUserFigureName(dialect, use.id)) ??
         view.name;
     final beats = figure.params['beats'];
-    slots[userFigureBeatsSlot] = _formatNumber(
-      beats is int ? beats : definition.defaultBeats,
+    final beatsValue = beats is int ? beats : definition.defaultBeats;
+    slots[userFigureBeatsSlot] = _formatNumber(beatsValue);
+    subjects[userFigureMoveSlot] = WordingSubject(
+      null,
+      slots[userFigureMoveSlot],
+    );
+    subjects[userFigureBeatsSlot] = WordingSubject(
+      const ParamSpec(ParamKind.beats, defaultValue: null),
+      beatsValue,
     );
     final template =
         (forCanonical
             ? null
             : dialectUserFigureWording(dialect, use.id, definition)) ??
         definition.template;
-    final line = _assembleDisplayTemplate(_displayTemplate(slots, template));
+    final line = _assembleDisplayTemplate(
+      _displayTemplate(slots, template),
+      evaluate: (condition) => evaluateWordingCondition(condition, subjects),
+    );
     if (line.isEmpty) return null;
     return canonicalizeDiscouragedTerms
         ? renderFreeTextWithCanonicalDiscouragedTerms(line, dialect)
@@ -3382,15 +3574,20 @@ String? dialectUserFigureName(Dialect dialect, String id) {
 /// `moveWordings` entry under `userFigure:<id>`, or null when it has none or
 /// the entry can't stand in for [definition]'s own template: it is not a valid
 /// wording ([FigureRenderer.isValidMoveWordingTemplate]), or it uses a slot the figure
-/// doesn't have, as after a parameter was removed. The figure's own wording
-/// is used then.
+/// doesn't have, as after a parameter was removed, or a condition tests one
+/// or a value it doesn't have ([wordingConditionsFit]). The figure's own
+/// wording is used then.
 String? dialectUserFigureWording(
   Dialect dialect,
   String id,
   UserFigureDefinition definition,
 ) {
   final wording = dialect.moveWordings[userFigureKeyFor(id)];
-  if (wording == null || !FigureRenderer.isValidMoveWordingTemplate(wording)) {
+  final nodes = wording == null ? null : parseStoredWording(wording);
+  if (wording == null ||
+      nodes == null ||
+      !FigureRenderer.isValidMoveWordingTemplate(wording) ||
+      !wordingConditionsFit(nodes, definition.wordingSubjects)) {
     return null;
   }
   if (!definition.slots.containsAll(userFigureTemplateSlots(wording))) {

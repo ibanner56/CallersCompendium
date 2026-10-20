@@ -15,6 +15,7 @@ export 'src/dialect/role_canonicalizer.dart';
 export 'src/dialect/dialect.dart';
 export 'src/dialect/renderer.dart';
 export 'src/dialect/substitution.dart' show Substitutor;
+export 'src/dialect/wording_conditions.dart';
 export 'src/export/dance_card_content.dart';
 export 'src/export/dance_card_fields.dart';
 export 'src/export/dance_share_fields.dart';

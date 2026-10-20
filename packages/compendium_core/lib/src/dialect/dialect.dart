@@ -5,8 +5,14 @@ import '../taxonomy/taxonomy.dart';
 import '../util/text_sanitizer.dart';
 import '../validation/validation.dart';
 
-/// Maximum UTF-16 code units retained for one user-authored move wording.
+/// Maximum UTF-16 code units a caller may type for one move wording.
 const int kMaxMoveWordingLength = 512;
+
+/// Maximum UTF-16 code units retained for one move wording as stored. A
+/// wording with no condition is stored as typed; a condition stores each
+/// value as its token or choice id, which can be longer than the word typed
+/// for it, so the stored form is allowed twice [kMaxMoveWordingLength].
+const int kMaxStoredWordingLength = 1024;
 
 /// Maximum number of move wording entries retained in one dialect.
 const int kMaxMoveWordingEntries = 256;
@@ -355,9 +361,9 @@ class Dialect {
         final migrated = migrateLegacyTemplates
             ? _migrateV34WordingTemplate(moveId, sanitized)
             : sanitized;
-        moveWordings[moveId] = migrated.length <= kMaxMoveWordingLength
+        moveWordings[moveId] = migrated.length <= kMaxStoredWordingLength
             ? migrated
-            : migrated.substring(0, kMaxMoveWordingLength);
+            : migrated.substring(0, kMaxStoredWordingLength);
         wordingCount++;
       }
     }
@@ -375,9 +381,9 @@ class Dialect {
           final migrated = migrateLegacyTemplates
               ? _migrateV34WordingTemplate('circle', sanitized)
               : sanitized;
-          moveWordings['circle'] = migrated.length <= kMaxMoveWordingLength
+          moveWordings['circle'] = migrated.length <= kMaxStoredWordingLength
               ? migrated
-              : migrated.substring(0, kMaxMoveWordingLength);
+              : migrated.substring(0, kMaxStoredWordingLength);
           if (!hadCircleWording) wordingCount++;
         }
       }
@@ -402,9 +408,9 @@ class Dialect {
           final migrated = migrateLegacyTemplates
               ? _migrateV34WordingTemplate(moveId, sanitized)
               : sanitized;
-          branches[branchId] = migrated.length <= kMaxMoveWordingLength
+          branches[branchId] = migrated.length <= kMaxStoredWordingLength
               ? migrated
-              : migrated.substring(0, kMaxMoveWordingLength);
+              : migrated.substring(0, kMaxStoredWordingLength);
           wordingCount++;
         }
         if (branches.isNotEmpty) moveWordingBranches[moveId] = branches;

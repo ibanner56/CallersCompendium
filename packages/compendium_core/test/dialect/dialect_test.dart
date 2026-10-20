@@ -291,7 +291,7 @@ void main() {
     );
 
     test('fromJson sanitizes and bounds move wording templates', () {
-      final long = 'x' * (kMaxMoveWordingLength + 20);
+      final long = 'x' * (kMaxStoredWordingLength + 20);
       final entries = <String, Object?>{
         'swing': 'clean\u200B wording',
         'long': long,
@@ -302,13 +302,13 @@ void main() {
       }
       final d = Dialect.fromJson({'name': 'Bounded', 'moveWordings': entries});
       expect(d.moveWordings['swing'], 'clean wording');
-      expect(d.moveWordings['long'], long.substring(0, kMaxMoveWordingLength));
+      expect(d.moveWordings['long'], long.substring(0, kMaxStoredWordingLength));
       expect(d.moveWordings, hasLength(kMaxMoveWordingEntries));
       expect(d.moveWordings.containsKey('empty'), isFalse);
     });
 
     test('fromJson bounds branch templates with the shared wording limit', () {
-      final long = 'x' * (kMaxMoveWordingLength + 20);
+      final long = 'x' * (kMaxStoredWordingLength + 20);
       final d = Dialect.fromJson({
         'name': 'Bounded',
         'moveWordings': {'legacy': 'legacy'},
@@ -323,7 +323,7 @@ void main() {
       });
       expect(d.moveWordingBranches['form_a_long_wave'], {
         'outOnly': 'clean wording',
-        'inOnly': long.substring(0, kMaxMoveWordingLength),
+        'inOnly': long.substring(0, kMaxStoredWordingLength),
       });
       expect(d.moveWordingBranches['promenade'], {
         'ordinary': 'ordinary',
