@@ -1798,7 +1798,7 @@
   },
   "commonSyncNowTooltip": "Sync now",
   "@commonSyncNowTooltip": {
-    "description": "Tooltip of the toolbar button on the Collection and Programs pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired."
+    "description": "Tooltip of the toolbar button on the Collection, Programs and Glossary pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired."
   },
   "commonSyncMeteredBlocked": "You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off in Settings to sync now.",
   "@commonSyncMeteredBlocked": {

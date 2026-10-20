@@ -587,6 +587,10 @@ the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
 app is set to; only the Glossary's labels and buttons are translated.
 
+While [Device Sync](#device-sync) is on and a store is connected, a **Sync now**
+button sits beside **+** in the Glossary toolbar, the same as on Collection and
+Programs, so your terms and notes can be pulled from another device.
+
 **Your terms** are words you define yourself, with no figure: a name and a
 definition (both required), **More Details** (optional), other names they can be found by,
 notes, and the **Dance form** they're for. They are listed in the Glossary
@@ -805,7 +809,7 @@ Sync is off and open while it is on.
   than the server, your changes are saved here, and they'll sync once the
   server is updated; on a server you run yourself, it asks you to update that
   server. These are not retried by themselves, because waiting won't fix
-  them. The **Sync now** button on the Collection and Programs pages reports a
+  them. The **Sync now** button on the Collection, Programs and Glossary pages reports a
   failed sync the same way — calmly or with the reason — so you don't need to
   come here to find out.
 - **Copy details** sits beside every warning. It puts a short code on the
@@ -1054,9 +1058,10 @@ exactly the same — the same choreographer added on two devices before they
 synced, say — the app keeps one of them for you, the same one on every device,
 and doesn't ask.
 
-- On the **Collection** and **Programs** pages, the **Sync now** button shows a
-  number badge while anything is waiting for your choice. When a sync you
-  started finds something new to choose, the choice opens straight away.
+- On the **Collection**, **Programs** and **Glossary** pages, the **Sync now**
+  button shows a number badge while anything is waiting for your choice. When a
+  sync you started finds something new to choose, the choice opens straight
+  away.
 - In **Device Sync**, **Choose which version to keep** lists everything that's
   waiting.
 
