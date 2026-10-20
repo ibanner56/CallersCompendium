@@ -1050,8 +1050,11 @@ int _nestingDepth(String text) {
   for (var i = 0; i < text.length; i++) {
     final char = text[i];
     if (char == '{') {
+      // A slot, as the reader takes one; any other brace is counted through.
       final close = text.indexOf('}', i);
-      if (close >= 0) i = close;
+      if (close >= 0 && _slotName.hasMatch(text.substring(i + 1, close))) {
+        i = close;
+      }
     } else if (char == '[' || char == '(') {
       depth++;
       if (depth > deepest) deepest = depth;
@@ -1221,8 +1224,8 @@ WordingCheck checkWording(String text, WordingVocabulary vocabulary) {
       }),
     ]);
   }
-  // Nested deeper than any wording needs: refused before reading, so the
-  // reader never runs out of stack.
+  // Nested deeper than any wording needs: refused before reading, as a run of
+  // `not`s is while reading, so the reader never runs out of stack.
   if (_nestingDepth(text) > maxWordingNesting) {
     return WordingCheck(null, [
       WordingIssue(WordingIssueCode.tooDeep, 0, text.length, {
@@ -1945,30 +1948,38 @@ final class _DisplayReader {
             List<String> ops,
             List<(int, int)> spans,
             int end,
+            int id,
           })
         >[];
     // Two readings that reach the same place with the same connectives stay
     // two however the chain goes on, which is all a refusal needs: keep at
     // most two there, and the reading stays linear however many of a
-    // chain's words could be read two ways.
+    // chain's words could be read two ways. Each reading so far is known by
+    // an id, its predecessor's with its last part, so telling two apart
+    // never rereads the whole chain.
+    final ids = <String, int>{};
     final seen = <String>{};
     final atPlace = <String, int>{};
     void add(
+      int previous,
       List<WordingCondition> parts,
       List<String> ops,
       List<(int, int)> spans,
       int end,
     ) {
+      final id = ids.putIfAbsent(
+        '$previous|${parts.last.stored}',
+        () => ids.length + 1,
+      );
       final place = '$end|${ops.toSet().join(',')}';
-      final reading = '$place|${[for (final p in parts) p.stored].join('|')}';
-      if (!seen.add(reading)) return;
+      if (!seen.add('$place|$id')) return;
       final count = atPlace.update(place, (n) => n + 1, ifAbsent: () => 1);
       if (count > 2) return;
-      frontier.add((parts: parts, ops: ops, spans: spans, end: end));
+      frontier.add((parts: parts, ops: ops, spans: spans, end: end, id: id));
     }
 
     for (final unit in _unit(at, keywordStart: keywordStart)) {
-      add([unit.condition], const [], [(at, unit.end)], unit.end);
+      add(0, [unit.condition], const [], [(at, unit.end)], unit.end);
     }
     while (frontier.isNotEmpty) {
       final state = frontier.removeLast();
@@ -1980,13 +1991,17 @@ final class _DisplayReader {
         final next = _skipSpace(andEnd ?? orEnd!);
         final units = _unit(next, keywordStart: keywordStart);
         for (final unit in units) {
-          add([...state.parts, unit.condition], [...state.ops, op], [
+          add(state.id, [...state.parts, unit.condition], [...state.ops, op], [
             ...state.spans,
             (next, unit.end),
           ], unit.end);
         }
         if (units.isEmpty) {
           _valueAfterConnective(state.parts.last, op, at, k, next);
+        } else {
+          // Read on: a reading ending before `and` or `or` can't be followed
+          // by `then` or `)`, so only the longer ones are read further.
+          continue;
         }
       }
       // The chain may also end here, before an `and` read as part of a
@@ -2097,11 +2112,34 @@ final class _DisplayReader {
       });
       return const [];
     }
-    final notEnd = _keyword(k, 'not');
-    if (notEnd != null) {
+    if (_keyword(k, 'not') != null) {
+      // A run of `not`s, read in a loop rather than one call each, and
+      // bounded as nesting is: the condition it builds is that deep.
+      var count = 0;
+      var after = k;
+      while (true) {
+        final end = _keyword(after, 'not');
+        if (end == null) break;
+        count++;
+        after = _skipSpace(end);
+      }
+      if (count > maxWordingNesting) {
+        _failAt(k, 5, WordingIssueCode.tooDeep, k, after, {
+          'max': '$maxWordingNesting',
+        });
+        return const [];
+      }
+      WordingCondition negate(WordingCondition condition) {
+        var negated = condition;
+        for (var i = 0; i < count; i++) {
+          negated = WordingNot(negated);
+        }
+        return negated;
+      }
+
       return [
-        for (final r in _unit(notEnd, keywordStart: keywordStart))
-          (condition: WordingNot(r.condition), end: r.end),
+        for (final r in _unit(after, keywordStart: keywordStart))
+          (condition: negate(r.condition), end: r.end),
       ];
     }
     if (text[k] == '!' && !text.startsWith('!=', k)) {

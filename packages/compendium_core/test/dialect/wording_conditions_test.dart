@@ -688,6 +688,49 @@ void main() {
       );
       expect(long.error?.code, WordingIssueCode.unknownValue);
       expect(watch.elapsedMilliseconds, lessThan(1000));
+
+      // A run of `not`s nests as deep as parentheses do.
+      expect(
+        checkWording('[if ${'not ' * 3000}style then x]', big).error?.code,
+        WordingIssueCode.tooDeep,
+      );
+      expect(
+        checkWording('[if ${'not ' * 60}style then x]', big).error,
+        isNull,
+      );
+      // A long chain is read in one pass, however long typing allows.
+      watch.reset();
+      final chain = checkWording(
+        '[if ${'style or ' * (wordingTypedLimit(big) ~/ 9 - 10)}style then x]',
+        big,
+      );
+      expect(chain.error?.code, WordingIssueCode.tooLongStored);
+      expect(watch.elapsedMilliseconds, lessThan(1000));
+      // Parentheses can't hide behind braces that aren't a slot.
+      final braces = renderer.userFigureWordingVocabulary(
+        UserFigureDefinition(
+          template: '{move}',
+          defaultBeats: 8,
+          params: [
+            UserFigureParam(
+              key: 'p',
+              kind: ParamKind.choice,
+              choices: const [
+                UserFigureChoice(id: 'b1', label: '{ok'),
+                UserFigureChoice(id: 'b2', label: 'x}'),
+              ],
+            ),
+          ],
+        ),
+        larks,
+      );
+      expect(
+        checkWording(
+          '[if p is {ok or ${'(' * 1000}p is x}${')' * 1000} then y]',
+          braces,
+        ).error?.code,
+        WordingIssueCode.tooDeep,
+      );
     });
 
     test('a plain group starting with "if", saved before conditions or '
