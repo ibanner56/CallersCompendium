@@ -71,8 +71,9 @@ abstract final class ParamOpposites {
   /// "other who" always offers the partner whichever neighbor was chosen.
   ///
   /// The swap is deliberately not an involution: `nextNeighbors` →
-  /// `partners` → `neighbors`. The renderer and importers keep using
-  /// [invertPairDancerSet], which still declines these tokens.
+  /// `partners` → `neighbors`. The renderer's other-pair wording and the
+  /// importers keep using [invertPairDancerSet], which still declines these
+  /// tokens. A custom figure's opposite slot (`{otherWho}`) renders this swap.
   static String? _dancerOpposite(String value) {
     if (value == 'partners') return 'neighbors';
     if (_neighborSeries.contains(value)) return 'partners';
