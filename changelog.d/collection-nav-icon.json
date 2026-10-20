@@ -1,0 +1,9 @@
+{
+  "id": "collection-nav-icon",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The Collection tab now uses a stack-of-cards icon, so it no longer looks like the Glossary's open book."
+    ]
+  }
+}

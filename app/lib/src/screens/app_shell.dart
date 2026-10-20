@@ -147,8 +147,8 @@ class AppShellState extends State<AppShell> {
   static ({IconData icon, IconData selectedIcon}) _icons(_Destination d) =>
       switch (d) {
         _Destination.collection => (
-          icon: Icons.auto_stories_outlined,
-          selectedIcon: Icons.auto_stories,
+          icon: Icons.style_outlined,
+          selectedIcon: Icons.style,
         ),
         _Destination.programs => (
           icon: Icons.event_note_outlined,
