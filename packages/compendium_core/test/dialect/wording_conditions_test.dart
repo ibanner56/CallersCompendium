@@ -531,6 +531,97 @@ void main() {
       larks,
     );
 
+    test('and stays quick however many of its words have two readings', () {
+      final mine = renderer.userFigureWordingVocabulary(
+        UserFigureDefinition(
+          template: '{move}',
+          defaultBeats: 8,
+          params: [
+            UserFigureParam(
+              key: 's',
+              kind: ParamKind.choice,
+              choices: const [
+                UserFigureChoice(id: 'a1', label: 'rock'),
+                UserFigureChoice(id: 'a2', label: 'rock and roll'),
+              ],
+            ),
+            UserFigureParam(key: 'roll', kind: ParamKind.flag),
+          ],
+        ),
+        larks,
+      );
+      final explicit = List.filled(
+        20,
+        '(s is in (rock and roll))',
+      ).join(' and ');
+      final plain = List.filled(20, 's is rock and roll').join(' and ');
+      final watch = Stopwatch()..start();
+      final stored = checkWording('[if $explicit then x]', mine).stored!;
+      expect(wordingForEditing(stored, mine), contains('rock and roll'));
+      expect(
+        checkWording('[if $plain then x]', mine).error?.code,
+        WordingIssueCode.ambiguous,
+      );
+      expect(watch.elapsedMilliseconds, lessThan(2000));
+    });
+
+    test('a label may start with a word conditions use, or hold a comma', () {
+      final mine = renderer.userFigureWordingVocabulary(
+        UserFigureDefinition(
+          template: '{move}',
+          defaultBeats: 8,
+          params: [
+            UserFigureParam(
+              key: 'style',
+              kind: ParamKind.choice,
+              choices: const [
+                UserFigureChoice(id: 'b1', label: 'then go'),
+                UserFigureChoice(id: 'b2', label: 'or roll'),
+                UserFigureChoice(id: 'b3', label: 'a, b'),
+                UserFigureChoice(id: 'b4', label: 'then'),
+              ],
+            ),
+          ],
+        ),
+        larks,
+      );
+      for (final stored in [
+        "[{?if style is in ('b1', 'b2')}x]",
+        "[{?if style is not 'b2'}x]",
+        "[{?if style is 'b3'}x]",
+        "[{?if style is 'b4'}x]",
+        "[{?if style is in ('b3', 'b4')}x]",
+      ]) {
+        final shown = wordingForEditing(stored, mine);
+        expect(checkWording(shown, mine).stored, stored, reason: shown);
+      }
+    });
+
+    test('a branch holding "else", as only an import can, reads back', () {
+      for (final stored in [
+        "[{?if roll}a else b]",
+        "[{?if roll}x{?else if roll}else y]",
+      ]) {
+        final shown = wordingForEditing(stored, mine);
+        final read = checkWording(shown, mine);
+        expect(read.error, isNull, reason: shown);
+        final assembled = assembleWordingNodes(
+          parseStoredWording(read.stored!)!,
+          (_) => '',
+          (_) => true,
+        ).text;
+        expect(
+          assembled,
+          assembleWordingNodes(
+            parseStoredWording(stored)!,
+            (_) => '',
+            (_) => true,
+          ).text,
+          reason: shown,
+        );
+      }
+    });
+
     test('even where its plain words would have two readings', () {
       for (final stored in [
         "[{?if style is 'a1' and roll}x]",

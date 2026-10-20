@@ -236,8 +236,9 @@ List<WordingNode>? parseStoredWording(String template) {
   return _storedCache[trimmed] = _StoredParser(trimmed).parse();
 }
 
-/// [nodes] and everything under them, unmodifiable: a cached tree is shared
-/// by every render that reads its template.
+/// [nodes] with every list of nodes under them unmodifiable: a cached tree is
+/// shared by every render that reads its template. Its conditions are never
+/// changed once read.
 List<WordingNode> _frozen(List<WordingNode> nodes) => List.unmodifiable([
   for (final node in nodes)
     switch (node) {
@@ -548,7 +549,10 @@ String _storedValue(Object value) =>
 /// value: it has several words, or is spelled like an operator.
 bool _needsList(String word) {
   final lower = word.trim().toLowerCase();
-  return lower.contains(' ') || lower == 'empty' || lower.startsWith('(');
+  return lower.contains(' ') ||
+      lower.contains(',') ||
+      lower.startsWith('(') ||
+      {'empty', 'not', 'in', 'and', 'or', 'then', 'else', 'is'}.contains(lower);
 }
 
 String _storedCondition(WordingCondition condition) => _conditionText(
@@ -1074,7 +1078,20 @@ String displayWordingText(
   WordingVocabulary vocabulary,
 ) {
   final out = StringBuffer();
-  void write(List<WordingNode> nodes) {
+  late final void Function(List<WordingNode>) write;
+  // A branch's words holding "else" (only an imported template can) go in
+  // brackets of their own, where "else" is wording: they read back as they
+  // were, and, holding no slot, are always shown.
+  void writeBranch(List<WordingNode> nodes) => write([
+    for (final node in nodes)
+      if (node is WordingText &&
+          _elseWord.hasMatch(node.text) &&
+          !_slotPlaceholder.hasMatch(node.text))
+        WordingGroup([node])
+      else
+        node,
+  ]);
+  write = (nodes) {
     for (final node in nodes) {
       switch (node) {
         case WordingText(:final text):
@@ -1091,16 +1108,16 @@ String displayWordingText(
               readableWordingCondition(branches[b].condition, vocabulary),
             );
             out.write(' then ');
-            write(branches[b].children);
+            writeBranch(branches[b].children);
           }
           if (otherwise != null) {
             out.write(' else ');
-            write(otherwise);
+            writeBranch(otherwise);
           }
           out.write(']');
       }
     }
-  }
+  };
 
   write(nodes);
   return out.toString();
@@ -1207,6 +1224,10 @@ final RegExp _conditionShape = RegExp(
 );
 final RegExp _firstWord = RegExp(r'\w+');
 final RegExp _spaces = RegExp(r'\s+');
+final RegExp _elseWord = RegExp(
+  r"(^|[^\w'’])else($|[^\w'’])",
+  caseSensitive: false,
+);
 final RegExp _orBetween = RegExp(r'\s+or\s+', caseSensitive: false);
 
 bool _isWordChar(String char) {
@@ -1803,13 +1824,28 @@ final class _DisplayReader {
             int end,
           })
         >[];
+    // Two readings that reach the same place with the same connectives stay
+    // two however the chain goes on, which is all a refusal needs: keep at
+    // most two there, and the reading stays linear however many of a
+    // chain's words could be read two ways.
+    final seen = <String>{};
+    final atPlace = <String, int>{};
+    void add(
+      List<WordingCondition> parts,
+      List<String> ops,
+      List<(int, int)> spans,
+      int end,
+    ) {
+      final place = '$end|${ops.toSet().join(',')}';
+      final reading = '$place|${[for (final p in parts) p.stored].join('|')}';
+      if (!seen.add(reading)) return;
+      final count = atPlace.update(place, (n) => n + 1, ifAbsent: () => 1);
+      if (count > 2) return;
+      frontier.add((parts: parts, ops: ops, spans: spans, end: end));
+    }
+
     for (final unit in _unit(at, keywordStart: keywordStart)) {
-      frontier.add((
-        parts: [unit.condition],
-        ops: [],
-        spans: [(at, unit.end)],
-        end: unit.end,
-      ));
+      add([unit.condition], const [], [(at, unit.end)], unit.end);
     }
     while (frontier.isNotEmpty) {
       final state = frontier.removeLast();
@@ -1821,12 +1857,10 @@ final class _DisplayReader {
         final next = _skipSpace(andEnd ?? orEnd!);
         final units = _unit(next, keywordStart: keywordStart);
         for (final unit in units) {
-          frontier.add((
-            parts: [...state.parts, unit.condition],
-            ops: [...state.ops, op],
-            spans: [...state.spans, (next, unit.end)],
-            end: unit.end,
-          ));
+          add([...state.parts, unit.condition], [...state.ops, op], [
+            ...state.spans,
+            (next, unit.end),
+          ], unit.end);
         }
         if (units.isEmpty) {
           _valueAfterConnective(state.parts.last, op, at, k, next);
@@ -2178,7 +2212,11 @@ final class _DisplayReader {
       }
     }
 
-    if (k >= text.length || text[k] == ']' || _keyword(k, 'then') != null) {
+    if (k >= text.length ||
+        text[k] == ']' ||
+        (_keyword(k, 'then') != null &&
+            (info.kind != WordingNameKind.choices ||
+                _valueAt(info, k) == null))) {
       switch (info.kind) {
         case WordingNameKind.flag:
           _flagCompare(info, nameStart);
@@ -2475,14 +2513,23 @@ final class _DisplayReader {
     }
     final results = <_Reading>[];
     final frontier = <({List<Object> values, int at})>[(values: [], at: first)];
+    // As in a chain ([_condition]): at most two lists reach each place.
+    final seen = <String>{};
+    final atPlace = <int, int>{};
     while (frontier.isNotEmpty) {
       final state = frontier.removeLast();
       final valueAt = _skipSpace(state.at);
       final ends = <({Object value, int end})>[];
-      if (valueAt >= text.length ||
-          text[valueAt] == ')' ||
-          text[valueAt] == ']' ||
-          _structuralWords.any((w) => _keyword(valueAt, w) != null)) {
+      // A value is looked for first: its words may begin with "then" or
+      // "and", or hold a comma.
+      final words = info.kind == WordingNameKind.choices
+          ? _valueAt(info, valueAt)
+          : null;
+      if (words == null &&
+          (valueAt >= text.length ||
+              text[valueAt] == ')' ||
+              text[valueAt] == ']' ||
+              _structuralWords.any((w) => _keyword(valueAt, w) != null))) {
         _failAt(
           valueAt,
           2,
@@ -2502,7 +2549,7 @@ final class _DisplayReader {
         final number = _numberAt(info, valueAt, 'is in');
         if (number != null) ends.add(number);
       } else {
-        final values = _valueAt(info, valueAt);
+        final values = words;
         if (values == null) {
           _unknownValue(
             info,
@@ -2518,7 +2565,15 @@ final class _DisplayReader {
         final values = [...state.values, value.value];
         final next = _skipSpace(value.end);
         if (next < text.length && text[next] == ',') {
-          frontier.add((values: values, at: next + 1));
+          final key = '${next + 1}|${values.join('|')}';
+          final count = atPlace.update(
+            next + 1,
+            (n) => n + 1,
+            ifAbsent: () => 1,
+          );
+          if (seen.add(key) && count <= 2) {
+            frontier.add((values: values, at: next + 1));
+          }
           continue;
         }
         if (next < text.length && text[next] == ')') {
