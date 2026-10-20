@@ -17,6 +17,7 @@ import '../../glossary/custom_figures.dart';
 import '../../glossary/figure_titles.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/sync_now_action.dart';
 import 'compound_editor_screen.dart';
 import 'custom_figure_detail.dart';
 
@@ -365,6 +366,9 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       appBar: AppBar(
         title: Text(l10n.glossaryTitle),
         actions: [
+          // Same Sync now entry as the Collection and Programs bars; renders
+          // nothing unless Device Sync is on and paired.
+          const SyncNowAction(),
           if (canAdd)
             IconButton(
               key: const ValueKey('glossary-add-custom'),
