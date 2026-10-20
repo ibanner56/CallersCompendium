@@ -9948,4 +9948,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String wordingIssueTooDeep(String max) {
     return 'この文言は角かっこや丸かっこを入れ子にしすぎています。入れ子にできるのは $max 段までです。いくつか外してください。';
   }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'この条件は「not」を入れ子にしすぎています。入れ子にできるのは $max 個までです。いくつか外してください。「not」が二つ続くと打ち消し合います。';
+  }
 }

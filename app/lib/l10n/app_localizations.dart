@@ -15398,6 +15398,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This wording puts too many square brackets or parentheses inside each other: at most {max} can be nested. Take some out.'**
   String wordingIssueTooDeep(String max);
+
+  /// A condition nests not deeper than allowed. The word not is the wording language's own: keep it in English.
+  ///
+  /// In en, this message translates to:
+  /// **'This condition puts too many “not”s inside each other: at most {max}. Take some out: two “not”s in a row cancel out.'**
+  String wordingIssueTooManyNots(String max);
 }
 
 class _AppLocalizationsDelegate

@@ -13864,5 +13864,15 @@
         "example": "64"
       }
     }
+  },
+  "wordingIssueTooManyNots": "This condition puts too many “not”s inside each other: at most {max}. Take some out: two “not”s in a row cancel out.",
+  "@wordingIssueTooManyNots": {
+    "description": "A condition nests not deeper than allowed. The word not is the wording language's own: keep it in English.",
+    "placeholders": {
+      "max": {
+        "type": "String",
+        "example": "64"
+      }
+    }
   }
 }

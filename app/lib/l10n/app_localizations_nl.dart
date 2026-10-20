@@ -10420,4 +10420,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String wordingIssueTooDeep(String max) {
     return 'Deze formulering zet te veel vierkante haken of haakjes in elkaar: er kunnen er hoogstens $max genest worden. Haal er een paar weg.';
   }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'Deze voorwaarde zet te veel “not” in elkaar: hoogstens $max. Haal er een paar weg: twee “not” achter elkaar heffen elkaar op.';
+  }
 }

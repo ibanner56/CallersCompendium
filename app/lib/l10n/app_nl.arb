@@ -10133,5 +10133,9 @@
   "wordingIssueTooDeep": "Deze formulering zet te veel vierkante haken of haakjes in elkaar: er kunnen er hoogstens {max} genest worden. Haal er een paar weg.",
   "@wordingIssueTooDeep": {
     "x-sourceSha256": "9d7d7eed4f024611e17e2c8226d389131d0769b5826fcfb6592f076acf7bc6e7"
+  },
+  "wordingIssueTooManyNots": "Deze voorwaarde zet te veel “not” in elkaar: hoogstens {max}. Haal er een paar weg: twee “not” achter elkaar heffen elkaar op.",
+  "@wordingIssueTooManyNots": {
+    "x-sourceSha256": "01701d08cac6833aa29659a76104a098da7401e0401541a1573e918f0c897c82"
   }
 }

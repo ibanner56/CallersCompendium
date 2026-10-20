@@ -692,7 +692,17 @@ void main() {
       // A run of `not`s nests as deep as parentheses do.
       expect(
         checkWording('[if ${'not ' * 3000}style then x]', big).error?.code,
-        WordingIssueCode.tooDeep,
+        WordingIssueCode.tooManyNots,
+      );
+      // Only nested `not`s count: "not" in wording, or in conditions side by
+      // side, doesn't.
+      expect(checkWording('${'do not ' * 65}{move}', big).error, isNull);
+      expect(
+        checkWording(
+          List.filled(3, '[if ${'not ' * 22}style then x]').join(' '),
+          big,
+        ).error,
+        isNull,
       );
       expect(
         checkWording('[if ${'not ' * 60}style then x]', big).error,
@@ -704,8 +714,12 @@ void main() {
           '[if ${'(${'not ' * 10}' * 30}style${')' * 30} then x]',
           big,
         ).error?.code,
-        WordingIssueCode.tooDeep,
+        WordingIssueCode.tooManyNots,
       );
+      // Braces that aren't slots are counted in one pass.
+      watch.reset();
+      checkWording('${'{' * (wordingTypedLimit(big) - 2)}}', big);
+      expect(watch.elapsedMilliseconds, lessThan(1000));
       // A long chain is read in one pass, however long typing allows.
       watch.reset();
       final chain = checkWording(

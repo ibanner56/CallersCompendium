@@ -10133,5 +10133,9 @@
   "wordingIssueTooDeep": "Denne formulering sætter for mange firkantede parenteser eller parenteser inden i hinanden: højst {max} kan indlejres. Fjern nogle.",
   "@wordingIssueTooDeep": {
     "x-sourceSha256": "9d7d7eed4f024611e17e2c8226d389131d0769b5826fcfb6592f076acf7bc6e7"
+  },
+  "wordingIssueTooManyNots": "Denne betingelse sætter for mange “not” inden i hinanden: højst {max}. Fjern nogle: to “not” i træk ophæver hinanden.",
+  "@wordingIssueTooManyNots": {
+    "x-sourceSha256": "01701d08cac6833aa29659a76104a098da7401e0401541a1573e918f0c897c82"
   }
 }

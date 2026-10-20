@@ -10348,4 +10348,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String wordingIssueTooDeep(String max) {
     return 'Denne formulering sætter for mange firkantede parenteser eller parenteser inden i hinanden: højst $max kan indlejres. Fjern nogle.';
   }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'Denne betingelse sætter for mange “not” inden i hinanden: højst $max. Fjern nogle: to “not” i træk ophæver hinanden.';
+  }
 }

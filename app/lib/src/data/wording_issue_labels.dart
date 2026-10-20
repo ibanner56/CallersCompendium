@@ -39,6 +39,7 @@ String wordingIssueMessage(AppLocalizations l10n, WordingIssue issue) {
     WordingIssueCode.tooLongStored => l10n.wordingIssueTooLongStored(d('max')),
     WordingIssueCode.tooLongTyped => l10n.wordingIssueTooLongTyped(d('max')),
     WordingIssueCode.tooDeep => l10n.wordingIssueTooDeep(d('max')),
+    WordingIssueCode.tooManyNots => l10n.wordingIssueTooManyNots(d('max')),
     WordingIssueCode.missingCondition => l10n.wordingIssueMissingCondition(
       d('word'),
       d('example'),

@@ -10479,4 +10479,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String wordingIssueTooDeep(String max) {
     return 'Cette formulation met trop de crochets ou de parenthèses les uns dans les autres : on peut en imbriquer $max au plus. Retirez-en.';
   }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'Cette condition met trop de « not » les uns dans les autres : $max au plus. Retirez-en : deux « not » qui se suivent s’annulent.';
+  }
 }

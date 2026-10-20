@@ -10463,4 +10463,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String wordingIssueTooDeep(String max) {
     return 'Dieser Wortlaut verschachtelt zu viele eckige oder runde Klammern ineinander: Höchstens $max lassen sich verschachteln. Entferne einige.';
   }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'Diese Bedingung verschachtelt zu viele „not“ ineinander: höchstens $max. Entferne einige: Zwei „not“ hintereinander heben sich auf.';
+  }
 }

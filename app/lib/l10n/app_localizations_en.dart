@@ -10304,4 +10304,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String wordingIssueTooDeep(String max) {
     return 'This wording puts too many square brackets or parentheses inside each other: at most $max can be nested. Take some out.';
   }
+
+  @override
+  String wordingIssueTooManyNots(String max) {
+    return 'This condition puts too many “not”s inside each other: at most $max. Take some out: two “not”s in a row cancel out.';
+  }
 }

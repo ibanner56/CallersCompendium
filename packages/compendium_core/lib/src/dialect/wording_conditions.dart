@@ -932,6 +932,7 @@ enum WordingIssueCode {
   tooLongStored,
   tooLongTyped,
   tooDeep,
+  tooManyNots,
   // Conditions.
   missingCondition,
   missingThen,
@@ -1043,26 +1044,6 @@ int wordingTypedLimit(WordingVocabulary vocabulary) {
 /// other.
 const int maxWordingNesting = 64;
 
-/// How many times [text] holds the word "not", as the reader finds it: the
-/// most a condition can be negated inside another, however its `not`s sit
-/// between parentheses.
-int _notCount(String text) {
-  var count = 0;
-  for (
-    var i = text.indexOf(_notPrefix);
-    i >= 0;
-    i = text.indexOf(_notPrefix, i + 1)
-  ) {
-    if ((i == 0 || !_isWordChar(text[i - 1])) &&
-        (i + 3 == text.length || !_isWordChar(text[i + 3]))) {
-      count++;
-    }
-  }
-  return count;
-}
-
-final RegExp _notPrefix = RegExp('not', caseSensitive: false);
-
 /// How deep [text] nests square brackets and parentheses, slots skipped.
 int _nestingDepth(String text) {
   var depth = 0;
@@ -1071,10 +1052,8 @@ int _nestingDepth(String text) {
     final char = text[i];
     if (char == '{') {
       // A slot, as the reader takes one; any other brace is counted through.
-      final close = text.indexOf('}', i);
-      if (close >= 0 && _slotName.hasMatch(text.substring(i + 1, close))) {
-        i = close;
-      }
+      final slot = _slotPlaceholder.matchAsPrefix(text, i);
+      if (slot != null) i = slot.end - 1;
     } else if (char == '[' || char == '(') {
       depth++;
       if (depth > deepest) deepest = depth;
@@ -1244,10 +1223,10 @@ WordingCheck checkWording(String text, WordingVocabulary vocabulary) {
       }),
     ]);
   }
-  // Nested deeper than any wording needs: refused before reading, as a run of
-  // `not`s is while reading, so the reader never runs out of stack.
-  if (_nestingDepth(text) > maxWordingNesting ||
-      _notCount(text) > maxWordingNesting) {
+  // Nested deeper than any wording needs: refused before reading, as `not`s
+  // nested too deep are while reading ([_DisplayReader._negations]), so the
+  // reader never runs out of stack.
+  if (_nestingDepth(text) > maxWordingNesting) {
     return WordingCheck(null, [
       WordingIssue(WordingIssueCode.tooDeep, 0, text.length, {
         'max': '$maxWordingNesting',
@@ -2121,6 +2100,10 @@ final class _DisplayReader {
   /// nested in a chain that reads two ways stay linear too.
   final Map<int, List<_Reading>> _units = {};
 
+  /// How many `not`s enclose the unit being read: the depth of negation the
+  /// reading builds, bounded so writing it never runs out of stack.
+  int _negations = 0;
+
   List<_Reading> _unit(int at, {required int keywordStart}) =>
       _units[at] ??= _readUnit(at, keywordStart: keywordStart);
 
@@ -2144,8 +2127,11 @@ final class _DisplayReader {
         count++;
         after = _skipSpace(end);
       }
-      if (count > maxWordingNesting) {
-        _failAt(k, 5, WordingIssueCode.tooDeep, k, after, {
+      // Bounded by the depth it builds, the `not`s around this one
+      // included: which `not`s enclose a place depends only on the text
+      // before it, so a memoized unit is read at one depth.
+      if (_negations + count > maxWordingNesting) {
+        _failAt(k, 5, WordingIssueCode.tooManyNots, k, after, {
           'max': '$maxWordingNesting',
         });
         return const [];
@@ -2158,10 +2144,15 @@ final class _DisplayReader {
         return negated;
       }
 
-      return [
-        for (final r in _unit(after, keywordStart: keywordStart))
-          (condition: negate(r.condition), end: r.end),
-      ];
+      _negations += count;
+      try {
+        return [
+          for (final r in _unit(after, keywordStart: keywordStart))
+            (condition: negate(r.condition), end: r.end),
+        ];
+      } finally {
+        _negations -= count;
+      }
     }
     if (text[k] == '!' && !text.startsWith('!=', k)) {
       final rest = _skipSpace(k + 1);

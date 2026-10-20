@@ -215,8 +215,8 @@ session for this change; the PR that adds it lists each one as he made it.
   to the stored form once the wording is edited, so one at the 512 cap may
   need shortening then. Brackets or parentheses nested deeper than
   `maxWordingNesting` (64), counted through any brace that isn't a slot, and
-  a run of more `not`s than that, are refused: the reader never needs more
-  stack than that depth. Renaming or swapping role or dancer words in the
+  `not`s negating one another deeper than that, are refused, each with a
+  message of its own: the reader never needs more stack than that depth. Renaming or swapping role or dancer words in the
   dialect editor, or a choice's label in a figure's editor, shows each
   wording again in the new words from what it last read as, so it keeps its
   meaning. A condition
