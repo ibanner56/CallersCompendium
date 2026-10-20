@@ -9858,6 +9858,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'En kombination bliver til indbyggede figurer, når en dans gemmes. En ny figur forbliver én figur med din egen ordlyd. Et begreb er et ord, du selv definerer, uden figur; du kan give det en senere.';
 
   @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      'En kombination bliver til indbyggede figurer, når en dans gemmes. En ny figur forbliver én figur med din egen ordlyd.';
+
+  @override
   String get glossaryEntryKindCombination => 'Kombination';
 
   @override

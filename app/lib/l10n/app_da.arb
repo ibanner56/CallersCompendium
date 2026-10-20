@@ -9722,6 +9722,10 @@
   "@glossaryEntryKindHelp": {
     "x-sourceSha256": "15b0b15d966bd8e76d6b6c189c7c7f944e5d5957ebc837d1da8914d608015536"
   },
+  "glossaryEntryKindHelpFiguresOnly": "En kombination bliver til indbyggede figurer, når en dans gemmes. En ny figur forbliver én figur med din egen ordlyd.",
+  "@glossaryEntryKindHelpFiguresOnly": {
+    "x-sourceSha256": "88207860515a937eaa3a035c86ca465d2bed902bfad7e051fec78ff656096f5f"
+  },
   "glossaryEntryKindCombination": "Kombination",
   "@glossaryEntryKindCombination": {
     "x-sourceSha256": "51f9b3e644ea5a1c653b79e21b43ff1e8547edf3e9ad63d87a08ee77afa51387"

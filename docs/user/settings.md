@@ -613,7 +613,8 @@ The Glossary lists them too, when it is shown. While it is on:
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
   come with the app when you save a dance, a **New figure**, which stays
-  one figure with your own wording, or a **Term**. An entry keeps the kind it
+  one figure with your own wording, or, when you add from the Glossary, a
+  **Term**. An entry keeps the kind it
   was saved with, except that a term can be given a figure: select it and
   choose **Make it a figure** to give it wording and parameters as a new
   figure. It keeps its name and other fields, and can't be turned back into a

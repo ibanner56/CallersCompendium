@@ -14744,6 +14744,12 @@ abstract class AppLocalizations {
   /// **'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording. A term is a word you define, with no figure; you can give it one later.'**
   String get glossaryEntryKindHelp;
 
+  /// Explains the choice between a combination and a new figure, where a term is not offered (adding from the Custom Figures screen).
+  ///
+  /// In en, this message translates to:
+  /// **'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.'**
+  String get glossaryEntryKindHelpFiguresOnly;
+
   /// Choice for an entry that expands into built-in figures (a compound).
   ///
   /// In en, this message translates to:

@@ -126,6 +126,7 @@ void main() {
       find.descendant(of: kinds, matching: find.text('Term')),
       findsNothing,
     );
+    expect(find.textContaining('A term is a word'), findsNothing);
   });
 
   testWidgets('Custom Figures needs only its own setting, not the Glossary', (

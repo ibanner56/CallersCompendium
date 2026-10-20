@@ -9987,6 +9987,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une combinaison devient des figures intégrées quand une danse est enregistrée. Une nouvelle figure reste une seule figure, avec votre propre formulation. Un terme est un mot que vous définissez, sans figure ; vous pourrez lui en donner une plus tard.';
 
   @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      'Une combinaison devient des figures intégrées quand une danse est enregistrée. Une nouvelle figure reste une seule figure, avec votre propre formulation.';
+
+  @override
   String get glossaryEntryKindCombination => 'Combinaison';
 
   @override

@@ -9815,6 +9815,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording. A term is a word you define, with no figure; you can give it one later.';
 
   @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.';
+
+  @override
   String get glossaryEntryKindCombination => 'Combination';
 
   @override

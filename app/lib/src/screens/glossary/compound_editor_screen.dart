@@ -1136,7 +1136,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                 !widget.termsOnly) ...[
               heading(
                 l10n.glossaryEntryKindHeading,
-                l10n.glossaryEntryKindHelp,
+                widget.figuresOnly
+                    ? l10n.glossaryEntryKindHelpFiguresOnly
+                    : l10n.glossaryEntryKindHelp,
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),

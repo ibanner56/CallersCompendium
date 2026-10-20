@@ -12901,6 +12901,10 @@
   "@glossaryEntryKindHelp": {
     "description": "Explains the choice between a combination, a new figure and a term."
   },
+  "glossaryEntryKindHelpFiguresOnly": "A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.",
+  "@glossaryEntryKindHelpFiguresOnly": {
+    "description": "Explains the choice between a combination and a new figure, where a term is not offered (adding from the Custom Figures screen)."
+  },
   "glossaryEntryKindCombination": "Combination",
   "@glossaryEntryKindCombination": {
     "description": "Choice for an entry that expands into built-in figures (a compound)."

@@ -9928,6 +9928,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering. Een term is een woord dat je zelf definieert, zonder figuur; je kunt er later een figuur aan geven.';
 
   @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      'Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering.';
+
+  @override
   String get glossaryEntryKindCombination => 'Combinatie';
 
   @override

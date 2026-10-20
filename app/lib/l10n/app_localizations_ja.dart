@@ -9467,6 +9467,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '組み合わせは、ダンスを保存すると組み込みのフィギュアになります。新しいフィギュアは、あなた自身の文言を持つ一つのフィギュアのままです。用語は、フィギュアを持たない、あなたが定義する言葉です。後からフィギュアを与えることができます。';
 
   @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      '組み合わせは、ダンスを保存すると組み込みのフィギュアになります。新しいフィギュアは、あなた自身の文言を持つ一つのフィギュアのままです。';
+
+  @override
   String get glossaryEntryKindCombination => '組み合わせ';
 
   @override

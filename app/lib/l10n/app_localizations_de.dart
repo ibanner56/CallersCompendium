@@ -9971,6 +9971,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine Kombination wird beim Speichern eines Tanzes zu eingebauten Figuren. Eine neue Figur bleibt eine eigene Figur, mit deinem eigenen Wortlaut. Ein Begriff ist ein Wort, das du selbst definierst, ohne Figur; du kannst ihm später eine geben.';
 
   @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      'Eine Kombination wird beim Speichern eines Tanzes zu eingebauten Figuren. Eine neue Figur bleibt eine eigene Figur, mit deinem eigenen Wortlaut.';
+
+  @override
   String get glossaryEntryKindCombination => 'Kombination';
 
   @override
