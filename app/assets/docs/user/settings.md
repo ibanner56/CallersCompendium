@@ -705,7 +705,10 @@ figures sync to your other devices too, once every device connected to your
 store has this version of the app or a later one. Until then changes to them
 aren't sent to your other devices, and Device Sync shows a note naming the
 device that is holding them back (see [New kinds of data wait for every
-device](#new-kinds-of-data-wait-for-every-device)).
+device](#new-kinds-of-data-wait-for-every-device)). One exception, while the app
+is in beta: a figure or term saved with **More Details** left blank, or an edit
+that clears it, isn't picked up by a device on an older version of the app,
+which keeps what it had until it is updated.
 
 Your figures and your notes on built-in figures share a size limit, which
 keeps what you add from growing too large to back up. It is far more than most
