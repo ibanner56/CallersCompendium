@@ -10474,4 +10474,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String wordingIssueTooLongTyped(String max) {
     return 'Cette formulation est trop longue pour être lue : elle dépasse $max caractères telle que tapée. Raccourcissez-la.';
   }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'Cette formulation met trop de crochets ou de parenthèses les uns dans les autres : on peut en imbriquer $max au plus. Retirez-en.';
+  }
 }

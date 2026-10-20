@@ -10129,5 +10129,9 @@
   "wordingIssueTooLongTyped": "Dieser Wortlaut ist zu lang zum Lesen: Getippt hat er mehr als {max} Zeichen. Kürze ihn.",
   "@wordingIssueTooLongTyped": {
     "x-sourceSha256": "414a08da598da5efc8a9932c58450b1a53cd1077f740b44e56b2d2c50ad38d25"
+  },
+  "wordingIssueTooDeep": "Dieser Wortlaut verschachtelt zu viele eckige oder runde Klammern ineinander: Höchstens {max} lassen sich verschachteln. Entferne einige.",
+  "@wordingIssueTooDeep": {
+    "x-sourceSha256": "9d7d7eed4f024611e17e2c8226d389131d0769b5826fcfb6592f076acf7bc6e7"
   }
 }

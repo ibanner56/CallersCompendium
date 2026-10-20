@@ -9943,4 +9943,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String wordingIssueTooLongTyped(String max) {
     return 'この文言は長すぎて読み取れません。入力した文字数が $max 文字を超えています。短くしてください。';
   }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'この文言は角かっこや丸かっこを入れ子にしすぎています。入れ子にできるのは $max 段までです。いくつか外してください。';
+  }
 }

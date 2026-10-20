@@ -44,6 +44,7 @@ void main() {
     WordingIssueCode.conditionInBraces: ['FOUND', 'FIX'],
     WordingIssueCode.tooLongStored: ['MAX'],
     WordingIssueCode.tooLongTyped: ['MAX'],
+    WordingIssueCode.tooDeep: ['MAX'],
     WordingIssueCode.missingCondition: ['WORD', 'EXAMPLE'],
     WordingIssueCode.missingThen: ['CONDITION'],
     WordingIssueCode.colonForThen: ['CONDITION'],

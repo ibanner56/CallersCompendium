@@ -15392,6 +15392,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This wording is too long to read: it’s over {max} characters as typed. Shorten it.'**
   String wordingIssueTooLongTyped(String max);
+
+  /// A wording nests brackets or parentheses deeper than allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording puts too many square brackets or parentheses inside each other: at most {max} can be nested. Take some out.'**
+  String wordingIssueTooDeep(String max);
 }
 
 class _AppLocalizationsDelegate

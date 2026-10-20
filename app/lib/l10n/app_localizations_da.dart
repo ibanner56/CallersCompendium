@@ -10343,4 +10343,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String wordingIssueTooLongTyped(String max) {
     return 'Denne formulering er for lang til at blive læst: som skrevet er den over $max tegn. Gør den kortere.';
   }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'Denne formulering sætter for mange firkantede parenteser eller parenteser inden i hinanden: højst $max kan indlejres. Fjern nogle.';
+  }
 }

@@ -13854,5 +13854,15 @@
         "example": "6464"
       }
     }
+  },
+  "wordingIssueTooDeep": "This wording puts too many square brackets or parentheses inside each other: at most {max} can be nested. Take some out.",
+  "@wordingIssueTooDeep": {
+    "description": "A wording nests brackets or parentheses deeper than allowed.",
+    "placeholders": {
+      "max": {
+        "type": "String",
+        "example": "64"
+      }
+    }
   }
 }

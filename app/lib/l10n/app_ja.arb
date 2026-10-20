@@ -10129,5 +10129,9 @@
   "wordingIssueTooLongTyped": "この文言は長すぎて読み取れません。入力した文字数が {max} 文字を超えています。短くしてください。",
   "@wordingIssueTooLongTyped": {
     "x-sourceSha256": "414a08da598da5efc8a9932c58450b1a53cd1077f740b44e56b2d2c50ad38d25"
+  },
+  "wordingIssueTooDeep": "この文言は角かっこや丸かっこを入れ子にしすぎています。入れ子にできるのは {max} 段までです。いくつか外してください。",
+  "@wordingIssueTooDeep": {
+    "x-sourceSha256": "9d7d7eed4f024611e17e2c8226d389131d0769b5826fcfb6592f076acf7bc6e7"
   }
 }

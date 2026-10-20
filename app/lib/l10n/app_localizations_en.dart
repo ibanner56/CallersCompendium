@@ -10299,4 +10299,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String wordingIssueTooLongTyped(String max) {
     return 'This wording is too long to read: it’s over $max characters as typed. Shorten it.';
   }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'This wording puts too many square brackets or parentheses inside each other: at most $max can be nested. Take some out.';
+  }
 }

@@ -10458,4 +10458,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String wordingIssueTooLongTyped(String max) {
     return 'Dieser Wortlaut ist zu lang zum Lesen: Getippt hat er mehr als $max Zeichen. Kürze ihn.';
   }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'Dieser Wortlaut verschachtelt zu viele eckige oder runde Klammern ineinander: Höchstens $max lassen sich verschachteln. Entferne einige.';
+  }
 }

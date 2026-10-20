@@ -10415,4 +10415,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String wordingIssueTooLongTyped(String max) {
     return 'Deze formulering is te lang om te lezen: getypt is ze langer dan $max tekens. Maak haar korter.';
   }
+
+  @override
+  String wordingIssueTooDeep(String max) {
+    return 'Deze formulering zet te veel vierkante haken of haakjes in elkaar: er kunnen er hoogstens $max genest worden. Haal er een paar weg.';
+  }
 }
