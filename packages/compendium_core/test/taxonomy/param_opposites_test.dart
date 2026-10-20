@@ -216,8 +216,9 @@ void main() {
   test('paired dancers reuse the single pair-inversion source', () {
     for (final who in ParamVocab.dancerSets) {
       // The partner/neighbor swap is the one deliberate departure.
-      if (who == 'partners' || who.toLowerCase().endsWith('neighbors'))
+      if (who == 'partners' || who.toLowerCase().endsWith('neighbors')) {
         continue;
+      }
       expect(
         ParamOpposites.of(ParamKind.dancerSet, who),
         invertPairDancerSet(who),
