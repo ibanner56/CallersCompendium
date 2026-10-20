@@ -62,6 +62,7 @@ class CompoundEditorScreen extends StatefulWidget {
     super.key,
     this.initial,
     this.termsOnly = false,
+    this.figuresOnly = false,
     this.convertToFigure = false,
     this.copyOf,
   }) : assert(
@@ -75,6 +76,10 @@ class CompoundEditorScreen extends StatefulWidget {
   /// A new entry can only be a term: Custom Figures is off, and a term needs
   /// only the Glossary (#1023, maintainer decision 9).
   final bool termsOnly;
+
+  /// A new entry cannot be a term: the screen is the Custom Figures one,
+  /// which lists no terms and so could not show one saved here.
+  final bool figuresOnly;
 
   /// Gives the term [initial] a figure: it is saved as a new figure under
   /// the same id and creation time, with its glossary fields as they are
@@ -1136,10 +1141,11 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                       value: UserGlossaryEntryKind.customFigure,
                       label: Text(l10n.glossaryEntryKindNewFigure),
                     ),
-                    ButtonSegment(
-                      value: UserGlossaryEntryKind.term,
-                      label: Text(l10n.glossaryEntryKindTerm),
-                    ),
+                    if (!widget.figuresOnly)
+                      ButtonSegment(
+                        value: UserGlossaryEntryKind.term,
+                        label: Text(l10n.glossaryEntryKindTerm),
+                      ),
                   ],
                   selected: {_kind},
                   onSelectionChanged: (kinds) {

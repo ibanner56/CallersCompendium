@@ -603,8 +603,9 @@ its **Source** as the file had it.
 **Custom Figures** lets you make your own figures and use them in dances. It
 is **off by default**, and it doesn't need Show Glossary: with the Glossary
 hidden you can still turn it on, and use your figures everywhere. While it is
-on, a **Your figures** row appears under the switch; open it to see your
-figures, choose **+** to add one, or select one to **Edit** or **Delete** it.
+on, the **Your figures** row under the switch opens them: see your figures,
+choose **+** to add one, or select one to **Edit** or **Delete** it. The row
+is greyed out while Custom Figures is off.
 The Glossary lists them too, when it is shown. While it is on:
 
 - Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name and a

@@ -71,7 +71,9 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
 
   Future<void> _add(BuildContext context) async {
     await Navigator.of(context).push<UserGlossaryEntry>(
-      MaterialPageRoute(builder: (_) => const CompoundEditorScreen()),
+      MaterialPageRoute(
+        builder: (_) => const CompoundEditorScreen(figuresOnly: true),
+      ),
     );
   }
 

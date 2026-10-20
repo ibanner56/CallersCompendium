@@ -112,6 +112,22 @@ void main() {
     expect(find.byType(CompoundEditorScreen), findsOneWidget);
   });
 
+  testWidgets('+ offers figures only: a term would be hidden with the '
+      'Glossary off', (tester) async {
+    await pump(tester);
+    await tester.tap(find.byKey(const ValueKey('custom-figures-add')));
+    await tester.pumpAndSettle();
+    final kinds = find.byKey(const ValueKey('glossary-entry-kind'));
+    expect(
+      find.descendant(of: kinds, matching: find.text('New figure')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: kinds, matching: find.text('Term')),
+      findsNothing,
+    );
+  });
+
   testWidgets('Custom Figures needs only its own setting, not the Glossary', (
     tester,
   ) async {

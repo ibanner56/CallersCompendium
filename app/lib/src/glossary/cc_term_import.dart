@@ -33,8 +33,9 @@ class CcTermDraft {
   final String? notes;
   final String? source;
 
-  /// Whether it has every field a glossary entry needs (#709): a name, a
-  /// definition and a description.
+  /// Whether it has every field the importer requires: a name, a definition
+  /// and a description. A glossary entry itself allows an empty description;
+  /// this is the importer's own rule, which fills it from the definition.
   bool get complete =>
       name.trim().isNotEmpty &&
       definition.trim().isNotEmpty &&

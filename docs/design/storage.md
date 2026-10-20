@@ -711,7 +711,8 @@ database already carries it. The steps that can still fire are v36 onward.
 - v40 (issue #709): adds two tables for the user's own glossary.
   `user_glossary_entries` holds every kind of user entry in one table, keyed
   by a UUID `id`: `kind` (`compound`, #709; `customFigure` and `term`,
-  #1023), the required `name`, `definition` and `description`,
+  #1023), the required `name` and `definition`, and `description` (shown to the user as
+  "More Details"; required text until it became optional, so it may be empty),
   `keywords_json` (a JSON array of strings, default `[]`), nullable `notes`,
   nullable `payload_json` (the kind's payload: a compound's definition, a
   figure of your own's definition, or a term's dance form and source citation), and
