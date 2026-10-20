@@ -173,7 +173,7 @@ implementation notes and deviations against each item — is in
         [Imports & migration](user/imports.md)). User-added terms and
         figures sync behind `glossary.v2` (#1876). This was the last
         unmapped CC table for 6.5, so every table in this item is now
-        mapped. The maintainer has called 6.5 done.
+        mapped. The maintainer called 6.5 done in #1904.
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
