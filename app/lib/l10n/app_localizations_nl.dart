@@ -9671,11 +9671,21 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
+      'Laat je je eigen figuren toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. De woordenlijst is hiervoor niet nodig. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
 
   @override
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
-      'Zet Woordenlijst tonen aan om je eigen figuren te gebruiken.';
+  String get settingsExperimentalCustomFiguresManageTitle => 'Je figuren';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageSubtitle =>
+      'Voeg je eigen figuren toe, bewerk of verwijder ze.';
+
+  @override
+  String get customFiguresTitle => 'Eigen figuren';
+
+  @override
+  String get customFiguresEmpty =>
+      'Je hebt nog geen eigen figuren gemaakt. Kies + om er een toe te voegen.';
 
   @override
   String get glossaryAddCustomFigure => 'Eigen figuur toevoegen';
@@ -9765,7 +9775,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Eén zin, getoond in de woordenlijst.';
 
   @override
-  String get compoundEditorDescription => 'Beschrijving';
+  String get compoundEditorDescription => 'Meer details';
 
   @override
   String get compoundEditorKeywords => 'Andere namen';
@@ -9785,7 +9795,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get compoundEditorRequired =>
-      'Geef de figuur een naam, een definitie en een beschrijving.';
+      'Geef de figuur een naam en een definitie.';
 
   @override
   String get compoundEditorParams => 'Parameters';
@@ -9868,6 +9878,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHiddenTerm(String name) {
+    return '“$name” is al de naam van een van je eigen termen. Die staan in de woordenlijst zolang Woordenlijst tonen aanstaat. Kies een andere naam.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Voeg ten minste één figuur toe.';
 
   @override
@@ -9911,6 +9926,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get glossaryEntryKindHelp =>
       'Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering. Een term is een woord dat je zelf definieert, zonder figuur; je kunt er later een figuur aan geven.';
+
+  @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      'Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering.';
 
   @override
   String get glossaryEntryKindCombination => 'Combinatie';

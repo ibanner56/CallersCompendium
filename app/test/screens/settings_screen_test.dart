@@ -34,6 +34,7 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.d
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
+import 'package:compendium_app/src/screens/glossary/custom_figures_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/screens/settings/sync_notice_labels.dart'
     show kSyncNoticeNamedLimit;
@@ -5450,8 +5451,8 @@ void main() {
       expect(find.text('GLOSSARY AND CUSTOM FIGURES'), findsOneWidget);
     });
 
-    testWidgets('Custom Figures is nested under Show Glossary: disabled, with '
-        'its value kept, while the Glossary is off (#709)', (tester) async {
+    testWidgets('Custom Figures is independent of Show Glossary: switchable '
+        'with the Glossary off, and the section opens for it', (tester) async {
       final show = ValueNotifier<bool>(false);
       addTearDown(show.dispose);
       final custom = ValueNotifier<bool>(true);
@@ -5461,21 +5462,50 @@ void main() {
         showGlossary: show,
         showCustomFigures: custom,
       );
-      await openGlossarySection(tester);
+      await tester.tap(find.byKey(const ValueKey('settings-nav-experimental')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('experimental-show-custom-figures')),
+        findsOneWidget,
+        reason: 'starts open while Custom Figures is on, Glossary or not',
+      );
 
       SwitchListTile tile() => tester.widget<SwitchListTile>(
         find.byKey(const ValueKey('experimental-show-custom-figures')),
       );
-      expect(tile().onChanged, isNull, reason: 'disabled while off');
-      expect(tile().value, isTrue, reason: 'its value is kept');
+      expect(tile().onChanged, isNotNull, reason: 'not tied to the Glossary');
+      expect(tile().value, isTrue);
+    });
+
+    testWidgets('the Your figures row opens the Custom Figures screen while '
+        'Custom Figures is on, with the Glossary off, and is disabled '
+        'while it is off', (tester) async {
+      final show = ValueNotifier<bool>(false);
+      addTearDown(show.dispose);
+      final custom = ValueNotifier<bool>(false);
+      addTearDown(custom.dispose);
+      await _pumpSettings(
+        tester,
+        showGlossary: show,
+        showCustomFigures: custom,
+      );
+      await openGlossarySection(tester);
+
+      const rowKey = ValueKey('experimental-custom-figures-open');
+      expect(tester.widget<ListTile>(find.byKey(rowKey)).onTap, isNull);
+
+      custom.value = true;
+      await tester.pumpAndSettle();
+      expect(tester.widget<ListTile>(find.byKey(rowKey)).onTap, isNotNull);
+
+      await tester.tap(find.byKey(rowKey));
+      await tester.pumpAndSettle();
+      expect(find.byType(CustomFiguresScreen), findsOneWidget);
       expect(
-        find.text('Turn on Show Glossary to use your own figures.'),
+        find.byKey(const ValueKey('custom-figures-empty')),
         findsOneWidget,
       );
-
-      show.value = true;
-      await tester.pumpAndSettle();
-      expect(tile().onChanged, isNotNull);
+      expect(find.byKey(const ValueKey('custom-figures-add')), findsOneWidget);
     });
 
     testWidgets('turning Custom Figures off updates the live setting and '

@@ -69,7 +69,7 @@ StoredUserGlossaryEntry decodeSyncGlossaryEntryBody(Map<String, Object?> body) {
     kind: _text(body, 'kind', maxUserGlossaryNameLength),
     name: _text(body, 'name', maxUserGlossaryNameLength),
     definition: _text(body, 'definition', maxUserGlossaryTextLength),
-    description: _text(body, 'description', maxUserGlossaryTextLength),
+    description: _optionalText(body, 'description', maxUserGlossaryTextLength),
     keywords: keywords.cast<String>(),
     notes: notes as String?,
     payloadJson: _payload(body['payload']),
@@ -117,6 +117,15 @@ String _text(Map<String, Object?> body, String key, int max) {
   final value = body[key];
   if (value is! String || value.isEmpty || value.length > max) {
     throw FormatException('glossary $key must be text of 1 to $max units');
+  }
+  return value;
+}
+
+/// Like [_text], but empty is allowed: the field is optional.
+String _optionalText(Map<String, Object?> body, String key, int max) {
+  final value = body[key];
+  if (value is! String || value.length > max) {
+    throw FormatException('glossary $key must be text of up to $max units');
   }
   return value;
 }

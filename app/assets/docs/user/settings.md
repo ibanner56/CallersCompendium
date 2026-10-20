@@ -587,8 +587,8 @@ the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
 app is set to; only the Glossary's labels and buttons are translated.
 
-**Your terms** are words you define yourself, with no figure: a name, a
-definition and a description (all required), other names they can be found by,
+**Your terms** are words you define yourself, with no figure: a name and a
+definition (both required), **More Details** (optional), other names they can be found by,
 notes, and the **Dance form** they're for. They are listed in the Glossary
 alongside the built-in figures, marked **Custom**, and found the same way.
 Choose **+** in the Glossary to add one (with Custom Figures on, choose
@@ -600,16 +600,21 @@ also come from a Caller's Companion file (see [Bring your glossary terms
 across](./imports.md#bring-your-glossary-terms-across)); such a term's page shows
 its **Source** as the file had it.
 
-**Custom Figures**, under Show Glossary, lists your own figures in the
-Glossary. It is **off by default**, and it can only be turned on while Show
-Glossary is on. While it is on:
+**Custom Figures** lets you make your own figures and use them in dances. It
+is **off by default**, and it doesn't need Show Glossary: with the Glossary
+hidden you can still turn it on, and use your figures everywhere. While it is
+on, the **Your figures** row under the switch opens them: see your figures,
+choose **+** to add one, or select one to **Edit** or **Delete** it. The row
+is greyed out while Custom Figures is off.
+The Glossary lists them too, when it is shown. While it is on:
 
-- Choose **+** in the Glossary to add a figure of your own: a name, a
-  definition and a description (all required), other names it can be found by,
+- Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name and a
+  definition (both required), **More Details** (optional), other names it can be found by,
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
   come with the app when you save a dance, a **New figure**, which stays
-  one figure with your own wording, or a **Term**. An entry keeps the kind it
+  one figure with your own wording, or, when you add from the Glossary, a
+  **Term**. An entry keeps the kind it
   was saved with, except that a term can be given a figure: select it and
   choose **Make it a figure** to give it wording and parameters as a new
   figure. It keeps its name and other fields, and can't be turned back into a
@@ -617,7 +622,7 @@ Glossary is on. While it is on:
 - To start from a figure that comes with the app, open it in the Glossary and
   choose **Copy as your own figure**. The editor opens on a new figure named
   after it with **(copy)** (numbered if you already have one), with its
-  definition and description, its beats, its wording, and the parameters that
+  definition and More Details, its beats, its wording, and the parameters that
   wording uses, with their defaults (a variant, such as *pull by neighbors*,
   starts from its own). The wording is the figure's plain one where the app
   words it in a way of its own, so read it through before you save. Its
@@ -701,7 +706,10 @@ figures sync to your other devices too, once every device connected to your
 store has this version of the app or a later one. Until then changes to them
 aren't sent to your other devices, and Device Sync shows a note naming the
 device that is holding them back (see [New kinds of data wait for every
-device](#new-kinds-of-data-wait-for-every-device)).
+device](#new-kinds-of-data-wait-for-every-device)). One exception, while the app
+is in beta: a figure or term saved with **More Details** left blank, or an edit
+that clears it, isn't picked up by a device on an older version of the app,
+which keeps what it had until it is updated.
 
 Your figures and your notes on built-in figures share a size limit, which
 keeps what you add from growing too large to back up. It is far more than most

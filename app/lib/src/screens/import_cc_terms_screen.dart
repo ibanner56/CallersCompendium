@@ -9,7 +9,7 @@ import '../glossary/cc_term_import.dart';
 /// [CcTermDraft] the user can edit first.
 ///
 /// A term is ticked when it can be added: it has a name, a definition and a
-/// description (#709), and its name is free. As the maintainer decided
+/// description (the importer's own rule, #709), and its name is free. As the maintainer decided
 /// (2026-10-16):
 /// - its description starts as its definition;
 /// - one with no definition is offered unticked, and says so, until the user

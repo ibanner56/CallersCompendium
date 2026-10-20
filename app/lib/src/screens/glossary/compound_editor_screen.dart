@@ -7,6 +7,7 @@ import '../../data/active_dialect_scope.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
+import '../../data/show_glossary_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
@@ -62,6 +63,7 @@ class CompoundEditorScreen extends StatefulWidget {
     super.key,
     this.initial,
     this.termsOnly = false,
+    this.figuresOnly = false,
     this.convertToFigure = false,
     this.copyOf,
   }) : assert(
@@ -75,6 +77,10 @@ class CompoundEditorScreen extends StatefulWidget {
   /// A new entry can only be a term: Custom Figures is off, and a term needs
   /// only the Glossary (#1023, maintainer decision 9).
   final bool termsOnly;
+
+  /// A new entry cannot be a term: the screen is the Custom Figures one,
+  /// which lists no terms and so could not show one saved here.
+  final bool figuresOnly;
 
   /// Gives the term [initial] a figure: it is saved as a new figure under
   /// the same id and creation time, with its glossary fields as they are
@@ -604,10 +610,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
 
     final errors = <String>[];
     final name = _name.text.trim();
-    final requiredMissing =
-        name.isEmpty ||
-        _definition.text.trim().isEmpty ||
-        _description.text.trim().isEmpty;
+    final requiredMissing = name.isEmpty || _definition.text.trim().isEmpty;
     if (requiredMissing) errors.add(l10n.compoundEditorRequired);
 
     final keys = [for (final p in _params) p.key];
@@ -639,15 +642,24 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         exceptUserFigureId: widget.initial?.id,
       );
       if (collisionsWith(others).isNotEmpty) {
-        // While Custom Figures is off the Glossary lists only terms, so a
-        // clash with one of the user's figures says where that figure is.
-        final shown = customFiguresShown(context)
-            ? others
-            : others.where((e) => e.kind == UserGlossaryEntryKind.term);
+        // A term is listed only while the Glossary is shown, and a figure
+        // while Custom Figures is on, so a clash with one that is hidden says
+        // where it is.
+        final glossaryShown = ShowGlossaryScope.of(context);
+        final figuresShown = customFiguresShown(context);
+        bool isShown(UserGlossaryEntry e) =>
+            e.kind == UserGlossaryEntryKind.term ? glossaryShown : figuresShown;
         errors.add(
-          collisionsWith(shown).isEmpty
-              ? l10n.compoundEditorNameTakenHidden(name)
-              : l10n.compoundEditorNameTaken(name),
+          collisionsWith(others.where(isShown)).isNotEmpty
+              ? l10n.compoundEditorNameTaken(name)
+              : others.any(
+                  (e) =>
+                      !isShown(e) &&
+                      e.kind == UserGlossaryEntryKind.term &&
+                      collisionsWith([e]).isNotEmpty,
+                )
+              ? l10n.compoundEditorNameTakenHiddenTerm(name)
+              : l10n.compoundEditorNameTakenHidden(name),
         );
       }
     }
@@ -961,7 +973,6 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
               'compound-description',
               _description,
               l10n.compoundEditorDescription,
-              required: true,
               maxLines: 8,
             ),
             field(
@@ -1125,7 +1136,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                 !widget.termsOnly) ...[
               heading(
                 l10n.glossaryEntryKindHeading,
-                l10n.glossaryEntryKindHelp,
+                widget.figuresOnly
+                    ? l10n.glossaryEntryKindHelpFiguresOnly
+                    : l10n.glossaryEntryKindHelp,
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -1140,10 +1153,11 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                       value: UserGlossaryEntryKind.customFigure,
                       label: Text(l10n.glossaryEntryKindNewFigure),
                     ),
-                    ButtonSegment(
-                      value: UserGlossaryEntryKind.term,
-                      label: Text(l10n.glossaryEntryKindTerm),
-                    ),
+                    if (!widget.figuresOnly)
+                      ButtonSegment(
+                        value: UserGlossaryEntryKind.term,
+                        label: Text(l10n.glossaryEntryKindTerm),
+                      ),
                   ],
                   selected: {_kind},
                   onSelectionChanged: (kinds) {

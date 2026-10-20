@@ -9716,11 +9716,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Zeigt deine eigenen Figuren im Glossar an, wo du sie hinzufügen und bearbeiten kannst, und bietet sie beim Bearbeiten eines Tanzes an. Ausschalten blendet sie aus, löscht sie aber nicht.';
+      'Lässt dich deine eigenen Figuren hinzufügen und bearbeiten, und bietet sie beim Bearbeiten eines Tanzes an. Das Glossar ist dafür nicht nötig. Ausschalten blendet sie aus, löscht sie aber nicht.';
 
   @override
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
-      'Schalte Glossar anzeigen ein, um deine eigenen Figuren zu verwenden.';
+  String get settingsExperimentalCustomFiguresManageTitle => 'Deine Figuren';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageSubtitle =>
+      'Eigene Figuren hinzufügen, bearbeiten und löschen.';
+
+  @override
+  String get customFiguresTitle => 'Eigene Figuren';
+
+  @override
+  String get customFiguresEmpty =>
+      'Du hast noch keine eigenen Figuren erstellt. Wähle +, um eine hinzuzufügen.';
 
   @override
   String get glossaryAddCustomFigure => 'Eigene Figur hinzufügen';
@@ -9809,7 +9819,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ein Satz, der in der Glossarliste angezeigt wird.';
 
   @override
-  String get compoundEditorDescription => 'Beschreibung';
+  String get compoundEditorDescription => 'Weitere Details';
 
   @override
   String get compoundEditorKeywords => 'Andere Namen';
@@ -9828,7 +9838,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get compoundEditorRequired =>
-      'Gib der Figur einen Namen, eine Definition und eine Beschreibung.';
+      'Gib der Figur einen Namen und eine Definition.';
 
   @override
   String get compoundEditorParams => 'Parameter';
@@ -9911,6 +9921,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHiddenTerm(String name) {
+    return '„$name“ ist bereits der Name eines deiner eigenen Begriffe. Diese stehen im Glossar, solange Glossar anzeigen eingeschaltet ist. Wähle einen anderen Namen.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Füge mindestens eine Figur hinzu.';
 
   @override
@@ -9954,6 +9969,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get glossaryEntryKindHelp =>
       'Eine Kombination wird beim Speichern eines Tanzes zu eingebauten Figuren. Eine neue Figur bleibt eine eigene Figur, mit deinem eigenen Wortlaut. Ein Begriff ist ein Wort, das du selbst definierst, ohne Figur; du kannst ihm später eine geben.';
+
+  @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      'Eine Kombination wird beim Speichern eines Tanzes zu eingebauten Figuren. Eine neue Figur bleibt eine eigene Figur, mit deinem eigenen Wortlaut.';
 
   @override
   String get glossaryEntryKindCombination => 'Kombination';

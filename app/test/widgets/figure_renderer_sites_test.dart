@@ -19,6 +19,7 @@ const Map<String, int> _allowed = {
   // Built-in moves' names and examples, the user's glossary text.
   'lib/src/glossary/figure_titles.dart': 1,
   'lib/src/screens/glossary/glossary_screen.dart': 1,
+  'lib/src/screens/glossary/custom_figures_screen.dart': 1,
   'lib/src/screens/glossary/custom_figure_detail.dart': 1,
   'lib/src/screens/glossary/compound_editor_screen.dart': 1,
   // The app's figure's name and the user's option labels, on the screen

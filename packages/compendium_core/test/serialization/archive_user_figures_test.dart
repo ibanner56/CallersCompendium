@@ -101,6 +101,28 @@ void main() {
     expect(result.archive, archive([zoom()]));
   });
 
+  test('a missing, empty or blank description is read as none, not a figure '
+      'to drop', () {
+    for (final description in <Object?>[null, '', '   ', '\u200b']) {
+      final json = encoded(archive([zoom()]));
+      final figure = ((json['userFigures']! as List).single as Map)
+          .cast<String, Object?>();
+      if (description == null) {
+        figure.remove('description');
+      } else {
+        figure['description'] = description;
+      }
+      (json['userFigures']! as List)[0] = figure;
+      final result = decodeArchive(jsonEncode(json));
+      expect(result.errors, isEmpty, reason: '$description');
+      expect(
+        result.archive.userFigures.single.description,
+        isEmpty,
+        reason: '$description',
+      );
+    }
+  });
+
   test('only whole figures are kept; the rest are a warning, never an '
       'error', () {
     Map<String, Object?> entry(Map<String, Object?> changes) => {

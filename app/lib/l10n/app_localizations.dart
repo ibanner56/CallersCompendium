@@ -14312,23 +14312,41 @@ abstract class AppLocalizations {
   /// **'These templates omit available slots and may hide figure details:\n{figures}\n\nSave anyway?'**
   String dialectEditorMoveWordingConfirmBody(String figures);
 
-  /// Title of the switch, nested under Show Glossary, that shows the user's own compound figures in the Glossary (#709).
+  /// Title of the switch that turns on the user's own figures (#709).
   ///
   /// In en, this message translates to:
   /// **'Custom Figures'**
   String get settingsExperimentalShowCustomFiguresTitle;
 
-  /// Subtitle of the Custom Figures switch while Show Glossary is on.
+  /// Subtitle of the Custom Figures switch.
   ///
   /// In en, this message translates to:
-  /// **'Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn\'t delete them.'**
+  /// **'Lets you add and edit your own figures, and offers them when you edit a dance. It doesn\'t need the Glossary. Turning this off hides them; it doesn\'t delete them.'**
   String get settingsExperimentalShowCustomFiguresSubtitle;
 
-  /// Subtitle of the Custom Figures switch while it is disabled because Show Glossary is off.
+  /// Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited.
   ///
   /// In en, this message translates to:
-  /// **'Turn on Show Glossary to use your own figures.'**
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary;
+  /// **'Your figures'**
+  String get settingsExperimentalCustomFiguresManageTitle;
+
+  /// Subtitle of the row that opens the Custom Figures screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Add, edit and delete your own figures.'**
+  String get settingsExperimentalCustomFiguresManageSubtitle;
+
+  /// App bar title of the Custom Figures screen, which lists the user's own figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Figures'**
+  String get customFiguresTitle;
+
+  /// Shown on the Custom Figures screen when the user has no figures of their own yet.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t made any figures of your own yet. Choose + to add one.'**
+  String get customFiguresEmpty;
 
   /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure.
   ///
@@ -14480,10 +14498,10 @@ abstract class AppLocalizations {
   /// **'One sentence, shown in the Glossary list.'**
   String get compoundEditorDefinitionHelper;
 
-  /// Label of a custom figure's description field.
+  /// Label of a custom figure's optional "More Details" field, which holds its longer description.
   ///
   /// In en, this message translates to:
-  /// **'Description'**
+  /// **'More Details'**
   String get compoundEditorDescription;
 
   /// Label of a custom figure's optional keywords field, which search also finds it by.
@@ -14519,7 +14537,7 @@ abstract class AppLocalizations {
   /// Error shown when saving a custom figure with a required field empty.
   ///
   /// In en, this message translates to:
-  /// **'Give the figure a name, a definition and a description.'**
+  /// **'Give the figure a name and a definition.'**
   String get compoundEditorRequired;
 
   /// Heading of the custom figure editor's parameters, the values asked for each time the figure is used.
@@ -14648,6 +14666,12 @@ abstract class AppLocalizations {
   /// **'“{name}” is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.'**
   String compoundEditorNameTakenHidden(String name);
 
+  /// Error shown when saving a figure under a name one of the user's own terms already has, while Show Glossary is off and that term is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” is already the name of one of your own terms. Those are listed in the Glossary while Show Glossary is on. Choose another name.'**
+  String compoundEditorNameTakenHiddenTerm(String name);
+
   /// Error shown when saving a custom figure with no figures.
   ///
   /// In en, this message translates to:
@@ -14719,6 +14743,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording. A term is a word you define, with no figure; you can give it one later.'**
   String get glossaryEntryKindHelp;
+
+  /// Explains the choice between a combination and a new figure, where a term is not offered (adding from the Custom Figures screen).
+  ///
+  /// In en, this message translates to:
+  /// **'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.'**
+  String get glossaryEntryKindHelpFiguresOnly;
 
   /// Choice for an entry that expands into built-in figures (a compound).
   ///

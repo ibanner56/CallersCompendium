@@ -77,8 +77,8 @@ class UserFiguresScope extends InheritedNotifier<UserFiguresController> {
   /// else none: for a surface that lists the figures themselves, such as the
   /// program matrix's columns, rather than rendering a dance's lines (which
   /// read the same with it off, maintainer decision 9 on #1023). Registers a
-  /// rebuild dependency on both toggles, and on the catalog while they are
-  /// on.
+  /// rebuild dependency on the Custom Figures setting, and on the catalog
+  /// while it is on.
   static UserFigureCatalog shownCatalogOf(BuildContext context) =>
       customFiguresShown(context)
       ? catalogOf(context)

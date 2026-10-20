@@ -9222,11 +9222,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      '自分のフィギュアを用語集に表示し、そこで追加や編集ができます。ダンスの編集時にも選べます。オフにすると非表示になりますが、削除はされません。';
+      '自分のフィギュアを追加・編集でき、ダンスの編集時にも選べます。用語集は不要です。オフにすると非表示になりますが、削除はされません。';
 
   @override
-  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
-      '自分のフィギュアを使うには、「用語集を表示」をオンにしてください。';
+  String get settingsExperimentalCustomFiguresManageTitle => '自分のフィギュア';
+
+  @override
+  String get settingsExperimentalCustomFiguresManageSubtitle =>
+      '自分のフィギュアを追加、編集、削除します。';
+
+  @override
+  String get customFiguresTitle => 'カスタムフィギュア';
+
+  @override
+  String get customFiguresEmpty => '自分のフィギュアはまだありません。「+」を選んで追加してください。';
 
   @override
   String get glossaryAddCustomFigure => '自分のフィギュアを追加';
@@ -9313,7 +9322,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get compoundEditorDefinitionHelper => '1文で入力します。用語集の一覧に表示されます。';
 
   @override
-  String get compoundEditorDescription => '説明';
+  String get compoundEditorDescription => '詳細';
 
   @override
   String get compoundEditorKeywords => '別名';
@@ -9331,7 +9340,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get compoundEditorFieldRequired => '必須';
 
   @override
-  String get compoundEditorRequired => 'フィギュアの名前、定義、説明を入力してください。';
+  String get compoundEditorRequired => 'フィギュアに名前と定義を付けてください。';
 
   @override
   String get compoundEditorParams => 'パラメーター';
@@ -9410,6 +9419,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHiddenTerm(String name) {
+    return '「$name」はすでに自分の用語の名前です。用語は「用語集を表示」がオンの間、用語集に表示されます。別の名前を選んでください。';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'フィギュアを1つ以上追加してください。';
 
   @override
@@ -9451,6 +9465,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get glossaryEntryKindHelp =>
       '組み合わせは、ダンスを保存すると組み込みのフィギュアになります。新しいフィギュアは、あなた自身の文言を持つ一つのフィギュアのままです。用語は、フィギュアを持たない、あなたが定義する言葉です。後からフィギュアを与えることができます。';
+
+  @override
+  String get glossaryEntryKindHelpFiguresOnly =>
+      '組み合わせは、ダンスを保存すると組み込みのフィギュアになります。新しいフィギュアは、あなた自身の文言を持つ一つのフィギュアのままです。';
 
   @override
   String get glossaryEntryKindCombination => '組み合わせ';

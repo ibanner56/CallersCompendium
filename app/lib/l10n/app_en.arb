@@ -12537,15 +12537,27 @@
   },
   "settingsExperimentalShowCustomFiguresTitle": "Custom Figures",
   "@settingsExperimentalShowCustomFiguresTitle": {
-    "description": "Title of the switch, nested under Show Glossary, that shows the user's own compound figures in the Glossary (#709)."
+    "description": "Title of the switch that turns on the user's own figures (#709)."
   },
-  "settingsExperimentalShowCustomFiguresSubtitle": "Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn't delete them.",
+  "settingsExperimentalShowCustomFiguresSubtitle": "Lets you add and edit your own figures, and offers them when you edit a dance. It doesn't need the Glossary. Turning this off hides them; it doesn't delete them.",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
-    "description": "Subtitle of the Custom Figures switch while Show Glossary is on."
+    "description": "Subtitle of the Custom Figures switch."
   },
-  "settingsExperimentalShowCustomFiguresNeedsGlossary": "Turn on Show Glossary to use your own figures.",
-  "@settingsExperimentalShowCustomFiguresNeedsGlossary": {
-    "description": "Subtitle of the Custom Figures switch while it is disabled because Show Glossary is off."
+  "settingsExperimentalCustomFiguresManageTitle": "Your figures",
+  "@settingsExperimentalCustomFiguresManageTitle": {
+    "description": "Title of the row in the Experimental settings that opens the Custom Figures screen, where the user's own figures are added and edited."
+  },
+  "settingsExperimentalCustomFiguresManageSubtitle": "Add, edit and delete your own figures.",
+  "@settingsExperimentalCustomFiguresManageSubtitle": {
+    "description": "Subtitle of the row that opens the Custom Figures screen."
+  },
+  "customFiguresTitle": "Custom Figures",
+  "@customFiguresTitle": {
+    "description": "App bar title of the Custom Figures screen, which lists the user's own figures."
+  },
+  "customFiguresEmpty": "You haven't made any figures of your own yet. Choose + to add one.",
+  "@customFiguresEmpty": {
+    "description": "Shown on the Custom Figures screen when the user has no figures of their own yet."
   },
   "glossaryAddCustomFigure": "Add your own figure",
   "@glossaryAddCustomFigure": {
@@ -12659,9 +12671,9 @@
   "@compoundEditorDefinitionHelper": {
     "description": "Helper text of a custom figure's definition field."
   },
-  "compoundEditorDescription": "Description",
+  "compoundEditorDescription": "More Details",
   "@compoundEditorDescription": {
-    "description": "Label of a custom figure's description field."
+    "description": "Label of a custom figure's optional \"More Details\" field, which holds its longer description."
   },
   "compoundEditorKeywords": "Other names",
   "@compoundEditorKeywords": {
@@ -12683,7 +12695,7 @@
   "@compoundEditorFieldRequired": {
     "description": "Error under an empty required field in the custom figure editor."
   },
-  "compoundEditorRequired": "Give the figure a name, a definition and a description.",
+  "compoundEditorRequired": "Give the figure a name and a definition.",
   "@compoundEditorRequired": {
     "description": "Error shown when saving a custom figure with a required field empty."
   },
@@ -12819,6 +12831,16 @@
       }
     }
   },
+  "compoundEditorNameTakenHiddenTerm": "“{name}” is already the name of one of your own terms. Those are listed in the Glossary while Show Glossary is on. Choose another name.",
+  "@compoundEditorNameTakenHiddenTerm": {
+    "description": "Error shown when saving a figure under a name one of the user's own terms already has, while Show Glossary is off and that term is not shown.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "zesty corners"
+      }
+    }
+  },
   "compoundEditorNoFigures": "Add at least one figure.",
   "@compoundEditorNoFigures": {
     "description": "Error shown when saving a custom figure with no figures."
@@ -12878,6 +12900,10 @@
   "glossaryEntryKindHelp": "A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording. A term is a word you define, with no figure; you can give it one later.",
   "@glossaryEntryKindHelp": {
     "description": "Explains the choice between a combination, a new figure and a term."
+  },
+  "glossaryEntryKindHelpFiguresOnly": "A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.",
+  "@glossaryEntryKindHelpFiguresOnly": {
+    "description": "Explains the choice between a combination and a new figure, where a term is not offered (adding from the Custom Figures screen)."
   },
   "glossaryEntryKindCombination": "Combination",
   "@glossaryEntryKindCombination": {

@@ -1,5 +1,7 @@
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/screens/glossary/compound_editor_screen.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -53,6 +55,8 @@ void main() {
     WidgetTester tester, {
     UserGlossaryEntry? initial,
     List<UserGlossaryEntry> stored = const [],
+    bool glossary = false,
+    bool custom = false,
   }) async {
     await tester.binding.setSurfaceSize(const Size(600, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -61,14 +65,27 @@ void main() {
       await tester.runAsync(() => repos.userGlossary.upsert(e));
     }
     final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    final showGlossary = ValueNotifier<bool>(glossary);
+    final showCustom = ValueNotifier<bool>(custom);
     addTearDown(dialect.dispose);
+    addTearDown(showGlossary.dispose);
+    addTearDown(showCustom.dispose);
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         builder: (context, child) => RepositoriesScope(
           repositories: repos,
-          child: ActiveDialectScope(notifier: dialect, child: child!),
+          child: ActiveDialectScope(
+            notifier: dialect,
+            child: ShowGlossaryScope(
+              notifier: showGlossary,
+              child: ShowCustomFiguresScope(
+                notifier: showCustom,
+                child: child!,
+              ),
+            ),
+          ),
         ),
         home: Builder(
           builder: (context) => Scaffold(
@@ -350,17 +367,64 @@ void main() {
     });
   });
 
-  testWidgets('a name, a definition and a description are required', (
-    tester,
-  ) async {
+  testWidgets('a name and a definition are required', (tester) async {
     final repos = await pump(tester);
     await save(tester);
     expect(
-      find.text('Give the figure a name, a definition and a description.'),
+      find.text('Give the figure a name and a definition.'),
       findsOneWidget,
     );
-    expect(find.text('Required'), findsNWidgets(3));
+    expect(find.text('Required'), findsNWidgets(2));
     expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
+  });
+
+  testWidgets('More Details is optional: a figure saves without it', (
+    tester,
+  ) async {
+    final repos = await pump(tester, initial: twoPullBys());
+    expect(find.text('More Details'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-name')),
+      'zoomies',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-definition')),
+      'A zoom.',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-description')),
+      '',
+    );
+    await save(tester);
+    final saved = (await tester.runAsync(repos.userGlossary.listAll))!.single;
+    expect(saved.name, 'zoomies');
+    expect(saved.description, isEmpty);
+  });
+
+  testWidgets('a name taken by a term the hidden Glossary lists points to '
+      'Show Glossary, not to a figure', (tester) async {
+    final repos = await pump(
+      tester,
+      custom: true,
+      initial: twoPullBys(),
+      stored: [
+        UserGlossaryEntry(
+          id: 'term-1',
+          kindName: UserGlossaryEntryKind.term.name,
+          name: 'zesty corners',
+          definition: 'A word.',
+          description: '',
+          createdAt: created,
+        ),
+      ],
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-name')),
+      'zesty corners',
+    );
+    await save(tester);
+    expect(find.textContaining('one of your own terms'), findsOneWidget);
+    expect(await tester.runAsync(repos.userGlossary.listAll), hasLength(1));
   });
 
   testWidgets('a name a built-in figure has is refused', (tester) async {

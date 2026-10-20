@@ -114,6 +114,22 @@ void main() {
       expect(back.payloadJson, '{not json');
     });
 
+    test('a description is optional on the wire: empty decodes, text over the '
+        'bound does not', () {
+      final body = syncGlossaryEntryBody(storedEntry());
+      expect(
+        decodeSyncGlossaryEntryBody({...body, 'description': ''}).description,
+        isEmpty,
+      );
+      expect(
+        () => decodeSyncGlossaryEntryBody({
+          ...body,
+          'description': 'd' * (maxUserGlossaryTextLength + 1),
+        }),
+        throwsFormatException,
+      );
+    });
+
     test('refuses what could not be stored as it came', () {
       Map<String, Object?> body([Map<String, Object?> change = const {}]) => {
         ...syncGlossaryEntryBody(storedEntry()),
