@@ -2098,14 +2098,14 @@ final class _DisplayReader {
   /// The readings of a unit at each place, for the condition being read: a
   /// unit is read once wherever many readings reach it, so parentheses
   /// nested in a chain that reads two ways stay linear too.
-  final Map<int, List<_Reading>> _units = {};
+  final Map<(int, int), List<_Reading>> _units = {};
 
   /// How many `not`s enclose the unit being read: the depth of negation the
   /// reading builds, bounded so writing it never runs out of stack.
   int _negations = 0;
 
   List<_Reading> _unit(int at, {required int keywordStart}) =>
-      _units[at] ??= _readUnit(at, keywordStart: keywordStart);
+      _units[(at, _negations)] ??= _readUnit(at, keywordStart: keywordStart);
 
   List<_Reading> _readUnit(int at, {required int keywordStart}) {
     final k = _skipSpace(at);
@@ -2127,9 +2127,9 @@ final class _DisplayReader {
         count++;
         after = _skipSpace(end);
       }
-      // Bounded by the depth it builds, the `not`s around this one
-      // included: which `not`s enclose a place depends only on the text
-      // before it, so a memoized unit is read at one depth.
+      // Bounded by the depth it builds, the `not`s around this one included;
+      // a unit is memoized at the depth it was read at, so the bound holds
+      // however a place is reached.
       if (_negations + count > maxWordingNesting) {
         _failAt(k, 5, WordingIssueCode.tooManyNots, k, after, {
           'max': '$maxWordingNesting',
