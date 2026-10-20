@@ -428,6 +428,53 @@ void main() {
       );
     });
 
+    testWidgets('a figure stored with a parameter named a reserved word opens '
+        'to be repaired, and saves once renamed', (tester) async {
+      final broken = UserGlossaryEntry(
+        id: 'broken-id',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'zoom',
+        definition: 'A zoom.',
+        description: 'Fast.',
+        payload: const {
+          'form': 'contra',
+          'template': '{move}[ {is}]',
+          'defaultBeats': 6,
+          'params': [
+            {'key': 'is', 'kind': 'flag', 'label': 'fast'},
+          ],
+        },
+        createdAt: created,
+      );
+      expect(decodeUserFigureDefinition(broken.payload), isNull);
+      final repos = await pump(tester, initial: broken);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('compound-param-0-name')),
+            )
+            .controller!
+            .text,
+        'is',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-param-0-name')),
+        'quick',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        '{move}[if quick then  fast]',
+      );
+      await tester.pumpAndSettle();
+      await save(tester);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('broken-id'),
+      ))!;
+      final repaired = decodeUserFigureDefinition(saved.payload)!;
+      expect(repaired.params.single.key, 'quick');
+      expect(repaired.template, '{move}[{?if quick} fast]');
+    });
+
     testWidgets('a parameter may not be named a word conditions use', (
       tester,
     ) async {

@@ -636,8 +636,11 @@ The Glossary lists them too, when it is shown. While it is on:
 - Give a new figure its **Wording**, how it reads in a dance: put a parameter
   in braces, such as `{who}`, use `{move}` for the figure's name and `{beats}`
   for its beats, and put a part in square brackets to leave it out when its
-  parameters are empty. A parameter whose kind has an opposite, such as a
-  hand, also offers it, such as `{otherHand}`. **Reads as** shows the wording
+  parameters are empty. To word it differently in some cases, start the
+  square brackets with `if`, such as `[if who is robins then … else …]` (see
+  [Word it differently in some cases](./dialects.md#word-it-differently-in-some-cases)).
+  A parameter whose kind has an opposite, such as a hand, also offers it, such
+  as `{otherHand}`. **Reads as** shows the wording
   with each parameter's **Default**. A parameter can be an **option** you name
   the choices of, and an on/off parameter has its own **Wording when on**. Set
   its **Default beats**; a dance can change them each time.
@@ -648,8 +651,12 @@ The Glossary lists them too, when it is shown. While it is on:
   that can't be used, because the kinds differ or no value would fit every
   setting it fills, is shown greyed out with the reason.
 - If a parameter fills nothing, or a new figure's wording leaves it out, saving
-  asks whether to go **Back to editor** or **Save anyway**. Wording that uses
-  something the figure doesn't have can't be saved.
+  asks whether to go **Back to editor** or **Save anyway**; a parameter a
+  condition tests counts as used. Wording that uses something the figure
+  doesn't have can't be saved.
+- A parameter can't be named `if`, `then`, `else`, `not`, `and`, `or` or `is`:
+  conditions are written with those words. A figure saved with one before
+  conditions arrived is marked **Needs repair** until you rename it.
 - A name already taken can't be saved: a built-in figure's name or one of its
   other names, a figure's name in one of your dialects, one of your
   shorthands, or another of your figures or terms.

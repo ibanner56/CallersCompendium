@@ -137,7 +137,9 @@ To reword the whole sentence around a move, not just its name, add a
 **Display template** in the **Move wording templates** section. Type your
 sentence and put slots such as `{who}` and `{move}` where the app should fill in
 the details; the editor lists the **Available slots** for each move and shows a
-preview. A template can be up to 512 characters.
+preview. A template can be up to 512 characters, and can word a move
+differently in some cases (see
+[Word it differently in some cases](#word-it-differently-in-some-cases)).
 
 - If a template leaves out one of its available slots, the editor asks you to
   confirm before saving, because that detail won't appear on the dance.
@@ -148,6 +150,74 @@ preview. A template can be up to 512 characters.
   move-specific slots (such as `{subject}` or `{balance}`) ignore the `!`.
 - If a template can't be read — a slot left unclosed, for example — the editor
   says so, and you need to fix it before you can save the dialect.
+
+#### Word it differently in some cases
+
+A template can choose its words from the figure's details. Put the choice in
+square brackets that start with `if`:
+
+```text
+[if who is neighbors then neighbor swing else {who} swing]
+```
+
+reads "neighbor swing" when neighbors swing, and "partner swing" (or whoever
+swings) otherwise. The parts are:
+
+- `if` and a **condition**, then `then` and the wording to show when it holds.
+- Any number of `else if` … `then` … for other cases, checked in order.
+- At most one `else` and the wording for every other case. Leave it out and
+  nothing shows when no condition holds:
+  `[if prefix is balance then balance and ]{who} swing`.
+
+A condition tests one of the things listed under **A condition can test**
+below the field: the move's details, its other slots, and for your own figures
+each opposite, such as `otherWho`. You can write:
+
+| To test | Write |
+| --- | --- |
+| A switch is on, or a detail is filled in | `balance` |
+| The opposite | `not balance` |
+| A value | `who is robins` |
+| Not a value | `who is not robins` |
+| One of several values | `who is in (robins, larks)` |
+| None of several values | `who is not in (ones, twos)` |
+| No value | `hand is empty`, or `hand is not empty` |
+| A number | `beats is more than 8`, `is less than`, `is at least`, `is at most` |
+
+Join conditions with `and` or `or`. When one condition uses both, add
+parentheses to say which goes first:
+`(who is robins or who is larks) and beats is more than 8`.
+
+Write values the way they read on your dances: your role names in this
+dialect, dancer words such as "next neighbors", the labels of your own
+figures' options, and numbers as digits (a turn can be `1.5`, `1½`, `once` or
+`twice`). The app keeps what a condition means, not the words, so renaming a
+role or an option later never changes what it tests, and the editor shows it
+in the new words.
+
+Only `is not` says "not": `isn't` isn't read. If the app can't read a
+condition, the message under the field says what is wrong and how to fix it,
+often with the words to write instead, and you need to fix it before you can
+save. A few things it explains:
+
+- `who isn't robins`: write `who is not robins`.
+- `who is robbins`: there's no such value; did you mean `robins`? The message
+  lists every value `who` can have.
+- `who is one of robins, larks`: write `who is in (robins, larks)`.
+- `who = robins`, `beats > 8`, `&&`: write the words, such as `is`,
+  `is more than` and `and`.
+- `style is rock and roll`, when a figure has the options "rock" and "rock and
+  roll" and a switch called `roll`: it can be read two ways, and the message
+  shows both so you can write the one you mean.
+
+The word `else` ends the wording before it. To say "everyone else" inside a
+condition's wording, put those words in their own square brackets:
+`[if who is ones then [everyone else] swing]`. The editor warns you when it
+looks like you meant that.
+
+Older versions of the app can't read conditions: on a device that hasn't been
+updated, a move with a conditional template keeps its normal wording, and one
+of your own figures using one is marked **Needs repair** there.
 
 A few moves are worded differently depending on how they are danced, so the
 editor gives them a separate template for each version:
