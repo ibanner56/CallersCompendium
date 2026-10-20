@@ -329,6 +329,21 @@ void main() {
       expect(renderMine(text, {'style': 'a1'}), 'y');
     });
 
+    test(
+      'canonicalizing a template never reaches inside a stored condition',
+      () {
+        // A dialect whose role word is also a dancer token would otherwise
+        // rewrite the value a condition tests.
+        expect(
+          mapUserFigureTemplateText(
+            "neighbors [{?if who is 'neighbors'}neighbors{?else}x] {who}",
+            (text) => text.replaceAll('neighbors', 'role1s'),
+          ),
+          "role1s [{?if who is 'neighbors'}role1s{?else}x] {who}",
+        );
+      },
+    );
+
     test('a condition counts its name as used', () {
       final saved = checkWording(
         '[if roll then rolled ]{move}',
