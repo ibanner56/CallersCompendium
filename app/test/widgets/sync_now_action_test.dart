@@ -1,5 +1,5 @@
-// Guards the toolbar "Sync now" glyph on Collection, Programs and Glossary (#1421): a
-// second entry to the manual trigger Settings already has.
+// Guards the toolbar "Sync now" glyph on Collection, Programs and Glossary
+// (#1421): a second entry to the manual trigger Settings already has.
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
