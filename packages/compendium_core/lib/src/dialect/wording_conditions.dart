@@ -1086,7 +1086,10 @@ String displayWordingText(
     for (final node in nodes)
       if (node is WordingText &&
           _elseWord.hasMatch(node.text) &&
-          !_slotPlaceholder.hasMatch(node.text))
+          !_slotPlaceholder.hasMatch(node.text) &&
+          // Words starting "if" in brackets would read as a condition: left
+          // as they are, the editor reports them instead.
+          !_startsWithIf.hasMatch(node.text))
         WordingGroup([node])
       else
         node,
@@ -1224,6 +1227,7 @@ final RegExp _conditionShape = RegExp(
 );
 final RegExp _firstWord = RegExp(r'\w+');
 final RegExp _spaces = RegExp(r'\s+');
+final RegExp _startsWithIf = RegExp(r"^\s*if($|[^\w'’])", caseSensitive: false);
 final RegExp _elseWord = RegExp(
   r"(^|[^\w'’])else($|[^\w'’])",
   caseSensitive: false,
@@ -1627,6 +1631,7 @@ final class _DisplayReader {
   /// ending at [at]) through its `then`: one reading, its end after `then`.
   _Reading? _conditionThen(int keywordStart, String keyword, int at) {
     _failures.clear();
+    _units.clear();
     final start = _skipSpace(at);
     if (start >= text.length ||
         text[start] == ']' ||
@@ -1957,7 +1962,15 @@ final class _DisplayReader {
 
   /// Every reading of one unit at [at]: `not` and a unit, a parenthesized
   /// condition, or a test.
-  List<_Reading> _unit(int at, {required int keywordStart}) {
+  /// The readings of a unit at each place, for the condition being read: a
+  /// unit is read once wherever many readings reach it, so parentheses
+  /// nested in a chain that reads two ways stay linear too.
+  final Map<int, List<_Reading>> _units = {};
+
+  List<_Reading> _unit(int at, {required int keywordStart}) =>
+      _units[at] ??= _readUnit(at, keywordStart: keywordStart);
+
+  List<_Reading> _readUnit(int at, {required int keywordStart}) {
     final k = _skipSpace(at);
     if (k >= text.length || text[k] == ']' || _keyword(k, 'then') != null) {
       _failAt(k, 1, WordingIssueCode.missingCondition, keywordStart, k, {
@@ -2506,7 +2519,10 @@ final class _DisplayReader {
       return const [];
     }
     final first = _skipSpace(open + 1);
-    if (first < text.length && text[first] == ')') {
+    if (first < text.length &&
+        text[first] == ')' &&
+        (info.kind != WordingNameKind.choices ||
+            _valueAt(info, first) == null)) {
       _failAt(first, 2, WordingIssueCode.emptyList, open, first + 1, {
         'example': '${info.name} is in (${_exampleValue(info)})',
       });
@@ -2566,15 +2582,14 @@ final class _DisplayReader {
         final values = [...state.values, value.value];
         final next = _skipSpace(value.end);
         if (next < text.length && text[next] == ',') {
-          final key = '${next + 1}|${values.join('|')}';
+          // A duplicate isn't counted: two distinct lists must stay.
+          if (!seen.add('${next + 1}|${values.join('|')}')) continue;
           final count = atPlace.update(
             next + 1,
             (n) => n + 1,
             ifAbsent: () => 1,
           );
-          if (seen.add(key) && count <= 2) {
-            frontier.add((values: values, at: next + 1));
-          }
+          if (count <= 2) frontier.add((values: values, at: next + 1));
           continue;
         }
         if (next < text.length && text[next] == ')') {

@@ -562,7 +562,36 @@ void main() {
         checkWording('[if $plain then x]', mine).error?.code,
         WordingIssueCode.ambiguous,
       );
+      // Nested in parentheses, as deep as a template allows.
+      var nested = 's is rock and roll';
+      for (var i = 0; i < 25; i++) {
+        nested = 's is rock and ($nested)';
+      }
+      final nestedStored = checkWording('[if $nested then x]', mine).stored;
+      if (nestedStored != null) wordingForEditing(nestedStored, mine);
       expect(watch.elapsedMilliseconds, lessThan(2000));
+    });
+
+    test('a list whose words read two ways is refused, duplicates aside', () {
+      final mine = WordingVocabulary([
+        WordingName(
+          's',
+          const ParamSpec(
+            ParamKind.choice,
+            defaultValue: null,
+            choices: ['X', 'Y', 'Q'],
+          ),
+          const [
+            WordingValueWords('X', 'p', ['p, q']),
+            WordingValueWords('Y', 'r', ['q, r']),
+            WordingValueWords('Q', 'q'),
+          ],
+        ),
+      ]);
+      expect(
+        checkWording('[if s is in (p, q, r, q) then x]', mine).error?.code,
+        WordingIssueCode.ambiguous,
+      );
     });
 
     test('a label may start with a word conditions use, or hold a comma', () {
