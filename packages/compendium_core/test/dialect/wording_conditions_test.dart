@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// Conditional wording: `[if … then … else …]` (wording_conditions.dart).
@@ -17,7 +18,7 @@ void main() {
     final check = checkWording(display, swing);
     expect(check.error, isNull, reason: '$display: ${check.error}');
     return renderer.render(
-      Figure(move: 'swing', params: params),
+      testFigure(move: 'swing', params: params),
       larks.copyWith(moveWordings: {'swing': check.stored!}),
     );
   }
