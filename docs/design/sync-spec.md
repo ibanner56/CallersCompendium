@@ -1491,9 +1491,10 @@ envelope, as every kind's do. Text holds canonical role words, as stored.
   Builds before this change required 1 to N units of text and skip such a
   record as malformed, so an entry saved with it blank, or an edit that clears
   it, does not reach a device on one of those builds, which keeps the version it
-  has. This is not held back by a capability: a build that advertises
-  `glossary.v1` is sent it. Accepted by Isaac (maintainer) during the beta
-  rather than gated by a new capability (#1899).
+  has. This is not held back by a capability: a build that advertises the
+  capability gating the entry's kind (`glossary.v2` for `term` and
+  `customFigure`, `glossary.v1` for `compound`) is sent it. Accepted by Isaac
+  (maintainer) during the beta rather than gated by a new capability (#1899).
 
 - `payload` is the stored payload **text**, not the JSON value it encodes, and
   `kind` is the stored kind name. Both travel verbatim, so sync applies, keeps
