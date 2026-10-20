@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "The Collection tab now uses a stack-of-cards icon, so it no longer looks like the Glossary's open book."
+      "The Collection tab now uses a flipped stack-of-cards icon, so it no longer looks like the Glossary's open book."
     ]
   }
 }
