@@ -647,7 +647,8 @@ The Glossary lists them too, when it is shown. While it is on:
 - Add **Parameters** for what can differ from one use to the next, such as
   *who* and *which hand*. In a combination, under **Filled in by parameters**,
   choose which of each figure's settings come from them. A setting can also take the **opposite** of
-  a parameter — the other hand, the other role — where that has one. A choice
+  a parameter — the other hand, the other role, or partners for neighbors and
+  neighbors for partners — where that has one. A choice
   that can't be used, because the kinds differ or no value would fit every
   setting it fills, is shown greyed out with the reason.
 - If a parameter fills nothing, or a new figure's wording leaves it out, saving

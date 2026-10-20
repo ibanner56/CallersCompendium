@@ -5,7 +5,7 @@ enum OppositeCoverage {
   /// Every value has one (right ↔ left).
   total,
 
-  /// Some values have one and others do not (`partners` has no other pair).
+  /// Some values have one and others do not (`everyone` has no other pair).
   partial,
 
   /// No value has one.
@@ -21,7 +21,9 @@ enum OppositeCoverage {
 /// `param_opposites_test.dart` pins the full table value by value, so a new
 /// kind or a new vocabulary value cannot be added without deciding its
 /// opposite. Pair inversion is not restated: it is [invertPairDancerSet], the
-/// single source of truth the renderer and importers already share.
+/// single source of truth the renderer and importers already share. On top of
+/// it, `partners` is opposed by `neighbors` and every neighbor-series token
+/// is opposed by `partners`.
 ///
 /// The `unspecified` sentinel is its own opposite — "not stated" stays not
 /// stated — so a kind keeps its coverage when a slot opts into it.
@@ -57,11 +59,34 @@ abstract final class ParamOpposites {
     return switch (kind) {
       ParamKind.handedness || ParamKind.shoulder => _sides[value],
       ParamKind.spinDirection => _spins[value],
-      ParamKind.dancerSet || ParamKind.dancerPair => invertPairDancerSet(value),
+      ParamKind.dancerSet || ParamKind.dancerPair => _dancerOpposite(value),
       ParamKind.direction => _directions[value],
       _ => null,
     };
   }
+
+  /// A dancer set's opposite: the pair [invertPairDancerSet] names, else the
+  /// partner/neighbor swap. `partners` ↔ `neighbors`, and every other member
+  /// of the neighbor series ([_neighborSeries]) is opposed by `partners`, so
+  /// "other who" always offers the partner whichever neighbor was chosen.
+  ///
+  /// The swap is deliberately not an involution: `nextNeighbors` →
+  /// `partners` → `neighbors`. The renderer's other-pair wording and the
+  /// importers keep using [invertPairDancerSet], which still declines these
+  /// tokens. A custom figure's opposite slot (`{otherWho}`) renders this swap.
+  static String? _dancerOpposite(String value) {
+    if (value == 'partners') return 'neighbors';
+    if (_neighborSeries.contains(value)) return 'partners';
+    return invertPairDancerSet(value);
+  }
+
+  static const Set<String> _neighborSeries = {
+    'neighbors',
+    'prevNeighbors',
+    'nextNeighbors',
+    'thirdNeighbors',
+    'fourthNeighbors',
+  };
 
   static const Map<String, String> _sides = {'right': 'left', 'left': 'right'};
 

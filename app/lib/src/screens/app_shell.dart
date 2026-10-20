@@ -147,8 +147,8 @@ class AppShellState extends State<AppShell> {
   static ({IconData icon, IconData selectedIcon}) _icons(_Destination d) =>
       switch (d) {
         _Destination.collection => (
-          icon: Icons.auto_stories_outlined,
-          selectedIcon: Icons.auto_stories,
+          icon: Icons.style_outlined,
+          selectedIcon: Icons.style,
         ),
         _Destination.programs => (
           icon: Icons.event_note_outlined,
@@ -167,6 +167,16 @@ class AppShellState extends State<AppShell> {
           selectedIcon: Icons.help,
         ),
       };
+
+  /// The navigation icon for [d]. Collection's card stack is flipped
+  /// vertically so it reads differently from the Glossary's book at a glance.
+  static Widget _navIcon(_Destination d, {bool selected = false}) {
+    final icons = _icons(d);
+    final icon = Icon(selected ? icons.selectedIcon : icons.icon);
+    return d == _Destination.collection
+        ? Transform.flip(flipY: true, child: icon)
+        : icon;
+  }
 
   /// The localized navigation label for [d], from [AppLocalizations].
   static String _destinationLabel(AppLocalizations l10n, _Destination d) =>
@@ -333,8 +343,8 @@ class AppShellState extends State<AppShell> {
                   destinations: [
                     for (final d in nav)
                       NavigationRailDestination(
-                        icon: Icon(_icons(d).icon),
-                        selectedIcon: Icon(_icons(d).selectedIcon),
+                        icon: _navIcon(d),
+                        selectedIcon: _navIcon(d, selected: true),
                         label: Text(_destinationLabel(l10n, d)),
                       ),
                   ],
@@ -380,8 +390,8 @@ class AppShellState extends State<AppShell> {
               destinations: [
                 for (final d in nav)
                   NavigationDestination(
-                    icon: Icon(_icons(d).icon),
-                    selectedIcon: Icon(_icons(d).selectedIcon),
+                    icon: _navIcon(d),
+                    selectedIcon: _navIcon(d, selected: true),
                     label: _destinationLabel(l10n, d),
                   ),
                 // The guide is a persistent last destination on narrow
@@ -389,8 +399,8 @@ class AppShellState extends State<AppShell> {
                 // viewing it keeps the bottom bar visible.
                 NavigationDestination(
                   key: const ValueKey('user-guide-destination'),
-                  icon: Icon(_icons(_Destination.guide).icon),
-                  selectedIcon: Icon(_icons(_Destination.guide).selectedIcon),
+                  icon: _navIcon(_Destination.guide),
+                  selectedIcon: _navIcon(_Destination.guide, selected: true),
                   label: _destinationLabel(l10n, _Destination.guide),
                 ),
               ],

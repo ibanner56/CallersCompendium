@@ -307,12 +307,30 @@ void main() {
         'twos',
         'firstCorners',
         'secondCorners',
+        'partners',
+        'neighbors',
+        'prevNeighbors',
+        'nextNeighbors',
+        'thirdNeighbors',
+        'fourthNeighbors',
         u,
       });
       expect(
-        expandCompound(definition, {'who': 'partners'}, taxonomy),
+        expandCompound(definition, {'who': 'everyone'}, taxonomy),
         isNull,
-        reason: 'partners has no other pair',
+        reason: 'everyone has no other pair',
+      );
+      expect(
+        expandCompound(definition, {
+          'who': 'partners',
+        }, taxonomy)!.map((f) => f.params['who']),
+        ['partners', 'neighbors'],
+      );
+      expect(
+        expandCompound(definition, {
+          'who': 'thirdNeighbors',
+        }, taxonomy)!.map((f) => f.params['who']),
+        ['thirdNeighbors', 'partners'],
       );
       expect(
         expandCompound(definition, {

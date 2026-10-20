@@ -49,15 +49,15 @@ void main() {
           'twos': 'ones',
           'firstCorners': 'secondCorners',
           'secondCorners': 'firstCorners',
-          'partners': null,
-          'neighbors': null,
+          'partners': 'neighbors',
+          'neighbors': 'partners',
           'sameRoles': null,
           'shadows': null,
           'secondShadows': null,
-          'prevNeighbors': null,
-          'nextNeighbors': null,
-          'thirdNeighbors': null,
-          'fourthNeighbors': null,
+          'prevNeighbors': 'partners',
+          'nextNeighbors': 'partners',
+          'thirdNeighbors': 'partners',
+          'fourthNeighbors': 'partners',
           'prevPartners': null,
           'nextPartners': null,
           'thirdPartners': null,
@@ -132,13 +132,36 @@ void main() {
     }
   });
 
-  test('opposites are an involution', () {
+  test('opposites are an involution, except the neighbor series', () {
+    // Every neighbor-series token is opposed by `partners`, which is opposed
+    // by `neighbors` alone, so the series collapses by design.
+    const collapsed = {
+      'prevNeighbors',
+      'nextNeighbors',
+      'thirdNeighbors',
+      'fourthNeighbors',
+    };
     for (final entry in expected.entries) {
       for (final value in entry.value.$2.keys) {
         final opposite = ParamOpposites.of(entry.key, value);
-        if (opposite == null) continue;
+        if (opposite == null || collapsed.contains(value)) continue;
         expect(ParamOpposites.of(entry.key, opposite), value);
       }
+    }
+  });
+
+  test('every neighbor-series token is opposed by partners', () {
+    for (final kind in [ParamKind.dancerSet, ParamKind.dancerPair]) {
+      for (final who in [
+        'neighbors',
+        'prevNeighbors',
+        'nextNeighbors',
+        'thirdNeighbors',
+        'fourthNeighbors',
+      ]) {
+        expect(ParamOpposites.of(kind, who), 'partners', reason: who);
+      }
+      expect(ParamOpposites.of(kind, 'partners'), 'neighbors');
     }
   });
 
@@ -192,6 +215,10 @@ void main() {
 
   test('paired dancers reuse the single pair-inversion source', () {
     for (final who in ParamVocab.dancerSets) {
+      // The partner/neighbor swap is the one deliberate departure.
+      if (who == 'partners' || who.toLowerCase().endsWith('neighbors')) {
+        continue;
+      }
       expect(
         ParamOpposites.of(ParamKind.dancerSet, who),
         invertPairDancerSet(who),
