@@ -712,9 +712,13 @@ class SyncConflictComparison extends StatelessWidget {
         return [
           l10n.glossaryEntryKindNewFigure,
           // Slots kept as written: a role word never reaches inside a {…}.
-          mapUserFigureTemplateText(
-            figure.template,
-            (text) => _renderer.renderFreeText(text, dialect),
+          // Its conditions in words, as its editor shows them.
+          wordingForEditing(
+            mapUserFigureTemplateText(
+              figure.template,
+              (text) => _renderer.renderFreeText(text, dialect),
+            ),
+            _renderer.userFigureWordingVocabulary(figure, dialect),
           ),
           if (figure.params.isNotEmpty)
             l10n.syncConflictFieldValue(

@@ -694,9 +694,13 @@ class _GlossaryCustomFigureDetailState
           ],
           heading(l10n.glossaryCustomWording),
           Text(
-            mapUserFigureTemplateText(
-              figure.template,
-              (text) => _renderer.renderFreeText(text, dialect),
+            // Its conditions in words, as its editor shows them.
+            wordingForEditing(
+              mapUserFigureTemplateText(
+                figure.template,
+                (text) => _renderer.renderFreeText(text, dialect),
+              ),
+              _renderer.userFigureWordingVocabulary(figure, dialect),
             ),
             key: const ValueKey('glossary-custom-wording'),
           ),

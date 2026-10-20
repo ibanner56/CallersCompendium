@@ -9762,9 +9762,9 @@
   "@glossaryEntryFormHelper": {
     "x-sourceSha256": "2646baa33c159895818c5bded921dde99cdfe4aa6aa02dd21d3a5f21c17733ff"
   },
-  "userFigureEditorParamNames": "各パラメーター名は文字で始め、文字・数字・_ だけを使い、それぞれ異なる名前にしてください。move、beats、text、役割名、otherHand のような他のパラメーターの反対は名前に使えません。",
+  "userFigureEditorParamNames": "各パラメーター名は文字で始め、文字・数字・_ だけを使い、それぞれ異なる名前にしてください。move、beats、text、役割名、otherHand のような他のパラメーターの反対、条件を書くための語(if、then、else、not、and、or、is)は名前に使えません。",
   "@userFigureEditorParamNames": {
-    "x-sourceSha256": "525f91db8f8dab2c82543de25dc6d1926f40b2a9ab07baa59b5f041689ed1e5b"
+    "x-sourceSha256": "7f79c261a1d21a436e9bad21604754e103b9f92a3e3f000faebbc9ab66ad6266"
   },
   "userFigureEditorChoiceLabel": "選択肢 {number}",
   "@userFigureEditorChoiceLabel": {
@@ -9929,5 +9929,193 @@
   "compoundParamKindText": "テキスト",
   "@compoundParamKindText": {
     "x-sourceSha256": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
+  },
+  "wordingConditionsHelp": "場合によって言い方を変えるには、if・then・else を使った角かっこを使います。例: {example}",
+  "@wordingConditionsHelp": {
+    "x-sourceSha256": "aeda7cc8ef43351b3dfaba2f1b2825efd75acf10ccdd2d66a28f39d9149ae01a"
+  },
+  "wordingConditionsNames": "条件で調べられるもの: {names}",
+  "@wordingConditionsNames": {
+    "x-sourceSha256": "0887591e74954b3fb39039c67e2365a006af0df6f306359596bcf306be1590e9"
+  },
+  "wordingIssueUnclosedGroup": "「[」が閉じられていません: 「{context}」。その部分が終わるところに「]」を追加してください。",
+  "@wordingIssueUnclosedGroup": {
+    "x-sourceSha256": "c71948567301b81d3448158186468a207605a5406482f7457eaf592a2e660fa2"
+  },
+  "wordingIssueStrayCloseBracket": "「{context}」の近くに、前に「[」のない「]」があります。削除するか、その部分が始まるところに「[」を追加してください。",
+  "@wordingIssueStrayCloseBracket": {
+    "x-sourceSha256": "ec96203a14f6b4cd15e31598250c2e0f7719f4f4dfe5ed0991648de39bb3272a"
+  },
+  "wordingIssueUnclosedSlot": "「{context}」の「{brace}」が閉じられていません。{example} のように、名前の後に「{closeBrace}」を追加してください。",
+  "@wordingIssueUnclosedSlot": {
+    "x-sourceSha256": "e4959cabf299a292128cfc5505bde5bcf09e66f52656684ba18da228248ab84a"
+  },
+  "wordingIssueStrayCloseBrace": "「{context}」の近くに、前に「{brace}」のない「{closeBrace}」があります。削除するか、名前の前に「{brace}」を追加してください。",
+  "@wordingIssueStrayCloseBrace": {
+    "x-sourceSha256": "847b8dea22c7e720bc76930ea3e0d8b4ccc563c69788e94d24673facbd835b92"
+  },
+  "wordingIssueBadSlot": "「{found}」はスロットではありません。{fix} のように、波かっこには名前を一つだけ入れてください。",
+  "@wordingIssueBadSlot": {
+    "x-sourceSha256": "f827d402a26d9ba85d6ffd47d3d20e3321d7c22929f0acfde1d8974ec8e42a94"
+  },
+  "wordingIssueConditionInBraces": "波かっこに入れるのは名前一つで、条件ではありません: 「{found}」。場合によってだけ文言を表示するには、角かっこを使います: {fix}",
+  "@wordingIssueConditionInBraces": {
+    "x-sourceSha256": "ded62b042836b4c71327bcba2e4cb5eed5ad181b3cf8f5b4d683692a7e450c49"
+  },
+  "wordingIssueTooLongStored": "この文言は条件を含めると長すぎて保存できません。短くするか、条件を減らしてください。",
+  "@wordingIssueTooLongStored": {
+    "x-sourceSha256": "3f10946f76c4ffc363378a7758127f16138008263707d14e2edd4450ed3377f1"
+  },
+  "wordingIssueMissingCondition": "「{word}」の後に、調べる内容を書いてください。例: 「{example}」。",
+  "@wordingIssueMissingCondition": {
+    "x-sourceSha256": "e697c786f4107cdcddd581d3622d2d39856acb5609a7889c7466a476c8577c36"
+  },
+  "wordingIssueMissingThen": "条件「{condition}」の後に「then」と、その場合に表示する文言を書いてください。",
+  "@wordingIssueMissingThen": {
+    "x-sourceSha256": "4a026bb73b3fde60ea026448a734edcfe80da4ba4efc93282280764da5b443d5"
+  },
+  "wordingIssueColonForThen": "「{condition}」の後には「:」ではなく「then」と書いてください。",
+  "@wordingIssueColonForThen": {
+    "x-sourceSha256": "ea03ecae2ba0d532c64f40c82e2cd1b8cc79c8fbab0198e0ea4817026c43f81c"
+  },
+  "wordingIssueUnknownName": "「{found}」はこの文言で調べられるものではありません。調べられるもの: {names}。",
+  "@wordingIssueUnknownName": {
+    "x-sourceSha256": "dd6a2a9594fa50e6f1ad705433a3b26d51555fc2bc0261781bcf3ae5f3ed023d"
+  },
+  "wordingIssueUnknownNameSuggest": "「{found}」はこの文言で調べられるものではありません。「{suggestion}」のことですか？ 調べられるもの: {names}。",
+  "@wordingIssueUnknownNameSuggest": {
+    "x-sourceSha256": "176d79d683bca2aa524d8a2de10ab9d0204a4830fa869c04a6de18cf09d31a22"
+  },
+  "wordingIssueUnknownNameAfterIf": "「if」で始まる角かっこには条件が入りますが、「{found}」はこの文言で調べられるものではありません。調べられるもの: {names}。",
+  "@wordingIssueUnknownNameAfterIf": {
+    "x-sourceSha256": "c5a4b7ba0261187efc7864a84027e95b1c9f2bffdcc44bcb3eff8eef78f75ab8"
+  },
+  "wordingIssueUnknownNameAfterIfSuggest": "「if」で始まる角かっこには条件が入りますが、「{found}」はこの文言で調べられるものではありません。「{suggestion}」のことですか？ 調べられるもの: {names}。",
+  "@wordingIssueUnknownNameAfterIfSuggest": {
+    "x-sourceSha256": "863b7ec75533af1f503499f8653ae59cf63516256a961f86c3592b0d94a13ba1"
+  },
+  "wordingIssueNameInBraces": "条件の中では、名前を波かっこなしで書いてください: 「{found}」ではなく「{name}」。",
+  "@wordingIssueNameInBraces": {
+    "x-sourceSha256": "f4539a56d6140ef356a495207e03230556d55435c10a2e46215a60a2a30b8310"
+  },
+  "wordingIssueIsntForIsNot": "「{found}」ではなく「is not」と書いてください: 「{fix}」。",
+  "@wordingIssueIsntForIsNot": {
+    "x-sourceSha256": "710738a2bd1002897b99e39ece81b65f333276c55e2f0948bf4c046213bfa731"
+  },
+  "wordingIssueSymbolForWord": "「{found}」ではなく「{word}」と書いてください: 「{fix}」。",
+  "@wordingIssueSymbolForWord": {
+    "x-sourceSha256": "3eaf125029b04f944a204ef04c04a51172d743a9304ed17e2b3444267b495924"
+  },
+  "wordingIssueQuotedValue": "引用符を外してください: 「{fix}」。",
+  "@wordingIssueQuotedValue": {
+    "x-sourceSha256": "3c5135dd3cbb3e4833fdb92939f794cfdb5d148df4fa0751d9362098ac70a033"
+  },
+  "wordingIssueUnknownValue": "「{found}」は {name} が取れる値ではありません。{name} の値: {values}。",
+  "@wordingIssueUnknownValue": {
+    "x-sourceSha256": "f5f97f60006e50060847288569abb2274dd33c7e9390b336337fe9e6f34446f2"
+  },
+  "wordingIssueUnknownValueSuggest": "「{found}」は {name} が取れる値ではありません。「{suggestion}」のことですか？ {name} の値: {values}。",
+  "@wordingIssueUnknownValueSuggest": {
+    "x-sourceSha256": "36007cd2c0f96f897becda30eb8aff79e9d7596f1b691e41702c1b392dd47524"
+  },
+  "wordingIssueExpectedValue": "「{before}」の後に、{name} が取れる値を書いてください。例: 「{example}」。{name} の値: {values}。",
+  "@wordingIssueExpectedValue": {
+    "x-sourceSha256": "fb6afa14270f686a04fafdbf6eb7d4e4e84aa5fc57a08423a1d257d1f8b19635"
+  },
+  "wordingIssueListNeedsParens": "「is in」の後の値は丸かっこで囲んでください: 「{fix}」。",
+  "@wordingIssueListNeedsParens": {
+    "x-sourceSha256": "198338b2e3570bca3b5f0f97428b745694954f1ba1490ada036aa38fbc58dd8f"
+  },
+  "wordingIssueOneOfForIsIn": "「{found}」ではなく「{word}」と書いてください: 「{fix}」。",
+  "@wordingIssueOneOfForIsIn": {
+    "x-sourceSha256": "3eaf125029b04f944a204ef04c04a51172d743a9304ed17e2b3444267b495924"
+  },
+  "wordingIssueEmptyList": "「is in」の後の丸かっこが空です。値を一つ以上入れてください。例: 「{example}」。",
+  "@wordingIssueEmptyList": {
+    "x-sourceSha256": "e9455e9a9753fe62b942f5c2b49d3e2a094aee2bfacca60cb15bd25bdbc3983a"
+  },
+  "wordingIssueUnclosedParen": "「(」が閉じられていません: 「{context}」。「{before}」の後に「)」を追加してください。",
+  "@wordingIssueUnclosedParen": {
+    "x-sourceSha256": "bc5e1865c55d27174d0bf6dea0a8bc2107c5b769ddd266c1b5561ddedf801833"
+  },
+  "wordingIssueStrayCloseParen": "「{context}」の近くに、前に「(」のない「)」があります。削除するか、始まるところに「(」を追加してください。",
+  "@wordingIssueStrayCloseParen": {
+    "x-sourceSha256": "d0b94f62237477e475f2a6a32a6b48a02fedd4559767cf590300120789b21931"
+  },
+  "wordingIssueEmptyParens": "「(」と「)」の間に何もありません。条件を入れるか、かっこを削除してください。",
+  "@wordingIssueEmptyParens": {
+    "x-sourceSha256": "14a86ea7dd8b213192b9bf77739563a785c39468fccb896eac159345928128b2"
+  },
+  "wordingIssueExpectedConnective": "「{before}」の後には「and」「or」「then」のいずれかを書いてください。「{found}」はそこに置けません。",
+  "@wordingIssueExpectedConnective": {
+    "x-sourceSha256": "9c648a83b957ce7b2234cd61cede7528ee61da6bf3a6e18525fa01001232109e"
+  },
+  "wordingIssueExpectedConnectiveInParens": "「{before}」の後には「and」「or」「)」のいずれかを書いてください。「{found}」はそこに置けません。",
+  "@wordingIssueExpectedConnectiveInParens": {
+    "x-sourceSha256": "0d5d26d6ccd066287aaf54a77940b9a53f5f59fa84ae5dbe1c786af6e03ddd07"
+  },
+  "wordingIssueExpectedConnectiveList": "「{before}」の後には「and」「or」「then」のいずれかを書いてください。複数の値を調べるには、並べて書きます: 「{fix}」。",
+  "@wordingIssueExpectedConnectiveList": {
+    "x-sourceSha256": "1013ee71a6db0b5724d8a63dfab74114a2113b50899d0ed6519611b437b1dd88"
+  },
+  "wordingIssueExpectedListSeparator": "リスト「{before}」で、「{found}」の前にコンマを入れるか、「)」でリストを閉じてください。",
+  "@wordingIssueExpectedListSeparator": {
+    "x-sourceSha256": "5e477276e381d4210a17ca048af17dd0f4948fbcaeee3c9badce5e5f9656c16a"
+  },
+  "wordingIssueMixedAndOr": "「{found}」には「and」と「or」が混ざっていて、どちらが先か分かりません。かっこを付けてください: 「{fixA}」または「{fixB}」。",
+  "@wordingIssueMixedAndOr": {
+    "x-sourceSha256": "4263b36fe396044786936cbf8879387383de717b1076db2add1b6557da708004"
+  },
+  "wordingIssueFlagCompare": "{name} はオンかオフのどちらかなので、値とは比べません。オンなら「if {name}」、オフなら「if not {name}」と書いてください。",
+  "@wordingIssueFlagCompare": {
+    "x-sourceSha256": "4266d82cf8435b2170ac1928ab34e4de8b7b0a6fd734f14bf9d02f79109ebd4e"
+  },
+  "wordingIssuePresenceOnly": "{name} は入力されているかどうかしか調べられません。「{name} is empty」「{name} is not empty」、または単に「{name}」と書いてください。",
+  "@wordingIssuePresenceOnly": {
+    "x-sourceSha256": "a9c979258352bc3f967fdc2cbc8f00496222a396b6829cec0ef04f7be16a5cd8"
+  },
+  "wordingIssueNotANumber": "{name} は数値ではないので、「{op}」は使えません。「{name} is …」か「{name} is in (…)」を使ってください。",
+  "@wordingIssueNotANumber": {
+    "x-sourceSha256": "2da1e72c52c9df7b68c19ea16fbf90bf5045abd233eb811fbe22874be13643ff"
+  },
+  "wordingIssueExpectedNumber": "「{op}」の後に {example} のような数値を書いてください。「{found}」は数値ではありません。",
+  "@wordingIssueExpectedNumber": {
+    "x-sourceSha256": "f08536515f1a5cdc3b4f6f7553920792c3d17cbc54e07c1785f0f1b8dfa75d1d"
+  },
+  "wordingIssueNumberOutOfRange": "{name} は {min} から {max} までなので、{found} は範囲外です。",
+  "@wordingIssueNumberOutOfRange": {
+    "x-sourceSha256": "0ded0df27196ee1d1b5db9f374fd323ef6f7d224afb82b88d53303157b0054a4"
+  },
+  "wordingIssueNumberNotWhole": "{name} は整数で数えるので、{found} は値になりません。",
+  "@wordingIssueNumberNotWhole": {
+    "x-sourceSha256": "415af2db253c222c6f92b3ed004c3175770d375d2819c9cefdefaeb914c13a6d"
+  },
+  "wordingIssueNumberNotQuarter": "{name} は 0.25、0.5、¾、1½ のように 4 分の 1 回転単位なので、{found} は値になりません。",
+  "@wordingIssueNumberNotQuarter": {
+    "x-sourceSha256": "cab33afadede59c1d04fb031bb153699cc083a95fb7fe8b8d048dee93f39f0d9"
+  },
+  "wordingIssueNegatedComparison": "「{found}」ではなく「{fix}」と書いてください。",
+  "@wordingIssueNegatedComparison": {
+    "x-sourceSha256": "173b93fd52b1bbd0d2690709324e12a10924f27c1652a3864d79f1235f4d9f56"
+  },
+  "wordingIssueAmbiguous": "「{found}」は 2 通りに読めます: 「{readingA}」または「{readingB}」。意図したほうを書いてください。",
+  "@wordingIssueAmbiguous": {
+    "x-sourceSha256": "7307b10e00c7fd137997f09f4e945a7c142000938409ddcaa04cf188a4958ebf"
+  },
+  "wordingIssueSecondElse": "この部分にはすでに「else」があるので、二つ目は続けられません。ここで「else」が文言の一部なら、「[everyone else]」のように、その言葉を専用の角かっこで囲んでください。",
+  "@wordingIssueSecondElse": {
+    "x-sourceSha256": "3215751e39fc67251f2a24060fa4160f76ea36bac9c4c648a353f325addcc524"
+  },
+  "wordingIssueElseAfterWord": "ここの「else」は、それ以外のすべての場合の文言の始まりになります。「{phrase}」という言葉のつもりなら、専用の角かっこで囲んでください: 「[{phrase}]」。",
+  "@wordingIssueElseAfterWord": {
+    "x-sourceSha256": "6682834ce54a521ab105fd06fd88bade8beb8cf569801e37ad63f78909691554"
+  },
+  "wordingIssueOtherwiseWord": "「{found}」はここでは文言として表示されます。それ以外のすべての場合の文言を書くには「else」と書いてください。",
+  "@wordingIssueOtherwiseWord": {
+    "x-sourceSha256": "301dcf7cf534c24af26947ac41d836dd11652f678eb24fadbca58cfe5c3ae164"
+  },
+  "wordingIssueEmptyMeansNoValue": "「{name} is empty」は {name} に値がないかを調べるもので、選択肢「empty」を調べるものではありません。その選択肢を調べるには「{fix}」と書いてください。",
+  "@wordingIssueEmptyMeansNoValue": {
+    "x-sourceSha256": "7aa997c79b580611a44310c3897577e15be1175e5a3436826c2b4c691cd80cfb"
   }
 }

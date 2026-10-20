@@ -187,11 +187,14 @@ void main() {
         '{who',
       );
       await tester.pump();
+      // The message says what is wrong, where, and how to fix it.
       expect(
-        find.text(
-          'This template is invalid, so the normal wording will be used.',
-        ),
-        findsOneWidget,
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('dialect-wording-error-swing')),
+            )
+            .data,
+        'The “{” in “{who” isn’t closed. Add “}” after the name, like {who}.',
       );
 
       final restore = find.byKey(const ValueKey('dialect-wordings-restore'));
