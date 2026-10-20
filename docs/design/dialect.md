@@ -205,9 +205,11 @@ session for this change; the PR that adds it lists each one as he made it.
   showed it in its stored form, while its conditions still fit what it may
   test: one for a figure not on this device, or one saved before conditions
   whose brackets start with "if" (which now reads as a condition), saves
-  untouched. Renaming or swapping role or dancer words in the dialect editor
-  shows each wording again in the new words from what it last read as, so
-  its meaning never follows a word to another value.
+  untouched. Renaming or swapping role or dancer words in the dialect editor,
+  or a parameter or choice in a figure's editor, shows each wording again in
+  the new words from what it last read as, so it keeps its meaning; a
+  wording that didn't read when the words changed stays as typed, and is
+  read in the new words.
 - **Warnings, not errors**, for wording that saves but likely not as meant:
   `else` after "everyone" and its kin (the words "everyone else" go in their own
   `[…]`, where `else` is ordinary wording), `otherwise` or `elif` in a branch,
