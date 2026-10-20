@@ -1275,7 +1275,7 @@ class _MoveWordingsEditor extends StatelessWidget {
   final UserFigureCatalog userFigures;
 
   /// The stored form of a wording still as the editor showed it, under its
-  /// key (`moveId`, or `moveId/branch`), else null.
+  /// [_DialectEditorScreenState._wordingKey], else null.
   final String? Function(String key, String text) keptWording;
 
   /// [text], the wording [id] (and [branch]) as typed, read in [dialect]'s
