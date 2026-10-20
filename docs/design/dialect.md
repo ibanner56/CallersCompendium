@@ -182,8 +182,8 @@ session for this change; the PR that adds it lists each one as he made it.
 - **The 512 cap is on the stored form.** A stored condition can be longer
   than its words, but raising the cap was rejected: a build before
   conditions truncates a longer template on reading a dialect, and would sync
-  the broken copy back. The editors count it as typed and refuse, with a
-  message, a template that is too long once stored; they never cut one short.
+  the broken copy back. The editors refuse, with a message, a template that is
+  too long once stored; they never cut one short.
 - **Older builds fall back.** A build before conditions refuses a brace holding
   anything but a slot name, so it reads a stored condition as a malformed
   template: a dialect wording falls back to the normal wording, and a figure of
@@ -206,10 +206,12 @@ session for this change; the PR that adds it lists each one as he made it.
   test: one for a figure not on this device, or one saved before conditions
   whose brackets start with "if" (which now reads as a condition), saves
   untouched. Renaming or swapping role or dancer words in the dialect editor,
-  or a parameter or choice in a figure's editor, shows each wording again in
-  the new words from what it last read as, so it keeps its meaning; a
-  wording that didn't read when the words changed stays as typed, and is
-  read in the new words.
+  or a choice's label in a figure's editor, shows each wording again in the
+  new words from what it last read as, so it keeps its meaning. A condition
+  names a parameter by its name, so renaming the parameter, or removing a
+  choice it tests, leaves the wording as typed, and the editor reports what
+  it no longer has; a wording that didn't read when the words changed stays
+  as typed, and is read in the new words.
 - **Warnings, not errors**, for wording that saves but likely not as meant:
   `else` after "everyone" and its kin (the words "everyone else" go in their own
   `[…]`, where `else` is ordinary wording), `otherwise` or `elif` in a branch,

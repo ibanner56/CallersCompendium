@@ -269,6 +269,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     _template.text = wordingForEditing(stored, _templateVocabulary(dialect));
     _shownTemplate = (stored: stored, shown: _template.text);
     _readTemplate = _shownTemplate;
+    _templateWords = _wordsOf(_templateVocabulary(dialect));
   }
 
   /// The wording as loaded, its words in the dialect and its conditions as
@@ -417,14 +418,27 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// rename shows it again keeping that meaning. It isn't rewritten while
   /// being typed.
   void _templateEdited() {
-    final stored = _templateCheck(ActiveDialectScope.of(context)).stored;
-    if (stored != null) _readTemplate = (stored: stored, shown: _template.text);
+    final dialect = ActiveDialectScope.of(context);
+    final stored = _templateCheck(dialect).stored;
+    if (stored != null) {
+      _readTemplate = (stored: stored, shown: _template.text);
+      _templateWords = _wordsOf(_templateVocabulary(dialect));
+    }
     _edited();
   }
 
   /// The wording as last read, its words in the dialect and its conditions as
   /// stored, with the text it was read from.
   ({String stored, String shown})? _readTemplate;
+
+  /// The words the wording was last read or shown in: what names it may
+  /// test and each value's words. Only a change to them shows it again.
+  String? _templateWords;
+
+  static String _wordsOf(WordingVocabulary vocabulary) => [
+    for (final name in vocabulary.names)
+      '${name.name}:${[for (final v in name.values) '${v.value}=${v.word}'].join(',')}',
+  ].join(';');
 
   void _reshowTemplate() {
     final read = _readTemplate;
@@ -433,6 +447,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     if (nodes == null || !wordingHasConditions(nodes)) return;
     final dialect = ActiveDialectScope.of(context);
     final vocabulary = _templateVocabulary(dialect);
+    final words = _wordsOf(vocabulary);
+    if (words == _templateWords) return;
+    _templateWords = words;
     // A condition testing what was just removed keeps its words, which the
     // check then reports.
     if (!wordingConditionsFit(nodes, vocabulary.subjects)) return;
