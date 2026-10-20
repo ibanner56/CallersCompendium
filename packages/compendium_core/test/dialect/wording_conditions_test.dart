@@ -570,8 +570,20 @@ void main() {
       for (var i = 0; i < 25; i++) {
         nested = 's is rock and roll and ($nested)';
       }
-      final nestedStored = checkWording('[if $nested then x]', mine).stored;
-      if (nestedStored != null) wordingForEditing(nestedStored, mine);
+      expect(
+        checkWording('[if $nested then x]', mine).error?.code,
+        WordingIssueCode.ambiguous,
+      );
+      // And one that stores, shown again in words as an editor does.
+      var explicitNest = 'roll';
+      for (var i = 0; i < 25; i++) {
+        explicitNest = '(s is in (rock and roll)) and ($explicitNest)';
+      }
+      final nestedStored = checkWording(
+        '[if $explicitNest then x]',
+        mine,
+      ).stored!;
+      expect(wordingForEditing(nestedStored, mine), contains('roll'));
       expect(watch.elapsedMilliseconds, lessThan(2000));
     });
 
@@ -592,7 +604,7 @@ void main() {
         ),
       ]);
       expect(
-        checkWording('[if s is in (p, q, r, q) then x]', mine).error?.code,
+        checkWording('[if s is in (p, q, r, p) then x]', mine).error?.code,
         WordingIssueCode.ambiguous,
       );
     });
@@ -633,24 +645,21 @@ void main() {
       for (final stored in [
         "[{?if roll}a else b]",
         "[{?if roll}x{?else if roll}else y]",
+        "[{?if roll}if you like else stop]",
+        "[{?if roll}if ok then a else b]",
+        "[{?if roll}{move} else {beats}{?else}else]",
       ]) {
         final shown = wordingForEditing(stored, mine);
         final read = checkWording(shown, mine);
         expect(read.error, isNull, reason: shown);
-        final assembled = assembleWordingNodes(
-          parseStoredWording(read.stored!)!,
-          (_) => '',
-          (_) => true,
-        ).text;
-        expect(
-          assembled,
-          assembleWordingNodes(
-            parseStoredWording(stored)!,
-            (_) => '',
-            (_) => true,
-          ).text,
-          reason: shown,
-        );
+        for (final holds in [true, false]) {
+          String render(String template) => assembleWordingNodes(
+            parseStoredWording(template)!,
+            (slot) => 'S',
+            (_) => holds,
+          ).text;
+          expect(render(read.stored!), render(stored), reason: shown);
+        }
       }
     });
 

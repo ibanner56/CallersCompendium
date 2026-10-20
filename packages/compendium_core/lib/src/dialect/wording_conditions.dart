@@ -1079,18 +1079,16 @@ String displayWordingText(
 ) {
   final out = StringBuffer();
   late final void Function(List<WordingNode>) write;
-  // A branch's words holding "else" (only an imported template can) go in
-  // brackets of their own, where "else" is wording: they read back as they
-  // were, and, holding no slot, are always shown.
+  // The word "else" in a branch's words (only an imported template can
+  // hold one) goes in brackets of its own, `[else]`, where it is wording:
+  // holding no slot, it is always shown, so the branch reads back as it was
+  // around it, slots and all.
   void writeBranch(List<WordingNode> nodes) => write([
     for (final node in nodes)
-      if (node is WordingText &&
-          _elseWord.hasMatch(node.text) &&
-          !_slotPlaceholder.hasMatch(node.text) &&
-          // Words starting "if" in brackets would read as a condition: left
-          // as they are, the editor reports them instead.
-          !_startsWithIf.hasMatch(node.text))
-        WordingGroup([node])
+      if (node is WordingText && _elseWord.hasMatch(node.text))
+        WordingText(
+          node.text.replaceAllMapped(_elseWord, (m) => '${m[1]}[${m[2]}]'),
+        )
       else
         node,
   ]);
@@ -1145,6 +1143,15 @@ String displayWordingText(
 /// condition with two readings is refused, naming both, rather than one
 /// chosen silently.
 WordingCheck checkWording(String text, WordingVocabulary vocabulary) {
+  // Far over what can be stored: refused before reading, so no text a
+  // caller can type keeps the reader long.
+  if (text.trim().length > 2 * kMaxMoveWordingLength) {
+    return WordingCheck(null, [
+      WordingIssue(WordingIssueCode.tooLongStored, 0, text.length, {
+        'max': '$kMaxMoveWordingLength',
+      }),
+    ]);
+  }
   final reader = _DisplayReader(text, vocabulary);
   final nodes = reader.read();
   final issues = [if (reader.error != null) reader.error!, ...reader.warnings];
@@ -1227,10 +1234,10 @@ final RegExp _conditionShape = RegExp(
 );
 final RegExp _firstWord = RegExp(r'\w+');
 final RegExp _spaces = RegExp(r'\s+');
-final RegExp _startsWithIf = RegExp(r"^\s*if($|[^\w'’])", caseSensitive: false);
 final RegExp _elseWord = RegExp(
-  r"(^|[^\w'’])else($|[^\w'’])",
+  r"(^|[^\p{L}\p{N}_'’])(else)(?=$|[^\p{L}\p{N}_'’])",
   caseSensitive: false,
+  unicode: true,
 );
 final RegExp _orBetween = RegExp(r'\s+or\s+', caseSensitive: false);
 
