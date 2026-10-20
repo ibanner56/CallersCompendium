@@ -218,8 +218,8 @@ session for this change; the PR that adds it lists each one as he made it.
   a run of more `not`s than that, are refused: the reader never needs more
   stack than that depth. Renaming or swapping role or dancer words in the
   dialect editor, or a choice's label in a figure's editor, shows each
-  wording again in the
-  new words from what it last read as, so it keeps its meaning. A condition
+  wording again in the new words from what it last read as, so it keeps its
+  meaning. A condition
   names a parameter by its name, so renaming the parameter, or removing a
   choice it tests, leaves the wording as typed, and the editor reports what
   it no longer has; a wording that didn't read when the words changed stays
