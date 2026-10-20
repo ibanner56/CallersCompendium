@@ -10110,8 +10110,9 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get wordingIssueTooLongStored =>
-      'Denne formulering er for lang til at blive gemt med sine betingelser. Gør den kortere, eller brug færre betingelser.';
+  String wordingIssueTooLongStored(String max) {
+    return 'Denne formulering er for lang til at blive gemt: gemt er den over $max tegn (en betingelse kan fylde lidt mere gemt end skrevet). Gør den kortere, eller brug færre betingelser.';
+  }
 
   @override
   String wordingIssueMissingCondition(String word, String example) {
@@ -10323,4 +10324,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String wordingIssueEmptyMeansNoValue(String name, String fix) {
     return '“$name is empty” tester, om $name ikke har nogen værdi, ikke for valgmuligheden “empty”. Skriv “$fix” for at teste for den valgmulighed.';
   }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '“$found” efter “$word” er en værdi, ikke noget, der testes. Gentag, hvad du tester, “$fixA”, eller list værdierne: “$fixB”.';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'Denne formulering kan ikke teste noget her: den figur, den hører til, er ikke på denne enhed, så dens betingelser kan ikke kontrolleres. Ret den på en enhed, der har figuren, eller fjern betingelsen.';
 }

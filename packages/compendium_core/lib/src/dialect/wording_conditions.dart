@@ -236,6 +236,23 @@ List<WordingNode>? parseStoredWording(String template) {
   return _storedCache[trimmed] = _StoredParser(trimmed).parse();
 }
 
+/// [nodes] and everything under them, unmodifiable: a cached tree is shared
+/// by every render that reads its template.
+List<WordingNode> _frozen(List<WordingNode> nodes) => List.unmodifiable([
+  for (final node in nodes)
+    switch (node) {
+      WordingText() => node,
+      WordingGroup(:final children) => WordingGroup(_frozen(children)),
+      WordingChoice(:final branches, :final otherwise) => WordingChoice(
+        List.unmodifiable([
+          for (final b in branches)
+            (condition: b.condition, children: _frozen(b.children)),
+        ]),
+        otherwise == null ? null : _frozen(otherwise),
+      ),
+    },
+]);
+
 final class _StoredParser {
   _StoredParser(this.text);
 
@@ -245,7 +262,7 @@ final class _StoredParser {
   List<WordingNode>? parse() {
     final nodes = _sequence(inGroup: false, inChoice: false);
     if (nodes == null || i != text.length) return null;
-    return nodes;
+    return _frozen(nodes);
   }
 
   /// Parts up to the end, a `]` (in a group) or an `{?else` marker (in a
@@ -527,6 +544,13 @@ String _storedNumber(num n) =>
 String _storedValue(Object value) =>
     value is num ? _storedNumber(value) : "'$value'";
 
+/// Whether a value's word, written after `is`, could read as more than the
+/// value: it has several words, or is spelled like an operator.
+bool _needsList(String word) {
+  final lower = word.trim().toLowerCase();
+  return lower.contains(' ') || lower == 'empty' || lower.startsWith('(');
+}
+
 String _storedCondition(WordingCondition condition) => _conditionText(
   condition,
   name: (name) => name,
@@ -567,10 +591,11 @@ String _conditionText(
         WordingTestOp.present => shown,
         WordingTestOp.empty => '$shown is empty',
         WordingTestOp.notEmpty => '$shown is not empty',
-        // Written explicitly, a value of several words goes in a list and
-        // `is not` is always one, so neither can run into the words around
-        // it ("not sure", "rock and roll").
-        WordingTestOp.equals when explicit && one().contains(' ') =>
+        // Written explicitly, a value of several words, or one spelled like
+        // an operator ("empty"), goes in a list, and `is not` is always one,
+        // so none can run into the words around it ("not sure", "rock and
+        // roll") or read as the operator.
+        WordingTestOp.equals when explicit && _needsList(one()) =>
           '$shown is in (${one()})',
         WordingTestOp.equals => '$shown is ${one()}',
         WordingTestOp.notEquals when explicit => '$shown is not in (${one()})',
@@ -922,6 +947,7 @@ enum WordingIssueCode {
   expectedConnective,
   expectedConnectiveList,
   expectedListSeparator,
+  valueAfterConnective,
   mixedAndOr,
   flagCompare,
   presenceOnly,
@@ -933,6 +959,7 @@ enum WordingIssueCode {
   negatedComparison,
   ambiguous,
   secondElse,
+  nothingToTest,
   // Warnings.
   elseAfterWord,
   otherwiseWord,
@@ -1023,7 +1050,25 @@ String displayWordingCondition(
   explicit: explicit,
 );
 
-/// [nodes] in the display form.
+/// [condition] in the display form, written so that reading it back against
+/// [vocabulary] gives [condition] again: in its plain words when they have
+/// that one reading, else explicitly ([displayWordingCondition]), so that
+/// showing a stored condition never changes what it means. A value with no
+/// word shows as stored either way, and reading it back reports it.
+String readableWordingCondition(
+  WordingCondition condition,
+  WordingVocabulary vocabulary,
+) {
+  final expected = '[{?if ${condition.stored}}x]';
+  final plain = displayWordingCondition(condition, vocabulary);
+  if (checkWording('[if $plain then x]', vocabulary).stored == expected) {
+    return plain;
+  }
+  return displayWordingCondition(condition, vocabulary, explicit: true);
+}
+
+/// [nodes] in the display form, each condition as
+/// [readableWordingCondition] writes it.
 String displayWordingText(
   List<WordingNode> nodes,
   WordingVocabulary vocabulary,
@@ -1043,7 +1088,7 @@ String displayWordingText(
           for (var b = 0; b < branches.length; b++) {
             out.write(b == 0 ? 'if ' : ' else if ');
             out.write(
-              displayWordingCondition(branches[b].condition, vocabulary),
+              readableWordingCondition(branches[b].condition, vocabulary),
             );
             out.write(' then ');
             write(branches[b].children);
@@ -1085,10 +1130,10 @@ WordingCheck checkWording(String text, WordingVocabulary vocabulary) {
   final issues = [if (reader.error != null) reader.error!, ...reader.warnings];
   if (nodes == null || reader.error != null) return WordingCheck(null, issues);
   final stored = storedWordingText(nodes);
-  if (stored.trim().length > kMaxStoredWordingLength) {
+  if (stored.trim().length > kMaxMoveWordingLength) {
     return WordingCheck(null, [
       WordingIssue(WordingIssueCode.tooLongStored, 0, text.length, {
-        'max': '$kMaxStoredWordingLength',
+        'max': '$kMaxMoveWordingLength',
       }),
       ...reader.warnings,
     ]);
@@ -1175,6 +1220,11 @@ bool _isWordChar(String char) {
 }
 
 bool _isSpace(String char) => char.trim().isEmpty;
+
+bool _isDigit(String char) {
+  final code = char.codeUnitAt(0);
+  return code >= 0x30 && code <= 0x39;
+}
 
 final class _DisplayReader {
   _DisplayReader(this.text, this.vocabulary);
@@ -1649,14 +1699,19 @@ final class _DisplayReader {
     }
     final found = _wordAt(k);
     final last = _lastTest(reading.condition);
-    if (last != null && last.op == WordingTestOp.equals) {
+    if (last != null &&
+        (last.op == WordingTestOp.equals ||
+            last.op == WordingTestOp.notEquals)) {
       final info = vocabulary[last.name];
-      final more = info == null ? null : _valueAt(info, k);
+      // A second value, after a space or a comma: a list was meant.
+      final valueAt = text[k] == ',' ? _skipSpace(k + 1) : k;
+      final more = info == null ? null : _valueAt(info, valueAt);
       if (more != null && more.isNotEmpty) {
         final words = [
           info!.wordFor(last.values.first) ?? '${last.values.first}',
           info.wordFor(more.first.value) ?? '${more.first.value}',
         ];
+        final not = last.op == WordingTestOp.notEquals ? 'not ' : '';
         _failAt(
           k,
           2,
@@ -1666,7 +1721,7 @@ final class _DisplayReader {
           {
             'before': before,
             'found': found,
-            'fix': '${info.name} is in (${words.join(', ')})',
+            'fix': '${info.name} is ${not}in (${words.join(', ')})',
           },
         );
         return;
@@ -1764,13 +1819,17 @@ final class _DisplayReader {
       if (andEnd != null || orEnd != null) {
         final op = andEnd != null ? 'and' : 'or';
         final next = _skipSpace(andEnd ?? orEnd!);
-        for (final unit in _unit(next, keywordStart: keywordStart)) {
+        final units = _unit(next, keywordStart: keywordStart);
+        for (final unit in units) {
           frontier.add((
             parts: [...state.parts, unit.condition],
             ops: [...state.ops, op],
             spans: [...state.spans, (next, unit.end)],
             end: unit.end,
           ));
+        }
+        if (units.isEmpty) {
+          _valueAfterConnective(state.parts.last, op, at, k, next);
         }
       }
       // The chain may also end here, before an `and` read as part of a
@@ -1791,6 +1850,48 @@ final class _DisplayReader {
       results.add((condition: condition, end: state.end));
     }
     return results;
+  }
+
+  /// Records, when the words after the connective [op] (at [k]) are a value
+  /// of the test before it rather than a test ("who is robins or larks"),
+  /// the two ways to write what was meant.
+  void _valueAfterConnective(
+    WordingCondition previous,
+    String op,
+    int chainStart,
+    int k,
+    int next,
+  ) {
+    final last = _lastTest(previous);
+    if (last == null ||
+        (last.op != WordingTestOp.equals &&
+            last.op != WordingTestOp.notEquals)) {
+      return;
+    }
+    final info = vocabulary[last.name];
+    if (info == null || info.kind != WordingNameKind.choices) return;
+    final more = _valueAt(info, next);
+    if (more == null) return;
+    final first = info.wordFor(last.values.first) ?? '${last.values.first}';
+    final second = info.wordFor(more.first.value) ?? '${more.first.value}';
+    final negated = last.op == WordingTestOp.notEquals;
+    final repeat = negated
+        ? '${info.name} is not $first and ${info.name} is not $second'
+        : '${info.name} is $first or ${info.name} is $second';
+    final list = '${info.name} is ${negated ? 'not ' : ''}in ($first, $second)';
+    _failAt(
+      next,
+      3,
+      WordingIssueCode.valueAfterConnective,
+      next,
+      more.first.end,
+      {
+        'found': text.substring(next, more.first.end),
+        'word': op,
+        'fixA': repeat,
+        'fixB': list,
+      },
+    );
   }
 
   /// Two ways to group a chain that mixes `and` and `or`: `and` first, then
@@ -1902,6 +2003,17 @@ final class _DisplayReader {
         });
         return const [];
       }
+    }
+    if (vocabulary.names.isEmpty) {
+      _failAt(
+        k,
+        5,
+        WordingIssueCode.nothingToTest,
+        k,
+        k + _wordAt(k).length,
+        {},
+      );
+      return const [];
     }
     // A name: one word, of the names the template may test.
     final word = _wordAt(k);
@@ -2255,15 +2367,34 @@ final class _DisplayReader {
     });
   }
 
-  void _unknownValue(WordingName info, int k, String opText) {
-    final char = text[k];
-    const quotes = {'"', '“', '”', "'", '‘', '’', '«', '»', '„'};
-    if (quotes.contains(char)) {
-      final run = _clauseRun(k);
-      final unquoted = run.split('').where((c) => !quotes.contains(c)).join();
-      _failAt(k, 4, WordingIssueCode.quotedValue, k, k + run.length, {
-        'found': run,
-        'fix': '$opText $unquoted',
+  /// Records why no value of [info] is written at [k], after [opText] (the
+  /// test's words up to the value: `who is`, or `who is` before `in (` when
+  /// [listOpen], the list's `(`, is given).
+  void _unknownValue(WordingName info, int k, String opText, {int? listOpen}) {
+    const quotes = {'"', '“', '”', "'", '‘', '’', '«', '»', '„', '「', '」'};
+    String unquote(String words) =>
+        words.split('').where((c) => !quotes.contains(c)).join().trim();
+    if (quotes.contains(text[k])) {
+      if (listOpen != null) {
+        // The whole list, its quotes taken out.
+        final close = text.indexOf(')', listOpen);
+        final end = close < 0 ? text.length : close;
+        final inner = unquote(text.substring(listOpen + 1, end));
+        _failAt(k, 4, WordingIssueCode.quotedValue, listOpen, end, {
+          'found': text.substring(listOpen, end).trim(),
+          'fix': '$opText in ($inner)',
+        });
+        return;
+      }
+      // The quoted words, to their closing quote: a value can hold "and".
+      var close = k + 1;
+      while (close < text.length && !quotes.contains(text[close])) {
+        close++;
+      }
+      final end = close < text.length ? close + 1 : text.length;
+      _failAt(k, 4, WordingIssueCode.quotedValue, k, end, {
+        'found': text.substring(k, end),
+        'fix': '$opText ${unquote(text.substring(k, end))}',
       });
       return;
     }
@@ -2373,7 +2504,12 @@ final class _DisplayReader {
       } else {
         final values = _valueAt(info, valueAt);
         if (values == null) {
-          _unknownValue(info, valueAt, text.substring(nameStart, k).trim());
+          _unknownValue(
+            info,
+            valueAt,
+            text.substring(nameStart, k).trim(),
+            listOpen: open,
+          );
         } else {
           ends.addAll(values);
         }
@@ -2386,12 +2522,13 @@ final class _DisplayReader {
           continue;
         }
         if (next < text.length && text[next] == ')') {
+          // A list of one is that one value: `is in (x)` and `is x` are
+          // stored alike, so writing either keeps what is stored.
+          final op = values.length == 1
+              ? (negated ? WordingTestOp.notEquals : WordingTestOp.equals)
+              : (negated ? WordingTestOp.notInList : WordingTestOp.inList);
           results.add((
-            condition: WordingTest(
-              info.name,
-              negated ? WordingTestOp.notInList : WordingTestOp.inList,
-              values,
-            ),
+            condition: WordingTest(info.name, op, values),
             end: next + 1,
           ));
           continue;
@@ -2434,6 +2571,24 @@ final class _DisplayReader {
         'op': op,
         'found': found,
         'example': _exampleNumber(info),
+        'name': info.name,
+      });
+      return null;
+    }
+    // A decimal comma ("1,5"), outside a list where a comma separates.
+    if (op != 'is in' &&
+        match.end + 1 < text.length &&
+        text[match.end] == ',' &&
+        _isDigit(text[match.end + 1])) {
+      var end = match.end + 1;
+      while (end < text.length && _isDigit(text[end])) {
+        end++;
+      }
+      final found = text.substring(at, end);
+      _failAt(at, 4, WordingIssueCode.expectedNumber, at, end, {
+        'op': op,
+        'found': found,
+        'example': found.replaceFirst(',', '.'),
         'name': info.name,
       });
       return null;

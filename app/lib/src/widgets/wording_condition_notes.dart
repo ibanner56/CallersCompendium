@@ -16,8 +16,13 @@ class WordingConditionNotes extends StatelessWidget {
     required this.vocabulary,
     required this.check,
     required this.errorKey,
+    this.showHelp = true,
     super.key,
   });
+
+  /// Whether to show how to write a condition, and what it may test: not
+  /// when nothing can be tested, as for a figure not on this device.
+  final bool showHelp;
 
   /// What the wording may test.
   final WordingVocabulary vocabulary;
@@ -36,16 +41,18 @@ class WordingConditionNotes extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.wordingConditionsHelp(wordingConditionExample(vocabulary)),
-          style: theme.textTheme.bodySmall,
-        ),
-        Text(
-          l10n.wordingConditionsNames(
-            wordingTestableNames(vocabulary).join(', '),
+        if (showHelp) ...[
+          Text(
+            l10n.wordingConditionsHelp(wordingConditionExample(vocabulary)),
+            style: theme.textTheme.bodySmall,
           ),
-          style: theme.textTheme.bodySmall,
-        ),
+          Text(
+            l10n.wordingConditionsNames(
+              wordingTestableNames(vocabulary).join(', '),
+            ),
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
         if (error != null)
           Text(
             wordingIssueMessage(l10n, error),

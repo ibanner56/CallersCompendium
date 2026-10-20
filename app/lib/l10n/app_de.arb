@@ -9962,9 +9962,9 @@
   "@wordingIssueConditionInBraces": {
     "x-sourceSha256": "ded62b042836b4c71327bcba2e4cb5eed5ad181b3cf8f5b4d683692a7e450c49"
   },
-  "wordingIssueTooLongStored": "Dieser Wortlaut ist mit seinen Bedingungen zu lang zum Speichern. Kürze ihn oder verwende weniger Bedingungen.",
+  "wordingIssueTooLongStored": "Dieser Wortlaut ist zu lang zum Speichern: Gespeichert hat er mehr als {max} Zeichen (eine Bedingung braucht gespeichert etwas mehr Platz als getippt). Kürze ihn oder verwende weniger Bedingungen.",
   "@wordingIssueTooLongStored": {
-    "x-sourceSha256": "3f10946f76c4ffc363378a7758127f16138008263707d14e2edd4450ed3377f1"
+    "x-sourceSha256": "c0dc898443482d0ddbf0ef993663f4227c686df7768d828bd97d9e35599b1055"
   },
   "wordingIssueMissingCondition": "Schreibe nach „{word}“, was geprüft werden soll, zum Beispiel „{example}“.",
   "@wordingIssueMissingCondition": {
@@ -10117,5 +10117,13 @@
   "wordingIssueEmptyMeansNoValue": "„{name} is empty“ prüft, ob {name} keinen Wert hat, nicht auf seine Option „empty“. Um auf diese Option zu prüfen, schreibe „{fix}“.",
   "@wordingIssueEmptyMeansNoValue": {
     "x-sourceSha256": "7aa997c79b580611a44310c3897577e15be1175e5a3436826c2b4c691cd80cfb"
+  },
+  "wordingIssueValueAfterConnective": "„{found}“ nach „{word}“ ist ein Wert, nichts, was geprüft wird. Wiederhole, was du prüfst, „{fixA}“, oder liste die Werte auf: „{fixB}“.",
+  "@wordingIssueValueAfterConnective": {
+    "x-sourceSha256": "1712e23d6a809549de82b017341e889c5ae2afc8d5aa5d68fb037ea5e1441a58"
+  },
+  "wordingIssueNothingToTest": "Dieser Wortlaut kann hier nichts prüfen: Die Figur, zu der er gehört, ist nicht auf diesem Gerät, daher lassen sich seine Bedingungen nicht prüfen. Ändere ihn auf einem Gerät, das die Figur hat, oder entferne die Bedingung.",
+  "@wordingIssueNothingToTest": {
+    "x-sourceSha256": "eca111ef56468b02b6594947dff540a15806a22df305cafee8e6baf0e6e09de8"
   }
 }

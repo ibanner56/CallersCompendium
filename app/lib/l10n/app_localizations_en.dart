@@ -10066,8 +10066,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get wordingIssueTooLongStored =>
-      'This wording is too long to save with its conditions. Shorten it, or use fewer conditions.';
+  String wordingIssueTooLongStored(String max) {
+    return 'This wording is too long to save: as saved, it’s over $max characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.';
+  }
 
   @override
   String wordingIssueMissingCondition(String word, String example) {
@@ -10279,4 +10280,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String wordingIssueEmptyMeansNoValue(String name, String fix) {
     return '“$name is empty” tests whether $name has no value, not for its choice “empty”. To test for that choice, write “$fix”.';
   }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '“$found” after “$word” is a value, not something to test. Say what you’re testing again, “$fixA”, or list the values: “$fixB”.';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'This wording can’t test anything here: the figure it belongs to isn’t on this device, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.';
 }

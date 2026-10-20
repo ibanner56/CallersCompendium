@@ -499,11 +499,58 @@ void main() {
       }
       expect(
         checkWording('[if style is in (rock and roll) then x]', mine).stored,
-        "[{?if style is in ('a2')}x]",
+        "[{?if style is 'a2'}x]",
       );
       expect(
         checkWording('[if (style is rock) and roll then x]', mine).stored,
         "[{?if style is 'a1' and roll}x]",
+      );
+    });
+  });
+
+  group('a stored condition shown in words reads back as it was', () {
+    final mine = renderer.userFigureWordingVocabulary(
+      UserFigureDefinition(
+        template: '{move}',
+        defaultBeats: 8,
+        params: [
+          UserFigureParam(
+            key: 'style',
+            kind: ParamKind.choice,
+            choices: const [
+              UserFigureChoice(id: 'a1', label: 'rock'),
+              UserFigureChoice(id: 'a2', label: 'rock and roll'),
+              UserFigureChoice(id: 'a3', label: 'not sure'),
+              UserFigureChoice(id: 'a4', label: 'sure'),
+              UserFigureChoice(id: 'a5', label: 'empty'),
+            ],
+          ),
+          UserFigureParam(key: 'roll', kind: ParamKind.flag),
+        ],
+      ),
+      larks,
+    );
+
+    test('even where its plain words would have two readings', () {
+      for (final stored in [
+        "[{?if style is 'a1' and roll}x]",
+        "[{?if style is 'a2'}x]",
+        "[{?if style is not 'a4'}x]",
+        "[{?if style is 'a3'}x]",
+        // A choice renamed "empty" after the condition was saved.
+        "[{?if style is 'a5'}x]",
+        '[{?if style is empty}x]',
+        "[{?if style is in ('a2', 'a5')}x]",
+      ]) {
+        final shown = wordingForEditing(stored, mine);
+        final check = checkWording(shown, mine);
+        expect(check.error, isNull, reason: '$stored → $shown');
+        expect(check.stored, stored, reason: '$stored → $shown');
+      }
+      // Plain words where they have one reading.
+      expect(
+        wordingForEditing("[{?if style is 'a1'}x]", mine),
+        '[if style is rock then x]',
       );
     });
   });
@@ -775,6 +822,59 @@ void main() {
       );
     });
 
+    test('a second value written as a second test, or after a comma', () {
+      expectIssue(
+        '[if who is robins or larks then x]',
+        WordingIssueCode.valueAfterConnective,
+        data: {
+          'found': 'larks',
+          'word': 'or',
+          'fixA': 'who is robins or who is larks',
+          'fixB': 'who is in (robins, larks)',
+        },
+      );
+      expectIssue(
+        '[if who is not robins or larks then x]',
+        WordingIssueCode.valueAfterConnective,
+        data: {
+          'fixA': 'who is not robins and who is not larks',
+          'fixB': 'who is not in (robins, larks)',
+        },
+      );
+      expectIssue(
+        '[if who is robins, larks then x]',
+        WordingIssueCode.expectedConnectiveList,
+        data: {'fix': 'who is in (robins, larks)'},
+      );
+      for (final fix in [
+        'who is robins or who is larks',
+        'who is in (robins, larks)',
+        'who is not robins and who is not larks',
+        'who is not in (robins, larks)',
+      ]) {
+        expect(errorOf('[if $fix then x]'), isNull, reason: fix);
+      }
+    });
+
+    test('a decimal comma, and nothing to test', () {
+      final allemande = renderer.moveWordingVocabulary('allemande', larks);
+      expectIssue(
+        '[if travel is 1,5 then x]',
+        WordingIssueCode.expectedNumber,
+        data: {'found': '1,5', 'example': '1.5'},
+        vocabulary: allemande,
+      );
+      expect(
+        checkWording('[if beats is in (8,16) then x]', swing).stored,
+        '[{?if beats is in (8, 16)}x]',
+      );
+      expectIssue(
+        '[if who is robins then x]',
+        WordingIssueCode.nothingToTest,
+        vocabulary: WordingVocabulary(const []),
+      );
+    });
+
     test('warnings: the template saves, but likely not as meant', () {
       final everyone = checkWording(
         '[if who is ones then everyone else swing]',
@@ -817,7 +917,7 @@ void main() {
       expect(empty.warnings.single.data['fix'], 'size is in (empty)');
       expect(
         checkWording('[if size is in (empty) then x]', mine).stored,
-        "[{?if size is in ('e')}x]",
+        "[{?if size is 'e'}x]",
       );
     });
 
@@ -829,6 +929,8 @@ void main() {
         '[if who is one of robins, larks then x]',
         '[if who is in robins, larks then x]',
         '[if who is "robins" then x]',
+        '[if who is in ("robins", "larks") then x]',
+        '[if who is “next neighbors” then x]',
         '[if beats is not more than 8 then x]',
         '[if who is robins larks then x]',
       ]) {

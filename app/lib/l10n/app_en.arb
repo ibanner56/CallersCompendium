@@ -13281,9 +13281,15 @@
       }
     }
   },
-  "wordingIssueTooLongStored": "This wording is too long to save with its conditions. Shorten it, or use fewer conditions.",
+  "wordingIssueTooLongStored": "This wording is too long to save: as saved, it’s over {max} characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.",
   "@wordingIssueTooLongStored": {
-    "description": "A wording template with conditions is over the length it may be saved at."
+    "description": "A wording template is over the length it may be saved at.",
+    "placeholders": {
+      "max": {
+        "type": "String",
+        "example": "512"
+      }
+    }
   },
   "wordingIssueMissingCondition": "After “{word}”, write what to test, for example “{example}”.",
   "@wordingIssueMissingCondition": {
@@ -13812,5 +13818,31 @@
         "example": "size is in (empty)"
       }
     }
+  },
+  "wordingIssueValueAfterConnective": "“{found}” after “{word}” is a value, not something to test. Say what you’re testing again, “{fixA}”, or list the values: “{fixB}”.",
+  "@wordingIssueValueAfterConnective": {
+    "description": "A condition writes a second value after and/or instead of a second test. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.",
+    "placeholders": {
+      "found": {
+        "type": "String",
+        "example": "larks"
+      },
+      "word": {
+        "type": "String",
+        "example": "or"
+      },
+      "fixA": {
+        "type": "String",
+        "example": "who is robins or who is larks"
+      },
+      "fixB": {
+        "type": "String",
+        "example": "who is in (robins, larks)"
+      }
+    }
+  },
+  "wordingIssueNothingToTest": "This wording can’t test anything here: the figure it belongs to isn’t on this device, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.",
+  "@wordingIssueNothingToTest": {
+    "description": "A condition is written in a wording whose figure is not on this device."
   }
 }

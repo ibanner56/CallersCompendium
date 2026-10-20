@@ -69,9 +69,8 @@ built figure.
   (see [Conditional wording](#conditional-wording)).
   Malformed or empty templates fall back to the normal renderer. The editor
   warns when a template omits available slots and requires confirmation before
-  saving it. A caller types up to 512 UTF-16 code units; imported templates are
-  sanitized, capped at 1024 as stored (`kMaxStoredWordingLength`, room for a
-  condition's stored values), and limited to 256 entries per dialect.
+  saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
+  each as stored, conditions included, and limited to 256 entries per dialect.
 - `moveWordingBranches` stores fixed branch-specific templates for
   `form_a_long_wave` (`inOnly`, `outOnly`, `inAndOut`, `neither`) and
   `promenade` (`ordinary`, `singleFile`). The editor reveals these branches only
@@ -84,7 +83,7 @@ built figure.
   forms; its single-file rendering supplies the fixed `single file` prefix.
   Legacy circle branch data retains its ordinary template and discards the
   single-file template. Branch templates are display-only and share the
-  same length and 256-entry limits, and may hold conditions too.
+  512-code-unit/256-entry limits, and may hold conditions too.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
   Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
   presets — a user who wants them enters them through the custom role-terms
@@ -118,8 +117,8 @@ cases with a **conditional group**:
 `wording_conditions.dart` holds the language: its reader, the stored form,
 rendering, and the issues a caller is shown.
 
-**The language.** These choices were made by Isaac (maintainer) in the session
-that designed it; the PR adding it records them.
+**The language.** These choices were made by Isaac (maintainer) in the design
+session for this change; the PR that adds it lists each one as he made it.
 
 - A group is `[if` *condition* `then` *wording*, any number of `else if`
   *condition* `then` *wording*, and at most one `else` *wording*, then `]`. A
@@ -145,7 +144,7 @@ that designed it; the PR adding it records them.
   slot needs renaming (`wording_conditions_test.dart` sweeps the taxonomy). A
   stored figure with a parameter named a reserved word reads as **Needs
   repair** and is repaired by renaming it: Custom Figures had only just
-  shipped, and Isaac judged that acceptable.
+  shipped, and Isaac judged that acceptable (same session, same PR).
 - Error messages are part of the language, not decoration: each one says what is
   wrong, quotes the words it is about, and how to fix it, often with the
   corrected words (`wording_issue_labels.dart`, one message per
@@ -180,6 +179,11 @@ that designed it; the PR adding it records them.
   condition is stored exactly as typed. A figure of your own's literal words are
   canonicalized around the markers (`mapUserFigureTemplateText` keeps them as
   written).
+- **The 512 cap is on the stored form.** A stored condition can be longer
+  than its words, but raising the cap was rejected: a build before
+  conditions truncates a longer template on reading a dialect, and would sync
+  the broken copy back. The editors count it as typed and refuse, with a
+  message, a template that is too long once stored; they never cut one short.
 - **Older builds fall back.** A build before conditions refuses a brace holding
   anything but a slot name, so it reads a stored condition as a malformed
   template: a dialect wording falls back to the normal wording, and a figure of

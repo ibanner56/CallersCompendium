@@ -10225,8 +10225,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get wordingIssueTooLongStored =>
-      'Dieser Wortlaut ist mit seinen Bedingungen zu lang zum Speichern. Kürze ihn oder verwende weniger Bedingungen.';
+  String wordingIssueTooLongStored(String max) {
+    return 'Dieser Wortlaut ist zu lang zum Speichern: Gespeichert hat er mehr als $max Zeichen (eine Bedingung braucht gespeichert etwas mehr Platz als getippt). Kürze ihn oder verwende weniger Bedingungen.';
+  }
 
   @override
   String wordingIssueMissingCondition(String word, String example) {
@@ -10438,4 +10439,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String wordingIssueEmptyMeansNoValue(String name, String fix) {
     return '„$name is empty“ prüft, ob $name keinen Wert hat, nicht auf seine Option „empty“. Um auf diese Option zu prüfen, schreibe „$fix“.';
   }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '„$found“ nach „$word“ ist ein Wert, nichts, was geprüft wird. Wiederhole, was du prüfst, „$fixA“, oder liste die Werte auf: „$fixB“.';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'Dieser Wortlaut kann hier nichts prüfen: Die Figur, zu der er gehört, ist nicht auf diesem Gerät, daher lassen sich seine Bedingungen nicht prüfen. Ändere ihn auf einem Gerät, das die Figur hat, oder entferne die Bedingung.';
 }

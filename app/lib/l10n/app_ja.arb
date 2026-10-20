@@ -9962,9 +9962,9 @@
   "@wordingIssueConditionInBraces": {
     "x-sourceSha256": "ded62b042836b4c71327bcba2e4cb5eed5ad181b3cf8f5b4d683692a7e450c49"
   },
-  "wordingIssueTooLongStored": "この文言は条件を含めると長すぎて保存できません。短くするか、条件を減らしてください。",
+  "wordingIssueTooLongStored": "この文言は長すぎて保存できません。保存すると {max} 文字を超えます(条件は、入力したときより保存したときのほうが少し長くなることがあります)。短くするか、条件を減らしてください。",
   "@wordingIssueTooLongStored": {
-    "x-sourceSha256": "3f10946f76c4ffc363378a7758127f16138008263707d14e2edd4450ed3377f1"
+    "x-sourceSha256": "c0dc898443482d0ddbf0ef993663f4227c686df7768d828bd97d9e35599b1055"
   },
   "wordingIssueMissingCondition": "「{word}」の後に、調べる内容を書いてください。例: 「{example}」。",
   "@wordingIssueMissingCondition": {
@@ -10117,5 +10117,13 @@
   "wordingIssueEmptyMeansNoValue": "「{name} is empty」は {name} に値がないかを調べるもので、選択肢「empty」を調べるものではありません。その選択肢を調べるには「{fix}」と書いてください。",
   "@wordingIssueEmptyMeansNoValue": {
     "x-sourceSha256": "7aa997c79b580611a44310c3897577e15be1175e5a3436826c2b4c691cd80cfb"
+  },
+  "wordingIssueValueAfterConnective": "「{word}」の後の「{found}」は値で、調べるものではありません。調べる対象をもう一度書くか(「{fixA}」)、値を並べて書いてください: 「{fixB}」。",
+  "@wordingIssueValueAfterConnective": {
+    "x-sourceSha256": "1712e23d6a809549de82b017341e889c5ae2afc8d5aa5d68fb037ea5e1441a58"
+  },
+  "wordingIssueNothingToTest": "この文言はここでは何も調べられません。この文言のフィギュアがこのデバイスにないため、条件を確認できません。フィギュアがあるデバイスで変更するか、条件を削除してください。",
+  "@wordingIssueNothingToTest": {
+    "x-sourceSha256": "eca111ef56468b02b6594947dff540a15806a22df305cafee8e6baf0e6e09de8"
   }
 }

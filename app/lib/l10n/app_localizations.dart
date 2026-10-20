@@ -15113,11 +15113,11 @@ abstract class AppLocalizations {
   /// **'Braces hold one name, not a condition: “{found}”. To show wording only in some cases, use square brackets: {fix}'**
   String wordingIssueConditionInBraces(String found, String fix);
 
-  /// A wording template with conditions is over the length it may be saved at.
+  /// A wording template is over the length it may be saved at.
   ///
   /// In en, this message translates to:
-  /// **'This wording is too long to save with its conditions. Shorten it, or use fewer conditions.'**
-  String get wordingIssueTooLongStored;
+  /// **'This wording is too long to save: as saved, it’s over {max} characters (a condition can take a little more room saved than typed). Shorten it, or use fewer conditions.'**
+  String wordingIssueTooLongStored(String max);
 
   /// A condition is missing after a word that needs one. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
   ///
@@ -15369,6 +15369,23 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'“{name} is empty” tests whether {name} has no value, not for its choice “empty”. To test for that choice, write “{fix}”.'**
   String wordingIssueEmptyMeansNoValue(String name, String fix);
+
+  /// A condition writes a second value after and/or instead of a second test. The words if, then, else, is, is not, is in, and, or, not, empty, more than, less than, at least and at most are the wording language's own: keep them in English, exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'“{found}” after “{word}” is a value, not something to test. Say what you’re testing again, “{fixA}”, or list the values: “{fixB}”.'**
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  );
+
+  /// A condition is written in a wording whose figure is not on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'This wording can’t test anything here: the figure it belongs to isn’t on this device, so its conditions can’t be checked. Change it on a device that has the figure, or remove the condition.'**
+  String get wordingIssueNothingToTest;
 }
 
 class _AppLocalizationsDelegate

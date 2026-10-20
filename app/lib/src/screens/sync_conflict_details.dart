@@ -405,6 +405,8 @@ class SyncConflictComparison extends StatelessWidget {
         local.value,
         other.value,
         keyName: (key) => _dialectKeyName(context, l10n, key),
+        wording: (key, stored, dialect) =>
+            _dialectWording(context, key, stored, dialect),
       ),
       'custom_themes' => _themeParts(l10n, local.value, other.value),
       _ => null,
@@ -453,15 +455,53 @@ class SyncConflictComparison extends StatelessWidget {
     );
   }
 
+  /// The stored wording [stored] for the move or figure [key], as the dialect
+  /// editor shows it: its conditions in [dialect]'s words.
+  String _dialectWording(
+    BuildContext context,
+    String key,
+    String stored,
+    Dialect dialect,
+  ) {
+    if (!isUserFigureKey(key)) {
+      return wordingForEditing(
+        stored,
+        _renderer.moveWordingVocabulary(key, dialect),
+      );
+    }
+    final definition = UserFiguresScope.catalogOf(
+      context,
+    )[key.substring(userFigureRefPrefix.length)]?.definition;
+    return wordingForEditing(
+      stored,
+      definition == null
+          ? WordingVocabulary(const [])
+          : _renderer.userFigureWordingVocabulary(definition, dialect),
+    );
+  }
+
   /// The parts of a dialect that differ: each section, showing only the
-  /// terms that differ within it, each named by [keyName].
+  /// terms that differ within it, each named by [keyName], and each wording
+  /// shown by [wording] in its own side's words.
   List<({String label, String local, String other})>? _dialectParts(
     AppLocalizations l10n,
     Object? local,
     Object? other, {
     required String Function(String key) keyName,
+    required String Function(String key, String stored, Dialect dialect)
+    wording,
   }) {
     if (local is! Map || other is! Map) return null;
+    Dialect words(Map<Object?, Object?> json) {
+      try {
+        return Dialect.fromJson(json.cast<String, Object?>());
+      } on Object {
+        return Dialect.canonical;
+      }
+    }
+
+    final localWords = words(local);
+    final otherWords = words(other);
     final parts = <({String label, String local, String other})>[];
     if (local['name'] != other['name']) {
       parts.add((
@@ -478,7 +518,11 @@ class SyncConflictComparison extends StatelessWidget {
       final String text => text,
       _ => canonicalJson(value),
     };
-    void section(String label, List<String> keys) {
+    void section(
+      String label,
+      List<String> keys, {
+      String? Function(String key, Object? value, Dialect dialect)? show,
+    }) {
       final mine = <String, Object?>{};
       final theirs = <String, Object?>{};
       for (final key in keys) {
@@ -495,25 +539,40 @@ class SyncConflictComparison extends StatelessWidget {
           if (canonicalJson(mine[name]) != canonicalJson(theirs[name])) name,
       ];
       if (differing.isEmpty) return;
-      String side(Map<String, Object?> terms) {
+      String side(Map<String, Object?> terms, Dialect dialect) {
         final text = [
           for (final name in differing)
             if (terms.containsKey(name))
-              '${keyName(name)} → ${term(terms[name])}',
+              '${keyName(name)} → '
+                  '${show?.call(name, terms[name], dialect) ?? term(terms[name])}',
         ].join(', ');
         return text.isEmpty ? l10n.syncConflictValueNotSet : text;
       }
 
-      parts.add((label: label, local: side(mine), other: side(theirs)));
+      parts.add((
+        label: label,
+        local: side(mine, localWords),
+        other: side(theirs, otherWords),
+      ));
     }
 
     section(l10n.dialectEditorSectionRoleTerms, ['roles']);
     section(l10n.dialectEditorSectionMoveSubs, ['moves']);
     section(l10n.dialectEditorSectionDancerSubs, ['dancers']);
-    section(l10n.dialectEditorSectionMoveWordings, [
-      'moveWordings',
-      'moveWordingBranches',
-    ]);
+    section(
+      l10n.dialectEditorSectionMoveWordings,
+      ['moveWordings', 'moveWordingBranches'],
+      // Conditions in words, as the editor shows them; a move's branches
+      // each by name.
+      show: (key, value, dialect) => switch (value) {
+        final String stored => wording(key, stored, dialect),
+        final Map<Object?, Object?> branches => [
+          for (final MapEntry(key: branch, value: stored) in branches.entries)
+            if (stored is String) '$branch: ${wording(key, stored, dialect)}',
+        ].join('; '),
+        _ => null,
+      },
+    );
     if (canonicalJson(local['discouragedTerms']) !=
         canonicalJson(other['discouragedTerms'])) {
       parts.add((

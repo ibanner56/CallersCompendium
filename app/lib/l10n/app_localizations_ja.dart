@@ -9710,8 +9710,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get wordingIssueTooLongStored =>
-      'この文言は条件を含めると長すぎて保存できません。短くするか、条件を減らしてください。';
+  String wordingIssueTooLongStored(String max) {
+    return 'この文言は長すぎて保存できません。保存すると $max 文字を超えます(条件は、入力したときより保存したときのほうが少し長くなることがあります)。短くするか、条件を減らしてください。';
+  }
 
   @override
   String wordingIssueMissingCondition(String word, String example) {
@@ -9923,4 +9924,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String wordingIssueEmptyMeansNoValue(String name, String fix) {
     return '「$name is empty」は $name に値がないかを調べるもので、選択肢「empty」を調べるものではありません。その選択肢を調べるには「$fix」と書いてください。';
   }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '「$word」の後の「$found」は値で、調べるものではありません。調べる対象をもう一度書くか(「$fixA」)、値を並べて書いてください: 「$fixB」。';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'この文言はここでは何も調べられません。この文言のフィギュアがこのデバイスにないため、条件を確認できません。フィギュアがあるデバイスで変更するか、条件を削除してください。';
 }

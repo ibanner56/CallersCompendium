@@ -265,11 +265,17 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       }
     }
     // Its conditions are shown in words once its parameters are known.
-    _template.text = wordingForEditing(
-      _template.text,
-      _templateVocabulary(dialect),
-    );
+    final stored = _template.text;
+    _template.text = wordingForEditing(stored, _templateVocabulary(dialect));
+    _shownTemplate = (stored: stored, shown: _template.text);
   }
+
+  /// The wording as loaded, its words in the dialect and its conditions as
+  /// stored, with the text shown for it: left as shown, it is kept as stored
+  /// and not read again ([_templateCheck]), so a wording saved before
+  /// conditions whose brackets start with "if" still saves, and a condition
+  /// keeps the choice it tests while the choice is renamed.
+  ({String stored, String shown})? _shownTemplate;
 
   /// What the wording's conditions may test, from the parameters as now
   /// edited, with their values' words in [dialect].
@@ -286,11 +292,23 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   }
 
   /// The wording as typed, read against the parameters as now edited: its
-  /// stored form, or why it can't be saved.
-  WordingCheck _templateCheck(Dialect dialect) => checkWording(
-    _template.text.replaceAll(_lineBreaks, ' ').trim(),
-    _templateVocabulary(dialect),
-  );
+  /// stored form, or why it can't be saved. One still as loaded is its
+  /// stored form ([_shownTemplate]).
+  WordingCheck _templateCheck(Dialect dialect) {
+    final text = _template.text.replaceAll(_lineBreaks, ' ').trim();
+    final vocabulary = _templateVocabulary(dialect);
+    final shown = _shownTemplate;
+    final nodes = shown == null ? null : parseStoredWording(shown.stored);
+    // Kept while its conditions still fit the parameters; once one tests a
+    // parameter since removed, it is read again, to say which.
+    if (shown != null &&
+        shown.shown.trim() == text &&
+        nodes != null &&
+        wordingConditionsFit(nodes, vocabulary.subjects)) {
+      return WordingCheck(shown.stored.trim(), const []);
+    }
+    return checkWording(text, vocabulary);
+  }
 
   /// Loads a stored definition leniently, so a broken one can be repaired:
   /// every parameter, figure and binding that still reads is kept, and the
@@ -1439,6 +1457,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
             ),
           ],
           maxLength: kMaxMoveWordingLength,
+          // Counted, never cut: a stored wording can show longer than it is
+          // stored, and the check says when it is too long to save.
+          maxLengthEnforcement: MaxLengthEnforcement.none,
           minLines: 1,
           maxLines: 3,
           onChanged: (_) => _changed(),

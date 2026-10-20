@@ -10241,8 +10241,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get wordingIssueTooLongStored =>
-      'Cette formulation est trop longue pour être enregistrée avec ses conditions. Raccourcissez-la ou utilisez moins de conditions.';
+  String wordingIssueTooLongStored(String max) {
+    return 'Cette formulation est trop longue pour être enregistrée : enregistrée, elle dépasse $max caractères (une condition peut prendre un peu plus de place enregistrée que tapée). Raccourcissez-la ou utilisez moins de conditions.';
+  }
 
   @override
   String wordingIssueMissingCondition(String word, String example) {
@@ -10454,4 +10455,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String wordingIssueEmptyMeansNoValue(String name, String fix) {
     return '« $name is empty » teste si $name n’a pas de valeur, et non son option « empty ». Pour tester cette option, écrivez « $fix ».';
   }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '« $found » après « $word » est une valeur, pas quelque chose à tester. Répétez ce que vous testez, « $fixA », ou listez les valeurs : « $fixB ».';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'Cette formulation ne peut rien tester ici : la figure à laquelle elle appartient n’est pas sur cet appareil, ses conditions ne peuvent donc pas être vérifiées. Modifiez-la sur un appareil qui a la figure, ou retirez la condition.';
 }

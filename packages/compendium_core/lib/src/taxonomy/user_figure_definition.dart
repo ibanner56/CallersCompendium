@@ -42,7 +42,8 @@ const int maxGlossaryEntryFormLength = 32;
 
 /// Keys a declared parameter may not take, compared ignoring case: the
 /// reserved slots, the free-text key a figure's fallback line is stored
-/// under, and the role tokens, which read as role words rather than slots.
+/// under, the role tokens, which read as role words rather than slots, and
+/// the words a condition is built from ([wordingReservedWords]).
 final Set<String> _reservedParamKeys = {
   userFigureMoveSlot,
   userFigureBeatsSlot,
@@ -173,7 +174,8 @@ final class UserFigureParam {
 
 /// A figure of your own (#1023): its parameters and the template its line is
 /// rendered from, in the #822 wording syntax (`{slot}`, `{!slot}`,
-/// `[optional group]`).
+/// `[optional group]`) and its conditional groups, stored by meaning
+/// (`wording_conditions.dart`).
 ///
 /// The payload of a `customFigure` glossary entry; the entry carries the
 /// name, definition and description. Like a compound it carries no taxonomy
@@ -506,7 +508,7 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
   if (definition.form.isEmpty) {
     error(UserFigureIssueCodes.badForm, 'the form is empty');
   }
-  if (definition.template.trim().length > kMaxStoredWordingLength) {
+  if (definition.template.trim().length > kMaxMoveWordingLength) {
     error(UserFigureIssueCodes.tooLong, 'the template is too long');
   } else if (!FigureRenderer.isValidMoveWordingTemplate(definition.template)) {
     error(UserFigureIssueCodes.badTemplate, 'the template is not well formed');

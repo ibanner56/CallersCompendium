@@ -333,7 +333,7 @@ void main() {
 
     test('refuses a template or a text default over its length bound', () {
       expect(
-        codes(definitionWith([], template: '{move} ${'x' * 1030}')),
+        codes(definitionWith([], template: '{move} ${'x' * 520}')),
         contains(UserFigureIssueCodes.tooLong),
       );
       expect(

@@ -7,7 +7,8 @@
     ],
     "changed": [
       "A parameter of your own figure can no longer be named `if`, `then`, `else`, `not`, `and`, `or` or `is`. A figure that already has one is marked **Needs repair** until you rename it.",
-      "The message under a move wording template that can't be read now says what is wrong and where, instead of only that it is invalid."
+      "The message under a move wording template that can't be read now says what is wrong and where, instead of only that it is invalid.",
+      "Square brackets in a wording that start with the word “if” now hold a condition. A template saved earlier with such brackets still reads as before until you change it; to edit it, start those brackets with other words."
     ]
   },
   "core": {
@@ -15,7 +16,7 @@
       "Conditional wording templates (`wording_conditions.dart`): `checkWording` reads a template's display form against a `WordingVocabulary` and returns its stored form or `WordingIssue`s; `wordingForEditing` shows a stored template in words; `FigureRenderer.moveWordingVocabulary` and `userFigureWordingVocabulary` build the vocabularies; conditions render through the existing template assembly."
     ],
     "changed": [
-      "A stored wording template may hold `{?if …}` condition markers, and its stored length cap is 1024 UTF-16 code units (`kMaxStoredWordingLength`); `kMaxMoveWordingLength` stays the 512 a caller may type.",
+      "A stored wording template may hold `{?if …}` condition markers; `FigureRenderer.isValidMoveWordingTemplate` reads them, and the 512 cap applies to the stored form.",
       "`wordingReservedWords` joins the reserved parameter keys of a figure of your own, and a definition whose conditions don't fit it is invalid (`UserFigureIssueCodes.badCondition`)."
     ]
   }

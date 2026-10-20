@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
@@ -77,19 +79,39 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
 
   bool _seeded = false;
 
+  /// Each wording as the editor showed it from its stored form, under
+  /// [_wordingKey]: one still as shown is kept as stored and not read again
+  /// ([_keptWording]), so a wording for a figure not on this device, or one
+  /// saved before conditions whose brackets start with "if", stays as it was.
+  final Map<String, ({String stored, String shown})> _shownWordings = {};
+
+  /// Each wording as last typed and read, with its stored form: what it
+  /// means, so it keeps that meaning while the words it was written in
+  /// change ([_trackWordings], [_reshowWordings]).
+  final Map<String, ({String stored, String shown})> _readWordings = {};
+
   /// Seeds the editor on first use rather than in initState: a wording for a
   /// figure of your own is shown with its conditions in words, which needs
-  /// the user's figures, an inherited widget initState can't read.
+  /// the user's figures, an inherited widget initState can't read. When the
+  /// figures change later (they load after the editor may open), a wording
+  /// for one still as first shown is shown again in their words.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_seeded) return;
+    if (_seeded) {
+      _reshowWordings(figuresOnly: true);
+      return;
+    }
     _seeded = true;
     _syncFrom(widget.initial);
     _working = _assemble();
     _issues = _working.validate();
     _invalidMoveWordings = _invalidMoveWordingKeys();
   }
+
+  /// The key a wording is kept under: a move or figure, and a branch.
+  static String _wordingKey(String id, [String? branch]) =>
+      branch == null ? id : '$id/$branch';
 
   /// [stored], the wording [id] as a dialect stores it, as the editor shows
   /// it: its conditions in [dialect]'s words.
@@ -98,6 +120,111 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         stored,
         _wordingVocabulary(id, dialect, UserFiguresScope.catalogOf(context)),
       );
+
+  /// A controller showing the stored wording [stored] for [id] (and
+  /// [branch]) in [dialect]'s words, remembered as shown.
+  TextEditingController _wordingController(
+    String id,
+    String stored,
+    Dialect dialect, [
+    String? branch,
+  ]) {
+    final shown = _shownWording(id, stored, dialect);
+    _shownWordings[_wordingKey(id, branch)] = (stored: stored, shown: shown);
+    return TextEditingController(text: shown);
+  }
+
+  /// The stored form of the wording under [key] when [text] is still as the
+  /// editor showed it, else null: it is then read again.
+  String? _keptWording(String key, String text) {
+    final shown = _shownWordings[key];
+    if (shown == null || shown.shown.trim() != text.trim()) return null;
+    // A stored wording that doesn't read is reported, as it always was.
+    if (!FigureRenderer.isValidMoveWordingTemplate(shown.stored)) return null;
+    // Kept while its conditions still fit what it may test, or nothing can
+    // be tested here (a figure not on this device): once one tests what a
+    // figure no longer has, it is read again, to say which.
+    final nodes = parseStoredWording(shown.stored);
+    // What it may test doesn't depend on the dialect's words.
+    final vocabulary = _wordingVocabulary(
+      key.split('/').first,
+      Dialect.canonical,
+      UserFiguresScope.catalogOf(context),
+    );
+    if (nodes != null &&
+        vocabulary.names.isNotEmpty &&
+        !wordingConditionsFit(nodes, vocabulary.subjects)) {
+      return null;
+    }
+    return shown.stored;
+  }
+
+  /// Remembers each wording that reads in [words], the words it was typed
+  /// in, as its stored form with its text, so it keeps that meaning
+  /// however the words change next ([_reshowWordings]).
+  void _trackWordings(Dialect words) {
+    final userFigures = UserFiguresScope.catalogOf(context);
+    void track(String id, TextEditingController controller, [String? branch]) {
+      final key = _wordingKey(id, branch);
+      if (controller.text.trim().isEmpty ||
+          _keptWording(key, controller.text) != null) {
+        return;
+      }
+      final stored = _checkWording(
+        id,
+        controller.text,
+        words,
+        userFigures,
+      ).stored;
+      if (stored != null) {
+        _readWordings[key] = (stored: stored, shown: controller.text);
+      }
+    }
+
+    for (final entry in _wordingCtrls.entries) {
+      track(entry.key, entry.value);
+    }
+    for (final moveEntry in _branchWordingCtrls.entries) {
+      for (final branchEntry in moveEntry.value.entries) {
+        track(moveEntry.key, branchEntry.value, branchEntry.key);
+      }
+    }
+  }
+
+  /// Shows every wording with a condition again, from what it means, in the
+  /// words the editor now holds (or, with [figuresOnly], each figure of your
+  /// own's in its figure's): a role or dancer renamed, or two swapped, never
+  /// changes what a condition tests. One that doesn't read stays as typed.
+  void _reshowWordings({bool figuresOnly = false}) {
+    final now = _wordsNow();
+    void reshow(String id, TextEditingController controller, [String? branch]) {
+      if (figuresOnly && !isUserFigureKey(id)) return;
+      final key = _wordingKey(id, branch);
+      final kept = _keptWording(key, controller.text);
+      final read = _readWordings[key];
+      final stored =
+          kept ??
+          (!figuresOnly && read != null && read.shown == controller.text
+              ? read.stored
+              : null);
+      if (stored == null) return;
+      final nodes = parseStoredWording(stored);
+      if (nodes == null || !wordingHasConditions(nodes)) return;
+      final shown = _shownWording(id, stored, now);
+      if (kept != null) _shownWordings[key] = (stored: stored, shown: shown);
+      _readWordings[key] = (stored: stored, shown: shown);
+      if (controller.text != shown) controller.text = shown;
+    }
+
+    for (final entry in _wordingCtrls.entries) {
+      reshow(entry.key, entry.value);
+    }
+    for (final moveEntry in _branchWordingCtrls.entries) {
+      for (final branchEntry in moveEntry.value.entries) {
+        reshow(moveEntry.key, branchEntry.value, branchEntry.key);
+      }
+    }
+  }
 
   void _syncFrom(Dialect d) {
     _role1Singular.text = d.roles['role1']?.singular ?? '';
@@ -115,10 +242,10 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       c.dispose();
     }
     _wordingCtrls.clear();
+    _shownWordings.clear();
+    _readWordings.clear();
     for (final entry in d.moveWordings.entries) {
-      _wordingCtrls[entry.key] = TextEditingController(
-        text: _shownWording(entry.key, entry.value, d),
-      );
+      _wordingCtrls[entry.key] = _wordingController(entry.key, entry.value, d);
     }
     for (final branches in _branchWordingCtrls.values) {
       for (final c in branches.values) {
@@ -129,12 +256,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     for (final moveId in d.moveWordingBranches.keys) {
       final branches = <String, TextEditingController>{};
       for (final branch in _renderer.moveWordingBranchIds(moveId)) {
-        branches[branch] = TextEditingController(
-          text: _shownWording(
-            moveId,
-            d.moveWordingBranches[moveId]?[branch] ?? '',
-            d,
-          ),
+        branches[branch] = _wordingController(
+          moveId,
+          d.moveWordingBranches[moveId]?[branch] ?? '',
+          d,
+          branch,
         );
       }
       if (branches.isNotEmpty) _branchWordingCtrls[moveId] = branches;
@@ -207,10 +333,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       if (v.isNotEmpty) dancers[entry.key] = v;
     }
 
-    // Wordings are read in the words of the dialect as now edited, and kept
-    // in their stored form: a condition by meaning. One that can't be read
-    // is left out, so the preview reads the normal wording, and reported
-    // under its field ([_invalidMoveWordingKeys]).
+    // A wording still as shown is kept as stored; an edited one is read in
+    // the words of the dialect as now edited and kept in its stored form, a
+    // condition by meaning. One that can't be read is left out, so the
+    // preview reads the normal wording, and reported under its field
+    // ([_invalidMoveWordingKeys]).
     final words = Dialect(
       name: widget.initial.name,
       roles: roles,
@@ -218,7 +345,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       dancers: dancers,
     );
     final userFigures = UserFiguresScope.catalogOf(context);
-    String? stored(String id, String text) =>
+    String? stored(String id, String text, [String? branch]) =>
+        _keptWording(_wordingKey(id, branch), text) ??
         _checkWording(id, text, words, userFigures).stored;
 
     final moveWordings = <String, String>{};
@@ -233,7 +361,9 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       final branches = <String, String>{};
       for (final branchEntry in moveEntry.value.entries) {
         final v = branchEntry.value.text.trim();
-        final kept = v.isEmpty ? null : stored(moveEntry.key, v);
+        final kept = v.isEmpty
+            ? null
+            : stored(moveEntry.key, v, branchEntry.key);
         if (kept != null) branches[branchEntry.key] = kept;
       }
       if (branches.isNotEmpty) {
@@ -256,6 +386,14 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   /// edit, so the live preview and the inline collision/empty-substitution
   /// warnings update as the user types.
   void _onEdited() {
+    // A wording just typed reads in the words it was typed in; renamed role
+    // or dancer words then show every wording in them, as it still means.
+    _trackWordings(_working);
+    final now = _wordsNow();
+    if (!mapEquals(now.roles, _working.roles) ||
+        !mapEquals(now.dancers, _working.dancers)) {
+      _reshowWordings();
+    }
     setState(() {
       _working = _assemble();
       _issues = _working.validate();
@@ -264,19 +402,42 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   }
 
   /// The keys of the wordings, as typed, that can't be saved: each one's
-  /// first error is shown under it ([_checkWording]).
+  /// first error is shown under it ([_checkWording]). A wording still as
+  /// shown is kept as stored, and not read again.
   List<String> _invalidMoveWordingKeys() {
     final userFigures = UserFiguresScope.catalogOf(context);
-    bool invalid(String id, String text) =>
+    bool invalid(String id, String text, [String? branch]) =>
         text.trim().isNotEmpty &&
+        _keptWording(_wordingKey(id, branch), text) == null &&
         _checkWording(id, text, _working, userFigures).hasErrors;
     return [
       for (final entry in _wordingCtrls.entries)
         if (invalid(entry.key, entry.value.text)) entry.key,
       for (final entry in _branchWordingCtrls.entries)
-        if (entry.value.values.any((c) => invalid(entry.key, c.text)))
+        if (entry.value.entries.any(
+          (b) => invalid(entry.key, b.value.text, b.key),
+        ))
           entry.key,
     ];
+  }
+
+  /// The words the editor now holds: role terms, move names and dancer
+  /// words, which a wording's values are read in.
+  Dialect _wordsNow() {
+    final roles = <String, RoleTerm>{};
+    final r1 = _roleTerm(_role1Singular, _role1Plural);
+    final r2 = _roleTerm(_role2Singular, _role2Plural);
+    if (r1 != null) roles['role1'] = r1;
+    if (r2 != null) roles['role2'] = r2;
+    return Dialect(
+      name: widget.initial.name,
+      roles: roles,
+      dancers: {
+        for (final entry in _dancerCtrls.entries)
+          if (entry.value.text.trim().isNotEmpty)
+            entry.key: entry.value.text.trim(),
+      },
+    );
   }
 
   Map<String, String> _incompleteMoveWordings(Dialect dialect) {
@@ -506,12 +667,10 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         context,
       )[moveId.substring(userFigureRefPrefix.length)];
       setState(() {
-        _wordingCtrls[moveId] = TextEditingController(
-          text: _shownWording(
-            moveId,
-            view?.definition?.template ?? '',
-            _working,
-          ),
+        _wordingCtrls[moveId] = _wordingController(
+          moveId,
+          view?.definition?.template ?? '',
+          _working,
         );
       });
       _onEdited();
@@ -741,6 +900,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       onExpansionChanged: (expanded) =>
           setState(() => _showWordings = expanded),
       child: _MoveWordingsEditor(
+        keptWording: _keptWording,
         label: _label,
         userFigureKeys: _userFigureKeys(),
         userFigures: UserFiguresScope.catalogOf(context),
@@ -1002,8 +1162,6 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
 /// A dialect entry's label: a move's name, or, for a figure of your own's
 /// `userFigure:<id>` key (#1023), the figure's name in [dialect], or a note
 /// that it isn't on this device when [userFigures] lacks it.
-final FigureRenderer _wordingRenderer = FigureRenderer(contraTaxonomy);
-
 /// What a condition in the wording [id] may test, and the words its values
 /// are written with, in [dialect]: a move's, or a figure of your own's.
 WordingVocabulary _wordingVocabulary(
@@ -1012,13 +1170,19 @@ WordingVocabulary _wordingVocabulary(
   UserFigureCatalog userFigures,
 ) {
   if (!isUserFigureKey(id)) {
-    return _wordingRenderer.moveWordingVocabulary(id, dialect);
+    return _DialectEditorScreenState._renderer.moveWordingVocabulary(
+      id,
+      dialect,
+    );
   }
   final definition =
       userFigures[id.substring(userFigureRefPrefix.length)]?.definition;
   return definition == null
       ? WordingVocabulary(const [])
-      : _wordingRenderer.userFigureWordingVocabulary(definition, dialect);
+      : _DialectEditorScreenState._renderer.userFigureWordingVocabulary(
+          definition,
+          dialect,
+        );
 }
 
 /// The wording [id], typed as [text], read in [dialect]'s words: its stored
@@ -1062,6 +1226,7 @@ String _branchLabel(String branch, AppLocalizations l10n) => switch (branch) {
 /// renderer still falls back defensively for imported or migrated data.
 class _MoveWordingsEditor extends StatelessWidget {
   const _MoveWordingsEditor({
+    required this.keptWording,
     required this.label,
     required this.userFigureKeys,
     required this.userFigures,
@@ -1092,6 +1257,24 @@ class _MoveWordingsEditor extends StatelessWidget {
 
   /// The user's figures, for a figure's slots and preview.
   final UserFigureCatalog userFigures;
+
+  /// The stored form of a wording still as the editor showed it, under its
+  /// key (`moveId`, or `moveId/branch`), else null.
+  final String? Function(String key, String text) keptWording;
+
+  /// [text], the wording [id] (and [branch]) as typed, read in [dialect]'s
+  /// words; one still as shown is its stored form, with nothing to report.
+  WordingCheck _check(String id, String text, [String? branch]) {
+    final kept = keptWording(
+      _DialectEditorScreenState._wordingKey(id, branch),
+      text,
+    );
+    if (kept != null) return WordingCheck(kept, const []);
+    return checkWording(
+      text.trim(),
+      _wordingVocabulary(id, dialect, userFigures),
+    );
+  }
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
@@ -1182,7 +1365,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     ).allMatches(text).map((match) => match[1]!).toSet();
     final unknown = used.difference(known).toList()..sort();
     final vocabulary = _wordingVocabulary(id, dialect, userFigures);
-    final check = checkWording(text.trim(), vocabulary);
+    final check = _check(id, text);
     final valid = text.trim().isEmpty || !check.hasErrors;
     final missing = valid
         ? (_renderer.moveWordingMissingSlots(id, text).toList()..sort())
@@ -1223,6 +1406,9 @@ class _MoveWordingsEditor extends StatelessWidget {
             key: ValueKey('dialect-wording-$id'),
             controller: controller,
             maxLength: kMaxMoveWordingLength,
+            // Counted, never cut: a stored wording can show longer than it is
+            // stored, and the check says when it is too long to save.
+            maxLengthEnforcement: MaxLengthEnforcement.none,
             decoration: InputDecoration(
               labelText: l10n.dialectEditorMoveWordingLabel,
               hintText: _renderer.moveWordingTemplate(id),
@@ -1287,7 +1473,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     final used = userFigureTemplateSlots(text);
     final unknown = used.difference(known).toList()..sort();
     final vocabulary = _wordingVocabulary(id, dialect, userFigures);
-    final check = checkWording(text.trim(), vocabulary);
+    final check = _check(id, text);
     final valid = text.trim().isEmpty || !check.hasErrors;
     final tested = check.stored == null
         ? const <String>{}
@@ -1343,6 +1529,9 @@ class _MoveWordingsEditor extends StatelessWidget {
             key: ValueKey('dialect-wording-$id'),
             controller: controller,
             maxLength: kMaxMoveWordingLength,
+            // Counted, never cut: a stored wording can show longer than it is
+            // stored, and the check says when it is too long to save.
+            maxLengthEnforcement: MaxLengthEnforcement.none,
             decoration: InputDecoration(
               labelText: l10n.dialectEditorMoveWordingLabel,
               hintText: definition == null
@@ -1351,19 +1540,19 @@ class _MoveWordingsEditor extends StatelessWidget {
             ),
             onChanged: (_) => onEdited(),
           ),
-          if (definition != null) ...[
+          if (definition != null)
             Text(
               l10n.dialectEditorMoveWordingSlots(
                 slotList(known.toList()..sort()),
               ),
               style: theme.textTheme.bodySmall,
             ),
-            WordingConditionNotes(
-              vocabulary: vocabulary,
-              check: check,
-              errorKey: ValueKey('dialect-wording-error-$id'),
-            ),
-          ],
+          WordingConditionNotes(
+            vocabulary: vocabulary,
+            check: check,
+            errorKey: ValueKey('dialect-wording-error-$id'),
+            showHelp: definition != null,
+          ),
           if (unknown.isNotEmpty)
             Text(
               l10n.dialectEditorUserFigureWordingUnknownSlots(
@@ -1436,7 +1625,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     final text = controller.text;
     final hasText = text.trim().isNotEmpty;
     final vocabulary = _wordingVocabulary(moveId, dialect, userFigures);
-    final check = checkWording(text.trim(), vocabulary);
+    final check = _check(moveId, text, branch);
     final missing = hasText
         ? (_renderer
               .moveWordingBranchMissingSlots(moveId, branch, text)
@@ -1469,6 +1658,9 @@ class _MoveWordingsEditor extends StatelessWidget {
             key: ValueKey('dialect-wording-$moveId-$branch'),
             controller: controller,
             maxLength: kMaxMoveWordingLength,
+            // Counted, never cut: a stored wording can show longer than it is
+            // stored, and the check says when it is too long to save.
+            maxLengthEnforcement: MaxLengthEnforcement.none,
             decoration: InputDecoration(
               labelText: l10n.dialectEditorMoveWordingLabel,
               hintText: _renderer.moveWordingBranchTemplate(moveId, branch),

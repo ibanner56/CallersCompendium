@@ -168,4 +168,81 @@ void main() {
     await save(tester);
     expect(popped()?.moveWordings['swing'], isNotNull);
   });
+
+  testWidgets('a wording for a figure not on this device is kept as it is, '
+      'and the dialect saves', (tester) async {
+    const stored = "[{?if who is 'role2s'}R{?else}O]";
+    final popped = await open(
+      tester,
+      Dialect.larksRobins.copyWith(
+        name: 'Mine',
+        moveWordings: const {'userFigure:gone': stored},
+      ),
+    );
+    await save(tester);
+    expect(popped()?.moveWordings['userFigure:gone'], stored);
+  });
+
+  testWidgets('a wording saved before conditions whose brackets start with '
+      '"if" saves untouched, and says why once edited', (tester) async {
+    const legacy = '[if needed, ]{who} swing';
+    final popped = await open(
+      tester,
+      Dialect.larksRobins.copyWith(
+        name: 'Mine',
+        moveWordings: const {'swing': legacy},
+      ),
+    );
+    expect(error(), findsNothing);
+    await tester.enterText(field(), '$legacy!');
+    await tester.pump();
+    expect(
+      tester.widget<Text>(error()).data,
+      startsWith('Square brackets that start with “if” hold a condition'),
+    );
+    await tester.enterText(field(), legacy);
+    await tester.pump();
+    expect(error(), findsNothing);
+    await save(tester);
+    expect(popped()?.moveWordings['swing'], legacy);
+  });
+
+  testWidgets('renaming a role shows wordings in the new word, and keeps '
+      'what they test', (tester) async {
+    final popped = await open(
+      tester,
+      Dialect.larksRobins.copyWith(
+        name: 'Mine',
+        moveWordings: const {'swing': "[{?if who is 'role2s'}R{?else}O]"},
+      ),
+    );
+    await tester.enterText(field(), '[if who is robins then RR else O]');
+    await tester.pump();
+    final rolesToggle = find.byKey(const ValueKey('dialect-roles-toggle'));
+    await reveal(tester, rolesToggle);
+    await tester.tap(rolesToggle);
+    await tester.pumpAndSettle();
+    // Swap the two roles' words: "robins" now names role1.
+    for (final (key, word) in [
+      ('dialect-role1-singular', 'robin'),
+      ('dialect-role1-plural', 'robins'),
+      ('dialect-role2-singular', 'lark'),
+      ('dialect-role2-plural', 'larks'),
+    ]) {
+      final role = find.byKey(ValueKey(key));
+      await reveal(tester, role);
+      await tester.enterText(role, word);
+      await tester.pump();
+    }
+    await reveal(tester, field());
+    expect(
+      tester.widget<TextField>(field()).controller!.text,
+      '[if who is larks then RR else O]',
+    );
+    await save(tester);
+    expect(
+      popped()?.moveWordings['swing'],
+      "[{?if who is 'role2s'}RR{?else}O]",
+    );
+  });
 }

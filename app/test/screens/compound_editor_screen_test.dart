@@ -395,6 +395,25 @@ void main() {
       expect(decodeUserFigureDefinition(saved.payload)!.template, template);
     });
 
+    testWidgets('a wording saved before conditions whose brackets start '
+        'with "if" saves untouched', (tester) async {
+      const legacy = '[if needed, ]{who} zoom [{style}]';
+      final repos = await pump(tester, initial: zoom(template: legacy));
+      expect(
+        find.byKey(const ValueKey('user-figure-wording-error')),
+        findsNothing,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-description')),
+        'Faster.',
+      );
+      await save(tester);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('zoom-id'),
+      ))!;
+      expect(decodeUserFigureDefinition(saved.payload)!.template, legacy);
+    });
+
     testWidgets('a mistake in a condition is explained under the wording, '
         'and stops the save with the same words', (tester) async {
       final repos = await pump(tester, initial: zoom());

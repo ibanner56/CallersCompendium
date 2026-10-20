@@ -10182,8 +10182,9 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get wordingIssueTooLongStored =>
-      'Deze formulering is te lang om met haar voorwaarden op te slaan. Maak haar korter of gebruik minder voorwaarden.';
+  String wordingIssueTooLongStored(String max) {
+    return 'Deze formulering is te lang om op te slaan: opgeslagen is ze langer dan $max tekens (een voorwaarde neemt opgeslagen iets meer ruimte in dan getypt). Maak haar korter of gebruik minder voorwaarden.';
+  }
 
   @override
   String wordingIssueMissingCondition(String word, String example) {
@@ -10395,4 +10396,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String wordingIssueEmptyMeansNoValue(String name, String fix) {
     return '“$name is empty” test of $name geen waarde heeft, niet op de optie “empty”. Schrijf “$fix” om op die optie te testen.';
   }
+
+  @override
+  String wordingIssueValueAfterConnective(
+    String found,
+    String word,
+    String fixA,
+    String fixB,
+  ) {
+    return '“$found” na “$word” is een waarde, niet iets om te testen. Herhaal wat je test, “$fixA”, of zet de waarden in een lijst: “$fixB”.';
+  }
+
+  @override
+  String get wordingIssueNothingToTest =>
+      'Deze formulering kan hier niets testen: de figuur waar ze bij hoort staat niet op dit apparaat, dus haar voorwaarden kunnen niet gecontroleerd worden. Wijzig haar op een apparaat met die figuur, of verwijder de voorwaarde.';
 }

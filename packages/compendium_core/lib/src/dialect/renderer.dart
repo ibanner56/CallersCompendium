@@ -1066,7 +1066,7 @@ class FigureRenderer {
   /// ([wordingConditionsFit]).
   static bool isValidMoveWordingTemplate(String template) {
     final trimmed = template.trim();
-    if (trimmed.isEmpty || trimmed.length > kMaxStoredWordingLength) {
+    if (trimmed.isEmpty || trimmed.length > kMaxMoveWordingLength) {
       return false;
     }
     return parseStoredWording(trimmed) != null;

@@ -36,7 +36,7 @@ String wordingIssueMessage(AppLocalizations l10n, WordingIssue issue) {
       d('found'),
       d('fix'),
     ),
-    WordingIssueCode.tooLongStored => l10n.wordingIssueTooLongStored,
+    WordingIssueCode.tooLongStored => l10n.wordingIssueTooLongStored(d('max')),
     WordingIssueCode.missingCondition => l10n.wordingIssueMissingCondition(
       d('word'),
       d('example'),
@@ -120,6 +120,13 @@ String wordingIssueMessage(AppLocalizations l10n, WordingIssue issue) {
       l10n.wordingIssueExpectedConnectiveList(d('before'), d('fix')),
     WordingIssueCode.expectedListSeparator =>
       l10n.wordingIssueExpectedListSeparator(d('before'), d('found')),
+    WordingIssueCode.valueAfterConnective =>
+      l10n.wordingIssueValueAfterConnective(
+        d('found'),
+        d('word'),
+        d('fixA'),
+        d('fixB'),
+      ),
     WordingIssueCode.mixedAndOr => l10n.wordingIssueMixedAndOr(
       d('found'),
       d('fixA'),
@@ -160,6 +167,7 @@ String wordingIssueMessage(AppLocalizations l10n, WordingIssue issue) {
       d('readingB'),
     ),
     WordingIssueCode.secondElse => l10n.wordingIssueSecondElse,
+    WordingIssueCode.nothingToTest => l10n.wordingIssueNothingToTest,
     WordingIssueCode.elseAfterWord => l10n.wordingIssueElseAfterWord(
       d('phrase'),
     ),

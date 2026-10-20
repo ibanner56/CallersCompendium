@@ -9962,9 +9962,9 @@
   "@wordingIssueConditionInBraces": {
     "x-sourceSha256": "ded62b042836b4c71327bcba2e4cb5eed5ad181b3cf8f5b4d683692a7e450c49"
   },
-  "wordingIssueTooLongStored": "Cette formulation est trop longue pour être enregistrée avec ses conditions. Raccourcissez-la ou utilisez moins de conditions.",
+  "wordingIssueTooLongStored": "Cette formulation est trop longue pour être enregistrée : enregistrée, elle dépasse {max} caractères (une condition peut prendre un peu plus de place enregistrée que tapée). Raccourcissez-la ou utilisez moins de conditions.",
   "@wordingIssueTooLongStored": {
-    "x-sourceSha256": "3f10946f76c4ffc363378a7758127f16138008263707d14e2edd4450ed3377f1"
+    "x-sourceSha256": "c0dc898443482d0ddbf0ef993663f4227c686df7768d828bd97d9e35599b1055"
   },
   "wordingIssueMissingCondition": "Après « {word} », écrivez ce qu’il faut tester, par exemple « {example} ».",
   "@wordingIssueMissingCondition": {
@@ -10117,5 +10117,13 @@
   "wordingIssueEmptyMeansNoValue": "« {name} is empty » teste si {name} n’a pas de valeur, et non son option « empty ». Pour tester cette option, écrivez « {fix} ».",
   "@wordingIssueEmptyMeansNoValue": {
     "x-sourceSha256": "7aa997c79b580611a44310c3897577e15be1175e5a3436826c2b4c691cd80cfb"
+  },
+  "wordingIssueValueAfterConnective": "« {found} » après « {word} » est une valeur, pas quelque chose à tester. Répétez ce que vous testez, « {fixA} », ou listez les valeurs : « {fixB} ».",
+  "@wordingIssueValueAfterConnective": {
+    "x-sourceSha256": "1712e23d6a809549de82b017341e889c5ae2afc8d5aa5d68fb037ea5e1441a58"
+  },
+  "wordingIssueNothingToTest": "Cette formulation ne peut rien tester ici : la figure à laquelle elle appartient n’est pas sur cet appareil, ses conditions ne peuvent donc pas être vérifiées. Modifiez-la sur un appareil qui a la figure, ou retirez la condition.",
+  "@wordingIssueNothingToTest": {
+    "x-sourceSha256": "eca111ef56468b02b6594947dff540a15806a22df305cafee8e6baf0e6e09de8"
   }
 }
