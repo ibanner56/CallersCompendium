@@ -258,8 +258,8 @@ implementation notes and deviations against each item — is in
     their descriptive alt text; it now bundles and renders the same PNGs
     (#1897), falling back to the alt text if one cannot load. Guides remain
     complete without images so the offline reader is fully usable.
+  - **Delivered — per-platform installation:** the [Installation guide](user/installation.md) has a section per platform (Linux, macOS, Windows, Android, iPhone/iPad) covering first-launch steps, and the public landing page ([site/](../site/), #408) surfaces per-platform downloads. No separate install page or OS auto-detection is planned: readers know their own platform.
   - **Remaining**
-    - Per-platform install page — the public landing page ([site/](../site/), #408) now surfaces per-platform downloads, and the [Installation guide](user/installation.md) covers first-launch steps; a dedicated install page is optional.
     - Beta-program page — tracked under 7.3.
 - [ ] 7.3 Beta program with real callers; feedback triage
   - **Delivered**
