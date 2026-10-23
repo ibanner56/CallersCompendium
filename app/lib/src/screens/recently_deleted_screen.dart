@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../data/soft_delete_retention.dart';
+import '../diagnostics/error_log.dart';
+import '../theme/app_spacing.dart';
+import '../theme/destructive_button_style.dart';
 
 /// Per-entity configuration for [RecentlyDeletedScreen].
 ///
@@ -167,6 +170,13 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
 
   void _reload() {
     final future = _config.loadDeleted(_repos);
+    // A side chain, so the error still reaches the FutureBuilder's error state.
+    future.then<void>(
+      (_) {},
+      onError: (Object e, StackTrace st) {
+        logCaughtError(e, st, source: 'recently_deleted_screen._reload');
+      },
+    );
     setState(() {
       _future = future;
     });
@@ -197,11 +207,9 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(l10n.commonCancel),
           ),
-          TextButton(
+          FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
             key: const ValueKey('confirm-permanent-delete'),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
-            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l10n.recentlyDeletedDeleteConfirm),
           ),
@@ -239,6 +247,30 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
             return Center(
               child: CircularProgressIndicator(
                 semanticsLabel: _config.loadingLabel(l10n),
+              ),
+            );
+          }
+          // Without this a failed load would read as an empty trash, telling
+          // the user their deleted items are gone when they may not be.
+          if (snapshot.hasError) {
+            return Center(
+              key: const ValueKey('load-error'),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.recentlyDeletedLoadError,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    TextButton(
+                      onPressed: _reload,
+                      child: Text(l10n.commonRetry),
+                    ),
+                  ],
+                ),
               ),
             );
           }

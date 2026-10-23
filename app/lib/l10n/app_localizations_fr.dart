@@ -9285,6 +9285,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get recentlyDeletedTitle => 'Récemment supprimées';
 
   @override
+  String get recentlyDeletedLoadError =>
+      'Impossible de charger vos éléments supprimés. Rien n’a été retiré.';
+
+  @override
   String get recentlyDeletedDeleteTitle => 'Supprimer définitivement ?';
 
   @override

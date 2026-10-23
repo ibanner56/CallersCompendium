@@ -21,8 +21,8 @@ import '../export/json_export.dart';
 import '../export/share_file.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
-import '../theme/app_theme_extension.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
 import '../utils/undo_snack_bar.dart';
@@ -34,6 +34,7 @@ import '../widgets/dialect_quick_switch.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
+import '../widgets/program_status_chip.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/tag_chip.dart';
 import 'dance_detail/calling_history_section.dart';
@@ -981,7 +982,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     key: const ValueKey('edit-dance'),
                     heroTag: 'edit-dance',
                     onPressed: _openEditor,
-                    icon: const Icon(Icons.edit_note),
+                    icon: const Icon(Icons.edit_outlined),
                     label: Text(l10n.danceEditFab),
                   ),
           );
@@ -1045,7 +1046,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         .toList();
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      // The bottom inset lets the last section scroll clear of the Edit FAB.
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.fabClearance,
+      ),
       children: [
         Card(
           color: theme.colorScheme.surfaceContainer,
@@ -1424,34 +1431,26 @@ class _StatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final neutralStatusColor = AppThemeExtension.of(context).statusDeprecated;
-    final (icon, color) = switch (status) {
-      DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
-      DanceStatus.deprecated => (
-        Icons.warning_amber_outlined,
-        theme.colorScheme.tertiary,
-      ),
-      DanceStatus.active => (
-        Icons.check_circle_outline,
-        theme.colorScheme.primary,
-      ),
-      DanceStatus.draft => (Icons.edit_note_outlined, neutralStatusColor),
-      DanceStatus.variation => (Icons.alt_route, neutralStatusColor),
-    };
+    // The same glyph and §2 status token as the Collection list's chip, so a
+    // status reads identically wherever it appears.
+    final (:icon, :label) = danceStatusPresentation(status, l10n);
+    final color = danceStatusColor(status, theme);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xs),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: AppSpacing.xs),
-          Text(
-            danceStatusLabel(l10n, status),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

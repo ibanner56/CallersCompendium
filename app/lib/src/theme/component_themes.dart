@@ -84,7 +84,10 @@ class ComponentThemes {
           borderRadius: AppShapes.borderRadiusMedium,
         ),
       ),
-      dialog: const DialogThemeData(shape: AppShapes.dialogShape),
+      dialog: const DialogThemeData(
+        shape: AppShapes.dialogShape,
+        constraints: AppShapes.dialogConstraints,
+      ),
       input: InputDecorationThemeData(
         filled: true,
         border: inputBorder(scheme.outline, 1),
@@ -93,6 +96,14 @@ class ComponentThemes {
         focusedBorder: inputBorder(ext.focusRing, ext.focusRingWidth),
         errorBorder: inputBorder(scheme.error, 1),
         focusedErrorBorder: inputBorder(scheme.error, ext.focusRingWidth),
+        // Without this a disabled field falls back to its decoration's own
+        // `border`, so the many local `OutlineInputBorder()`s drew square 4px
+        // corners on a disabled field beside rounded enabled ones. M3 dims a
+        // disabled outline to onSurface at 12%.
+        disabledBorder: inputBorder(
+          scheme.onSurface.withValues(alpha: 0.12),
+          1,
+        ),
       ),
       divider: DividerThemeData(color: scheme.outlineVariant, thickness: 1),
       filledButton: FilledButtonThemeData(style: buttonStyle),
@@ -160,6 +171,7 @@ class ComponentThemes {
         ),
       ),
       dialog: DialogThemeData(
+        constraints: AppShapes.dialogConstraints,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.all(
             Radius.circular(AppShapes.radiusDialog),
@@ -174,6 +186,9 @@ class ComponentThemes {
         focusedBorder: inputBorder(ext.focusRing, ext.focusRingWidth),
         errorBorder: inputBorder(ext.statusBroken, 1.5),
         focusedErrorBorder: inputBorder(ext.focusRing, ext.focusRingWidth),
+        // Still outlined (HC never relies on fill alone), but in the quieter
+        // outline role so a disabled field reads differently from an enabled one.
+        disabledBorder: inputBorder(scheme.outline, 1.5),
       ),
       divider: DividerThemeData(color: scheme.outline, thickness: 1.5),
       filledButton: FilledButtonThemeData(style: buttonStyle),

@@ -11893,6 +11893,10 @@
   "@recentlyDeletedTitle": {
     "description": "App-bar title for the recently-deleted (trash) screen."
   },
+  "recentlyDeletedLoadError": "Couldn’t load your deleted items. Nothing has been removed.",
+  "@recentlyDeletedLoadError": {
+    "description": "Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone."
+  },
   "recentlyDeletedDeleteTitle": "Delete permanently?",
   "@recentlyDeletedDeleteTitle": {
     "description": "Title of the confirm permanent-delete dialog."

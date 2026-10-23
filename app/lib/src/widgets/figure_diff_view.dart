@@ -64,9 +64,11 @@ class FigureDiffView extends StatelessWidget {
     final theme = Theme.of(context);
     final added = entry.kind == FigureDiffKind.added;
     // Color is never the only signal (accessibility): the leading glyph
-    // (+/−) and a semantic label carry the same information for
-    // screen-reader/high-contrast users.
-    final color = added ? Colors.green.shade700 : Colors.red.shade700;
+    // (+/−), a strike-through on removed lines and a semantic label carry the
+    // same information for screen-reader/high-contrast users. Only the glyph is
+    // tinted, and only with palette roles every theme keeps legible on the
+    // surface; the figure text stays in the body color.
+    final color = added ? theme.colorScheme.primary : theme.colorScheme.error;
     final glyph = added ? '+' : '\u2212';
     final label = added
         ? AppLocalizations.of(context).importReviewVariationAdded
@@ -91,7 +93,11 @@ class FigureDiffView extends StatelessWidget {
             Expanded(
               child: Text(
                 entry.displayText,
-                style: theme.textTheme.bodyMedium?.copyWith(color: color),
+                style: added
+                    ? theme.textTheme.bodyMedium
+                    : theme.textTheme.bodyMedium?.copyWith(
+                        decoration: TextDecoration.lineThrough,
+                      ),
               ),
             ),
           ],

@@ -15,6 +15,7 @@ import '../data/program_title_date.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_shapes.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_bar_text_action.dart';
 
@@ -520,6 +521,7 @@ class _ContraDbProgramImportScreenState
       initialDate: initial,
       firstDate: DateTime(now.year - 30),
       lastDate: DateTime(now.year + 10),
+      builder: uncappedDialogBuilder,
     );
     if (picked != null) {
       setState(() {
@@ -748,7 +750,7 @@ class _ContraDbProgramImportScreenState
           l10n.importContraDbSearchPrompt,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.outline,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       );
@@ -818,7 +820,7 @@ class _ContraDbProgramImportScreenState
           l10n.importContraDbPastePrompt,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.outline,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       );
@@ -931,14 +933,18 @@ class _ContraDbProgramImportScreenState
             child: Row(
               key: const ValueKey('contradb-program-date-detected-hint'),
               children: [
-                Icon(Icons.auto_awesome, size: 14, color: scheme.outline),
+                Icon(
+                  Icons.auto_awesome,
+                  size: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     l10n.importEventDateDetected,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: scheme.outline),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -965,7 +971,7 @@ class _ContraDbProgramImportScreenState
           )
         : (
             Icons.sticky_note_2_outlined,
-            scheme.outline,
+            scheme.onSurfaceVariant,
             activity.text ?? '',
             null,
           );
@@ -976,7 +982,7 @@ class _ContraDbProgramImportScreenState
         backgroundColor: color.withValues(alpha: 0.15),
         child: Text(
           '${index + 1}',
-          style: TextStyle(fontSize: 11, color: color),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
         ),
       ),
       title: Text(primary),
