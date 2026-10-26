@@ -73,8 +73,9 @@ class SyncBaselineEntry {
   final String? bodyHash;
   final SyncBaselineBodyHashVersion bodyHashVersion;
 
-  /// Whether [other] would store the same row values as this entry: the same
-  /// wire hash, body hash and body-hash version. The address is not compared.
+  /// Whether this entry and [other] carry the same wire hash, body hash and
+  /// body-hash version: everything a stored row holds besides its address,
+  /// which is not compared.
   bool hasSameHashesAs(SyncBaselineEntry other) =>
       wireHash == other.wireHash &&
       bodyHash == other.bodyHash &&
