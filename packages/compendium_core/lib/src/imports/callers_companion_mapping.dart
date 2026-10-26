@@ -7,12 +7,14 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/partial_date.dart';
+import '../taxonomy/dance_vocabulary.dart';
 import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
 import 'author_tokenizer.dart';
 import 'callers_companion_user_fields.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
+import 'figure_text_scrub.dart';
 import 'structured_draft.dart';
 
 /// The reusable Caller's Companion (CC) → Compendium mapping layer.
@@ -241,8 +243,8 @@ class CcFigureLineCache {
 /// raised while doing so. **Never throws on content** — a missing title, an
 /// unmapped level/formation, or an unparseable date all surface as
 /// [ImportIssue]s, and every body line becomes a structured or [customMove]
-/// figure via [parseFigureLine] (the parse-never-fails invariant). This is the
-/// single unit both the text adapter and the `.USR` reader call.
+/// figure via [parseFigureLinesFanOut] (the parse-never-fails invariant). This
+/// is the single unit both the text adapter and the `.USR` reader call.
 ///
 /// The draft's identity is disposable: [newId] (default [uuidV4]) and
 /// [timestamp] (default the Unix epoch) exist only so a valid [Dance] can be
@@ -488,12 +490,27 @@ Figure _withBeats(Figure figure, int beats) {
   return figure.copyWith(params: params);
 }
 
-/// One `left-hand`/`right-hand` token, matched case-insensitively. Not one
-/// followed by `diagonal`: `on right-hand diagonal` names a diagonal, not a hand.
+/// One `left-hand`/`right-hand` token, matched case-insensitively, with the
+/// word after it (if any) captured but not consumed, so a second token is
+/// still counted.
 final RegExp _hyphenatedHand = RegExp(
-  r'\b(left|right)-hand\b(?!\s+diagonal\b)',
+  r'\b(left|right)-hand\b(?=(?:\s+(\S+))?)',
   caseSensitive: false,
 );
+
+/// The punctuation the parser strips from each word's edges.
+final RegExp _edgePunct = RegExp(r'^[.,;:!]+|[.,;:!]+$');
+
+/// Whether [word], the word after a `<side>-hand` token, makes that token
+/// name something other than a hand: a diagonal (`on right-hand diagonal`) or
+/// a dancer by position (square dance's `right-hand lady`, `left-hand
+/// neighbor`). The word is scrubbed and looked up as the parser would read it,
+/// so `lady`/`lark` count through their role tokens.
+bool _qualifiesNextWord(String? word) {
+  if (word == null) return false;
+  final read = scrubFigureText(word).toLowerCase().replaceAll(_edgePunct, '');
+  return read == 'diagonal' || dancerWords.containsKey(read);
+}
 
 /// Caller's Companion's catch-all for a hyphenated hand (#1908): re-reads a
 /// body line the fan-out missed with its `<side>-hand` token as the bare side,
@@ -501,11 +518,15 @@ final RegExp _hyphenatedHand = RegExp(
 /// figures, or null to keep [first].
 ///
 /// Taken only when [first] is a miss (so a line that structures today keeps
-/// its reading and its note's words), the line has exactly one such token, and
-/// the retry is one plain figure with no note whose `hand` is that side. The
-/// hand check is what makes the token a hand: `left circle` reads it as a
-/// direction and `left star promenade` discards it. A note would hold the
-/// rewritten words rather than the line's own.
+/// its reading and its note's words), the line has exactly one such token and
+/// it does not qualify the next word ([_qualifiesNextWord]), and the retry is
+/// one plain figure with no note whose `hand` is that side. The hand check
+/// rules out readings that take the side as something else (`left circle`
+/// reads it as a direction, `left star promenade` discards it), and the
+/// next-word check rules out a side that belongs to a diagonal or a dancer,
+/// which the hand check cannot see (`allemande your right lady` reads as
+/// `role2s`, hand right). A note would hold the rewritten words rather than
+/// the line's own.
 ///
 /// CC-only by design; see [callersCompanionFigureFrontEnd].
 List<Figure>? _retryHyphenatedHand(String text, int beats, List<Figure> first) {
@@ -513,6 +534,7 @@ List<Figure>? _retryHyphenatedHand(String text, int beats, List<Figure> first) {
   final hands = _hyphenatedHand.allMatches(text).take(2).toList();
   if (hands.length != 1) return null;
   final hand = hands.single;
+  if (_qualifiesNextWord(hand[2])) return null;
   final side = hand[1]!;
   final retried = parseFigureLinesFanOut(
     text.replaceRange(hand.start, hand.end, side),

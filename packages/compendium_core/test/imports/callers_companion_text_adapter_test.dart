@@ -461,6 +461,14 @@ A1 (8) Do the thing
       }
     });
 
+    test('a retry that splits into several figures stays custom', () async {
+      // Read with the bare side, the TCB attempt splits this on `;` into a
+      // pull by and a swing; the retry keeps only a one-figure reading.
+      final f = (await figuresFor('(4,4) Right-hand pull by; swing')).single;
+      expect(f.isCustom, isTrue);
+      expect(f.params['text'], 'Right-hand pull by; swing');
+    });
+
     test('a line that already structures keeps its own reading', () async {
       // The fan-out reads this as a revolving door with "left-hand" as its
       // note. Read again with the bare side it would take the hand, but the
