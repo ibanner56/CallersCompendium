@@ -8797,6 +8797,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get recentlyDeletedTitle => '最近削除したアイテム';
 
   @override
+  String get recentlyDeletedLoadError => '削除したアイテムを読み込めませんでした。何も削除されていません。';
+
+  @override
   String get recentlyDeletedDeleteTitle => '完全に削除しますか？';
 
   @override

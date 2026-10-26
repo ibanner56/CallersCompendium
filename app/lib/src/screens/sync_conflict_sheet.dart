@@ -7,6 +7,7 @@ import '../data/sync_writer_lifecycle_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../sync/sync_setting_labels.dart';
 import '../theme/app_spacing.dart';
+import '../utils/undo_snack_bar.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
 import 'sync_conflict_details.dart';
 
@@ -48,22 +49,24 @@ Future<void> showSyncConflictSheet(
   );
   await _presentSyncConflictChoice(context, body);
   if (saved.isEmpty || !context.mounted) return;
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  if (messenger == null) return;
   final l10n = AppLocalizations.of(context);
-  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-    SnackBar(
-      key: const ValueKey('sync-conflict-saved'),
-      content: Text(l10n.syncConflictSaved),
-      duration: const Duration(seconds: 10),
-      action: SnackBarAction(
-        key: const ValueKey('sync-conflict-undo'),
-        label: l10n.syncConflictUndo,
-        onPressed: () {
-          if (context.mounted) {
-            showSyncConflictSheet(context, reconsider: List.of(saved));
-          }
-        },
-      ),
-    ),
+  // Through the shared helper, not a bare SnackBar: a SnackBar with an action
+  // persists by default, so the prompt would never auto-dismiss (issue #463).
+  showUndoSnackBar(
+    messenger,
+    key: const ValueKey('sync-conflict-saved'),
+    actionKey: const ValueKey('sync-conflict-undo'),
+    message: l10n.syncConflictSaved,
+    undoLabel: l10n.syncConflictUndo,
+    accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+    duration: const Duration(seconds: 10),
+    onUndo: () {
+      if (context.mounted) {
+        showSyncConflictSheet(context, reconsider: List.of(saved));
+      }
+    },
   );
 }
 

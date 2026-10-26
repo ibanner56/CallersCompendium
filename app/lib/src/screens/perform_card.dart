@@ -10,13 +10,14 @@ import '../data/perform_text_scale.dart'
 import '../data/reduce_motion_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
-import '../theme/app_theme_extension.dart';
 import '../theme/app_typography.dart';
 import '../theme/set_list_accents.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/import_gap_badge.dart';
+import '../widgets/program_status_chip.dart';
 
 /// Shared large-print rendering for Performance mode (`docs/design/ux.md` §5).
 ///
@@ -1303,20 +1304,10 @@ class _StatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final neutralStatusColor = AppThemeExtension.of(context).statusDeprecated;
-    final (icon, color) = switch (status) {
-      DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
-      DanceStatus.deprecated => (
-        Icons.warning_amber_outlined,
-        theme.colorScheme.tertiary,
-      ),
-      DanceStatus.active => (
-        Icons.check_circle_outline,
-        theme.colorScheme.primary,
-      ),
-      DanceStatus.draft => (Icons.edit_note_outlined, neutralStatusColor),
-      DanceStatus.variation => (Icons.alt_route, neutralStatusColor),
-    };
+    // The same glyph and §2 status token as the Collection list's chip, so a
+    // status reads identically wherever it appears.
+    final (:icon, :label) = danceStatusPresentation(status, l10n);
+    final color = danceStatusColor(status, theme);
     final style = theme.textTheme.titleLarge?.copyWith(
       fontWeight: FontWeight.w600,
     );
@@ -1326,13 +1317,15 @@ class _StatusBanner extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Row(
         children: [
           Icon(icon, size: iconSize.clamp(22.0, 72.0), color: color),
           const SizedBox(width: AppSpacing.sm),
-          Text(danceStatusLabel(l10n, status), style: style),
+          // Flexible: at large Perform text sizes the label is wider than a
+          // phone, and must wrap rather than overflow the row.
+          Flexible(child: Text(label, style: style)),
         ],
       ),
     );

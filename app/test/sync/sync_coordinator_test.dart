@@ -4738,7 +4738,7 @@ void main() {
       );
       final concurrencyCandidates = await CompendiumSyncCoordinatorStore(
         repositories,
-      ).snapshotCandidates();
+      ).currentCandidates({(kind: SyncRecordKind.tag, recordId: survivorId)});
       expect(
         concurrencyCandidates[(kind: SyncRecordKind.tag, recordId: survivorId)]!
             .wireHash,
@@ -8217,8 +8217,9 @@ final class _SnapshotInterleavingStore
   }
 
   @override
-  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates() =>
-      _delegate.snapshotCandidates();
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> currentCandidates(
+    Set<SyncRecordAddress> addresses,
+  ) => _delegate.currentCandidates(addresses);
 
   @override
   Future<SyncAliasMap> aliasMap() => _delegate.aliasMap();
@@ -8497,8 +8498,15 @@ final class _FakeStore implements SyncCoordinatorStore {
   }
 
   @override
-  Future<Map<SyncRecordAddress, SyncMergeCandidate?>>
-  snapshotCandidates() async => currentCandidatesBuilder?.call() ?? local;
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> currentCandidates(
+    Set<SyncRecordAddress> addresses,
+  ) async {
+    final current = currentCandidatesBuilder?.call() ?? local;
+    return {
+      for (final address in addresses)
+        if (current.containsKey(address)) address: current[address],
+    };
+  }
 
   @override
   Future<SyncAliasMap> aliasMap() async {

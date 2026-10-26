@@ -320,7 +320,9 @@ abstract interface class SyncCoordinatorStore
   Future<SyncCoordinatorSnapshot> snapshot();
 
   @override
-  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates();
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> currentCandidates(
+    Set<SyncRecordAddress> addresses,
+  );
 
   /// Every persisted ID alias, loaded in one statement.
   ///
@@ -472,11 +474,13 @@ final class CompendiumSyncCoordinatorStore
     );
   }
 
+  /// Reads only [addresses], never the whole library: the apply transaction
+  /// that calls this holds the write lock, so a full [snapshot] here stalled
+  /// every app write for the length of the scan (#1909).
   @override
-  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates() =>
-      storage.snapshot().then(
-        (snapshot) => {...snapshot.local, ...snapshot.pendingLive},
-      );
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> currentCandidates(
+    Set<SyncRecordAddress> addresses,
+  ) => storage.currentCandidates(addresses);
 
   // Loads the rows the way `CompendiumSyncStorage._aliasMap()` in
   // compendium_core does, but resolves chains lazily (see [SyncAliasMap]) so a

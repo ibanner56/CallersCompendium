@@ -11,6 +11,7 @@ import '../../diagnostics/sensitive_terms.dart';
 import '../../diagnostics/sync_diagnostics.dart';
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/destructive_button_style.dart';
 import '../../widgets/section_header.dart';
 
 /// Gathers the user-content terms the scrubbed export must redact. Defaults to
@@ -204,6 +205,9 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('diagnostics-clear-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.diagnosticsClearAction),

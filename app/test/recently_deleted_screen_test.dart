@@ -234,4 +234,52 @@ void main() {
     expect(dance, isNotNull);
     expect(dance!.deletedAt, isNotNull);
   });
+
+  testWidgets('a failed load shows an error with Retry, not an empty trash', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Deleted Dance'));
+    await repos.dances.softDelete('d1', at: _now);
+    var attempts = 0;
+    final base = danceRecentlyDeletedConfig;
+    final config = RecentlyDeletedConfig<Dance>(
+      pluralNoun: base.pluralNoun,
+      initialRetention: base.initialRetention,
+      loadDeleted: (repos) async {
+        attempts++;
+        if (attempts == 1) throw StateError('injected load failure');
+        return base.loadDeleted(repos);
+      },
+      restore: base.restore,
+      permanentlyDelete: base.permanentlyDelete,
+      idOf: base.idOf,
+      titleOf: base.titleOf,
+      deletedAtOf: base.deletedAtOf,
+      restoredMessage: base.restoredMessage,
+      loadingLabel: base.loadingLabel,
+      emptyKept: base.emptyKept,
+      emptyRetention: base.emptyRetention,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) =>
+            RepositoriesScope(repositories: repos, child: child!),
+        home: RecentlyDeletedScreen<Dance>(config: config),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('load-error')), findsOneWidget);
+    expect(find.byKey(const ValueKey('empty-state')), findsNothing);
+    expect(find.textContaining('Nothing in the trash'), findsNothing);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('load-error')), findsNothing);
+    expect(find.text('Deleted Dance'), findsOneWidget);
+  });
 }

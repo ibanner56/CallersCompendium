@@ -14,6 +14,7 @@ import '../data/related_dance_links.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_editor_reference_data.dart';
+import '../theme/destructive_button_style.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/choreographer_details_dialog.dart';
@@ -589,6 +590,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             child: Text(AppLocalizations.of(context).danceEditorKeepEditing),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
             key: const ValueKey('discard-confirm'),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(AppLocalizations.of(context).danceEditorDiscard),

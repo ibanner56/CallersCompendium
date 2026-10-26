@@ -406,6 +406,29 @@ void main() {
     );
   });
 
+  testWidgets('a short wide window scrolls the rail rather than overflowing, '
+      'and keeps Guide reachable', (tester) async {
+    final repos = openTestRepositories();
+    // Wide enough for the rail, about as tall as a landscape phone — the rail's
+    // brand, search, destinations and Guide need more height than this.
+    await _pump(tester, repos, size: const Size(1000, 400));
+
+    expect(tester.takeException(), isNull, reason: 'no RenderFlex overflow');
+    final guide = find.byKey(const ValueKey('user-guide-button'));
+    expect(guide.hitTestable(), findsOneWidget);
+    expect(
+      tester.getRect(guide).bottom,
+      lessThanOrEqualTo(400),
+      reason: 'Guide stays pinned on screen, not clipped below the window',
+    );
+    await tester.tap(guide);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: guide, matching: find.byIcon(Icons.help)),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('the narrow layout selects the guide from the bottom bar', (
     tester,
   ) async {

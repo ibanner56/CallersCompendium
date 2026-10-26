@@ -1400,15 +1400,16 @@ void main() {
 
     // A single coordinator pass calls `snapshot()` several times: once up
     // front, again after any §6.9 repairs, again inside
-    // `buildPublicationState` (sometimes twice), plus the
-    // `snapshotCandidates()` concurrency-guard read that calls `snapshot()`
-    // with no sync ID at all. None of those later calls change the
-    // answer, so none of them should re-derive.
+    // `buildPublicationState` (sometimes twice). Before #1909 the apply
+    // guard also called `snapshot()` with no sync ID; the pass no longer
+    // does, but `resolveConflicts()` still makes such a read, so one stays
+    // here. None of those later calls change the answer, so none of them
+    // should re-derive.
     expect(
       (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
       isTrue,
     );
-    await passStorage.snapshot(); // snapshotCandidates()'s no-id read
+    await passStorage.snapshot(); // a no-id read
     expect(
       (await passStorage.snapshot(syncId: 'sync-a')).previouslyUsed,
       isTrue,
