@@ -1105,4 +1105,12 @@ void main() {
       expect(splitShorthandCount('pbs (0)'), isNull);
     });
   });
+
+  group('parseFreeTextFigureEntry — hand-prefixed lines (#1908)', () {
+    test('"Left-hand star" structures as a star', () {
+      final fs = parseFreeTextFigureEntry('Left-hand star 3/4');
+      expect(fs.single.move, 'star');
+      expect(fs.single.params, {'hand': 'left', 'places': 3});
+    });
+  });
 }

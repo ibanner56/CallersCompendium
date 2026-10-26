@@ -615,4 +615,21 @@ void main() {
       );
     });
   });
+
+  group('hand-prefixed star through the default fan-out (#1908)', () {
+    // The star fix lives in the shared recognizer, so every default fan-out
+    // consumer (CC import, free-text entry, call-button seeding, reparse)
+    // reads the glossary's "left-hand star".
+    test('the plural and singular fan-outs both read it', () {
+      for (final line in ['Left-hand star 3/4', 'Right hand star once']) {
+        final plural = parseFigureLinesFanOut(line, beats: 8).single;
+        final singular = parseFigureLineFanOut(line, beats: 8)!;
+        for (final f in [plural, singular]) {
+          expect(f.move, 'star', reason: line);
+          expect(f.params['hand'], line.startsWith('Left') ? 'left' : 'right');
+          expect(f.note, isNull, reason: line);
+        }
+      }
+    });
+  });
 }
