@@ -549,10 +549,24 @@ with **Import and edit**).
 From any saved dance detail view — including Collection, a Program Summary,
 global search, a post-import result, or a saved Program Editor preview — choose
 **Re-import choreography**. Select Caller's Box,
-ContraDB, or a Caller's Compendium JSON file. Online searches use the saved
-dance title and always show their results for you to choose from; the app never
-selects an online match automatically. JSON must contain exactly one dance and
-cannot contain a program.
+ContraDB, **Link or ID**, or a Caller's Compendium JSON file. Online searches use
+the saved dance title and always show their results for you to choose from; the
+app never selects an online match automatically. JSON must contain exactly one
+dance and cannot contain a program.
+
+If the source spells the title differently from your copy — `A-1 Reel` on The
+Caller's Box against your `A1 Reel` — the title search finds nothing. Choose
+**Link or ID** instead and paste the dance's Caller's Box or ContraDB address,
+or enter its ID number, as for
+[importing a dance by link or ID](#import-a-dance-by-link-or-id). A pasted
+address selects its own source; for a bare ID number, pick the source above the
+field first. An address the app does not recognise is reported before anything
+is fetched, and a dance that does not exist, or a source that cannot be reached,
+says so in its own words.
+
+The Caller's Box shares the figures of only some dances. If it does not share
+them for the dance you chose, the app tells you so and leaves your dance
+unchanged, rather than replacing your figures with an empty list.
 
 Review the preview, then import to replace only the dance's **figures,
 formation, and progression**. This keeps your title, notes, rating, tags,

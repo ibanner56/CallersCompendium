@@ -9234,9 +9234,17 @@
   "@danceReimportJson": {
     "x-sourceSha256": "9e6528ee0a52cc61df154ec1ba8318a7b06bc0ffaa5ad64d249418687723193e"
   },
-  "danceReimportNoResults": "一致するダンスが見つかりませんでした。別のソースを選ぶか、後でもう一度お試しください。",
+  "danceReimportLinkOrId": "リンクまたはID",
+  "@danceReimportLinkOrId": {
+    "x-sourceSha256": "d11c418833369a0f046ecc8e438f3c1f2dbf32dc517594c373d932dce5816843"
+  },
+  "danceReimportNoResults": "一致するダンスが見つかりませんでした。リンクまたはIDを試すか、別のソースを選ぶか、後でもう一度お試しください。",
   "@danceReimportNoResults": {
-    "x-sourceSha256": "88afdd2e4cc40336e4a08471d60dd0aa92e137934337e8e7079e85b9571f38cc"
+    "x-sourceSha256": "d376f992d5047e3db51b0ade48dab85068e5a998fa8739045fb385ac82e22c8a"
+  },
+  "danceReimportFiguresUnavailable": "The Caller's Boxはこのダンスのフィギュアを公開していないため、振り付けを更新できません。ダンスは変更されていません。",
+  "@danceReimportFiguresUnavailable": {
+    "x-sourceSha256": "1cca73c3f400154a3301e4de3d7e70ef4565c5a13e6d0c09d51bdc99d4b8ceda"
   },
   "danceReimportChooseResult": "再インポートするダンスを選択",
   "@danceReimportChooseResult": {

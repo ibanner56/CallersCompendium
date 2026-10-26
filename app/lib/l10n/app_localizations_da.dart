@@ -9395,15 +9395,15 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceReimportJson => 'Callers Compendium JSON';
 
   @override
-  String get danceReimportLinkOrId => 'Link or ID';
+  String get danceReimportLinkOrId => 'Link eller id';
 
   @override
   String get danceReimportNoResults =>
-      'Ingen matchende danse blev fundet. Vælg en anden kilde, eller prøv igen senere.';
+      'Ingen matchende danse blev fundet. Prøv et link eller id, vælg en anden kilde, eller prøv igen senere.';
 
   @override
   String get danceReimportFiguresUnavailable =>
-      'The Caller\'s Box doesn\'t share this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.';
+      'The Caller\'s Box deler ikke denne dans\' figurer, så den kan ikke opdatere din koreografi. Din dans blev ikke ændret.';
 
   @override
   String get danceReimportChooseResult =>

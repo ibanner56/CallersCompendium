@@ -9522,15 +9522,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceReimportJson => 'JSON de Callers Compendium';
 
   @override
-  String get danceReimportLinkOrId => 'Link or ID';
+  String get danceReimportLinkOrId => 'Lien ou identifiant';
 
   @override
   String get danceReimportNoResults =>
-      'Aucune danse correspondante trouvée. Choisissez une autre source ou réessayez plus tard.';
+      'Aucune danse correspondante trouvée. Essayez un lien ou un identifiant, choisissez une autre source ou réessayez plus tard.';
 
   @override
   String get danceReimportFiguresUnavailable =>
-      'The Caller\'s Box doesn\'t share this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.';
+      'The Caller\'s Box ne partage pas les figures de cette danse : impossible d’actualiser votre chorégraphie. Votre danse n’a pas été modifiée.';
 
   @override
   String get danceReimportChooseResult => 'Choisissez la danse à réimporter';
