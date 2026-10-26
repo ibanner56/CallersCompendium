@@ -5904,8 +5904,9 @@ but which of the two reaches a given deployment is not the operator's to know
 deployment test against the running configuration, since no unit test of the
 server process can observe which port a proxy accepted the request on). **The
 per-IP rate limit is enforced against the real client address**, per §7.5
-requirement 6: two clients presenting different forwarded addresses through the
-loopback proxy are limited separately, and a client-IP header arriving from a
+requirement 6: two clients presenting different forwarded addresses (distinct
+IPv4 addresses, or IPv6 addresses in different /64s, §5.4) through the loopback
+proxy are limited separately, and a client-IP header arriving from a
 **non**-loopback socket peer is ignored (mutation: trust the header
 unconditionally, then assert that 1,000 guesses bearing 1,000 distinct forwarded
 addresses are still throttled — the socket-peer mutation is the complementary

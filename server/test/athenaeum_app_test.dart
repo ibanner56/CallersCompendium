@@ -1424,6 +1424,20 @@ void main() {
       expect(await status(target, '2001:db8:1:2:aaaa:bbbb:cccc:dddd'), 429);
     });
 
+    test('IPv6 socket peers are keyed on the /64 too', () async {
+      // A non-loopback peer ignores X-Forwarded-For, so this exercises the
+      // socket-peer branch rather than the forwarded one.
+      final target = requestRowApp();
+      Future<int> peerStatus(String peer) async => (await target.call(
+        _requestWithPeer(InternetAddress(peer), forwardedAddress: '192.0.2.1'),
+      )).statusCode;
+      for (var i = 0; i < 3; i++) {
+        expect(await peerStatus('2001:db8:1:2::1'), 401);
+      }
+      expect(await peerStatus('2001:db8:1:2::2'), 429);
+      expect(await peerStatus('2001:db8:1:3::1'), 401);
+    });
+
     test('addresses in different /64s stay independent', () async {
       final requests = requestRowApp();
       await drain(requests, '2001:db8:1:2::1', 3);
