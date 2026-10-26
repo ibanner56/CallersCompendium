@@ -76,6 +76,9 @@ Startup reconciliation also queues crash-orphaned final blob files and temporary
 upload artifacts for the same cleanup path; it walks one store epoch at a time
 and queues each epoch in a single transaction, but still runs before the server
 accepts requests, so startup time grows with the size of the blob tree.
+Startup also indexes the blob references of any manifest stored without them —
+every manifest, on the first start of an image that has the index — so garbage
+collection reads that index rather than decoding manifest bodies.
 A blob whose reference survives but whose file has gone missing is reported by
 `POST /v1/blobs/missing`, and a repeated `PUT` of the same bytes restores the
 file without charging quota again. Every pending physical file remains

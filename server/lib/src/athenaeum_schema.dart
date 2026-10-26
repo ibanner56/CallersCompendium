@@ -35,7 +35,7 @@ const List<AthenaeumTableSchema> athenaeumTableSchemas = [
     'body': 'BLOB NOT NULL',
   }, tableConstraint: 'PRIMARY KEY (id_key, epoch, device_id)'),
   // One row per blob hash a stored manifest names, read from `records` when
-  // the manifest is written so GC never decodes a manifest body (#1910).
+  // the manifest is written so GC need not decode manifest bodies (#1910).
   AthenaeumTableSchema('manifest_refs', {
     'id_key': 'TEXT NOT NULL',
     'epoch': 'TEXT NOT NULL',
