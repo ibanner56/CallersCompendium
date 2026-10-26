@@ -297,7 +297,8 @@ typed them. "Leads chain" and "the lead on the left" still use the role. Text sa
 ### Your own figures
 
 With **Custom Figures** on (see [Settings](./settings.md)), the figures you
-built in the [Glossary](./glossary.md) for the dance's form are offered when
+built for the dance's form, in the [Glossary](./glossary.md) or from
+**Settings › Experimental › Your figures**, are offered when
 you choose a figure's move, listed first and marked with a person icon
 (announced as **Custom** by screen readers). They are found by their name or by
 any of their other names. A figure you built has one of two kinds, and each

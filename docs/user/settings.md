@@ -566,7 +566,7 @@ open or close it.
 
 **Show Glossary** adds a **Glossary** destination to the navigation, between
 **Programs** and **Settings**. It is **off by default**, and the section starts
-closed while it is off.
+closed while both Show Glossary and Custom Figures are off.
 
 The Glossary is a reference to the figures built into the app. Search it by a
 figure's name, an older name for it, or a word from its definition. Select a
@@ -606,7 +606,11 @@ its **Source** as the file had it.
 
 **Custom Figures** lets you make your own figures and use them in dances. It
 is **off by default**, and it doesn't need Show Glossary: with the Glossary
-hidden you can still turn it on, and use your figures everywhere. While it is
+hidden you can still turn it on, and use your figures everywhere. If you turned
+it on in version 0.8.0-beta or before and later turned the Glossary off, it was
+greyed out but kept its setting. It now takes effect: your figures
+show again, in the dance editor, the program matrix, shorthand mappings and
+import review. Turn Custom Figures off here to hide them. While it is
 on, the **Your figures** row under the switch opens them: see your figures,
 choose **+** to add one, or select one to **Edit** or **Delete** it. The row
 is greyed out while Custom Figures is off.
