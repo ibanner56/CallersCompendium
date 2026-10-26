@@ -6022,9 +6022,9 @@
   "@onlineImportVariationDialogActionLink": {
     "x-sourceSha256": "7a89241607bf07561ac5217d1fead66bc5c4636e6f94a7608108da241cd65443"
   },
-  "onlineImportVariationDialogLinkWarning": "Jouw versie van “{existingTitle}” wordt vervangen door het online record — inclusief de figuren, callnotities, tags, beoordeling en aangepaste velden. De dans behoudt zijn plaats in je programma’s en zijn callerhistorie.",
+  "onlineImportVariationDialogLinkWarning": "Jouw versie van “{existingTitle}” wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.",
   "@onlineImportVariationDialogLinkWarning": {
-    "x-sourceSha256": "cd15280a51f320faab3ff9c1f9355e4bf18d09423f1d7118a6602a02d85a6558"
+    "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "Je hebt deze dans al",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
@@ -6037,6 +6037,22 @@
   "onlineImportCrossSourceDuplicateDialogActionDuplicate": "Een tweede kopie importeren",
   "@onlineImportCrossSourceDuplicateDialogActionDuplicate": {
     "x-sourceSha256": "9bad404a2973e7d0e6de960f720c661c2b18063abf4b865dd34bf2faac2a9029"
+  },
+  "onlineImportPossibleMatchDialogTitle": "Heb je deze dans al?",
+  "@onlineImportPossibleMatchDialogTitle": {
+    "x-sourceSha256": "eb996ac93dc2a9064a9fe9d58a8b4cc5a9f79a0f0c66c7259e76b14cf7f6d802"
+  },
+  "onlineImportPossibleMatchDialogBody": "“{incomingTitle}” is misschien een dans die je al hebt onder een andere titel. Kies de dans die je door deze versie wilt vervangen, of importeer deze als nieuwe dans.",
+  "@onlineImportPossibleMatchDialogBody": {
+    "x-sourceSha256": "c23d4f0bdd76d65aa431c58419d8a497eca0ed5d84d68e16e2ebee368fc2b303"
+  },
+  "onlineImportPossibleMatchDialogLinkWarning": "De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.",
+  "@onlineImportPossibleMatchDialogLinkWarning": {
+    "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
+  },
+  "onlineImportPossibleMatchDialogActionNew": "Importeren als nieuwe dans",
+  "@onlineImportPossibleMatchDialogActionNew": {
+    "x-sourceSha256": "089403b562dec94cbf73616fbd4d3b4a350782b551e644af55248c51840ec8ca"
   },
   "onlineAttributionCallersBox": "Van The Caller's Box (online)",
   "@onlineAttributionCallersBox": {
@@ -6981,6 +6997,14 @@
   "importReviewPossibleMatch": "Mogelijke overeenkomst — kies hoe je wilt importeren:",
   "@importReviewPossibleMatch": {
     "x-sourceSha256": "7ee5b6b8742356f4ce77e8ee288919c91abd3a8f38aa3769aebd59c349c5bde6"
+  },
+  "importReviewPossibleTitleMatch": "Misschien een dans die je al hebt, onder een andere titel — kies hoe je wilt importeren:",
+  "@importReviewPossibleTitleMatch": {
+    "x-sourceSha256": "cf6adaa989c54db756c4f1dde8166ae0aa2e5889d024d12569508b37967317a7"
+  },
+  "importReviewOptionPossibleTitle": "Dezelfde dans onder een andere titel – “{title}” vervangen door deze versie",
+  "@importReviewOptionPossibleTitle": {
+    "x-sourceSha256": "c2065bbc745388eda9868b7938074ef161363f8c73758b386e33cf8e5931daa7"
   },
   "importReviewOptionLink": "Dezelfde dans – “{title}” vervangen door deze versie ({percent}% overeenkomst)",
   "@importReviewOptionLink": {
@@ -9242,9 +9266,17 @@
   "@danceReimportJson": {
     "x-sourceSha256": "9e6528ee0a52cc61df154ec1ba8318a7b06bc0ffaa5ad64d249418687723193e"
   },
-  "danceReimportNoResults": "Geen overeenkomende dansen gevonden. Kies een andere bron of probeer het later opnieuw.",
+  "danceReimportLinkOrId": "Link of id",
+  "@danceReimportLinkOrId": {
+    "x-sourceSha256": "d11c418833369a0f046ecc8e438f3c1f2dbf32dc517594c373d932dce5816843"
+  },
+  "danceReimportNoResults": "Geen overeenkomende dansen gevonden. Probeer een link of id, kies een andere bron of probeer het later opnieuw.",
   "@danceReimportNoResults": {
-    "x-sourceSha256": "88afdd2e4cc40336e4a08471d60dd0aa92e137934337e8e7079e85b9571f38cc"
+    "x-sourceSha256": "d376f992d5047e3db51b0ade48dab85068e5a998fa8739045fb385ac82e22c8a"
+  },
+  "danceReimportFiguresUnavailable": "Die bron heeft de figuren van deze dans niet geleverd, dus je choreografie kan niet worden bijgewerkt. Je dans is niet gewijzigd.",
+  "@danceReimportFiguresUnavailable": {
+    "x-sourceSha256": "f53f91859db3df99c2425776c182ed07014adb0f3af936bb625e56258e0b8152"
   },
   "danceReimportChooseResult": "Kies de dans om opnieuw te importeren",
   "@danceReimportChooseResult": {

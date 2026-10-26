@@ -73,9 +73,9 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
 /// - **Cancel** (FilledButton, primary/safe): nothing is imported.
 /// - **Same dance** (TextButton): links the existing dance to the incoming
 ///   online record via [DedupeResolution.link], updating its provenance.
-///   **Destructive** — replaces the existing dance wholesale (figures, notes,
-///   tags, rating, custom fields); its place in programs and calling history
-///   survive because the dance id is preserved.
+///   **Destructive** — replaces the existing dance's title, figures, notes,
+///   tags and rating; its custom fields (#1890), its place in programs and its
+///   calling history survive, the last two because the dance id is preserved.
 /// - **Import a second copy** (TextButton): creates a new dance via
 ///   [DedupeResolution.duplicate] alongside the existing one.
 ///
@@ -141,12 +141,74 @@ Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
   ),
 );
 
-/// Commits [preview] through [service] and resolves the two confirmation
-/// outcomes interactively: [OnlineImportKind.needsConfirmation] shows
-/// [showOnlineImportVariationDialog] (#797) and
+/// Shows the existing dances that may be the incoming one under a differently
+/// written title (issue #1907) and lets the user pick one to replace, import a
+/// new dance instead, or cancel. Nothing is preselected: a possible match is
+/// only ever applied by the user's tap.
+///
+/// [existing] pairs each candidate's id with its title, in collection order.
+/// Returns [DedupeResolution.link] for a picked dance,
+/// [DedupeResolution.duplicate] for a new dance, or `null` on cancel.
+Future<DedupeResolution?> showOnlineImportPossibleMatchDialog(
+  BuildContext context,
+  AppLocalizations l10n, {
+  required String incomingTitle,
+  required List<({String id, String title})> existing,
+}) => showDialog<DedupeResolution>(
+  context: context,
+  builder: (ctx) => AlertDialog(
+    key: const ValueKey('online-import-possible-match-dialog'),
+    title: Text(l10n.onlineImportPossibleMatchDialogTitle),
+    // Titles on both sides are unbounded input; scroll rather than overflow.
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.onlineImportPossibleMatchDialogBody(incomingTitle)),
+          const SizedBox(height: 8),
+          for (final dance in existing)
+            ListTile(
+              key: ValueKey('online-import-possible-match-${dance.id}'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.swap_horiz),
+              title: Text(l10n.importReviewOptionPossibleTitle(dance.title)),
+              onTap: () =>
+                  Navigator.of(ctx).pop(DedupeResolution.link(dance.id)),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.onlineImportPossibleMatchDialogLinkWarning,
+            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+              color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        key: const ValueKey('online-import-possible-match-cancel'),
+        onPressed: () => Navigator.of(ctx).pop(),
+        child: Text(l10n.commonCancel),
+      ),
+      FilledButton(
+        key: const ValueKey('online-import-possible-match-new'),
+        onPressed: () => Navigator.of(ctx).pop(DedupeResolution.duplicate()),
+        child: Text(l10n.onlineImportPossibleMatchDialogActionNew),
+      ),
+    ],
+  ),
+);
+
+/// Commits [preview] through [service] and resolves the confirmation outcomes
+/// interactively: [OnlineImportKind.needsConfirmation] shows
+/// [showOnlineImportVariationDialog] (#797),
 /// [OnlineImportKind.needsConfirmationIdentical] shows
-/// [showOnlineImportCrossSourceDuplicateDialog] (#811); the import is then
-/// retried with the chosen [DedupeResolution]. Every interactive online-import
+/// [showOnlineImportCrossSourceDuplicateDialog] (#811), and
+/// [OnlineImportKind.needsPossibleMatchChoice] shows
+/// [showOnlineImportPossibleMatchDialog] (#1907); the import is then retried
+/// with the chosen [DedupeResolution]. Every interactive online-import
 /// surface calls this, so a change to the resolution policy is made once.
 ///
 /// Returns the final [OnlineImportResult] of the import that committed, or
@@ -187,6 +249,25 @@ Future<OnlineImportResult?> resolveAndImportOnline(
       );
 
   final first = await commit();
+  if (first.kind == OnlineImportKind.needsPossibleMatchChoice) {
+    final existing = [
+      for (final id in first.possibleMatchIds)
+        if ((await repos.dances.getById(id))?.title case final title?)
+          (id: id, title: title),
+    ];
+    // Every candidate was deleted since the preview was planned: nothing is
+    // left to choose between, so this is a new dance like any other.
+    if (existing.isEmpty) return commit(DedupeResolution.duplicate());
+    if (!context.mounted) return null;
+    final resolution = await showOnlineImportPossibleMatchDialog(
+      context,
+      l10n,
+      incomingTitle: first.title,
+      existing: existing,
+    );
+    if (resolution == null || !context.mounted) return null;
+    return commit(resolution);
+  }
   final isVariation = first.kind == OnlineImportKind.needsConfirmation;
   final isIdentical = first.kind == OnlineImportKind.needsConfirmationIdentical;
   if (!isVariation && !isIdentical) return first;

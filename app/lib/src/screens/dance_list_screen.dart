@@ -1142,8 +1142,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// to [_pushOnlinePreview], which lands the user on the persisted dance. An
   /// [_importing] guard blocks a rapid double-tap before the commit resolves.
   ///
-  /// The confirmation outcomes (#797 variation, #811 cross-source duplicate)
-  /// are resolved by [resolveAndImportOnline]; a `null` result means the user
+  /// The confirmation outcomes (#797 variation, #811 cross-source duplicate,
+  /// #1907 possible match under another title) are resolved by
+  /// [resolveAndImportOnline]; a `null` result means the user
   /// cancelled or this screen went away, and nothing more happens here.
   Future<void> _importOnline(OnlinePreview preview) async {
     if (_importing) return;

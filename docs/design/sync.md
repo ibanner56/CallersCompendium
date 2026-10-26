@@ -3971,10 +3971,16 @@ transaction that already committed locally.
 - After a transient failure, the automatic retry above.
 - Manually via "Sync now" — from Settings, or from the sync glyph on the
   Collection, Programs and Glossary toolbars (shown only while sync is on and paired) —
-  a **delta pass**, identical to an automatic one. A
-  **full re-verify** (rehash every local record, reconcile against every peer)
-  is available behind a long-press or a Settings action, because on 11,500
-  dances a full rehash is real work and the ordinary button must stay quick.
+  the same pass as an automatic trigger. Every pass computes the wire hashes of
+  the whole library, and publication of an unchanged manifest is skipped (see
+  §6.3 step 8 in the specification) when all of these hold: the store still
+  lists this device; the store last confirmed the manifest's blobs less than
+  `kSyncPublicationRefreshInterval` (12 hours) ago, measured from that
+  confirmation, not from the publish; no peer record was refused or could not
+  be taken in this pass; and the manifest hash equals the last published one.
+  A separate **full re-verify** (rehash every local record,
+  reconcile against every peer) behind a long-press or a Settings action was
+  designed but is **not built** (#1432).
 
 **Metered connections.** A setting, *Sync only on WiFi*, defaults to **on**, in
 the manner of any app with downloadable content. While it is on and the
@@ -5236,7 +5242,7 @@ Recorded so the reasoning is not re-litigated.
 | Imported dances | **Full sync.** Reference-and-refetch demoted to a revisit trigger. *Exclude imported dances* ships in v1. |
 | Operator visibility | Opaque by design, with a **logged break-glass path** for abuse, disclosed in the privacy policy. |
 | `programs.venue` label | Stays `shareable` — a label the user typed, and a program is meaningless without it. |
-| "Sync now" | Delta pass; full re-verify behind a long-press or Settings action. |
+| "Sync now" | The same pass as an automatic trigger. (A separate full re-verify behind a long-press or Settings action was designed but is not built, #1432.) |
 | Metered connections | *Sync only on WiFi*, default on; manual attempts route to the setting via a snackbar. |
 | Quota exhaustion | An "almost full" warning from the store's `quota` at 80%, with the exclude-imports toggle inline; a `507` is surfaced with the toggle in its advice. (The size breakdown by category first decided here is not built.) |
 | Naming | **Athenaeum** — the earlier "Athanaeum" was a typo; DNS corrected and verified. |

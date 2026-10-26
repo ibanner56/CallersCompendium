@@ -492,8 +492,8 @@ watches for matches:
   — the app prompts rather than adding a second copy. You can choose **Same
   dance (update existing)** to link the import to your existing copy — this
   replaces your version of the dance with the online record's, including its
-  figures, notes, tags, rating, and custom fields; its place in your programs
-  and its calling history are kept — **Import a second copy** to add it alongside
+  title, figures, notes, tags, and rating; your custom fields, its place in your
+  programs and its calling history are kept — **Import a second copy** to add it alongside
   your existing dance and keep both source records, or **Cancel** to leave your
   collection unchanged. This applies to single-dance online imports only; the
   batch review screen still marks the row for you to decide.
@@ -503,9 +503,26 @@ watches for matches:
   to choose: **Same dance — replace**, keep both as a **duplicate**, or **skip** the new
   one. **Same dance — replace** keeps the existing dance's identity (its id,
   created date and history) but replaces its content with the imported version,
-  including calling notes, rating, tags, custom fields, hook, walkthrough,
-  status, links and source citations. The review warns how many existing dances
-  will be overwritten before you commit.
+  including its title, calling notes, rating, tags, hook, walkthrough, status,
+  links and source citations. Custom fields the import carries replace yours;
+  the rest of your custom fields are kept. The review warns how many existing
+  dances will be overwritten before you commit.
+- **Same dance, written another way.** Archives spell and annotate titles
+  differently: The Caller's Box has `A-1 Reel {variant}` where your collection
+  might have `A1 Reel (Imp Var)`. When a dance's title matches one you already
+  have once punctuation and a trailing note in brackets are set aside, **and**
+  the two share a choreographer, the review offers a **Same dance under another
+  title — replace** choice for each such dance. Nothing is chosen for you. When
+  these are a row's only matches, the row is headed **Possibly a dance you
+  already have, under another title**, still defaults to **New dance**, and is
+  left alone by **Skip all possible matches**. When the row also has an ordinary
+  possible match, the choices are added to that row, which defaults to **Skip**
+  as before. A single-dance online import asks the same question in a dialog
+  (**Is this a dance you already have?**), where you pick the dance to replace
+  or **Import as a new dance**; replacing it keeps your custom fields, but takes
+  the incoming title. A title like `New Dance (Velvet)`, whose bracket is the
+  dance's real name, is not treated this way, and nor is a bracket holding only
+  a part number, as in `Rickett's Hornpipe {#2}`.
 - **Same name, different choreography.** When the title and author match
   confidently but the *figures* differ, the app shows a **Variation of "…"?** block with
   an inline diff of exactly which lines changed, and offers **Import as a
@@ -534,7 +551,8 @@ review list, and **Skip** is the default, so choose **Re-import** on the ones yo
 want updated. When many dances match, use **Set all matched dances to:
 Re-import** or **Skip** at the top of the list to change every one in a single tap
 (you can still change individual rows afterwards), and **Skip all possible
-matches** to skip every row marked as a possible match. The commit summary counts re-imports separately — **Re-imported: 4**
+matches** to skip every row marked **Possible match** (not a row whose only
+matches are under another title). The commit summary counts re-imports separately — **Re-imported: 4**
 — so you can see at a glance how much of an import was new material and how much
 was an update. The **Imported** badge appears only on a row you brought in with **Import and
 edit** during review.
@@ -549,10 +567,24 @@ with **Import and edit**).
 From any saved dance detail view — including Collection, a Program Summary,
 global search, a post-import result, or a saved Program Editor preview — choose
 **Re-import choreography**. Select Caller's Box,
-ContraDB, or a Caller's Compendium JSON file. Online searches use the saved
-dance title and always show their results for you to choose from; the app never
-selects an online match automatically. JSON must contain exactly one dance and
-cannot contain a program.
+ContraDB, **Link or ID**, or a Caller's Compendium JSON file. Online searches use
+the saved dance title and always show their results for you to choose from; the
+app never selects an online match automatically. JSON must contain exactly one
+dance and cannot contain a program.
+
+If the source spells the title differently from your copy — `A-1 Reel` on The
+Caller's Box against your `A1 Reel` — the title search finds nothing. Choose
+**Link or ID** instead and paste the dance's Caller's Box or ContraDB address,
+or enter its ID number, as for
+[importing a dance by link or ID](#import-a-dance-by-link-or-id). A pasted
+address selects its own source; for a bare ID number, pick the source above the
+field first. An address the app does not recognise is reported before anything
+is fetched, and a dance that does not exist, or a source that cannot be reached,
+says so in its own words.
+
+If the source does not provide the dance's figures — The Caller's Box shares
+them for only some dances — the app tells you so and leaves your dance
+unchanged, rather than replacing your figures with an empty list.
 
 Review the preview, then import to replace only the dance's **figures,
 formation, and progression**. This keeps your title, notes, rating, tags,

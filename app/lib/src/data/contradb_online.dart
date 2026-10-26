@@ -178,8 +178,8 @@ class ContraDbOnline implements OnlineSearchService {
   }
 
   /// Commits [plan] into the local collection using the dedup-aware default
-  /// (identical policy to [CallersBoxOnline.import]): a brand-new dance is
-  /// created; an exact re-import match is reported as already-in-collection
+  /// (identical policy to [CallersBoxOnline.import]): a dance that matches
+  /// nothing is created; an exact re-import match is reported as already-in-collection
   /// (nothing written); a fuzzy near-match with a confident title+author
   /// candidate and differing figures returns
   /// [OnlineImportKind.needsConfirmation] (nothing written) so the caller can
@@ -189,7 +189,10 @@ class ContraDbOnline implements OnlineSearchService {
   /// returns [OnlineImportKind.needsConfirmationIdentical] (nothing written) so
   /// the caller can show a cross-source duplicate dialog (issue #811); dances
   /// with null provenance fall through rather than being falsely labelled "from
-  /// a different source"; any other fuzzy near-match is imported as a new dance.
+  /// a different source"; with no confident candidate, a possible match under
+  /// another title returns [OnlineImportKind.needsPossibleMatchChoice]
+  /// (nothing written, issue #1907); any other fuzzy near-match is imported as
+  /// a new dance.
   ///
   /// The policy lives in [commitPreviewedOnlinePlan], including the rule that an
   /// undecodable transcription never compares as identical (#1347).

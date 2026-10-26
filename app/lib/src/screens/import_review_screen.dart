@@ -975,7 +975,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }) async {
     final titles = batch.records.isEmpty
         // Nothing to review means nothing to name: `_titlesById` only labels
-        // candidate/re-import targets on a row, so loading the collection's
+        // candidate, possible-title and re-import targets on a row, so loading
+        // the collection's
         // titles for an empty batch is a read whose result is never read.
         ? const <String, String>{}
         : {
@@ -1212,7 +1213,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   /// Bulk controls above the rows, so a large re-import is not one tap per row.
-  /// Shown only when the batch has a re-import match or a possible match. The
+  /// Shown only when the batch has a re-import match or a possible match (an
+  /// ambiguous verdict; a row with only possible matches under another title,
+  /// #1907, is not one and is never swept). The
   /// per-row defaults are unchanged (#446); these only rewrite the choices.
   Widget _buildBulkControls(BuildContext context, ImportBatchResult batch) {
     final l10n = AppLocalizations.of(context);
@@ -3669,10 +3672,26 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final choice = _choices[i];
     switch (verdict.kind) {
       case DedupeKind.isNew:
-        return _radioGroup(i, choice, [
+        final possible = _possibleTitleOptions(i, verdict, l10n);
+        final group = _radioGroup(i, choice, [
           _option(i, l10n.importReviewOptionNewDance, _ActionKind.create),
+          ...possible,
           _option(i, l10n.importReviewOptionSkip, _ActionKind.skip),
         ]);
+        if (possible.isEmpty) return group;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                l10n.importReviewPossibleTitleMatch,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+            group,
+          ],
+        );
       case DedupeKind.reimport:
         final title =
             '${_titlesById[verdict.targetDanceId] ?? verdict.targetDanceId}';
@@ -3735,6 +3754,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             ),
           );
         }
+        options.addAll(_possibleTitleOptions(i, verdict, l10n));
         options.add(
           _option(i, l10n.importReviewOptionDuplicate, _ActionKind.duplicate),
         );
@@ -3790,6 +3810,29 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ],
       ),
     );
+  }
+
+  /// One "same dance under another title" option per
+  /// [DedupeVerdict.possibleMatchIds] entry that is not already offered as a
+  /// fuzzy candidate (#1907). They are only offered: [_defaultChoice] never
+  /// picks one, and the bulk controls never touch a row that has only these.
+  /// A pick commits as an ordinary link, through [_planForRow].
+  List<_Option> _possibleTitleOptions(
+    int i,
+    DedupeVerdict verdict,
+    AppLocalizations l10n,
+  ) {
+    final listed = {for (final c in verdict.candidates) c.danceId};
+    return [
+      for (final id in verdict.possibleMatchIds)
+        if (!listed.contains(id))
+          _option(
+            i,
+            l10n.importReviewOptionPossibleTitle(_titlesById[id] ?? id),
+            _ActionKind.link,
+            targetId: id,
+          ),
+    ];
   }
 
   _Option _option(int i, String label, _ActionKind kind, {String? targetId}) {

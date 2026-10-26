@@ -6033,7 +6033,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de figuren, callnotities, tags, beoordeling en aangepaste velden. De dans behoudt zijn plaats in je programma’s en zijn callerhistorie.';
+    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
   }
 
   @override
@@ -6048,6 +6048,22 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
       'Een tweede kopie importeren';
+
+  @override
+  String get onlineImportPossibleMatchDialogTitle => 'Heb je deze dans al?';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '“$incomingTitle” is misschien een dans die je al hebt onder een andere titel. Kies de dans die je door deze versie wilt vervangen, of importeer deze als nieuwe dans.';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      'De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew =>
+      'Importeren als nieuwe dans';
 
   @override
   String get onlineAttributionCallersBox => 'Van The Caller\'s Box (online)';
@@ -7081,6 +7097,15 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importReviewPossibleMatch =>
       'Mogelijke overeenkomst — kies hoe je wilt importeren:';
+
+  @override
+  String get importReviewPossibleTitleMatch =>
+      'Misschien een dans die je al hebt, onder een andere titel — kies hoe je wilt importeren:';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return 'Dezelfde dans onder een andere titel – “$title” vervangen door deze versie';
+  }
 
   @override
   String importReviewOptionLink(String title, int percent) {
@@ -9471,8 +9496,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceReimportJson => 'Callers Compendium JSON';
 
   @override
+  String get danceReimportLinkOrId => 'Link of id';
+
+  @override
   String get danceReimportNoResults =>
-      'Geen overeenkomende dansen gevonden. Kies een andere bron of probeer het later opnieuw.';
+      'Geen overeenkomende dansen gevonden. Probeer een link of id, kies een andere bron of probeer het later opnieuw.';
+
+  @override
+  String get danceReimportFiguresUnavailable =>
+      'Die bron heeft de figuren van deze dans niet geleverd, dus je choreografie kan niet worden bijgewerkt. Je dans is niet gewijzigd.';
 
   @override
   String get danceReimportChooseResult =>

@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/widgets/online_import_dialogs.dart';
@@ -460,6 +463,139 @@ void main() {
       expect(result?.kind, OnlineImportKind.alreadyInCollection);
       expect(find.byType(AlertDialog), findsNothing);
       expect(service.resolutions, [isNull]);
+    });
+  });
+
+  group('resolveAndImportOnline: possible matches (#1907)', () {
+    // The real Caller's Box service and a real collection: `A-1 Reel
+    // {variant}` by Chris Weiler arriving beside his `A1 Reel (Imp Var)`.
+    Future<
+      ({
+        CompendiumRepositories repos,
+        Future<OnlineImportResult?> Function() run,
+      })
+    >
+    pump(WidgetTester tester, {bool deleteCandidate = false}) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'weiler', name: 'Chris Weiler'),
+      );
+      final stamp = DateTime.utc(2026);
+      await repos.dances.create(
+        Dance(
+          id: 'impvar',
+          title: 'A1 Reel (Imp Var)',
+          authorIds: const ['weiler'],
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      final service = CallersBoxOnline(
+        jsonFetcher: (_) async => jsonEncode({
+          'ID': '1606',
+          'Name': 'A-1 Reel {variant}',
+          'Authors': ['Chris Weiler'],
+          'Permission': 'full',
+          'phrases': [
+            {
+              'name': 'A1',
+              'figures': ['(8) Long lines forward and back'],
+            },
+          ],
+        }),
+      );
+      final preview = await service.loadPreview(
+        repos,
+        const OnlineSearchResultRow(
+          source: OnlineSource.callersBox,
+          id: '1606',
+          name: '',
+          author: '',
+          formation: '',
+        ),
+      );
+      if (deleteCandidate) {
+        await repos.dances.softDelete('impvar', at: DateTime.utc(2026, 2));
+      }
+      OnlineImportResult? result;
+      var completed = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => TextButton(
+                key: const ValueKey('open-dialog'),
+                onPressed: () async {
+                  result = await resolveAndImportOnline(
+                    ctx,
+                    service: service,
+                    repos: repos,
+                    preview: preview,
+                    l10n: AppLocalizations.of(ctx),
+                  );
+                  completed = true;
+                },
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('open-dialog')));
+      await tester.pumpAndSettle();
+      return (
+        repos: repos,
+        run: () async {
+          while (!completed) {
+            await tester.pumpAndSettle();
+          }
+          return result;
+        },
+      );
+    }
+
+    testWidgets('"Import as a new dance" adds a dance and replaces nothing', (
+      tester,
+    ) async {
+      final (:repos, :run) = await pump(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('online-import-possible-match-new')),
+      );
+      final result = await run();
+
+      expect(result?.kind, OnlineImportKind.created);
+      expect(result?.danceId, isNot('impvar'));
+      expect(await repos.dances.listAll(), hasLength(2));
+      expect(
+        (await repos.dances.getById('impvar'))!.title,
+        'A1 Reel (Imp Var)',
+      );
+    });
+
+    testWidgets('Cancel returns null and writes nothing', (tester) async {
+      final (:repos, :run) = await pump(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('online-import-possible-match-cancel')),
+      );
+
+      expect(await run(), isNull);
+      expect(await repos.dances.listAll(), hasLength(1));
+    });
+
+    testWidgets('a candidate deleted since the preview leaves nothing to ask '
+        'about, so the dance is simply added', (tester) async {
+      final (:repos, :run) = await pump(tester, deleteCandidate: true);
+
+      expect(
+        find.byKey(const ValueKey('online-import-possible-match-dialog')),
+        findsNothing,
+      );
+      final result = await run();
+      expect(result?.kind, OnlineImportKind.created);
+      expect(await repos.dances.listAll(), hasLength(1));
     });
   });
 }

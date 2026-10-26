@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
@@ -112,6 +113,7 @@ Future<void> _pumpShell(
   UrlFetcher? urlFetcher,
   List<ImportSource>? importSources,
   PublishedCollectionService? publishedCollectionService,
+  CallersBoxOnline? callersBoxOnline,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -134,6 +136,7 @@ Future<void> _pumpShell(
         urlFetcher: urlFetcher,
         importSources: importSources,
         publishedCollectionService: publishedCollectionService,
+        callersBoxOnline: callersBoxOnline,
       ),
     ),
   );
@@ -231,6 +234,71 @@ void main() {
   // ── wide layout ─────────────────────────────────────────────────────────────
 
   group('wide layout (≥ 900 px)', () {
+    // The split pane catches re-import failures itself, separately from the
+    // routed coordinator (#1907), so each typed failure is checked here too.
+    Future<void> reimportByLinkInSplitPane(
+      WidgetTester tester,
+      UrlFetcher jsonFetcher,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'A1 Reel'));
+      await _pumpShell(
+        tester,
+        repos,
+        size: const Size(1400, 900),
+        callersBoxOnline: CallersBoxOnline(jsonFetcher: jsonFetcher),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('A1 Reel'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('reimport-dance')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('reimport-source-link')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('reimport-link-field')),
+        '1605',
+      );
+      await tester.tap(find.byKey(const ValueKey('reimport-link-fetch')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('re-import by id: a missing Caller\'s Box id reads as that', (
+      tester,
+    ) async {
+      await reimportByLinkInSplitPane(
+        tester,
+        (_) async => throw const UrlFetchException(
+          UrlFetchFailureReason.httpStatus,
+          statusCode: 404,
+        ),
+      );
+      expect(
+        find.text(AppLocalizationsEn().importErrorCallersBoxHttpNotFound),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('re-import by id: a dance without its figures is refused', (
+      tester,
+    ) async {
+      await reimportByLinkInSplitPane(
+        tester,
+        (_) async => jsonEncode({
+          'ID': '1605',
+          'Name': 'A-1 Reel',
+          'Authors': ['Chris Weiler'],
+          'Permission': 'search',
+          'phrases': <Object>[],
+        }),
+      );
+      expect(
+        find.text(AppLocalizationsEn().danceReimportFiguresUnavailable),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('import-dance')), findsNothing);
+    });
+
     testWidgets('400px list pane title does not overflow', (tester) async {
       final repos = openTestRepositories();
 
