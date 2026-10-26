@@ -452,10 +452,16 @@ final class CompendiumSyncCoordinatorStore
         SyncApplyReconciliationStorage,
         SyncApplyRestorableStorage,
         SyncCapabilityRecordStore {
+  /// [memoizeSnapshots] is passed to [CompendiumSyncStorage]: only a store
+  /// built for one pass and dropped after, as the sync worker's is, sets it.
   CompendiumSyncCoordinatorStore(
     CompendiumRepositories repositories, {
     this.syncId,
-  }) : storage = CompendiumSyncStorage(repositories);
+    bool memoizeSnapshots = false,
+  }) : storage = CompendiumSyncStorage(
+         repositories,
+         memoizeSnapshots: memoizeSnapshots,
+       );
 
   final CompendiumSyncStorage storage;
   final String? syncId;

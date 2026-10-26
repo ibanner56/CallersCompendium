@@ -269,6 +269,24 @@ Future<void> main() async {
           ('Sync snapshot (warm)', (repos, _) => snap(repos)),
         ]),
       );
+
+      // The same storage instance snapshotted three times, as one sync pass
+      // does (the worker builds one storage per pass, with the memo on). The
+      // 2nd and 3rd reuse unchanged records' blobs and hashes (#1931).
+      CompendiumSyncStorage? passStorage;
+      Future<int> passSnap(CompendiumRepositories repos) async {
+        passStorage ??= CompendiumSyncStorage(repos, memoizeSnapshots: true);
+        final snapshot = await passStorage!.snapshot();
+        return snapshot.local.length;
+      }
+
+      results.addAll(
+        await _measureSeries(dbPath, [
+          ('Sync snapshot, one pass: 1st', (repos, _) => passSnap(repos)),
+          ('Sync snapshot, one pass: 2nd', (repos, _) => passSnap(repos)),
+          ('Sync snapshot, one pass: 3rd', (repos, _) => passSnap(repos)),
+        ]),
+      );
     }
 
     // 2c. Per-record snapshot steps over every dance: build the blob, encode it

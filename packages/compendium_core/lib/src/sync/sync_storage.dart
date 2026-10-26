@@ -284,9 +284,19 @@ final class CompendiumSyncStorage
         SyncApplyReconciliationStorage,
         SyncApplyConcurrencyStorage,
         SyncApplyRestorableStorage {
-  CompendiumSyncStorage(this.repositories);
+  CompendiumSyncStorage(this.repositories, {this.memoizeSnapshots = false});
 
   final CompendiumRepositories repositories;
+
+  /// Whether a later [snapshot] of this instance reuses what an earlier one
+  /// built for records that have not changed ([_snapshotBlobMemo], #1931).
+  ///
+  /// Off unless the caller builds this storage for one sync pass and drops it
+  /// after, as the sync worker does: the memo holds about one archive body and
+  /// one blob per record for as long as the instance lives, so a storage kept
+  /// for longer (a screen's, the main isolate's coordinator) must not hold it.
+  /// Off or on, [snapshot] returns the same records, byte for byte.
+  final bool memoizeSnapshots;
   final Map<SyncRecordAddress, Object> _deferredEntities = {};
   final Set<SyncRecordAddress> _pendingParentWrites = {};
   Set<SyncRecordAddress> _inboundTombstonedAddresses = {};
@@ -315,6 +325,19 @@ final class CompendiumSyncStorage
   /// [markSyncUsed] writing a new verifier updates the entry directly instead
   /// of leaving it stale.
   final Map<String, bool> _identityVerifierMemo = {};
+
+  /// Each record's blob and wire hash from this instance's latest
+  /// [_scanSnapshot], with every input they were built from (#1931).
+  ///
+  /// Kept only when [memoizeSnapshots] is on, which the sync worker sets for
+  /// the storage it builds per pass, so there it lasts one pass; every other
+  /// instance leaves it empty. It is never persisted. A later snapshot reuses
+  /// an entry only when every input matches what built it
+  /// ([_SnapshotBlobMemoEntry.matches]), so a hit returns exactly what a fresh
+  /// build would. It holds the records of the latest scan alone, about one
+  /// archive body and one blob per record: each scan replaces it with the
+  /// entries it used, once the scan has finished.
+  Map<SyncRecordAddress, _SnapshotBlobMemoEntry> _snapshotBlobMemo = const {};
 
   CompendiumDatabase get _db => repositories.db;
 
@@ -451,8 +474,9 @@ final class CompendiumSyncStorage
 
   /// This device's whole library as the sync pass publishes and merges it.
   ///
-  /// Three phases, so that the scan, which reads and hashes every record, does
-  /// not hold the write lock (#1915). drift opens every native transaction
+  /// Three phases, so that the scan, which reads every record and builds and
+  /// hashes each one this instance has not seen unchanged (#1931), does not
+  /// hold the write lock (#1915). drift opens every native transaction
   /// `BEGIN IMMEDIATE`, so a scan inside one made every app write wait for the
   /// whole library to be encoded, and fail past the busy timeout.
   ///
@@ -486,6 +510,10 @@ final class CompendiumSyncStorage
   /// The read phase of [snapshot]: everything but the writes. It writes
   /// nothing, and must not, because it runs in a read transaction; it returns
   /// the addresses whose kept fields it found orphaned for phase 3 to sweep.
+  ///
+  /// An entity record whose inputs are all as the previous scan of this
+  /// instance found them reuses that scan's blob and wire hash
+  /// ([_snapshotBlobMemo]), which lives in memory, not in the database.
   Future<({SyncStorageSnapshot snapshot, Set<SyncRecordAddress> orphaned})>
   _scanSnapshot({required bool previouslyUsed}) async {
     final baseline = await repositories.syncLocal.snapshotBaseline();
@@ -516,6 +544,13 @@ final class CompendiumSyncStorage
           ),
     };
 
+    // Reused from the previous scan of this instance when every input to the
+    // blob is unchanged ([_snapshotBlobMemo]); built, and remembered for the
+    // next scan, otherwise. In memory only: this scan writes nothing.
+    final previousMemo = _snapshotBlobMemo;
+    final nextMemo = <SyncRecordAddress, _SnapshotBlobMemoEntry>{};
+    final memoize = memoizeSnapshots;
+
     Future<void> addEntity({
       required SyncRecordKind kind,
       required String id,
@@ -525,20 +560,49 @@ final class CompendiumSyncStorage
       DateTime? deletedAt,
     }) async {
       final address = (kind: kind, recordId: id);
-      final blob = syncRecordBlobForEntity(
-        kind,
-        entity,
-        updatedAt: updatedAt,
-        deletedAt: deletedAt,
-        existenceAt: existenceAt,
-        allowedCustomFieldIds: allowedCustomFieldIds,
-        retained: retainedParts[address],
-      );
-      if (blob == null) return;
-      local[address] = SyncMergeCandidate(
-        blob: blob,
-        wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
-      );
+      // The key is the entity's unprojected archive body, not the entity:
+      // model equality is hand-written per class and can leave a field out
+      // (`Dance.==` does not compare `provenance`), while this body is
+      // everything the projection reads of the entity, linked names and all.
+      final archiveBody = syncArchiveBodyForEntity(kind, entity);
+      final retained = retainedParts[address];
+      var entry = previousMemo[address];
+      if (entry == null ||
+          !entry.matches(
+            archiveBody: archiveBody,
+            updatedAt: updatedAt,
+            existenceAt: existenceAt,
+            deletedAt: deletedAt,
+            allowedCustomFieldIds: allowedCustomFieldIds,
+            retained: retained,
+          )) {
+        debugOnSnapshotBlobBuild?.call(address);
+        final blob = syncRecordBlobForArchiveBody(
+          kind,
+          archiveBody,
+          updatedAt: updatedAt,
+          deletedAt: deletedAt,
+          existenceAt: existenceAt,
+          allowedCustomFieldIds: allowedCustomFieldIds,
+          retained: retained,
+        );
+        entry = _SnapshotBlobMemoEntry(
+          archiveBody: archiveBody,
+          updatedAt: updatedAt,
+          existenceAt: existenceAt,
+          deletedAt: deletedAt,
+          allowedCustomFieldIds: allowedCustomFieldIds,
+          retained: retained,
+          candidate: blob == null
+              ? null
+              : SyncMergeCandidate(
+                  blob: blob,
+                  wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+                ),
+        );
+      }
+      if (memoize) nextMemo[address] = entry;
+      if (entry.candidate case final candidate?) local[address] = candidate;
     }
 
     final dances = await repositories.dances.listAll(includeDeleted: true);
@@ -816,6 +880,10 @@ final class CompendiumSyncStorage
 
     await _applySyncExcludeImports(publication);
 
+    // Only a scan that finished replaces the memo, and it drops the records
+    // this scan did not see (hard-deleted, purged, withheld). With
+    // [memoizeSnapshots] off, nothing was added, so it stays empty.
+    _snapshotBlobMemo = nextMemo;
     return (
       snapshot: SyncStorageSnapshot(
         epoch: baselineState?.epoch,
@@ -6483,7 +6551,8 @@ final class CompendiumSyncStorage
   /// to fetch the current local body an arriving peer record is overlaid onto.
   /// Publication does not come through here: the coordinator publishes from
   /// `snapshot().local` / `.publication`, whose blobs `snapshot` builds
-  /// directly with `syncRecordBlobForEntity`. Earlier comments and the spec
+  /// itself, with `syncRecordBlobForArchiveBody` (reused from its memo when
+  /// nothing changed, #1931). Earlier comments and the spec
   /// text written alongside them called this one of four publish paths; it is
   /// not, and both were corrected with #1347's reporting half.
   ///
@@ -6882,6 +6951,99 @@ final _syncIdentityRandom = Random.secure();
 /// this package reads it outside tests.
 @visibleForTesting
 int syncIdentityVerifierDerivationCount = 0;
+
+/// Test-only hook called with each record whose blob a snapshot scan builds,
+/// rather than reusing from the storage instance's memo (#1931). A counter
+/// would say how many were rebuilt; this says which. Null outside tests.
+@visibleForTesting
+void Function(SyncRecordAddress address)? debugOnSnapshotBlobBuild;
+
+/// One [CompendiumSyncStorage._snapshotBlobMemo] entry: the record's local
+/// candidate (null when it shares nothing) and every input that built it.
+///
+/// [syncRecordBlobForArchiveBody] reads the record's kind (the memo's address
+/// carries it), its archive body, the three timestamps, the shareable
+/// custom-field ids and its kept parts, and otherwise only this build's wire
+/// registry, which is constant for the process. So when all of them match,
+/// the blob a fresh build would make is canonically the one held here.
+final class _SnapshotBlobMemoEntry {
+  _SnapshotBlobMemoEntry({
+    required this.archiveBody,
+    required this.updatedAt,
+    required this.existenceAt,
+    required this.deletedAt,
+    required this.allowedCustomFieldIds,
+    required this.retained,
+    required this.candidate,
+  });
+
+  // Neither JSON tree is modified after this. Both were built for this scan
+  // alone (the kept parts are decoded afresh by each scan). The projection and
+  // the merge of kept parts share leaf values with them, but write only to the
+  // new maps they return, and the blob constructor deep-copies its body, so
+  // nothing that outlives the build holds a reference it could write through.
+  // The id set is the scan's own, which it does not change once built.
+  final Map<String, Object?> archiveBody;
+  final DateTime updatedAt;
+  final DateTime existenceAt;
+  final DateTime? deletedAt;
+  final Set<String> allowedCustomFieldIds;
+  final Map<String, Object?>? retained;
+  final SyncMergeCandidate? candidate;
+
+  bool matches({
+    required Map<String, Object?> archiveBody,
+    required DateTime updatedAt,
+    required DateTime existenceAt,
+    required DateTime? deletedAt,
+    required Set<String> allowedCustomFieldIds,
+    required Map<String, Object?>? retained,
+  }) =>
+      // DateTime equality also compares isUtc, which only makes a hit rarer.
+      updatedAt == this.updatedAt &&
+      existenceAt == this.existenceAt &&
+      deletedAt == this.deletedAt &&
+      _sameIds(allowedCustomFieldIds, this.allowedCustomFieldIds) &&
+      _sameJson(retained, this.retained) &&
+      _sameJson(archiveBody, this.archiveBody);
+
+  static bool _sameIds(Set<String> a, Set<String> b) =>
+      identical(a, b) || (a.length == b.length && a.containsAll(b));
+
+  /// Whether two JSON trees are the same, stricter than the wire needs: map
+  /// keys in the same order, `1` and `1.0` different, `0.0` and `-0.0`
+  /// different, and anything that is not JSON never the same. Strictness can
+  /// only cost a rebuild; it can never let a different input hit.
+  static bool _sameJson(Object? a, Object? b) {
+    if (identical(a, b)) return true;
+    if (a is String) return b is String && a == b;
+    if (a is bool) return b is bool && a == b;
+    if (a is int) return b is int && a == b;
+    if (a is double) {
+      return b is double && a == b && a.isNegative == b.isNegative;
+    }
+    if (a is List) {
+      if (b is! List || a.length != b.length) return false;
+      for (var index = 0; index < a.length; index++) {
+        if (!_sameJson(a[index], b[index])) return false;
+      }
+      return true;
+    }
+    if (a is Map) {
+      if (b is! Map || a.length != b.length) return false;
+      final aEntries = a.entries.iterator;
+      final bEntries = b.entries.iterator;
+      while (aEntries.moveNext() && bEntries.moveNext()) {
+        final aEntry = aEntries.current;
+        final bEntry = bEntries.current;
+        if (aEntry.key is! String || aEntry.key != bEntry.key) return false;
+        if (!_sameJson(aEntry.value, bEntry.value)) return false;
+      }
+      return true;
+    }
+    return false;
+  }
+}
 
 /// Test-only override of the PBKDF2 iteration count behind sync identity
 /// verifiers; defaults to [_syncIdentityKdfIterations] (600,000).

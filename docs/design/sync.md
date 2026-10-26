@@ -3796,8 +3796,9 @@ step itself reindexes only the dances the batch affected, and a batch of none
 of their inputs writes no index row (#1920; sync-spec §6.7, *Derived
 indexes*).
 
-**The snapshot scans outside the write lock.** `snapshot()` reads and hashes the
-whole library, and the coordinator takes several per pass, idle ones included.
+**The snapshot scans outside the write lock.** `snapshot()` reads the whole
+library, and hashes all of it the first time in a pass, and the coordinator
+takes several per pass, idle ones included.
 It therefore runs in three phases (#1915). A short write transaction revalidates
 pending deletions. The scan runs in `CompendiumRepositories.readTransaction`, a
 deferred SQLite transaction opened through a `SAVEPOINT` under `PRAGMA
@@ -3811,6 +3812,29 @@ still kept, not pending, not a record the snapshot would publish
 lands between the scan and the sweep (a private custom field made shareable
 again, say) keeps what it needs. Called inside an open transaction, as conflict
 resolution calls it, all three phases run in that transaction.
+
+**A pass's later snapshots reuse what did not change.** The scan still hydrates
+every record, but a `CompendiumSyncStorage` built with `memoizeSnapshots`
+remembers, for each entity record of its latest scan, the blob and wire hash it built and every input it built them
+from, and a later scan reuses them when all of those inputs are unchanged
+(#1931). The inputs are the record's address, its unprojected archive body
+(`syncArchiveBodyForEntity`), its three timestamps, the set of shareable
+custom-field ids, and its kept parts (§6.7). Nothing else reaches the blob but
+this build's wire registry, which is constant for the process. The key is the
+archive body, not the entity, because model equality is written by hand per class
+and can leave a field out: `Dance.==` does not compare `provenance`, which is on
+the wire. What a record shows of another one, such as a dance's authors, is
+already in its archive body, so no dependency tracking is needed. The memo is in
+memory only: each scan builds its own, which replaces the last one when the scan
+finishes, and the scan still writes nothing. It is never persisted and lives as
+long as its storage instance, which is why it is opt-in: only the sync worker's
+per-pass store (`syncPassStore`) turns it on, so it lives for one pass, and the
+saving is on the second and later snapshots of a pass, not the first. Every
+other storage, the review screen's and the main isolate's coordinator's among
+them, keeps no memo, and its snapshots are built in full as before. Settings and records kept
+whole are few, and still rebuilt every scan. The guard is
+`sync_snapshot_blob_memo_test.dart`, whose last group compares a memoised
+snapshot with a fresh instance's, byte for byte, after random edits.
 
 **"Carries" must be unambiguous.** The codec omits null fields today
 (`if (v.website != null)`), so on the wire *absent* means either "device-local,
