@@ -2508,7 +2508,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ),
         SearchPanelSpec(
           key: const ValueKey('advanced-panel'),
-          label: _advancedEnabled && _advancedRoot.toFilter() != null
+          // Online results are not narrowed by the query; only say it is on
+          // where it applies.
+          label:
+              !_onlineEnabled &&
+                  _advancedEnabled &&
+                  _advancedRoot.toFilter() != null
               ? l10n.collectionAdvancedActive
               : l10n.collectionAdvancedTitle,
           builder: (_) => _buildAdvancedPanel(data),

@@ -1492,6 +1492,17 @@ void main() {
     await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
     expect(find.text('Advanced (on)'), findsOneWidget);
     expect(_titles(tester), ['Has Petronella']);
+
+    // Online results are not narrowed by the query, so the button stops
+    // saying it is on, though the query is kept for local search.
+    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    expect(find.text('Advanced (on)'), findsNothing);
+    expect(find.text('Advanced'), findsOneWidget);
   });
 
   testWidgets('advanced builder: add and remove a condition group', (
