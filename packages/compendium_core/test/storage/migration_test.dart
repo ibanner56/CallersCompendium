@@ -37,7 +37,7 @@ import 'package:compendium_core/src/storage/database.dart'
         taxonomyV34CanonicalRebuildDoneKey,
         taxonomyV35FigureNormalizationDoneKey,
         kSectionRuleVersion;
-import 'package:drift/drift.dart' show Variable;
+import 'package:drift/drift.dart' show DatabaseConnectionUser, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -1414,6 +1414,83 @@ void main() {
       expect(row.read<String?>('pay_currency'), isNull);
     });
   });
+  group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {
+    const indexes = {
+      'dance_authors_choreographer_id',
+      'dance_tags_tag_id',
+      'dance_sources_source_id',
+      'custom_field_values_field_id',
+    };
+
+    Future<Set<String>> indexNames(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect(
+                "SELECT name FROM sqlite_master WHERE type = 'index'",
+              )
+              .get())
+        row.read<String>('name'),
+    };
+
+    test('creates the four indexes and keeps every row', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        40,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        (await indexNames(historical)).intersection(indexes),
+        isEmpty,
+        reason: 'a v40 database has none of them',
+      );
+      await historical.customStatement(
+        "INSERT INTO choreographers "
+        "(id, name) VALUES ('c1', 'Keep')",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await indexNames(db), containsAll(indexes));
+      final kept = await db
+          .customSelect("SELECT name FROM choreographers WHERE id = 'c1'")
+          .getSingle();
+      expect(kept.read<String>('name'), 'Keep');
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 41);
+    });
+
+    test('is idempotent over an index that already exists', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        40,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+      raw.execute('CREATE INDEX dance_tags_tag_id ON dance_tags(tag_id)');
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await indexNames(db), containsAll(indexes));
+    });
+  });
+
   group('v39 -> v40 upgrade (user glossary, #709)', () {
     test('adds empty user_glossary_entries and figure_notes tables and keeps '
         'every row', () async {
@@ -1481,7 +1558,7 @@ void main() {
           .getSingle();
       expect(program.read<String>('notes'), 'keep');
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 40);
+      expect(version.read<int>('user_version'), kCompendiumSchemaVersion);
     });
 
     // `_ensureV40Schema` documents its existence checks as what keeps the step
@@ -1544,7 +1621,7 @@ void main() {
       expect(notes.map((n) => (n.figureId, n.notes)), [('f-kept', 'keep me')]);
       expect(await db.select(db.userGlossaryEntries).get(), isEmpty);
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 40);
+      expect(version.read<int>('user_version'), kCompendiumSchemaVersion);
     });
   });
 

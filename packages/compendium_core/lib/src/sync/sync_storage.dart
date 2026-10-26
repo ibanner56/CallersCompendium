@@ -273,6 +273,26 @@ void _reportWithheldUnreadableDance(List<SyncReport>? into, Dance dance) {
   );
 }
 
+/// The one-`EXISTS` citation check `CompendiumSyncStorage._hasCitation` runs
+/// for a choreographer, tag, published source or custom field (#1935): does a
+/// live dance still have a [joinTable] row citing the bound id? It seeks the
+/// join's cited-id index (`citedIdLookupIndexSql`). [excludingIds] adds a
+/// second variable, a JSON array of dance ids that do not count.
+///
+/// [joinTable] and [citedColumn] are interpolated: pass literals only.
+@visibleForTesting
+String liveDanceCitationSql(
+  String joinTable,
+  String citedColumn, {
+  required bool excludingIds,
+}) =>
+    'SELECT EXISTS ('
+    'SELECT 1 FROM $joinTable AS j '
+    'JOIN dances AS d ON d.id = j.dance_id '
+    'WHERE j.$citedColumn = ? AND d.deleted_at IS NULL'
+    '${excludingIds ? ' AND d.id NOT IN (SELECT value FROM json_each(?))' : ''}'
+    ') AS cited';
+
 /// The production storage adapter for the core sync engine.
 ///
 /// Reads use full-fidelity models so a shareable inbound overlay cannot erase
@@ -1500,47 +1520,45 @@ final class CompendiumSyncStorage
       }
     }
 
+    // Whether a live dance cites [recordId] through [joinTable]. An owner that
+    // is missing, in the Trash, or tombstoned by the inbound batch (when
+    // [ignoreInboundTombstones]) does not count, exactly as `ownerRemainsLive`
+    // decides it for the dance kind. The excluded ids go in as one JSON array so
+    // the statement's variable count does not grow with the batch.
+    Future<bool> liveDanceCites(String joinTable, String citedColumn) async {
+      final excluded = ignoreInboundTombstones
+          ? [
+              for (final address in _inboundTombstonedAddresses)
+                if (address.kind == SyncRecordKind.dance) address.recordId,
+            ]
+          : const <String>[];
+      final row = await _db
+          .customSelect(
+            liveDanceCitationSql(
+              joinTable,
+              citedColumn,
+              excludingIds: excluded.isNotEmpty,
+            ),
+            variables: [
+              Variable.withString(recordId),
+              if (excluded.isNotEmpty)
+                Variable.withString(jsonEncode(excluded)),
+            ],
+            readsFrom: {_db.dances},
+          )
+          .getSingle();
+      return row.read<int>('cited') != 0;
+    }
+
     switch (kind) {
       case SyncRecordKind.choreographer:
-        final rows = await (_db.select(
-          _db.danceAuthors,
-        )..where((row) => row.choreographerId.equals(recordId))).get();
-        for (final row in rows) {
-          if (await ownerRemainsLive(SyncRecordKind.dance, row.danceId)) {
-            return true;
-          }
-        }
-        return false;
+        return liveDanceCites('dance_authors', 'choreographer_id');
       case SyncRecordKind.tag:
-        final rows = await (_db.select(
-          _db.danceTags,
-        )..where((row) => row.tagId.equals(recordId))).get();
-        for (final row in rows) {
-          if (await ownerRemainsLive(SyncRecordKind.dance, row.danceId)) {
-            return true;
-          }
-        }
-        return false;
+        return liveDanceCites('dance_tags', 'tag_id');
       case SyncRecordKind.publishedSource:
-        final rows = await (_db.select(
-          _db.danceSources,
-        )..where((row) => row.sourceId.equals(recordId))).get();
-        for (final row in rows) {
-          if (await ownerRemainsLive(SyncRecordKind.dance, row.danceId)) {
-            return true;
-          }
-        }
-        return false;
+        return liveDanceCites('dance_sources', 'source_id');
       case SyncRecordKind.customFieldDef:
-        final rows = await (_db.select(
-          _db.customFieldValues,
-        )..where((row) => row.fieldId.equals(recordId))).get();
-        for (final row in rows) {
-          if (await ownerRemainsLive(SyncRecordKind.dance, row.danceId)) {
-            return true;
-          }
-        }
-        return false;
+        return liveDanceCites('custom_field_values', 'field_id');
       case SyncRecordKind.difficultyLevel:
         // Counts tombstoned dances too, unlike every other kind here: a deleted
         // dance can be restored, so it still protects its level. This is the

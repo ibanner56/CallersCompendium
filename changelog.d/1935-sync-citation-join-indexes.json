@@ -1,0 +1,19 @@
+{
+  "id": "1935-sync-citation-join-indexes",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Device Sync checks whether a choreographer, tag, source or custom field you deleted on another device is still in use faster on a large collection, so a sync pass spends less time on those checks.",
+      "The first launch after updating adds four small indexes to your collection. It takes a moment on a very large collection."
+    ],
+    "data_migrations": [
+      "Database schema v41 adds lookup indexes over the choreographer, tag, source and custom-field columns of the dance join tables. No data is changed."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`CompendiumSyncStorage` checks whether a live dance still cites a choreographer, tag, published source or custom field with one `EXISTS` query instead of one dances lookup per citing row.",
+      "Schema v41 adds `dance_authors_choreographer_id`, `dance_tags_tag_id`, `dance_sources_source_id` and `custom_field_values_field_id` (`citedIdLookupIndexSql`)."
+    ]
+  }
+}
