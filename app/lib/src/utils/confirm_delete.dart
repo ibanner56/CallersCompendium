@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/confirm_before_delete_scope.dart';
+import '../theme/destructive_button_style.dart';
 
 /// Shared gate for destructive delete actions (ROADMAP G.7 "Confirm before
 /// delete").
@@ -36,6 +37,7 @@ Future<bool> confirmDeleteIfEnabled(
           child: Text(l10n.commonCancel),
         ),
         FilledButton(
+          style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
           key: const ValueKey('confirm-delete-confirm'),
           onPressed: () => Navigator.of(ctx).pop(true),
           child: Text(l10n.commonDelete),

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/destructive_button_style.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/figure_param_editors.dart';
 
@@ -274,7 +275,8 @@ class MatrixColumnEditor extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(l10n.commonCancel),
           ),
-          TextButton(
+          FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
             key: ValueKey('matrix-column-delete-confirm-${column.id}'),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.settingsMatrixColumnsCompoundDeleteConfirm),
@@ -349,7 +351,8 @@ class MatrixColumnEditor extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(l10n.commonCancel),
           ),
-          TextButton(
+          FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
             key: ValueKey('matrix-column-delete-confirm-${column.id}'),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.settingsMatrixColumnsParameterizedDeleteConfirm),
@@ -391,7 +394,8 @@ class MatrixColumnEditor extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(l10n.commonCancel),
           ),
-          TextButton(
+          FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
             key: const ValueKey('matrix-column-reset-true-confirm'),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.settingsMatrixColumnsResetTrueConfirm),

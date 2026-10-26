@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_spacing.dart';
+import '../theme/destructive_button_style.dart';
 import 'settings/settings_keys.dart';
 
 /// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
@@ -244,11 +246,9 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
             key: const ValueKey('delete-confirm'),
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
             child: Text(l10n.commonDelete),
           ),
         ],
@@ -332,7 +332,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       );
     }
     return ListView.separated(
-      padding: const EdgeInsets.only(bottom: 88),
+      padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
       itemCount: _defs.length,
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {

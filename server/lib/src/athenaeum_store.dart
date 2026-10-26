@@ -58,6 +58,20 @@ const int maxPendingDeletionRetriesPerSweep = 1000;
 /// finishes, and at least one job runs per call so the queue still drains.
 const Duration requestPendingDeletionBudget = Duration(milliseconds: 50);
 
+/// Milliseconds a connection waits for a competing writer before failing with
+/// `SQLITE_BUSY`; sqlite3's default is `0`, which fails at once.
+///
+/// The value is an implementer's choice, not a measured budget, and is
+/// deliberately short. The server is one isolate and sqlite3's API is
+/// synchronous, so a wait stalls *every* request, not just the one that hit the
+/// lock. The only competing writer is the operator's break-glass process, whose
+/// store-database work is read-only, so contention is rare; the wait exists to
+/// ride out a brief overlap, and bounds the stall a stuck lock can cause to a
+/// quarter second. Do not copy the client's 30 s here
+/// (`compendiumSqliteBusyTimeoutMs`): that trades a lost write for a frozen
+/// server.
+const int athenaeumSqliteBusyTimeoutMs = 250;
+
 final RegExp _deviceIdPattern = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
 final RegExp _hashPattern = RegExp(r'^[0-9a-f]{64}$');
 final RegExp _epochPattern = RegExp(r'^[0-9a-f]{32}$');
@@ -89,6 +103,10 @@ class AthenaeumStore {
        _clock = clock ?? DateTime.now,
        _elapsed = elapsed ?? _monotonicElapsed() {
     Directory(config.dataDirectory).createSync(recursive: true);
+    _database.execute('PRAGMA busy_timeout = $athenaeumSqliteBusyTimeoutMs');
+    _breakGlassDatabase.execute(
+      'PRAGMA busy_timeout = $athenaeumSqliteBusyTimeoutMs',
+    );
     _database.execute('PRAGMA foreign_keys = ON');
     _database.execute('PRAGMA journal_mode = WAL');
     for (final table in athenaeumTableSchemas) {
@@ -127,6 +145,51 @@ class AthenaeumStore {
     _indexUnindexedManifests();
     _reconcileOrphanedBlobFiles();
     retryPendingDeletions();
+  }
+
+  /// Opens the store for the operator's `--break-glass` read, and nothing else.
+  ///
+  /// The documented procedure runs this in a second process against the live
+  /// volume, so it must not contend with the server: `athenaeum.sqlite` is
+  /// opened `OpenMode.readOnly`, and none of the full constructor's startup
+  /// work runs (no schema or index creation, no manifest indexing, no orphan
+  /// blob reconcile, no pending-deletion retry). Under WAL a reader never
+  /// blocks the server's writer. Only `lookup` and `manifest` are meant to be
+  /// called on it; any write to the store database throws.
+  ///
+  /// The break-glass log database stays writable, because
+  /// [recordBreakGlassAccess] must still record the access there. The
+  /// diagnostics database is not opened at all (an in-memory stand-in keeps
+  /// the field non-null), so the live one is never touched.
+  ///
+  /// Throws if `athenaeum.sqlite` does not exist; unlike the full
+  /// constructor it never creates an empty one.
+  AthenaeumStore.breakGlass({required AthenaeumConfig config})
+    : config = config,
+      _database = sqlite3.sqlite3.open(
+        p.join(config.dataDirectory, 'athenaeum.sqlite'),
+        mode: sqlite3.OpenMode.readOnly,
+      ),
+      _breakGlassDatabase = _openBreakGlassDatabase(config.dataDirectory),
+      _diagnosticDatabase = sqlite3.sqlite3.openInMemory(),
+      _deleteDirectory = _deleteDirectoryRecursively,
+      _deleteFile = _deleteFileSync,
+      _clock = DateTime.now,
+      _elapsed = _monotonicElapsed(),
+      operationalFailureSink = null,
+      quotaLimits = const AthenaeumQuotaLimits(),
+      diagnosticRowLimit = maxDiagnosticRows {
+    _database.execute('PRAGMA busy_timeout = $athenaeumSqliteBusyTimeoutMs');
+    _breakGlassDatabase.execute(
+      'PRAGMA busy_timeout = $athenaeumSqliteBusyTimeoutMs',
+    );
+    for (final table in breakGlassTableSchemas) {
+      _breakGlassDatabase.execute(table.createSql());
+    }
+    _breakGlassDatabase.execute(
+      'CREATE INDEX IF NOT EXISTS break_glass_access_linkable_idx '
+      'ON break_glass_access (accessed_at) WHERE id_key IS NOT NULL',
+    );
   }
 
   final AthenaeumConfig config;

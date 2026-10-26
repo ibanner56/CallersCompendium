@@ -65,7 +65,7 @@ Future<void> _runBreakGlass(
   }
   try {
     validateSyncId(syncId);
-    final store = AthenaeumStore(config: config);
+    final store = AthenaeumStore.breakGlass(config: config);
     try {
       store.recordBreakGlassAccess(syncId);
       final idKey = deriveIncomingSyncIdKey(syncId, config.pepper);

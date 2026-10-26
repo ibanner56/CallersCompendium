@@ -29,6 +29,7 @@ import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart'
     show PdfLayouter, ShareInvoker;
 import 'package:compendium_app/src/widgets/figure_table.dart';
+import 'package:compendium_app/src/widgets/program_status_chip.dart';
 
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
@@ -1194,6 +1195,32 @@ void main() {
 
     expect(find.text('Variation'), findsOneWidget);
   });
+
+  for (final status in [
+    DanceStatus.deprecated,
+    DanceStatus.broken,
+    DanceStatus.draft,
+    DanceStatus.variation,
+  ]) {
+    testWidgets('the ${status.name} banner uses the same glyph as the '
+        'Collection list chip', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', status: status));
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final expected = danceStatusPresentation(status, l10n);
+      final banner = find.ancestor(
+        of: find.text(expected.label),
+        matching: find.byType(Row),
+      );
+      expect(
+        find.descendant(of: banner.first, matching: find.byIcon(expected.icon)),
+        findsOneWidget,
+      );
+    });
+  }
 
   testWidgets('shows provenance line', (tester) async {
     final repos = openTestRepositories();

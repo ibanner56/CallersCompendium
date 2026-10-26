@@ -24,6 +24,7 @@ import '../diagnostics/error_log.dart';
 import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
@@ -662,7 +663,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               key: const ValueKey('open-builder'),
               heroTag: 'open-builder',
               onPressed: _openBuilder,
-              icon: const Icon(Icons.edit_note),
+              icon: const Icon(Icons.edit_outlined),
               label: Text(l10n.programsEditProgram),
             )
           : null,
@@ -698,7 +699,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           );
 
     return ListView(
-      padding: const EdgeInsets.all(24),
+      // The bottom inset lets the last slot scroll clear of the Edit FAB.
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.fabClearance,
+      ),
       children: [
         Row(
           children: [

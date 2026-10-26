@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_spacing.dart';
+import '../theme/destructive_button_style.dart';
 import 'venue_editor_sheet.dart';
 
 /// A full-screen manager to browse, search, create, edit, and delete the
@@ -151,6 +153,9 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('venue-delete-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.commonDelete),
@@ -265,6 +270,8 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
       );
     }
     return ListView.builder(
+      // Lets the last venue scroll clear of the "New venue" FAB.
+      padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         final venue = filtered[index];

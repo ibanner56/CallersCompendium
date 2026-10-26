@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/destructive_button_style.dart';
 import 'settings_keys.dart';
 import '../../data/app_theme_labels_l10n.dart';
 import '../../data/app_theme_scope.dart';
@@ -471,6 +472,7 @@ class _CustomThemesSection extends StatelessWidget {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l10n.commonDelete),
           ),

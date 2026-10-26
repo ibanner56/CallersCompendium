@@ -115,6 +115,7 @@ import 'src/sync/sync_network.dart';
 import 'src/sync/sync_scope.dart';
 import 'src/sync/synced_settings_reload.dart';
 import 'src/sync/sync_runtime.dart';
+import 'src/theme/destructive_button_style.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
@@ -1953,7 +1954,8 @@ class _CompendiumAppState extends State<CompendiumApp>
               onPressed: () => Navigator.of(ctx).pop(false),
               child: Text(l10n.commonCancel),
             ),
-            TextButton(
+            FilledButton(
+              style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(l10n.migrationBelowFloorBackUpAndReset),
             ),
@@ -1992,7 +1994,8 @@ class _CompendiumAppState extends State<CompendiumApp>
               onPressed: () => Navigator.of(ctx).pop(false),
               child: Text(l10n.commonCancel),
             ),
-            TextButton(
+            FilledButton(
+              style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(l10n.migrationBelowFloorResetOnly),
             ),

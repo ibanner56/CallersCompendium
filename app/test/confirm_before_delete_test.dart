@@ -226,6 +226,24 @@ void main() {
       expect(dance!.deletedAt, isNull);
     });
 
+    testWidgets('the confirm button is styled as destructive, not as an '
+        'ordinary primary action', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('d1', 'Swipe Me'));
+      await _pumpDanceList(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-action-delete')));
+      await tester.pumpAndSettle();
+
+      final confirm = find.byKey(const ValueKey('confirm-delete-confirm'));
+      final scheme = Theme.of(tester.element(confirm)).colorScheme;
+      final style = tester.widget<FilledButton>(confirm).style;
+      expect(style?.backgroundColor?.resolve(<WidgetState>{}), scheme.error);
+      expect(style?.foregroundColor?.resolve(<WidgetState>{}), scheme.onError);
+    });
+
     testWidgets('with confirm ON, the ⋮ menu Delete soft-deletes the dance', (
       tester,
     ) async {

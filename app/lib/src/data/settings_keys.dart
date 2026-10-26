@@ -63,9 +63,12 @@ const String kPerformTextScaleKey = 'perform_text_scale';
 /// stage-mode-on-by-default behaviour (`docs/design/ux.md` §5).
 const String kPerformStageModeKey = 'perform_stage_mode';
 
-/// Key used to persist the in-Perform "show canonical role/move tokens" toggle
-/// (issue #449). Stored as a bool; absent/unset means off (`false`), so figures
-/// render in the active dialect until the caller opts into canonical tokens.
+/// Key that persisted the in-Perform "show canonical role/move tokens" toggle
+/// (issue #449). Perform no longer has that toggle — Canonical is a choice in
+/// its dialect quick-switch — and no longer reads or writes this key, so a
+/// stored `true` cannot strand a caller in canonical wording. The key stays
+/// declared, classified and in the backup schema so archives and sync peers
+/// from older versions, which still write it, keep round-tripping it.
 const String kPerformCanonicalViewKey = 'perform_canonical_view';
 
 /// Key used to persist the "Ignore leading articles when sorting" General

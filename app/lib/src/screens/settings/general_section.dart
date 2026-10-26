@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show ValueListenable, kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme/destructive_button_style.dart';
 import 'settings_keys.dart';
 import '../../data/sync_writer_lifecycle_scope.dart';
 import '../../data/backup_document.dart'
@@ -1105,6 +1106,7 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
           child: Text(l10n.commonCancel),
         ),
         FilledButton(
+          style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
           key: const ValueKey('restore-confirm'),
           onPressed: hasContent
               ? () => Navigator.of(context).pop(
