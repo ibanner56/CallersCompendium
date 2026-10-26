@@ -14024,10 +14024,10 @@ abstract class AppLocalizations {
   /// **'No matching dances were found. Try a link or ID, choose another source, or try again later.'**
   String get danceReimportNoResults;
 
-  /// Shown when a re-import source sends a dance without its figures (The Caller's Box withholds them unless the choreographer allows it), so nothing is replaced.
+  /// Shown when an online re-import source sends a dance without any figures (for example, The Caller's Box withholds them unless the choreographer allows it), so nothing is replaced.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box doesn\'t share this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.'**
+  /// **'That source didn\'t provide this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.'**
   String get danceReimportFiguresUnavailable;
 
   /// Title of the dialog where the user selects an online dance to re-import.

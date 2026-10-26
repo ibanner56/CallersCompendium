@@ -9530,7 +9530,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceReimportFiguresUnavailable =>
-      'The Caller\'s Box ne partage pas les figures de cette danse : impossible d’actualiser votre chorégraphie. Votre danse n’a pas été modifiée.';
+      'Cette source n’a pas fourni les figures de cette danse : impossible de mettre à jour votre chorégraphie. Votre danse n’a pas été modifiée.';
 
   @override
   String get danceReimportChooseResult => 'Choisissez la danse à réimporter';

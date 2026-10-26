@@ -92,23 +92,23 @@ class DanceReimportJsonException implements Exception {
   final bool programBearing;
 }
 
-/// Refuses an online [plan] whose source withheld the figures.
+/// Refuses an online [plan] that brought no figures.
 ///
-/// The Caller's Box serves only metadata for a dance without the `full`
-/// permission tier, and its adapter then parses an empty figure list (marked
-/// with the `callersbox_search_tier` issue). [replaceDanceChoreography] would
-/// write that empty list over the saved transcription. The title search never
-/// offers such a dance (`OnlineSearchQuery.requireFigures`), but a link or id
-/// reaches it directly, so every online re-import checks here.
+/// [replaceDanceChoreography] would write an empty incoming list over the
+/// saved transcription. The common cause is The Caller's Box serving only
+/// metadata for a dance without the `full` permission tier (the
+/// `callersbox_search_tier` issue); a ContraDB page without a figures table
+/// parses the same way. The title search hides the first case
+/// (`OnlineSearchQuery.requireFigures`), but a link or id reaches any dance,
+/// so every online re-import checks here. An *unreadable* incoming list is not
+/// refused: [replaceDanceChoreography] keeps the saved figures for that.
 void rejectFigurelessReimport(ImportRecordPlan plan) {
-  if (plan.draft.issues.any(
-    (issue) => issue.code == _callersBoxSearchTierIssue,
-  )) {
+  if (plan.draft.dance.figuresSource case DecodedFigures(
+    :final figures,
+  ) when figures.isEmpty) {
     throw const DanceReimportFiguresUnavailableException();
   }
 }
-
-const String _callersBoxSearchTierIssue = 'callersbox_search_tier';
 
 /// Typed, presentation-safe refusal raised by [rejectFigurelessReimport].
 class DanceReimportFiguresUnavailableException implements Exception {

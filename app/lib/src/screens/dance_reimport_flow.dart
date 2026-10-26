@@ -176,8 +176,9 @@ Future<T> _attributed<T>(
 /// What [_ReimportLinkDialog] returns: a validated dance id and its source.
 typedef _ReimportLink = ({OnlineSource source, String id});
 
-/// Asks for a Caller's Box or ContraDB dance link or id. A pasted link selects
-/// its own source, as the Import screen does; a bare id uses the selected one.
+/// Asks for a Caller's Box or ContraDB dance link or id. A recognised pasted
+/// link always selects its own source; the selector only decides where a bare
+/// id is looked up.
 /// Input the URL builders reject is reported here, inline, so it can be fixed
 /// without starting over; nothing is fetched until it is valid.
 class _ReimportLinkDialog extends StatefulWidget {
@@ -190,7 +191,6 @@ class _ReimportLinkDialog extends StatefulWidget {
 class _ReimportLinkDialogState extends State<_ReimportLinkDialog> {
   final _controller = TextEditingController();
   var _source = OnlineSource.callersBox;
-  var _sourceChosen = false;
   String? _error;
 
   @override
@@ -200,13 +200,16 @@ class _ReimportLinkDialogState extends State<_ReimportLinkDialog> {
   }
 
   void _onChanged(String value) {
-    final detected = _sourceChosen
-        ? null
-        : switch (detectSourceForUrl(value, defaultImportSources())?.kind) {
-            ImportSourceKind.callersBox => OnlineSource.callersBox,
-            ImportSourceKind.contraDb => OnlineSource.contraDb,
-            _ => null,
-          };
+    // Unlike the Import screen, a manual choice does not pin the source: here
+    // it only matters for a bare id, and a link names its own source.
+    final detected = switch (detectSourceForUrl(
+      value,
+      defaultImportSources(),
+    )?.kind) {
+      ImportSourceKind.callersBox => OnlineSource.callersBox,
+      ImportSourceKind.contraDb => OnlineSource.contraDb,
+      _ => null,
+    };
     setState(() {
       if (detected != null) _source = detected;
       _error = null;
@@ -259,7 +262,6 @@ class _ReimportLinkDialogState extends State<_ReimportLinkDialog> {
               selected: {_source},
               onSelectionChanged: (selection) => setState(() {
                 _source = selection.single;
-                _sourceChosen = true;
                 _error = null;
               }),
             ),

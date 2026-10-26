@@ -268,7 +268,9 @@ class _CollectionShellState extends State<CollectionShell> {
       if (!mounted) return;
       messenger?.showSnackBar(
         SnackBar(
-          content: Text(importErrorMessage(AppLocalizations.of(context), error)),
+          content: Text(
+            importErrorMessage(AppLocalizations.of(context), error),
+          ),
         ),
       );
     } on DanceReimportFiguresUnavailableException catch (error, stackTrace) {

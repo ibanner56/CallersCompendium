@@ -12230,9 +12230,9 @@
   "@danceReimportNoResults": {
     "description": "Message shown when an online re-import search by the dance's title finds no dances. \"Link or ID\" refers to the re-import option of that name."
   },
-  "danceReimportFiguresUnavailable": "The Caller's Box doesn't share this dance's figures, so it can't refresh your choreography. Your dance wasn't changed.",
+  "danceReimportFiguresUnavailable": "That source didn't provide this dance's figures, so it can't refresh your choreography. Your dance wasn't changed.",
   "@danceReimportFiguresUnavailable": {
-    "description": "Shown when a re-import source sends a dance without its figures (The Caller's Box withholds them unless the choreographer allows it), so nothing is replaced."
+    "description": "Shown when an online re-import source sends a dance without any figures (for example, The Caller's Box withholds them unless the choreographer allows it), so nothing is replaced."
   },
   "danceReimportChooseResult": "Choose the dance to re-import",
   "@danceReimportChooseResult": {

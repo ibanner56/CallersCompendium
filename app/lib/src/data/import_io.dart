@@ -1334,17 +1334,24 @@ String buildContraDbUrl(String input) {
 }
 
 /// The numeric Caller's Box dance id in what the user typed: a bare id or a
-/// pasted dance link.
+/// pasted `dance.php?id=N` link.
 ///
 /// Validation is [buildCallersBoxJsonUrl]'s, so every input it rejects raises
-/// the same typed [UrlFetchException]. An `id` parameter that is not a number
-/// also raises [UrlFetchFailureReason.callersBoxMissingId]. Returning the id,
+/// the same typed [UrlFetchException]. A link to another page under the
+/// mirror (`index.php?id=…`), or an `id` that is not a number, raises
+/// [UrlFetchFailureReason.callersBoxMissingId]: only the id is kept, so any
+/// other page's id would silently load whichever dance has that number, which
+/// is also why [extractSharedDanceLink] requires `dance.php`. Returning the id,
 /// not the built URL, lets `CallersBoxOnline.loadPreview` rebuild its own
 /// canonical fetch URL from it, as it does for an OS-shared link
 /// ([SharedDanceLink]).
 String callersBoxDanceIdFromInput(String input) {
-  final id = Uri.parse(buildCallersBoxJsonUrl(input)).queryParameters['id'];
-  if (id == null || !_numericIdRe.hasMatch(id)) {
+  final uri = Uri.parse(buildCallersBoxJsonUrl(input));
+  final id = uri.queryParameters['id'];
+  if (uri.normalizePath().path.toLowerCase() !=
+          '$callersBoxPathPrefix/dance.php' ||
+      id == null ||
+      !_numericIdRe.hasMatch(id)) {
     throw const UrlFetchException(UrlFetchFailureReason.callersBoxMissingId);
   }
   return id;

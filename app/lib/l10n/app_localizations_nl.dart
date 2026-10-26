@@ -9471,7 +9471,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceReimportFiguresUnavailable =>
-      'The Caller\'s Box deelt de figuren van deze dans niet, dus je choreografie kan niet worden bijgewerkt. Je dans is niet gewijzigd.';
+      'Die bron heeft de figuren van deze dans niet geleverd, dus je choreografie kan niet worden bijgewerkt. Je dans is niet gewijzigd.';
 
   @override
   String get danceReimportChooseResult =>

@@ -564,8 +564,8 @@ field first. An address the app does not recognise is reported before anything
 is fetched, and a dance that does not exist, or a source that cannot be reached,
 says so in its own words.
 
-The Caller's Box shares the figures of only some dances. If it does not share
-them for the dance you chose, the app tells you so and leaves your dance
+If the source does not provide the dance's figures — The Caller's Box shares
+them for only some dances — the app tells you so and leaves your dance
 unchanged, rather than replacing your figures with an empty list.
 
 Review the preview, then import to replace only the dance's **figures,

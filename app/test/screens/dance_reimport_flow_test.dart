@@ -13,7 +13,6 @@ import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../figures_support.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
@@ -34,6 +33,16 @@ String _tcbJson({String permission = 'full'}) => jsonEncode({
         ]
       : <Object>[],
 });
+
+/// A ContraDB dance page without a figures table: a metadata-only stub.
+const String _contraDbNoFiguresHtml = '''
+<!DOCTYPE html><html><head><title>x</title></head>
+<body class="dances-show-body">
+<h1 class="dance-show-title">The Rendezvous</h1>
+<p class="dance-show-choreographer">by: <strong><a href="/choreographers/4">Adina Gordon</a></strong></p>
+<p class="dance-show-formation">formation: improper </p>
+</body></html>
+''';
 
 const String _contraDbHtml = '''
 <!DOCTYPE html><html><head><title>x</title></head>
@@ -84,6 +93,7 @@ void main() {
     WidgetTester tester, {
     Future<String> Function(String url)? tcbJson,
     Future<String> Function(String url)? tcbSearch,
+    String contraDbHtml = _contraDbHtml,
   }) async {
     final coordinator = DanceReimportCoordinator(
       repos: repos,
@@ -101,7 +111,7 @@ void main() {
       contraDb: ContraDbOnline(
         htmlFetcher: (url) async {
           fetches.contraDb.add(url);
-          return _contraDbHtml;
+          return contraDbHtml;
         },
         searchFetcher: (_) async => throw StateError('unexpected search'),
       ),
@@ -201,6 +211,34 @@ void main() {
     expect(fetches.tcb, isEmpty);
   });
 
+  testWidgets('a pasted link wins over an earlier manual choice', (
+    tester,
+  ) async {
+    await pumpHost(tester);
+    await openLinkDialog(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('reimport-link-source-contraDb')),
+    );
+    await tester.pumpAndSettle();
+    await fetchLink(
+      tester,
+      'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1605',
+    );
+
+    expect(fetches.tcb, hasLength(1));
+    expect(fetches.contraDb, isEmpty);
+  });
+
+  testWidgets('a ContraDB page without figures is refused too', (tester) async {
+    await pumpHost(tester, contraDbHtml: _contraDbNoFiguresHtml);
+    await openLinkDialog(tester);
+    await fetchLink(tester, 'https://contradb.com/dances/7');
+
+    expect(fetches.contraDb, hasLength(1));
+    expect(find.text(_l10n.danceReimportFiguresUnavailable), findsOneWidget);
+    expect(find.byKey(const ValueKey('import-dance')), findsNothing);
+  });
+
   testWidgets('a foreign host is reported inline and never fetched', (
     tester,
   ) async {
@@ -298,6 +336,11 @@ void main() {
       for (final (input, reason) in [
         (
           'https://ibiblio.org/contradance/thecallersbox/dance.php?id=abc',
+          UrlFetchFailureReason.callersBoxMissingId,
+        ),
+        // Another page's id would silently load whichever dance has it.
+        (
+          'https://ibiblio.org/contradance/thecallersbox/index.php?id=12',
           UrlFetchFailureReason.callersBoxMissingId,
         ),
         (

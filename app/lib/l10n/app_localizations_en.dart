@@ -9364,7 +9364,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceReimportFiguresUnavailable =>
-      'The Caller\'s Box doesn\'t share this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.';
+      'That source didn\'t provide this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.';
 
   @override
   String get danceReimportChooseResult => 'Choose the dance to re-import';

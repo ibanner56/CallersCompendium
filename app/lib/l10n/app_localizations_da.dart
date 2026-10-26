@@ -9403,7 +9403,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceReimportFiguresUnavailable =>
-      'The Caller\'s Box deler ikke denne dans\' figurer, så den kan ikke opdatere din koreografi. Din dans blev ikke ændret.';
+      'Kilden leverede ikke denne dans\' figurer, så den kan ikke opdatere din koreografi. Din dans blev ikke ændret.';
 
   @override
   String get danceReimportChooseResult =>

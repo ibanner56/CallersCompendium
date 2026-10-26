@@ -9036,7 +9036,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceReimportFiguresUnavailable =>
-      'The Caller\'s Boxはこのダンスのフィギュアを公開していないため、振り付けを更新できません。ダンスは変更されていません。';
+      'そのソースからこのダンスのフィギュアが提供されなかったため、振り付けを更新できません。ダンスは変更されていません。';
 
   @override
   String get danceReimportChooseResult => '再インポートするダンスを選択';

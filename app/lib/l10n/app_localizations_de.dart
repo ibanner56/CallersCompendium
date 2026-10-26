@@ -9515,7 +9515,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceReimportFiguresUnavailable =>
-      'The Caller\'s Box gibt die Figuren dieses Tanzes nicht frei, daher kann Ihre Choreografie nicht aktualisiert werden. Ihr Tanz wurde nicht geändert.';
+      'Diese Quelle hat die Figuren dieses Tanzes nicht geliefert, daher kann Ihre Choreografie nicht aktualisiert werden. Ihr Tanz wurde nicht geändert.';
 
   @override
   String get danceReimportChooseResult =>
