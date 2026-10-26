@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "If you turned Custom Figures on in an earlier version and later turned the Glossary off, the setting was greyed out but kept its \"on\". It now takes effect, so your own figures show again in the dance editor, the program matrix, shorthand mappings and import review. Turn Custom Figures off in Settings › Experimental to hide them again; nothing is deleted either way."
+      "If you turned Custom Figures on in an earlier version and later turned the Glossary off, the setting was greyed out but kept its \"on\". It now takes effect, so your own figures show again everywhere Custom Figures shows them. Turn Custom Figures off in Settings › Experimental to hide them again; nothing is deleted either way."
     ]
   }
 }
