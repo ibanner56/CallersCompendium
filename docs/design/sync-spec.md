@@ -4869,6 +4869,15 @@ Separate so that reaping a store cannot destroy evidence of access to it. Its
 retention is therefore not the 30-day disuse TTL and MUST be stated in the
 privacy policy.
 
+The break-glass command is a read, run as a second process against the live
+volume. It opens the store database read-only and performs none of the startup
+work of §7.3 (schema and index creation, manifest indexing, orphan-blob
+reconcile, pending-deletion retry), which assume no other process is writing;
+only the break-glass log database is opened for writing. The server's own
+connection waits a short, bounded time (250 ms) for a competing writer rather
+than failing at once, and no longer, because a wait stalls every request on a
+single-isolate server (#1917).
+
 ### 7.5 Deployment
 
 The server MAY terminate TLS itself, but the reference deployment does not: TLS

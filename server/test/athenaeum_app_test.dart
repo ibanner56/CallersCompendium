@@ -1830,7 +1830,7 @@ void main() {
       ),
     );
 
-    await expectLater(createRequest(), throwsA(isA<SqliteException>()));
+    expect((await createRequest()).statusCode, 500);
     database.execute('DROP TRIGGER fail_store_create');
     expect((await createRequest()).statusCode, 201);
   });

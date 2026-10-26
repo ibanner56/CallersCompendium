@@ -356,11 +356,12 @@ is on screen right then — it doesn't change your active dialect or touch the
 saved dance. When your active dialect is already **Canonical**, the switch isn't
 shown, because there would be nothing to switch between.
 
-Perform mode has its own **Show canonical terms** control, which doesn't depend
-on the **Canonical figure text** setting. You can call from your own words and,
-if a dancer or another caller asks, flip to the canonical wording for a moment
-without losing your place. See the [Perform mode guide](./perform.md) for the
-full calling view.
+In Perform mode, choose **Canonical** under **Switch dialect** instead. It
+doesn't depend on the **Canonical figure text** setting, and you keep your place
+in the dance or program. Unlike the dance card's switch, this does change your
+active dialect, for the whole app, unless the program has its own dialect — so
+switch back afterwards. See the [Perform mode guide](./perform.md) for the full
+calling view.
 
 ## Set your defaults
 
@@ -433,8 +434,8 @@ both recognise, then flip back to your own.
 ## Where to go next
 
 - [Getting started](./getting-started.md) — find your way around the app.
-- [Perform mode](./perform.md) — call live, with the dialect and canonical
-  controls close at hand.
+- [Perform mode](./perform.md) — call live, with the dialect switch (Canonical
+  included) close at hand.
 - [Settings](./settings.md) — where the dialect manager and display defaults live.
 - [Collection & search](./collection.md) — searching works whatever dialect you
   use.

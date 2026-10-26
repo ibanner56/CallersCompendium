@@ -1,0 +1,12 @@
+{
+  "id": "perform-canonical-finalized",
+  "user_visible": true,
+  "app": {
+    "removed": [
+      "Perform no longer has a separate “Show canonical terms” button, which looked identical to Switch dialect beside it. To see the shared wording in Perform, choose Canonical under Switch dialect; unless the program has its own dialect, that changes your active dialect for the whole app, so switch back afterwards. If you had the old button turned on, Perform now opens in your dialect."
+    ],
+    "changed": [
+      "A Finalized program's status chip is now green in every theme, so it no longer looks like a warning beside Broken."
+    ]
+  }
+}
