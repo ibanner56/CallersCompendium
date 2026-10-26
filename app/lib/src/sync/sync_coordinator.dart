@@ -987,33 +987,6 @@ final class SyncPeerManifestCache {
     ownManifest = null;
   }
 
-  void replaceFrom(SyncPeerManifestCache source) {
-    _entries
-      ..clear()
-      ..addAll(source._entries);
-    rejectedHashes
-      ..clear()
-      ..addAll(source.rejectedHashes);
-    publications
-      ..clear()
-      ..addAll(source.publications);
-    peerPublications
-      ..clear()
-      ..addAll({
-        for (final entry in source.peerPublications.entries)
-          entry.key: [...entry.value],
-      });
-    _fetchedBlobs
-      ..clear()
-      ..addAll(source._fetchedBlobs);
-    _fetchedBlobBytes = source._fetchedBlobBytes;
-    passSequence = source.passSequence;
-    publicationEpoch = source.publicationEpoch;
-    blobBatchUnsupported = source.blobBatchUnsupported;
-    blobUploadBatchUnsupported = source.blobUploadBatchUnsupported;
-    ownManifest = source.ownManifest;
-  }
-
   /// How many manifest bodies [toMessage] has encoded and [fromMessage] has
   /// decoded in this isolate. Isolate-local, as every static is, so a test on
   /// the main isolate counts the main isolate's own work and not the worker's.
@@ -1027,7 +1000,8 @@ final class SyncPeerManifestCache {
   /// This cache as a message for the isolate boundary.
   ///
   /// Encodes every cached peer manifest, so it is costly on a large library:
-  /// the worker calls it, the main isolate does not (#1934).
+  /// the worker calls it, and the main isolate only to seed a session's first
+  /// pass with a cache a test or benchmark built (#1934).
   Map<String, Object?> toMessage() => {
     '_entries': {
       for (final entry in _entries.entries)
@@ -1079,7 +1053,7 @@ final class SyncPeerManifestCache {
     return utf8.decode(encodeSyncManifestUtf8(manifest));
   }
 
-  /// The cache [message] holds; null holds an empty one. Throws a
+  /// The cache [message] holds, where null is an empty cache. Throws a
   /// [FormatException] when it is malformed.
   ///
   /// Decodes every cached peer manifest, so, like [toMessage], it is the
