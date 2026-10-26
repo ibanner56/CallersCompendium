@@ -8817,7 +8817,8 @@ final class _JoinFailingStorage
   Future<void> write(SyncApplyRecord record) => _delegate.write(record);
 
   @override
-  Future<void> rebuildDerivedIndexes() => _delegate.rebuildDerivedIndexes();
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) =>
+      _delegate.reindexDerivedAfterApply(applied);
 
   @override
   Future<SyncReport?> validateInboundReferences(

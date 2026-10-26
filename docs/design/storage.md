@@ -75,8 +75,9 @@ lives in the core package; all access through repositories.*
   the use is attached and its figure is live. A local write of such a
   definition rebuilds the derived rows of the live dances using it (found by
   their `figures_json`) without rewriting the dances themselves; a dance in
-  the Trash is rebuilt when restored, and a sync apply batch already rebuilds
-  every dance's rows, from the live figures. Deleting a figure freezes each use
+  the Trash is rebuilt when restored, and a sync apply batch that applies a
+  glossary entry rebuilds the rows of every dance using it, in the Trash too,
+  from the live figures (#1920). Deleting a figure freezes each use
   in a live dance as plain text; a dance in the Trash keeps the line its use
   last stored. After the delete, the app also freezes the uses in the default
   figure lists in the settings, rendering them as the dances are
