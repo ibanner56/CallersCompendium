@@ -318,6 +318,39 @@ class CompendiumRepositories {
     }
   }
 
+  /// Runs a read-only [action] as one SQLite read transaction, without the
+  /// write lock (#1915).
+  ///
+  /// drift opens every native [transaction] `BEGIN IMMEDIATE`, which takes
+  /// the write lock at once and holds it to the commit, and has no read-only
+  /// transaction of its own. This holds drift's connection with
+  /// [GeneratedDatabase.exclusively], so no other statement of this
+  /// connection runs inside it, and opens a `SAVEPOINT`: outside a
+  /// transaction that starts a deferred one, which under WAL reads one
+  /// consistent view of the database from its first read and takes no lock
+  /// another connection's writer waits for; inside a transaction it is a
+  /// nested savepoint of it, so [action] sees that transaction's writes.
+  ///
+  /// `PRAGMA query_only` holds for its length, so a write in [action] fails
+  /// instead of quietly upgrading to the write lock, or failing with
+  /// `SQLITE_BUSY_SNAPSHOT` once another connection has written. [action] must
+  /// not open a [transaction] either: drift's `BEGIN` cannot nest inside this
+  /// one.
+  Future<T> readTransaction<T>(Future<T> Function() action) =>
+      db.exclusively(() async {
+        await db.customStatement('SAVEPOINT compendium_read');
+        try {
+          await db.customStatement('PRAGMA query_only = ON');
+          try {
+            return await action();
+          } finally {
+            await db.customStatement('PRAGMA query_only = OFF');
+          }
+        } finally {
+          await db.customStatement('RELEASE compendium_read');
+        }
+      });
+
   /// Clears normalization bookkeeping before a restore or archive import.
   ///
   /// The next [ensureMigrated] must inspect every persisted shareable value
