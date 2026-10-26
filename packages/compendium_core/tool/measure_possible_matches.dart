@@ -14,8 +14,10 @@
 // as `POST https://contradb.com/api/v1/dances` returns them in its `dances`
 // array, paged with `count`/`offset`; the whole catalogue is ~122 pages of 20.
 //
-// Authors are tokenized with `splitAuthorNames`, as both adapters do, and every
-// decision is the real index's: nothing here re-implements the tier.
+// Authors are tokenized with `splitAuthorNames`, as both adapters do (their
+// extra text sanitizing cannot change either title key, which keep only
+// `[a-z0-9]`), and every decision is the real index's: nothing here
+// re-implements the tier. A Caller's Box entry without an `ID` is skipped.
 //
 // Reported per dataset (a "self-join": each record against the rest of its own
 // collection, as if importing it into a library that already holds the rest):
@@ -100,7 +102,7 @@ List<_Record> _readTcb(Directory dir) {
     }
     final items = decoded is List ? decoded : [decoded];
     for (final item in items) {
-      if (item is! Map || item['Name'] is! String) {
+      if (item is! Map || item['Name'] is! String || item['ID'] == null) {
         skipped++;
         continue;
       }
@@ -120,7 +122,7 @@ List<_Record> _readTcb(Directory dir) {
   }
   stdout.writeln(
     "Caller's Box: ${files.length} .json files, ${out.length} dances read, "
-    '$unreadable files not valid JSON, $skipped entries without a Name.',
+    '$unreadable files not valid JSON, $skipped entries without a Name or ID.',
   );
   return out;
 }
@@ -154,10 +156,8 @@ void _selfJoin(String label, List<_Record> records, int sampleSize, int seed) {
   final perRecord = <int, int>{};
   var recordsWithMatch = 0;
   for (final r in records) {
-    final matches = index
-        .possibleTitleMatches(r.title, r.authors)
-        .where((id) => id != r.id)
-        .toList();
+    // Never the record itself: the tier excludes an equal normalizeTitle.
+    final matches = index.possibleTitleMatches(r.title, r.authors);
     if (matches.isEmpty) continue;
     recordsWithMatch++;
     perRecord.update(min(matches.length, 4), (n) => n + 1, ifAbsent: () => 1);
@@ -165,14 +165,19 @@ void _selfJoin(String label, List<_Record> records, int sampleSize, int seed) {
       pairs.add(r.id.compareTo(id) < 0 ? (r.id, id) : (id, r.id));
     }
   }
-  // Only the pairs found are fuzzy-scored: scoring every record against the
-  // whole collection is quadratic and answers a question nobody asked.
+  // Fuzzy-scored only for records in a pair, once each (a whole-collection
+  // scan per record); scoring is symmetric, so either end of a pair will do.
+  final fuzzyOf = <String, Set<String>>{};
   var alreadyFuzzy = 0;
   for (final (a, b) in pairs) {
     final ra = byId[a]!;
-    if (index.fuzzyMatches(ra.title, ra.authors).any((c) => c.danceId == b)) {
-      alreadyFuzzy++;
-    }
+    final fuzzy = fuzzyOf.putIfAbsent(
+      a,
+      () => {
+        for (final c in index.fuzzyMatches(ra.title, ra.authors)) c.danceId,
+      },
+    );
+    if (fuzzy.contains(b)) alreadyFuzzy++;
   }
 
   stdout

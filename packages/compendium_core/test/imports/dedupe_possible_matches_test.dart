@@ -19,11 +19,15 @@ void main() {
       }
     });
 
-    test('keeps the article-removal rule of normalizeTitle', () {
+    test('drops a leading article only before a word', () {
       expect(dedupeCoreTitleKey('A Fine Romance'), 'fineromance');
       expect(dedupeCoreTitleKey('Fine Romance'), 'fineromance');
       expect(dedupeCoreTitleKey('The Nice Combination!'), 'nicecombination');
       expect(dedupeCoreTitleKey('Café Béguine'), 'cafebeguine');
+      expect(dedupeCoreTitleKey('A-Reel'), 'reel');
+      // `A 1` is `A-1` written with a space, not the article.
+      expect(dedupeCoreTitleKey('A 1 Reel'), 'a1reel');
+      expect(dedupeCoreTitleKey('A 1 Reel'), dedupeCoreTitleKey('A-1 Reel'));
     });
 
     test('strips more than one trailing annotation, of every bracket kind', () {
@@ -31,12 +35,14 @@ void main() {
       expect(dedupeCoreTitleKey('Aback [alt] (Imp Var) {x}'), 'aback');
     });
 
-    test('only strips annotations at the end', () {
-      expect(dedupeCoreTitleKey("Al's Berlin Trip(let)"), 'alsberlintrip');
+    test('only strips annotations set off at the end', () {
       expect(
         dedupeCoreTitleKey('Chinook (Wind not Salmon) Reel'),
         'chinookwindnotsalmonreel',
       );
+      // A bracket inside a word is part of the title, not an annotation.
+      expect(dedupeCoreTitleKey("Al's Berlin Trip(let)"), 'alsberlintriplet');
+      expect(dedupeCoreTitleKey('Reel(2)'), 'reel2');
     });
 
     test('carries no signal for annotation-only or non-Latin titles', () {

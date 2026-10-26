@@ -126,7 +126,7 @@ class DedupeCandidate {
 }
 
 /// What the deduplicator decided for a record. One of three shapes:
-/// - [isNew]: no existing match — import as a fresh dance.
+/// - [isNew]: no existing match by key or score — import as a fresh dance.
 /// - [reimport]: matched by exact `(source, externalId)` — update that dance
 ///   (refreshes provenance, enables diff). This is the only verdict the
 ///   pipeline acts on automatically.
@@ -148,10 +148,12 @@ class DedupeVerdict {
   });
 
   factory DedupeVerdict.isNew({List<String> possibleMatchIds = const []}) =>
-      DedupeVerdict._(
-        kind: DedupeKind.isNew,
-        possibleMatchIds: List.unmodifiable(possibleMatchIds),
-      );
+      possibleMatchIds.isEmpty
+      ? const DedupeVerdict._(kind: DedupeKind.isNew)
+      : DedupeVerdict._(
+          kind: DedupeKind.isNew,
+          possibleMatchIds: List.unmodifiable(possibleMatchIds),
+        );
 
   factory DedupeVerdict.reimport(String danceId) =>
       DedupeVerdict._(kind: DedupeKind.reimport, targetDanceId: danceId);
@@ -492,7 +494,7 @@ class DedupeIndex {
     return [
       for (final i in indices)
         if (_normalized[i].normalizedTitle != nTitle &&
-            _normalized[i].normalizedAuthors.intersection(nAuthors).isNotEmpty)
+            _normalized[i].normalizedAuthors.any(nAuthors.contains))
           _normalized[i].danceId,
     ];
   }
@@ -537,10 +539,12 @@ String normalizeTitle(String title) {
 /// lookup key (issue #1907), never an identity key.
 ///
 /// Lowercased and diacritic-folded like [normalizeTitle], then:
-/// - trailing bracketed annotations are removed — `{variant}`, `(Imp Var)`,
-///   `[alt]`, up to [_maxTitleAnnotations] of them;
-/// - a single leading `the`/`a`/`an` **followed by whitespace** is removed, so
-///   the `A` of `A-1 Reel` is kept;
+/// - trailing bracketed annotations set off by whitespace are removed —
+///   `{variant}`, `(Imp Var)`, `[alt]`, up to [_maxTitleAnnotations] of them
+///   (`Trip(let)` is a word, not an annotation, and is kept);
+/// - a single leading `the`/`a`/`an` is removed when a space or hyphen and
+///   then a **letter** follow it, so `A Fine Romance` loses it but the `A` of
+///   `A-1 Reel` and `A 1 Reel` is kept;
 /// - every remaining character outside `[a-z0-9]` is deleted rather than
 ///   turned into a space, so `A-1`, `A1` and `A 1` all read `a1`.
 ///
@@ -561,15 +565,19 @@ String dedupeCoreTitleKey(String title) {
     if (stripped == null) break;
     s = stripped;
   }
-  s = s.replaceFirst(_leadingArticleRe, '');
+  s = s.replaceFirst(_coreLeadingArticleRe, '');
   return s.replaceAll(_nonAlphanumericNoSpaceRe, '');
 }
 
 final RegExp _nonAlphanumericNoSpaceRe = RegExp(r'[^a-z0-9]');
 
+/// Unlike [_leadingArticleRe], a letter must follow: `a 1 reel` is `A-1 Reel`
+/// written with a space, not the article `a`.
+final RegExp _coreLeadingArticleRe = RegExp(r'^(the|a|an)[\s-]+(?=[a-z])');
+
 /// How many trailing annotations [dedupeCoreTitleKey] removes. Real titles
-/// carry one, occasionally two (`Alice's Rest {alternate A}`); the cap bounds
-/// the work on hostile input.
+/// carry one (`Alice's Rest {alternate A}`), rarely more; the cap bounds the
+/// work on hostile input.
 const int _maxTitleAnnotations = 4;
 
 const Map<String, String> _annotationOpeners = {'}': '{', ')': '(', ']': '['};
@@ -577,7 +585,8 @@ const Map<String, String> _annotationOpeners = {'}': '{', ')': '(', ']': '['};
 /// [s] (already trimmed) without its final bracketed group and the whitespace
 /// before it, or `null` when it does not end in one. Only a group whose
 /// opener has no other bracket of its kind inside counts, so an unbalanced
-/// `[ Rumble }` is left alone rather than eating the title.
+/// `[ Rumble }` is left alone rather than eating the title, and the opener
+/// must start the title or follow whitespace, so `Trip(let)` is kept whole.
 String? _stripTrailingAnnotation(String s) {
   if (s.length < 2) return null;
   final close = s[s.length - 1];
@@ -585,6 +594,7 @@ String? _stripTrailingAnnotation(String s) {
   if (open == null) return null;
   final start = s.lastIndexOf(open, s.length - 2);
   if (start < 0) return null;
+  if (start > 0 && s[start - 1].trim().isNotEmpty) return null;
   final inner = s.substring(start + 1, s.length - 1);
   if (inner.contains(close)) return null;
   return s.substring(0, start).trimRight();
