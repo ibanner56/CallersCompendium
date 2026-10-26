@@ -97,7 +97,9 @@ class DanceReimportJsonException implements Exception {
 /// Writing such a draft over an existing dance (re-import, or an import's
 /// "same dance" link) would erase its transcription, so every surface that
 /// offers to replace a dance asks this first. An *unreadable* incoming list is
-/// not figureless: [replaceDanceChoreography] keeps the saved figures for that.
+/// not figureless. Re-import ([replaceDanceChoreography]) keeps the saved
+/// figures for that; an import link writes the unreadable list through as is
+/// (`ImportPipeline` copies the draft's `figuresSource` whole).
 bool draftHasNoFigures(StructuredDraft draft) =>
     switch (draft.dance.figuresSource) {
       DecodedFigures(:final figures) => figures.isEmpty,
