@@ -3786,6 +3786,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionAdvancedTitle => 'Erweitert';
 
   @override
+  String get collectionAdvancedActive => 'Erweitert (an)';
+
+  @override
   String get collectionUseAdvancedQuery => 'Erweiterte Abfrage verwenden';
 
   @override

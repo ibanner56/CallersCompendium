@@ -111,7 +111,8 @@ written down.
 
 Clear the search bar to return to your whole collection.
 
-Use **Search in** to choose where your words are looked for: **All fields**,
+Use **Search in**, beside the search bar (above it on a narrow screen or with
+large text), to choose where your words are looked for: **All fields**,
 **Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
 sources, custom field values, hooks and notes, and finds your words exactly as
 they were typed; it also looks at figures, which are matched by meaning, so a
@@ -128,6 +129,13 @@ figures on either one. A ContraDB **Figure** search needs a complete move name,
 such as `box circulate` — capitals and extra spaces do not matter, but a partial
 name will not work. The [import guide](./imports.md#search-an-archive-online-and-import-a-dance)
 covers online search step by step.
+
+Under the search bar sit three buttons — **Filters**, **By phrase** and
+**Advanced** — that each open a panel of search tools. One panel is open at a
+time: tap a button to open its panel, and tap it again (or another button) to
+close it. Whatever you chose in a closed panel still applies, and its button
+says so: **Filters** and **By phrase** show how many choices are active, and
+**Advanced** reads **Advanced (on)** while a figure query is in use.
 
 ## Narrow things down with filters
 
@@ -175,7 +183,7 @@ Unlike the other filters, **Tunes requires all of its chips.** Entering *Dmaj*
 and *6/8* finds only dances that have both among their tunes — either as two
 separate tunes, or together in one, such as *Dmaj 6/8*. Like every other filter
 it also combines with the rest of the panel and the search bar, counts toward
-the number shown on the **Filters** header, and is cleared by **Clear filters**.
+the number shown on the **Filters** button, and is cleared by **Clear filters**.
 A dance whose tunes the app cannot read never matches a Tunes filter.
 
 Filters work alongside the search bar: whatever you type and whatever you tick

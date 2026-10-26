@@ -5899,6 +5899,12 @@ abstract class AppLocalizations {
   /// **'Advanced'**
   String get collectionAdvancedTitle;
 
+  /// Label of the Advanced search-tool button (Collection and the program builder's dance picker) while an advanced figure query is turned on and has at least one condition, so the user can see it is still narrowing the results after its panel closes. Matches the "Filters (3 active)" pattern.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced (on)'**
+  String get collectionAdvancedActive;
+
   /// Toggle that enables the boolean advanced-query builder.
   ///
   /// In en, this message translates to:

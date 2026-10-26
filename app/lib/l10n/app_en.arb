@@ -4703,6 +4703,10 @@
   "@collectionAdvancedTitle": {
     "description": "Title of the advanced (online toggle + boolean query builder) filter panel."
   },
+  "collectionAdvancedActive": "Advanced (on)",
+  "@collectionAdvancedActive": {
+    "description": "Label of the Advanced search-tool button (Collection and the program builder's dance picker) while an advanced figure query is turned on and has at least one condition, so the user can see it is still narrowing the results after its panel closes. Matches the \"Filters (3 active)\" pattern."
+  },
   "collectionUseAdvancedQuery": "Use advanced query",
   "@collectionUseAdvancedQuery": {
     "description": "Toggle that enables the boolean advanced-query builder."

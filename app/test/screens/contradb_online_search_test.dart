@@ -145,29 +145,21 @@ void main() {
     expect(find.byKey(const ValueKey('filters-panel')), findsNothing);
   });
 
-  testWidgets('ContraDB leaves no stray divider above the Advanced panel, and '
-      'switching back to Caller\'s Box restores By phrase', (tester) async {
+  testWidgets('ContraDB drops the By phrase tool, and switching back to '
+      'Caller\'s Box restores it', (tester) async {
     final repos = openTestRepositories();
     await _pumpShell(tester, repos, _contraDb());
     await _enableContraDb(tester);
 
-    // With ContraDB the unsupported By-phrase panel is dropped and the
-    // Advanced panel is the first visible panel, so it must not carry a
-    // leading inter-panel divider (the "white line" nit from #302).
+    // ContraDB has no by-phrase search, so only Advanced is offered.
     expect(find.byKey(const ValueKey('advanced-panel')), findsOneWidget);
     expect(find.byKey(const ValueKey('by-phrase-panel')), findsNothing);
-    expect(find.byKey(const ValueKey('filter-panel-divider-1')), findsNothing);
 
-    // Switching back to Caller's Box (supportsByPhrase) restores By phrase,
-    // reintroducing the divider between it and Advanced.
+    // Caller's Box supports by-phrase search, so the tool comes back.
     await tester.tap(find.text('Caller\'s Box'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('by-phrase-panel')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('filter-panel-divider-1')),
-      findsOneWidget,
-    );
   });
 
   testWidgets('searching ContraDB renders results with its attribution', (

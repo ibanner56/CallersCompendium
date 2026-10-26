@@ -1485,6 +1485,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_titles(tester), ['Has Petronella']);
+
+    // Closing Advanced (by opening another tool) keeps the query in force,
+    // and its button says so.
+    expect(find.text('Advanced (on)'), findsOneWidget);
+    await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+    expect(find.text('Advanced (on)'), findsOneWidget);
+    expect(_titles(tester), ['Has Petronella']);
   });
 
   testWidgets('advanced builder: add and remove a condition group', (

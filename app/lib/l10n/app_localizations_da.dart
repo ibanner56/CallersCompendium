@@ -3744,6 +3744,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionAdvancedTitle => 'Avanceret';
 
   @override
+  String get collectionAdvancedActive => 'Avanceret (til)';
+
+  @override
   String get collectionUseAdvancedQuery => 'Brug avanceret forespørgsel';
 
   @override
