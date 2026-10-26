@@ -447,6 +447,8 @@ A1 (8) Do the thing
         'Pull by the left-hand man',
         'Allemande right-hand lark',
         'Allemande left-hand neighbor',
+        // The parser drops the comma, so this reads as the line above.
+        'Allemande your right-hand, lady',
         // Two hands. The retry's one-token rule does not decide this line:
         // whichever token is rewritten, the other is left over. No line was
         // found that the rule alone declines.
