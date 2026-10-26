@@ -1087,6 +1087,143 @@ void main() {
     expect(changes.current.single.valueJson, jsonEncode('after-first'));
   });
 
+  test('a pass that throws after its apply committed still reports the kinds '
+      'it applied (#1913)', () async {
+    // The repro from #1913: the peer's setting is applied and committed, then
+    // the manifest PUT loses its connection. The pass throws, and before the
+    // fix the throw carried no applied kinds, so the main isolate's watch and
+    // settings controllers stayed stale; the retry then found the row already
+    // matching the peer, applied nothing, and never reported it either.
+    final directory = await Directory.systemTemp.createTemp(
+      'compendium-sync-isolate-throw-',
+    );
+    final databasePath = '${directory.path}/compendium.sqlite';
+    final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+    final repositories = CompendiumRepositories(database, contraTaxonomy);
+    await repositories.ensureMigrated();
+    await repositories.settings.set(
+      'theme_mode',
+      'before-first',
+      at: DateTime.utc(2026, 7, 15, 11),
+    );
+    await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+    final incoming = _setting('theme_mode', 'after-first', seconds: 1);
+    final incomingHash = sha256Hex(encodeSyncRecordBlobUtf8(incoming));
+    final peerManifest = SyncManifest(
+      deviceId: 'peer',
+      epoch: 'epoch-1',
+      writtenAt: DateTime.utc(2026, 7, 15, 12),
+      records: {
+        SyncRecordKind.setting: {incoming.id: incomingHash},
+      },
+    );
+    var dropManifestPut = true;
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      await request.drain<void>();
+      if (request.method == 'PUT' &&
+          request.uri.path == '/v1/manifests/device-a' &&
+          dropManifestPut) {
+        final socket = await request.response.detachSocket(writeHeaders: false);
+        socket.destroy();
+        return;
+      }
+      request.response.headers.contentType = ContentType.json;
+      if (request.method == 'GET' && request.uri.path == '/v1/store') {
+        request.response.write(
+          jsonEncode({
+            'epoch': 'epoch-1',
+            'devices': ['peer'],
+          }),
+        );
+      } else if (request.method == 'POST' &&
+          request.uri.path == '/v1/blobs/missing') {
+        request.response.write(jsonEncode({'missing': <String>[]}));
+      } else if (request.method == 'GET' &&
+          request.uri.path == '/v1/manifests/peer') {
+        request.response.write(encodeSyncManifest(peerManifest));
+      } else if (request.method == 'GET' &&
+          request.uri.path == '/v1/blobs/$incomingHash') {
+        request.response.add(encodeSyncRecordBlobUtf8(incoming));
+      } else if (request.method == 'PUT' &&
+          request.uri.path == '/v1/manifests/device-a') {
+        request.response.write('{}');
+      } else {
+        request.response
+          ..statusCode = HttpStatus.notFound
+          ..write('{}');
+      }
+      await request.response.close();
+    });
+
+    final changes = StreamIterator(
+      (database.select(
+        database.settings,
+      )..where((table) => table.key.equals('theme_mode'))).watch(),
+    );
+    addTearDown(() async {
+      await changes.cancel();
+      await server.close(force: true);
+      await database.close();
+      await directory.delete(recursive: true);
+    });
+
+    expect(await changes.moveNext(), isTrue);
+    expect(changes.current.single.valueJson, jsonEncode('before-first'));
+
+    final appliedKindCalls = <Set<SyncRecordKind>>[];
+    final operation = IsolatedSyncPassOperation(
+      databasePath: databasePath,
+      endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+      syncId: 'alpha-beta-gamma-delta',
+      deviceId: 'device-a',
+      onAppliedKinds: (kinds) {
+        appliedKindCalls.add(kinds);
+        markSyncAppliedTablesUpdated(database, kinds);
+      },
+    );
+    await expectLater(
+      operation.call(),
+      throwsA(
+        isA<SyncWorkerFailure>()
+            .having(
+              (failure) => failure.cause,
+              'cause',
+              SyncFailureCause.unreachable,
+            )
+            .having((failure) => failure.appliedKinds, 'appliedKinds', {
+              SyncRecordKind.setting,
+            }),
+      ),
+    );
+
+    final persisted = await (database.select(
+      database.settings,
+    )..where((table) => table.key.equals('theme_mode'))).getSingle();
+    expect(
+      jsonDecode(persisted.valueJson),
+      'after-first',
+      reason: 'the apply committed before the manifest PUT failed',
+    );
+    expect(appliedKindCalls, [
+      {SyncRecordKind.setting},
+    ]);
+    expect(
+      await changes.moveNext().timeout(const Duration(seconds: 5)),
+      isTrue,
+    );
+    expect(changes.current.single.valueJson, jsonEncode('after-first'));
+
+    // The retry is no substitute: the row already matches the peer, so it
+    // applies and reports nothing. That is why the failed pass must report.
+    dropManifestPut = false;
+    final retry = await operation.call();
+    expect(retry.status, SyncPassStatus.completed);
+    expect(retry.appliedKinds, isEmpty);
+    expect(appliedKindCalls, hasLength(1));
+  });
+
   test('terminating during apply leaves an atomic database state', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-',
@@ -1174,16 +1311,31 @@ void main() {
       await directory.delete(recursive: true);
     });
 
+    final appliedKindCalls = <Set<SyncRecordKind>>[];
     final operation = IsolatedSyncPassOperation(
       databasePath: databasePath,
       endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
       syncId: 'alpha-beta-gamma-delta',
       deviceId: 'device-a',
+      onAppliedKinds: appliedKindCalls.add,
     );
     final handle = await operation.start(applyControl: applyControl);
     await applyControl.applyStarted.timeout(const Duration(seconds: 10));
     handle.kill();
-    await expectLater(handle.result, throwsA(isA<SyncIsolateInterrupted>()));
+    await expectLater(
+      handle.result,
+      throwsA(
+        isA<SyncIsolateInterrupted>().having(
+          (error) => syncAppliedKindsForError(error),
+          'applied kinds',
+          SyncRecordKind.values.toSet(),
+        ),
+      ),
+    );
+    // A dead worker says nothing about what it committed, so every kind is
+    // reported rather than none (#1913). Without the fallback a worker that
+    // dies after its apply commits leaves the main isolate stale for good.
+    expect(appliedKindCalls, [SyncRecordKind.values.toSet()]);
 
     verificationDatabase = CompendiumDatabase(
       NativeDatabase(File(databasePath)),

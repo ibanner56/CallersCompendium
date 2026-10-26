@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../diagnostics/error_log.dart';
 import '../data/settings_keys.dart';
 import 'sync_coordinator.dart';
+import 'sync_failure.dart' show syncAppliedKindsForError;
 import 'sync_http_client.dart';
 import 'sync_network.dart';
 
@@ -291,10 +292,13 @@ class SyncController extends ChangeNotifier {
   ///
   /// Called whatever status the pass reports: a pass that failed part-way can
   /// have applied records before it stopped, and the database holds them
-  /// either way. A pass that threw instead reports no applied kinds, so it
-  /// reaches neither this nor the live-query invalidation; the next pass that
-  /// applies settings reloads. Not awaited: the reload is the app's work, not
-  /// the pass's.
+  /// either way. A pass that threw does too when its error says what it had
+  /// applied (`syncAppliedKindsForError`): the worker isolate reports the
+  /// kinds it committed before the throw, and an interrupted worker reports
+  /// every kind because what it committed is unknown (#1913). A later pass
+  /// cannot stand in for this: the rows already match the peers, so it
+  /// applies nothing and reports nothing. Not awaited: the reload is the
+  /// app's work, not the pass's.
   final void Function()? _onSettingsApplied;
 
   /// Builds the probe for a pairing attempt. [endpoint] must already have
@@ -763,6 +767,7 @@ class SyncController extends ChangeNotifier {
           message:
               'sync pass threw ${error.runtimeType}', // i18n-ignore: internal status
           failure: SyncFailure.fromError(error),
+          appliedKinds: syncAppliedKindsForError(error).toList(),
         );
       }
       try {
@@ -1022,6 +1027,7 @@ class SyncController extends ChangeNotifier {
           message:
               'replacement confirmation threw ${error.runtimeType}', // i18n-ignore: internal status
           failure: SyncFailure.fromError(error),
+          appliedKinds: syncAppliedKindsForError(error).toList(),
         );
       }
       try {

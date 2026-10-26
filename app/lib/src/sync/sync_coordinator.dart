@@ -1372,6 +1372,12 @@ class SyncCoordinator {
   /// [_runStartedPass] resets it before a pass and attaches it after.
   SyncStoreQuota? _passQuota;
   bool _passStoreRead = false;
+
+  /// Every kind the running pass has committed rows of, written as each
+  /// commit returns rather than assembled at the pass's returns, so a pass that
+  /// throws after applying still knows what it wrote (#1913). A fresh
+  /// attach's continuation is a nested [_runPass], so it adds here too.
+  final _passAppliedKinds = <SyncRecordKind>{};
   var _disposed = false;
 
   static const _maxMissingHashesPerRequest = 10000;
@@ -1431,6 +1437,16 @@ class SyncCoordinator {
   ///
   /// The isolate worker uses this entry point after a replacement decision so
   /// the parent lookup is consumed rather than repeated inside the worker.
+  /// The kinds the latest pass committed rows of, including one that then
+  /// threw: a returned [SyncPassResult] carries its own [SyncPassResult
+  /// .appliedKinds], and a throw carries nothing, so this is what lets the
+  /// worker isolate report the writes that a late failure (a manifest `PUT`
+  /// on a flaky link) would otherwise hide from the main isolate. Added to
+  /// only after the apply, repair or dedupe commits, so a rolled-back apply
+  /// adds nothing. Empty under [passOperation], whose worker keeps its own.
+  Set<SyncRecordKind> get passAppliedKinds =>
+      Set.unmodifiable(_passAppliedKinds);
+
   Future<SyncPassResult> runPass({SyncStoreResult? initialStore}) {
     if (_disposed) {
       return Future.value(
@@ -1583,6 +1599,7 @@ class SyncCoordinator {
   }) async {
     _passQuota = null;
     _passStoreRead = false;
+    _passAppliedKinds.clear();
     // Under `passOperation` the pass ran in the worker isolate, whose own
     // coordinator attached the reading; this one took none and adds nothing.
     final result =
@@ -2138,6 +2155,7 @@ class SyncCoordinator {
       // timestamp repairs reported no applied kinds at all, and neither the
       // derived-index rebuild nor the live-query invalidation ran for them.
       repairedKinds.addAll(repairResult.applied.map((address) => address.kind));
+      _passAppliedKinds.addAll(repairedKinds);
       snapshot = await store.snapshot();
       reports.addAll(snapshot.withheld);
       normalizedLocal = await _normalizeCandidates(
@@ -2262,6 +2280,7 @@ class SyncCoordinator {
       ...repairedKinds,
       for (final address in applyResult.applied) address.kind,
     };
+    _passAppliedKinds.addAll(appliedKinds);
 
     // Ties and whole-collection conflicts wait for the user rather than
     // being reported every pass. Queued after apply, beside the dance
@@ -2276,6 +2295,7 @@ class SyncCoordinator {
     reports.addAll(dedupe.reports);
     if (freshAttach && dedupe.duplicateCount > 0) {
       appliedKinds.addAll({SyncRecordKind.dance, SyncRecordKind.program});
+      _passAppliedKinds.addAll(appliedKinds);
     }
     // Downloads stopped part-way (spec §6.3 step 5), so what was fetched is
     // merged and applied above, and the pass ends here as the temporary

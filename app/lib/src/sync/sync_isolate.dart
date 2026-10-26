@@ -48,8 +48,16 @@ final class SyncIsolateApplyControl {
 }
 
 /// Raised when a caller terminates a sync worker before it returns a result.
-final class SyncIsolateInterrupted implements Exception {
+///
+/// Nothing crosses the port from a worker that dies, so which rows it had
+/// committed is unknown, and [appliedKinds] is every kind (#1913): one
+/// spurious reload is the price of never leaving a committed row unreported.
+final class SyncIsolateInterrupted
+    implements Exception, SyncAppliedBeforeThrow {
   const SyncIsolateInterrupted();
+
+  @override
+  Set<SyncRecordKind> get appliedKinds => SyncRecordKind.values.toSet();
 
   @override
   String toString() => 'Sync isolate terminated before returning a result';
@@ -200,6 +208,19 @@ final class IsolatedSyncPassOperation {
               // Keep the pre-pass cache rather than losing the pass error.
             }
           }
+          // A pass can throw after its apply committed (a manifest PUT on a
+          // flaky link), and those rows are in the database however the pass
+          // ended. Reported here as the 'result' branch reports them, or the
+          // main isolate's live queries and settings controllers keep the old
+          // values, and the retry, finding the rows already matching the
+          // peers, applies nothing and never reports them either (#1913).
+          final appliedKinds = _decodeFailedPassAppliedKinds(
+            message['appliedKinds'],
+          );
+          final onAppliedKinds = this.onAppliedKinds;
+          if (onAppliedKinds != null && appliedKinds.isNotEmpty) {
+            onAppliedKinds(appliedKinds);
+          }
           final messageText = message['message'];
           final causeName = message['failureCause'];
           completeError(
@@ -211,13 +232,18 @@ final class IsolatedSyncPassOperation {
                   ? SyncFailureCause.values.asNameMap()[causeName] ??
                         SyncFailureCause.internal
                   : SyncFailureCause.internal,
+              appliedKinds: appliedKinds,
             ),
           );
       }
     });
     exitSubscription = exitPort.listen((_) {
-      if (!terminalMessageReceived) {
-        completeError(const SyncIsolateInterrupted());
+      if (!terminalMessageReceived && !finished) {
+        // Whatever the worker committed before it died is unknown, so every
+        // kind is reported; see [SyncIsolateInterrupted.appliedKinds].
+        const interrupted = SyncIsolateInterrupted();
+        onAppliedKinds?.call(interrupted.appliedKinds);
+        completeError(interrupted);
       }
     });
     errorSubscription = errorPort.listen((message) {
@@ -281,6 +307,10 @@ Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
   // cache as the pass runs, and a fresh isolate per pass means anything not
   // sent back is lost.
   SyncPeerManifestCache? peerManifestCache;
+  // Hoisted for the same reason: filled from the coordinator as the pass
+  // ends, so a pass that throws after its apply committed can still say what
+  // it wrote (#1913).
+  final appliedKinds = <SyncRecordKind>{};
   try {
     peerManifestCache = SyncPeerManifestCache.fromMessage(
       request.peerManifestCache,
@@ -299,6 +329,7 @@ Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
       applyEngine: applyEngine,
       peerManifestCache: peerManifestCache,
       initialStore: _decodeStoreResult(request.initialStore),
+      appliedKinds: appliedKinds,
     );
     encoded['_peerManifestCache'] = peerManifestCache.toMessage();
     request.resultPort.send({
@@ -323,6 +354,7 @@ Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
       'failureCause': syncFailureCauseForError(error).name,
       'stack': '$stack',
       '_peerManifestCache': peerManifestCache?.toMessage(),
+      'appliedKinds': [for (final kind in appliedKinds) kind.name],
       'ack': acknowledgementPort.sendPort,
     });
   }
@@ -348,6 +380,7 @@ Future<Map<String, Object?>> _runSyncPass({
   SyncApplyEngine? applyEngine,
   required SyncPeerManifestCache peerManifestCache,
   SyncStoreResult? initialStore,
+  required Set<SyncRecordKind> appliedKinds,
 }) async {
   // This is a second connection to the file the app already has open, so it
   // needs the same WAL/busy-timeout setup the app connection uses. Without it
@@ -375,6 +408,7 @@ Future<Map<String, Object?>> _runSyncPass({
     return _encodeResult(await coordinator.runPass(initialStore: initialStore));
   } finally {
     if (coordinator != null) {
+      appliedKinds.addAll(coordinator.passAppliedKinds);
       await coordinator.dispose();
     } else {
       client?.close();
@@ -382,6 +416,21 @@ Future<Map<String, Object?>> _runSyncPass({
 
     await database.close();
   }
+}
+
+/// The applied kinds a failed worker pass reported. An unknown name is
+/// skipped, as one from a newer kind would be; a missing or malformed value
+/// means the worker's report cannot be read, so every kind is assumed, as for
+/// an interrupted worker (#1913).
+Set<SyncRecordKind> _decodeFailedPassAppliedKinds(Object? encoded) {
+  if (encoded is! List<Object?>) return SyncRecordKind.values.toSet();
+  final byName = SyncRecordKind.values.asNameMap();
+  final kinds = <SyncRecordKind>{};
+  for (final name in encoded) {
+    if (name is! String) return SyncRecordKind.values.toSet();
+    if (byName[name] case final kind?) kinds.add(kind);
+  }
+  return kinds;
 }
 
 Map<String, Object?>? _encodeStoreResult(SyncStoreResult? result) {
