@@ -76,6 +76,22 @@ void main() {
     expectOnlyTypeLogged(stderrLines, '_LeakyError');
   });
 
+  test('a store fault while logging an ordinary 4xx still answers that 4xx '
+      'and logs only the fault\'s type', () async {
+    // The request authenticates (first lookup), then fails with a 413 whose
+    // diagnostic log looks the store up again (second lookup), which faults.
+    store.failLookupOnCall(2);
+    final (response, stderrLines) = await _captureStderr(
+      () => app.call(authed('POST', '/v1/store', body: {'unexpected': true})),
+    );
+
+    expect(response.statusCode, 413);
+    expect(jsonDecode(await response.readAsString()), {
+      'error': 'request body exceeds limit',
+    });
+    expectOnlyTypeLogged(stderrLines, '_LeakyError');
+  });
+
   test('a failing heartbeat probe answers a JSON 500 and logs only its '
       'type', () async {
     store.checkHealthError = const _LeakyError();
@@ -143,6 +159,21 @@ class _FaultyStore extends AthenaeumStore {
   Object? touchError;
   String? blobRefErrorFor;
   Object? checkHealthError;
+
+  int? _lookupErrorOnCall;
+  int _lookupCalls = 0;
+
+  /// Throws a [_LeakyError] from the [call]th [lookup] from now (1-based).
+  void failLookupOnCall(int call) {
+    _lookupCalls = 0;
+    _lookupErrorOnCall = call;
+  }
+
+  @override
+  StoreRow? lookup(String idKey) {
+    if (++_lookupCalls == _lookupErrorOnCall) throw const _LeakyError();
+    return super.lookup(idKey);
+  }
 
   @override
   void checkHealth() {

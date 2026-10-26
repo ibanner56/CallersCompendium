@@ -26,6 +26,14 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Fixed
 
+- A store fault while logging an ordinary refusal (a 4xx) no longer escapes the
+  request handler. Recording a refused request for a known store looks the store
+  up again; if that lookup failed (busy past its timeout, an I/O error), the
+  exception skipped the handler's catch-all and reached shelf, which logs its
+  text, including the failing statement and the store's `id_key`. The request
+  now still answers its original status, and only the error's type is logged.
+  No configuration or schema change.
+
 - Garbage collection no longer decodes every stored manifest body, under the
   database write lock, on each manifest `PUT`: on a store with large manifests
   that stalled every other store's requests. A manifest `PUT` now records the
