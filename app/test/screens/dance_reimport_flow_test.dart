@@ -131,11 +131,10 @@ void main() {
           body: Builder(
             builder: (context) => TextButton(
               key: const ValueKey('open-reimport'),
-              onPressed: () =>
-                  coordinator.open(
-                    context,
-                    reimportPreviewData(target ?? saved),
-                  ),
+              onPressed: () => coordinator.open(
+                context,
+                reimportPreviewData(target ?? saved),
+              ),
               child: const Text('open'),
             ),
           ),
