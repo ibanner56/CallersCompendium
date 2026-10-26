@@ -472,6 +472,17 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
     /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
     --break-glass-device-id device-one > /secure/incident/manifest.bin
   ```
+  The command is a **read**: it opens `athenaeum.sqlite` read-only and runs
+  none of the server's startup work (no schema or index creation, manifest
+  indexing, orphan-blob reconcile, or pending-deletion retry), so it is safe to
+  run against the live volume and neither blocks nor is blocked by the running
+  server's writes. Only the break-glass log database is written, which is where
+  the audit row goes. It never creates `athenaeum.sqlite`: if the server has
+  never run on the volume the command fails (`SqliteException`) rather than
+  reporting "store not found" against a fresh empty file. Run it as the same
+  user as the server, or with write access to the data directory: a read-only
+  connection to a WAL database still needs the `-shm` file, and creates it if
+  the server has shut down cleanly and left no `-wal`/`-shm`.
   Use a secure terminal and output path; do not put the sync ID or returned
   content in shell history, ordinary logs, or chat. Inspect the separate
   break-glass database for exactly one row with the derived `id_key` and
