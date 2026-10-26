@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
@@ -65,7 +64,11 @@ void main() {
   });
 
   test('a device-local write schedules no pass', () async {
-    await repos.settings.set(kSyncLastUsedFingerprintKey, ['v']);
+    expect(
+      classifySettingsKey('perform_text_scale')!.egress,
+      EgressClass.deviceLocal,
+    );
+    await repos.settings.set('perform_text_scale', 1.5);
     await settle();
     expect(passes, 0);
   });
@@ -92,7 +95,7 @@ void main() {
     expect(passes, 1);
   });
 
-  test('a device-scoped write batched with a synced table schedules a '
+  test('a shareable write batched with a device-scoped one schedules a '
       'pass', () async {
     await repos.db.transaction(() async {
       await repos.settings.set('window_frame', {'x': 2});
@@ -100,8 +103,24 @@ void main() {
     });
     await settle();
     expect(passes, 1);
-    passes = 0;
-    controller.notifyTableUpdates({'settings', 'dances'});
+  });
+
+  test('a device-scoped write batched with a synced table schedules a '
+      'pass', () async {
+    // One commit: the tally is device-scoped only, but `dances` is in the
+    // batch, so it is a real edit.
+    await repos.db.transaction(() async {
+      await repos.settings.set('window_frame', {'x': 2});
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'My Dance',
+          figures: const [],
+          createdAt: DateTime.utc(2026, 10, 26),
+          updatedAt: DateTime.utc(2026, 10, 26),
+        ),
+      );
+    });
     await settle();
     expect(passes, 1);
   });
