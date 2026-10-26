@@ -543,6 +543,109 @@ void main() {
     expect(few, 15);
   });
 
+  group('baseline rows a pass writes (spec §6.3 step 9, #1948)', () {
+    late SyncMergeCandidate first;
+    late SyncMergeCandidate second;
+
+    setUp(() {
+      first = SyncMergeCandidate.fromBlob(_setting('first', 'one'));
+      second = SyncMergeCandidate.fromBlob(_setting('second', 'two'));
+    });
+
+    SyncBaselineEntry stored(
+      SyncMergeCandidate candidate, {
+      String? recordId,
+      String? wireHash,
+      String? bodyHash,
+    }) => SyncBaselineEntry(
+      kind: candidate.address.kind,
+      recordId: recordId ?? candidate.address.recordId,
+      wireHash: wireHash ?? candidate.wireHash,
+      bodyHash: bodyHash ?? candidate.comparisonBodyHash,
+    );
+
+    /// Runs one pass where a peer carries exactly this device's [first] and
+    /// [second], and returns the addresses the pass asked to advance.
+    Future<List<SyncRecordAddress>> advancedFrom(
+      Map<SyncRecordAddress, SyncBaselineEntry> baseline, {
+      Map<SyncRecordAddress, SyncRecordAddress> aliases = const {},
+    }) async {
+      final store = _FakeStore(
+        local: {first.address: first, second.address: second},
+        baseline: baseline,
+        aliases: aliases,
+      );
+      final transport = _FakeTransport(
+        devices: ['device-a', 'peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {
+              first.blob.id: first.wireHash,
+              second.blob.id: second.wireHash,
+            },
+          },
+        ),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(store.baselineAdvances, 1);
+      expect(store.droppedRecords, isEmpty);
+      return store.advancedEntries;
+    }
+
+    test('an idle pass writes no baseline row', () async {
+      expect(
+        await advancedFrom({
+          first.address: stored(first),
+          second.address: stored(second),
+        }),
+        isEmpty,
+      );
+    });
+
+    test('a pass writes only the rows that changed', () async {
+      expect(
+        await advancedFrom({
+          first.address: stored(first),
+          second.address: stored(second, wireHash: _hash('old')),
+        }),
+        [second.address],
+      );
+    });
+
+    test('a row whose body hash alone is stale is still written', () async {
+      expect(
+        await advancedFrom({
+          first.address: stored(first, bodyHash: _hash('old-body')),
+          second.address: stored(second),
+        }),
+        [first.address],
+      );
+    });
+
+    test('a row stored under a losing alias id is written under the '
+        'survivor even though its hashes match', () async {
+      final losing = (kind: SyncRecordKind.setting, recordId: 'first-legacy');
+      expect(
+        await advancedFrom(
+          {losing: stored(first, recordId: losing.recordId)},
+          aliases: {losing: first.address},
+        ),
+        [first.address, second.address],
+      );
+    });
+  });
+
   group('a pass with nothing new to share (spec §6.3 steps 7 and 8)', () {
     late SyncMergeCandidate first;
     late SyncMergeCandidate second;

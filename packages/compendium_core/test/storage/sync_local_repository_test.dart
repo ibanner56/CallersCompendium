@@ -539,6 +539,161 @@ void main() {
     );
   });
 
+  group('baseline writes (#1948)', () {
+    const comparisonPrefix = 'comparison-v1:';
+    const epoch = 'epoch-a';
+    const kept = SyncBaselineEntry(
+      kind: SyncRecordKind.dance,
+      recordId: 'kept',
+      wireHash: 'wire-kept',
+      bodyHash: 'body-kept',
+    );
+    // An update of a stored row, a legacy row, a row with no body hash, and
+    // the same address twice, where the later entry has always won.
+    const entries = [
+      SyncBaselineEntry(
+        kind: SyncRecordKind.dance,
+        recordId: 'updated',
+        wireHash: 'wire-new',
+        bodyHash: 'body-new',
+      ),
+      SyncBaselineEntry(
+        kind: SyncRecordKind.tag,
+        recordId: 'legacy',
+        wireHash: 'wire-legacy',
+        bodyHash: 'legacy-full-body',
+        bodyHashVersion: SyncBaselineBodyHashVersion.legacyFullBody,
+      ),
+      SyncBaselineEntry(
+        kind: SyncRecordKind.setting,
+        recordId: 'no-body',
+        wireHash: 'wire-no-body',
+      ),
+      SyncBaselineEntry(
+        kind: SyncRecordKind.program,
+        recordId: 'twice',
+        wireHash: 'wire-first',
+        bodyHash: 'body-first',
+      ),
+      SyncBaselineEntry(
+        kind: SyncRecordKind.program,
+        recordId: 'twice',
+        wireHash: 'wire-second',
+        bodyHash: 'body-second',
+      ),
+    ];
+    // The rows the per-entry loop these writes replaced produced, as stored.
+    final written = {
+      ('dance', 'updated', 'wire-new', '${comparisonPrefix}body-new'),
+      ('tag', 'legacy', 'wire-legacy', 'legacy-full-body'),
+      ('setting', 'no-body', 'wire-no-body', null),
+      ('program', 'twice', 'wire-second', '${comparisonPrefix}body-second'),
+    };
+
+    Future<Set<(String, String, String, String?)>> rows(
+      SyncLocalRepository repository,
+    ) async => {
+      for (final row in await repository.listBaselineEntries())
+        (row.kind.name, row.recordId, row.wireHash, row.bodyHash),
+    };
+
+    test('advancing writes the same rows as one write per entry did', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(
+        epoch: epoch,
+        entries: [
+          kept,
+          const SyncBaselineEntry(
+            kind: SyncRecordKind.dance,
+            recordId: 'updated',
+            wireHash: 'wire-old',
+            bodyHash: 'body-old',
+          ),
+          const SyncBaselineEntry(
+            kind: SyncRecordKind.dance,
+            recordId: 'dropped',
+            wireHash: 'wire-dropped',
+          ),
+        ],
+      );
+
+      await repository.advanceBaseline(
+        epoch: epoch,
+        entries: entries,
+        drop: [(kind: SyncRecordKind.dance, recordId: 'dropped')],
+      );
+
+      expect(await rows(repository), {
+        ('dance', 'kept', 'wire-kept', '${comparisonPrefix}body-kept'),
+        ...written,
+      });
+      expect((await repository.getBaselineState())!.epoch, epoch);
+    });
+
+    test('replacing writes exactly the given rows and epoch', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(epoch: 'epoch-old', entries: [kept]);
+
+      await repository.replaceBaseline(epoch: epoch, entries: entries);
+
+      expect(await rows(repository), written);
+      expect((await repository.getBaselineState())!.epoch, epoch);
+    });
+
+    test(
+      'advancing and replacing each write their rows in one batch',
+      () async {
+        final counter = _TableBatchCounter('baseline_entries');
+        final db = openCountingTestDatabase(counter);
+        addTearDown(db.close);
+        final repository = SyncLocalRepository(db);
+        counter.reset();
+
+        await repository.replaceBaseline(epoch: epoch, entries: entries);
+        await repository.advanceBaseline(epoch: epoch, entries: entries);
+        await repository.advanceBaseline(epoch: epoch);
+
+        expect(counter.batchedSqlCounts, [1, 1]);
+        expect(counter.individualInserts, 0);
+      },
+    );
+
+    test('an entry has the same hashes only when all three match', () {
+      const other = SyncBaselineEntry(
+        kind: SyncRecordKind.tag,
+        recordId: 'elsewhere',
+        wireHash: 'wire-kept',
+        bodyHash: 'body-kept',
+      );
+      expect(kept.hasSameHashesAs(other), isTrue, reason: 'address ignored');
+      SyncBaselineEntry changed({
+        String wireHash = 'wire-kept',
+        String? bodyHash = 'body-kept',
+        SyncBaselineBodyHashVersion version =
+            SyncBaselineBodyHashVersion.comparison,
+      }) => SyncBaselineEntry(
+        kind: kept.kind,
+        recordId: kept.recordId,
+        wireHash: wireHash,
+        bodyHash: bodyHash,
+        bodyHashVersion: version,
+      );
+      expect(kept.hasSameHashesAs(changed(wireHash: 'wire-new')), isFalse);
+      expect(kept.hasSameHashesAs(changed(bodyHash: 'body-new')), isFalse);
+      expect(kept.hasSameHashesAs(changed(bodyHash: null)), isFalse);
+      expect(
+        kept.hasSameHashesAs(
+          changed(version: SyncBaselineBodyHashVersion.legacyFullBody),
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('SyncLocalRepository remapping and review queue', () {
     test(
       'remaps a large alias closure without exceeding SQLite bind limits',
@@ -716,7 +871,7 @@ void main() {
     });
 
     test('marks publication records with one database batch', () async {
-      final counter = _PublishedRecordBatchCounter();
+      final counter = _TableBatchCounter('published_records');
       final db = openCountingTestDatabase(counter);
       addTearDown(db.close);
       final repository = SyncLocalRepository(db);
@@ -811,7 +966,11 @@ void main() {
   });
 }
 
-final class _PublishedRecordBatchCounter extends QueryInterceptor {
+/// Counts the statements that write [table], batched and individual.
+final class _TableBatchCounter extends QueryInterceptor {
+  _TableBatchCounter(this.table);
+
+  final String table;
   final batchedSqlCounts = <int>[];
   int individualInserts = 0;
 
@@ -820,8 +979,7 @@ final class _PublishedRecordBatchCounter extends QueryInterceptor {
     individualInserts = 0;
   }
 
-  bool _matches(String statement) =>
-      statement.toLowerCase().contains('published_records');
+  bool _matches(String statement) => statement.toLowerCase().contains(table);
 
   @override
   Future<void> runBatched(
