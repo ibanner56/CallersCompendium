@@ -683,13 +683,6 @@ class _CompendiumAppState extends State<CompendiumApp>
   late final AppLifecycleListener _syncLifecycleListener;
   StreamSubscription<Set<TableUpdate>>? _syncChangeSubscription;
   SyncCoordinator? _syncCoordinator;
-
-  /// The coordinator a record writer ([_runSyncRecordWriter]) has taken out
-  /// of [_syncCoordinator] for the span of its operation, so no trigger can
-  /// reach it. [_disposeSyncCoordinator] disposes it like the live one: a
-  /// reconfigure or shutdown during the write supersedes it, and the writer
-  /// then rebuilds instead of putting it back.
-  SyncCoordinator? _heldSyncCoordinator;
   Future<void>? _syncCoordinatorDisposeFuture;
   Future<void>? _syncWriterTail;
 
@@ -910,7 +903,6 @@ class _CompendiumAppState extends State<CompendiumApp>
     unawaited(_syncChangeSubscription?.cancel());
     _syncController.dispose();
     _syncCoordinator = null;
-    _heldSyncCoordinator = null;
 
     final appData = widget.appDataFactory();
     _windowService =
@@ -929,13 +921,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     if (existing != null) return existing;
 
     final coordinator = _syncCoordinator;
-    final held = _heldSyncCoordinator;
     _syncCoordinator = null;
-    _heldSyncCoordinator = null;
     _syncController.attachCoordinator(null);
     final future = Future<void>.sync(() async {
       await coordinator?.dispose();
-      await held?.dispose();
     });
     _syncCoordinatorDisposeFuture = future;
     future
@@ -955,9 +944,12 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// the library or the sync configuration.
   ///
   /// It is serialized with every other writer and awaited by shutdown, and the
-  /// operation still starts only after the in-flight pass has finished, with
-  /// no trigger able to reach the coordinator until it returns. But the same
-  /// coordinator is put back afterwards, without a pass: rebuilding it would
+  /// operation still starts only after the in-flight pass has finished: the
+  /// coordinator is held ([SyncCoordinator.hold]), so no pass starts until the
+  /// operation returns. A trigger arriving meanwhile — including one that
+  /// read the coordinator before the hold — is deferred, not refused, and
+  /// runs on [SyncCoordinator.release]. But the coordinator is kept rather
+  /// than rebuilt, and no pass of the writer's own follows: a rebuild would
   /// start a full pass the next resolve then had to wait for, and would
   /// discard its session state, so a declined "replace the collection" prompt
   /// came back. The write's own table events schedule the usual debounced
@@ -1000,11 +992,10 @@ class _CompendiumAppState extends State<CompendiumApp>
         // one racing in from outside — is free to install its coordinator.
         _syncWriterExclusive = false;
         if (!_shutdownRequested && mounted) {
-          if (held != null && identical(_heldSyncCoordinator, held)) {
-            // Still held, so nothing disposed it: put it back as it was. Its
-            // replacement-required subscription was never cancelled.
-            _heldSyncCoordinator = null;
-            _syncCoordinator = held;
+          if (held != null && identical(_syncCoordinator, held)) {
+            // Still installed, so nothing disposed it: let it run again,
+            // starting any trigger it deferred.
+            held.release();
           } else {
             await _configureSyncCoordinator();
           }
@@ -1016,20 +1007,20 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
   }
 
-  /// Takes the live coordinator out of reach and waits for its passes to
-  /// finish, for [_runSyncRecordWriter]. Returns it, or `null` when none is
-  /// installed. Called with [_syncWriterExclusive] already set, so no
-  /// reconfigure can install another while this waits.
+  /// Holds the live coordinator and waits for its running pass to finish, for
+  /// [_runSyncRecordWriter]. Returns it, or `null` when none is installed.
+  /// Called with [_syncWriterExclusive] already set, so no reconfigure can
+  /// install another while this waits. The coordinator stays installed, so
+  /// a trigger, or a decline of the replacement prompt, still reaches it.
+  /// [_disposeSyncCoordinator] disposes it as usual if a reconfigure or
+  /// shutdown supersedes it, which the writer sees as it no longer being
+  /// installed.
   Future<SyncCoordinator?> _holdSyncCoordinator() async {
     final disposing = _syncCoordinatorDisposeFuture;
     if (disposing != null) await disposing;
     final coordinator = _syncCoordinator;
     if (coordinator == null) return null;
-    // Only un-published, not detached from the controller: a pass still
-    // running may yet report that the collection needs replacing.
-    _syncCoordinator = null;
-    _heldSyncCoordinator = coordinator;
-    await coordinator.whenIdle();
+    await coordinator.hold();
     return coordinator;
   }
 
