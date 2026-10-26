@@ -3786,6 +3786,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionAdvancedTitle => 'Erweitert';
 
   @override
+  String get collectionAdvancedActive => 'Erweitert (an)';
+
+  @override
+  String searchToolActiveCount(String tool, int count) {
+    return '$tool · $count';
+  }
+
+  @override
   String get collectionUseAdvancedQuery => 'Erweiterte Abfrage verwenden';
 
   @override

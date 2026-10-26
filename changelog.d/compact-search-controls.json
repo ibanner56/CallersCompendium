@@ -1,0 +1,9 @@
+{
+  "id": "compact-search-controls",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The Collection's search controls take much less room, so more dances fit on screen: Search in now sits beside the search bar, and Filters, By phrase and Advanced are a row of buttons that each open their panel. Everything is still one tap away, and a closed panel's button shows that it is still narrowing the results — how many filters are active, or “Advanced (on)”. The program builder's dance picker works the same way."
+    ]
+  }
+}

@@ -154,7 +154,7 @@ class FacetSelections {
       textValues.values.every((s) => !s.isEffective) &&
       numberValues.values.every((s) => !s.isEffective);
 
-  /// How many selections are active: the number shown in the Filters header
+  /// How many selections are active: the number shown on the Filters button
   /// of the Collection screen and the dance picker.
   ///
   /// One per selected chip ([untagged] is a chip), one per single-valued facet
