@@ -1112,5 +1112,15 @@ void main() {
       expect(fs.single.move, 'star');
       expect(fs.single.params, {'hand': 'left', 'places': 3});
     });
+
+    test("Caller's Companion's hyphenated-hand retry does not apply", () {
+      // That retry is CC-import-only (mapCallersCompanionDance). Free-text
+      // entry fans out across the CC front-end too, so a retry placed on that
+      // front-end would structure these here.
+      for (final line in ['Left-hand allemande', 'Right-hand pull by']) {
+        final fs = parseFreeTextFigureEntry(line);
+        expect(fs.single.isCustom, isTrue, reason: line);
+      }
+    });
   });
 }

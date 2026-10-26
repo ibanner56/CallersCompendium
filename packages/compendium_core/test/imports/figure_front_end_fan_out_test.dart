@@ -631,5 +631,18 @@ void main() {
         }
       }
     });
+
+    test("Caller's Companion's hyphenated-hand retry stays out of it", () {
+      // Call-button seeding and the reparse upgrade use these defaults; the
+      // retry lives in mapCallersCompanionDance only.
+      for (final line in ['Left-hand allemande', 'Right-hand pull by']) {
+        expect(
+          parseFigureLinesFanOut(line, beats: 8).single.isCustom,
+          isTrue,
+          reason: line,
+        );
+        expect(parseFigureLineFanOut(line, beats: 8)!.isCustom, isTrue);
+      }
+    });
   });
 }
