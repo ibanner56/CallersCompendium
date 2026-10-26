@@ -439,7 +439,9 @@ A1 (8) Do the thing
         'Left-hand star promenade',
         // A diagonal, not a hand; chain's own hand comes from its role.
         'On right-hand diagonal ladies chain',
-        // Two hands: no single side to bind.
+        // Two hands. The retry's one-token rule does not decide this line:
+        // whichever token is rewritten, the other is left over. No line was
+        // found that the rule alone declines.
         'Left-hand allemande and right-hand star',
         // The retry reads "once" and leaves "and a half" as a note in
         // rewritten words.
