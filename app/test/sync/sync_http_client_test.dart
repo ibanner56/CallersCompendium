@@ -248,7 +248,9 @@ void main() {
     });
 
     test('buffers plain and gzip response bodies as Uint8List', () async {
-      final payload = utf8.encode(List.filled(4096, 'manifest ').join());
+      // Incompressible, so the gzip expansion guard stays out of the way.
+      final random = Random(1941);
+      final payload = [for (var i = 0; i < 4096; i++) random.nextInt(256)];
       final server = await _startServer((request) async {
         if (request.uri.path.endsWith('/gzip')) {
           request.response.headers.set('content-encoding', 'gzip');
