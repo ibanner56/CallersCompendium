@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -5,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/screens/sync_review_screen.dart';
 import 'package:compendium_core/testing.dart';
 
@@ -143,16 +146,21 @@ Future<void> _seedRenameCollision(CompendiumRepositories repos) async {
 
 Future<void> _pumpScreen(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
+  CompendiumRepositories repos, {
+  SyncWriterCallback? runWrite,
+}) async {
+  Widget screen = RepositoriesScope(
+    repositories: repos,
+    child: const SyncReviewScreen(),
+  );
+  if (runWrite != null) {
+    screen = SyncWriterLifecycleScope(runWrite: runWrite, child: screen);
+  }
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: const SyncReviewScreen(),
-      ),
+      home: screen,
     ),
   );
   await tester.pumpAndSettle();
@@ -185,6 +193,47 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
+  });
+
+  testWidgets('runs a resolve inside the sync writer boundary', (tester) async {
+    final repos = openTestRepositories();
+    await _seedActionable(repos);
+    // Models `_runSyncWriter`: the operation starts only once the boundary
+    // admits it, and the boundary does not return until it has finished.
+    final admit = Completer<void>();
+    var calls = 0;
+    var operationRan = false;
+    await _pumpScreen(
+      tester,
+      repos,
+      runWrite: <T>(operation) async {
+        calls++;
+        await admit.future;
+        operationRan = true;
+        return operation();
+      },
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey(
+          'sync-review-merge-choreographer:local-author:peer-author',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(calls, 1);
+    expect(operationRan, isFalse);
+    expect(await repos.syncLocal.listReviewQueue(), hasLength(1));
+
+    admit.complete();
+    await tester.pumpAndSettle();
+
+    expect(operationRan, isTrue);
+    expect(await repos.syncLocal.listReviewQueue(), isEmpty);
     expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
   });
 

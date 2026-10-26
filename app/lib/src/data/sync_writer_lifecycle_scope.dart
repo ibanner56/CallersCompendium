@@ -6,11 +6,11 @@ typedef SyncWriterCallback =
 /// Provides the lifecycle hooks that serialize every database-backed writer
 /// with the running sync coordinator (ROADMAP G.5).
 ///
-/// A restore or shared archive import writes the restored data into the
-/// database while the running app also owns an optional database-backed sync
-/// coordinator. [runWrite] owns the whole writer operation, so shutdown can
-/// wait for it and prevent the coordinator from being recreated after shutdown
-/// begins.
+/// A restore, a shared archive import, or a sync review-queue resolution (the
+/// review screen and the conflict sheet) writes into the database while the
+/// running app also owns an optional database-backed sync coordinator.
+/// [runWrite] owns the whole writer operation, so shutdown can wait for it and
+/// prevent the coordinator from being recreated after shutdown begins.
 /// [onRestored] remains the separate in-memory refresh callback used by the
 /// backup controls: it re-reads preferences so the UI reflects restored state
 /// without a relaunch. The running app wires these callbacks in `main.dart`.
