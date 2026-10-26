@@ -12,16 +12,12 @@ import 'athenaeum_config.dart';
 import 'athenaeum_store.dart';
 
 typedef ClientAddressResolver = String Function(Request request);
-typedef AthenaeumDiagnosticLogger = void Function(
-  AthenaeumDiagnosticEvent event,
-);
-typedef AthenaeumOperationalAlertSink = void Function(
-  AthenaeumOperationalAlert alert,
-);
-typedef AthenaeumPeriodicTimer = Timer Function(
-  Duration interval,
-  void Function(Timer timer) callback,
-);
+typedef AthenaeumDiagnosticLogger =
+    void Function(AthenaeumDiagnosticEvent event);
+typedef AthenaeumOperationalAlertSink =
+    void Function(AthenaeumOperationalAlert alert);
+typedef AthenaeumPeriodicTimer =
+    Timer Function(Duration interval, void Function(Timer timer) callback);
 typedef AthenaeumSweep = void Function();
 
 // The request-rate rows of spec §5.4, refilled per second. The failure and
