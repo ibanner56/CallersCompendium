@@ -316,8 +316,11 @@ final class CompendiumSyncStorage
   /// Memoises [_previouslyUsed] per sync identity for this storage instance's
   /// lifetime.
   ///
-  /// A fresh [CompendiumSyncStorage] is created per worker pass, so this
-  /// memo's lifetime is exactly one pass. `snapshot()` is called several
+  /// The sync worker builds a fresh [CompendiumSyncStorage] per pass, so there
+  /// the memo lasts one pass; a storage kept longer (the review screen's, for
+  /// the screen's life) keeps the memo for as long as it lives. It holds one
+  /// boolean per stored sync identity, so that is not a memory concern.
+  /// `snapshot()` is called several
   /// times per pass (once up front, again after §6.9 repairs, again inside
   /// `buildPublicationState`, ...) and each call previously re-derived the
   /// slow PBKDF2-style verifier for every stored sync identity. Caching the

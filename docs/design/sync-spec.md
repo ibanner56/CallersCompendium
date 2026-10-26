@@ -4204,7 +4204,7 @@ publishing a manifest before applying would advertise content this device has
 not stored.
 
 Triggers: app start, the app returning to the foreground, a debounced interval
-after a change, a manual "Sync now" (a delta pass), and the automatic retry
+after a change, a manual "Sync now" (the same pass as an automatic trigger), and the automatic retry
 below. *Sync only on WiFi* defaults to on; on a metered connection automatic
 sync does not run and a manual attempt routes to the setting. Every trigger
 passes the same connection gate, and a pass the gate suppresses runs at the next
