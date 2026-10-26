@@ -3892,6 +3892,11 @@ class SyncCoordinator {
     if (_disposed) return;
     if (_replacementPending) return;
     _replacementPending = true;
+    // A new decision is a new `POST /v1/store` (§6.3 step 1). The flag only
+    // survives a pass that failed after the `POST`, which is a retry of the
+    // same decision; a retry finished by an ordinary trigger never cleared it.
+    // The early return above keeps a "created, lookup failed" retry out of here.
+    _replacementCreated = false;
     _confirmation = null;
     _replacementEvents.add(const SyncReplacementRequiredEvent());
   }
