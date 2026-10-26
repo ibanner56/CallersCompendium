@@ -492,9 +492,10 @@ Figure _withBeats(Figure figure, int beats) {
 
 /// One `left-hand`/`right-hand` token, matched case-insensitively, with the
 /// word after it (if any) captured but not consumed, so a second token is
-/// still counted.
+/// still counted. Punctuation between them is skipped, since the parser strips
+/// it from the token's edge (`right-hand, lady` reads as `right-hand lady`).
 final RegExp _hyphenatedHand = RegExp(
-  r'\b(left|right)-hand\b(?=(?:\s+(\S+))?)',
+  r'\b(left|right)-hand\b(?=(?:[.,;:!]*\s+(\S+))?)',
   caseSensitive: false,
 );
 
@@ -504,8 +505,14 @@ final RegExp _edgePunct = RegExp(r'^[.,;:!]+|[.,;:!]+$');
 /// Whether [word], the word after a `<side>-hand` token, makes that token
 /// name something other than a hand: a diagonal (`on right-hand diagonal`) or
 /// a dancer by position (square dance's `right-hand lady`, `left-hand
-/// neighbor`). The word is scrubbed and looked up as the parser would read it,
-/// so `lady`/`lark` count through their role tokens.
+/// neighbor`). The word is scrubbed on its own, its edge punctuation dropped,
+/// and looked up in [dancerWords], so `lady`/`lark` count through their role
+/// tokens.
+///
+/// Any dancer word counts, not only role nouns, so `left-hand partner
+/// allemande` stays custom too: a hand followed by a dancer can be either
+/// that dancer by position or that dancer by that hand, and the line does not
+/// say which.
 bool _qualifiesNextWord(String? word) {
   if (word == null) return false;
   final read = scrubFigureText(word).toLowerCase().replaceAll(_edgePunct, '');
