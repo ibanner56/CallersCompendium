@@ -989,6 +989,119 @@ void main() {
     });
   });
 
+  group('a record with no figures never replaces a dance', () {
+    // Replacing a dance writes the incoming figure list over its own, so a
+    // record that carries none (a Caller's Box dance below the `full`
+    // permission tier, a title-only list) would erase the transcription.
+    Future<CompendiumRepositories> collection() async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'weiler', name: 'Chris Weiler'),
+      );
+      for (final (id, title) in [
+        ('base', 'A1 Reel'),
+        ('impvar', 'A1 Reel (Imp Var)'),
+        ('musk', 'Money Musk'),
+      ]) {
+        await repos.dances.create(
+          _dance(
+            id,
+            title,
+            figures: [customFigure('Circle left once around')],
+          ).copyWith(authorIds: const ['weiler']),
+        );
+      }
+      return repos;
+    }
+
+    String incoming(String title) => encodeArchive(
+      CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        choreographers: [Choreographer(id: 'cw', name: 'Chris Weiler')],
+        dances: [
+          _dance('incoming', title).copyWith(authorIds: const ['cw']),
+        ],
+      ),
+    );
+
+    Future<void> expectFiguresKept(
+      CompendiumRepositories repos,
+      String id,
+    ) async {
+      final kept = (await repos.dances.getById(id))!;
+      expect((kept.figuresSource as DecodedFigures).figures, hasLength(1));
+    }
+
+    testWidgets('is not offered a dance under another title to replace', (
+      tester,
+    ) async {
+      final repos = await collection();
+      await _pump(tester, repos, payload: incoming('A-1 Reel {variant}'));
+      await _toReview(tester);
+
+      expect(
+        find.byKey(const ValueKey('import-row-0-link-impvar')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('import-row-0-link-base')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('import-row-0-no-figures-note')),
+        findsOneWidget,
+      );
+
+      // Importing it as a new dance still works.
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      expect(await repos.dances.listAll(), hasLength(4));
+      await expectFiguresKept(repos, 'impvar');
+      await expectFiguresKept(repos, 'base');
+    });
+
+    testWidgets('is not offered a fuzzy match to replace', (tester) async {
+      final repos = await collection();
+      await _pump(tester, repos, payload: incoming('A-1 Reel'));
+      await _toReview(tester);
+
+      expect(
+        find.byKey(const ValueKey('import-row-0-link-base')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('import-row-0-link-impvar')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('import-row-0-duplicate')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('matching your dance exactly can be a variation, not '
+        '"Same dance"', (tester) async {
+      final repos = await collection();
+      await _pump(tester, repos, payload: incoming('Money Musk'));
+      await _toReview(tester);
+
+      expect(
+        find.byKey(const ValueKey('import-row-0-link-musk')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('import-row-0-variation-musk')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsNothing,
+      );
+      await expectFiguresKept(repos, 'musk');
+    });
+  });
+
   testWidgets('batch errors are surfaced without blocking the good record', (
     tester,
   ) async {
