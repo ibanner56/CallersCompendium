@@ -5403,6 +5403,55 @@ void main() {
       },
     );
 
+    test('a fresh attach with an unreadable peer manifest downloads no blobs, '
+        'however many the readable peers hold', () async {
+      // The attach cannot finish without every peer's list (spec §6.2), so
+      // anything fetched before the check was thrown away, and was fetched
+      // again on every re-run.
+      final peerCandidate = SyncMergeCandidate.fromBlob(
+        _setting('default_program_band', 'peer'),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-a', 'peer-b'],
+        manifestResponses: {
+          'peer-a': [_FakeTransport.response(404)],
+          'peer-b': [
+            SyncHttpResponse(
+              statusCode: 200,
+              kind: SyncResponseKind.success,
+              headers: const {'etag': '"peer-b-v1"'},
+              body: encodeSyncManifestUtf8(
+                _manifest(
+                  deviceId: 'peer-b',
+                  records: {
+                    SyncRecordKind.setting: {
+                      peerCandidate.blob.id: peerCandidate.wireHash,
+                    },
+                  },
+                ),
+              ),
+            ),
+          ],
+        },
+        blobResponses: {
+          peerCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(peerCandidate.blob)),
+          ),
+        },
+      );
+
+      final result = await coordinatorFor(
+        _FakeStore(epoch: null),
+        transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.peerUnavailable);
+      expect(result.failure?.statusCode, 404);
+      expect(transport.blobCalls, 0);
+    });
+
     test('a completed pass carries no failure', () async {
       final result = await coordinatorFor(
         _FakeStore(),
