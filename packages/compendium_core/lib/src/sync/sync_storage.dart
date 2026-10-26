@@ -449,11 +449,45 @@ final class CompendiumSyncStorage
     );
   }
 
-  Future<SyncStorageSnapshot> snapshot({
-    String? syncId,
-  }) => repositories.transaction(() async {
-    await _revalidatePendingDeletions();
-    final previouslyUsed = await _previouslyUsed(syncId);
+  /// This device's whole library as the sync pass publishes and merges it.
+  ///
+  /// Three phases, so that the scan, which reads and hashes every record, does
+  /// not hold the write lock (#1915). drift opens every native transaction
+  /// `BEGIN IMMEDIATE`, so a scan inside one made every app write wait for the
+  /// whole library to be encoded, and fail past the busy timeout.
+  ///
+  /// 1. A short write transaction: revalidate pending deletions, and load the
+  ///    identity marker, which migrates a legacy one in place.
+  /// 2. The scan, in [CompendiumRepositories.readTransaction]: one consistent
+  ///    view of the library without the write lock, so an app write commits
+  ///    while it runs, and is not seen by it.
+  /// 3. Only when the scan found kept fields with no record left to carry
+  ///    them, a short write transaction that deletes them, after re-checking
+  ///    each against the library as it is then
+  ///    ([_sweepOrphanedRetainedFields]).
+  ///
+  /// Called inside an open transaction, all three run in it, as before.
+  Future<SyncStorageSnapshot> snapshot({String? syncId}) async {
+    final previouslyUsed = await repositories.transaction(() async {
+      await _revalidatePendingDeletions();
+      return _previouslyUsed(syncId);
+    });
+    final scan = await repositories.readTransaction(
+      () => _scanSnapshot(previouslyUsed: previouslyUsed),
+    );
+    if (scan.orphaned.isNotEmpty) {
+      await repositories.transaction(
+        () => _sweepOrphanedRetainedFields(scan.orphaned),
+      );
+    }
+    return scan.snapshot;
+  }
+
+  /// The read phase of [snapshot]: everything but the writes. It writes
+  /// nothing, and must not, because it runs in a read transaction; it returns
+  /// the addresses whose kept fields it found orphaned for phase 3 to sweep.
+  Future<({SyncStorageSnapshot snapshot, Set<SyncRecordAddress> orphaned})>
+  _scanSnapshot({required bool previouslyUsed}) async {
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final baselineState = await repositories.syncLocal.getBaselineState();
     final local = <SyncRecordAddress, SyncMergeCandidate?>{};
@@ -706,7 +740,8 @@ final class CompendiumSyncStorage
     // Parts kept for a record that no longer exists — hard-deleted, purged —
     // or for a custom-field definition now private (it adds nothing to
     // [local]) go with it: third-party content must not outlive its record
-    // here.
+    // here. Collected here and deleted by [snapshot] once this read ends.
+    final orphaned = <SyncRecordAddress>{};
     final withheldAddresses = {
       for (final report in withheld)
         if ((report.kind, report.recordId) case (final kind?, final recordId?))
@@ -734,11 +769,7 @@ final class CompendiumSyncStorage
           withheldAddresses.contains(address)) {
         continue;
       }
-      await repositories.syncLocal.setRetainedSyncFields(
-        kind: row.kind,
-        recordId: row.recordId,
-        payload: null,
-      );
+      orphaned.add(address);
     }
 
     final publication = <SyncRecordAddress, SyncMergeCandidate?>{...local};
@@ -784,17 +815,75 @@ final class CompendiumSyncStorage
 
     await _applySyncExcludeImports(publication);
 
-    return SyncStorageSnapshot(
-      epoch: baselineState?.epoch,
-      previouslyUsed: previouslyUsed,
-      local: local,
-      baseline: baseline,
-      publication: publication,
-      pendingLive: pendingLive,
-      pending: pendingAddresses,
-      withheld: List.unmodifiable(withheld),
+    return (
+      snapshot: SyncStorageSnapshot(
+        epoch: baselineState?.epoch,
+        previouslyUsed: previouslyUsed,
+        local: local,
+        baseline: baseline,
+        publication: publication,
+        pendingLive: pendingLive,
+        pending: pendingAddresses,
+        withheld: List.unmodifiable(withheld),
+      ),
+      orphaned: orphaned,
     );
-  });
+  }
+
+  /// Deletes the kept fields of each of [orphaned] that is still orphaned now.
+  ///
+  /// [_scanSnapshot] found them orphaned in its read view, but an app write
+  /// may have committed since, such as a private custom-field definition made
+  /// shareable again. So each is judged again,
+  /// inside this write transaction, by the scan's own rule against the library
+  /// as it now stands: still kept, not pending, not something [snapshot] would
+  /// hold in `local` ([currentCandidates], which builds candidates exactly as
+  /// the scan does), and not an unreadable dance the scan withholds. A write
+  /// that lands before this transaction is then judged as if it had landed
+  /// before the scan, and one that lands after it waits for this commit, so
+  /// no interleaving deletes fields that the library as it then stands still
+  /// needs. Reads only [orphaned]'s records, so it costs what they do.
+  Future<void> _sweepOrphanedRetainedFields(
+    Set<SyncRecordAddress> orphaned,
+  ) async {
+    final kept = {
+      for (final row in await repositories.syncLocal.listRetainedSyncFields())
+        (kind: row.kind, recordId: row.recordId),
+    };
+    final pending = {
+      for (final row in await repositories.syncLocal.listPendingDeletions())
+        (kind: row.kind, recordId: row.recordId),
+    };
+    final current = await currentCandidates(orphaned);
+    final danceIds = [
+      for (final address in orphaned)
+        if (address.kind == SyncRecordKind.dance) address.recordId,
+    ];
+    final unreadableDanceIds = {
+      if (danceIds.isNotEmpty)
+        for (final dance in await repositories.dances.getByIds(
+          danceIds,
+          includeDeleted: true,
+        ))
+          if (dance.figuresSource is UnreadableFigures ||
+              dance.tunesSource is UnreadableTunes)
+            dance.id,
+    };
+    for (final address in orphaned) {
+      if (!kept.contains(address) ||
+          pending.contains(address) ||
+          current[address] != null ||
+          (address.kind == SyncRecordKind.dance &&
+              unreadableDanceIds.contains(address.recordId))) {
+        continue;
+      }
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: address.kind,
+        recordId: address.recordId,
+        payload: null,
+      );
+    }
+  }
 
   /// Applies the per-device `sync_exclude_imports` upload-budget filter (spec
   /// §6.1) to a fully built publication candidate map, in place.
