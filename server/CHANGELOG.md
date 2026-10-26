@@ -10,6 +10,13 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Fixed
 
+- A store fault while logging an ordinary refusal (a 4xx) no longer escapes the
+  request handler. Recording a refused request for a known store looks the store
+  up again; if that lookup failed (busy past its timeout, an I/O error), the
+  exception skipped the handler's catch-all and reached shelf, which logs its
+  text, including the failing statement and the store's `id_key`. The request
+  now still answers its original status, and only the error's type is logged.
+  No configuration or schema change.
 - The per-IP request and failed-resolution limits now count an IPv6 client by
   its /64 instead of its full address. A single IPv6 subscriber can present 2^64
   addresses inside its delegated /64, so each used to get a fresh bucket, the

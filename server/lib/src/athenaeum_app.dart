@@ -977,7 +977,25 @@ class AthenaeumApp {
     return _jsonResponse(status, {'error': message});
   }
 
+  /// Records a refused request for a known store, never throwing.
+  ///
+  /// The caller is inside an `on _RequestFailure` clause, which its sibling
+  /// `on Object` clause does not cover: an exception escaping here would reach
+  /// shelf and be logged with its toString(), which for a `SqliteException`
+  /// carries the failing statement and its `id_key`. The store lookup can fault
+  /// (busy past its timeout, I/O error), so the whole body is guarded and only
+  /// the error's type is written.
   void _logFailure(Request request, _RequestFailure error) {
+    try {
+      _recordFailure(request, error);
+    } on Object catch (loggerError) {
+      stderr.writeln(
+        'Athenaeum diagnostic logging failed (${loggerError.runtimeType})',
+      );
+    }
+  }
+
+  void _recordFailure(Request request, _RequestFailure error) {
     String? idKey;
     final authorization = request.headers['authorization'];
     if (authorization != null && authorization.startsWith('Bearer ')) {
@@ -998,19 +1016,9 @@ class AthenaeumApp {
     }
     if (idKey == null) return;
     if (store.lookup(idKey) == null) return;
-    try {
-      _diagnosticLogger(
-        AthenaeumDiagnosticEvent(
-          status: error.status,
-          idKey: idKey,
-          hash: hash,
-        ),
-      );
-    } on Object catch (loggerError) {
-      stderr.writeln(
-        'Athenaeum diagnostic logging failed (${loggerError.runtimeType})',
-      );
-    }
+    _diagnosticLogger(
+      AthenaeumDiagnosticEvent(status: error.status, idKey: idKey, hash: hash),
+    );
   }
 
   static void _requireContentType(Request request, String expected) {
