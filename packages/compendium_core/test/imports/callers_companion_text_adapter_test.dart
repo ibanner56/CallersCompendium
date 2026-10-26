@@ -452,13 +452,14 @@ A1 (8) Do the thing
     });
 
     test('a line that already structures keeps its own reading', () async {
-      // The first pass reads this as a chain with the diagonal in the note;
-      // re-reading it would rewrite the note to "on right diagonal".
-      final f = (await figuresFor(
-        '(8) Ladies chain on right-hand diagonal',
-      )).single;
-      expect(f.move, 'chain');
-      expect(f.note, 'on right-hand diagonal');
+      // The fan-out reads this as a revolving door with "left-hand" as its
+      // note. Read again with the bare side it would take the hand, but the
+      // retry only re-reads lines the fan-out missed, so what a line imports
+      // as today does not change.
+      final f = (await figuresFor('(8) Revolving door left-hand')).single;
+      expect(f.move, 'revolving_door');
+      expect(f.params, {'beats': 8});
+      expect(f.note, 'left-hand');
     });
   });
 }
