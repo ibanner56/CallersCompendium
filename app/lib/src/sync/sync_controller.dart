@@ -773,12 +773,20 @@ class SyncController extends ChangeNotifier {
       _planRetry(result);
       return SyncGateOutcome.ran;
     } finally {
-      _inFlight--;
-      if (_inFlight == 0 && _dirty) {
-        _dirty = false;
-        if (_enabled && !_disposed) _scheduleDebounced();
-      }
+      _endPass();
       _notify();
+    }
+  }
+
+  /// Releases the in-flight count a pass raised and, when it was the last pass
+  /// out, schedules the follow-up for any edit [notifyLocalChange] deferred
+  /// while it ran. Shared by [trigger] and [confirmReplacement] so a
+  /// confirmation's edits get the same debounced pass as an ordinary pass's.
+  void _endPass() {
+    _inFlight--;
+    if (_inFlight == 0 && _dirty) {
+      _dirty = false;
+      if (_enabled && !_disposed) _scheduleDebounced();
     }
   }
 
@@ -1043,7 +1051,7 @@ class SyncController extends ChangeNotifier {
       }
       return SyncGateOutcome.ran;
     } finally {
-      _inFlight--;
+      _endPass();
       _notify();
     }
   }
