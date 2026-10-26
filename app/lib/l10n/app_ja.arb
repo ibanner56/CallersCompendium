@@ -6030,6 +6030,22 @@
   "@onlineImportCrossSourceDuplicateDialogActionDuplicate": {
     "x-sourceSha256": "9bad404a2973e7d0e6de960f720c661c2b18063abf4b865dd34bf2faac2a9029"
   },
+  "onlineImportPossibleMatchDialogTitle": "このダンスはすでにありますか？",
+  "@onlineImportPossibleMatchDialogTitle": {
+    "x-sourceSha256": "eb996ac93dc2a9064a9fe9d58a8b4cc5a9f79a0f0c66c7259e76b14cf7f6d802"
+  },
+  "onlineImportPossibleMatchDialogBody": "「{incomingTitle}」は、別のタイトルですでにあるダンスかもしれません。選択するとこのバージョンで置き換えます。または、新しいダンスとしてインポートしてください。",
+  "@onlineImportPossibleMatchDialogBody": {
+    "x-sourceSha256": "b82a9ee02fc9e90bbdd45abc6839fb946c333eb7be3377fe5e01232fd70ce6a3"
+  },
+  "onlineImportPossibleMatchDialogLinkWarning": "選択したダンスは、オンラインの記録に置き換えられます。フィギュア、コーリングノート、タグ、評価、カスタムフィールドも含まれます。プログラム内の位置とコーリング履歴は保持されます。",
+  "@onlineImportPossibleMatchDialogLinkWarning": {
+    "x-sourceSha256": "8be77751e0111059d98cc9b94cdf5d0ab2fc990cbe82c49479763527b937d0a7"
+  },
+  "onlineImportPossibleMatchDialogActionNew": "新しいダンスとしてインポート",
+  "@onlineImportPossibleMatchDialogActionNew": {
+    "x-sourceSha256": "089403b562dec94cbf73616fbd4d3b4a350782b551e644af55248c51840ec8ca"
+  },
   "onlineAttributionCallersBox": "The Caller's Box（オンライン）より",
   "@onlineAttributionCallersBox": {
     "x-sourceSha256": "6d0ed987e5f9bcf41e8e04cf8625b504c5e9f1dc2b9b9183a085c2d47ee80840"
@@ -6973,6 +6989,14 @@
   "importReviewPossibleMatch": "候補が見つかりました — インポート方法を選択してください:",
   "@importReviewPossibleMatch": {
     "x-sourceSha256": "7ee5b6b8742356f4ce77e8ee288919c91abd3a8f38aa3769aebd59c349c5bde6"
+  },
+  "importReviewPossibleTitleMatch": "別のタイトルで既にあるダンスかもしれません — インポート方法を選択してください:",
+  "@importReviewPossibleTitleMatch": {
+    "x-sourceSha256": "cf6adaa989c54db756c4f1dde8166ae0aa2e5889d024d12569508b37967317a7"
+  },
+  "importReviewOptionPossibleTitle": "別のタイトルの同じダンス – 「{title}」をこのバージョンで置き換える",
+  "@importReviewOptionPossibleTitle": {
+    "x-sourceSha256": "c2065bbc745388eda9868b7938074ef161363f8c73758b386e33cf8e5931daa7"
   },
   "importReviewOptionLink": "同じダンス – 「{title}」をこのバージョンで置き換える（{percent}%一致）",
   "@importReviewOptionLink": {

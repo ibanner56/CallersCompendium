@@ -506,6 +506,18 @@ watches for matches:
   including calling notes, rating, tags, custom fields, hook, walkthrough,
   status, links and source citations. The review warns how many existing dances
   will be overwritten before you commit.
+- **Same dance, written another way.** Archives spell and annotate titles
+  differently: The Caller's Box has `A-1 Reel {variant}` where your collection
+  might have `A1 Reel (Imp Var)`. When a dance's title matches one you already
+  have once punctuation and a trailing note in brackets are set aside, **and**
+  the two share a choreographer, the review lists it under **Possibly a dance
+  you already have, under another title** with a **Same dance under another
+  title — replace** choice for each such dance. Nothing is chosen for you: the
+  row still defaults to **New dance**, and **Skip all possible matches** leaves
+  a row alone when these are its only matches. A single-dance online import asks the same question in a dialog
+  (**Is this a dance you already have?**), where you pick the dance to replace
+  or **Import as a new dance**. A title like `New Dance (Velvet)`, whose bracket
+  is the dance's real name, is not treated this way.
 - **Same name, different choreography.** When the title and author match
   confidently but the *figures* differ, the app shows a **Variation of "…"?** block with
   an inline diff of exactly which lines changed, and offers **Import as a

@@ -156,6 +156,15 @@ enum OnlineImportKind {
   /// figures) so callers can show appropriately different dialog text without
   /// inspecting figure state themselves.
   needsConfirmationIdentical,
+
+  /// No confident match, but the collection has dances that are **possibly**
+  /// this one under a differently written title
+  /// ([DedupeVerdict.possibleMatchIds], issue #1907); nothing was written. The
+  /// caller must let the user choose one of [OnlineImportResult.possibleMatchIds]
+  /// (or none) and retry [OnlineSearchService.import] with
+  /// [ambiguousResolution] set. Never returned once a resolution is supplied,
+  /// so the unattended program imports, which always pass one, never see it.
+  needsPossibleMatchChoice,
 }
 
 /// Outcome of [OnlineSearchService.import].
@@ -165,10 +174,15 @@ class OnlineImportResult {
     required this.title,
     this.danceId,
     this.danceCount = 1,
+    this.possibleMatchIds = const [],
   });
 
   final OnlineImportKind kind;
   final String title;
+
+  /// For [OnlineImportKind.needsPossibleMatchChoice]: the existing dances the
+  /// user may choose between, in collection order. Empty otherwise.
+  final List<String> possibleMatchIds;
 
   /// Id of the imported dance for [OnlineImportKind.created], or the id of the
   /// existing matching dance for [OnlineImportKind.alreadyInCollection] when it
@@ -279,7 +293,12 @@ abstract interface class OnlineSearchService {
 ///   [OnlineImportKind.needsConfirmationIdentical] (canonically identical
 ///   figures from a confirmed different source), writing nothing (issues #797,
 ///   #811);
-/// - anything else commits the one previewed [plan].
+/// - otherwise, with no [ambiguousResolution] and a non-empty
+///   [DedupeVerdict.possibleMatchIds], returns
+///   [OnlineImportKind.needsPossibleMatchChoice], writing nothing (#1907);
+/// - anything else commits the one previewed [plan], honouring a `link` or
+///   `variation` resolution even on an `isNew` verdict (the user's pick from
+///   the possible matches).
 ///
 /// An undecodable transcription on either side never compares as identical
 /// (#1347): "cannot read it" must not become "it is empty", so that case
@@ -370,7 +389,35 @@ Future<OnlineImportResult> commitPreviewedOnlinePlan(
     }
   }
 
-  final resolutions = plan.verdict.kind == DedupeKind.ambiguous
+  // A lower-tier possible match is offered, never applied (#1907): only a
+  // caller with a user present gets here without a resolution.
+  if (ambiguousResolution == null &&
+      !plan.verdict.hasConfidentMatch &&
+      plan.verdict.possibleMatchIds.isNotEmpty) {
+    return OnlineImportResult(
+      kind: OnlineImportKind.needsPossibleMatchChoice,
+      title: title,
+      danceCount: 1,
+      possibleMatchIds: plan.verdict.possibleMatchIds,
+    );
+  }
+
+  // A possible match chosen by the user arrives as a link (or variation) on a
+  // plan whose verdict is still `isNew`, and the pipeline only reads a
+  // resolution on an ambiguous verdict, so the choice would otherwise be
+  // dropped and a new dance created. A `duplicate` on an `isNew` plan is left
+  // as a plain create.
+  final targetsExisting =
+      ambiguousResolution?.kind == DedupeResolutionKind.link ||
+      ambiguousResolution?.kind == DedupeResolutionKind.variation;
+  final committed = plan.verdict.kind == DedupeKind.isNew && targetsExisting
+      ? ImportRecordPlan(
+          draft: plan.draft,
+          verdict: DedupeVerdict.ambiguous(const []),
+        )
+      : plan;
+
+  final resolutions = committed.verdict.kind == DedupeKind.ambiguous
       ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
       : const <int, DedupeResolution>{};
 
@@ -380,7 +427,7 @@ Future<OnlineImportResult> commitPreviewedOnlinePlan(
     difficultyLevels: repos.difficultyLevels,
   );
   final session = await pipeline.commit(
-    ImportBatchResult(records: [plan]),
+    ImportBatchResult(records: [committed]),
     now: now ?? DateTime.now().toUtc(),
     newId: uuidV4,
     resolutions: resolutions,

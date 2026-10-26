@@ -5999,6 +5999,23 @@ class AppLocalizationsDa extends AppLocalizations {
       'Importér endnu en kopi';
 
   @override
+  String get onlineImportPossibleMatchDialogTitle =>
+      'Er det en dans, du allerede har?';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '„$incomingTitle“ er måske en dans, du allerede har under en anden titel. Vælg den for at erstatte den med denne version, eller importér denne som en ny dans.';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      'Den dans, du vælger, erstattes af onlineposten — inklusive dens figurer, noter, tags, vurdering og brugerdefinerede felter. Den beholder sin plads i dine programmer og sin kaldshistorik.';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew =>
+      'Importér som en ny dans';
+
+  @override
   String get onlineAttributionCallersBox => 'Fra The Caller\'s Box (online)';
 
   @override
@@ -7020,6 +7037,15 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get importReviewPossibleMatch =>
       'Muligt match – vælg hvordan den importeres:';
+
+  @override
+  String get importReviewPossibleTitleMatch =>
+      'Måske en dans, du allerede har, under en anden titel – vælg hvordan den importeres:';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return 'Samme dans under en anden titel – erstat „$title“ med denne version';
+  }
 
   @override
   String importReviewOptionLink(String title, int percent) {

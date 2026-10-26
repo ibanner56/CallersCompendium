@@ -21,8 +21,9 @@ String onlineSourceAttribution(AppLocalizations l10n, OnlineSource source) =>
 /// untrusted external value; it flows through a gen-l10n placeholder and is
 /// rendered as plain text by the caller's `Text` widget.
 ///
-/// [OnlineImportKind.needsConfirmation] and
-/// [OnlineImportKind.needsConfirmationIdentical] must never reach this function
+/// [OnlineImportKind.needsConfirmation],
+/// [OnlineImportKind.needsConfirmationIdentical] and
+/// [OnlineImportKind.needsPossibleMatchChoice] must never reach this function
 /// — every call site is responsible for intercepting them and showing a
 /// resolution dialog before calling this function with the final result. This is
 /// enforced by the [StateError]s below; a call site that forgets to intercept
@@ -44,5 +45,11 @@ String onlineImportMessage(AppLocalizations l10n, OnlineImportResult result) =>
         '"${result.title}". The call site must intercept '
         'OnlineImportKind.needsConfirmationIdentical and show a resolution '
         'dialog before passing the final result to this function.',
+      ),
+      OnlineImportKind.needsPossibleMatchChoice => throw StateError(
+        'onlineImportMessage reached with needsPossibleMatchChoice for '
+        '"${result.title}". The call site must intercept '
+        'OnlineImportKind.needsPossibleMatchChoice and let the user choose '
+        'before passing the final result to this function.',
       ),
     };

@@ -6077,6 +6077,23 @@ class AppLocalizationsFr extends AppLocalizations {
       'Importer une seconde copie';
 
   @override
+  String get onlineImportPossibleMatchDialogTitle =>
+      'Avez-vous déjà cette danse ?';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '« $incomingTitle » est peut-être une danse que vous avez déjà sous un autre titre. Choisissez-la pour la remplacer par cette version, ou importez celle-ci comme nouvelle danse.';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      'La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris ses figures, ses notes d’appel, ses tags, sa note et ses champs personnalisés. Elle conserve sa place dans vos programmes et son historique d’appel.';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew =>
+      'Importer comme nouvelle danse';
+
+  @override
   String get onlineAttributionCallersBox =>
       'Depuis The Caller\'s Box (en ligne)';
 
@@ -7114,6 +7131,15 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importReviewPossibleMatch =>
       'Correspondance possible — choisissez la méthode d’import :';
+
+  @override
+  String get importReviewPossibleTitleMatch =>
+      'Peut-être une danse que vous avez déjà, sous un autre titre — choisissez la méthode d’import :';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return 'Même danse sous un autre titre – remplacer « $title » par cette version';
+  }
 
   @override
   String importReviewOptionLink(String title, int percent) {

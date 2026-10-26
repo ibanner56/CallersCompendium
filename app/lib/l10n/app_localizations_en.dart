@@ -5968,6 +5968,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Import a second copy';
 
   @override
+  String get onlineImportPossibleMatchDialogTitle =>
+      'Is this a dance you already have?';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '\"$incomingTitle\" may be a dance you already have under another title. Choose it to replace it with this version, or import this as a new dance.';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      'The dance you choose will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew =>
+      'Import as a new dance';
+
+  @override
   String get onlineAttributionCallersBox => 'From The Caller\'s Box (online)';
 
   @override
@@ -6989,6 +7006,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importReviewPossibleMatch =>
       'Possible match — choose how to import:';
+
+  @override
+  String get importReviewPossibleTitleMatch =>
+      'Possibly a dance you already have, under another title — choose how to import:';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return 'Same dance under another title — replace \"$title\" with this version';
+  }
 
   @override
   String importReviewOptionLink(String title, int percent) {

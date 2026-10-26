@@ -6030,6 +6030,22 @@
   "@onlineImportCrossSourceDuplicateDialogActionDuplicate": {
     "x-sourceSha256": "9bad404a2973e7d0e6de960f720c661c2b18063abf4b865dd34bf2faac2a9029"
   },
+  "onlineImportPossibleMatchDialogTitle": "Avez-vous déjà cette danse ?",
+  "@onlineImportPossibleMatchDialogTitle": {
+    "x-sourceSha256": "eb996ac93dc2a9064a9fe9d58a8b4cc5a9f79a0f0c66c7259e76b14cf7f6d802"
+  },
+  "onlineImportPossibleMatchDialogBody": "« {incomingTitle} » est peut-être une danse que vous avez déjà sous un autre titre. Choisissez-la pour la remplacer par cette version, ou importez celle-ci comme nouvelle danse.",
+  "@onlineImportPossibleMatchDialogBody": {
+    "x-sourceSha256": "b82a9ee02fc9e90bbdd45abc6839fb946c333eb7be3377fe5e01232fd70ce6a3"
+  },
+  "onlineImportPossibleMatchDialogLinkWarning": "La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris ses figures, ses notes d’appel, ses tags, sa note et ses champs personnalisés. Elle conserve sa place dans vos programmes et son historique d’appel.",
+  "@onlineImportPossibleMatchDialogLinkWarning": {
+    "x-sourceSha256": "8be77751e0111059d98cc9b94cdf5d0ab2fc990cbe82c49479763527b937d0a7"
+  },
+  "onlineImportPossibleMatchDialogActionNew": "Importer comme nouvelle danse",
+  "@onlineImportPossibleMatchDialogActionNew": {
+    "x-sourceSha256": "089403b562dec94cbf73616fbd4d3b4a350782b551e644af55248c51840ec8ca"
+  },
   "onlineAttributionCallersBox": "Depuis The Caller's Box (en ligne)",
   "@onlineAttributionCallersBox": {
     "x-sourceSha256": "6d0ed987e5f9bcf41e8e04cf8625b504c5e9f1dc2b9b9183a085c2d47ee80840"
@@ -6973,6 +6989,14 @@
   "importReviewPossibleMatch": "Correspondance possible — choisissez la méthode d’import :",
   "@importReviewPossibleMatch": {
     "x-sourceSha256": "7ee5b6b8742356f4ce77e8ee288919c91abd3a8f38aa3769aebd59c349c5bde6"
+  },
+  "importReviewPossibleTitleMatch": "Peut-être une danse que vous avez déjà, sous un autre titre — choisissez la méthode d’import :",
+  "@importReviewPossibleTitleMatch": {
+    "x-sourceSha256": "cf6adaa989c54db756c4f1dde8166ae0aa2e5889d024d12569508b37967317a7"
+  },
+  "importReviewOptionPossibleTitle": "Même danse sous un autre titre – remplacer « {title} » par cette version",
+  "@importReviewOptionPossibleTitle": {
+    "x-sourceSha256": "c2065bbc745388eda9868b7938074ef161363f8c73758b386e33cf8e5931daa7"
   },
   "importReviewOptionLink": "Même danse – remplacer « {title} » par cette version ({percent} % de correspondance)",
   "@importReviewOptionLink": {

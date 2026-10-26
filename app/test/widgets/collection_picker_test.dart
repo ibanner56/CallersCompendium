@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
@@ -1383,6 +1385,60 @@ void main() {
   });
 
   group('online picker dedupe resolution', () {
+    testWidgets('a possible match under another title is asked about, and '
+        'the chosen dance is the one added (#1907)', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'weiler', name: 'Chris Weiler'),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'impvar',
+          title: 'A1 Reel (Imp Var)',
+        ).copyWith(authorIds: const ['weiler']),
+      );
+      final service = CallersBoxOnline(
+        searchFetcher: (_) async => '''
+<html><body><p>Of 16874 dances in the database, your query matches 1.</p>
+<table><tr><td>&#x24bb;</td><td></td><td></td>
+<td><a href='dance.php?id=1606'>Remote Dance</a></td>
+<td>Chris Weiler</td><td>Duple Minor - Improper</td></tr></table>
+</body></html>''',
+        jsonFetcher: (_) async => jsonEncode({
+          'ID': '1606',
+          'Name': 'A-1 Reel {variant}',
+          'Authors': ['Chris Weiler'],
+          'Permission': 'full',
+          'phrases': [
+            {
+              'name': 'A1',
+              'figures': ['(8) Long lines forward and back'],
+            },
+          ],
+        }),
+      );
+      final added = <String>[];
+
+      await _openOnlineResult(tester, repos, service, added.add);
+      // One tap used to import a separate copy without asking.
+      expect(
+        find.byKey(const ValueKey('online-import-possible-match-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('online-import-possible-match-impvar')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(added, ['impvar']);
+      expect(await repos.dances.listAll(), hasLength(1));
+      expect(
+        (await repos.dances.getById('impvar'))!.title,
+        'A-1 Reel {variant}',
+      );
+    });
+
     testWidgets('variation cancellation does not add a dance', (tester) async {
       final service = _DedupeOnlineService(OnlineImportKind.needsConfirmation);
       final added = <String>[];

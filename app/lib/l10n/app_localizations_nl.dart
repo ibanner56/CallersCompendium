@@ -6042,6 +6042,22 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een tweede kopie importeren';
 
   @override
+  String get onlineImportPossibleMatchDialogTitle => 'Heb je deze dans al?';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '“$incomingTitle” is misschien een dans die je al hebt onder een andere titel. Kies die om hem door deze versie te vervangen, of importeer deze als nieuwe dans.';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      'De dans die je kiest wordt vervangen door het online record — inclusief de figuren, callnotities, tags, beoordeling en aangepaste velden. De dans behoudt zijn plaats in je programma’s en zijn callerhistorie.';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew =>
+      'Importeren als nieuwe dans';
+
+  @override
   String get onlineAttributionCallersBox => 'Van The Caller\'s Box (online)';
 
   @override
@@ -7073,6 +7089,15 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importReviewPossibleMatch =>
       'Mogelijke overeenkomst — kies hoe je wilt importeren:';
+
+  @override
+  String get importReviewPossibleTitleMatch =>
+      'Misschien een dans die je al hebt, onder een andere titel — kies hoe je wilt importeren:';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return 'Dezelfde dans onder een andere titel – “$title” vervangen door deze versie';
+  }
 
   @override
   String importReviewOptionLink(String title, int percent) {

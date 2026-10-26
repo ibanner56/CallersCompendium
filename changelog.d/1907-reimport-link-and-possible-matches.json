@@ -3,7 +3,8 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Re-import choreography can now take a Caller's Box or ContraDB link or ID number, so a dance whose title is spelled differently at the source (A-1 Reel against your A1 Reel) can still be refreshed."
+      "Re-import choreography can now take a Caller's Box or ContraDB link or ID number, so a dance whose title is spelled differently at the source (A-1 Reel against your A1 Reel) can still be refreshed.",
+      "When an imported dance may be one you already have under a differently written title (A-1 Reel {variant} against your A1 Reel (Imp Var), by the same choreographer), the import review and single-dance online import offer to replace that dance. Nothing is replaced unless you choose it."
     ],
     "changed": [
       "When Re-import choreography cannot reach a source, or the dance does not exist there, it now says which, instead of a general \"could not load\" message.",
@@ -12,7 +13,7 @@
   },
   "core": {
     "added": [
-      "`DedupeVerdict.possibleMatchIds`, filled by `DedupeIndex.possibleTitleMatches`: existing dances with the same `dedupeCoreTitleKey` (trailing `{…}`/`(…)`/`[…]` annotations dropped, `A-1` read as `a1`) and a shared author but a different `normalizeTitle`. It never changes a verdict's kind or candidates and is never confident. `normalizeTitle` is unchanged."
+      "`DedupeVerdict.possibleMatchIds`, filled by `DedupeIndex.possibleTitleMatches` on `isNew` and `ambiguous` verdicts: existing dances with the same `dedupeCoreTitleKey` (trailing `{…}`/`(…)`/`[…]` annotations dropped unless the rest is a placeholder title such as `New Dance`; `A-1` read as `a1`) and a shared author, but a different `normalizeTitle`. It never changes a verdict's kind or candidates and is never confident. `normalizeTitle` is unchanged."
     ]
   }
 }

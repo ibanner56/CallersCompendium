@@ -9191,6 +9191,30 @@ abstract class AppLocalizations {
   /// **'Import a second copy'**
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate;
 
+  /// Title of the dialog shown during a single-dance online import when the collection has dances whose title, ignoring punctuation and a trailing bracketed note such as {variant}, matches the incoming one and that share its choreographer (issue #1907). Nothing has been imported yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Is this a dance you already have?'**
+  String get onlineImportPossibleMatchDialogTitle;
+
+  /// Body of the possible-match dialog (issue #1907), above a list of the existing dances to choose from. incomingTitle is the online dance's title, an untrusted external value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{incomingTitle}\" may be a dance you already have under another title. Choose it to replace it with this version, or import this as a new dance.'**
+  String onlineImportPossibleMatchDialogBody(String incomingTitle);
+
+  /// Secondary text in the possible-match dialog (issue #1907): choosing an existing dance replaces it wholesale, exactly as onlineImportVariationDialogLinkWarning describes for a single named dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance you choose will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.'**
+  String get onlineImportPossibleMatchDialogLinkWarning;
+
+  /// Button in the possible-match dialog (issue #1907): none of the listed dances is this one, so import it as a new dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Import as a new dance'**
+  String get onlineImportPossibleMatchDialogActionNew;
+
   /// Attribution line under an online result row sourced from The Caller's Box.
   ///
   /// In en, this message translates to:
@@ -10606,6 +10630,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Possible match — choose how to import:'**
   String get importReviewPossibleMatch;
+
+  /// Prompt above the options for a record whose title, ignoring punctuation and a trailing bracketed note such as {variant} or (Imp Var), equals that of an existing dance by the same choreographer. These are only offered; nothing is applied unless the user chooses it.
+  ///
+  /// In en, this message translates to:
+  /// **'Possibly a dance you already have, under another title — choose how to import:'**
+  String get importReviewPossibleTitleMatch;
+
+  /// Per-record option: treat this record as the same dance as an existing dance whose title is written differently (for example A-1 Reel {variant} against A1 Reel (Imp Var)) but has the same choreographer. The existing dance keeps its identity but its content is replaced by the imported version. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Same dance under another title — replace \"{title}\" with this version'**
+  String importReviewOptionPossibleTitle(String title);
 
   /// Per-record option: treat this record as the same dance as a candidate existing dance, with a match percentage. The existing dance keeps its identity but its content is replaced by the imported version, so the label says so. The title is an untrusted local value rendered as plain text.
   ///
