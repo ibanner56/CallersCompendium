@@ -1433,20 +1433,21 @@ class SyncCoordinator {
 
   Future<SyncPassResult> syncNow() => trigger(SyncTrigger.manual);
 
+  /// The kinds the latest pass committed rows of, including one that then
+  /// threw: a returned [SyncPassResult] carries its own
+  /// [SyncPassResult.appliedKinds], and a throw carries nothing, so this is
+  /// what lets the worker isolate report the writes that a late failure (a
+  /// manifest `PUT` on a flaky link) would otherwise hide from the main
+  /// isolate. Added to only after the apply, repair or dedupe commits, so a
+  /// rolled-back apply adds nothing. Empty under [passOperation], whose
+  /// worker keeps its own.
+  Set<SyncRecordKind> get passAppliedKinds =>
+      Set.unmodifiable(_passAppliedKinds);
+
   /// Runs one pass with an optional already-validated store lookup.
   ///
   /// The isolate worker uses this entry point after a replacement decision so
   /// the parent lookup is consumed rather than repeated inside the worker.
-  /// The kinds the latest pass committed rows of, including one that then
-  /// threw: a returned [SyncPassResult] carries its own [SyncPassResult
-  /// .appliedKinds], and a throw carries nothing, so this is what lets the
-  /// worker isolate report the writes that a late failure (a manifest `PUT`
-  /// on a flaky link) would otherwise hide from the main isolate. Added to
-  /// only after the apply, repair or dedupe commits, so a rolled-back apply
-  /// adds nothing. Empty under [passOperation], whose worker keeps its own.
-  Set<SyncRecordKind> get passAppliedKinds =>
-      Set.unmodifiable(_passAppliedKinds);
-
   Future<SyncPassResult> runPass({SyncStoreResult? initialStore}) {
     if (_disposed) {
       return Future.value(
