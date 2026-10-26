@@ -36,7 +36,9 @@ import 'structured_draft.dart';
 /// is routed through the shared free-text fan-out** ([parseFigureLinesFanOut])
 /// — recognised moves structure into taxonomy figures, and anything the fan-out
 /// cannot canonicalize degrades to an honest [CustomOrigin.importGap] `custom`
-/// (parse-never-fails, never invents structure).
+/// (parse-never-fails, never invents structure). One CC-only retry sits on top:
+/// a missed line with a hyphenated hand (`Left-hand allemande`) is read again
+/// with the bare side (see [_retryHyphenatedHand]).
 
 /// The Caller's Companion figure-text front-end. CC's `(beats) text` body lines
 /// are the user's personal free text and never carry TCB paren/annotation
@@ -44,6 +46,11 @@ import 'structured_draft.dart';
 /// the lowest-precedence tier of the free-text fan-out
 /// ([figureFanOutFrontEnds]: ContraDB > TCB > CC); exposed as its own named,
 /// independently-callable [FigureFrontEnd] so the fan-out can select it by name.
+///
+/// Nothing CC-specific belongs on this front-end: free-text entry, call-button
+/// seeding and the reparse upgrade fan out across it too, so a CC-only reading
+/// placed here would change them. That is why the hyphenated-hand retry
+/// ([_retryHyphenatedHand], #1908) lives in [mapCallersCompanionDance] instead.
 const FigureFrontEnd callersCompanionFigureFrontEnd = canonicalFigureFrontEnd;
 
 /// One free-text body section of a CC dance (e.g. `A1`, `B2`).
@@ -335,8 +342,9 @@ CcDanceMapping mapCallersCompanionDance(
   // (parse-never-fails); a line that is empty after scrubbing yields nothing
   // (nothing to store). The fan-out applies the core `scrubFigureText`
   // chokepoint internally, and the TCB attempt `;`-splits a compound line into
-  // multiple figures. Section labels are NOT embedded in the figure text (they
-  // derive from cumulative beats), so the section label is not prefixed.
+  // multiple figures. A line the fan-out misses gets one more attempt from
+  // [_retryHyphenatedHand]. Section labels are NOT embedded in the figure text
+  // (they derive from cumulative beats), so the section label is not prefixed.
   final figures = <Figure>[];
   for (final section in record.body) {
     for (final rawLine in section.lines) {
@@ -348,7 +356,9 @@ CcDanceMapping mapCallersCompanionDance(
         continue;
       }
       final prefix = splitCcBeatPrefix(line);
-      final produced = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
+      final first = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
+      final produced =
+          _retryHyphenatedHand(prefix.text, prefix.beats, first) ?? first;
       final allocated = _allocateCompoundBeats(produced, prefix.parts);
       lineCache?.remember(line, allocated);
       figures.addAll(allocated);
@@ -476,6 +486,42 @@ Figure _withBeats(Figure figure, int beats) {
     params.remove('beats');
   }
   return figure.copyWith(params: params);
+}
+
+/// One `left-hand`/`right-hand` token, matched case-insensitively. Not one
+/// followed by `diagonal`: `on right-hand diagonal` names a diagonal, not a hand.
+final RegExp _hyphenatedHand = RegExp(
+  r'\b(left|right)-hand\b(?!\s+diagonal\b)',
+  caseSensitive: false,
+);
+
+/// Caller's Companion's catch-all for a hyphenated hand (#1908): re-reads a
+/// body line the fan-out missed with its `<side>-hand` token as the bare side,
+/// so `Left-hand allemande` reads as `Left allemande` does. Returns the retried
+/// figures, or null to keep [first].
+///
+/// Taken only when [first] is a miss (so a line that structures today keeps
+/// its reading and its note's words), the line has exactly one such token, and
+/// the retry is one plain figure with no note whose `hand` is that side. The
+/// hand check is what makes the token a hand: `left circle` reads it as a
+/// direction and `left star promenade` discards it. A note would hold the
+/// rewritten words rather than the line's own.
+///
+/// CC-only by design; see [callersCompanionFigureFrontEnd].
+List<Figure>? _retryHyphenatedHand(String text, int beats, List<Figure> first) {
+  if (first.isEmpty || !first.every((f) => f.isCustom)) return null;
+  final hands = _hyphenatedHand.allMatches(text).take(2).toList();
+  if (hands.length != 1) return null;
+  final hand = hands.single;
+  final side = hand[1]!;
+  final retried = parseFigureLinesFanOut(
+    text.replaceRange(hand.start, hand.end, side),
+    beats: beats,
+  );
+  if (retried.length != 1) return null;
+  final f = retried.single;
+  if (f.isCustom || f.isContainer || f.note != null) return null;
+  return f.params['hand'] == side.toLowerCase() ? retried : null;
 }
 
 (String?, bool) _mapLevel(String? raw, List<ImportIssue> issues) {
