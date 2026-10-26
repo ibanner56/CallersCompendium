@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "With Device Sync on and a large library, the app no longer stutters for a moment as each sync starts and finishes."
+      "With Device Sync on and a large library, the app pauses much less as each sync starts and finishes."
     ]
   }
 }

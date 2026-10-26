@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
@@ -675,7 +676,11 @@ void main() {
       isTrue,
     );
     cache.clear();
-    expect(cache.blobBatchUnsupported, isFalse, reason: 'a new session');
+    expect(
+      cache.blobBatchUnsupported,
+      isFalse,
+      reason: 'clearing the cache, as a new session does, forgets it',
+    );
   });
 
   test('the main isolate refuses a malformed cache as decoding it did, without '
@@ -737,6 +742,47 @@ void main() {
         reason: '$candidate',
       );
     }
+  });
+
+  test('a malformed cache from the worker is refused on both terminal paths, '
+      'and the pre-pass cache kept (#1934)', () async {
+    final appliedKindCalls = <Set<SyncRecordKind>>[];
+    IsolatedSyncPassOperation operation(
+      void Function(Object? request) workerEntryPoint,
+    ) => IsolatedSyncPassOperation(
+      databasePath: 'unused',
+      endpoint: Uri.parse('http://127.0.0.1:1'),
+      syncId: 'alpha-beta-gamma-delta',
+      deviceId: 'device-a',
+      peerManifestCache: SyncPeerManifestCache(rejectedHashes: {'pre-pass'}),
+      onAppliedKinds: appliedKindCalls.add,
+      workerEntryPoint: workerEntryPoint,
+    );
+
+    // A completed pass whose cache is malformed fails, as decoding the cache
+    // here made it, before its applied kinds are reported.
+    final completed = operation(_completeWithMalformedCache);
+    await expectLater(completed.call(), throwsFormatException);
+    expect(appliedKindCalls, isEmpty);
+    expect(completed.peerManifestCache.rejectedHashes, {'pre-pass'});
+
+    // A failed pass's malformed cache is dropped, and its failure and applied
+    // kinds still reach the caller.
+    final failed = operation(_failWithMalformedCache);
+    await expectLater(
+      failed.call(),
+      throwsA(
+        isA<SyncWorkerFailure>()
+            .having((failure) => failure.message, 'message', 'pass failed')
+            .having((failure) => failure.appliedKinds, 'appliedKinds', {
+              SyncRecordKind.setting,
+            }),
+      ),
+    );
+    expect(appliedKindCalls, [
+      {SyncRecordKind.setting},
+    ]);
+    expect(failed.peerManifestCache.rejectedHashes, {'pre-pass'});
   });
 
   test('the session blob cache crosses the isolate and holds a byte cap', () {
@@ -1259,6 +1305,8 @@ void main() {
         markSyncAppliedTablesUpdated(database, kinds);
       },
     );
+    SyncPeerManifestCache.debugManifestBodiesEncoded = 0;
+    SyncPeerManifestCache.debugManifestBodiesDecoded = 0;
     await expectLater(
       operation.call(),
       throwsA(
@@ -1290,6 +1338,9 @@ void main() {
       isTrue,
     );
     expect(changes.current.single.valueJson, jsonEncode('after-first'));
+    // The failed pass's cache was taken in without being decoded here (#1934);
+    // read before the decoding getter below.
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 0);
     // What the failed pass learned was adopted rather than the pre-pass
     // cache kept: the peer manifest it had verified.
     expect(operation.peerManifestCache['peer']?.etag, '"peer-v1"');
@@ -1487,6 +1538,44 @@ void main() {
 
 /// A worker entry point that dies the way a real worker's stray async error
 /// would: thrown outside any `try`, after the entry point has returned.
+/// Posts [message] as a worker's terminal message and waits, as the real
+/// worker does, for the acknowledgement.
+Future<void> _postTerminal(
+  Object? request,
+  Map<String, Object?> message,
+) async {
+  final acknowledgement = ReceivePort();
+  syncPassResultPort(
+    request,
+  ).send({...message, 'ack': acknowledgement.sendPort});
+  await acknowledgement.first;
+  acknowledgement.close();
+}
+
+const _malformedCache = {'_entries': 'not a map'};
+
+void _completeWithMalformedCache(Object? request) => unawaited(
+  _postTerminal(request, {
+    'type': 'result',
+    'result': {
+      'status': 'completed',
+      'appliedKinds': ['setting'],
+      'reports': <Object?>[],
+      '_peerManifestCache': _malformedCache,
+    },
+  }),
+);
+
+void _failWithMalformedCache(Object? request) => unawaited(
+  _postTerminal(request, {
+    'type': 'error',
+    'message': 'pass failed',
+    'failureCause': 'unreachable',
+    'appliedKinds': ['setting'],
+    '_peerManifestCache': _malformedCache,
+  }),
+);
+
 void _crashWithUncaughtError(Object? request) {
   Timer.run(() => throw StateError('uncaught in the worker'));
 }

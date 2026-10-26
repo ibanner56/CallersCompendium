@@ -104,7 +104,11 @@ final class IsolatedSyncPassHandle {
 /// here reads it, and decoding and re-encoding every cached peer manifest
 /// cost the UI thread a visible pause at both ends of every pass (#1934). It
 /// is checked with [SyncPeerManifestCache.checkMessage] on arrival, so a
-/// malformed one is refused exactly where it was when this side decoded it.
+/// malformed one is refused where it was when this side decoded it. Only
+/// whether each manifest body decodes is left to the next worker, and a body
+/// is the worker's own encoding of a manifest it held: one that failed there
+/// would fail that pass, and every pass after it this session, as the held
+/// message would be kept.
 final class IsolatedSyncPassOperation {
   IsolatedSyncPassOperation({
     required this.databasePath,
@@ -350,6 +354,12 @@ final class _SyncPassRequest {
   final Object? peerManifestCache;
   final Map<String, Object?>? initialStore;
 }
+
+/// The port a [IsolatedSyncPassOperation.workerEntryPoint] replacement posts
+/// its terminal message to, from the [request] that entry point received.
+@visibleForTesting
+SendPort syncPassResultPort(Object? request) =>
+    (request! as _SyncPassRequest).resultPort;
 
 void _runSyncPassWorkerEntry(Object? request) =>
     unawaited(_runSyncPassWorker(request! as _SyncPassRequest));
