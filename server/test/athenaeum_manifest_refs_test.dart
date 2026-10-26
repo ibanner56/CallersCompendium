@@ -216,6 +216,25 @@ void main() {
     expect(held(epoch, hash), isFalse);
   });
 
+  int indexRows(String table, String epoch) =>
+      database.select('SELECT COUNT(*) AS n FROM $table WHERE epoch = ?', [
+            epoch,
+          ]).single['n']
+          as int;
+
+  test('deleting the store removes its index rows', () async {
+    final epoch = await createStore();
+    await putManifest(epoch, 'device-one', [await uploadBlob(1)]);
+    expect(indexRows('manifest_refs', epoch), 1);
+    expect(indexRows('indexed_manifests', epoch), 1);
+
+    final deleted = await send('DELETE', '/v1/store');
+    expect(deleted.statusCode, anyOf(200, 204));
+
+    expect(indexRows('manifest_refs', epoch), 0);
+    expect(indexRows('indexed_manifests', epoch), 0);
+  });
+
   test('startup indexes manifests stored before the index existed', () async {
     final epoch = await createStore();
     final named = await uploadBlob(1);
@@ -284,6 +303,15 @@ void main() {
       restarted.collectGarbageForStore(idKeyOf(epoch));
       expect(restarted.blobRef(idKeyOf(epoch), epoch, second), isNotNull);
       expect(restarted.blobRef(idKeyOf(epoch), epoch, first), isNull);
+
+      // An earlier image deleting the manifest leaves index rows behind; the
+      // next start drops them.
+      database.execute('DELETE FROM manifests WHERE device_id = ?', [
+        'device-one',
+      ]);
+      openStore();
+      expect(indexRows('manifest_refs', epoch), 0);
+      expect(indexRows('indexed_manifests', epoch), 0);
     },
   );
 }
