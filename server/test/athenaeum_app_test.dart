@@ -1613,6 +1613,137 @@ void main() {
     );
   }
 
+  // The manifest `PUT` had the same defect (#1925): `StoreEpochMismatch` meant
+  // both "row gone" and "different epoch", and both answered an uncounted 409.
+  // A gone store is now `StoreMissing` and a counted 404; a store recreated
+  // under a new epoch is still the 409 §7.1 reserves.
+  for (final stage in _ManifestStoreLossStage.values) {
+    test('a manifest PUT whose store vanished during ${stage.label} is a '
+        'counted 404', () async {
+      final lostStore = _StoreLosingManifestRow(
+        stage,
+        config: app.config,
+        database: sqlite3.openInMemory(),
+        breakGlassDatabase: sqlite3.openInMemory(),
+        diagnosticDatabase: sqlite3.openInMemory(),
+      );
+      final credential = encodeSyncCredential(syncId);
+      final customApp = _AuthenticatedApp(
+        AthenaeumApp(
+          config: app.config,
+          store: lostStore,
+          budgetLimits: const AthenaeumBudgetLimits(
+            perIpFailureBurst: 2,
+            perIpFailuresPerMinute: 2,
+          ),
+        ),
+        credential,
+      );
+      try {
+        final created = await customApp.call(
+          Request(
+            'POST',
+            Uri.parse('http://127.0.0.1/v1/store'),
+            headers: {'authorization': 'Bearer $credential'},
+          ),
+        );
+        expect(created.statusCode, 201);
+        final epoch =
+            (jsonDecode(await created.readAsString())
+                    as Map<String, Object?>)['epoch']!
+                as String;
+        final bytes = encodeSyncManifestUtf8(
+          SyncManifest(
+            deviceId: 'device-one',
+            epoch: epoch,
+            writtenAt: DateTime.utc(2026, 9, 3),
+            records: const {},
+          ),
+        );
+        Future<Response> upload() => customApp.call(
+          Request(
+            'PUT',
+            Uri.parse('http://127.0.0.1/v1/manifests/device-one'),
+            headers: {
+              'authorization': 'Bearer $credential',
+              'content-type': 'application/json',
+            },
+            body: bytes,
+          ),
+        );
+
+        final first = await upload();
+        expect(
+          first.statusCode,
+          404,
+          reason: 'a vanished store is not a stale epoch',
+        );
+        expect(jsonDecode(await first.readAsString()), {
+          'error': 'store not found',
+        });
+        expect((await upload()).statusCode, 404);
+        expect(
+          (await upload()).statusCode,
+          429,
+          reason: 'the 404 must consume the §5.4 failure budget',
+        );
+      } finally {
+        lostStore.close();
+      }
+    });
+  }
+
+  test('a manifest PUT into a recreated store is still a 409', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final oldEpoch =
+        (jsonDecode(await created.body()) as Map<String, Object?>)['epoch']!
+            as String;
+    expect(
+      (await _send('DELETE', '/v1/store', syncId: syncId)).statusCode,
+      204,
+    );
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final response = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: encodeSyncManifestUtf8(
+        SyncManifest(
+          deviceId: 'device-one',
+          epoch: oldEpoch,
+          writtenAt: DateTime.utc(2026, 9, 3),
+          records: const {},
+        ),
+      ),
+      contentType: 'application/json',
+    );
+    expect(response.statusCode, 409);
+  });
+
+  test('the store raises StoreMissing for a gone row, not a mismatch', () {
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    expect(
+      () => app.store.manifestUploadPreflight(
+        idKey: idKey,
+        epoch: 'a' * 32,
+        deviceId: 'device-one',
+      ),
+      throwsA(isA<StoreMissing>()),
+    );
+    expect(
+      () => app.store.putManifest(
+        idKey: idKey,
+        epoch: 'a' * 32,
+        deviceId: 'device-one',
+        etag: 'e',
+        writtenAt: 0,
+        body: Uint8List(0),
+        referencedHashes: const [],
+      ),
+      throwsA(isA<StoreMissing>()),
+    );
+  });
+
   test('no blob route answers 409', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final bytes = _recordBlob(
@@ -3254,6 +3385,64 @@ class _StoreLosingItsRow extends AthenaeumStore {
   }) => stage == _BlobStoreLossStage.write
       ? throw const StoreEpochMismatch()
       : super.putBlob(idKey: idKey, epoch: epoch, hash: hash, body: body);
+}
+
+/// Which step of the manifest `PUT` loses the store row underneath it; both
+/// raise [StoreMissing] from the real store's method, as a concurrent
+/// `DELETE /v1/store` or sweep reap would (see [_BlobStoreLossStage]).
+enum _ManifestStoreLossStage {
+  quotaPreflight('the quota preflight'),
+  write('the write');
+
+  const _ManifestStoreLossStage(this.label);
+
+  final String label;
+}
+
+class _StoreLosingManifestRow extends AthenaeumStore {
+  _StoreLosingManifestRow(
+    this.stage, {
+    required super.config,
+    required super.database,
+    required super.breakGlassDatabase,
+    required super.diagnosticDatabase,
+  });
+
+  final _ManifestStoreLossStage stage;
+
+  @override
+  int manifestUploadPreflight({
+    required String idKey,
+    required String epoch,
+    required String deviceId,
+  }) => stage == _ManifestStoreLossStage.quotaPreflight
+      ? throw const StoreMissing()
+      : super.manifestUploadPreflight(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: deviceId,
+        );
+
+  @override
+  bool putManifest({
+    required String idKey,
+    required String epoch,
+    required String deviceId,
+    required String etag,
+    required int writtenAt,
+    required Uint8List body,
+    required Iterable<String> referencedHashes,
+  }) => stage == _ManifestStoreLossStage.write
+      ? throw const StoreMissing()
+      : super.putManifest(
+          idKey: idKey,
+          epoch: epoch,
+          deviceId: deviceId,
+          etag: etag,
+          writtenAt: writtenAt,
+          body: body,
+          referencedHashes: referencedHashes,
+        );
 }
 
 Uint8List _recordBlob({
