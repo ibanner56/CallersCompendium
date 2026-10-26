@@ -1989,6 +1989,42 @@ class SyncCoordinator {
       await store.retireAliases(peerAddresses: peerAddresses);
     }
 
+    // Only a missing peer *manifest* aborts the attach. There the union is
+    // incomplete for every record that peer holds, and nothing downstream can
+    // tell which those are, so persisting an epoch would baseline a library
+    // whose shape this device has never seen.
+    //
+    // A per-record failure is not that. §6.2 step 4 says inbound rejection
+    // "applies here as in steady state", and §6.3 step 5, §6.5 and §6.9 all
+    // specify one record skipped with the batch left intact. Failing the whole
+    // pass instead was unrecoverable rather than merely strict: the epoch is
+    // persisted only at the end, so every later trigger repeated the attach and
+    // failed identically until the condition cleared on the *other* device. One
+    // blob its manifest outlived (§7.3), or one peer on an older build whose
+    // body this device refuses as non-canonical, could keep a new device from
+    // ever attaching. `normalizedUnresolved` still flows into the merge's
+    // `unresolved` set, which skips exactly those addresses and leaves their
+    // reports standing.
+    //
+    // The check precedes the downloads because it needs none of them: it reads
+    // only `allPeerManifestsAvailable`, which is final once the manifests are
+    // fetched, and a failing attach discards whatever it downloaded. Tested
+    // after them, every re-run (app start, foreground, debounce) paid for the
+    // whole library from the readable peers and threw it away.
+    if (freshAttach && !allPeerManifestsAvailable) {
+      return SyncPassResult(
+        SyncPassStatus.failed,
+        reports: reports.reports,
+        message:
+            'fresh attach requires every peer manifest', // i18n-ignore: internal status
+        failure: SyncFailure(
+          SyncFailureCause.peerUnavailable,
+          step: SyncFailureStep.download,
+          statusCode: unavailableManifestStatus,
+        ),
+      );
+    }
+
     // Every blob this device can build from what it holds needs no download,
     // not only those it publishes: a blob is addressed by the hash of its
     // bytes, so a peer's copy with the same hash is this one. Publication
@@ -2089,36 +2125,6 @@ class SyncCoordinator {
     normalizedUnresolved.addAll(
       normalizedRejectedPeerAddresses.difference(normalizedPeerAddresses),
     );
-    // Only a missing peer *manifest* aborts the attach. There the union is
-    // incomplete for every record that peer holds, and nothing downstream can
-    // tell which those are, so persisting an epoch would baseline a library
-    // whose shape this device has never seen.
-    //
-    // A per-record failure is not that. §6.2 step 4 says inbound rejection
-    // "applies here as in steady state", and §6.3 step 5, §6.5 and §6.9 all
-    // specify one record skipped with the batch left intact. Failing the whole
-    // pass instead was unrecoverable rather than merely strict: the epoch is
-    // persisted only at the end, so every later trigger repeated the attach and
-    // failed identically until the condition cleared on the *other* device. One
-    // blob its manifest outlived (§7.3), or one peer on an older build whose
-    // body this device refuses as non-canonical, could keep a new device from
-    // ever attaching. `normalizedUnresolved` still flows into the merge's
-    // `unresolved` set, which skips exactly those addresses and leaves their
-    // reports standing.
-    if (freshAttach && !allPeerManifestsAvailable) {
-      return SyncPassResult(
-        SyncPassStatus.failed,
-        reports: reports.reports,
-        message:
-            'fresh attach requires every peer manifest', // i18n-ignore: internal status
-        failure: SyncFailure(
-          SyncFailureCause.peerUnavailable,
-          step: SyncFailureStep.download,
-          statusCode: unavailableManifestStatus,
-        ),
-      );
-    }
-
     final repairCandidates = <SyncMergeCandidate>[];
     final quarantinedLocal = <SyncRecordAddress>{};
     final repairLocal = <SyncRecordAddress, SyncMergeCandidate?>{
