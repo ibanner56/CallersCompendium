@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         TransactionExecutor;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqlite3/sqlite3.dart' show SqliteException, sqlite3;
 
 import '../support/test_repositories.dart';
 
@@ -536,11 +537,13 @@ void main() {
     // Independence from N cannot see a helper that loads twice per call, which
     // is still a constant. The count for this pass is exactly one load per
     // `_normalize*` / `_resolveReferenceAliases` call it makes, plus the one
-    // the merge plan reads to compare references by the records they name
-    // (15 on an empty peer manifest). A pass that gains or loses a
-    // normalisation step changes it deliberately; update the number with the
-    // step, never to absorb an extra load inside a helper.
-    expect(few, 15);
+    // the merge plan reads to compare references by the records they name,
+    // and the two the publication build reads to tell whether an alias
+    // changed while it ran outside the write lock (17 on an empty peer
+    // manifest). A pass that gains or loses a normalisation step changes it
+    // deliberately; update the number with the step, never to absorb an
+    // extra load inside a helper.
+    expect(few, 17);
   });
 
   group('baseline rows a pass writes (spec §6.3 step 9, #1948)', () {
@@ -3290,6 +3293,8 @@ void main() {
           local: {first.address: snapshotNumber == 1 ? first : second},
           baseline: const {},
         ),
+        // The setting is in the library throughout, as every snapshot has it.
+        currentCandidatesBuilder: () => {first.address: second},
       );
       final transport = _FakeTransport(storeReadGate: firstStoreRead);
       final coordinator = SyncCoordinator(
@@ -3438,15 +3443,160 @@ void main() {
     );
   }
 
+  // The publication build scans outside the write lock, so a hard delete can
+  // land on either side of the transaction that writes its markers. Either
+  // way the invariant holds: a record the manifest names is never hard-deleted.
+  // Before its marker, the record reads as never published and the delete
+  // goes through, so the build is redone under the lock and leaves it out.
+  // After it, the delete reads the marker and tombstones instead.
   for (final entry in const {
     'dance': SyncRecordKind.dance,
     'program': SyncRecordKind.program,
   }.entries) {
+    for (final afterMarker in const [false, true]) {
+      test(
+        afterMarker
+            ? 'tombstones a ${entry.key} hard-deleted after its marker'
+            : 'leaves out a ${entry.key} hard-deleted between the scan and '
+                  'its marker',
+        () async {
+          final directory = await Directory.systemTemp.createTemp(
+            'publication-marker-race-',
+          );
+          final databaseFile = File('${directory.path}/test.sqlite');
+          final writerDatabase = CompendiumDatabase(
+            NativeDatabase(databaseFile, setup: applyCompendiumSqliteSetup),
+            closeStreamsSynchronously: true,
+          );
+          final deleteTransactionGate = _TransactionStartGate();
+          final deletingDatabase = CompendiumDatabase(
+            NativeDatabase.createInBackground(
+              databaseFile,
+              setup: applyCompendiumSqliteSetup,
+            ).interceptWith(deleteTransactionGate),
+            closeStreamsSynchronously: true,
+          );
+          final repositories = CompendiumRepositories(
+            writerDatabase,
+            contraTaxonomy,
+          );
+          final deletingRepositories = CompendiumRepositories(
+            deletingDatabase,
+            contraTaxonomy,
+          );
+          addTearDown(() async {
+            await writerDatabase.close();
+            await deletingDatabase.close();
+            if (await directory.exists()) {
+              await directory.delete(recursive: true);
+            }
+          });
+
+          final stamp = DateTime.utc(2026, 7, 15, 12);
+          final recordId = 'publication-marker-race-${entry.key}';
+          if (entry.value == SyncRecordKind.dance) {
+            await repositories.dances.create(
+              Dance(
+                id: recordId,
+                title: 'Publication marker race dance',
+                createdAt: stamp,
+                updatedAt: stamp,
+              ),
+            );
+            expect(
+              await deletingRepositories.dances.getById(recordId),
+              isNotNull,
+            );
+          } else {
+            await repositories.programs.create(
+              Program(
+                id: recordId,
+                title: 'Publication marker race program',
+                createdAt: stamp,
+                updatedAt: stamp,
+              ),
+            );
+            expect(
+              await deletingRepositories.programs.getById(recordId),
+              isNotNull,
+            );
+          }
+          await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+          deleteTransactionGate.arm();
+
+          late Future<void> deleteFuture;
+          final store = _SnapshotInterleavingStore(
+            CompendiumSyncCoordinatorStore(repositories),
+            afterFinalSnapshot: () async {
+              deleteFuture = entry.value == SyncRecordKind.dance
+                  ? deletingRepositories.dances.hardDelete([recordId])
+                  : deletingRepositories.programs.hardDelete([recordId]);
+              await deleteTransactionGate.started;
+            },
+            afterTransaction: () async {
+              deleteTransactionGate.release();
+              await deleteFuture;
+            },
+            afterNextTransaction: afterMarker,
+          );
+          final transport = _FakeTransport();
+          final coordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'device-a',
+            store: store,
+            transport: transport,
+          );
+
+          final result = await coordinator.syncNow();
+          await deleteFuture;
+
+          expect(result.status, SyncPassStatus.completed);
+          final Object? retained = entry.value == SyncRecordKind.dance
+              ? await deletingRepositories.dances.getById(
+                  recordId,
+                  includeDeleted: true,
+                )
+              : await deletingRepositories.programs.getById(
+                  recordId,
+                  includeDeleted: true,
+                );
+          final deletedAt = switch (retained) {
+            Dance(:final deletedAt) => deletedAt,
+            Program(:final deletedAt) => deletedAt,
+            _ => null,
+          };
+          final manifest = decodeSyncManifest(
+            utf8.decode(transport.manifestBodies.single),
+          );
+          final named = manifest.records[entry.value]?[recordId];
+          if (afterMarker) {
+            expect(retained, isNotNull);
+            expect(deletedAt, isNotNull);
+            expect(named, isNotNull);
+            expect(store.snapshotCalls, 2);
+          } else {
+            // Gone with no tombstone, so the manifest must not offer it: a peer
+            // that took it would hand it back to the next pass.
+            expect(retained, isNull);
+            expect(named, isNull);
+            // The build that saw it was dropped and redone under the lock.
+            expect(store.snapshotCalls, 3);
+          }
+        },
+      );
+    }
+  }
+
+  for (final afterMarker in const [false, true]) {
     test(
-      'protects a ${entry.key} from hard-delete between snapshot and marker',
+      afterMarker
+          ? 'tombstones an FK dependent of a fallback root hard-deleted after '
+                'its marker'
+          : 'leaves out an FK dependent of a fallback root hard-deleted between '
+                'the scan and its marker',
       () async {
         final directory = await Directory.systemTemp.createTemp(
-          'publication-marker-race-',
+          'fallback-publication-marker-race-',
         );
         final databaseFile = File('${directory.path}/test.sqlite');
         final writerDatabase = CompendiumDatabase(
@@ -3478,50 +3628,62 @@ void main() {
         });
 
         final stamp = DateTime.utc(2026, 7, 15, 12);
-        final recordId = 'publication-marker-race-${entry.key}';
-        if (entry.value == SyncRecordKind.dance) {
-          await repositories.dances.create(
-            Dance(
-              id: recordId,
-              title: 'Publication marker race dance',
-              createdAt: stamp,
-              updatedAt: stamp,
+        final rootId = 'fallback-publication-race-dance';
+        final dependentId = 'fallback-publication-race-program';
+        final fallbackHash = _hash('a');
+        await repositories.dances.create(
+          Dance(
+            id: rootId,
+            title: 'Fallback publication race dance',
+            createdAt: stamp,
+            updatedAt: stamp.add(const Duration(hours: 25)),
+          ),
+        );
+        await repositories.programs.create(
+          Program(
+            id: dependentId,
+            title: 'Fallback publication race program',
+            slots: [
+              ProgramSlot(
+                id: 'fallback-race-slot',
+                position: 0,
+                danceId: rootId,
+              ),
+            ],
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        );
+        await repositories.syncLocal.resetEpoch(
+          epoch: 'epoch-1',
+          entries: [
+            SyncBaselineEntry(
+              kind: SyncRecordKind.dance,
+              recordId: rootId,
+              wireHash: fallbackHash,
             ),
-          );
-          expect(
-            await deletingRepositories.dances.getById(recordId),
-            isNotNull,
-          );
-        } else {
-          await repositories.programs.create(
-            Program(
-              id: recordId,
-              title: 'Publication marker race program',
-              createdAt: stamp,
-              updatedAt: stamp,
-            ),
-          );
-          expect(
-            await deletingRepositories.programs.getById(recordId),
-            isNotNull,
-          );
-        }
-        await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+          ],
+        );
+        expect(
+          await deletingRepositories.programs.getById(dependentId),
+          isNotNull,
+        );
         deleteTransactionGate.arm();
 
         late Future<void> deleteFuture;
         final store = _SnapshotInterleavingStore(
           CompendiumSyncCoordinatorStore(repositories),
           afterFinalSnapshot: () async {
-            deleteFuture = entry.value == SyncRecordKind.dance
-                ? deletingRepositories.dances.hardDelete([recordId])
-                : deletingRepositories.programs.hardDelete([recordId]);
+            deleteFuture = deletingRepositories.programs.hardDelete([
+              dependentId,
+            ]);
             await deleteTransactionGate.started;
           },
           afterTransaction: () async {
             deleteTransactionGate.release();
             await deleteFuture;
           },
+          afterNextTransaction: afterMarker,
         );
         final transport = _FakeTransport();
         final coordinator = SyncCoordinator(
@@ -3529,153 +3691,202 @@ void main() {
           deviceId: 'device-a',
           store: store,
           transport: transport,
+          now: () => stamp,
         );
 
         final result = await coordinator.syncNow();
         await deleteFuture;
 
         expect(result.status, SyncPassStatus.completed);
-        final DateTime? deletedAt;
-        if (entry.value == SyncRecordKind.dance) {
-          final retained = await deletingRepositories.dances.getById(
-            recordId,
-            includeDeleted: true,
-          );
-          expect(retained, isNotNull);
-          deletedAt = retained?.deletedAt;
-        } else {
-          final retained = await deletingRepositories.programs.getById(
-            recordId,
-            includeDeleted: true,
-          );
-          expect(retained, isNotNull);
-          deletedAt = retained?.deletedAt;
-        }
-        expect(deletedAt, isNotNull);
-        expect(store.snapshotCalls, 2);
+        final retained = await deletingRepositories.programs.getById(
+          dependentId,
+          includeDeleted: true,
+        );
         final manifest = decodeSyncManifest(
           utf8.decode(transport.manifestBodies.single),
         );
-        expect(manifest.records[entry.value]?[recordId], isNotNull);
+        expect(manifest.records[SyncRecordKind.dance]?[rootId], fallbackHash);
+        final named = manifest.records[SyncRecordKind.program]?[dependentId];
+        if (afterMarker) {
+          expect(retained, isNotNull);
+          expect(retained?.deletedAt, isNotNull);
+          expect(named, isNotNull);
+          expect(store.snapshotCalls, 2);
+        } else {
+          expect(retained, isNull);
+          expect(named, isNull);
+          expect(store.snapshotCalls, 3);
+        }
       },
     );
   }
 
-  test(
-    'protects a fallback root and FK dependent from hard-delete during probing',
-    () async {
+  // Every pass builds what it publishes, idle passes included, and that build
+  // scans the whole library. It once ran inside the transaction that writes
+  // the publication markers, which drift opens `BEGIN IMMEDIATE`, so every app
+  // save waited for the scan once a pass (#1915 moved `snapshot()`'s own scan
+  // out of the write lock, but not this caller's).
+  group('the publication build scans outside the write lock', () {
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+
+    /// Runs one pass on a worker connection, with [duringScan] run from the
+    /// app's own connection while the publication build's scan is paused.
+    /// Returns the pass, the store, and whether a connection that will not
+    /// wait could write at that moment (null if it could).
+    Future<
+      ({
+        SyncPassResult result,
+        _SnapshotInterleavingStore store,
+        Object? lockHeld,
+      })
+    >
+    passWithPausedScan(
+      Future<void> Function(CompendiumRepositories app) duringScan,
+    ) async {
       final directory = await Directory.systemTemp.createTemp(
-        'fallback-publication-marker-race-',
+        'publication-scan-lock-',
       );
       final databaseFile = File('${directory.path}/test.sqlite');
-      final writerDatabase = CompendiumDatabase(
-        NativeDatabase(databaseFile, setup: applyCompendiumSqliteSetup),
+      final pause = _PauseOnProgramsRead();
+      final workerDatabase = CompendiumDatabase(
+        NativeDatabase(
+          databaseFile,
+          setup: applyCompendiumSqliteSetup,
+        ).interceptWith(pause),
         closeStreamsSynchronously: true,
       );
-      final deleteTransactionGate = _TransactionStartGate();
-      final deletingDatabase = CompendiumDatabase(
+      // In the background, as the app's connection is: a busy wait on this
+      // isolate would also stall the scan it is waiting for.
+      final appDatabase = CompendiumDatabase(
         NativeDatabase.createInBackground(
           databaseFile,
           setup: applyCompendiumSqliteSetup,
-        ).interceptWith(deleteTransactionGate),
+        ),
         closeStreamsSynchronously: true,
       );
       final repositories = CompendiumRepositories(
-        writerDatabase,
+        workerDatabase,
         contraTaxonomy,
       );
-      final deletingRepositories = CompendiumRepositories(
-        deletingDatabase,
+      final appRepositories = CompendiumRepositories(
+        appDatabase,
         contraTaxonomy,
       );
       addTearDown(() async {
-        await writerDatabase.close();
-        await deletingDatabase.close();
+        await workerDatabase.close();
+        await appDatabase.close();
         if (await directory.exists()) {
           await directory.delete(recursive: true);
         }
       });
 
-      final stamp = DateTime.utc(2026, 7, 15, 12);
-      final rootId = 'fallback-publication-race-dance';
-      final dependentId = 'fallback-publication-race-program';
-      final fallbackHash = _hash('a');
-      await repositories.dances.create(
-        Dance(
-          id: rootId,
-          title: 'Fallback publication race dance',
-          createdAt: stamp,
-          updatedAt: stamp.add(const Duration(hours: 25)),
-        ),
-      );
-      await repositories.programs.create(
-        Program(
-          id: dependentId,
-          title: 'Fallback publication race program',
-          slots: [
-            ProgramSlot(id: 'fallback-race-slot', position: 0, danceId: rootId),
-          ],
-          createdAt: stamp,
-          updatedAt: stamp,
-        ),
-      );
-      await repositories.syncLocal.resetEpoch(
-        epoch: 'epoch-1',
-        entries: [
-          SyncBaselineEntry(
-            kind: SyncRecordKind.dance,
-            recordId: rootId,
-            wireHash: fallbackHash,
-          ),
-        ],
-      );
-      expect(
-        await deletingRepositories.programs.getById(dependentId),
-        isNotNull,
-      );
-      deleteTransactionGate.arm();
+      for (final id in ['t1', 't2']) {
+        // ignore: unused_result
+        await repositories.tags.upsert(
+          Tag(id: id, name: id),
+          at: stamp,
+        );
+      }
+      await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
 
-      late Future<void> deleteFuture;
+      Object? lockHeld;
+      Object? appFailed;
+      var appDone = false;
       final store = _SnapshotInterleavingStore(
         CompendiumSyncCoordinatorStore(repositories),
-        afterFinalSnapshot: () async {
-          deleteFuture = deletingRepositories.programs.hardDelete([
-            dependentId,
-          ]);
-          await deleteTransactionGate.started;
+        // The pass's first snapshot is the merge's; its second, the
+        // publication build's.
+        beforeSnapshot: (number) {
+          if (number != 2) return;
+          pause.arm(() async {
+            // Deterministic, whatever the machine's speed: a connection that
+            // will not wait (busy_timeout 0) writes at once. Under
+            // `BEGIN IMMEDIATE` the worker holds the write lock and this
+            // throws SQLITE_BUSY.
+            final probe = sqlite3.open(databaseFile.path);
+            try {
+              probe.execute(
+                "UPDATE tags SET name = 'probe' WHERE id = 'no-such-tag'",
+              );
+            } on SqliteException catch (error) {
+              lockHeld = error;
+              return;
+            } finally {
+              probe.close();
+            }
+            // And the app's own write, through its own connection, completes
+            // while the scan is still paused.
+            try {
+              await duringScan(
+                appRepositories,
+              ).timeout(const Duration(seconds: 5));
+              appDone = true;
+            } on Object catch (error) {
+              appFailed = error;
+            }
+          });
         },
-        afterTransaction: () async {
-          deleteTransactionGate.release();
-          await deleteFuture;
-        },
+        afterFinalSnapshot: () async {},
+        afterTransaction: () async {},
       );
-      final transport = _FakeTransport();
       final coordinator = SyncCoordinator(
         syncId: 'configured',
         deviceId: 'device-a',
         store: store,
-        transport: transport,
-        now: () => stamp,
+        transport: _FakeTransport(),
       );
+      addTearDown(coordinator.dispose);
 
       final result = await coordinator.syncNow();
-      await deleteFuture;
 
-      expect(result.status, SyncPassStatus.completed);
-      final retained = await deletingRepositories.programs.getById(
-        dependentId,
-        includeDeleted: true,
+      expect(pause.paused, isTrue, reason: 'the scan never reached the pause');
+      if (lockHeld == null) {
+        expect(appFailed, isNull);
+        expect(appDone, isTrue);
+      }
+      return (result: result, store: store, lockHeld: lockHeld);
+    }
+
+    test(
+      'an app save during the scan commits without waiting for it',
+      () async {
+        final run = await passWithPausedScan(
+          (app) => app.tags.upsert(
+            Tag(id: 't1', name: 'Edited in the app'),
+            at: stamp.add(const Duration(minutes: 5)),
+          ),
+        );
+
+        expect(
+          run.lockHeld,
+          isNull,
+          reason: 'the publication scan holds the write lock',
+        );
+        expect(run.result.status, SyncPassStatus.completed);
+        // The save edited a record the build would mark, and did not delete
+        // it: the build is kept, not redone under the lock.
+        expect(run.store.snapshotCalls, 2);
+      },
+    );
+
+    // The build resolves aliases against a later view than its scan's, and
+    // `remapIdentity` carries a marker onto the survivor only if the loser was
+    // already marked. So an alias recorded while the scan ran sends the build
+    // back under the lock, though every record it named is still there.
+    test('an alias recorded during the scan rebuilds under the lock', () async {
+      final run = await passWithPausedScan(
+        (app) => app.syncLocal.remapIdentity(
+          kind: SyncRecordKind.tag,
+          losingId: 't1',
+          survivingId: 't2',
+        ),
       );
-      expect(retained, isNotNull);
-      expect(retained?.deletedAt, isNotNull);
-      expect(store.snapshotCalls, 2);
-      final manifest = decodeSyncManifest(
-        utf8.decode(transport.manifestBodies.single),
-      );
-      expect(manifest.records[SyncRecordKind.dance]?[rootId], fallbackHash);
-      expect(manifest.records[SyncRecordKind.program]?[dependentId], isNotNull);
-    },
-  );
+
+      expect(run.lockHeld, isNull);
+      expect(run.result.status, SyncPassStatus.completed);
+      expect(run.store.snapshotCalls, 3);
+    });
+  });
 
   test(
     'retains the record marker without marking the sync used on upload failure',
@@ -8492,11 +8703,21 @@ final class _SnapshotInterleavingStore
     this._delegate, {
     required this.afterFinalSnapshot,
     required this.afterTransaction,
+    this.afterNextTransaction = false,
+    this.beforeSnapshot,
   });
+
+  /// Called with the snapshot's 1-based number before each snapshot starts.
+  final void Function(int number)? beforeSnapshot;
 
   final CompendiumSyncCoordinatorStore _delegate;
   final Future<void> Function() afterFinalSnapshot;
   final Future<void> Function() afterTransaction;
+
+  /// Runs [afterTransaction] once the next transaction commits, although the
+  /// second snapshot ran outside one: for the publication build, that is the
+  /// transaction that writes its markers.
+  final bool afterNextTransaction;
   int snapshotCalls = 0;
   bool _interleavingStarted = false;
   int _activeTransactions = 0;
@@ -8504,16 +8725,17 @@ final class _SnapshotInterleavingStore
 
   @override
   Future<SyncCoordinatorSnapshot> snapshot() async {
+    beforeSnapshot?.call(snapshotCalls + 1);
     final snapshot = await _delegate.snapshot();
     snapshotCalls++;
     if (snapshotCalls == 2 && !_interleavingStarted) {
       _interleavingStarted = true;
-      final publicationTransactionActive = _activeTransactions > 0;
-      if (publicationTransactionActive) {
+      final deferred = _activeTransactions > 0 || afterNextTransaction;
+      if (deferred) {
         _publicationTransactionPending = true;
       }
       await afterFinalSnapshot();
-      if (!publicationTransactionActive) {
+      if (!deferred) {
         await afterTransaction();
       }
     }
@@ -8538,6 +8760,16 @@ final class _SnapshotInterleavingStore
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) =>
       _delegate.markPublished(records);
+
+  @override
+  Future<Set<SyncRecordAddress>> unpublished(
+    Iterable<SyncRecordAddress> records,
+  ) => _delegate.unpublished(records);
+
+  @override
+  Future<Set<SyncRecordAddress>> existingRecords(
+    Set<SyncRecordAddress> records,
+  ) => _delegate.existingRecords(records);
 
   @override
   Future<void> markPublicationAttempt({
@@ -8683,6 +8915,31 @@ final class _SnapshotInterleavingStore
   @override
   Future<void> clearReconciliationContext() =>
       _delegate.clearReconciliationContext();
+}
+
+/// Runs [onPause] once, the first time its connection reads the programs
+/// table after [arm], and holds that read until it completes. The snapshot
+/// scan reads the dances, then the programs, then the tags.
+final class _PauseOnProgramsRead extends QueryInterceptor {
+  Future<void> Function()? _onPause;
+  var paused = false;
+
+  void arm(Future<void> Function() onPause) => _onPause = onPause;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    final onPause = _onPause;
+    if (onPause != null && statement.contains('FROM "programs"')) {
+      _onPause = null;
+      paused = true;
+      await onPause();
+    }
+    return super.runSelect(executor, statement, args);
+  }
 }
 
 final class _TransactionStartGate extends QueryInterceptor {
@@ -8880,6 +9137,19 @@ final class _FakeStore implements SyncCoordinatorStore {
         publishedRecords.add(address);
       }
     }
+  }
+
+  @override
+  Future<Set<SyncRecordAddress>> unpublished(
+    Iterable<SyncRecordAddress> records,
+  ) async => records.toSet().difference(publishedRecords.toSet());
+
+  @override
+  Future<Set<SyncRecordAddress>> existingRecords(
+    Set<SyncRecordAddress> records,
+  ) async {
+    final current = currentCandidatesBuilder?.call() ?? local;
+    return records.where(current.containsKey).toSet();
   }
 
   @override

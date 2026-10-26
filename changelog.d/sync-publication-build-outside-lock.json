@@ -1,0 +1,10 @@
+{
+  "id": "sync-publication-build-outside-lock",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "`CompendiumSyncStorage.existingRecords` reports which of a set of sync records still have a row, live or tombstoned, reading ids alone.",
+      "`SyncLocalRepository.publishedAmong` reports which of a set of sync records carry a publication marker, read by key."
+    ]
+  }
+}

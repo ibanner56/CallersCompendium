@@ -3810,8 +3810,39 @@ delete them. It first re-checks each one against the library as it stands then:
 still kept, not pending, not a record the snapshot would publish
 (`currentCandidates`), not an unreadable dance it withholds. So an edit that
 lands between the scan and the sweep (a private custom field made shareable
-again, say) keeps what it needs. Called inside an open transaction, as conflict
-resolution calls it, all three phases run in that transaction.
+again, say) keeps what it needs. Called inside an open transaction, all three
+phases run in that transaction, scan included, and hold the write lock for its
+length. Two callers do that: conflict resolution (`resolveConflicts`,
+`reconsiderConflicts`), and the publication build below, in the rare pass that
+has to redo it.
+
+**The publication build scans outside the write lock too.** Every pass, idle
+ones included, builds what it will publish from a fresh snapshot and records
+each address that manifest names in `published_records` before any publication
+request (step 7). The build and the markers once shared one transaction, so the
+pass held the write lock for a whole-library scan whatever `snapshot()` did on
+its own. The build now runs first, outside any transaction, and a short one
+writes the markers after checking that the build is still safe to mark:
+
+- every address it would mark for the first time still has a row, live or
+  tombstoned, read by id alone (`existingRecords`). Until its marker is
+  written a record reads as never published and may be hard-deleted with no
+  tombstone (sync-spec §3.2); one that went that way after the scan would be
+  named by the manifest with nothing local to answer it, and the next pass
+  would download it back. A record already marked needs no check: a marker is
+  never removed, so a hard delete reads it whenever it lands.
+- no alias was recorded or rewritten since the build began: the alias table is
+  read before the scan and again under the lock. The build resolves aliases
+  against a later view than the scan's, and `remapIdentity` carries a marker
+  onto the surviving id only if the losing one already had it.
+
+When either check fails, the build is redone inside the marking transaction,
+scan and all, as every pass once did. That pass keeps the old wait, and only a
+hard delete or an alias change inside the window causes it. On an idle pass
+every address is already marked, so the lock covers the alias table and a keyed
+read of the markers, not the library. A pass that publishes records for the
+first time, the first after an attach above all, also reads those records' ids
+under it, but not their contents.
 
 **A pass's later snapshots reuse what did not change.** The scan still hydrates
 every record, but a `CompendiumSyncStorage` built with `memoizeSnapshots`
