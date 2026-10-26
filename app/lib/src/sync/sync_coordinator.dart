@@ -1587,7 +1587,8 @@ class SyncCoordinator {
       try {
         await inFlight;
       } on Object {
-        // Logged by [_watch]; only the pass's end matters here.
+        // diagnostics: silent — [_watch] already logged this pass's failure;
+        // only its end matters here.
       }
     }
   }
