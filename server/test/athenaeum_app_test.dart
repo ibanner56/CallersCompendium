@@ -1622,6 +1622,7 @@ void main() {
         'counted 404', () async {
       final lostStore = _StoreLosingManifestRow(
         stage,
+        const StoreMissing(),
         config: app.config,
         database: sqlite3.openInMemory(),
         breakGlassDatabase: sqlite3.openInMemory(),
@@ -1693,6 +1694,86 @@ void main() {
     });
   }
 
+  // The store-raised mismatch is the 409 §7.1 reserves. Unlike the vanished
+  // store it is a reset the client must see, not an unresolved-store request,
+  // so it answers directly and is NOT charged to the failure budget: a third
+  // request with a burst of 2 is still a 409, not a 429.
+  for (final stage in _ManifestStoreLossStage.values) {
+    test(
+      'a manifest PUT whose epoch is stale at ${stage.label} is an uncounted '
+      '409',
+      () async {
+        final staleStore = _StoreLosingManifestRow(
+          stage,
+          const StoreEpochMismatch(),
+          config: app.config,
+          database: sqlite3.openInMemory(),
+          breakGlassDatabase: sqlite3.openInMemory(),
+          diagnosticDatabase: sqlite3.openInMemory(),
+        );
+        final credential = encodeSyncCredential(syncId);
+        final customApp = _AuthenticatedApp(
+          AthenaeumApp(
+            config: app.config,
+            store: staleStore,
+            budgetLimits: const AthenaeumBudgetLimits(
+              perIpFailureBurst: 2,
+              perIpFailuresPerMinute: 2,
+            ),
+          ),
+          credential,
+        );
+        try {
+          final created = await customApp.call(
+            Request(
+              'POST',
+              Uri.parse('http://127.0.0.1/v1/store'),
+              headers: {'authorization': 'Bearer $credential'},
+            ),
+          );
+          expect(created.statusCode, 201);
+          final epoch =
+              (jsonDecode(await created.readAsString())
+                      as Map<String, Object?>)['epoch']!
+                  as String;
+          final bytes = encodeSyncManifestUtf8(
+            SyncManifest(
+              deviceId: 'device-one',
+              epoch: epoch,
+              writtenAt: DateTime.utc(2026, 9, 3),
+              records: const {},
+            ),
+          );
+          Future<Response> upload() => customApp.call(
+            Request(
+              'PUT',
+              Uri.parse('http://127.0.0.1/v1/manifests/device-one'),
+              headers: {
+                'authorization': 'Bearer $credential',
+                'content-type': 'application/json',
+              },
+              body: bytes,
+            ),
+          );
+
+          final first = await upload();
+          expect(first.statusCode, 409);
+          expect(jsonDecode(await first.readAsString()), {
+            'error': 'stale manifest epoch',
+          });
+          expect((await upload()).statusCode, 409);
+          expect((await upload()).statusCode, 409);
+        } finally {
+          staleStore.close();
+        }
+      },
+    );
+  }
+
+  // Pins the handler's own body-epoch check (`manifest.epoch != current.epoch`),
+  // which a recreated store reaches before the store is called. The
+  // store-raised mismatch at the two catches is pinned by the injection tests
+  // above.
   test('a manifest PUT into a recreated store is still a 409', () async {
     final created = await _send('POST', '/v1/store', syncId: syncId);
     final oldEpoch =
@@ -3387,9 +3468,11 @@ class _StoreLosingItsRow extends AthenaeumStore {
       : super.putBlob(idKey: idKey, epoch: epoch, hash: hash, body: body);
 }
 
-/// Which step of the manifest `PUT` loses the store row underneath it; both
-/// raise [StoreMissing] from the real store's method, as a concurrent
-/// `DELETE /v1/store` or sweep reap would (see [_BlobStoreLossStage]).
+/// Which step of the manifest `PUT` the store fails at. The wrapper raises
+/// [StoreMissing] (a concurrent `DELETE /v1/store` or sweep reap) or
+/// [StoreEpochMismatch] (the store recreated under a new epoch) from the real
+/// store's method, since only injection can sit in the window after the
+/// handler's own lookup (see [_BlobStoreLossStage]).
 enum _ManifestStoreLossStage {
   quotaPreflight('the quota preflight'),
   write('the write');
@@ -3401,7 +3484,8 @@ enum _ManifestStoreLossStage {
 
 class _StoreLosingManifestRow extends AthenaeumStore {
   _StoreLosingManifestRow(
-    this.stage, {
+    this.stage,
+    this.error, {
     required super.config,
     required super.database,
     required super.breakGlassDatabase,
@@ -3409,6 +3493,7 @@ class _StoreLosingManifestRow extends AthenaeumStore {
   });
 
   final _ManifestStoreLossStage stage;
+  final Exception error;
 
   @override
   int manifestUploadPreflight({
@@ -3416,7 +3501,7 @@ class _StoreLosingManifestRow extends AthenaeumStore {
     required String epoch,
     required String deviceId,
   }) => stage == _ManifestStoreLossStage.quotaPreflight
-      ? throw const StoreMissing()
+      ? throw error
       : super.manifestUploadPreflight(
           idKey: idKey,
           epoch: epoch,
@@ -3433,7 +3518,7 @@ class _StoreLosingManifestRow extends AthenaeumStore {
     required Uint8List body,
     required Iterable<String> referencedHashes,
   }) => stage == _ManifestStoreLossStage.write
-      ? throw const StoreMissing()
+      ? throw error
       : super.putManifest(
           idKey: idKey,
           epoch: epoch,
