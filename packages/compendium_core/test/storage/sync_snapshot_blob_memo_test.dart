@@ -14,6 +14,7 @@ import 'fixtures.dart';
 import 'test_database.dart';
 
 final _stamp = DateTime.utc(2026, 7, 15, 12);
+final _later = DateTime.utc(2026, 8, 1);
 
 SyncRecordAddress _danceAt(String id) =>
     (kind: SyncRecordKind.dance, recordId: id);
@@ -140,6 +141,42 @@ void main() {
         await expectSameAsFresh();
       });
 
+      // A choreographer's entity carries no timestamps, unlike a dance's, so
+      // only the key's own timestamps can tell these apart. A tombstoned
+      // choreographer also leaves the author lists of the dances citing it,
+      // as they hydrate, so those are rebuilt too.
+      final citing = {_danceAt('d1'), _danceAt('d2'), _danceAt('d3')};
+      for (final (column, companion, dependents) in [
+        (
+          'updated_at',
+          ChoreographersCompanion(updatedAt: Value(_later)),
+          <SyncRecordAddress>{},
+        ),
+        (
+          'existence_at',
+          ChoreographersCompanion(existenceAt: Value(_later)),
+          <SyncRecordAddress>{},
+        ),
+        (
+          'deleted_at',
+          ChoreographersCompanion(deletedAt: Value(_later)),
+          citing,
+        ),
+      ]) {
+        test(
+          '$column alone, on a record whose entity has no timestamps',
+          () async {
+            final rebuilt = await rebuiltBy(() async {
+              await (db.update(
+                db.choreographers,
+              )..where((t) => t.id.equals('c1'))).write(companion);
+            });
+            expect(rebuilt, {_choreographer, ...dependents});
+            await expectSameAsFresh();
+          },
+        );
+      }
+
       // Dances carry the choreographer's id, not the name, so only the
       // choreographer's own record changes.
       test('a linked choreographer renamed', () async {
@@ -154,17 +191,17 @@ void main() {
         await expectSameAsFresh();
       });
 
-      // Making a field private changes every dance that carries it without
-      // bumping any dance's `updatedAt`. The shareable ids are in every
-      // record's key, not only a dance's, so every record is rebuilt: more
-      // than needed, for a rare edit, and nothing to get wrong per kind.
-      test('a custom field made private', () async {
+      // Whether a dance shares a custom field's value is the definition's
+      // state, not the dance's. The repository restamps the dances holding a
+      // field when its shareability changes, so this writes the column
+      // directly: the memo must not depend on that restamp. The shareable ids
+      // are in every record's key, not only a dance's, so every record is
+      // rebuilt: more than needed, for a rare edit, and nothing to get wrong
+      // per kind.
+      test('a custom field made private, with no dance restamped', () async {
         final rebuilt = await rebuiltBy(() async {
-          // ignore: unused_result
-          await repositories.customFieldDefs.upsert(
-            _customField(shareable: false),
-            at: _stamp,
-          );
+          await (db.update(db.customFieldDefs)..where((t) => t.id.equals('f1')))
+              .write(const CustomFieldDefsCompanion(shareable: Value(false)));
         });
         final snapshot = await storage.snapshot();
         expect(rebuilt, {...snapshot.local.keys, _field});
@@ -277,6 +314,16 @@ void main() {
             );
           },
           () async {
+            final at = Value<DateTime?>(next());
+            await (db.update(db.choreographers)
+                  ..where((t) => t.id.equals('c1')))
+                .write(switch (random.nextInt(3)) {
+                  0 => ChoreographersCompanion(updatedAt: at),
+                  1 => ChoreographersCompanion(existenceAt: at),
+                  _ => ChoreographersCompanion(deletedAt: at),
+                });
+          },
+          () async {
             // ignore: unused_result
             await repositories.choreographers.upsert(
               Choreographer(id: 'c1', name: 'Name ${random.nextInt(3)}'),
@@ -288,6 +335,13 @@ void main() {
             await repositories.customFieldDefs.upsert(
               _customField(shareable: random.nextBool()),
               at: next(),
+            );
+          },
+          () async {
+            await (db.update(
+              db.customFieldDefs,
+            )..where((t) => t.id.equals('f1'))).write(
+              CustomFieldDefsCompanion(shareable: Value(random.nextBool())),
             );
           },
           () => repositories.syncLocal.setRetainedSyncFields(
