@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
+import '../data/sync_writer_lifecycle_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
@@ -125,28 +126,36 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
     });
     final l10n = AppLocalizations.of(context);
     try {
-      await _resolver.resolve(
+      // Read at call time, after the confirm / rename dialogs, so the write
+      // runs on whatever boundary is current when the tap is committed. Pair
+      // resolutions (tombstone, rename collision, dance ambiguity) only touch
+      // natural-key records and dances, never `setting`, so unlike the
+      // conflict sheet there is no `onRestored` refresh to call.
+      final runWrite = SyncWriterLifecycleScope.maybeOf(context)?.runWrite;
+      Future<void> write() => _resolver.resolve(
         item: item,
         action: action,
         newNaturalKey: distinctName,
       );
+      if (runWrite == null) {
+        await write();
+      } else {
+        await runWrite(write);
+      }
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.syncReviewResolved)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.syncReviewResolved)));
       _reload();
     } on SyncReviewException catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'sync_review_screen._resolve');
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_failureMessage(l10n, error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(_failureMessage(l10n, error))));
     } on Object catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'sync_review_screen._resolve');
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.syncReviewActionFailed)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.syncReviewActionFailed)));
     } finally {
       if (mounted) setState(() => _busyKey = null);
     }
