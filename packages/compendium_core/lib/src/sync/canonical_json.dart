@@ -115,11 +115,19 @@ void _enter(Object value, HashSet<Object> active, String path) {
   }
 }
 
+/// 2^63. Integers at or above it, including int64 max, round to this double
+/// and are not exactly representable.
+const _int64UpperBoundDouble = 9223372036854775808.0;
+
 String _formatNumber(num value, String path) {
   final double ieee754;
   if (value is int) {
     ieee754 = value.toDouble();
-    if (!ieee754.isFinite || ieee754.toInt() != value) {
+    // `toInt()` clamps 2^63 to int64 max, so the round trip alone would accept
+    // int64 max and emit a different integer. Check the bound first.
+    if (!ieee754.isFinite ||
+        ieee754 >= _int64UpperBoundDouble ||
+        ieee754.toInt() != value) {
       throw FormatException(
         'Integer is not exactly representable as an IEEE-754 double '
         'at ${_pathOrRoot(path)}',
