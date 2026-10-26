@@ -1422,6 +1422,11 @@ class SyncCoordinator {
   var _paused = false;
   Future<SyncPassResult>? _confirmation;
 
+  /// Set between [hold] and [release]: no new pass or confirmation starts.
+  /// Completed (and cleared) by [release] or [dispose], so a confirmation
+  /// deferred by the hold resumes.
+  Completer<void>? _hold;
+
   /// Set when the user declines while a confirmation is already running.
   bool _replacementDeclined = false;
   var _replacementCreated = false;
@@ -1474,8 +1479,10 @@ class SyncCoordinator {
       _paused = false;
     }
 
+    // Held: deferred like a trigger behind a running pass, and started by
+    // [release] instead of [_finish].
     final inFlight = _inFlight;
-    if (inFlight != null) {
+    if (inFlight != null || _hold != null) {
       _queued = true;
       return (_queuedResult ??= Completer<SyncPassResult>()).future;
     }
@@ -1545,6 +1552,10 @@ class SyncCoordinator {
     }
     final existing = _confirmation;
     if (existing != null) return existing;
+    final hold = _hold;
+    if (hold != null) {
+      return hold.future.then((_) => confirmReplacement());
+    }
     final inFlight = _inFlight;
     if (inFlight != null) {
       return inFlight.then((_) => confirmReplacement());
@@ -1599,10 +1610,50 @@ class SyncCoordinator {
     _paused = true;
   }
 
+  /// Stops new work and completes once the running pass, or replacement
+  /// confirmation, has finished. Until [release], a [trigger] or
+  /// [confirmReplacement] is deferred rather than refused: one trigger arriving
+  /// meanwhile — or already queued behind the running pass — runs once
+  /// [release] is called, and a confirmation resumes then. Unlike [dispose]
+  /// this keeps the coordinator, with its session state (a declined
+  /// replacement's pause, the peer-manifest cache) intact.
+  ///
+  /// For the app's record writer, which must not run alongside a pass. A
+  /// reference to the coordinator captured before the hold is held too: the
+  /// deferral is here, not in who can reach it. [runPass], the worker
+  /// isolate's entry point, is not held.
+  Future<void> hold() async {
+    _hold ??= Completer<void>();
+    while (true) {
+      final inFlight = _inFlight;
+      if (inFlight == null) return;
+      try {
+        await inFlight;
+      } on Object {
+        // diagnostics: silent — [_watch] already logged this pass's failure;
+        // only its end matters here.
+      }
+    }
+  }
+
+  /// Ends a [hold], starting the deferred trigger's pass, if any.
+  void release() {
+    final hold = _hold;
+    if (hold == null) return;
+    _hold = null;
+    hold.complete();
+    if (_disposed || _inFlight != null || !_queued) return;
+    _startQueued();
+  }
+
   /// Releases the event stream and the owned HTTP client, if any.
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    // A confirmation deferred by a hold resumes, and finds this closed.
+    final hold = _hold;
+    _hold = null;
+    hold?.complete();
     if (_ownsPeerManifestCache) _peerManifestCache.clear();
     _queued = false;
     final queuedResult = _queuedResult;
@@ -1689,8 +1740,12 @@ class SyncCoordinator {
       );
       return;
     }
-    if (!_queued) return;
+    if (!_queued || _hold != null) return;
+    _startQueued();
+  }
 
+  /// Starts the pass a trigger queued behind a running pass or a [hold].
+  void _startQueued() {
     _queued = false;
     final queuedResult = _queuedResult!;
     _queuedResult = null;

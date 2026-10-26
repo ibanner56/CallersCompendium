@@ -2383,6 +2383,71 @@ void main() {
     expect(transport.calls, isEmpty);
   });
 
+  group('hold and release', () {
+    SyncCoordinator gated(List<Completer<void>> gates, void Function() onPass) {
+      var started = 0;
+      return SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: _FakeTransport(),
+        passOperation: ({SyncStoreResult? initialStore}) async {
+          final index = started++;
+          onPass();
+          if (index < gates.length) await gates[index].future;
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+    }
+
+    test('hold waits for the running pass and defers every trigger until '
+        'release', () async {
+      final gate = Completer<void>();
+      var passes = 0;
+      final coordinator = gated([gate], () => passes++);
+      addTearDown(coordinator.dispose);
+
+      unawaited(coordinator.syncNow());
+      // Queued behind the running pass, as a debounced edit landing mid-pass
+      // is: a hold must not let it start when that pass ends.
+      final queuedBefore = coordinator.onDebouncedChange();
+      var held = false;
+      unawaited(coordinator.hold().then((_) => held = true));
+      await pumpEventQueue();
+      expect(held, isFalse, reason: 'the running pass has not finished');
+
+      gate.complete();
+      await pumpEventQueue();
+      expect(held, isTrue);
+      expect(passes, 1, reason: 'the queued trigger waits for release');
+
+      // A trigger while held, from a caller that read the coordinator before
+      // the hold, joins the deferred one rather than starting a pass.
+      final duringHold = coordinator.syncNow();
+      await pumpEventQueue();
+      expect(passes, 1);
+
+      coordinator.release();
+      expect((await queuedBefore).status, SyncPassStatus.completed);
+      expect((await duringHold).status, SyncPassStatus.completed);
+      expect(passes, 2, reason: 'one pass serves both deferred triggers');
+      expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+      expect(passes, 3);
+    });
+
+    test('a trigger deferred by a hold reports closed on dispose', () async {
+      var passes = 0;
+      final coordinator = gated(const [], () => passes++);
+
+      await coordinator.hold();
+      final deferred = coordinator.syncNow();
+      await coordinator.dispose();
+
+      expect((await deferred).failure?.cause, SyncFailureCause.internal);
+      expect(passes, 0);
+    });
+  });
+
   test('an isolated pass result still emits replacement once', () async {
     final events = <SyncReplacementRequiredEvent>[];
     final coordinator = SyncCoordinator(

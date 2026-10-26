@@ -57,6 +57,8 @@ import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
+import 'package:compendium_app/src/sync/sync_controller.dart'
+    show SyncGateOutcome;
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
@@ -1276,6 +1278,410 @@ void main() {
   );
 
   testWidgets(
+    'a record writer waits for the in-flight pass, then keeps the coordinator '
+    'and starts no pass of its own',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final events = <String>[];
+      final firstPassGate = Completer<void>();
+      final firstPassStarted = Completer<void>();
+      final built = <SyncCoordinator>[];
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        final callNumber = built.length + 1;
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-$callNumber',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({SyncStoreResult? initialStore}) async {
+            events.add('pass-$callNumber');
+            if (!firstPassStarted.isCompleted) firstPassStarted.complete();
+            await firstPassGate.future;
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        built.add(coordinator);
+        return coordinator;
+      }
+
+      addTearDown(() async {
+        for (final coordinator in built) {
+          await coordinator.dispose();
+        }
+      });
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await firstPassStarted.future;
+
+      final runRecordWrite = tester
+          .widget<SyncWriterLifecycleScope>(
+            find.byType(SyncWriterLifecycleScope),
+          )
+          .runRecordWrite;
+      expect(runRecordWrite, isNotNull);
+      final writerFuture = runRecordWrite!(() async {
+        events.add('write');
+      });
+      await tester.pump();
+      expect(events, [
+        'pass-1',
+      ], reason: 'the write must await the pass already in flight');
+
+      firstPassGate.complete();
+      await writerFuture;
+      await tester.pumpAndSettle();
+
+      expect(
+        built,
+        hasLength(1),
+        reason: 'a record write must not rebuild the coordinator',
+      );
+      expect(events, [
+        'pass-1',
+        'write',
+      ], reason: 'and must not start a pass of its own');
+
+      final controller = SyncScope.of(tester.element(find.byType(AppShell)));
+      expect(await controller.syncNow(), SyncGateOutcome.ran);
+      expect(events, [
+        'pass-1',
+        'write',
+        'pass-1',
+      ], reason: 'the next pass runs on the coordinator the write put back');
+    },
+  );
+
+  testWidgets('a declined replacement stays declined across a record write', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = openTestAppData();
+    var factoryCalls = 0;
+    var passes = 0;
+    final built = <SyncCoordinator>[];
+
+    Future<SyncCoordinator?> factory(
+      CompendiumRepositories repositories,
+    ) async {
+      factoryCalls++;
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: NoopSyncCoordinatorTransport(),
+        // The store this device last used is gone (spec §6.14 item 6).
+        passOperation: ({SyncStoreResult? initialStore}) async {
+          passes++;
+          return const SyncPassResult(SyncPassStatus.replacementRequired);
+        },
+      );
+      built.add(coordinator);
+      return coordinator;
+    }
+
+    addTearDown(() async {
+      for (final coordinator in built) {
+        await coordinator.dispose();
+      }
+    });
+    await appData.repositories.settings.set(kSyncEnabledKey, true);
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        integrityCheck: () async => true,
+        syncCoordinatorFactory: factory,
+        syncNetworkClassifier: const UnmeteredSyncNetwork(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final controller = SyncScope.of(tester.element(find.byType(AppShell)));
+    expect(passes, 1);
+    expect(controller.replacementPending, isTrue);
+    controller.declineReplacement();
+
+    final runRecordWrite = tester
+        .widget<SyncWriterLifecycleScope>(find.byType(SyncWriterLifecycleScope))
+        .runRecordWrite!;
+    await runRecordWrite(() async {});
+    await tester.pumpAndSettle();
+
+    expect(factoryCalls, 1);
+    expect(passes, 1, reason: 'no pass may re-ask after the decline');
+    expect(controller.replacementPending, isFalse);
+  });
+
+  testWidgets(
+    'a record writer whose held coordinator a reconfigure disposed rebuilds '
+    'instead of putting it back',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final events = <String>[];
+      final built = <SyncCoordinator>[];
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        final callNumber = built.length + 1;
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-$callNumber',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({SyncStoreResult? initialStore}) async {
+            events.add('pass-$callNumber');
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        built.add(coordinator);
+        return coordinator;
+      }
+
+      addTearDown(() async {
+        for (final coordinator in built) {
+          await coordinator.dispose();
+        }
+      });
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(events, ['pass-1']);
+
+      final runRecordWrite = tester
+          .widget<SyncWriterLifecycleScope>(
+            find.byType(SyncWriterLifecycleScope),
+          )
+          .runRecordWrite!;
+      final operationGate = Completer<void>();
+      final writerFuture = runRecordWrite(() async {
+        events.add('write-started');
+        await operationGate.future;
+      });
+      await tester.pump();
+      expect(events, ['pass-1', 'write-started']);
+
+      // Turning sync off and on again mid-write reconfigures twice. Each
+      // reconfigure disposes what it finds — the held coordinator included —
+      // and backs off from installing its own while the writer is exclusive.
+      final controller = SyncScope.of(tester.element(find.byType(AppShell)));
+      await controller.setEnabled(false);
+      await controller.setEnabled(true);
+      expect(built, hasLength(3));
+      expect(events, ['pass-1', 'write-started']);
+
+      operationGate.complete();
+      await writerFuture;
+      await tester.pumpAndSettle();
+
+      expect(
+        built,
+        hasLength(4),
+        reason: 'the disposed coordinator must not be put back',
+      );
+      expect(events, ['pass-1', 'write-started', 'pass-4']);
+      expect(await controller.syncNow(), SyncGateOutcome.ran);
+      expect(events.last, 'pass-4');
+      expect(controller.lastResult?.status, SyncPassStatus.completed);
+    },
+  );
+
+  testWidgets(
+    'a trigger that read the coordinator before a record write starts no pass '
+    'until the write returns',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final events = <String>[];
+      final built = <SyncCoordinator>[];
+      final network = _GatedSyncNetwork();
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({SyncStoreResult? initialStore}) async {
+            events.add('pass');
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        built.add(coordinator);
+        return coordinator;
+      }
+
+      addTearDown(() async {
+        for (final coordinator in built) {
+          await coordinator.dispose();
+        }
+      });
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+          syncNetworkClassifier: network,
+        ),
+      );
+      await tester.pumpAndSettle();
+      network.open();
+      await tester.pumpAndSettle();
+      expect(events, ['pass'], reason: 'the app-start pass');
+
+      // "Sync now" reads the coordinator, then waits on the connection check.
+      network.close();
+      final controller = SyncScope.of(tester.element(find.byType(AppShell)));
+      final syncNow = controller.syncNow();
+      await tester.pump();
+
+      final runRecordWrite = tester
+          .widget<SyncWriterLifecycleScope>(
+            find.byType(SyncWriterLifecycleScope),
+          )
+          .runRecordWrite!;
+      final operationGate = Completer<void>();
+      final writerFuture = runRecordWrite(() async {
+        events.add('write-started');
+        await operationGate.future;
+        events.add('write-finished');
+      });
+      await tester.pump();
+      expect(events, ['pass', 'write-started']);
+
+      network.open();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(events, [
+        'pass',
+        'write-started',
+      ], reason: 'no pass may start while the write is running');
+
+      operationGate.complete();
+      await writerFuture;
+      expect(await syncNow, SyncGateOutcome.ran);
+      await tester.pumpAndSettle();
+      expect(events, ['pass', 'write-started', 'write-finished', 'pass']);
+      expect(built, hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'a trigger during a record write that fails runs once the write returns',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      var passes = 0;
+      final built = <SyncCoordinator>[];
+
+      Future<SyncCoordinator?> factory(
+        CompendiumRepositories repositories,
+      ) async {
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: CompendiumSyncCoordinatorStore(repositories),
+          transport: NoopSyncCoordinatorTransport(),
+          passOperation: ({SyncStoreResult? initialStore}) async {
+            passes++;
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        built.add(coordinator);
+        return coordinator;
+      }
+
+      addTearDown(() async {
+        for (final coordinator in built) {
+          await coordinator.dispose();
+        }
+      });
+      await appData.repositories.settings.set(kSyncEnabledKey, true);
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          integrityCheck: () async => true,
+          syncCoordinatorFactory: factory,
+          syncNetworkClassifier: const UnmeteredSyncNetwork(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(passes, 1);
+
+      final runRecordWrite = tester
+          .widget<SyncWriterLifecycleScope>(
+            find.byType(SyncWriterLifecycleScope),
+          )
+          .runRecordWrite!;
+      final operationGate = Completer<void>();
+      // A resolve that fails rolls back, so it writes nothing that would
+      // schedule a pass of its own.
+      final writerFuture = runRecordWrite<void>(() async {
+        await operationGate.future;
+        throw StateError('candidate changed');
+      });
+      await tester.pump();
+
+      // Stands in for a debounce or retry timer firing mid-write.
+      final controller = SyncScope.of(tester.element(find.byType(AppShell)));
+      final syncNow = controller.syncNow();
+      await tester.pump();
+      expect(passes, 1);
+
+      operationGate.complete();
+      await expectLater(writerFuture, throwsStateError);
+      expect(
+        await syncNow,
+        SyncGateOutcome.ran,
+        reason: 'the trigger is deferred, not refused',
+      );
+      expect(passes, 2);
+    },
+  );
+
+  testWidgets(
     'a downgrade preflight failure shows the update-app message and gates the '
     'app, with no Retry (Phase 7 migration safety)',
     (tester) async {
@@ -2397,4 +2803,24 @@ void main() {
     expect(openedDuringPreflight, isFalse);
     expect(opened, isTrue, reason: 'the app opens it after the preflight');
   });
+}
+
+/// A connection check that stays pending while closed, as a slow
+/// `checkConnectivity()` platform call does.
+final class _GatedSyncNetwork implements SyncNetworkClassifier {
+  Completer<void>? _gate = Completer<void>();
+
+  void close() => _gate ??= Completer<void>();
+
+  void open() {
+    _gate?.complete();
+    _gate = null;
+  }
+
+  @override
+  Future<SyncNetworkKind> current() async {
+    final gate = _gate;
+    if (gate != null) await gate.future;
+    return SyncNetworkKind.unmetered;
+  }
 }
