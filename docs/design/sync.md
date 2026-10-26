@@ -3641,8 +3641,9 @@ checked against the discriminator rule above.
 5. `POST /v1/blobs/batch` for each needed hash, up to 200 at a time
    (`GET /v1/blobs/{hash}` against a server without the route). **Verify the
    hash before applying.**
-6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
-   indexes.
+6. Apply in one transaction, **read-modify-write** (below). Inside it,
+   reindex the dances the batch can have changed (sync-spec §6.7, *Derived
+   indexes*).
 7. Recompute the local manifest from the post-apply state. Before any
    publication network request, record every address named by that final
    manifest in `published_records`; then `POST /v1/blobs/missing` and `PUT`
@@ -3787,9 +3788,13 @@ MUST NOT become a whole-library snapshot: it once was, and on a large library it
 held every app write for seconds, long enough on the largest to approach the
 30-second busy timeout after which the user's edit fails outright (#1909). The
 transaction still does whole-table work of its own — reconciliation reads the
-natural-key, alias and baseline tables, and a batch that applies anything
-rebuilds the derived search indexes — so an app write can still wait seconds on
-a large library; narrowing those is separate work.
+natural-key, alias and baseline tables, and the derived-index step reads the
+four tables a dance's index rows draw on besides the dance and, for a batch
+with a glossary entry, scans the dances' figures once — so an app write can
+still wait on a large library; narrowing those is separate work. The derived
+step itself reindexes only the dances the batch affected, and a batch of none
+of their inputs writes no index row (#1920; sync-spec §6.7, *Derived
+indexes*).
 
 **The snapshot scans outside the write lock.** `snapshot()` reads and hashes the
 whole library, and the coordinator takes several per pass, idle ones included.

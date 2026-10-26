@@ -683,7 +683,8 @@ final class CompendiumSyncCoordinatorStore
       storage.writeJoinsWithReport(record);
 
   @override
-  Future<void> rebuildDerivedIndexes() => storage.rebuildDerivedIndexes();
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) =>
+      storage.reindexDerivedAfterApply(applied);
 }
 
 /// The transport surface consumed by [SyncCoordinator].
