@@ -92,6 +92,29 @@ class DanceReimportJsonException implements Exception {
   final bool programBearing;
 }
 
+/// Refuses an online [plan] whose source withheld the figures.
+///
+/// The Caller's Box serves only metadata for a dance without the `full`
+/// permission tier, and its adapter then parses an empty figure list (marked
+/// with the `callersbox_search_tier` issue). [replaceDanceChoreography] would
+/// write that empty list over the saved transcription. The title search never
+/// offers such a dance (`OnlineSearchQuery.requireFigures`), but a link or id
+/// reaches it directly, so every online re-import checks here.
+void rejectFigurelessReimport(ImportRecordPlan plan) {
+  if (plan.draft.issues.any(
+    (issue) => issue.code == _callersBoxSearchTierIssue,
+  )) {
+    throw const DanceReimportFiguresUnavailableException();
+  }
+}
+
+const String _callersBoxSearchTierIssue = 'callersbox_search_tier';
+
+/// Typed, presentation-safe refusal raised by [rejectFigurelessReimport].
+class DanceReimportFiguresUnavailableException implements Exception {
+  const DanceReimportFiguresUnavailableException();
+}
+
 /// Builds a deliberately sparse preview for a parsed JSON dance. Its local-only
 /// fields are not committed, so showing them would imply they will be replaced.
 DanceDetailData reimportPreviewData(Dance dance) => DanceDetailData(

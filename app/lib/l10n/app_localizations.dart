@@ -14012,11 +14012,23 @@ abstract class AppLocalizations {
   /// **'Callers Compendium JSON'**
   String get danceReimportJson;
 
-  /// Message shown when an online re-import search finds no dances.
+  /// Source option, and the title of its dialog, for re-importing one saved dance from a pasted Caller's Box or ContraDB dance link or dance ID number.
   ///
   /// In en, this message translates to:
-  /// **'No matching dances were found. Choose another source or try again later.'**
+  /// **'Link or ID'**
+  String get danceReimportLinkOrId;
+
+  /// Message shown when an online re-import search by the dance's title finds no dances. "Link or ID" refers to the re-import option of that name.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching dances were found. Try a link or ID, choose another source, or try again later.'**
   String get danceReimportNoResults;
+
+  /// Shown when a re-import source sends a dance without its figures (The Caller's Box withholds them unless the choreographer allows it), so nothing is replaced.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box doesn\'t share this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.'**
+  String get danceReimportFiguresUnavailable;
 
   /// Title of the dialog where the user selects an online dance to re-import.
   ///

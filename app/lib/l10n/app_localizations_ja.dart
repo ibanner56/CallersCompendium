@@ -9028,8 +9028,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceReimportJson => 'Callers Compendium JSON';
 
   @override
+  String get danceReimportLinkOrId => 'Link or ID';
+
+  @override
   String get danceReimportNoResults =>
       '一致するダンスが見つかりませんでした。別のソースを選ぶか、後でもう一度お試しください。';
+
+  @override
+  String get danceReimportFiguresUnavailable =>
+      'The Caller\'s Box doesn\'t share this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.';
 
   @override
   String get danceReimportChooseResult => '再インポートするダンスを選択';

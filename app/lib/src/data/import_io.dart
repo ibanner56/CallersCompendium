@@ -1333,6 +1333,35 @@ String buildContraDbUrl(String input) {
   ).toString();
 }
 
+/// The numeric Caller's Box dance id in what the user typed: a bare id or a
+/// pasted dance link.
+///
+/// Validation is [buildCallersBoxJsonUrl]'s, so every input it rejects raises
+/// the same typed [UrlFetchException]. An `id` parameter that is not a number
+/// also raises [UrlFetchFailureReason.callersBoxMissingId]. Returning the id,
+/// not the built URL, lets `CallersBoxOnline.loadPreview` rebuild its own
+/// canonical fetch URL from it, as it does for an OS-shared link
+/// ([SharedDanceLink]).
+String callersBoxDanceIdFromInput(String input) {
+  final id = Uri.parse(buildCallersBoxJsonUrl(input)).queryParameters['id'];
+  if (id == null || !_numericIdRe.hasMatch(id)) {
+    throw const UrlFetchException(UrlFetchFailureReason.callersBoxMissingId);
+  }
+  return id;
+}
+
+/// The numeric ContraDB dance id in what the user typed: a bare id or a pasted
+/// `…/dances/N` link. Validation is [buildContraDbUrl]'s, so every input it
+/// rejects raises the same typed [UrlFetchException].
+String contraDbDanceIdFromInput(String input) => _contraDbDancePathRe
+    .firstMatch(Uri.parse(buildContraDbUrl(input)).path)!
+    .group(1)!;
+
+final RegExp _numericIdRe = RegExp(r'^\d+$');
+
+/// [buildContraDbUrl] always returns exactly this path.
+final RegExp _contraDbDancePathRe = RegExp(r'^/dances/(\d+)$');
+
 /// Builds the canonical ContraDB **program**-page URL from what the user typed.
 ///
 /// ContraDB serves each program (set list) as HTML at `contradb.com/programs/N`.

@@ -12222,9 +12222,17 @@
   "@danceReimportJson": {
     "description": "Source option for choosing a Callers Compendium JSON file for re-import."
   },
-  "danceReimportNoResults": "No matching dances were found. Choose another source or try again later.",
+  "danceReimportLinkOrId": "Link or ID",
+  "@danceReimportLinkOrId": {
+    "description": "Source option, and the title of its dialog, for re-importing one saved dance from a pasted Caller's Box or ContraDB dance link or dance ID number."
+  },
+  "danceReimportNoResults": "No matching dances were found. Try a link or ID, choose another source, or try again later.",
   "@danceReimportNoResults": {
-    "description": "Message shown when an online re-import search finds no dances."
+    "description": "Message shown when an online re-import search by the dance's title finds no dances. \"Link or ID\" refers to the re-import option of that name."
+  },
+  "danceReimportFiguresUnavailable": "The Caller's Box doesn't share this dance's figures, so it can't refresh your choreography. Your dance wasn't changed.",
+  "@danceReimportFiguresUnavailable": {
+    "description": "Shown when a re-import source sends a dance without its figures (The Caller's Box withholds them unless the choreographer allows it), so nothing is replaced."
   },
   "danceReimportChooseResult": "Choose the dance to re-import",
   "@danceReimportChooseResult": {
