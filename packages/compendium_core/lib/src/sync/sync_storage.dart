@@ -291,6 +291,20 @@ final class CompendiumSyncStorage
   final Set<SyncRecordAddress> _pendingParentWrites = {};
   Set<SyncRecordAddress> _inboundTombstonedAddresses = {};
 
+  /// Records whose derived rows may be out of date: every record
+  /// [writeWithReport] has written, and every dance whose references
+  /// reconciliation rewrote ([_rewriteLocalReferences]) or whose row it
+  /// deleted, since the derived indexes were last brought up to date (#1920).
+  ///
+  /// [reindexDerivedAfterApply] reindexes these besides the batch's applied
+  /// records, because neither of these writes is one: a reconciliation
+  /// rewrite repoints dances no applied record names, and a pending
+  /// tombstone [snapshot] releases lands outside any apply batch. The full
+  /// rebuild used to bring both up to date as a side effect. Only ever
+  /// over-marks: reindexing a dance whose rows were already right rewrites
+  /// the same rows.
+  final Set<SyncRecordAddress> _derivedDirtyAddresses = {};
+
   /// Pending deletions this batch's reconciliation carried onto a survivor.
   ///
   /// A remap is not a revival: the inbound record is a different UUID that
@@ -4950,6 +4964,7 @@ final class CompendiumSyncStorage
           _db.difficultyLevels,
         )..where((table) => table.id.equals(id))).go();
       case SyncRecordKind.dance:
+        _derivedDirtyAddresses.add((kind: SyncRecordKind.dance, recordId: id));
         for (final table in const ['dance_fts', 'dance_substring_fts']) {
           await _db.customStatement('DELETE FROM $table WHERE dance_id = ?', [
             id,
@@ -5154,6 +5169,10 @@ final class CompendiumSyncStorage
         return;
     }
     if (affectedDances.isEmpty) return;
+    _derivedDirtyAddresses.addAll([
+      for (final danceId in affectedDances)
+        (kind: SyncRecordKind.dance, recordId: danceId),
+    ]);
     final now = DateTime.now().toUtc();
     for (final danceId in affectedDances) {
       final row = await (_db.select(
@@ -5307,6 +5326,7 @@ final class CompendiumSyncStorage
   @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) async {
     record = _normalizeInboundRecord(record);
+    _derivedDirtyAddresses.add(record.address);
     final kind = record.address.kind;
     if (record.deletedAt != null &&
         await _hasCitation(
@@ -5707,9 +5727,69 @@ final class CompendiumSyncStorage
     );
   }
 
-  @override
+  /// Rebuilds every derived row ([DanceRepository.rebuildAllDerived]).
+  ///
+  /// For the paths that rewrite many dances at once outside an apply batch:
+  /// the fresh-attach dedupe and the review-queue resolutions. An apply
+  /// batch reindexes only what it affected ([reindexDerivedAfterApply]).
   Future<void> rebuildDerivedIndexes() async {
     await repositories.dances.rebuildAllDerived();
+    _derivedDirtyAddresses.clear();
+  }
+
+  /// Reindexes the dances whose derived rows [applied], or a write marked in
+  /// [_derivedDirtyAddresses], can have changed, and nothing else (#1920).
+  ///
+  /// The mapping is what [DanceRepository.rebuildAllDerived] reads, not what
+  /// the FTS schema names (sync-spec §4.1): a dance's rows are built from
+  /// the dance itself, the names of the live choreographers it credits, the
+  /// live published sources it cites, which of its custom-field values have
+  /// a live definition, and the live figures of your own (`glossaryEntry`
+  /// records of kind `customFigure`) its figures use. Tags, difficulty
+  /// levels, venues, programs, settings and figure notes enter no derived
+  /// row, so a batch of only those rewrites nothing. A switch rather than a
+  /// lookup, so a new kind cannot be added without deciding.
+  @override
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {
+    final danceIds = <String>{};
+    final choreographerIds = <String>{};
+    final sourceIds = <String>{};
+    final customFieldIds = <String>{};
+    final userFigureIds = <String>{};
+    for (final address in {...applied, ..._derivedDirtyAddresses}) {
+      final id = address.recordId;
+      switch (address.kind) {
+        case SyncRecordKind.dance:
+          danceIds.add(id);
+        case SyncRecordKind.choreographer:
+          choreographerIds.add(id);
+        case SyncRecordKind.publishedSource:
+          sourceIds.add(id);
+        case SyncRecordKind.customFieldDef:
+          customFieldIds.add(id);
+        // Any entry, whatever its kind: one that stopped being a figure of
+        // your own must stop rendering its uses as one.
+        case SyncRecordKind.glossaryEntry:
+          userFigureIds.add(id);
+        case SyncRecordKind.program:
+        case SyncRecordKind.tag:
+        case SyncRecordKind.difficultyLevel:
+        case SyncRecordKind.venue:
+        case SyncRecordKind.setting:
+        case SyncRecordKind.figureNote:
+          break;
+      }
+    }
+    danceIds.addAll(
+      await repositories.dances.danceIdsDerivingFrom(
+        choreographerIds: choreographerIds,
+        sourceIds: sourceIds,
+        customFieldIds: customFieldIds,
+        userFigureIds: userFigureIds,
+      ),
+    );
+    await repositories.dances.reindexDerived(danceIds);
+    _derivedDirtyAddresses.clear();
   }
 
   Future<String?> _missingDanceReference(

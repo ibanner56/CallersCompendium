@@ -8286,7 +8286,8 @@ final class _SnapshotInterleavingStore
       _delegate.writeJoinsWithReport(record);
 
   @override
-  Future<void> rebuildDerivedIndexes() => _delegate.rebuildDerivedIndexes();
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) =>
+      _delegate.reindexDerivedAfterApply(applied);
 
   @override
   Future<SyncApplyPreparation> reconcileInbound(
@@ -8483,7 +8484,9 @@ final class _FakeStore implements SyncCoordinatorStore {
   }
 
   @override
-  Future<void> rebuildDerivedIndexes() async {}
+  Future<void> reindexDerivedAfterApply(
+    Set<SyncRecordAddress> applied,
+  ) async {}
 
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) async {

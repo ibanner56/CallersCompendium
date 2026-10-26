@@ -37,7 +37,7 @@ class SyncApplyRecord {
 /// An app adapter implements [transaction] with the database transaction that
 /// owns its repositories. [write] is responsible for mapping the already
 /// validated, shareable overlay to parent and join tables. The engine invokes
-/// [rebuildDerivedIndexes] once after the batch has been applied.
+/// [reindexDerivedAfterApply] once after the batch has been applied.
 abstract interface class SyncApplyStorage {
   Future<T> transaction<T>(Future<T> Function() action);
 
@@ -45,7 +45,15 @@ abstract interface class SyncApplyStorage {
 
   Future<void> write(SyncApplyRecord record);
 
-  Future<void> rebuildDerivedIndexes();
+  /// Brings the derived search indexes up to date with a batch that applied
+  /// [applied], inside the apply transaction, before it commits.
+  ///
+  /// Called only when [applied] is not empty. The transaction holds the
+  /// database's write lock, so every app write waits for as long as this
+  /// takes: an adapter should rewrite only the derived rows the applied
+  /// records can change, and nothing when none can (#1920). What it leaves
+  /// must still equal what rebuilding every derived row would write.
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied);
 }
 
 /// Optional storage seam for guarding an inbound apply against a local edit
@@ -323,7 +331,7 @@ class SyncApplyEngine {
             }
           }
           if (applied.isNotEmpty) {
-            await storage.rebuildDerivedIndexes();
+            await storage.reindexDerivedAfterApply(applied.toSet());
           }
         });
       }
