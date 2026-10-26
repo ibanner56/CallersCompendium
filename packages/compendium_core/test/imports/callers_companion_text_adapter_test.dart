@@ -439,6 +439,14 @@ A1 (8) Do the thing
         'Left-hand star promenade',
         // A diagonal, not a hand; chain's own hand comes from its role.
         'On right-hand diagonal ladies chain',
+        // A dancer named by position (square dance's "right-hand lady"), not
+        // a hand: read with the bare side these become "role2s allemande
+        // right", which names a role and a hand the line does not state.
+        'Allemande your right-hand lady',
+        'Right-hand lady allemande',
+        'Pull by the left-hand man',
+        'Allemande right-hand lark',
+        'Allemande left-hand neighbor',
         // Two hands. The retry's one-token rule does not decide this line:
         // whichever token is rewritten, the other is left over. No line was
         // found that the rule alone declines.
