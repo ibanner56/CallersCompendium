@@ -92,6 +92,18 @@ class DanceReimportJsonException implements Exception {
   final bool programBearing;
 }
 
+/// Whether [draft] decoded to an empty figure list.
+///
+/// Writing such a draft over an existing dance (re-import, or an import's
+/// "same dance" link) would erase its transcription, so every surface that
+/// offers to replace a dance asks this first. An *unreadable* incoming list is
+/// not figureless: [replaceDanceChoreography] keeps the saved figures for that.
+bool draftHasNoFigures(StructuredDraft draft) =>
+    switch (draft.dance.figuresSource) {
+      DecodedFigures(:final figures) => figures.isEmpty,
+      UnreadableFigures() => false,
+    };
+
 /// Refuses an online [plan] that brought no figures.
 ///
 /// [replaceDanceChoreography] would write an empty incoming list over the
@@ -100,12 +112,11 @@ class DanceReimportJsonException implements Exception {
 /// `callersbox_search_tier` issue); a ContraDB page without a figures table
 /// parses the same way. The title search hides the first case
 /// (`OnlineSearchQuery.requireFigures`), but a link or id reaches any dance,
-/// so every online re-import checks here. An *unreadable* incoming list is not
-/// refused: [replaceDanceChoreography] keeps the saved figures for that.
+/// so every online re-import checks here. The same refusal stops an online
+/// import from linking such a record onto a dance
+/// (`commitPreviewedOnlinePlan`).
 void rejectFigurelessReimport(ImportRecordPlan plan) {
-  if (plan.draft.dance.figuresSource case DecodedFigures(
-    :final figures,
-  ) when figures.isEmpty) {
+  if (draftHasNoFigures(plan.draft)) {
     throw const DanceReimportFiguresUnavailableException();
   }
 }

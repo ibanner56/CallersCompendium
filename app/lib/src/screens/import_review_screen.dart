@@ -15,6 +15,7 @@ import '../glossary/user_figure_import.dart';
 import 'import_cc_terms_screen.dart';
 import 'import_user_figures_screen.dart';
 import '../data/callersbox_online.dart';
+import '../data/dance_reimport.dart';
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
@@ -3670,15 +3671,35 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Widget _buildActions(BuildContext context, int i, DedupeVerdict verdict) {
     final l10n = AppLocalizations.of(context);
     final choice = _choices[i];
+    // A record with no figures would erase the figures of any dance it
+    // replaced, so no link to an existing dance is offered for it; it can
+    // still be imported as a new dance (or, below, as a variation).
+    final figureless = draftHasNoFigures(_batch!.records[i].draft);
+    final noFiguresNote = Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        l10n.importFigurelessCannotReplace,
+        key: ValueKey('import-row-$i-no-figures-note'),
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    );
     switch (verdict.kind) {
       case DedupeKind.isNew:
-        final possible = _possibleTitleOptions(i, verdict, l10n);
+        final possible = figureless
+            ? const <_Option>[]
+            : _possibleTitleOptions(i, verdict, l10n);
         final group = _radioGroup(i, choice, [
           _option(i, l10n.importReviewOptionNewDance, _ActionKind.create),
           ...possible,
           _option(i, l10n.importReviewOptionSkip, _ActionKind.skip),
         ]);
-        if (possible.isEmpty) return group;
+        if (possible.isEmpty) {
+          if (!figureless || verdict.possibleMatchIds.isEmpty) return group;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [noFiguresNote, group],
+          );
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3735,16 +3756,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 targetId: c.danceId,
               ),
             );
-            options.add(
-              _option(
-                i,
-                l10n.importReviewOptionSameDance(title),
-                _ActionKind.link,
-                targetId: c.danceId,
-              ),
-            );
+            if (!figureless) {
+              options.add(
+                _option(
+                  i,
+                  l10n.importReviewOptionSameDance(title),
+                  _ActionKind.link,
+                  targetId: c.danceId,
+                ),
+              );
+            }
             continue;
           }
+          if (figureless) continue;
           options.add(
             _option(
               i,
@@ -3754,7 +3778,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             ),
           );
         }
-        options.addAll(_possibleTitleOptions(i, verdict, l10n));
+        if (!figureless)
+          options.addAll(_possibleTitleOptions(i, verdict, l10n));
         options.add(
           _option(i, l10n.importReviewOptionDuplicate, _ActionKind.duplicate),
         );
@@ -3769,6 +3794,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 style: Theme.of(context).textTheme.labelMedium,
               ),
             ),
+            if (figureless) noFiguresNote,
             ?variationBlock,
             _radioGroup(i, choice, options),
           ],

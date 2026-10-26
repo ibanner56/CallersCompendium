@@ -6098,6 +6098,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.';
 
   @override
+  String get importFigurelessCannotReplace =>
+      'Cet enregistrement ne contient aucune figure : il ne peut donc pas remplacer l’une de vos danses. Il peut toutefois être importé comme nouvelle danse.';
+
+  @override
   String get onlineImportPossibleMatchDialogActionNew =>
       'Importer comme nouvelle danse';
 

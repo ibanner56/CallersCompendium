@@ -6020,6 +6020,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
 
   @override
+  String get importFigurelessCannotReplace =>
+      'Denne post har ingen figurer, så den kan ikke erstatte en af dine danse. Den kan stadig importeres som en ny dans.';
+
+  @override
   String get onlineImportPossibleMatchDialogActionNew =>
       'Importér som en ny dans';
 

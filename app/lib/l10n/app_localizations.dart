@@ -9221,6 +9221,12 @@ abstract class AppLocalizations {
   /// **'The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.'**
   String get onlineImportPossibleMatchDialogLinkWarning;
 
+  /// Note shown where an import would otherwise offer to replace an existing dance (the single-dance online import dialogs and the import review rows) when the incoming record carries no figures, for example a Caller's Box dance whose choreographer has not allowed its figures to be shared. Replacing would erase the dance's saved figures, so only importing it as a new dance (or, where offered, a variation) is available.
+  ///
+  /// In en, this message translates to:
+  /// **'This record has no figures, so it can\'t replace one of your dances. It can still be imported as a new dance.'**
+  String get importFigurelessCannotReplace;
+
   /// Button in the possible-match dialog (issue #1907): none of the listed dances is this one, so import it as a new dance.
   ///
   /// In en, this message translates to:

@@ -6062,6 +6062,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
 
   @override
+  String get importFigurelessCannotReplace =>
+      'Dit record bevat geen figuren en kan daarom geen van je dansen vervangen. Het kan nog wel als nieuwe dans worden geïmporteerd.';
+
+  @override
   String get onlineImportPossibleMatchDialogActionNew =>
       'Importeren als nieuwe dans';
 

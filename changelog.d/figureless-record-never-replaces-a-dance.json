@@ -1,0 +1,9 @@
+{
+  "id": "figureless-record-never-replaces-a-dance",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing a dance that arrives without any figures (The Caller's Box withholds them for some dances) can no longer replace one of your dances with an empty one. The import review and single-dance online import no longer offer **Same dance** or **Same dance under another title** for such a record; it can still be imported as a new dance, and a note says why."
+    ]
+  }
+}

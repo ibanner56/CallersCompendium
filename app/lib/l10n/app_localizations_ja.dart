@@ -5779,6 +5779,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '選択したダンスは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグ、評価も含まれます。カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
 
   @override
+  String get importFigurelessCannotReplace =>
+      'このレコードにはフィギュアがないため、既存のダンスを置き換えることはできません。新しいダンスとしてなら取り込めます。';
+
+  @override
   String get onlineImportPossibleMatchDialogActionNew => '新しいダンスとしてインポート';
 
   @override

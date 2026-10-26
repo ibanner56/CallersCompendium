@@ -737,7 +737,13 @@ void main() {
     await _pump(
       tester,
       repos,
-      payload: _archivePayload([_dance('incoming', 'Sacketts Harbor')]),
+      payload: _archivePayload([
+        _dance(
+          'incoming',
+          'Sacketts Harbor',
+          figures: [customFigure('Circle right once around')],
+        ),
+      ]),
     );
     await _toReview(tester);
 
@@ -777,7 +783,13 @@ void main() {
     await _pump(
       tester,
       repos,
-      payload: _archivePayload([_dance('incoming', 'Sacketts Harbor')]),
+      payload: _archivePayload([
+        _dance(
+          'incoming',
+          'Sacketts Harbor',
+          figures: [customFigure('Circle right once around')],
+        ),
+      ]),
     );
     await _toReview(tester);
     // Only possible matches here, so only that bulk control is offered.
@@ -801,7 +813,13 @@ void main() {
     await _pump(
       tester,
       repos,
-      payload: _archivePayload([_dance('incoming', 'Sacketts Harbor')]),
+      payload: _archivePayload([
+        _dance(
+          'incoming',
+          'Sacketts Harbor',
+          figures: [customFigure('Circle right once around')],
+        ),
+      ]),
     );
     await _toReview(tester);
 
@@ -852,6 +870,7 @@ void main() {
           _dance(
             'incoming',
             'A-1 Reel {variant}',
+            figures: [customFigure('Circle right once around')],
           ).copyWith(authorIds: const ['cw']),
         ],
       ),
@@ -910,6 +929,7 @@ void main() {
               _dance(
                 'incoming',
                 'A-1 Reel {variant}',
+                figures: [customFigure('Circle right once around')],
               ).copyWith(authorIds: const ['cw']),
             ],
           ),
@@ -944,7 +964,11 @@ void main() {
             exportedAt: DateTime.utc(2026, 7, 15),
             choreographers: [Choreographer(id: 'cw', name: 'Chris Weiler')],
             dances: [
-              _dance('incoming', 'A-1 Reel').copyWith(authorIds: const ['cw']),
+              _dance(
+                'incoming',
+                'A-1 Reel',
+                figures: [customFigure('Circle right once around')],
+              ).copyWith(authorIds: const ['cw']),
             ],
           ),
         ),
@@ -1083,7 +1107,7 @@ void main() {
     testWidgets('matching your dance exactly can be a variation, not '
         '"Same dance"', (tester) async {
       final repos = await collection();
-      await _pump(tester, repos, payload: incoming('Money Musk'));
+      await _pumpForEdit(tester, repos, payload: incoming('Money Musk'));
       await _toReview(tester);
 
       expect(
@@ -3296,7 +3320,13 @@ void main() {
         await _pumpForEdit(
           tester,
           repos,
-          payload: _archivePayload([_dance('incoming', 'Sacketts Harbor')]),
+          payload: _archivePayload([
+            _dance(
+              'incoming',
+              'Sacketts Harbor',
+              figures: [customFigure('Circle right once around')],
+            ),
+          ]),
         );
         await _toReview(tester);
         await tester.tap(find.byKey(const ValueKey('import-row-0-link-cand')));
