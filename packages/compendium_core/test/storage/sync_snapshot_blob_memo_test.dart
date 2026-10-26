@@ -45,7 +45,7 @@ void main() {
   setUp(() async {
     db = openTestDatabase();
     repositories = CompendiumRepositories(db, contraTaxonomy);
-    storage = CompendiumSyncStorage(repositories);
+    storage = CompendiumSyncStorage(repositories, memoizeSnapshots: true);
     built = [];
     debugOnSnapshotBlobBuild = built.add;
     addTearDown(() => debugOnSnapshotBlobBuild = null);
@@ -93,6 +93,22 @@ void main() {
       expect(mine?.blob.canonicalUtf8, value?.blob.canonicalUtf8);
     }
   }
+
+  // Off by default: a storage kept longer than one pass (the review screen's,
+  // the main isolate's coordinator's) must not hold every record's blob.
+  test(
+    'a storage that does not opt in rebuilds every record each time',
+    () async {
+      final plain = CompendiumSyncStorage(repositories);
+      final first = await plain.snapshot();
+      final once = built.toSet();
+      built.clear();
+      await plain.snapshot();
+      expect(once, isNotEmpty);
+      expect(built.toSet(), once);
+      expect(once, containsAll(first.local.keys));
+    },
+  );
 
   // One record of every entity kind, so a kind whose archive body could never
   // match itself (a value `_sameJson` does not accept, say) shows up here.

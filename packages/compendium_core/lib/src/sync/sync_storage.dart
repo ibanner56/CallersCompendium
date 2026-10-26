@@ -284,9 +284,19 @@ final class CompendiumSyncStorage
         SyncApplyReconciliationStorage,
         SyncApplyConcurrencyStorage,
         SyncApplyRestorableStorage {
-  CompendiumSyncStorage(this.repositories);
+  CompendiumSyncStorage(this.repositories, {this.memoizeSnapshots = false});
 
   final CompendiumRepositories repositories;
+
+  /// Whether a later [snapshot] of this instance reuses what an earlier one
+  /// built for records that have not changed ([_snapshotBlobMemo], #1931).
+  ///
+  /// Off unless the caller builds this storage for one sync pass and drops it
+  /// after, as the sync worker does: the memo holds about one archive body and
+  /// one blob per record for as long as the instance lives, so a storage kept
+  /// for longer (a screen's, the main isolate's coordinator) must not hold it.
+  /// Off or on, [snapshot] returns the same records, byte for byte.
+  final bool memoizeSnapshots;
   final Map<SyncRecordAddress, Object> _deferredEntities = {};
   final Set<SyncRecordAddress> _pendingParentWrites = {};
   Set<SyncRecordAddress> _inboundTombstonedAddresses = {};
@@ -319,13 +329,13 @@ final class CompendiumSyncStorage
   /// Each record's blob and wire hash from this instance's latest
   /// [_scanSnapshot], with every input they were built from (#1931).
   ///
-  /// It lives as long as this instance and is never persisted. The sync
-  /// worker builds a new storage per pass, so there it lasts one pass; the
-  /// review screen keeps one storage while it is open, so there it lasts that
-  /// long. A later snapshot reuses an entry only when every input matches what
-  /// built it ([_SnapshotBlobMemoEntry.matches]), so a hit returns exactly what
-  /// a fresh build would. It holds the records of the latest scan alone, about
-  /// one archive body and one blob per record: each scan replaces it with the
+  /// Kept only when [memoizeSnapshots] is on, which the sync worker sets for
+  /// the storage it builds per pass, so there it lasts one pass; every other
+  /// instance leaves it empty. It is never persisted. A later snapshot reuses
+  /// an entry only when every input matches what built it
+  /// ([_SnapshotBlobMemoEntry.matches]), so a hit returns exactly what a fresh
+  /// build would. It holds the records of the latest scan alone, about one
+  /// archive body and one blob per record: each scan replaces it with the
   /// entries it used, once the scan has finished.
   Map<SyncRecordAddress, _SnapshotBlobMemoEntry> _snapshotBlobMemo = const {};
 
@@ -539,6 +549,7 @@ final class CompendiumSyncStorage
     // next scan, otherwise. In memory only: this scan writes nothing.
     final previousMemo = _snapshotBlobMemo;
     final nextMemo = <SyncRecordAddress, _SnapshotBlobMemoEntry>{};
+    final memoize = memoizeSnapshots;
 
     Future<void> addEntity({
       required SyncRecordKind kind,
@@ -590,7 +601,7 @@ final class CompendiumSyncStorage
                 ),
         );
       }
-      nextMemo[address] = entry;
+      if (memoize) nextMemo[address] = entry;
       if (entry.candidate case final candidate?) local[address] = candidate;
     }
 
@@ -870,7 +881,8 @@ final class CompendiumSyncStorage
     await _applySyncExcludeImports(publication);
 
     // Only a scan that finished replaces the memo, and it drops the records
-    // this scan did not see (hard-deleted, purged, withheld).
+    // this scan did not see (hard-deleted, purged, withheld). With
+    // [memoizeSnapshots] off, nothing was added, so it stays empty.
     _snapshotBlobMemo = nextMemo;
     return (
       snapshot: SyncStorageSnapshot(

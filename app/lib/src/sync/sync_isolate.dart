@@ -409,6 +409,19 @@ Future<void> _pauseAfterWrite(SendPort parentPort) async {
   }
 }
 
+/// The store one worker pass syncs through. It is built for that pass and
+/// dropped when the pass ends, so it is the store that keeps the snapshot
+/// memo: the pass's later snapshots reuse what did not change (#1931).
+@visibleForTesting
+CompendiumSyncCoordinatorStore syncPassStore(
+  CompendiumRepositories repositories, {
+  required String syncId,
+}) => CompendiumSyncCoordinatorStore(
+  repositories,
+  syncId: syncId,
+  memoizeSnapshots: true,
+);
+
 Future<Map<String, Object?>> _runSyncPass({
   required String databasePath,
   required String endpoint,
@@ -434,7 +447,7 @@ Future<Map<String, Object?>> _runSyncPass({
     coordinator = SyncCoordinator(
       syncId: syncId,
       deviceId: deviceId,
-      store: CompendiumSyncCoordinatorStore(
+      store: syncPassStore(
         CompendiumRepositories(database, contraTaxonomy),
         syncId: syncId,
       ),

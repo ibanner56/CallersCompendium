@@ -27,6 +27,28 @@ void main() {
     expect(store, isA<SyncApplyRestorableStorage>());
   });
 
+  // The snapshot memo holds every record's blob for as long as its storage
+  // lives (#1931), so only the worker's per-pass store may keep it. The main
+  // isolate's coordinator store and the review screens build theirs with the
+  // default, and keep none.
+  test('only the per-pass worker store keeps the snapshot memo', () {
+    final database = CompendiumDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final repositories = CompendiumRepositories(database, contraTaxonomy);
+    expect(
+      syncPassStore(repositories, syncId: 'sync-id').storage.memoizeSnapshots,
+      isTrue,
+    );
+    expect(
+      CompendiumSyncCoordinatorStore(
+        repositories,
+        syncId: 'sync-id',
+      ).storage.memoizeSnapshots,
+      isFalse,
+    );
+    expect(CompendiumSyncStorage(repositories).memoizeSnapshots, isFalse);
+  });
+
   test('opens the database and transport inside the pass isolate', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-',

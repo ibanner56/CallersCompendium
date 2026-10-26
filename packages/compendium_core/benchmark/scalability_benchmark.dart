@@ -271,11 +271,11 @@ Future<void> main() async {
       );
 
       // The same storage instance snapshotted three times, as one sync pass
-      // does (the worker builds one storage per pass). The 2nd and 3rd reuse
-      // the per-pass memo of unchanged records' blobs and hashes (#1931).
+      // does (the worker builds one storage per pass, with the memo on). The
+      // 2nd and 3rd reuse unchanged records' blobs and hashes (#1931).
       CompendiumSyncStorage? passStorage;
       Future<int> passSnap(CompendiumRepositories repos) async {
-        passStorage ??= CompendiumSyncStorage(repos);
+        passStorage ??= CompendiumSyncStorage(repos, memoizeSnapshots: true);
         final snapshot = await passStorage!.snapshot();
         return snapshot.local.length;
       }
