@@ -3814,8 +3814,8 @@ again, say) keeps what it needs. Called inside an open transaction, as conflict
 resolution calls it, all three phases run in that transaction.
 
 **A pass's later snapshots reuse what did not change.** The scan still hydrates
-every record, but a `CompendiumSyncStorage` remembers, for each entity record of
-its latest scan, the blob and wire hash it built and every input it built them
+every record, but a `CompendiumSyncStorage` built with `memoizeSnapshots`
+remembers, for each entity record of its latest scan, the blob and wire hash it built and every input it built them
 from, and a later scan reuses them when all of those inputs are unchanged
 (#1931). The inputs are the record's address, its unprojected archive body
 (`syncArchiveBodyForEntity`), its three timestamps, the set of shareable
@@ -3827,9 +3827,11 @@ the wire. What a record shows of another one, such as a dance's authors, is
 already in its archive body, so no dependency tracking is needed. The memo is in
 memory only: each scan builds its own, which replaces the last one when the scan
 finishes, and the scan still writes nothing. It is never persisted and lives as
-long as its storage instance. The worker builds a new storage per pass, so there
-it lives for one pass, and the saving is on the second and later snapshots of a
-pass, not the first; the review screen keeps one storage while it is open. Settings and records kept
+long as its storage instance, which is why it is opt-in: only the sync worker's
+per-pass store (`syncPassStore`) turns it on, so it lives for one pass, and the
+saving is on the second and later snapshots of a pass, not the first. Every
+other storage, the review screen's and the main isolate's coordinator's among
+them, keeps no memo, and its snapshots are built in full as before. Settings and records kept
 whole are few, and still rebuilt every scan. The guard is
 `sync_snapshot_blob_memo_test.dart`, whose last group compares a memoised
 snapshot with a fresh instance's, byte for byte, after random edits.

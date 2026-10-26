@@ -11,7 +11,7 @@
       "`syncArchiveBodyForEntity`, `syncBodyForArchiveBody` and `syncRecordBlobForArchiveBody` split `syncBodyForEntity` and `syncRecordBlobForEntity` into the archive-shaped body and the projection from it. The existing functions return what they did."
     ],
     "changed": [
-      "`CompendiumSyncStorage.snapshot()` reuses each entity record's blob and wire hash from the same instance's previous snapshot when every input that built them is unchanged. The returned snapshot is unchanged."
+      "`CompendiumSyncStorage(memoizeSnapshots: true)` makes a later `snapshot()` reuse each entity record's blob and wire hash from the same instance's previous one when every input that built them is unchanged. It is off by default; the sync worker turns it on for its per-pass storage only. The returned snapshot is unchanged."
     ]
   }
 }
