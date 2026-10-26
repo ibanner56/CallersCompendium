@@ -2323,6 +2323,33 @@ void main() {
       expect(find.text('Rambling Reel'), findsNothing);
     });
   });
+
+  testWidgets('the last dance scrolls clear of the New dance FAB', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    for (var i = 0; i < 30; i++) {
+      final n = i.toString().padLeft(2, '0');
+      await repos.dances.create(_dance(id: 'd$n', title: 'Dance $n'));
+    }
+    await _pumpScreen(tester, repos);
+    // A phone-sized window, so the FAB floats over the list.
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    await tester.pumpAndSettle();
+
+    // Fling well past the end, so the list rests at its maximum extent.
+    for (var i = 0; i < 5; i++) {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -3000));
+      await tester.pumpAndSettle();
+    }
+
+    final lowestRowBottom = tester
+        .widgetList<DanceListTile>(find.byType(DanceListTile))
+        .map((t) => tester.getRect(find.byWidget(t)).bottom)
+        .reduce((a, b) => a > b ? a : b);
+    final fab = tester.getRect(find.byKey(const ValueKey('new-dance')));
+    expect(lowestRowBottom, lessThanOrEqualTo(fab.top));
+  });
 }
 
 class _CountingDances extends DanceRepository {

@@ -99,6 +99,49 @@ void main() {
     expect(find.byType(ContraDbProgramImportScreen), findsOneWidget);
   });
 
+  for (final compact in [false, true]) {
+    testWidgets('the ⋮ overflow is the last app-bar action '
+        '(${compact ? 'compact' : 'wide'})', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, compact: compact);
+
+      final more = tester.getCenter(
+        find.byKey(const ValueKey('programs-more-actions')),
+      );
+      for (final key in ['programs-sort', 'programs-sort-direction']) {
+        expect(
+          more.dx,
+          greaterThan(tester.getCenter(find.byKey(ValueKey(key))).dx),
+          reason: '⋮ sits after $key, as on the Collection app bar',
+        );
+      }
+    });
+  }
+
+  testWidgets('the last program scrolls clear of the New program FAB', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    for (var i = 0; i < 30; i++) {
+      final n = i.toString().padLeft(2, '0');
+      await repos.programs.create(_program(id: 'p$n', title: 'Program $n'));
+    }
+    await _pump(tester, repos);
+
+    // Fling well past the end, so the list rests at its maximum extent.
+    for (var i = 0; i < 5; i++) {
+      await tester.drag(find.byType(ListView), const Offset(0, -3000));
+      await tester.pumpAndSettle();
+    }
+
+    final lowestRowBottom = tester
+        .widgetList<ProgramListTile>(find.byType(ProgramListTile))
+        .map((t) => tester.getRect(find.byWidget(t)).bottom)
+        .reduce((a, b) => a > b ? a : b);
+    final fab = tester.getRect(find.byKey(const ValueKey('new-program')));
+    expect(lowestRowBottom, lessThanOrEqualTo(fab.top));
+  });
+
   testWidgets('wide import menu keeps source-only labels', (tester) async {
     final repos = openTestRepositories();
     await _pump(tester, repos);

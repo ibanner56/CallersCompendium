@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../diagnostics/error_log.dart';
 import '../data/settings_keys.dart';
 import 'sync_coordinator.dart';
+import 'sync_failure.dart' show syncAppliedKindsForError;
 import 'sync_http_client.dart';
 import 'sync_network.dart';
 
@@ -291,10 +292,14 @@ class SyncController extends ChangeNotifier {
   ///
   /// Called whatever status the pass reports: a pass that failed part-way can
   /// have applied records before it stopped, and the database holds them
-  /// either way. A pass that threw instead reports no applied kinds, so it
-  /// reaches neither this nor the live-query invalidation; the next pass that
-  /// applies settings reloads. Not awaited: the reload is the app's work, not
-  /// the pass's.
+  /// either way. A pass that threw does too when its error says what it had
+  /// applied (`syncAppliedKindsForError`): the worker isolate reports the
+  /// kinds it committed before the throw, and a worker that dies without
+  /// reporting, killed or of an uncaught error, reports every kind because
+  /// what it committed is unknown (#1913). A later pass
+  /// cannot stand in for this: the rows already match the peers, so it
+  /// applies nothing and reports nothing. Not awaited: the reload is the
+  /// app's work, not the pass's.
   final void Function()? _onSettingsApplied;
 
   /// Builds the probe for a pairing attempt. [endpoint] must already have
@@ -763,6 +768,7 @@ class SyncController extends ChangeNotifier {
           message:
               'sync pass threw ${error.runtimeType}', // i18n-ignore: internal status
           failure: SyncFailure.fromError(error),
+          appliedKinds: syncAppliedKindsForError(error).toList(),
         );
       }
       try {
@@ -773,12 +779,20 @@ class SyncController extends ChangeNotifier {
       _planRetry(result);
       return SyncGateOutcome.ran;
     } finally {
-      _inFlight--;
-      if (_inFlight == 0 && _dirty) {
-        _dirty = false;
-        if (_enabled && !_disposed) _scheduleDebounced();
-      }
+      _endPass();
       _notify();
+    }
+  }
+
+  /// Releases the in-flight count a pass raised and, when it was the last pass
+  /// out, schedules the follow-up for any edit [notifyLocalChange] deferred
+  /// while it ran. Shared by [trigger] and [confirmReplacement] so a
+  /// confirmation's edits get the same debounced pass as an ordinary pass's.
+  void _endPass() {
+    _inFlight--;
+    if (_inFlight == 0 && _dirty) {
+      _dirty = false;
+      if (_enabled && !_disposed) _scheduleDebounced();
     }
   }
 
@@ -1022,6 +1036,7 @@ class SyncController extends ChangeNotifier {
           message:
               'replacement confirmation threw ${error.runtimeType}', // i18n-ignore: internal status
           failure: SyncFailure.fromError(error),
+          appliedKinds: syncAppliedKindsForError(error).toList(),
         );
       }
       try {
@@ -1043,7 +1058,7 @@ class SyncController extends ChangeNotifier {
       }
       return SyncGateOutcome.ran;
     } finally {
-      _inFlight--;
+      _endPass();
       _notify();
     }
   }

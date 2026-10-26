@@ -9275,6 +9275,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get recentlyDeletedTitle => 'Zuletzt gelöscht';
 
   @override
+  String get recentlyDeletedLoadError =>
+      'Gelöschte Elemente konnten nicht geladen werden. Es wurde nichts entfernt.';
+
+  @override
   String get recentlyDeletedDeleteTitle => 'Dauerhaft löschen?';
 
   @override

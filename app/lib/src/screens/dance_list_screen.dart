@@ -31,6 +31,7 @@ import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/dance_detail_data.dart';
 import '../theme/app_spacing.dart';
+import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
@@ -1675,6 +1676,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
             key: const ValueKey('batch-clear-tunes-confirm-button'),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l10n.collectionBatchClearTunesConfirmButton),
@@ -2448,6 +2450,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 _buildEmptyCollectionSliver()
               else
                 _buildResultsSliver(),
+              // Lets the last row scroll clear of the "New dance" FAB.
+              const SliverToBoxAdapter(
+                child: SizedBox(height: AppSpacing.fabClearance),
+              ),
             ],
           ),
         ),

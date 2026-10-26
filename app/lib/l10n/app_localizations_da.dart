@@ -9168,6 +9168,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get recentlyDeletedTitle => 'For nylig slettet';
 
   @override
+  String get recentlyDeletedLoadError =>
+      'Dine slettede elementer kunne ikke indlæses. Intet er blevet fjernet.';
+
+  @override
   String get recentlyDeletedDeleteTitle => 'Slet permanent?';
 
   @override

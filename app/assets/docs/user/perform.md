@@ -45,8 +45,9 @@ note slots in a program get a card of their own, with the text in the same
 large type.
 
 Your [dialect](./dialects.md) is applied — or the program's own dialect, if you
-gave it one (see [Programs](./programs.md)) — so the card speaks in your words
-(see **Show canonical terms** below for a quick look at the shared wording). Figure
+gave it one (see [Programs](./programs.md)) — so the card speaks in your words.
+For a quick look at the shared wording, choose **Canonical** under **Switch
+dialect** below. Figure
 detail you recorded shows here too: when a swing ends facing somewhere other
 than the usual "in"/across — up or down the hall, or out of the set — the card
 notes that ending so you can cue it.
@@ -61,10 +62,12 @@ same thing, and every toggle says which state it is in rather than relying on
 how it looks.
 
 **Switch dialect.** Changes your active dialect for the whole app — handy when
-tonight's hall uses different role names. If the program has its own dialect,
-the switch changes the wording for this time in Perform only: your active
-dialect stays as it was, and the program's dialect is back the next time you open
-Perform. See [Dialect](./dialects.md#switch-dialect-on-the-fly).
+tonight's hall uses different role names. **Canonical** is one of the choices,
+for when a dancer or another caller asks what a figure is in the shared wording;
+switch back the same way. If the program has its own dialect, the switch changes
+the wording for this time in Perform only: your active dialect stays as it was,
+and the program's dialect is back the next time you open Perform. See
+[Dialect](./dialects.md#switch-dialect-on-the-fly).
 
 **Stage theme.** Perform opens on a **high-contrast dark-stage theme** by default,
 built for strong legibility (a contrast ratio of at least 7 to 1) under stage
@@ -85,13 +88,6 @@ the size down and up, starting large with no upper limit. Using either one
 switches auto-size off, because you have told the app what size you want. The
 size you pick is remembered for next time; auto-size goes back to your Settings
 choice the next time you open Perform.
-
-**Show canonical terms.** Flips the card between your
-[dialect](./glossary.md#dialect) and the shared wording without changing your
-active dialect — handy if a dancer or another caller asks about a figure. Your
-choice is remembered. It appears only when you are using a dialect other than
-the shared wording. See
-[Dialect](./dialects.md#peek-at-the-canonical-wording).
 
 **Tap tempo** opens a silent, visual metronome: tap out the beat on the large
 target to see the tempo in beats per minute and a pulse you can follow or show

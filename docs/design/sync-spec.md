@@ -4563,6 +4563,19 @@ CREATE TABLE blob_refs (
   size INTEGER NOT NULL, uploaded_at INTEGER NOT NULL,
   PRIMARY KEY (id_key, epoch, hash)
 );
+-- The blob hashes each stored manifest names, and the manifest etag they
+-- were read from (§7.3).
+CREATE TABLE manifest_refs (
+  id_key TEXT NOT NULL, epoch TEXT NOT NULL, device_id TEXT NOT NULL,
+  hash TEXT NOT NULL,
+  PRIMARY KEY (id_key, epoch, device_id, hash)
+);
+CREATE INDEX manifest_refs_hash_idx ON manifest_refs (id_key, epoch, hash);
+CREATE TABLE indexed_manifests (
+  id_key TEXT NOT NULL, epoch TEXT NOT NULL, device_id TEXT NOT NULL,
+  etag TEXT NOT NULL,
+  PRIMARY KEY (id_key, epoch, device_id)
+);
 ```
 
 Blobs MUST be namespaced per store **and per epoch**, on disk as well as in
@@ -4728,6 +4741,20 @@ deleted — **except** that a blob whose `uploaded_at` is within the last **24
 hours** MUST NOT be collected, whether or not any manifest references it. A
 recent upload is a temporary GC root.
 
+A manifest references a blob when its hash appears as a value under
+`records.<kind>.<id>`. The server reads those values once, when the manifest is
+written, into `manifest_refs` (§7.1), in the same transaction as the manifest
+row, and deletes them with it. GC is then one indexed query for stale
+`blob_refs` rows that no `manifest_refs` row names, and decodes no manifest
+body the index covers. GC holds the database write lock on a single-isolate server, so decoding
+every body (up to 250 MB per store) on every `PUT` let one store stall every
+other (#1910). `indexed_manifests` records which etag each device's rows were
+read from. A manifest without a current row — stored before the index existed,
+or written by an earlier server image after a rollback — is indexed at startup,
+and until then GC reads its body as before. A body that does not decode stays
+unindexed; GC reading it fails without collecting anything in that epoch, as it
+did before the index existed.
+
 Without that exemption the specified GC deletes live data, because every upload
 passes through a window in which no manifest names it: the client applies inbound
 records, uploads the final manifest's blobs at §6.3 step 7, and publishes its
@@ -4819,6 +4846,15 @@ Break-glass access MUST write to a **separate database** holding exactly:
 Separate so that reaping a store cannot destroy evidence of access to it. Its
 retention is therefore not the 30-day disuse TTL and MUST be stated in the
 privacy policy.
+
+The break-glass command is a read, run as a second process against the live
+volume. It opens the store database read-only and performs none of the startup
+work of §7.3 (schema and index creation, manifest indexing, orphan-blob
+reconcile, pending-deletion retry), which assume no other process is writing;
+only the break-glass log database is opened for writing. The server's own
+connection waits a short, bounded time (250 ms) for a competing writer rather
+than failing at once, and no longer, because a wait stalls every request on a
+single-isolate server (#1917).
 
 ### 7.5 Deployment
 

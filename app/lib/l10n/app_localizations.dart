@@ -8481,7 +8481,7 @@ abstract class AppLocalizations {
   /// **'Increase text size'**
   String get performIncreaseTextSize;
 
-  /// Accessible name/tooltip for the perform-mode toggle that shows canonical (non-dialect) figure terms.
+  /// Names the synced setting behind a former Perform toggle that showed canonical (non-dialect) figure terms, in sync-conflict and sync-notice lists. This version no longer shows the toggle; devices on older versions still write the setting.
   ///
   /// In en, this message translates to:
   /// **'Show canonical terms'**
@@ -13627,6 +13627,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recently Deleted'**
   String get recentlyDeletedTitle;
+
+  /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t load your deleted items. Nothing has been removed.'**
+  String get recentlyDeletedLoadError;
 
   /// Title of the confirm permanent-delete dialog.
   ///

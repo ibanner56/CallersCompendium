@@ -543,7 +543,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `last_used_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `matrix_exact_beat_collision` | `dpv:NonPersonalData` | app user | shareable |  |
-| `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable |  |
+| `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable | No longer read or written by this version (Perform lost its canonical toggle). Kept classified and travelling so older-version peers and backups, which still use it, round-trip it unchanged. |
 | `perform_stage_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | **device-local** | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector, but it may travel in a user-controlled local backup. |
 | `program_dance_share_fields` | `dpv:NonPersonalData` | app user | shareable |  |

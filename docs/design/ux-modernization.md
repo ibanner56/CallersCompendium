@@ -161,7 +161,14 @@ pairs color with an icon + text label** — no color-only meaning
 icon+text by `program_status_chip.dart`; tokens add theme-driven color):
 
 - `statusDraft` → neutral/outline + `edit_note_outlined` "Draft"
-- `statusFinalized` → secondary (green) + `check_circle_outline` "Finalized"
+- `statusFinalized` → a "done" green + `check_circle_outline` "Finalized": the
+  palette's secondary when it is already green-to-cyan, otherwise a green
+  derived from primary's saturation and lightness, made to clear 3:1 as an icon
+  (`AppThemeExtension._doneColor`). Secondary alone failed in Blue Hour, where it
+  is a dusty rose; primary alone failed in High contrast, Monokai and Gruvbox,
+  where it is red or orange — either way a finished program read like a warning.
+  `status_chip_contrast_test.dart` holds every bundled palette to it: Finalized
+  at least 60° in hue from Broken and 30° from Performed.
 - `statusPerformed` → tertiary + `event_available_outlined` "Performed"
 
 **`DanceStatus` — `{ active, deprecated, broken, draft, variation }`** (already icon+text in

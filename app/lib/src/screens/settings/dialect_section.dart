@@ -5,6 +5,7 @@ import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
@@ -131,6 +132,7 @@ class _DialectLibrarySection extends StatelessWidget {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l10n.commonDelete),
           ),

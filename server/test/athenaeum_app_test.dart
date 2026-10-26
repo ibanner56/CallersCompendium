@@ -1830,7 +1830,7 @@ void main() {
       ),
     );
 
-    await expectLater(createRequest(), throwsA(isA<SqliteException>()));
+    expect((await createRequest()).statusCode, 500);
     database.execute('DROP TRIGGER fail_store_create');
     expect((await createRequest()).statusCode, 201);
   });
@@ -1892,6 +1892,7 @@ void main() {
         etag: rawBodyHash(body),
         writtenAt: manifest.writtenAt.millisecondsSinceEpoch ~/ 1000,
         body: body,
+        referencedHashes: const [],
       ),
       throwsA(isA<StoreEpochMismatch>()),
     );
@@ -2748,6 +2749,7 @@ void main() {
       etag: 'a' * 64,
       writtenAt: 0,
       body: Uint8List.fromList([1]),
+      referencedHashes: const [],
     );
     var yielded = 0;
     Stream<List<int>> body() async* {

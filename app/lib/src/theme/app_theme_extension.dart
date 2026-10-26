@@ -76,7 +76,7 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   }) {
     return AppThemeExtension(
       statusDraft: scheme.onSurfaceVariant,
-      statusFinalized: scheme.secondary,
+      statusFinalized: _doneColor(scheme),
       statusPerformed: scheme.tertiary,
       statusDeprecated: scheme.onSurfaceVariant,
       statusBroken: _chipSafe(scheme.error, scheme),
@@ -88,6 +88,41 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       focusRing: highContrast ? const Color(0xFFFFD54A) : scheme.primary,
       focusRingWidth: highContrast ? 3.0 : 2.0,
     );
+  }
+
+  /// The "done" green for the Finalized status (§2: green means ready).
+  ///
+  /// A palette's secondary when it is already green-to-cyan (hue 90–180°), as
+  /// its designer chose it; otherwise a green at hue 140° with the primary's
+  /// saturation and lightness. Either way it is then moved away from the
+  /// surface until it clears 3:1 as an icon. Neither secondary nor primary
+  /// works for every palette: in Blue Hour secondary is a dusty rose, and in
+  /// High contrast, Monokai and Gruvbox primary is red or orange — both read
+  /// as a warning beside Broken.
+  static Color _doneColor(ColorScheme scheme) {
+    final secondary = HSLColor.fromColor(scheme.secondary);
+    final primary = HSLColor.fromColor(scheme.primary);
+    var green = secondary.hue >= 90 && secondary.hue <= 180
+        ? secondary
+        : HSLColor.fromAHSL(
+            1,
+            140,
+            primary.saturation.clamp(0.35, 0.75),
+            primary.lightness,
+          );
+    final towardContrast = scheme.surface.computeLuminance() > 0.5
+        ? -0.02
+        : 0.02;
+    for (var step = 0; step < 50; step++) {
+      if (Wcag.contrastRatio(green.toColor(), scheme.surface) >=
+          Wcag.aaNonText) {
+        break;
+      }
+      green = green.withLightness(
+        (green.lightness + towardContrast).clamp(0.0, 1.0),
+      );
+    }
+    return _chipSafe(green.toColor(), scheme);
   }
 
   /// [token] eased toward the surface only as far as needed for the status

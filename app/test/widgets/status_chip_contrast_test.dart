@@ -50,6 +50,39 @@ void main() {
     }
   });
 
+  group('Finalized reads as done, not as a warning', () {
+    // Hue distance in degrees around the color wheel (0–180).
+    double hueGap(Color a, Color b) {
+      final d = (HSLColor.fromColor(a).hue - HSLColor.fromColor(b).hue).abs();
+      return d > 180 ? 360 - d : d;
+    }
+
+    for (final selection in AppThemeSelection.values) {
+      final scheme = selection.scheme;
+      if (scheme == null) continue;
+
+      test('${selection.name}: Finalized is far in hue from Broken and '
+          'Performed, and legible as an icon', () {
+        final ext = AppThemeExtension.fromColorScheme(scheme);
+        expect(
+          hueGap(ext.statusFinalized, ext.statusBroken),
+          greaterThanOrEqualTo(60),
+          reason: '${selection.name}: Finalized must not share Broken\'s hue',
+        );
+        expect(
+          hueGap(ext.statusFinalized, ext.statusPerformed),
+          greaterThanOrEqualTo(30),
+          reason: '${selection.name}: Finalized and Performed must differ',
+        );
+        expect(
+          Wcag.contrastRatio(ext.statusFinalized, scheme.surface),
+          greaterThanOrEqualTo(Wcag.aaNonText),
+          reason: '${selection.name}: the Finalized icon must clear 3:1',
+        );
+      });
+    }
+  });
+
   Future<void> pumpDanceChip(WidgetTester tester, DanceStatus status) async {
     await tester.pumpWidget(
       MaterialApp(

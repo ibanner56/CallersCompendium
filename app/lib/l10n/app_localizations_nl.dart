@@ -9236,6 +9236,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get recentlyDeletedTitle => 'Onlangs verwijderd';
 
   @override
+  String get recentlyDeletedLoadError =>
+      'Je verwijderde items konden niet worden geladen. Er is niets verwijderd.';
+
+  @override
   String get recentlyDeletedDeleteTitle => 'Permanent verwijderen?';
 
   @override

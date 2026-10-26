@@ -13,6 +13,7 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/destructive_button_style.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/user_figure_argument_editor.dart';
@@ -949,6 +950,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('compound-discard'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.danceEditorDiscard),

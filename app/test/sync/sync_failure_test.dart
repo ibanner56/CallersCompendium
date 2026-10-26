@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:compendium_app/src/sync/sync_failure.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -46,6 +47,32 @@ void main() {
         expect(syncFailureCauseForError(error), cause);
       });
     }
+  });
+
+  group('syncAppliedKindsForError', () {
+    // The controller reloads settings from these after a thrown pass (#1913).
+    test('reads what a worker failure carries', () {
+      expect(
+        syncAppliedKindsForError(
+          SyncWorkerFailure(
+            'reset',
+            SyncFailureCause.unreachable,
+            appliedKinds: const {SyncRecordKind.setting},
+          ),
+        ),
+        {SyncRecordKind.setting},
+      );
+    });
+
+    test('is empty for an error that says nothing about applying', () {
+      expect(syncAppliedKindsForError(StateError('bug')), isEmpty);
+      expect(
+        syncAppliedKindsForError(
+          SyncWorkerFailure('reset', SyncFailureCause.unreachable),
+        ),
+        isEmpty,
+      );
+    });
   });
 
   group('syncFailureCauseForResponse', () {

@@ -9,6 +9,7 @@ import '../../sync/sync_coordinator.dart' show SyncPeerSummary;
 import '../../sync/sync_failure.dart';
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/destructive_button_style.dart';
 import 'sync_device_labels.dart';
 import 'sync_failure_labels.dart';
 
@@ -96,7 +97,6 @@ Future<bool> _confirmSyncWipe(BuildContext context) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) {
-      final theme = Theme.of(dialogContext);
       return AlertDialog(
         key: const ValueKey('sync-wipe-dialog'),
         title: Text(l10n.settingsSyncWipeConfirmTitle),
@@ -112,11 +112,10 @@ Future<bool> _confirmSyncWipe(BuildContext context) async {
             ),
           ),
           FilledButton(
-            key: const ValueKey('sync-wipe-confirm'),
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
             ),
+            key: const ValueKey('sync-wipe-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.settingsSyncWipeConfirmAction),
           ),

@@ -13,7 +13,7 @@
 //     not `tunesRaw`;
 //   * and `unreadable_tunes_test.dart`'s own withhold guard drives `snapshot()`
 //     and `snapshotCandidates()` while reading as two paths —
-//     `snapshotCandidates()` is a delegation to `snapshot()`
+//     `snapshotCandidates()` was then a delegation to `snapshot()`
 //     (`sync_storage.dart`), so one of the four withhold sites was covered
 //     twice and two were not covered at all for that column.
 //
