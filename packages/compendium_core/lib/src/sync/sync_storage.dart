@@ -462,8 +462,9 @@ final class CompendiumSyncStorage
 
   /// This device's whole library as the sync pass publishes and merges it.
   ///
-  /// Three phases, so that the scan, which reads and hashes every record, does
-  /// not hold the write lock (#1915). drift opens every native transaction
+  /// Three phases, so that the scan, which reads every record and builds and
+  /// hashes each one this instance has not seen unchanged (#1931), does not
+  /// hold the write lock (#1915). drift opens every native transaction
   /// `BEGIN IMMEDIATE`, so a scan inside one made every app write wait for the
   /// whole library to be encoded, and fail past the busy timeout.
   ///
@@ -497,6 +498,10 @@ final class CompendiumSyncStorage
   /// The read phase of [snapshot]: everything but the writes. It writes
   /// nothing, and must not, because it runs in a read transaction; it returns
   /// the addresses whose kept fields it found orphaned for phase 3 to sweep.
+  ///
+  /// An entity record whose inputs are all as the previous scan of this
+  /// instance found them reuses that scan's blob and wire hash
+  /// ([_snapshotBlobMemo]), which lives in memory, not in the database.
   Future<({SyncStorageSnapshot snapshot, Set<SyncRecordAddress> orphaned})>
   _scanSnapshot({required bool previouslyUsed}) async {
     final baseline = await repositories.syncLocal.snapshotBaseline();
