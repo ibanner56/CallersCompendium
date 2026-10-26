@@ -16,7 +16,7 @@
   },
   "core": {
     "added": [
-      "`DedupeVerdict.possibleMatchIds`, filled by `DedupeIndex.possibleTitleMatches` on `isNew` and `ambiguous` verdicts: existing dances with the same `dedupeCoreTitleKey` (trailing `{…}`/`(…)`/`[…]` annotations dropped unless the rest is a placeholder title such as `New Dance`; `A-1` read as `a1`) and a shared author, but a different `normalizeTitle`. It never changes a verdict's kind or candidates and is never confident. `normalizeTitle` is unchanged."
+      "`DedupeVerdict.possibleMatchIds`, filled by `DedupeIndex.possibleTitleMatches` on `isNew` and `ambiguous` verdicts: existing dances with the same `dedupeCoreTitleKey` (trailing `{…}`/`(…)`/`[…]` annotations dropped unless the rest is a placeholder title such as `New Dance` or the bracket holds only a part number such as `{#2}`; `A-1` read as `a1`) and a shared author, but a different `normalizeTitle`. It never changes a verdict's kind or candidates and is never confident. `normalizeTitle` is unchanged."
     ]
   }
 }

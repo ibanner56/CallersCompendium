@@ -188,7 +188,8 @@ annotations, so the pair scores about 0.5 and is `isNew`.
 `DedupeIndex.possibleTitleMatches` adds a lower tier keyed on
 `dedupeCoreTitleKey`: lowercased and folded, trailing `{…}`/`(…)`/`[…]`
 annotations set off by whitespace dropped (unless what remains is a placeholder
-title such as `New Dance`, whose bracket is the real name), a leading article
+title such as `New Dance`, whose bracket is the real name, or the bracket holds
+only a part number such as `{#2}`), a leading article
 dropped only before a letter, and every non-`[a-z0-9]` character deleted. A
 possible match needs an equal non-empty core key, a shared normalized author on
 both sides, and a **different** `normalizeTitle`, which keeps the tier disjoint
@@ -214,10 +215,17 @@ from confident candidates. The ids ride on `DedupeVerdict.possibleMatchIds`.
   protocol's normative title (`sync-spec.md`, "Normalized title"), and
   fresh-attach dedupe merges on it silently. The core key is exempt by name in
   `tools/ci/check_sync_invariants.py` as an import-only key.
-- **Measured.** `packages/compendium_core/tool/measure_possible_matches.dart`
-  self-joins real catalogues. On ContraDB (2,432 dances, 2026-10-26), the
-  placeholder rule reduced 130 pairs to 75, and all 75 named the same dance or a
-  variant of it, judged by title.
+- **Measured** with `packages/compendium_core/tool/measure_possible_matches.dart`
+  (2026-10-26, judged by title; a version, variant or alternate counts as the
+  same dance):
+  - ContraDB self-join (2,432 dances): the placeholder rule cut 130 pairs to
+    75, and all 75 were the same dance.
+  - The Caller's Box self-join (20,516 dances): 4,693 pairs; 1 of 60 sampled
+    was a different dance (`Rickett's Hornpipe {#2}` against
+    `{No. 1, alternate 2}`), which the part-number rule now excludes.
+  - ContraDB imported into a Caller's Box collection: 373 of 2,376 incoming
+    dances (15.7%) are offered a possible match; 0 of 60 sampled pairs was a
+    different dance.
 
 ### Program-import path (issue #685)
 

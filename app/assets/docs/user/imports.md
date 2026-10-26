@@ -521,7 +521,8 @@ watches for matches:
   (**Is this a dance you already have?**), where you pick the dance to replace
   or **Import as a new dance**; replacing it keeps your custom fields, but takes
   the incoming title. A title like `New Dance (Velvet)`, whose bracket is the
-  dance's real name, is not treated this way.
+  dance's real name, is not treated this way, and nor is a bracket holding only
+  a part number, as in `Rickett's Hornpipe {#2}`.
 - **Same name, different choreography.** When the title and author match
   confidently but the *figures* differ, the app shows a **Variation of "…"?** block with
   an inline diff of exactly which lines changed, and offers **Import as a

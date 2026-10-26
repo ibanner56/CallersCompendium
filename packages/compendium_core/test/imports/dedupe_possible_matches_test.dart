@@ -55,6 +55,27 @@ void main() {
       expect(dedupeCoreTitleKey('New Dance'), 'newdance');
     });
 
+    test('keeps a bracket that is only a part number, and stops there', () {
+      // The one Caller's Box false positive in a 60-pair sample: No. 1 and
+      // No. 2 are different traditional dances.
+      expect(
+        dedupeCoreTitleKey("Rickett's Hornpipe {#2}"),
+        isNot(dedupeCoreTitleKey("Rickett's Hornpipe {No. 1, alternate 2}")),
+      );
+      expect(
+        dedupeCoreTitleKey("Rickett's Hornpipe {#2}"),
+        'rickettshornpipe2',
+      );
+      expect(
+        dedupeCoreTitleKey('Waving at the Stars (1)'),
+        isNot(dedupeCoreTitleKey('Waving at the Stars (2)')),
+      );
+      expect(dedupeCoreTitleKey('Reel (No. 3)'), 'reelno3');
+      expect(dedupeCoreTitleKey('Reel {alt} (Part 2)'), 'reelaltpart2');
+      // A number among other words is still an annotation.
+      expect(dedupeCoreTitleKey('Reel {alternate 2}'), 'reel');
+    });
+
     test('carries no signal for annotation-only or non-Latin titles', () {
       expect(dedupeCoreTitleKey('{variant}'), '');
       expect(dedupeCoreTitleKey('(Imp Var)'), '');

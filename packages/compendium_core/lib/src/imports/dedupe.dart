@@ -543,7 +543,10 @@ String normalizeTitle(String title) {
 ///   `{variant}`, `(Imp Var)`, `[alt]`, up to [_maxTitleAnnotations] of them
 ///   (`Trip(let)` is a word, not an annotation, and is kept) — **unless**
 ///   what is left is a placeholder title ([_placeholderCoreTitles]): in
-///   `New Dance (Velvet)` the bracket is the dance's real name, so it stays;
+///   `New Dance (Velvet)` the bracket is the dance's real name, so it stays.
+///   A bracket holding only a part number (`{#2}`, `(No. 2)`, `(2)`) also
+///   stays, and stops the stripping: `Rickett's Hornpipe {#2}` is a different
+///   dance from No. 1;
 /// - a single leading `the`/`a`/`an` is removed when a space or hyphen and
 ///   then a **letter** follow it, so `A Fine Romance` loses it but the `A` of
 ///   `A-1 Reel` and `A 1 Reel` is kept;
@@ -601,6 +604,15 @@ const int _maxTitleAnnotations = 4;
 
 const Map<String, String> _annotationOpeners = {'}': '{', ')': '(', ']': '['};
 
+/// A bracket whose whole content is a part number names a different dance in
+/// a numbered set, not a version of one (#1907): on The Caller's Box,
+/// `Rickett's Hornpipe {#2}` paired with `{No. 1, alternate 2}` was the one
+/// false positive in a 60-pair hand-classified sample, 2026-10-26. Digits
+/// only; a Roman numeral is too easily an ordinary word to read this way.
+final RegExp _partNumberAnnotationRe = RegExp(
+  r'^\s*(?:#|no\.?|number|part)?\s*\d+\s*$',
+);
+
 /// [s] (already trimmed) without its final bracketed group and the whitespace
 /// before it, or `null` when it does not end in one. Only a group whose
 /// opener has no other bracket of its kind inside counts, so an unbalanced
@@ -616,6 +628,7 @@ String? _stripTrailingAnnotation(String s) {
   if (start > 0 && s[start - 1].trim().isNotEmpty) return null;
   final inner = s.substring(start + 1, s.length - 1);
   if (inner.contains(close)) return null;
+  if (_partNumberAnnotationRe.hasMatch(inner)) return null;
   return s.substring(0, start).trimRight();
 }
 
