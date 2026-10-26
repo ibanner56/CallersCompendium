@@ -404,13 +404,12 @@ void main() {
         await directory.delete(recursive: true);
       });
 
-      final cache = SyncPeerManifestCache();
       final operation = IsolatedSyncPassOperation(
         databasePath: databasePath,
         endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
         syncId: 'alpha-beta-gamma-delta',
         deviceId: 'device-a',
-        peerManifestCache: cache,
+        peerManifestCache: SyncPeerManifestCache(),
       );
 
       final first = await operation.call();
@@ -421,7 +420,7 @@ void main() {
       expect(first.failure?.progressed, isTrue);
       expect(first.reports, isEmpty);
       expect(blobRequests, [losingHash, pendingHash]);
-      expect(cache.fetchedBlob(losingHash), losing);
+      expect(operation.peerManifestCache.fetchedBlob(losingHash), losing);
 
       pass = 2;
       blobRequests.clear();
@@ -655,13 +654,12 @@ void main() {
       await directory.delete(recursive: true);
     });
 
-    final cache = SyncPeerManifestCache();
     final operation = IsolatedSyncPassOperation(
       databasePath: databasePath,
       endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
       syncId: 'alpha-beta-gamma-delta',
       deviceId: 'device-a',
-      peerManifestCache: cache,
+      peerManifestCache: SyncPeerManifestCache(),
     );
 
     final first = await operation.call();
@@ -670,6 +668,7 @@ void main() {
     expect(first.reports, isEmpty);
     expect(requests, contains('POST /v1/blobs/batch'));
     expect(requests, contains('GET /v1/blobs/$hash'));
+    final cache = operation.peerManifestCache;
     expect(cache.blobBatchUnsupported, isTrue);
     expect(
       SyncPeerManifestCache.fromMessage(cache.toMessage()).blobBatchUnsupported,
@@ -888,7 +887,7 @@ void main() {
     final rejectedHash = List.filled(64, 'f').join();
     // Evidence from earlier in the session: a publication under a hash the
     // store no longer has for that record, and one observation of the peer.
-    final peerManifestCache = SyncPeerManifestCache(
+    final seed = SyncPeerManifestCache(
       rejectedHashes: {rejectedHash},
       publications: {
         diagnosticAddress: (hash: List.filled(64, 'e').join(), pass: 7),
@@ -944,13 +943,28 @@ void main() {
       endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
       syncId: 'alpha-beta-gamma-delta',
       deviceId: 'device-a',
-      peerManifestCache: peerManifestCache,
+      peerManifestCache: seed,
     );
+    SyncPeerManifestCache.debugManifestBodiesEncoded = 0;
+    SyncPeerManifestCache.debugManifestBodiesDecoded = 0;
 
     final first = await operation.call();
     expect(first.status, SyncPassStatus.completed);
     expect((await operation.call()).status, SyncPassStatus.completed);
     expect(manifestEtags, [null, '"peer-v1"']);
+    // The main isolate relays the cache and never reads it, so it neither
+    // decodes the peer manifest the first pass returned nor re-encodes it
+    // for the second; the counters are isolate-local, so the worker's own
+    // decoding is not counted here (#1934). Read before the decoding getter.
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 0);
+    expect(SyncPeerManifestCache.debugManifestBodiesEncoded, 0);
+    final peerManifestCache = operation.peerManifestCache;
+    expect(
+      peerManifestCache['peer']?.etag,
+      '"peer-v1"',
+      reason: 'the counters are zero for a cache that holds a manifest',
+    );
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 1);
     expect(peerManifestCache.rejectedHashes, {rejectedHash});
     // The peer summary crosses the boundary with the result: the peer lists
     // nothing, so everything this device publishes is waiting for it.
@@ -1119,6 +1133,7 @@ void main() {
       },
     );
     var dropManifestPut = true;
+    final manifestEtags = <String?>[];
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
       await request.drain<void>();
@@ -1142,7 +1157,14 @@ void main() {
         request.response.write(jsonEncode({'missing': <String>[]}));
       } else if (request.method == 'GET' &&
           request.uri.path == '/v1/manifests/peer') {
-        request.response.write(encodeSyncManifest(peerManifest));
+        final etag = request.headers.value(HttpHeaders.ifNoneMatchHeader);
+        manifestEtags.add(etag);
+        request.response.headers.set(HttpHeaders.etagHeader, '"peer-v1"');
+        if (etag == '"peer-v1"') {
+          request.response.statusCode = HttpStatus.notModified;
+        } else {
+          request.response.write(encodeSyncManifest(peerManifest));
+        }
       } else if (request.method == 'GET' &&
           request.uri.path == '/v1/blobs/$incomingHash') {
         request.response.add(encodeSyncRecordBlobUtf8(incoming));
@@ -1218,10 +1240,18 @@ void main() {
     // The retry is no substitute: the row already matches the peer, so it
     // applies and reports nothing. That is why the failed pass must report.
     dropManifestPut = false;
+    SyncPeerManifestCache.debugManifestBodiesEncoded = 0;
+    SyncPeerManifestCache.debugManifestBodiesDecoded = 0;
     final retry = await operation.call();
     expect(retry.status, SyncPassStatus.completed);
     expect(retry.appliedKinds, isEmpty);
     expect(appliedKindCalls, hasLength(1));
+    // The failed pass's cache was adopted, so the retry asked for the peer's
+    // manifest against the ETag the failed pass had seen, and the main
+    // isolate relayed that cache without decoding or re-encoding it (#1934).
+    expect(manifestEtags, [null, '"peer-v1"']);
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 0);
+    expect(SyncPeerManifestCache.debugManifestBodiesEncoded, 0);
   });
 
   test('a worker that dies of an uncaught error reports every kind, once '

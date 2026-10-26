@@ -98,6 +98,13 @@ final class IsolatedSyncPassHandle {
 /// The worker opens the same SQLite file independently, so the transaction
 /// enclosing inbound apply belongs to the isolate that the caller can
 /// terminate without leaving partially applied rows in the caller.
+///
+/// The session's [SyncPeerManifestCache] lives here between passes as the
+/// message the last worker returned, never decoded on this isolate: nothing
+/// here reads it, and decoding and re-encoding every cached peer manifest
+/// cost the UI thread a visible pause at both ends of every pass (#1934). It
+/// is checked with [SyncPeerManifestCache.checkMessage] on arrival, so a
+/// malformed one is refused exactly where it was when this side decoded it.
 final class IsolatedSyncPassOperation {
   IsolatedSyncPassOperation({
     required this.databasePath,
@@ -108,14 +115,25 @@ final class IsolatedSyncPassOperation {
     this.onAppliedKinds,
     SyncPeerManifestCache? peerManifestCache,
     @visibleForTesting this.workerEntryPoint,
-  }) : peerManifestCache = peerManifestCache ?? SyncPeerManifestCache();
+  }) : _peerManifestCacheMessage = peerManifestCache?.toMessage();
   final String databasePath;
   final Uri endpoint;
   final String syncId;
   final String deviceId;
   final Future<void> Function()? beforeTerminalAcknowledgement;
   final void Function(Set<SyncRecordKind> kinds)? onAppliedKinds;
-  final SyncPeerManifestCache peerManifestCache;
+
+  /// The session's peer-manifest cache as the last worker returned it, or as
+  /// the constructor's `peerManifestCache` encoded it before the first pass;
+  /// null is an empty cache.
+  Object? _peerManifestCacheMessage;
+
+  /// A decoded copy of the session's peer-manifest cache, for a test to
+  /// inspect. Changing it changes nothing the next pass sees, and decoding it
+  /// is the main-isolate cost this class otherwise avoids.
+  @visibleForTesting
+  SyncPeerManifestCache get peerManifestCache =>
+      SyncPeerManifestCache.fromMessage(_peerManifestCacheMessage);
 
   /// Replaces the worker's entry point, so a test can make the worker die in
   /// ways the real pass catches; it receives the same request the real
@@ -197,11 +215,10 @@ final class IsolatedSyncPassOperation {
           }
           try {
             final encodedResult = Map<String, Object?>.from(encoded);
-            final updatedCache = SyncPeerManifestCache.fromMessage(
-              encodedResult['_peerManifestCache'],
-            );
+            final updatedCache = encodedResult['_peerManifestCache'];
+            SyncPeerManifestCache.checkMessage(updatedCache);
             final decodedResult = _decodeResult(encodedResult);
-            peerManifestCache.replaceFrom(updatedCache);
+            _peerManifestCacheMessage = updatedCache;
             final onAppliedKinds = this.onAppliedKinds;
             if (onAppliedKinds != null &&
                 decodedResult.appliedKinds.isNotEmpty) {
@@ -222,9 +239,8 @@ final class IsolatedSyncPassOperation {
           final failedCache = message['_peerManifestCache'];
           if (failedCache != null) {
             try {
-              peerManifestCache.replaceFrom(
-                SyncPeerManifestCache.fromMessage(failedCache),
-              );
+              SyncPeerManifestCache.checkMessage(failedCache);
+              _peerManifestCacheMessage = failedCache;
               // diagnostics: silent — a malformed cache is discarded, and the
               // pass failure below is what the caller acts on.
             } on FormatException {
@@ -299,7 +315,7 @@ final class IsolatedSyncPassOperation {
         deviceId: deviceId,
         resultPort: resultPort.sendPort,
         applyControlPort: applyControl?._eventPort,
-        peerManifestCache: peerManifestCache.toMessage(),
+        peerManifestCache: _peerManifestCacheMessage,
         initialStore: _encodeStoreResult(initialStore),
       ),
       onExit: exitPort.sendPort,
@@ -331,7 +347,7 @@ final class _SyncPassRequest {
   final String deviceId;
   final SendPort resultPort;
   final SendPort? applyControlPort;
-  final Map<String, Object?> peerManifestCache;
+  final Object? peerManifestCache;
   final Map<String, Object?>? initialStore;
 }
 
