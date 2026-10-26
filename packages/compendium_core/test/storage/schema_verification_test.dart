@@ -22,7 +22,7 @@
 //     new column to the stored `CREATE TABLE` text. A migrated table therefore
 //     lists columns in migration order, while a fresh one lists them in
 //     declaration order.
-//   * The four raw lookup indices are created by this repo with
+//   * The raw lookup indices are created by this repo with
 //     `IF NOT EXISTS` (they are applied from both `onCreate` and an upgrade
 //     step), but a database instantiated from a generated schema snapshot
 //     creates them without it — drift's schema writer does not round-trip that
