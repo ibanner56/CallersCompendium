@@ -1458,6 +1458,14 @@ void main() {
       expect(await status(failures, '::ffff:192.0.2.10'), 429);
     });
 
+    test('only the exact ::ffff:0:0/96 prefix is unwrapped as IPv4', () async {
+      // Bytes 10-11 are ffff here, but the leading bytes are not zero, so this
+      // is an ordinary IPv6 address and keys on its /64.
+      final target = requestRowApp();
+      await drain(target, '2001:db8::ffff:c000:201', 3);
+      expect(await status(target, '2001:db8::ffff:c000:202'), 429);
+    });
+
     test('textual variants of one address share a key', () async {
       final target = requestRowApp();
       await drain(target, '2001:DB8::1', 3);
