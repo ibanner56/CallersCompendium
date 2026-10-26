@@ -336,7 +336,8 @@ final class CompendiumSyncStorage
     return result;
   }
 
-  /// The envelope timestamps of every row of [table], by id. The snapshot loops
+  /// The envelope timestamps of every row of [table], or only those of [ids],
+  /// by id. The snapshot loops
   /// read nothing else from the row, so this selects four columns rather than
   /// hydrating whole dance and program rows a second time.
   Future<Map<String, _RowTimestamps>> _readTimestamps<T extends HasResultSet>(
@@ -344,11 +345,13 @@ final class CompendiumSyncStorage
     GeneratedColumn<String> id,
     GeneratedColumn<DateTime> updatedAt,
     GeneratedColumn<DateTime> existenceAt,
-    GeneratedColumn<DateTime> deletedAt,
-  ) async {
-    final rows = await (_db.selectOnly(
-      table,
-    )..addColumns([id, updatedAt, existenceAt, deletedAt])).get();
+    GeneratedColumn<DateTime> deletedAt, {
+    Iterable<String>? ids,
+  }) async {
+    final query = _db.selectOnly(table)
+      ..addColumns([id, updatedAt, existenceAt, deletedAt]);
+    if (ids != null) query.where(id.isIn(ids));
+    final rows = await query.get();
     return {
       for (final row in rows)
         row.read(id)!: (
@@ -357,6 +360,93 @@ final class CompendiumSyncStorage
           deletedAt: row.read(deletedAt),
         ),
     };
+  }
+
+  // Row-to-entity builders shared by [snapshot] and [currentCandidates], whose
+  // wire hashes the concurrency guard compares, so the two cannot build a
+  // record differently. They take the row as stored: no archive decode, which
+  // would sanitise text, normalise colours and clamp choices that an older
+  // build wrote, and so hash a legacy row differently (#1909).
+
+  static Choreographer _choreographerFromRow(ChoreographerRow row) =>
+      Choreographer(
+        id: row.id,
+        name: row.name,
+        website: row.website,
+        notes: row.notes,
+        email: row.email,
+        location: row.location,
+        deceased: row.deceased,
+      );
+
+  static Tag _tagFromRow(TagRow row) =>
+      Tag(id: row.id, name: row.name, color: row.color);
+
+  static PublishedSource _publishedSourceFromRow(PublishedSourceRow row) =>
+      PublishedSource(
+        id: row.id,
+        title: row.title,
+        author: row.author,
+        year: row.year,
+        url: row.url,
+        notes: row.notes,
+      );
+
+  static DifficultyLevel _difficultyLevelFromRow(DifficultyLevelRow row) =>
+      DifficultyLevel(id: row.id, label: row.label, position: row.position);
+
+  static Venue _venueFromRow(VenueRow row, Provenance? provenance) => Venue(
+    id: row.id,
+    name: row.name,
+    address1: row.address1,
+    address2: row.address2,
+    city: row.city,
+    stateProv: row.stateProv,
+    country: row.country,
+    postalCode: row.postalCode,
+    plus4: row.plus4,
+    website: row.website,
+    sponsor: row.sponsor,
+    eventName: row.eventName,
+    time: row.time,
+    genericSchedule: row.genericSchedule,
+    price: row.price,
+    notes: row.notes,
+    contact1Name: row.contact1Name,
+    contact1Phone: row.contact1Phone,
+    contact1Email: row.contact1Email,
+    contact2Name: row.contact2Name,
+    contact2Phone: row.contact2Phone,
+    contact2Email: row.contact2Email,
+    provenance: provenance,
+  );
+
+  /// A shareable setting's blob with what this device keeps of it put back,
+  /// or null for a setting that does not sync. The key is classified before
+  /// the value is decoded, so a device-local value is never parsed here.
+  static SyncRecordBlob? _settingBlob(
+    SettingRow row,
+    Map<String, Object?>? kept,
+  ) {
+    if (classifySettingsKey(row.key)?.egress != EgressClass.shareable) {
+      return null;
+    }
+    final settingBlob = SyncSettingsRecord(
+      key: row.key,
+      value: jsonDecode(row.valueJson),
+      updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
+      deletedAt: row.deletedAt,
+      existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
+    ).toBlob();
+    if (settingBlob == null || kept == null) return settingBlob;
+    return SyncRecordBlob(
+      kind: SyncRecordKind.setting,
+      id: row.key,
+      updatedAt: settingBlob.updatedAt,
+      deletedAt: settingBlob.deletedAt,
+      existenceAt: settingBlob.existenceAt,
+      body: mergeRetainedFields(settingBlob.body, kept),
+    );
   }
 
   Future<SyncStorageSnapshot> snapshot({
@@ -486,23 +576,9 @@ final class CompendiumSyncStorage
       await addEntity(
         kind: SyncRecordKind.choreographer,
         id: row.id,
-        entity: Choreographer(
-          id: row.id,
-          name: row.name,
-          website: row.website,
-          notes: row.notes,
-          email: row.email,
-          location: row.location,
-          deceased: row.deceased,
-        ),
-        updatedAt:
-            row.updatedAt ??
-            row.existenceAt ??
-            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-        existenceAt:
-            row.existenceAt ??
-            row.updatedAt ??
-            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+        entity: _choreographerFromRow(row),
+        updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
+        existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
         deletedAt: row.deletedAt,
       );
     }
@@ -512,7 +588,7 @@ final class CompendiumSyncStorage
       await addEntity(
         kind: SyncRecordKind.tag,
         id: row.id,
-        entity: Tag(id: row.id, name: row.name, color: row.color),
+        entity: _tagFromRow(row),
         updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
         existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
         deletedAt: row.deletedAt,
@@ -524,14 +600,7 @@ final class CompendiumSyncStorage
       await addEntity(
         kind: SyncRecordKind.publishedSource,
         id: row.id,
-        entity: PublishedSource(
-          id: row.id,
-          title: row.title,
-          author: row.author,
-          year: row.year,
-          url: row.url,
-          notes: row.notes,
-        ),
+        entity: _publishedSourceFromRow(row),
         updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
         existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
         deletedAt: row.deletedAt,
@@ -558,11 +627,7 @@ final class CompendiumSyncStorage
       await addEntity(
         kind: SyncRecordKind.difficultyLevel,
         id: row.id,
-        entity: DifficultyLevel(
-          id: row.id,
-          label: row.label,
-          position: row.position,
-        ),
+        entity: _difficultyLevelFromRow(row),
         updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
         existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
         deletedAt: row.deletedAt,
@@ -575,31 +640,7 @@ final class CompendiumSyncStorage
       await addEntity(
         kind: SyncRecordKind.venue,
         id: row.id,
-        entity: Venue(
-          id: row.id,
-          name: row.name,
-          address1: row.address1,
-          address2: row.address2,
-          city: row.city,
-          stateProv: row.stateProv,
-          country: row.country,
-          postalCode: row.postalCode,
-          plus4: row.plus4,
-          website: row.website,
-          sponsor: row.sponsor,
-          eventName: row.eventName,
-          time: row.time,
-          genericSchedule: row.genericSchedule,
-          price: row.price,
-          notes: row.notes,
-          contact1Name: row.contact1Name,
-          contact1Phone: row.contact1Phone,
-          contact1Email: row.contact1Email,
-          contact2Name: row.contact2Name,
-          contact2Phone: row.contact2Phone,
-          contact2Email: row.contact2Email,
-          provenance: provenance,
-        ),
+        entity: _venueFromRow(row, provenance),
         updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
         existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
         deletedAt: row.deletedAt,
@@ -637,26 +678,9 @@ final class CompendiumSyncStorage
       if (classifySettingsKey(row.key)?.egress != EgressClass.shareable) {
         continue;
       }
-      final settingBlob = SyncSettingsRecord(
-        key: row.key,
-        value: jsonDecode(row.valueJson),
-        updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
-        deletedAt: row.deletedAt,
-        existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
-      ).toBlob();
-      if (settingBlob == null) continue;
       final address = (kind: SyncRecordKind.setting, recordId: row.key);
-      final kept = retainedParts[address];
-      final blob = kept == null
-          ? settingBlob
-          : SyncRecordBlob(
-              kind: SyncRecordKind.setting,
-              id: row.key,
-              updatedAt: settingBlob.updatedAt,
-              deletedAt: settingBlob.deletedAt,
-              existenceAt: settingBlob.existenceAt,
-              body: mergeRetainedFields(settingBlob.body, kept),
-            );
+      final blob = _settingBlob(row, retainedParts[address]);
+      if (blob == null) continue;
       local[address] = SyncMergeCandidate(
         blob: blob,
         wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
@@ -1525,6 +1549,21 @@ final class CompendiumSyncStorage
     return migrated;
   }
 
+  /// The apply transaction, opened `BEGIN IMMEDIATE` (#1909).
+  ///
+  /// It needs the write lock from its first statement. Under a deferred
+  /// `BEGIN`, the guard's read would take a read snapshot without the lock; an
+  /// app write committing on its own connection before the apply's first write
+  /// would then fail that write with SQLITE_BUSY_SNAPSHOT, which the busy
+  /// timeout never retries, and the whole pass would throw. drift (2.34 and
+  /// later) already opens every native transaction `BEGIN IMMEDIATE`, so
+  /// nothing here asks for it again; `sync_apply_guard_test.dart` fails if
+  /// that stops being true. The cost is that every app write waits for
+  /// everything inside the transaction, so nothing in it may scan the library
+  /// that does not have to: the concurrency guard reads only the batch's
+  /// records ([currentCandidates]). Reconciliation's natural-key, alias and
+  /// baseline reads and the derived-index rebuild still read whole tables
+  /// inside it; narrowing those is separate work.
   @override
   Future<T> transaction<T>(Future<T> Function() action) =>
       repositories.transaction(action);
@@ -2836,21 +2875,277 @@ final class CompendiumSyncStorage
     return body;
   }
 
+  /// What [snapshot] would hold in `local` or `pendingLive` for each of
+  /// [addresses], read from those rows alone (#1909).
+  ///
+  /// The concurrency guard compares this against the coordinator's
+  /// `expectedWireHashes`, which is built from the snapshot's local candidates
+  /// *and* its pending-live ones, so a record held live by the §6.8
+  /// referential guard is answered here like any other. Reading only `local`
+  /// once made the guard refuse every inbound update to such a record as a
+  /// concurrent local change, over a record the user had not touched.
+  ///
+  /// Every hash here must equal the one [snapshot] computes for the same
+  /// address, or the guard refuses an untouched record on every pass. So the
+  /// entities come from the same row builders and repository hydration as
+  /// [snapshot]'s, with the same timestamp fallbacks, shareable custom fields,
+  /// kept parts and kept-whole records, and the same withholding of an
+  /// unreadable dance. `sync_apply_guard_test.dart` pins the parity for every
+  /// kind, legacy rows included.
+  ///
+  /// Each kind is read in batched `IN (…)` queries over its requested ids, so
+  /// the cost follows the size of the batch, not the library. Unlike
+  /// [snapshot], this writes nothing: it neither revalidates pending deletions
+  /// nor sweeps orphaned kept fields.
   @override
-  Future<Map<SyncRecordAddress, SyncMergeCandidate?>>
-  snapshotCandidates() async {
-    // The concurrency guard compares this against the coordinator's
-    // `expectedWireHashes`, which is built from the local candidates *and* the
-    // pending-live ones. Returning only `local` — which `snapshot()`
-    // deliberately strips every pending-deletion address out of — made the
-    // guard read `null` for exactly those addresses while the coordinator had
-    // supplied a real hash, so every inbound update to a record held live by
-    // the §6.8 referential guard was refused as a concurrent local change on
-    // every pass, over a record the user had not touched. Nothing changes
-    // between the two reads; the mismatch was structural.
-    final current = await snapshot();
-    return {...current.local, ...current.pendingLive};
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> currentCandidates(
+    Set<SyncRecordAddress> addresses,
+  ) async {
+    if (addresses.isEmpty) return const {};
+    final idsByKind = <SyncRecordKind, Set<String>>{};
+    for (final address in addresses) {
+      idsByKind.putIfAbsent(address.kind, () => {}).add(address.recordId);
+    }
+    final customFields = await repositories.customFieldDefs
+        .listAllWithDeleted();
+    final allowedCustomFieldIds = {
+      for (final entry in customFields)
+        if (entry.field.shareable && !entry.deleted) entry.field.id,
+    };
+    // The whole table, as [snapshot] reads it: it holds only the records a
+    // newer build sent fields for, not one row per record.
+    final keptRows = {
+      for (final row in await repositories.syncLocal.listRetainedSyncFields())
+        (kind: row.kind, recordId: row.recordId): row,
+    };
+
+    final current = <SyncRecordAddress, SyncMergeCandidate?>{};
+    void add(
+      SyncRecordKind kind,
+      String id,
+      Object entity, {
+      required DateTime? updatedAt,
+      required DateTime? existenceAt,
+      required DateTime? deletedAt,
+    }) {
+      final address = (kind: kind, recordId: id);
+      final kept = keptRows[address];
+      final blob = syncRecordBlobForEntity(
+        kind,
+        entity,
+        updatedAt: updatedAt ?? existenceAt ?? _epoch,
+        existenceAt: existenceAt ?? updatedAt ?? _epoch,
+        deletedAt: deletedAt,
+        allowedCustomFieldIds: allowedCustomFieldIds,
+        retained: kept == null || kept.wholeRecord
+            ? null
+            : _unsyncedRetainedParts(kept),
+      );
+      if (blob != null) current[address] = _candidateOf(blob);
+    }
+
+    for (final MapEntry(key: kind, value: ids) in idsByKind.entries) {
+      for (final chunk in _chunked(ids, 500)) {
+        switch (kind) {
+          case SyncRecordKind.dance:
+            final stamps = await _readTimestamps(
+              _db.dances,
+              _db.dances.id,
+              _db.dances.updatedAt,
+              _db.dances.existenceAt,
+              _db.dances.deletedAt,
+              ids: chunk,
+            );
+            for (final dance in await repositories.dances.getByIds(
+              chunk,
+              includeDeleted: true,
+            )) {
+              final row = stamps[dance.id];
+              if (row == null ||
+                  dance.figuresSource is UnreadableFigures ||
+                  dance.tunesSource is UnreadableTunes) {
+                continue;
+              }
+              add(
+                kind,
+                dance.id,
+                dance,
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.program:
+            final stamps = await _readTimestamps(
+              _db.programs,
+              _db.programs.id,
+              _db.programs.updatedAt,
+              _db.programs.existenceAt,
+              _db.programs.deletedAt,
+              ids: chunk,
+            );
+            for (final program in await repositories.programs.getByIds(
+              chunk,
+              includeDeleted: true,
+            )) {
+              final row = stamps[program.id];
+              if (row == null) continue;
+              add(
+                kind,
+                program.id,
+                program,
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.choreographer:
+            for (final row in await (_db.select(
+              _db.choreographers,
+            )..where((table) => table.id.isIn(chunk))).get()) {
+              add(
+                kind,
+                row.id,
+                _choreographerFromRow(row),
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.tag:
+            for (final row in await (_db.select(
+              _db.tags,
+            )..where((table) => table.id.isIn(chunk))).get()) {
+              add(
+                kind,
+                row.id,
+                _tagFromRow(row),
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.publishedSource:
+            for (final row in await (_db.select(
+              _db.publishedSources,
+            )..where((table) => table.id.isIn(chunk))).get()) {
+              add(
+                kind,
+                row.id,
+                _publishedSourceFromRow(row),
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.customFieldDef:
+            // The definition as [snapshot] has it, from the repository's
+            // model; a row it cannot model is left out there too.
+            final fields = {
+              for (final entry in customFields) entry.field.id: entry.field,
+            };
+            for (final row in await (_db.select(
+              _db.customFieldDefs,
+            )..where((table) => table.id.isIn(chunk))).get()) {
+              final field = fields[row.id];
+              if (field == null) continue;
+              add(
+                kind,
+                row.id,
+                field,
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.difficultyLevel:
+            for (final row in await (_db.select(
+              _db.difficultyLevels,
+            )..where((table) => table.id.isIn(chunk))).get()) {
+              add(
+                kind,
+                row.id,
+                _difficultyLevelFromRow(row),
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.venue:
+            for (final row in await (_db.select(
+              _db.venues,
+            )..where((table) => table.id.isIn(chunk))).get()) {
+              add(
+                kind,
+                row.id,
+                _venueFromRow(row, await _venueProvenance(row.id)),
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.glossaryEntry:
+            for (final row in await (_db.select(
+              _db.userGlossaryEntries,
+            )..where((table) => table.id.isIn(chunk))).get()) {
+              add(
+                kind,
+                row.id,
+                UserGlossaryRepository.storedFromRow(row),
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.figureNote:
+            for (final row in await (_db.select(
+              _db.figureNotes,
+            )..where((table) => table.figureId.isIn(chunk))).get()) {
+              add(
+                kind,
+                row.figureId,
+                FigureNoteRepository.fromRow(row),
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.setting:
+            for (final row in await (_db.select(
+              _db.settings,
+            )..where((table) => table.key.isIn(chunk))).get()) {
+              final address = (kind: kind, recordId: row.key);
+              final kept = keptRows[address];
+              final blob = _settingBlob(
+                row,
+                kept == null || kept.wholeRecord
+                    ? null
+                    : _unsyncedRetainedParts(kept),
+              );
+              if (blob != null) current[address] = _candidateOf(blob);
+            }
+        }
+      }
+    }
+
+    // A record kept whole replaces whatever the rows say, as in [snapshot].
+    for (final address in addresses) {
+      final kept = keptRows[address];
+      if (kept == null || !kept.wholeRecord) continue;
+      final blob = decodeSyncRecordBlob(kept.payload);
+      if (blob.kind != kept.kind || blob.id != kept.recordId) {
+        throw StateError('kept record does not match its stored identity');
+      }
+      current[address] = _candidateOf(blob);
+    }
+    return current;
   }
+
+  static SyncMergeCandidate _candidateOf(SyncRecordBlob blob) =>
+      SyncMergeCandidate(
+        blob: blob,
+        wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+      );
 
   Future<_NaturalKeyIndex> _loadNaturalKeyIndex() async {
     final index = _NaturalKeyIndex({});

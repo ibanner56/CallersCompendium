@@ -3768,6 +3768,23 @@ mid-apply blocks rather than interleaving. Outside a transaction the read and th
 write straddle a window in which the user can edit, and the write silently
 reverts them.
 
+**The concurrent-edit guard reads only the records the batch touches.** The
+coordinator merges against a snapshot taken before the apply, so a user edit
+can still land in between. The apply transaction therefore first re-reads each
+record it is about to overwrite and compares its wire hash with the one the
+merge saw; a record that changed is skipped and reported as a
+`concurrentLocalChange`, and the rest of the batch applies. drift opens the
+transaction with `BEGIN IMMEDIATE`, so it holds the write lock from its first
+statement and every app write waits for everything inside it. That re-read
+(`SyncApplyConcurrencyStorage.currentCandidates`) is therefore per record and
+MUST NOT become a whole-library snapshot: it once was, and on a large library it
+held every app write for seconds, long enough on the largest to approach the
+30-second busy timeout after which the user's edit fails outright (#1909). The
+transaction still does whole-table work of its own — reconciliation reads the
+natural-key, alias and baseline tables, and a batch that applies anything
+rebuilds the derived search indexes — so an app write can still wait seconds on
+a large library; narrowing those is separate work.
+
 **"Carries" must be unambiguous.** The codec omits null fields today
 (`if (v.website != null)`), so on the wire *absent* means either "device-local,
 preserve the local value" or "shareable but empty, clear the local value".

@@ -1602,6 +1602,24 @@ class DanceRepository {
     return _hydrateRows(await query.get());
   }
 
+  /// The dances among [ids], hydrated exactly as [listAll] hydrates them, in a
+  /// bounded number of batched queries rather than one [getById] per dance.
+  /// Unordered; an id with no row is left out.
+  Future<List<Dance>> getByIds(
+    Iterable<String> ids, {
+    bool includeDeleted = false,
+  }) async {
+    final dances = <Dance>[];
+    for (final chunk in _chunkIds(ids.toSet().toList())) {
+      final query = _db.select(_db.dances)..where((t) => t.id.isIn(chunk));
+      if (!includeDeleted) {
+        query.where((t) => t.deletedAt.isNull());
+      }
+      dances.addAll(await _hydrateRows(await query.get()));
+    }
+    return dances;
+  }
+
   /// Assembles [Dance]s from fetched [rows]: batch-loads every child relation
   /// in a bounded number of `dance_id IN (…)` queries, then hydrates in memory
   /// — instead of the per-row [_toModel] fan-out (six child queries each) that

@@ -342,13 +342,11 @@ void main() {
       );
     });
 
-    test('merge candidates omit it', () async {
+    test('the concurrency guard reads no candidate for it', () async {
       await seedUndecodable();
-      final candidates = await storage.snapshotCandidates();
-      expect(candidates[(kind: SyncRecordKind.dance, recordId: 'd1')], isNull);
-      for (final c in candidates.values) {
-        expect(c?.blob.body.containsKey('figuresRaw') ?? false, isFalse);
-      }
+      const address = (kind: SyncRecordKind.dance, recordId: 'd1');
+      final candidates = await storage.currentCandidates({address});
+      expect(candidates[address], isNull);
     });
   });
 
