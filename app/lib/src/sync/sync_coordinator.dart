@@ -2538,6 +2538,10 @@ class SyncCoordinator {
     // refused before it: a downloaded winner that was not applied.
     final appliedAddresses = applyResult.applied.toSet();
     final refusedPeerRecords =
+        // A peer manifest that could not be read lists records this pass could
+        // not take, whatever the baseline: with an empty one it adds nothing
+        // to `unresolved`, so it is read here (spec §6.3 step 8).
+        !allPeerManifestsAvailable ||
         normalizedUnresolved.isNotEmpty ||
         rejectedPeerAddresses.isNotEmpty ||
         downloads.any(

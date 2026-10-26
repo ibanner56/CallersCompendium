@@ -880,6 +880,68 @@ void main() {
       );
     });
 
+    group('a peer manifest the pass cannot read', () {
+      // With an empty baseline an unreadable peer manifest adds nothing to
+      // `unresolved`, yet "took every record its peers' manifests list"
+      // (§6.3 step 8) cannot hold for a list that was not read.
+      Future<_FakeTransport> secondPassPuts(SyncHttpResponse unreadable) async {
+        final store = _FakeStore(local: {first.address: first});
+        final transport = _FakeTransport(
+          devices: const ['device-a', 'peer'],
+          peerManifest: _manifest(deviceId: 'peer', records: const {}),
+          manifestResponses: {
+            'peer': [
+              _FakeTransport._response(
+                200,
+                body: utf8.decode(
+                  encodeSyncManifestUtf8(
+                    _manifest(deviceId: 'peer', records: const {}),
+                  ),
+                ),
+              ),
+              unreadable,
+            ],
+          },
+        );
+        final coordinator = coordinatorFor(store, transport);
+        await coordinator.syncNow();
+        expect(transport.manifestPuts, 1);
+        clock = clock.add(const Duration(hours: 1));
+        await coordinator.syncNow();
+        return transport;
+      }
+
+      test('a 404 still publishes', () async {
+        final transport = await secondPassPuts(_FakeTransport._response(404));
+        expect(transport.manifestPuts, 2);
+      });
+
+      test('malformed JSON still publishes', () async {
+        final transport = await secondPassPuts(
+          _FakeTransport._response(200, body: '{not json'),
+        );
+        expect(transport.manifestPuts, 2);
+      });
+
+      test('a 5xx still publishes, as it does with a baseline', () async {
+        // Spec §6.3 step 3: the pass "still applies, publishes and advances
+        // the baseline as far as it can" on a 5xx, and step 8 skips the PUT
+        // only when every record the peers list was taken.
+        final transport = await secondPassPuts(_FakeTransport._response(503));
+        expect(transport.manifestPuts, 2);
+      });
+
+      test('readable and unchanged still skips the PUT', () async {
+        final store = _FakeStore(local: {first.address: first});
+        final transport = transportFor(const []);
+        final coordinator = coordinatorFor(store, transport);
+        await coordinator.syncNow();
+        clock = clock.add(const Duration(hours: 1));
+        await coordinator.syncNow();
+        expect(transport.manifestPuts, 1);
+      });
+    });
+
     test(
       'a pass that refused a peer record at apply still publishes',
       () async {

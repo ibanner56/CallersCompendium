@@ -2897,7 +2897,9 @@ republishes, which is an ordinary upload and needs no special path.
    peers' manifests list. A pass that left any peer's record unresolved,
    refused it (§6.9) or held it back as quarantined publishes regardless, so
    that a device refusing a record keeps publishing as §6.9's judgement of it
-   requires. A client that skips the `PUT` skips
+   requires. A peer manifest that could not be read, for any reason including
+   a `5xx` (step 3), lists records the pass did not take, so it counts the same
+   whether or not this device has a baseline. A client that skips the `PUT` skips
    step 7's network requests with it, and still stores the baseline (step 9).
    The record of what was published MUST be cleared before every `PUT` and
    written only after one succeeds: a `PUT` whose answer was lost may still
