@@ -9122,6 +9122,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentlyDeletedTitle => 'Recently Deleted';
 
   @override
+  String get recentlyDeletedLoadError =>
+      'Couldn’t load your deleted items. Nothing has been removed.';
+
+  @override
   String get recentlyDeletedDeleteTitle => 'Delete permanently?';
 
   @override

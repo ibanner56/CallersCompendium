@@ -988,6 +988,22 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    testWidgets('the saved prompt is transient: it floats and times out '
+        'rather than persisting until dismissed (#463)', (tester) async {
+      final repos = await _pump(tester);
+      await saveOtherDevicesTheme(tester, repos);
+
+      final snackBar = tester.widget<SnackBar>(
+        find.byKey(const ValueKey('sync-conflict-saved')),
+      );
+      expect(snackBar.persist, isFalse);
+      expect(snackBar.behavior, SnackBarBehavior.floating);
+
+      await tester.pump(snackBar.duration);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('sync-conflict-saved')), findsNothing);
+    });
+
     testWidgets('reopens the choice with the earlier versions; picking again '
         'saves the new choice', (tester) async {
       final repos = await _pump(tester);

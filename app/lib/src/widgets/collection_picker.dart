@@ -45,6 +45,7 @@ class CollectionPicker extends StatefulWidget {
     required this.onAddDance,
     this.addedDanceCounts = const {},
     this.scrollController,
+    this.bottomInset = 0,
     this.rowAction = PickerRowAction.add,
     this.enableOnlineSearch = false,
     this.callersBoxOnline,
@@ -88,6 +89,11 @@ class CollectionPicker extends StatefulWidget {
   /// in a [DraggableScrollableSheet], pass its controller so sheet dragging and
   /// list scrolling coordinate correctly.
   final ScrollController? scrollController;
+
+  /// Empty space after the last result, so a host that floats a FAB over the
+  /// picker (the two-pane program editor's Save) can let the last row scroll
+  /// clear of it. Zero for hosts with nothing floating over the list.
+  final double bottomInset;
 
   /// What tapping a row does, purely for the row's tooltip/semantic label/icon
   /// (issue #964). [onAddDance] fires identically either way — this only
@@ -750,6 +756,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   _onlineEnabled
                       ? _buildOnlineResultsSliver()
                       : _buildResultsSliver(),
+                  if (widget.bottomInset > 0)
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: widget.bottomInset),
+                    ),
                 ],
               ),
             ),

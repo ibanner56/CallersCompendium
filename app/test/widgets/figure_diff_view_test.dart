@@ -2,13 +2,19 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/figure_diff_view.dart';
 
 import '../support/l10n_harness.dart';
 
-Future<void> _pump(WidgetTester tester, FigureDiffResult result) async {
+Future<void> _pump(
+  WidgetTester tester,
+  FigureDiffResult result, {
+  ThemeData? theme,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
+      theme: theme,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       home: Scaffold(body: FigureDiffView(result: result)),
@@ -17,6 +23,43 @@ Future<void> _pump(WidgetTester tester, FigureDiffResult result) async {
 }
 
 void main() {
+  testWidgets('colors come from the palette and only tint the glyph; a '
+      'removed line is struck through', (tester) async {
+    const result = FigureDiffResult(
+      identical: false,
+      entries: [
+        FigureDiffEntry(
+          kind: FigureDiffKind.removed,
+          displayText: 'Circle left once around',
+          phraseLabel: '',
+        ),
+        FigureDiffEntry(
+          kind: FigureDiffKind.added,
+          displayText: 'Circle right once around',
+          phraseLabel: '',
+        ),
+      ],
+      truncated: false,
+      omittedCount: 0,
+    );
+    final theme = AppTheme.dark;
+    await _pump(tester, result, theme: theme);
+    final scheme = theme.colorScheme;
+    final bodyColor = Theme.of(
+      tester.element(find.byType(FigureDiffView)),
+    ).textTheme.bodyMedium?.color;
+
+    expect(tester.widget<Text>(find.text('+')).style?.color, scheme.primary);
+    expect(tester.widget<Text>(find.text('\u2212')).style?.color, scheme.error);
+
+    final added = tester.widget<Text>(find.text('Circle right once around'));
+    final removed = tester.widget<Text>(find.text('Circle left once around'));
+    expect(added.style?.color, bodyColor);
+    expect(removed.style?.color, bodyColor);
+    expect(added.style?.decoration, isNot(TextDecoration.lineThrough));
+    expect(removed.style?.decoration, TextDecoration.lineThrough);
+  });
+
   testWidgets('renders added and removed lines with their glyphs', (
     tester,
   ) async {

@@ -13616,6 +13616,12 @@ abstract class AppLocalizations {
   /// **'Recently Deleted'**
   String get recentlyDeletedTitle;
 
+  /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t load your deleted items. Nothing has been removed.'**
+  String get recentlyDeletedLoadError;
+
   /// Title of the confirm permanent-delete dialog.
   ///
   /// In en, this message translates to:

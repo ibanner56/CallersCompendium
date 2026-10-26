@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
 import '../search/facet_labels.dart' show humanizeToken;
+import '../theme/destructive_button_style.dart';
 import '../widgets/collapsible_section.dart';
 import '../widgets/wording_condition_notes.dart';
 import '../widgets/app_bar_text_action.dart';
@@ -759,6 +760,9 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('dialect-wordings-reset-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.dialectEditorMoveWordingsReset),

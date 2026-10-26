@@ -1,9 +1,11 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/theme/set_list_accents.dart';
 import 'package:compendium_app/src/widgets/formation_color_badge.dart';
+import 'package:compendium_app/src/widgets/program_status_chip.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -522,4 +524,58 @@ void main() {
       expect(find.textContaining('_role2s_'), findsNothing);
     },
   );
+
+  for (final status in [
+    DanceStatus.deprecated,
+    DanceStatus.broken,
+    DanceStatus.draft,
+    DanceStatus.variation,
+  ]) {
+    testWidgets('the ${status.name} banner uses the Collection chip glyph and '
+        'wraps rather than overflowing at a large Perform size', (
+      tester,
+    ) async {
+      final c = await _controllerWith(null);
+      await tester.binding.setSurfaceSize(const Size(360, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: FormationColorsScope(
+                controller: c,
+                child: PerformCard(
+                  dance: Dance(
+                    id: 'd1',
+                    title: 'Status Dance',
+                    status: status,
+                    createdAt: _now,
+                    updatedAt: _now,
+                  ),
+                  renderer: _renderer,
+                  dialect: Dialect.larksRobins,
+                  textScale: 3.0,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull, reason: 'no RenderFlex overflow');
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final expected = danceStatusPresentation(status, l10n);
+      final banner = find.ancestor(
+        of: find.text(expected.label),
+        matching: find.byType(Row),
+      );
+      expect(
+        find.descendant(of: banner.first, matching: find.byIcon(expected.icon)),
+        findsOneWidget,
+      );
+    });
+  }
 }
