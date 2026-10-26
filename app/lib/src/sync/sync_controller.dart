@@ -729,7 +729,8 @@ class SyncController extends ChangeNotifier {
   /// that never syncs (device-scoped or device-local, by the privacy registry's
   /// own classification) is dropped as a non-edit: see [notifyLocalChange]'s
   /// `deviceScopedOnly`. Unclassified keys, and writes the repository did not
-  /// report, count as edits, as does any other table in the batch.
+  /// report, count as edits, as does any other table in the batch apart from
+  /// the sync engine's own bookkeeping tables, which are dropped first.
   void notifyTableUpdates(Set<String> tables) {
     // Drained before the bookkeeping filter so the tally never outlives the
     // batch it describes.

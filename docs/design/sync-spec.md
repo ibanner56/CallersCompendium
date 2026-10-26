@@ -4214,7 +4214,8 @@ The "change" that arms the debounce is a change to something sync carries. A
 write to a `settings` key the privacy registry classifies as anything but
 `shareable` (a window frame, an update-check marker) is not one and schedules no
 pass; a `shareable` key, an unclassified key, and a batch that also touches any
-other table still do. The decision comes from `classifySettingsKey`, not a key
+other table sync carries still do (the sync engine's own bookkeeping tables do
+not count). The decision comes from `classifySettingsKey`, not a key
 list, so a key changes sides by changing its registry entry.
 
 > **Amended 2026-10-02.** This section said only that "a failure MUST retry on
