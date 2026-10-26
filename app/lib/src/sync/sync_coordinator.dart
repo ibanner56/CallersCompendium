@@ -344,6 +344,19 @@ abstract interface class SyncCoordinatorStore
   /// publication, so a concurrent hard delete retains tombstone evidence.
   Future<void> markPublished(Iterable<SyncRecordAddress> records);
 
+  /// Which of [records] have no publication marker yet: those [markPublished]
+  /// would add one for. A marker is never removed, so a record outside this
+  /// set stays marked.
+  Future<Set<SyncRecordAddress>> unpublished(
+    Iterable<SyncRecordAddress> records,
+  );
+
+  /// Which of [records] still have a row, live or tombstoned: those a hard
+  /// delete has not taken. Read by id alone, nothing hydrated.
+  Future<Set<SyncRecordAddress>> existingRecords(
+    Set<SyncRecordAddress> records,
+  );
+
   /// Atomically records the manifest attempt and marks the sync identity
   /// immediately before the manifest request. Keep this after blob
   /// publication so a failed upload does not mark the sync identity used.
@@ -543,6 +556,21 @@ final class CompendiumSyncCoordinatorStore
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) =>
       storage.repositories.syncLocal.markPublishedAll(records);
+
+  @override
+  Future<Set<SyncRecordAddress>> unpublished(
+    Iterable<SyncRecordAddress> records,
+  ) async {
+    final all = records.toSet();
+    return all.difference(
+      await storage.repositories.syncLocal.publishedAmong(all),
+    );
+  }
+
+  @override
+  Future<Set<SyncRecordAddress>> existingRecords(
+    Set<SyncRecordAddress> records,
+  ) => storage.existingRecords(records);
 
   @override
   Future<void> retireAliases({required Set<SyncRecordAddress> peerAddresses}) =>
@@ -2447,6 +2475,9 @@ class SyncCoordinator {
         peers: continuationResult.peers,
       );
     }
+    // One build of what this pass publishes, from one snapshot. It writes
+    // nothing of its own: [protect] is what the caller marks published, and
+    // [reports] what it reports, once the build is the one it keeps.
     Future<
       ({
         Map<SyncRecordAddress, SyncMergeCandidate?> current,
@@ -2454,14 +2485,17 @@ class SyncCoordinator {
         SyncPublicationPlan publicationPlan,
         SyncManifest manifest,
         List<SyncRecordAddress> addresses,
+        List<SyncRecordAddress> protect,
+        List<SyncReport> reports,
       })
     >
-    buildPublicationState({
-      Set<String> unavailableFallbackHashes = const {},
-      Map<SyncRecordAddress, SyncMergeCandidate?>? publicationOverride,
-    }) async => store.transaction(() async {
+    planPublicationState({
+      required Set<String> unavailableFallbackHashes,
+      required Map<SyncRecordAddress, SyncMergeCandidate?>? publicationOverride,
+    }) async {
+      final planReports = SyncReportSink();
       final currentSnapshot = await store.snapshot();
-      reports.addAll(currentSnapshot.withheld);
+      planReports.addAll(currentSnapshot.withheld);
       final current = await _normalizeCandidates(currentSnapshot.local);
       final publication =
           publicationOverride ??
@@ -2473,7 +2507,7 @@ class SyncCoordinator {
         publication,
         local: current,
         devices: metadata.devices,
-        reports: reports,
+        reports: planReports,
       );
       final referenceAliases = await _resolveReferenceAliases([publication]);
       final publicationPlan = planSyncPublication(
@@ -2490,18 +2524,79 @@ class SyncCoordinator {
         records: _manifestRecords(publicationPlan.manifestHashes),
       );
       final addresses = _manifestAddresses(manifest);
-      // The initial plan is a conservative superset of any replan that omits
-      // unavailable fallback hashes, so protect it before probing the store.
-      // Held-back rows are protected too: they are only waiting (#709).
-      await store.markPublished([...addresses, ...heldBack]);
       return (
         current: current,
         publication: publication,
         publicationPlan: publicationPlan,
         manifest: manifest,
         addresses: addresses,
+        // The initial plan is a conservative superset of any replan that
+        // omits unavailable fallback hashes, so protect it before probing the
+        // store. Held-back rows are protected too: they are only waiting
+        // (#709).
+        protect: [...addresses, ...heldBack],
+        reports: planReports.reports,
       );
-    });
+    }
+
+    // The build scans the whole library, so it runs outside the write lock;
+    // only the publication markers are written under it. drift opens every
+    // transaction `BEGIN IMMEDIATE`, and a scan inside one made every app save
+    // wait for it, on every pass, idle ones included.
+    //
+    // The markers are why the build once ran inside the transaction. A record
+    // reads as never published until its marker is written, and may until
+    // then be hard-deleted (sync-spec §3.2); one hard-deleted after the scan,
+    // while the manifest still names it, would be downloaded back by the next
+    // pass. So the transaction that writes the markers first checks that the
+    // build is still safe to mark ([_publicationStillMarkable]), and when it
+    // is not, builds again inside that transaction, as every pass used to.
+    Future<
+      ({
+        Map<SyncRecordAddress, SyncMergeCandidate?> current,
+        Map<SyncRecordAddress, SyncMergeCandidate?> publication,
+        SyncPublicationPlan publicationPlan,
+        SyncManifest manifest,
+        List<SyncRecordAddress> addresses,
+      })
+    >
+    buildPublicationState({
+      Set<String> unavailableFallbackHashes = const {},
+      Map<SyncRecordAddress, SyncMergeCandidate?>? publicationOverride,
+    }) async {
+      // Read before the scan, so that an alias recorded while the build runs
+      // reads as a change.
+      final aliasesBefore = (await store.aliasMap()).links;
+      var state = await planPublicationState(
+        unavailableFallbackHashes: unavailableFallbackHashes,
+        publicationOverride: publicationOverride,
+      );
+      final marked = await store.transaction(() async {
+        if (!await _publicationStillMarkable(state.protect, aliasesBefore)) {
+          return false;
+        }
+        await store.markPublished(state.protect);
+        return true;
+      });
+      if (!marked) {
+        state = await store.transaction(() async {
+          final replanned = await planPublicationState(
+            unavailableFallbackHashes: unavailableFallbackHashes,
+            publicationOverride: publicationOverride,
+          );
+          await store.markPublished(replanned.protect);
+          return replanned;
+        });
+      }
+      reports.addAll(state.reports);
+      return (
+        current: state.current,
+        publication: state.publication,
+        publicationPlan: state.publicationPlan,
+        manifest: state.manifest,
+        addresses: state.addresses,
+      );
+    }
 
     var publicationState = await buildPublicationState();
     // What this device last published (spec §6.3 step 8), and whether this
@@ -2793,6 +2888,53 @@ class SyncCoordinator {
       appliedKinds: appliedKinds.toList(),
       peers: peerSummaries,
     );
+  }
+
+  /// Whether a publication built outside the write lock may be marked as it
+  /// stands. Called inside the transaction that marks it, so nothing it reads
+  /// can change before the markers are written.
+  ///
+  /// Two things since the build began would make it unsafe:
+  ///
+  /// - A record it would mark for the first time is gone. Unmarked, it read as
+  ///   never published, so it may have been hard-deleted with no tombstone;
+  ///   marking and publishing it now would offer peers a record this device no
+  ///   longer has, and the next pass would download it back. A record already
+  ///   marked needs no check: a hard delete has read its marker whenever it
+  ///   landed, and a marker is never removed. Only a record's id is read, and
+  ///   only for the records not yet marked, so an idle pass, which marks
+  ///   nothing new, reads the alias table and the markers and no record.
+  /// - An alias was recorded or rewritten. The build resolved aliases against
+  ///   a different view from the scan's, and `remapIdentity` carries a marker
+  ///   onto the surviving id only if the losing one was already marked.
+  ///
+  /// A record that was never there, such as a fallback address with no row,
+  /// also reads as gone. That costs one build under the lock, which marks it.
+  Future<bool> _publicationStillMarkable(
+    List<SyncRecordAddress> protect,
+    Map<SyncRecordKind, Map<String, String>> aliasesBefore,
+  ) async {
+    if (!_sameAliasLinks((await store.aliasMap()).links, aliasesBefore)) {
+      return false;
+    }
+    final unmarked = await store.unpublished(protect);
+    if (unmarked.isEmpty) return true;
+    return (await store.existingRecords(unmarked)).containsAll(unmarked);
+  }
+
+  static bool _sameAliasLinks(
+    Map<SyncRecordKind, Map<String, String>> left,
+    Map<SyncRecordKind, Map<String, String>> right,
+  ) {
+    if (left.length != right.length) return false;
+    for (final MapEntry(key: kind, value: links) in left.entries) {
+      final other = right[kind];
+      if (other == null || other.length != links.length) return false;
+      for (final MapEntry(key: losing, value: surviving) in links.entries) {
+        if (other[losing] != surviving) return false;
+      }
+    }
+    return true;
   }
 
   /// Leaves out of [publication] every record waiting for a sync capability

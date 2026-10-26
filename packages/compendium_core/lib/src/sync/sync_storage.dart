@@ -3046,6 +3046,69 @@ final class CompendiumSyncStorage
     return body;
   }
 
+  /// Which of [addresses] still have a row, live or tombstoned, read by id
+  /// alone: nothing is hydrated or hashed, so the cost follows the size of
+  /// the set, in batched `IN (…)` queries over each kind's key.
+  ///
+  /// A hard delete is what removes a row, so this tells a record a hard delete
+  /// took from one that is only edited or tombstoned.
+  Future<Set<SyncRecordAddress>> existingRecords(
+    Set<SyncRecordAddress> addresses,
+  ) async {
+    final idsByKind = <SyncRecordKind, Set<String>>{};
+    for (final address in addresses) {
+      idsByKind.putIfAbsent(address.kind, () => {}).add(address.recordId);
+    }
+    final existing = <SyncRecordAddress>{};
+    for (final MapEntry(key: kind, value: ids) in idsByKind.entries) {
+      final (
+        ResultSetImplementation<HasResultSet, dynamic> table,
+        GeneratedColumn<String> key,
+      ) = switch (kind) {
+        SyncRecordKind.dance => (_db.dances, _db.dances.id),
+        SyncRecordKind.program => (_db.programs, _db.programs.id),
+        SyncRecordKind.choreographer => (
+          _db.choreographers,
+          _db.choreographers.id,
+        ),
+        SyncRecordKind.tag => (_db.tags, _db.tags.id),
+        SyncRecordKind.publishedSource => (
+          _db.publishedSources,
+          _db.publishedSources.id,
+        ),
+        SyncRecordKind.customFieldDef => (
+          _db.customFieldDefs,
+          _db.customFieldDefs.id,
+        ),
+        SyncRecordKind.difficultyLevel => (
+          _db.difficultyLevels,
+          _db.difficultyLevels.id,
+        ),
+        SyncRecordKind.venue => (_db.venues, _db.venues.id),
+        SyncRecordKind.glossaryEntry => (
+          _db.userGlossaryEntries,
+          _db.userGlossaryEntries.id,
+        ),
+        SyncRecordKind.figureNote => (
+          _db.figureNotes,
+          _db.figureNotes.figureId,
+        ),
+        SyncRecordKind.setting => (_db.settings, _db.settings.key),
+      };
+      for (final chunk in _chunked(ids, 500)) {
+        final rows =
+            await (_db.selectOnly(table)
+                  ..addColumns([key])
+                  ..where(key.isIn(chunk)))
+                .get();
+        for (final row in rows) {
+          existing.add((kind: kind, recordId: row.read(key)!));
+        }
+      }
+    }
+    return existing;
+  }
+
   /// What [snapshot] would hold in `local` or `pendingLive` for each of
   /// [addresses], read from those rows alone (#1909).
   ///

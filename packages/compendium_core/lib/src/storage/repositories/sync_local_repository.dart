@@ -378,6 +378,26 @@ class SyncLocalRepository {
   Future<List<PublishedRecordRow>> listPublishedRecords() =>
       _db.select(_db.publishedRecords).get();
 
+  /// Which of [records] carry a publication marker, read by key rather than
+  /// as the whole table.
+  Future<Set<SyncRecordAddress>> publishedAmong(
+    Iterable<SyncRecordAddress> records,
+  ) async {
+    final idsByKind = <SyncRecordKind, Set<String>>{};
+    for (final record in records) {
+      idsByKind.putIfAbsent(record.kind, () => {}).add(record.recordId);
+    }
+    return {
+      for (final MapEntry(key: kind, value: ids) in idsByKind.entries)
+        for (final id in await publishedSyncRecordIds(
+          _db,
+          kind: kind,
+          recordIds: ids,
+        ))
+          (kind: kind, recordId: id),
+    };
+  }
+
   Future<bool> isPublished({
     required SyncRecordKind kind,
     required String recordId,
