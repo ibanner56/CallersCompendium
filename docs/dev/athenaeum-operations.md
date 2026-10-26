@@ -482,10 +482,11 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   other; past that, this command exits with `break-glass read failed` (re-run
   it) or the sweep reports a `break_glass_retention` failure. It never creates
   `athenaeum.sqlite`: if the server has never run on the volume the command
-  fails (`SqliteException`) rather than reporting "store not found" against a fresh empty file. Run it as the same
-  user as the server, or with write access to the data directory: a read-only
-  connection to a WAL database still needs the `-shm` file, and creates it if
-  the server has shut down cleanly and left no `-wal`/`-shm`.
+  fails (`SqliteException`) rather than reporting "store not found" against a
+  fresh empty file. Run it as the same user as the server, or with write access
+  to the data directory: a read-only connection to a WAL database still needs
+  the `-shm` file, and creates it if the server has shut down cleanly and left
+  no `-wal`/`-shm`.
   Use a secure terminal and output path; do not put the sync ID or returned
   content in shell history, ordinary logs, or chat. Inspect the separate
   break-glass database for exactly one row with the derived `id_key` and
