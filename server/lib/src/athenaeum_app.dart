@@ -12,12 +12,16 @@ import 'athenaeum_config.dart';
 import 'athenaeum_store.dart';
 
 typedef ClientAddressResolver = String Function(Request request);
-typedef AthenaeumDiagnosticLogger =
-    void Function(AthenaeumDiagnosticEvent event);
-typedef AthenaeumOperationalAlertSink =
-    void Function(AthenaeumOperationalAlert alert);
-typedef AthenaeumPeriodicTimer =
-    Timer Function(Duration interval, void Function(Timer timer) callback);
+typedef AthenaeumDiagnosticLogger = void Function(
+  AthenaeumDiagnosticEvent event,
+);
+typedef AthenaeumOperationalAlertSink = void Function(
+  AthenaeumOperationalAlert alert,
+);
+typedef AthenaeumPeriodicTimer = Timer Function(
+  Duration interval,
+  void Function(Timer timer) callback,
+);
 typedef AthenaeumSweep = void Function();
 
 // The request-rate rows of spec §5.4, refilled per second. The failure and
@@ -318,6 +322,16 @@ class AthenaeumApp {
       }
       _logFailure(request, error);
       return _jsonResponse(error.status, {'error': error.message});
+    } on Object catch (error) {
+      // Left to escape, shelf logs `Error thrown by handler.` with the
+      // exception's toString() and stack. A SqliteException prints the failing
+      // statement and its parameters (id_key, epoch, device id, etag) and a
+      // FileSystemException prints the blob path, which spec §7.4 keeps out of
+      // logs. Log the type alone, as every other server log site does.
+      stderr.writeln(
+        'Athenaeum request failed unexpectedly (${error.runtimeType})',
+      );
+      return _jsonResponse(500, {'error': 'internal error'});
     }
   }
 
@@ -827,43 +841,56 @@ class AthenaeumApp {
     String epoch,
     List<String> hashes,
   ) async* {
-    var sentBytes = 0;
-    var full = false;
-    for (final hash in hashes) {
-      if (!full) {
-        final reference = store.blobRef(idKey, epoch, hash);
-        if (reference != null &&
-            sentBytes + reference.size > syncBlobBatchMaxBlobBytes) {
-          full = true;
-        } else if (reference != null) {
-          Uint8List? body;
-          try {
-            body = store.blobFile(idKey, epoch, hash).readAsBytesSync();
-          } on FileSystemException {
-            body = null;
-          }
-          // The recorded size decided whether to read it; the bytes read
-          // decide whether they fit, should the file not match its record.
-          if (body != null &&
-              sentBytes + body.length > syncBlobBatchMaxBlobBytes) {
+    // Headers are already sent once this is consumed, so an unexpected error
+    // cannot become a 500: log its type alone (shelf's own "Asynchronous
+    // error" log would print the store identifiers or blob path in its text)
+    // and end the stream. The client sees a response that ends before every
+    // hash is answered (cut inside a frame, its reader rejects it as
+    // malformed; between frames, `SyncHttpClient` throws "blob batch response
+    // ended early"), keeps what arrived, and does not count it as served.
+    try {
+      var sentBytes = 0;
+      var full = false;
+      for (final hash in hashes) {
+        if (!full) {
+          final reference = store.blobRef(idKey, epoch, hash);
+          if (reference != null &&
+              sentBytes + reference.size > syncBlobBatchMaxBlobBytes) {
             full = true;
-          } else if (body != null) {
-            sentBytes += body.length;
-            yield encodeSyncBlobBatchFrameHead(
-              SyncBlobBatchFrameStatus.blob,
-              hash,
-              length: body.length,
-            );
-            yield body;
-            continue;
+          } else if (reference != null) {
+            Uint8List? body;
+            try {
+              body = store.blobFile(idKey, epoch, hash).readAsBytesSync();
+            } on FileSystemException {
+              body = null;
+            }
+            // The recorded size decided whether to read it; the bytes read
+            // decide whether they fit, should the file not match its record.
+            if (body != null &&
+                sentBytes + body.length > syncBlobBatchMaxBlobBytes) {
+              full = true;
+            } else if (body != null) {
+              sentBytes += body.length;
+              yield encodeSyncBlobBatchFrameHead(
+                SyncBlobBatchFrameStatus.blob,
+                hash,
+                length: body.length,
+              );
+              yield body;
+              continue;
+            }
           }
         }
+        yield encodeSyncBlobBatchFrameHead(
+          full
+              ? SyncBlobBatchFrameStatus.notSent
+              : SyncBlobBatchFrameStatus.missing,
+          hash,
+        );
       }
-      yield encodeSyncBlobBatchFrameHead(
-        full
-            ? SyncBlobBatchFrameStatus.notSent
-            : SyncBlobBatchFrameStatus.missing,
-        hash,
+    } on Object catch (error) {
+      stderr.writeln(
+        'Athenaeum blob batch stream failed (${error.runtimeType})',
       );
     }
   }
