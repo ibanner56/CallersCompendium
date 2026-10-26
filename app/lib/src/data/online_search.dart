@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../search/dance_detail_data.dart';
+import 'dance_reimport.dart';
 import 'import_io.dart'
     show CallersBoxPhraseQuery, UrlFetchException, UrlFetchFailureReason;
 
@@ -303,6 +304,11 @@ abstract interface class OnlineSearchService {
 ///   `variation` resolution even on an `isNew` verdict (the user's pick from
 ///   the possible matches).
 ///
+/// A plan that brought no figures (see [draftHasNoFigures]) is never offered a
+/// possible match, and a `link` resolution for it throws
+/// [DanceReimportFiguresUnavailableException] before anything is written: the
+/// link would replace the existing dance's figures with an empty list.
+///
 /// An undecodable transcription on either side never compares as identical
 /// (#1347): "cannot read it" must not become "it is empty", so that case
 /// always returns [OnlineImportKind.needsConfirmation] and the user decides.
@@ -328,6 +334,15 @@ Future<OnlineImportResult> commitPreviewedOnlinePlan(
       danceId: plan.verdict.targetDanceId,
       danceCount: 1,
     );
+  }
+
+  // Linking writes the incoming record over an existing dance, figures
+  // included. A record with none would erase the transcription, so the link is
+  // refused here however the caller got to it; the dialogs do not offer it
+  // (`resolveAndImportOnline`).
+  final figureless = draftHasNoFigures(plan.draft);
+  if (figureless && ambiguousResolution?.kind == DedupeResolutionKind.link) {
+    throw const DanceReimportFiguresUnavailableException();
   }
 
   // When the verdict is ambiguous and a confident candidate exists, check
@@ -393,8 +408,11 @@ Future<OnlineImportResult> commitPreviewedOnlinePlan(
   }
 
   // A lower-tier possible match is offered, never applied (#1907): only a
-  // caller with a user present gets here without a resolution.
+  // caller with a user present gets here without a resolution. The offer is
+  // only ever to replace a dance, so a figureless record, which may not, is
+  // simply a new dance.
   if (ambiguousResolution == null &&
+      !figureless &&
       !plan.verdict.hasConfidentMatch &&
       plan.verdict.possibleMatchIds.isNotEmpty) {
     return OnlineImportResult(

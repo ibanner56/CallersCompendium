@@ -598,4 +598,188 @@ void main() {
       expect(await repos.dances.listAll(), hasLength(1));
     });
   });
+
+  group('resolveAndImportOnline: a figureless record', () {
+    // The Caller's Box record for a dance whose permission is below `full`:
+    // metadata only. Replacing a dance with it would erase its figures.
+    final figurelessJson = jsonEncode({
+      'ID': '1606',
+      'Name': 'A-1 Reel {variant}',
+      'Authors': ['Chris Weiler'],
+      'Permission': 'limited',
+      'FormationBase': 'Duple Minor - Improper',
+      'Progression': 'Single',
+    });
+
+    Future<
+      ({
+        CompendiumRepositories repos,
+        Future<OnlineImportResult?> Function() run,
+      })
+    >
+    pump(
+      WidgetTester tester, {
+      required String existingTitle,
+      Provenance? provenance,
+      bool existingHasFigures = true,
+    }) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'weiler', name: 'Chris Weiler'),
+      );
+      final stamp = DateTime.utc(2026);
+      await repos.dances.create(
+        Dance(
+          id: 'mine',
+          title: existingTitle,
+          authorIds: const ['weiler'],
+          figures: existingHasFigures
+              ? [customFigure('Circle left once around')]
+              : const [],
+          provenance: provenance,
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      final service = CallersBoxOnline(
+        jsonFetcher: (_) async => figurelessJson,
+      );
+      final preview = await service.loadPreview(
+        repos,
+        const OnlineSearchResultRow(
+          source: OnlineSource.callersBox,
+          id: '1606',
+          name: '',
+          author: '',
+          formation: '',
+        ),
+      );
+      OnlineImportResult? result;
+      var completed = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => TextButton(
+                key: const ValueKey('open-dialog'),
+                onPressed: () async {
+                  result = await resolveAndImportOnline(
+                    ctx,
+                    service: service,
+                    repos: repos,
+                    preview: preview,
+                    l10n: AppLocalizations.of(ctx),
+                  );
+                  completed = true;
+                },
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('open-dialog')));
+      await tester.pumpAndSettle();
+      return (
+        repos: repos,
+        run: () async {
+          while (!completed) {
+            await tester.pumpAndSettle();
+          }
+          return result;
+        },
+      );
+    }
+
+    Future<void> expectMineUntouched(CompendiumRepositories repos) async {
+      final mine = (await repos.dances.getById('mine'))!;
+      expect(mine.figuresSource, isA<DecodedFigures>());
+      expect((mine.figuresSource as DecodedFigures).figures, hasLength(1));
+    }
+
+    testWidgets('under another title is added as a new dance without asking '
+        'which dance to replace', (tester) async {
+      final (:repos, :run) = await pump(
+        tester,
+        existingTitle: 'A1 Reel (Imp Var)',
+      );
+
+      expect(
+        find.byKey(const ValueKey('online-import-possible-match-dialog')),
+        findsNothing,
+      );
+      final result = await run();
+      expect(result?.kind, OnlineImportKind.created);
+      expect(result?.danceId, isNot('mine'));
+      expect(await repos.dances.listAll(), hasLength(2));
+      await expectMineUntouched(repos);
+    });
+
+    testWidgets('matching your dance with different figures cannot replace it, '
+        'but can still be a variation', (tester) async {
+      final (:repos, :run) = await pump(
+        tester,
+        existingTitle: 'A-1 Reel {variant}',
+      );
+
+      expect(
+        find.byKey(const ValueKey('online-import-variation-dialog')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('online-import-variation-same-dance')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('online-import-variation-as-variation')),
+      );
+      final result = await run();
+
+      expect(result?.kind, OnlineImportKind.created);
+      expect(result?.danceId, isNot('mine'));
+      expect(await repos.dances.listAll(), hasLength(2));
+      await expectMineUntouched(repos);
+    });
+
+    testWidgets('identical to a copy from another source (both empty) cannot '
+        'replace it either', (tester) async {
+      final (:repos, :run) = await pump(
+        tester,
+        existingTitle: 'A-1 Reel {variant}',
+        existingHasFigures: false,
+        provenance: Provenance(
+          source: ProvenanceSource.contradb,
+          externalId: '77',
+          importedAt: DateTime.utc(2026),
+        ),
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey('online-import-cross-source-duplicate-dialog'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('online-import-cross-source-duplicate-same-dance'),
+        ),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey('online-import-cross-source-duplicate-import-copy'),
+        ),
+      );
+      final result = await run();
+
+      expect(result?.kind, OnlineImportKind.created);
+      expect(await repos.dances.listAll(), hasLength(2));
+    });
+  });
 }

@@ -2,12 +2,17 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/dance_reimport.dart';
 import '../data/default_import_tags.dart';
 import '../data/online_search.dart';
 
 /// Shows the resolution dialog for a confident title+author match with
 /// differing figures (issue #797). Returns the chosen [DedupeResolution], or
 /// `null` if the user cancelled.
+///
+/// [allowLink] is `false` for a record that brought no figures: "Same dance"
+/// would replace the existing dance's figures with nothing, so it is not
+/// offered and a note says why.
 ///
 /// Shared by every interactive online-import surface ([DanceListScreen],
 /// [CollectionShell], [CollectionPicker] and the incoming-dance flow in
@@ -18,6 +23,7 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
   AppLocalizations l10n, {
   required String existingTitle,
   required String existingId,
+  bool allowLink = true,
 }) => showDialog<DedupeResolution>(
   context: context,
   builder: (ctx) => AlertDialog(
@@ -34,7 +40,12 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
           Text(l10n.onlineImportVariationDialogBody(existingTitle)),
           const SizedBox(height: 8),
           Text(
-            l10n.onlineImportVariationDialogLinkWarning(existingTitle),
+            allowLink
+                ? l10n.onlineImportVariationDialogLinkWarning(existingTitle)
+                : l10n.importFigurelessCannotReplace,
+            key: allowLink
+                ? null
+                : const ValueKey('online-import-no-figures-note'),
             style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
               color: Theme.of(ctx).colorScheme.onSurfaceVariant,
             ),
@@ -54,12 +65,13 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
             Navigator.of(ctx).pop(DedupeResolution.variation(existingId)),
         child: Text(l10n.onlineImportVariationDialogActionVariation),
       ),
-      FilledButton(
-        key: const ValueKey('online-import-variation-same-dance'),
-        onPressed: () =>
-            Navigator.of(ctx).pop(DedupeResolution.link(existingId)),
-        child: Text(l10n.onlineImportVariationDialogActionLink),
-      ),
+      if (allowLink)
+        FilledButton(
+          key: const ValueKey('online-import-variation-same-dance'),
+          onPressed: () =>
+              Navigator.of(ctx).pop(DedupeResolution.link(existingId)),
+          child: Text(l10n.onlineImportVariationDialogActionLink),
+        ),
     ],
   ),
 );
@@ -90,12 +102,17 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
 /// `main.dart`) via [resolveAndImportOnline], so all use identical wording.
 /// Add a new online-import surface? Route through [resolveAndImportOnline].
 ///
+/// [allowLink] is `false` for a record that brought no figures (both sides then
+/// compare as having none): "Same dance" is not offered, as in
+/// [showOnlineImportVariationDialog].
+///
 /// Returns the chosen [DedupeResolution], or `null` if the user cancelled.
 Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
   BuildContext context,
   AppLocalizations l10n, {
   required String existingTitle,
   required String existingId,
+  bool allowLink = true,
 }) => showDialog<DedupeResolution>(
   context: context,
   builder: (ctx) => AlertDialog(
@@ -112,7 +129,12 @@ Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
           Text(l10n.onlineImportCrossSourceDuplicateDialogBody(existingTitle)),
           const SizedBox(height: 8),
           Text(
-            l10n.onlineImportVariationDialogLinkWarning(existingTitle),
+            allowLink
+                ? l10n.onlineImportVariationDialogLinkWarning(existingTitle)
+                : l10n.importFigurelessCannotReplace,
+            key: allowLink
+                ? null
+                : const ValueKey('online-import-no-figures-note'),
             style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
               color: Theme.of(ctx).colorScheme.onSurfaceVariant,
             ),
@@ -126,12 +148,15 @@ Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
         onPressed: () => Navigator.of(ctx).pop(DedupeResolution.duplicate()),
         child: Text(l10n.onlineImportCrossSourceDuplicateDialogActionDuplicate),
       ),
-      TextButton(
-        key: const ValueKey('online-import-cross-source-duplicate-same-dance'),
-        onPressed: () =>
-            Navigator.of(ctx).pop(DedupeResolution.link(existingId)),
-        child: Text(l10n.onlineImportVariationDialogActionLink),
-      ),
+      if (allowLink)
+        TextButton(
+          key: const ValueKey(
+            'online-import-cross-source-duplicate-same-dance',
+          ),
+          onPressed: () =>
+              Navigator.of(ctx).pop(DedupeResolution.link(existingId)),
+          child: Text(l10n.onlineImportVariationDialogActionLink),
+        ),
       FilledButton(
         key: const ValueKey('online-import-cross-source-duplicate-cancel'),
         onPressed: () => Navigator.of(ctx).pop(),
@@ -233,6 +258,10 @@ Future<DedupeResolution?> showOnlineImportPossibleMatchDialog(
 ///
 /// Every commit adds the user's default import tags (#1476), resolved
 /// immediately before it.
+///
+/// A [preview] that brought no figures ([draftHasNoFigures]) is never offered
+/// the choice to replace a dance: [commitPreviewedOnlinePlan] skips the
+/// possible-match question, and the confirmation dialogs here drop "Same dance".
 Future<OnlineImportResult?> resolveAndImportOnline(
   BuildContext context, {
   required OnlineSearchService service,
@@ -283,18 +312,21 @@ Future<OnlineImportResult?> resolveAndImportOnline(
   final existingTitle =
       (await repos.dances.getById(existingId))?.title ?? first.title;
   if (!context.mounted) return null;
+  final allowLink = !draftHasNoFigures(preview.plan.draft);
   final resolution = isVariation
       ? await showOnlineImportVariationDialog(
           context,
           l10n,
           existingTitle: existingTitle,
           existingId: existingId,
+          allowLink: allowLink,
         )
       : await showOnlineImportCrossSourceDuplicateDialog(
           context,
           l10n,
           existingTitle: existingTitle,
           existingId: existingId,
+          allowLink: allowLink,
         );
   if (resolution == null || !context.mounted) return null;
   return commit(resolution);

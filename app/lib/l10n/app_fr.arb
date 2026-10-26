@@ -6050,6 +6050,10 @@
   "@onlineImportPossibleMatchDialogLinkWarning": {
     "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
   },
+  "importFigurelessCannotReplace": "Cet enregistrement ne contient aucune figure : il ne peut donc pas remplacer l’une de vos danses. Il peut toutefois être importé comme nouvelle danse.",
+  "@importFigurelessCannotReplace": {
+    "x-sourceSha256": "1d8603d21ac55d0700714199f4e1ce5cdae0edeb366311b1b3110ee779f40ebe"
+  },
   "onlineImportPossibleMatchDialogActionNew": "Importer comme nouvelle danse",
   "@onlineImportPossibleMatchDialogActionNew": {
     "x-sourceSha256": "089403b562dec94cbf73616fbd4d3b4a350782b551e644af55248c51840ec8ca"

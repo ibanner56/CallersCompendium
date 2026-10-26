@@ -6086,6 +6086,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen, Tags und Bewertung. Er behält Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.';
 
   @override
+  String get importFigurelessCannotReplace =>
+      'Dieser Datensatz enthält keine Figuren und kann daher keinen deiner Tänze ersetzen. Er kann aber weiterhin als neuer Tanz importiert werden.';
+
+  @override
   String get onlineImportPossibleMatchDialogActionNew =>
       'Als neuen Tanz importieren';
 

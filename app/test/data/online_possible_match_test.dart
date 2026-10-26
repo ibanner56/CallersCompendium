@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:compendium_app/src/data/callersbox_online.dart';
+import 'package:compendium_app/src/data/dance_reimport.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/plaintext_program_import.dart';
 import 'package:compendium_app/src/data/program_import_online_resolver.dart';
@@ -27,6 +28,17 @@ String _variantJson({String name = 'A-1 Reel {variant}'}) => jsonEncode({
   ],
 });
 
+/// The record The Caller's Box serves for a dance whose permission is not
+/// `full`: metadata only, no figures.
+String _figurelessJson() => jsonEncode({
+  'ID': '1606',
+  'Name': 'A-1 Reel {variant}',
+  'Authors': ['Chris Weiler'],
+  'Permission': 'limited',
+  'FormationBase': 'Duple Minor - Improper',
+  'Progression': 'Single',
+});
+
 const String _searchHtml = '''
 <html><head><meta charset='windows-1252'></head><body>
 <p>Of 16874 dances in the database, your query matches 1.</p>
@@ -41,7 +53,9 @@ const String _searchHtml = '''
 </body></html>
 ''';
 
-Future<CompendiumRepositories> _reporterCollection() async {
+Future<CompendiumRepositories> _reporterCollection({
+  bool withFigures = false,
+}) async {
   final repos = openTestRepositories();
   // ignore: unused_result
   await repos.choreographers.upsert(
@@ -57,6 +71,9 @@ Future<CompendiumRepositories> _reporterCollection() async {
         id: id,
         title: title,
         authorIds: const ['weiler'],
+        figures: withFigures
+            ? [customFigure('Circle left once around')]
+            : const [],
         createdAt: stamp,
         updatedAt: stamp,
       ),
@@ -170,5 +187,77 @@ void main() {
     expect(all, hasLength(3));
     expect(all['impvar']!.title, 'A1 Reel (Imp Var)');
     expect(all[linked]!.title, 'A-1 Reel {variant}');
+  });
+
+  group('a figureless record (permission below full)', () {
+    CallersBoxOnline figureless() =>
+        CallersBoxOnline(jsonFetcher: (_) async => _figurelessJson());
+
+    Future<ImportRecordPlan> plan(
+      CompendiumRepositories repos,
+      CallersBoxOnline service,
+    ) async {
+      final preview = await service.loadPreview(repos, _row);
+      expect(preview.plan.draft.dance.figuresSource, isA<DecodedFigures>());
+      expect(
+        (preview.plan.draft.dance.figuresSource as DecodedFigures).figures,
+        isEmpty,
+      );
+      expect(preview.plan.verdict.possibleMatchIds, ['base', 'impvar']);
+      return preview.plan;
+    }
+
+    test('is not offered possible matches: nothing to replace them with, so '
+        'it is a new dance', () async {
+      final repos = await _reporterCollection(withFigures: true);
+      final service = figureless();
+
+      final result = await service.import(repos, await plan(repos, service));
+
+      expect(result.kind, OnlineImportKind.created);
+      expect(result.danceId, isNot(anyOf('base', 'impvar')));
+      expect(await repos.dances.listAll(), hasLength(3));
+      expect(
+        (await repos.dances.getById('impvar'))!.title,
+        'A1 Reel (Imp Var)',
+      );
+    });
+
+    test('is refused when asked to replace a dance, and the dance keeps its '
+        'figures', () async {
+      final repos = await _reporterCollection(withFigures: true);
+      final service = figureless();
+
+      await expectLater(
+        service.import(
+          repos,
+          await plan(repos, service),
+          ambiguousResolution: DedupeResolution.link('impvar'),
+        ),
+        throwsA(isA<DanceReimportFiguresUnavailableException>()),
+      );
+
+      final kept = (await repos.dances.getById('impvar'))!;
+      expect(kept.title, 'A1 Reel (Imp Var)');
+      expect((kept.figuresSource as DecodedFigures).figures, hasLength(1));
+      expect(await repos.dances.listAll(), hasLength(2));
+    });
+
+    test(
+      'can still be imported as a new dance when the choice is explicit',
+      () async {
+        final repos = await _reporterCollection(withFigures: true);
+        final service = figureless();
+
+        final result = await service.import(
+          repos,
+          await plan(repos, service),
+          ambiguousResolution: DedupeResolution.duplicate(),
+        );
+
+        expect(result.kind, OnlineImportKind.created);
+        expect(await repos.dances.listAll(), hasLength(3));
+      },
+    );
   });
 }

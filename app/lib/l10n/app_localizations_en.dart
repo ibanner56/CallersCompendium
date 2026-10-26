@@ -5989,6 +5989,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.';
 
   @override
+  String get importFigurelessCannotReplace =>
+      'This record has no figures, so it can\'t replace one of your dances. It can still be imported as a new dance.';
+
+  @override
   String get onlineImportPossibleMatchDialogActionNew =>
       'Import as a new dance';
 
