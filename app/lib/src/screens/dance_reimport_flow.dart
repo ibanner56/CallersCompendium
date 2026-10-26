@@ -161,6 +161,8 @@ Future<T> _attributed<T>(
   try {
     return await request();
   } on UrlFetchException catch (error, stackTrace) {
+    // diagnostics: silent — rethrown, relabelled; every owner of
+    // selectReimportDance logs it where it is shown.
     Error.throwWithStackTrace(
       attributeFetchFailure(error, switch (source) {
         OnlineSource.callersBox => ImportSourceKind.callersBox,
