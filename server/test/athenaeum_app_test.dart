@@ -1371,6 +1371,144 @@ void main() {
     );
   });
 
+  group('per-IP key for IPv6 clients', () {
+    // Request row: the failure row is lifted so only the request bucket can
+    // refuse, and the clock is frozen so nothing refills.
+    AthenaeumApp requestRowApp() => AthenaeumApp(
+      config: app.config,
+      store: app.store,
+      clock: () => DateTime.utc(2026, 10, 26),
+      budgetLimits: const AthenaeumBudgetLimits(
+        perIpRequestBurst: 3,
+        perIpFailureBurst: 100000,
+        perIpFailuresPerMinute: 100000,
+        serverWideFailuresPerMinute: 100000,
+      ),
+    );
+
+    // Failure row: the request row is lifted.
+    AthenaeumApp failureRowApp() => AthenaeumApp(
+      config: app.config,
+      store: app.store,
+      budgetLimits: const AthenaeumBudgetLimits(
+        perIpRequestBurst: 100000,
+        perIpRequestsPerSecond: 100000,
+      ),
+    );
+
+    Future<int> status(AthenaeumApp target, String forwarded) async =>
+        (await target.call(
+          _requestWithPeer(
+            InternetAddress.loopbackIPv4,
+            forwardedAddress: forwarded,
+          ),
+        )).statusCode;
+
+    Future<void> drain(AthenaeumApp target, String forwarded, int n) async {
+      for (var i = 0; i < n; i++) {
+        expect(await status(target, forwarded), 401);
+      }
+    }
+
+    test('addresses in one /64 share a request bucket', () async {
+      final target = requestRowApp();
+      await drain(target, '2001:db8:1:2::1', 3);
+      expect(await status(target, '2001:db8:1:2::1'), 429);
+      expect(await status(target, '2001:db8:1:2:aaaa:bbbb:cccc:dddd'), 429);
+    });
+
+    test('addresses in one /64 share a failure bucket', () async {
+      final target = failureRowApp();
+      await drain(target, '2001:db8:1:2::1', maxFailedResolutionsPerIpBurst);
+      expect(await status(target, '2001:db8:1:2::1'), 429);
+      expect(await status(target, '2001:db8:1:2:aaaa:bbbb:cccc:dddd'), 429);
+    });
+
+    test('addresses in different /64s stay independent', () async {
+      final requests = requestRowApp();
+      await drain(requests, '2001:db8:1:2::1', 3);
+      expect(await status(requests, '2001:db8:1:2::1'), 429);
+      expect(await status(requests, '2001:db8:1:3::1'), 401);
+      expect(await status(requests, '2001:db9:1:2::1'), 401);
+
+      final failures = failureRowApp();
+      await drain(failures, '2001:db8:1:2::1', maxFailedResolutionsPerIpBurst);
+      expect(await status(failures, '2001:db8:1:3::1'), 401);
+      expect(await status(failures, '2001:db9:1:2::1'), 401);
+    });
+
+    test('IPv4-mapped clients are keyed per IPv4 address', () async {
+      // dart:io keeps ::ffff:a.b.c.d as a 16-byte IPv6 address whose /64 is
+      // 0:0:0:0 for every IPv4 client; masking it would make one global bucket.
+      final requests = requestRowApp();
+      await drain(requests, '::ffff:192.0.2.10', 3);
+      expect(await status(requests, '::ffff:192.0.2.10'), 429);
+      expect(await status(requests, '::ffff:192.0.2.11'), 401);
+      expect(await status(requests, '::ffff:c000:20a'), 429);
+      // A mapped client is the same client as its plain IPv4 form.
+      expect(await status(requests, '192.0.2.10'), 429);
+
+      final failures = failureRowApp();
+      await drain(
+        failures,
+        '::ffff:192.0.2.10',
+        maxFailedResolutionsPerIpBurst,
+      );
+      expect(await status(failures, '::ffff:192.0.2.11'), 401);
+      expect(await status(failures, '::ffff:192.0.2.10'), 429);
+    });
+
+    test('textual variants of one address share a key', () async {
+      final target = requestRowApp();
+      await drain(target, '2001:DB8::1', 3);
+      expect(await status(target, '2001:db8:0:0:0:0:0:1'), 429);
+      expect(await status(target, '2001:0db8::0:1'), 429);
+      // Numeric zone IDs parse on any host; named ones only if the interface
+      // exists. The key must not depend on the zone either way.
+      expect(await status(target, 'fe80::1%1'), 401);
+      await drain(target, 'fe80::1%1', 2);
+      expect(await status(target, 'fe80::1%7'), 429);
+      expect(await status(target, 'fe80::1'), 429);
+    });
+
+    test('an IPv6 key never collides with an IPv4 key', () async {
+      final target = requestRowApp();
+      await drain(target, '::1', 3);
+      expect(await status(target, '::1'), 429);
+      expect(await status(target, '127.0.0.1'), 401);
+      expect(await status(target, '0.0.0.1'), 401);
+    });
+
+    test('minting addresses inside one /64 grows no table', () async {
+      final target = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        budgetLimits: const AthenaeumBudgetLimits(
+          perIpRequestBurst: 100000,
+          perIpRequestsPerSecond: 100000,
+          serverWideFailuresPerMinute: 100000,
+        ),
+      );
+      // Past the 1,000-entry server-wide failure table cap: were each address
+      // its own entry, a new honest address would now be refused.
+      for (var i = 0; i < 1100; i++) {
+        await status(target, '2001:db8:1:2::${i.toRadixString(16)}');
+      }
+      expect(await status(target, '2001:db8:1:ffff::1'), 401);
+      expect(await status(target, '192.0.2.1'), 401);
+    });
+
+    test('flooding one /64 cannot evict an honest request bucket', () async {
+      final target = requestRowApp();
+      await drain(target, '198.51.100.7', 3);
+      for (var i = 0; i < 10100; i++) {
+        await status(target, '2001:db8:1:2::${i.toRadixString(16)}');
+      }
+      // The honest bucket is still tracked, still empty.
+      expect(await status(target, '198.51.100.7'), 429);
+    });
+  });
+
   group('encoded gzip bytes', () {
     Future<Response> gzipRequest(
       String method,
