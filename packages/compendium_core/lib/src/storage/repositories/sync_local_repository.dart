@@ -72,6 +72,13 @@ class SyncBaselineEntry {
   final String wireHash;
   final String? bodyHash;
   final SyncBaselineBodyHashVersion bodyHashVersion;
+
+  /// Whether [other] would store the same row values as this entry: the same
+  /// wire hash, body hash and body-hash version. The address is not compared.
+  bool hasSameHashesAs(SyncBaselineEntry other) =>
+      wireHash == other.wireHash &&
+      bodyHash == other.bodyHash &&
+      bodyHashVersion == other.bodyHashVersion;
 }
 
 /// What this device last published (sync-spec §6.3 step 8): the hash of its
@@ -128,7 +135,9 @@ class SyncLocalRepository {
   /// Advances only entries justified by an observed peer manifest.
   ///
   /// Entries not named by [entries] or [drop] are retained so an unresolved
-  /// blob or malformed record remains retryable on the next pass.
+  /// blob or malformed record remains retryable on the next pass. [entries]
+  /// are written in one batch; the coordinator passes only those that change
+  /// a stored row.
   Future<void> advanceBaseline({
     required String epoch,
     Iterable<SyncBaselineEntry> entries = const [],
@@ -431,20 +440,7 @@ class SyncLocalTransaction {
         .insertOnConflictUpdate(
           BaselineStateCompanion.insert(id: const Value(1), epoch: epoch),
         );
-    for (final entry in entries) {
-      await _db
-          .into(_db.baselineEntries)
-          .insertOnConflictUpdate(
-            BaselineEntriesCompanion.insert(
-              kind: entry.kind,
-              recordId: entry.recordId,
-              wireHash: entry.wireHash,
-              bodyHash: Value(
-                _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
-              ),
-            ),
-          );
-    }
+    await _upsertBaselineEntries(entries);
   }
 
   Future<void> advanceBaseline({
@@ -464,20 +460,30 @@ class SyncLocalTransaction {
           ))
           .go();
     }
-    for (final entry in entries) {
-      await _db
-          .into(_db.baselineEntries)
-          .insertOnConflictUpdate(
-            BaselineEntriesCompanion.insert(
-              kind: entry.kind,
-              recordId: entry.recordId,
-              wireHash: entry.wireHash,
-              bodyHash: Value(
-                _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
-              ),
-            ),
-          );
-    }
+    await _upsertBaselineEntries(entries);
+  }
+
+  /// Writes [entries] in one batch rather than one statement per row, as
+  /// [markPublishedAll] does. A later entry for an address still wins, as it
+  /// did when each was written in turn.
+  Future<void> _upsertBaselineEntries(
+    Iterable<SyncBaselineEntry> entries,
+  ) async {
+    final rows = [
+      for (final entry in entries)
+        BaselineEntriesCompanion.insert(
+          kind: entry.kind,
+          recordId: entry.recordId,
+          wireHash: entry.wireHash,
+          bodyHash: Value(
+            _encodeStoredBodyHash(entry.bodyHash, entry.bodyHashVersion),
+          ),
+        ),
+    ];
+    if (rows.isEmpty) return;
+    await _db.batch((batch) {
+      batch.insertAllOnConflictUpdate(_db.baselineEntries, rows);
+    });
   }
 
   Future<void> resetEpoch({

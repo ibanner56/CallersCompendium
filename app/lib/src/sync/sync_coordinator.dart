@@ -2722,9 +2722,22 @@ class SyncCoordinator {
         if (decision.action == SyncMergeAction.dropBaseline) decision.address,
     };
     if (deferredBaseline == null) {
+      // Only entries that change a stored row are written, so an idle pass
+      // writes none (#1948). Each is compared with the row stored under the
+      // surviving id itself, not with `normalizedBaseline`: a row kept only
+      // under a losing alias id has no row at the survivor, so it is still
+      // written there. A dropped address needs no exemption, because a drop
+      // means no peer carries the record and an observed entry means one does.
+      final stored = snapshot.baseline;
       await store.advanceBaseline(
         epoch: metadata.epoch,
-        entries: observed,
+        entries: [
+          for (final entry in observed)
+            if (stored[(kind: entry.kind, recordId: entry.recordId)]
+                    ?.hasSameHashesAs(entry) !=
+                true)
+              entry,
+        ],
         drop: dropped,
       );
     } else {
