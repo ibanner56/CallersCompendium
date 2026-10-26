@@ -52,7 +52,21 @@ abstract interface class SyncApplyStorage {
 /// that happened after the coordinator's merge snapshot.
 abstract interface class SyncApplyConcurrencyStorage
     implements SyncApplyStorage {
-  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> snapshotCandidates();
+  /// This device's current candidate for each of [addresses], hashed exactly
+  /// as the merge snapshot hashed it, so the guard can compare the two.
+  ///
+  /// An address the snapshot would not hold — no row, a withheld record, a
+  /// private custom-field definition — maps to null or is left out; the guard
+  /// reads both as "no local candidate".
+  ///
+  /// The engine calls this inside the apply transaction, which holds the
+  /// database's write lock from its first statement, so every competing app
+  /// write waits for as long as this read takes. It must therefore read only
+  /// [addresses] — the records the batch touches — and never scan the whole
+  /// library (#1909).
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> currentCandidates(
+    Set<SyncRecordAddress> addresses,
+  );
 }
 
 /// Optional extension implemented by adapters that can return a recoverable
@@ -371,7 +385,11 @@ class SyncApplyEngine {
         'expected wire hashes require a concurrency-aware sync storage',
       );
     }
-    final current = await storage.snapshotCandidates();
+    final current = await storage.currentCandidates({
+      for (final candidate in candidates)
+        if (expectedWireHashes.containsKey(candidate.address))
+          candidate.address,
+    });
     final guarded = <SyncMergeCandidate>[];
     for (final candidate in candidates) {
       if (!expectedWireHashes.containsKey(candidate.address)) {
