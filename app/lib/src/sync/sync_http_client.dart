@@ -513,13 +513,15 @@ class SyncHttpClient {
     );
   }
 
-  Future<List<int>> _readBoundedBody(
+  /// Buffers the body as bytes: a growable `List<int>` costs a machine word
+  /// per byte, which a manifest-sized body would pay in the worker isolate.
+  Future<Uint8List> _readBoundedBody(
     http.StreamedResponse response,
     int maxDecodedBytes,
   ) async {
-    final bytes = <int>[];
-    await _consumeBoundedBody(response, bytes.addAll, maxDecodedBytes);
-    return bytes;
+    final bytes = BytesBuilder(copy: false);
+    await _consumeBoundedBody(response, bytes.add, maxDecodedBytes);
+    return bytes.takeBytes();
   }
 
   /// Reads a batch response frame by frame (spec §5.2), handing each to

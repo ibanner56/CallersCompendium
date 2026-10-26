@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -244,6 +245,32 @@ void main() {
       );
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(sentChunks, lessThan(chunks.length));
+    });
+
+    test('buffers plain and gzip response bodies as Uint8List', () async {
+      final payload = utf8.encode(List.filled(4096, 'manifest ').join());
+      final server = await _startServer((request) async {
+        if (request.uri.path.endsWith('/gzip')) {
+          request.response.headers.set('content-encoding', 'gzip');
+          request.response.add(gzip.encode(payload));
+        } else {
+          request.response.add(payload);
+        }
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      for (final path in ['plain', 'gzip']) {
+        final response = await client.request('GET', path);
+        expect(response.body, isA<Uint8List>(), reason: path);
+        expect(response.body, payload, reason: path);
+      }
     });
 
     test('aborts a gzip response exceeding the decompression ratio', () async {
