@@ -1,0 +1,17 @@
+{
+  "id": "1948-sync-baseline-write-filter",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Device Sync writes less to your device's storage when a sync has nothing new: it now updates its record of what your devices share only for the items that changed, instead of rewriting all of them on every sync."
+    ]
+  },
+  "core": {
+    "added": [
+      "`SyncBaselineEntry.hasSameHashesAs(other)` says whether two baseline entries carry the same wire hash, body hash and body-hash version."
+    ],
+    "changed": [
+      "`SyncLocalRepository.advanceBaseline` and `replaceBaseline` write their entries in one batch rather than one statement per entry. The rows they leave are unchanged."
+    ]
+  }
+}
