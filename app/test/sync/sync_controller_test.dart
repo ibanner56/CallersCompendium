@@ -2593,48 +2593,51 @@ void main() {
       },
     );
 
-    test('an edit during a confirmation is followed by a debounced pass', () async {
-      final transport = ControllableSyncTransport();
-      final gate = Completer<void>();
-      var postConfirmPasses = 0;
-      coordinator = SyncCoordinator(
-        syncId: 'configured',
-        deviceId: 'device',
-        store: CompendiumSyncCoordinatorStore(repos),
-        transport: transport,
-        passOperation: ({initialStore}) async {
-          if (transport.createStoreCalls == 0) {
-            return const SyncPassResult(SyncPassStatus.replacementRequired);
-          }
-          postConfirmPasses++;
-          if (postConfirmPasses == 1) await gate.future;
-          return const SyncPassResult(SyncPassStatus.completed);
-        },
-      );
-      addTearDown(() => coordinator?.dispose());
-      final controller = build(debounce: const Duration(milliseconds: 10));
-      controller.attachCoordinator(coordinator);
-      await controller.load();
-      await controller.setEnabled(true);
-      await controller.syncNow();
-      expect(controller.replacementPending, isTrue);
+    test(
+      'an edit during a confirmation is followed by a debounced pass',
+      () async {
+        final transport = ControllableSyncTransport();
+        final gate = Completer<void>();
+        var postConfirmPasses = 0;
+        coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device',
+          store: CompendiumSyncCoordinatorStore(repos),
+          transport: transport,
+          passOperation: ({initialStore}) async {
+            if (transport.createStoreCalls == 0) {
+              return const SyncPassResult(SyncPassStatus.replacementRequired);
+            }
+            postConfirmPasses++;
+            if (postConfirmPasses == 1) await gate.future;
+            return const SyncPassResult(SyncPassStatus.completed);
+          },
+        );
+        addTearDown(() => coordinator?.dispose());
+        final controller = build(debounce: const Duration(milliseconds: 10));
+        controller.attachCoordinator(coordinator);
+        await controller.load();
+        await controller.setEnabled(true);
+        await controller.syncNow();
+        expect(controller.replacementPending, isTrue);
 
-      final confirmation = controller.confirmReplacement();
-      while (postConfirmPasses == 0) {
-        await Future<void>.delayed(Duration.zero);
-      }
-      controller.notifyLocalChange();
-      gate.complete();
-      await confirmation;
-      expect(postConfirmPasses, 1);
+        final confirmation = controller.confirmReplacement();
+        while (postConfirmPasses == 0) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        controller.notifyLocalChange();
+        gate.complete();
+        await confirmation;
+        expect(postConfirmPasses, 1);
 
-      await Future<void>.delayed(const Duration(milliseconds: 80));
-      expect(
-        postConfirmPasses,
-        2,
-        reason: 'the edit made mid-confirmation must schedule its own pass',
-      );
-    });
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        expect(
+          postConfirmPasses,
+          2,
+          reason: 'the edit made mid-confirmation must schedule its own pass',
+        );
+      },
+    );
 
     test(
       'decline issues no POST and leaves the decision available later',
