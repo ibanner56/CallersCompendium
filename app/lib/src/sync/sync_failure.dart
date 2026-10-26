@@ -1,6 +1,7 @@
 // Why a sync pass failed, in terms the status surface can explain.
 import 'dart:io';
 
+import 'package:compendium_core/compendium_core.dart';
 import 'package:http/http.dart' as http;
 
 import 'sync_http_client.dart';
@@ -250,8 +251,33 @@ SyncFailureCause syncFailureCauseForError(Object error) => switch (error) {
 /// Implements [StateError]'s role from before: the message is still the
 /// worker's `'$error'` text for logs, and [cause] is what the worker
 /// classified it as while it still had the original error.
-final class SyncWorkerFailure extends StateError {
-  SyncWorkerFailure(super.message, this.cause);
+final class SyncWorkerFailure extends StateError
+    implements SyncAppliedBeforeThrow {
+  SyncWorkerFailure(
+    super.message,
+    this.cause, {
+    this.appliedKinds = const <SyncRecordKind>{},
+  });
 
   final SyncFailureCause cause;
+
+  /// The kinds the pass had committed rows of before it threw.
+  @override
+  final Set<SyncRecordKind> appliedKinds;
 }
+
+/// A pass failure thrown, not returned, after the pass may have written rows.
+///
+/// A returned [SyncPassResult] carries its own `appliedKinds`; a throw has
+/// nowhere to put them, so the worker isolate's failures implement this to
+/// let the caller reload what those rows changed (#1913).
+abstract interface class SyncAppliedBeforeThrow {
+  Set<SyncRecordKind> get appliedKinds;
+}
+
+/// The kinds a thrown [error] says its pass had already applied: empty for
+/// any error that does not implement [SyncAppliedBeforeThrow].
+Set<SyncRecordKind> syncAppliedKindsForError(Object error) => switch (error) {
+  SyncAppliedBeforeThrow(:final appliedKinds) => appliedKinds,
+  _ => const <SyncRecordKind>{},
+};

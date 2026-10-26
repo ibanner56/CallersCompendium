@@ -48,6 +48,7 @@ import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import '../widgets/online_import_dialogs.dart';
 import '../widgets/online_result_tile.dart';
+import '../widgets/search_panel_bar.dart';
 import '../widgets/skeleton.dart';
 import '../sync/sync_scope.dart';
 import '../widgets/sync_now_action.dart';
@@ -219,6 +220,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
   bool _advancedEnabled = false;
+
+  /// Keep the search field and Search in the same widgets when the header
+  /// switches between one row and two (a rotation or a window resize), so a
+  /// focused field keeps focus and the keyboard stays up.
+  final _searchFieldKey = GlobalKey();
+  final _searchScopeKey = GlobalKey();
 
   CollectionSort _sort = CollectionSort.title;
 
@@ -2316,6 +2323,63 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // now renders inside the results area rather than replacing the whole body.
     final collectionEmpty = data.dancesById.isEmpty;
 
+    final searchField = TextField(
+      key: const ValueKey('collection-search-field'),
+      controller: _ftsController,
+      onChanged: _onFtsChanged,
+      onSubmitted: _onFtsSubmitted,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        labelText: _onlineEnabled
+            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+            : l10n.collectionSearchFieldLabel,
+        hintText: _onlineEnabled
+            ? l10n.collectionOnlineSearchFieldHint
+            : l10n.collectionSearchFieldHint,
+        // Dense, like Search in beside it, so the two line up in one row.
+        isDense: true,
+        prefixIcon: Icon(_onlineEnabled ? Icons.cloud_outlined : Icons.search),
+        suffixIcon: _hasActiveQuery
+            ? IconButton(
+                tooltip: l10n.collectionClearSearchTooltip,
+                icon: const Icon(Icons.clear),
+                onPressed: _clearAll,
+              )
+            : null,
+      ),
+    );
+    final searchScope = KeyedSubtree(
+      key: ValueKey('collection-search-scope-state-$_onlineEnabled-$_ftsScope'),
+      child: DropdownButtonFormField<FullTextScope>(
+        key: const ValueKey('collection-search-scope'),
+        initialValue: _ftsScope,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: l10n.collectionSearchScopeLabel,
+          isDense: true,
+        ),
+        items: [
+          if (!_onlineEnabled)
+            DropdownMenuItem(
+              value: FullTextScope.omni,
+              child: Text(l10n.collectionSearchScopeOmni),
+            ),
+          DropdownMenuItem(
+            value: FullTextScope.title,
+            child: Text(l10n.collectionSearchScopeTitle),
+          ),
+          DropdownMenuItem(
+            value: FullTextScope.author,
+            child: Text(l10n.collectionSearchScopeAuthor),
+          ),
+          DropdownMenuItem(
+            value: FullTextScope.figure,
+            child: Text(l10n.collectionSearchScopeFigure),
+          ),
+        ],
+        onChanged: _onFtsScopeChanged,
+      ),
+    );
     return Column(
       children: [
         Padding(
@@ -2325,71 +2389,43 @@ class _DanceListScreenState extends State<DanceListScreen> {
             AppSpacing.md,
             0,
           ),
-          child: KeyedSubtree(
-            key: ValueKey(
-              'collection-search-scope-state-$_onlineEnabled-$_ftsScope',
-            ),
-            child: DropdownButtonFormField<FullTextScope>(
-              key: const ValueKey('collection-search-scope'),
-              initialValue: _ftsScope,
-              decoration: InputDecoration(
-                labelText: l10n.collectionSearchScopeLabel,
-                isDense: true,
-              ),
-              items: [
-                if (!_onlineEnabled)
-                  DropdownMenuItem(
-                    value: FullTextScope.omni,
-                    child: Text(l10n.collectionSearchScopeOmni),
-                  ),
-                DropdownMenuItem(
-                  value: FullTextScope.title,
-                  child: Text(l10n.collectionSearchScopeTitle),
-                ),
-                DropdownMenuItem(
-                  value: FullTextScope.author,
-                  child: Text(l10n.collectionSearchScopeAuthor),
-                ),
-                DropdownMenuItem(
-                  value: FullTextScope.figure,
-                  child: Text(l10n.collectionSearchScopeFigure),
-                ),
-              ],
-              onChanged: _onFtsScopeChanged,
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xs,
-            AppSpacing.md,
-            0,
-          ),
-          child: TextField(
-            key: const ValueKey('collection-search-field'),
-            controller: _ftsController,
-            onChanged: _onFtsChanged,
-            onSubmitted: _onFtsSubmitted,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              labelText: _onlineEnabled
-                  ? l10n.onlineSearchFieldLabel(_onlineSource.label)
-                  : l10n.collectionSearchFieldLabel,
-              hintText: _onlineEnabled
-                  ? l10n.collectionOnlineSearchFieldHint
-                  : l10n.collectionSearchFieldHint,
-              prefixIcon: Icon(
-                _onlineEnabled ? Icons.cloud_outlined : Icons.search,
-              ),
-              suffixIcon: _hasActiveQuery
-                  ? IconButton(
-                      tooltip: l10n.collectionClearSearchTooltip,
-                      icon: const Icon(Icons.clear),
-                      onPressed: _clearAll,
-                    )
-                  : null,
-            ),
+          // Search in sits beside the search box, saving a row above the
+          // results, whenever the pane is wide enough at the current text size;
+          // a narrow pane or large text stacks it above the box as before.
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final textScale = MediaQuery.textScalerOf(context).scale(1);
+              if (constraints.maxWidth >= 300 * textScale) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: KeyedSubtree(
+                        key: _searchFieldKey,
+                        child: searchField,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      flex: 2,
+                      child: KeyedSubtree(
+                        key: _searchScopeKey,
+                        child: searchScope,
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  KeyedSubtree(key: _searchScopeKey, child: searchScope),
+                  const SizedBox(height: AppSpacing.xs),
+                  KeyedSubtree(key: _searchFieldKey, child: searchField),
+                ],
+              );
+            },
           ),
         ),
         Expanded(
@@ -2398,21 +2434,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
             slivers: [
               SliverList(
                 delegate: SliverChildListDelegate([
-                  // Local facet panels don't apply to online search (and there's
-                  // nothing to filter in an empty collection), so they're hidden
-                  // in those cases. The Advanced panel stays — it hosts the
-                  // "Online search" toggle, which must always be reachable.
-                  // Local facet filters can't apply to online results, so the
-                  // Filters panel stays local-only. By-phrase maps onto TCB's
-                  // own "search by phrase" fields, so it's offered for the
-                  // Caller's Box source (even with an empty local collection);
-                  // it's hidden for sources without by-phrase support (ContraDB).
-                  //
-                  // The panels suppress their built-in ExpansionTile borders and
-                  // rely on explicit dividers interleaved *between* visible
-                  // panels only, so a hidden panel (e.g. By-phrase for ContraDB)
-                  // never leaves a stray leading rule above the next panel.
-                  ..._buildFilterPanels(data, collectionEmpty),
+                  // Which tools appear in which mode is documented on
+                  // [_buildSearchPanels]. By-phrase maps onto TCB's own "search
+                  // by phrase" fields, so it's offered for the Caller's Box
+                  // source even with an empty local collection, and hidden for
+                  // sources without by-phrase support (ContraDB).
+                  _buildSearchPanels(data, collectionEmpty),
                   if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
                   const Divider(height: 1),
                 ]),
@@ -2456,106 +2483,95 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
-  /// Builds the visible filter panels with hairline dividers interleaved only
-  /// *between* them. Each panel suppresses its built-in ExpansionTile border
-  /// (see [_buildFiltersPanel] etc.), so the first visible panel never carries
-  /// a leading rule — even when an earlier panel (e.g. By-phrase for ContraDB)
-  /// is hidden.
-  List<Widget> _buildFilterPanels(CollectionData data, bool collectionEmpty) {
-    final panels = <Widget>[
-      if (!_onlineEnabled && !collectionEmpty) _buildFiltersPanel(data),
-      if ((_onlineEnabled && _onlineSource.supportsByPhrase) ||
-          (!_onlineEnabled && !collectionEmpty))
-        _buildByPhrasePanel(data),
-      _buildAdvancedPanel(data),
-    ];
-
-    final children = <Widget>[];
-    for (var i = 0; i < panels.length; i++) {
-      if (i > 0) {
-        children.add(
-          Divider(height: 1, key: ValueKey('filter-panel-divider-$i')),
-        );
-      }
-      children.add(panels[i]);
-    }
-    return children;
-  }
-
-  Widget _buildFiltersPanel(CollectionData data) {
+  /// The search tools that apply to the current mode, as one compact row of
+  /// toggles ([SearchPanelBar]). Local filters can't apply to online results,
+  /// and an empty collection has nothing to filter, so Filters is hidden then;
+  /// By phrase is offered for local search and for online sources that support
+  /// it. Advanced is always offered: it hosts the Online search toggle.
+  Widget _buildSearchPanels(CollectionData data, bool collectionEmpty) {
     final l10n = AppLocalizations.of(context);
-    final activeCount = _facets.activeCount;
-    return ExpansionTile(
-      key: const ValueKey('filters-panel'),
-      shape: const Border(),
-      collapsedShape: const Border(),
-      leading: const Icon(Icons.filter_alt_outlined),
-      title: Text(
-        activeCount == 0
-            ? l10n.collectionFiltersTitle
-            : l10n.collectionFiltersActive(activeCount),
-      ),
-      childrenPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.sm,
-      ),
-      children: [
-        FacetPanel(
-          facets: _facets,
-          forms: data.forms,
-          formations: data.formations,
-          progressions: data.progressions,
-          statuses: data.statuses,
-          levels: data.levels,
-          hasMixedLevel: data.hasMixedLevel,
-          hasMixer: data.hasMixer,
-          hasRating: data.hasRating,
-          hasCallingHistory: data.callCounts.values.any(
-            (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+    final filtersActive = _facets.activeCount;
+    final byPhraseActive = _byPhraseActiveCount();
+    return SearchPanelBar(
+      storageId: 'collection',
+      panels: [
+        if (!_onlineEnabled && !collectionEmpty)
+          SearchPanelSpec(
+            key: const ValueKey('filters-panel'),
+            label: filtersActive == 0
+                ? l10n.collectionFiltersTitle
+                : l10n.searchToolActiveCount(
+                    l10n.collectionFiltersTitle,
+                    filtersActive,
+                  ),
+            semanticsLabel: filtersActive == 0
+                ? null
+                : l10n.collectionFiltersActive(filtersActive),
+            builder: (_) => _buildFiltersPanel(data),
           ),
-          authors: data.authors,
-          tags: data.tags,
-          citedSources: data.citedSources,
-          tunes: data.tunes,
-          choiceFields: data.choiceFields,
-          booleanFields: data.booleanFields,
-          textFields: data.textFields,
-          numberFields: data.numberFields,
-          onChanged: _onFacetsChanged,
+        if ((_onlineEnabled && _onlineSource.supportsByPhrase) ||
+            (!_onlineEnabled && !collectionEmpty))
+          SearchPanelSpec(
+            key: const ValueKey('by-phrase-panel'),
+            label: byPhraseActive == 0
+                ? l10n.collectionByPhraseTitle
+                : l10n.searchToolActiveCount(
+                    l10n.collectionByPhraseTitle,
+                    byPhraseActive,
+                  ),
+            semanticsLabel: byPhraseActive == 0
+                ? null
+                : l10n.collectionByPhraseActive(byPhraseActive),
+            builder: (_) => _buildByPhrasePanel(data),
+          ),
+        SearchPanelSpec(
+          key: const ValueKey('advanced-panel'),
+          // Online results are not narrowed by the query; only say it is on
+          // where it applies.
+          label:
+              !_onlineEnabled &&
+                  _advancedEnabled &&
+                  _advancedRoot.toFilter() != null
+              ? l10n.collectionAdvancedActive
+              : l10n.collectionAdvancedTitle,
+          builder: (_) => _buildAdvancedPanel(data),
         ),
       ],
     );
   }
 
+  Widget _buildFiltersPanel(CollectionData data) {
+    return FacetPanel(
+      facets: _facets,
+      forms: data.forms,
+      formations: data.formations,
+      progressions: data.progressions,
+      statuses: data.statuses,
+      levels: data.levels,
+      hasMixedLevel: data.hasMixedLevel,
+      hasMixer: data.hasMixer,
+      hasRating: data.hasRating,
+      hasCallingHistory: data.callCounts.values.any(
+        (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+      ),
+      authors: data.authors,
+      tags: data.tags,
+      citedSources: data.citedSources,
+      tunes: data.tunes,
+      choiceFields: data.choiceFields,
+      booleanFields: data.booleanFields,
+      textFields: data.textFields,
+      numberFields: data.numberFields,
+      onChanged: _onFacetsChanged,
+    );
+  }
+
   Widget _buildByPhrasePanel(CollectionData data) {
-    final l10n = AppLocalizations.of(context);
-    final activeCount = _byPhraseActiveCount();
-    return ExpansionTile(
-      key: const ValueKey('by-phrase-panel'),
-      shape: const Border(),
-      collapsedShape: const Border(),
-      leading: const Icon(Icons.grid_view_outlined),
-      title: Text(
-        activeCount == 0
-            ? l10n.collectionByPhraseTitle
-            : l10n.collectionByPhraseActive(activeCount),
-      ),
-      childrenPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.sm,
-      ),
-      children: [
-        ByPhrasePanel(
-          selections: _byPhrase,
-          taxonomy: data.taxonomy,
-          sectionLabels: data.sectionLabels,
-          onChanged: _onByPhraseChanged,
-        ),
-      ],
+    return ByPhrasePanel(
+      selections: _byPhrase,
+      taxonomy: data.taxonomy,
+      sectionLabels: data.sectionLabels,
+      onChanged: _onByPhraseChanged,
     );
   }
 
@@ -2572,18 +2588,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   Widget _buildAdvancedPanel(CollectionData data) {
     final l10n = AppLocalizations.of(context);
-    return ExpansionTile(
-      key: const ValueKey('advanced-panel'),
-      shape: const Border(),
-      collapsedShape: const Border(),
-      leading: const Icon(Icons.account_tree_outlined),
-      title: Text(l10n.collectionAdvancedTitle),
-      childrenPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.sm,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SwitchListTile(
           key: const ValueKey('online-search-enable'),

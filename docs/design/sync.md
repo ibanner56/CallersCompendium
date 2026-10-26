@@ -1826,7 +1826,13 @@ caches most preferences in memory: when a pass reports `setting` among its
 applied kinds, the app reloads its preferences and settings-backed controllers
 (#1828), as a backup restore does. Without that, the change would show only after
 a relaunch, and the next local edit of one of the collections above would write
-the stale collection back over the one the pass applied. The update and Device
+the stale collection back over the one the pass applied. That holds for a pass
+that throws after its apply has committed, too (a manifest `PUT` dropped on a
+flaky link): the worker isolate reports the kinds it had committed with its
+failure, and a worker that dies without reporting is taken to have applied every
+kind, at the cost of one spurious reload (#1913). Leaving either to the next pass
+does not work, because the rows already match the peers, so that pass applies
+nothing and reports nothing. The update and Device
 Sync controllers are left out, because none of their keys is a `shareable`
 setting.
 
@@ -3784,6 +3790,22 @@ transaction still does whole-table work of its own — reconciliation reads the
 natural-key, alias and baseline tables, and a batch that applies anything
 rebuilds the derived search indexes — so an app write can still wait seconds on
 a large library; narrowing those is separate work.
+
+**The snapshot scans outside the write lock.** `snapshot()` reads and hashes the
+whole library, and the coordinator takes several per pass, idle ones included.
+It therefore runs in three phases (#1915). A short write transaction revalidates
+pending deletions. The scan runs in `CompendiumRepositories.readTransaction`, a
+deferred SQLite transaction opened through a `SAVEPOINT` under `PRAGMA
+query_only`. drift has no read-only transaction of its own. Under WAL the scan
+reads one consistent view and takes no lock an app write waits for, so the write
+commits mid-scan and is not seen by it. Only when the scan found kept fields
+(§6.7) with no record left to carry them does a second short write transaction
+delete them. It first re-checks each one against the library as it stands then:
+still kept, not pending, not a record the snapshot would publish
+(`currentCandidates`), not an unreadable dance it withholds. So an edit that
+lands between the scan and the sweep (a private custom field made shareable
+again, say) keeps what it needs. Called inside an open transaction, as conflict
+resolution calls it, all three phases run in that transaction.
 
 **"Carries" must be unambiguous.** The codec omits null fields today
 (`if (v.website != null)`), so on the wire *absent* means either "device-local,
