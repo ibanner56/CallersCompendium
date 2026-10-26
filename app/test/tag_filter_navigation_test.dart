@@ -160,7 +160,7 @@ void main() {
       // Popped back to the Collection list, filtered to 'smooth'.
       expect(find.byType(DanceDetailScreen), findsNothing);
       expect(_listedTitles(tester).toSet(), {'Smooth One', 'Smooth Two'});
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
     },
   );
 
@@ -190,7 +190,7 @@ void main() {
 
       // List pane is filtered; the detail pane still shows the selected dance.
       expect(_listedTitles(tester).toSet(), {'Smooth One', 'Smooth Two'});
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
     },
   );
 
@@ -323,17 +323,17 @@ void main() {
 
       await tapChip('untagged-chip');
       expect(_listedTitles(tester), ['Plain Two']);
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
 
       await tapChip('tag-t2');
       expect(_listedTitles(tester).toSet(), {'Plain Two', 'Energetic Three'});
-      expect(find.text('Filters (2 active)'), findsOneWidget);
+      expect(find.text('Filters · 2'), findsOneWidget);
 
       // A tag chip tapped on a dance replaces every selection, Untagged too.
       await _openDetail(tester, 'Energetic Three');
       await _tapDetailTagChip(tester, 't2');
       expect(_listedTitles(tester), ['Energetic Three']);
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
       expect(
         tester
             .widget<FilterChip>(find.byKey(const ValueKey('untagged-chip')))

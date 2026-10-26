@@ -1272,7 +1272,7 @@ void main() {
       // Collapse the panel: the count must be readable from the header alone.
       await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
 
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
     });
   }
 
@@ -1322,7 +1322,7 @@ void main() {
 
       // Each chip counts toward the Filters badge.
       await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
-      expect(find.text('Filters (2 active)'), findsOneWidget);
+      expect(find.text('Filters · 2'), findsOneWidget);
       await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
 
       await _tapVisible(tester, find.byKey(const ValueKey('clear-filters')));
@@ -2231,7 +2231,7 @@ void main() {
       await _tapVisible(tester, find.byKey(const ValueKey('status-draft')));
       expect(find.text('Rambling Reel'), findsOneWidget);
       expect(find.text('Chase the Squirrel'), findsNothing);
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
 
       // The user hides Status in Settings while the Draft chip is selected.
       hidden.value = {CollectionFacetIds.status};
@@ -2242,7 +2242,7 @@ void main() {
       expect(find.text('Chase the Squirrel'), findsOneWidget);
       expect(find.text('Rambling Reel'), findsOneWidget);
       expect(find.byKey(const ValueKey('facet-row-status')), findsNothing);
-      expect(find.text('Filters (1 active)'), findsNothing);
+      expect(find.text('Filters · 1'), findsNothing);
       expect(find.byKey(const ValueKey('clear-filters')), findsNothing);
     });
 

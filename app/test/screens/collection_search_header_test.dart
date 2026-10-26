@@ -119,6 +119,24 @@ void main() {
     expect(_top(tester, 'advanced-panel'), toolsTop);
   });
 
+  testWidgets('with filters active, the three search tools still share one '
+      'row on a phone', (tester) async {
+    await _pump(tester);
+    await tester.tap(find.byKey(const ValueKey('filters-panel')));
+    await tester.pumpAndSettle();
+    for (final facet in ['Contra', 'Improper', 'Single']) {
+      await tester.tap(find.text(facet).first);
+      await tester.pumpAndSettle();
+    }
+
+    // A long "Filters (3 active)" pushed Advanced onto a second line, so the
+    // whole page jumped down as the first filter was chosen.
+    expect(find.text('Filters · 3'), findsOneWidget);
+    final toolsTop = _top(tester, 'filters-panel');
+    expect(_top(tester, 'by-phrase-panel'), toolsTop);
+    expect(_top(tester, 'advanced-panel'), toolsTop);
+  });
+
   testWidgets('the results start high on a phone screen', (tester) async {
     await _pump(tester);
 

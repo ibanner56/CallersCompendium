@@ -762,19 +762,37 @@ class _CollectionPickerState extends State<CollectionPicker> {
   /// for online sources that support it), and Advanced is always offered.
   Widget _buildSearchPanels(CollectionData data) {
     final l10n = AppLocalizations.of(context);
+    final filtersActive = _facets.activeCount;
+    final byPhraseActive = _byPhraseActiveCount();
     return SearchPanelBar(
       storageId: 'picker',
       panels: [
         if (!_onlineEnabled)
           SearchPanelSpec(
             key: const ValueKey('picker-filters-panel'),
-            label: l10n.collectionPickerFilters(_facets.activeCount),
+            label: filtersActive == 0
+                ? l10n.collectionPickerFilters(0)
+                : l10n.searchToolActiveCount(
+                    l10n.collectionPickerFilters(0),
+                    filtersActive,
+                  ),
+            semanticsLabel: filtersActive == 0
+                ? null
+                : l10n.collectionPickerFilters(filtersActive),
             builder: (_) => _buildFiltersPanel(data),
           ),
         if (!_onlineEnabled || _onlineSource.supportsByPhrase)
           SearchPanelSpec(
             key: const ValueKey('picker-by-phrase-panel'),
-            label: l10n.collectionPickerByPhrase(_byPhraseActiveCount()),
+            label: byPhraseActive == 0
+                ? l10n.collectionPickerByPhrase(0)
+                : l10n.searchToolActiveCount(
+                    l10n.collectionPickerByPhrase(0),
+                    byPhraseActive,
+                  ),
+            semanticsLabel: byPhraseActive == 0
+                ? null
+                : l10n.collectionPickerByPhrase(byPhraseActive),
             builder: (_) => _buildByPhrasePanel(data),
           ),
         SearchPanelSpec(

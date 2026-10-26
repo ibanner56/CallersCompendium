@@ -3860,6 +3860,10 @@
   "@collectionAdvancedActive": {
     "x-sourceSha256": "ee3a619491698c8a561746308edc3f98ebb004f77efc4972a37d233fc503b3ca"
   },
+  "searchToolActiveCount": "{tool}・{count}",
+  "@searchToolActiveCount": {
+    "x-sourceSha256": "5b8a6a9e19d0ec31c4463cf80c078271b75f4c627707208de400747487479366"
+  },
   "collectionUseAdvancedQuery": "詳細クエリを使用",
   "@collectionUseAdvancedQuery": {
     "x-sourceSha256": "60f30365a9a0dae2b2f12c870256fe9903ea7578ab6bd0096dc72f5556c1c7eb"

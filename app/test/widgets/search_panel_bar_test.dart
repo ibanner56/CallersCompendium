@@ -111,6 +111,36 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('a short label is spelled out for screen readers', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SearchPanelBar(
+            storageId: 'test',
+            panels: [
+              SearchPanelSpec(
+                key: _a,
+                label: 'Filters · 3',
+                semanticsLabel: 'Filters (3 active)',
+                builder: (_) => const Text('Filters body'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Filters · 3'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byKey(_a)),
+      isSemantics(label: 'Filters (3 active)', isButton: true),
+    );
+    handle.dispose();
+  });
+
   testWidgets('the open tool survives the bar scrolling out of view and back', (
     tester,
   ) async {
