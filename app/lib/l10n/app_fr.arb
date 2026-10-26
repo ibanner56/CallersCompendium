@@ -6022,9 +6022,9 @@
   "@onlineImportVariationDialogActionLink": {
     "x-sourceSha256": "7a89241607bf07561ac5217d1fead66bc5c4636e6f94a7608108da241cd65443"
   },
-  "onlineImportVariationDialogLinkWarning": "Votre version de « {existingTitle} » sera remplacée par l’enregistrement en ligne — y compris ses figures, ses notes d’appel, ses tags, sa note et ses champs personnalisés. Elle conserve sa place dans vos programmes et son historique d’appel.",
+  "onlineImportVariationDialogLinkWarning": "Votre version de « {existingTitle} » sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
   "@onlineImportVariationDialogLinkWarning": {
-    "x-sourceSha256": "cd15280a51f320faab3ff9c1f9355e4bf18d09423f1d7118a6602a02d85a6558"
+    "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "Vous avez déjà cette danse",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
@@ -6037,6 +6037,22 @@
   "onlineImportCrossSourceDuplicateDialogActionDuplicate": "Importer une seconde copie",
   "@onlineImportCrossSourceDuplicateDialogActionDuplicate": {
     "x-sourceSha256": "9bad404a2973e7d0e6de960f720c661c2b18063abf4b865dd34bf2faac2a9029"
+  },
+  "onlineImportPossibleMatchDialogTitle": "Avez-vous déjà cette danse ?",
+  "@onlineImportPossibleMatchDialogTitle": {
+    "x-sourceSha256": "eb996ac93dc2a9064a9fe9d58a8b4cc5a9f79a0f0c66c7259e76b14cf7f6d802"
+  },
+  "onlineImportPossibleMatchDialogBody": "« {incomingTitle} » est peut-être une danse que vous avez déjà sous un autre titre. Choisissez la danse à remplacer par cette version, ou importez celle-ci comme nouvelle danse.",
+  "@onlineImportPossibleMatchDialogBody": {
+    "x-sourceSha256": "c23d4f0bdd76d65aa431c58419d8a497eca0ed5d84d68e16e2ebee368fc2b303"
+  },
+  "onlineImportPossibleMatchDialogLinkWarning": "La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
+  "@onlineImportPossibleMatchDialogLinkWarning": {
+    "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
+  },
+  "onlineImportPossibleMatchDialogActionNew": "Importer comme nouvelle danse",
+  "@onlineImportPossibleMatchDialogActionNew": {
+    "x-sourceSha256": "089403b562dec94cbf73616fbd4d3b4a350782b551e644af55248c51840ec8ca"
   },
   "onlineAttributionCallersBox": "Depuis The Caller's Box (en ligne)",
   "@onlineAttributionCallersBox": {
@@ -6981,6 +6997,14 @@
   "importReviewPossibleMatch": "Correspondance possible — choisissez la méthode d’import :",
   "@importReviewPossibleMatch": {
     "x-sourceSha256": "7ee5b6b8742356f4ce77e8ee288919c91abd3a8f38aa3769aebd59c349c5bde6"
+  },
+  "importReviewPossibleTitleMatch": "Peut-être une danse que vous avez déjà, sous un autre titre — choisissez la méthode d’import :",
+  "@importReviewPossibleTitleMatch": {
+    "x-sourceSha256": "cf6adaa989c54db756c4f1dde8166ae0aa2e5889d024d12569508b37967317a7"
+  },
+  "importReviewOptionPossibleTitle": "Même danse sous un autre titre – remplacer « {title} » par cette version",
+  "@importReviewOptionPossibleTitle": {
+    "x-sourceSha256": "c2065bbc745388eda9868b7938074ef161363f8c73758b386e33cf8e5931daa7"
   },
   "importReviewOptionLink": "Même danse – remplacer « {title} » par cette version ({percent} % de correspondance)",
   "@importReviewOptionLink": {
@@ -9242,9 +9266,17 @@
   "@danceReimportJson": {
     "x-sourceSha256": "9e6528ee0a52cc61df154ec1ba8318a7b06bc0ffaa5ad64d249418687723193e"
   },
-  "danceReimportNoResults": "Aucune danse correspondante trouvée. Choisissez une autre source ou réessayez plus tard.",
+  "danceReimportLinkOrId": "Lien ou identifiant",
+  "@danceReimportLinkOrId": {
+    "x-sourceSha256": "d11c418833369a0f046ecc8e438f3c1f2dbf32dc517594c373d932dce5816843"
+  },
+  "danceReimportNoResults": "Aucune danse correspondante trouvée. Essayez un lien ou un identifiant, choisissez une autre source ou réessayez plus tard.",
   "@danceReimportNoResults": {
-    "x-sourceSha256": "88afdd2e4cc40336e4a08471d60dd0aa92e137934337e8e7079e85b9571f38cc"
+    "x-sourceSha256": "d376f992d5047e3db51b0ade48dab85068e5a998fa8739045fb385ac82e22c8a"
+  },
+  "danceReimportFiguresUnavailable": "Cette source n’a pas fourni les figures de cette danse : impossible de mettre à jour votre chorégraphie. Votre danse n’a pas été modifiée.",
+  "@danceReimportFiguresUnavailable": {
+    "x-sourceSha256": "f53f91859db3df99c2425776c182ed07014adb0f3af936bb625e56258e0b8152"
   },
   "danceReimportChooseResult": "Choisissez la danse à réimporter",
   "@danceReimportChooseResult": {

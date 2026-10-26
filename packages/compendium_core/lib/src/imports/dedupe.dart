@@ -126,7 +126,7 @@ class DedupeCandidate {
 }
 
 /// What the deduplicator decided for a record. One of three shapes:
-/// - [isNew]: no existing match — import as a fresh dance.
+/// - [isNew]: no existing match by key or score — import as a fresh dance.
 /// - [reimport]: matched by exact `(source, externalId)` — update that dance
 ///   (refreshes provenance, enables diff). This is the only verdict the
 ///   pipeline acts on automatically.
@@ -135,25 +135,37 @@ class DedupeCandidate {
 ///   (link/duplicate/skip). Nothing is mutated without that resolution. A
 ///   candidate may be [DedupeCandidate.confident] — see
 ///   [hasConfidentMatch].
+///
+/// [isNew] and [ambiguous] verdicts may also carry [possibleMatchIds]: a
+/// lower tier that never changes [kind] or [candidates] (issue #1907).
 @immutable
 class DedupeVerdict {
   const DedupeVerdict._({
     required this.kind,
     this.targetDanceId,
     this.candidates = const [],
+    this.possibleMatchIds = const [],
   });
 
-  factory DedupeVerdict.isNew() =>
-      const DedupeVerdict._(kind: DedupeKind.isNew);
+  factory DedupeVerdict.isNew({List<String> possibleMatchIds = const []}) =>
+      possibleMatchIds.isEmpty
+      ? const DedupeVerdict._(kind: DedupeKind.isNew)
+      : DedupeVerdict._(
+          kind: DedupeKind.isNew,
+          possibleMatchIds: List.unmodifiable(possibleMatchIds),
+        );
 
   factory DedupeVerdict.reimport(String danceId) =>
       DedupeVerdict._(kind: DedupeKind.reimport, targetDanceId: danceId);
 
-  factory DedupeVerdict.ambiguous(List<DedupeCandidate> candidates) =>
-      DedupeVerdict._(
-        kind: DedupeKind.ambiguous,
-        candidates: List.unmodifiable(candidates),
-      );
+  factory DedupeVerdict.ambiguous(
+    List<DedupeCandidate> candidates, {
+    List<String> possibleMatchIds = const [],
+  }) => DedupeVerdict._(
+    kind: DedupeKind.ambiguous,
+    candidates: List.unmodifiable(candidates),
+    possibleMatchIds: List.unmodifiable(possibleMatchIds),
+  );
 
   final DedupeKind kind;
 
@@ -162,6 +174,18 @@ class DedupeVerdict {
 
   /// Fuzzy candidates, best first, for [DedupeKind.ambiguous].
   final List<DedupeCandidate> candidates;
+
+  /// Existing dances that are **possibly** this record under a differently
+  /// written title (see [DedupeIndex.possibleTitleMatches]), in collection
+  /// order. Always empty for [DedupeKind.reimport].
+  ///
+  /// Deliberately a separate list rather than more [candidates]: nothing that
+  /// branches on [kind], [candidates] or [hasConfidentMatch] sees it, so no
+  /// unattended path can act on it. A caller with a user present may offer
+  /// these as labelled choices and must never apply one on its own. An id may
+  /// also appear in [candidates] as a non-confident fuzzy match; it is never a
+  /// confident one.
+  final List<String> possibleMatchIds;
 
   bool get isNewDance => kind == DedupeKind.isNew;
   bool get isReimport => kind == DedupeKind.reimport;
@@ -180,9 +204,15 @@ class DedupeVerdict {
 
   @override
   String toString() => switch (kind) {
-    DedupeKind.isNew => 'DedupeVerdict.new',
+    DedupeKind.isNew =>
+      possibleMatchIds.isEmpty
+          ? 'DedupeVerdict.new'
+          : 'DedupeVerdict.new(possible: $possibleMatchIds)',
     DedupeKind.reimport => 'DedupeVerdict.reimport($targetDanceId)',
-    DedupeKind.ambiguous => 'DedupeVerdict.ambiguous($candidates)',
+    DedupeKind.ambiguous =>
+      possibleMatchIds.isEmpty
+          ? 'DedupeVerdict.ambiguous($candidates)'
+          : 'DedupeVerdict.ambiguous($candidates, possible: $possibleMatchIds)',
   };
 }
 
@@ -278,6 +308,11 @@ class DedupeIndex {
       if (nTitle.isNotEmpty) {
         (_byNormalizedTitle[nTitle] ??= []).add(_normalized.length);
       }
+      // Same rule for the core-title key: `''` carries no identity signal.
+      final coreTitle = dedupeCoreTitleKey(e.title);
+      if (coreTitle.isNotEmpty) {
+        (_byCoreTitle[coreTitle] ??= []).add(_normalized.length);
+      }
       _normalized.add((
         danceId: e.danceId,
         normalizedTitle: nTitle,
@@ -298,6 +333,10 @@ class DedupeIndex {
   /// the entries carrying it. Every [DedupeCandidate.confident] match comes
   /// from here, since confidence requires an exact normalized-title match.
   final Map<String, List<int>> _byNormalizedTitle = {};
+
+  /// [dedupeCoreTitleKey] (non-empty) → ascending indices into [_normalized].
+  /// The only source of [possibleTitleMatches].
+  final Map<String, List<int>> _byCoreTitle = {};
 
   /// Snapshot of every choreographer at the time this index was built
   /// (normalized name → id), incidentally captured from the same collection
@@ -423,9 +462,41 @@ class DedupeIndex {
       if (legacy != null) return DedupeVerdict.reimport(legacy);
     }
     final fuzzy = fuzzyMatches(title, authorNames, threshold: threshold);
+    final possible = possibleTitleMatches(title, authorNames);
     return fuzzy.isEmpty
-        ? DedupeVerdict.isNew()
-        : DedupeVerdict.ambiguous(fuzzy);
+        ? DedupeVerdict.isNew(possibleMatchIds: possible)
+        : DedupeVerdict.ambiguous(fuzzy, possibleMatchIds: possible);
+  }
+
+  /// Existing dances that may be this record under a differently written title
+  /// (issue #1907): same [dedupeCoreTitleKey], at least one shared normalized
+  /// author, and a **different** [normalizeTitle]. Collection order.
+  ///
+  /// The different-[normalizeTitle] clause is what keeps this tier disjoint
+  /// from [DedupeCandidate.confident]: an exact normalized title with a shared
+  /// author is already a confident candidate. Both sides must declare authors,
+  /// because a core title alone (`a1reel`) is too weak to put in front of the
+  /// user. An empty core title never matches, at any setting.
+  ///
+  /// Independent of [defaultThreshold]: the score plays no part, so tuning the
+  /// fuzzy tier can neither add nor remove these.
+  List<String> possibleTitleMatches(
+    String title,
+    Iterable<String> authorNames,
+  ) {
+    final coreTitle = dedupeCoreTitleKey(title);
+    if (coreTitle.isEmpty) return const [];
+    final indices = _byCoreTitle[coreTitle];
+    if (indices == null) return const [];
+    final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
+    if (nAuthors.isEmpty) return const [];
+    final nTitle = normalizeTitle(title);
+    return [
+      for (final i in indices)
+        if (_normalized[i].normalizedTitle != nTitle &&
+            _normalized[i].normalizedAuthors.any(nAuthors.contains))
+          _normalized[i].danceId,
+    ];
   }
 
   double _combinedScore(
@@ -462,6 +533,103 @@ String normalizeTitle(String title) {
   s = s.replaceAll(_whitespaceRe, ' ').trim();
   s = s.replaceFirst(_leadingArticleRe, '');
   return s;
+}
+
+/// The loosest title key dedupe uses: [possibleTitleMatches]' **import-only**
+/// lookup key (issue #1907), never an identity key.
+///
+/// Lowercased and diacritic-folded like [normalizeTitle], then:
+/// - trailing bracketed annotations set off by whitespace are removed —
+///   `{variant}`, `(Imp Var)`, `[alt]`, up to [_maxTitleAnnotations] of them
+///   (`Trip(let)` is a word, not an annotation, and is kept) — **unless**
+///   what is left is a placeholder title ([_placeholderCoreTitles]): in
+///   `New Dance (Velvet)` the bracket is the dance's real name, so it stays.
+///   A bracket holding only a part number (`{#2}`, `(No. 2)`, `(2)`) also
+///   stays, and stops the stripping: `Rickett's Hornpipe {#2}` is a different
+///   dance from No. 1;
+/// - a single leading `the`/`a`/`an` is removed when a space or hyphen and
+///   then a **letter** follow it, so `A Fine Romance` loses it but the `A` of
+///   `A-1 Reel` and `A 1 Reel` is kept;
+/// - every remaining character outside `[a-z0-9]` is deleted rather than
+///   turned into a space, so `A-1`, `A1` and `A 1` all read `a1`.
+///
+/// `A-1 Reel`, `A1 Reel`, `A-1 Reel {variant}` and `A1 Reel (Imp Var)` all
+/// give `a1reel`. A title that is only an annotation, or has no Latin letters
+/// or digits, gives `''`, which never matches.
+///
+/// **Not a replacement for [normalizeTitle].** That function is the sync
+/// protocol's normative title key (`docs/design/sync-spec.md`, "Normalized
+/// title"), and fresh-attach dedupe merges on it silently, so devices running
+/// different versions of it would disagree about which dances exist. This key
+/// only proposes choices to a user, and is exempt by name in
+/// `tools/ci/check_sync_invariants.py` for that reason.
+String dedupeCoreTitleKey(String title) {
+  final full = _foldDiacritics(title.toLowerCase()).trim();
+  var s = full;
+  for (var i = 0; i < _maxTitleAnnotations; i++) {
+    final stripped = _stripTrailingAnnotation(s);
+    if (stripped == null) break;
+    s = stripped;
+  }
+  final core = _coreKeyOf(s);
+  return _placeholderCoreTitles.contains(core) && s != full
+      ? _coreKeyOf(full)
+      : core;
+}
+
+String _coreKeyOf(String folded) => folded
+    .replaceFirst(_coreLeadingArticleRe, '')
+    .replaceAll(_nonAlphanumericNoSpaceRe, '');
+
+/// Core keys of titles that name no dance, only a slot for one, so that a
+/// trailing bracket after them is the real name and must not be stripped
+/// (#1907; the maintainer chose this on the measurement below, as recorded in
+/// the #1907 pull request). Measured on the
+/// ContraDB catalogue (2026-10-26): one choreographer's `New Dance (…)` titles
+/// produced 55 of the 130 possible-match pairs and every false positive in a
+/// 60-pair hand-classified sample. Add an entry only with evidence of the same
+/// kind; `tool/measure_possible_matches.dart` lists the commonest bases.
+const Set<String> _placeholderCoreTitles = {'newdance'};
+
+final RegExp _nonAlphanumericNoSpaceRe = RegExp(r'[^a-z0-9]');
+
+/// Unlike [_leadingArticleRe], a letter must follow: `a 1 reel` is `A-1 Reel`
+/// written with a space, not the article `a`.
+final RegExp _coreLeadingArticleRe = RegExp(r'^(the|a|an)[\s-]+(?=[a-z])');
+
+/// How many trailing annotations [dedupeCoreTitleKey] removes. Real titles
+/// carry one (`Alice's Rest {alternate A}`), rarely more; the cap bounds the
+/// work on hostile input.
+const int _maxTitleAnnotations = 4;
+
+const Map<String, String> _annotationOpeners = {'}': '{', ')': '(', ']': '['};
+
+/// A bracket whose whole content is a part number names a different dance in
+/// a numbered set, not a version of one (#1907): on The Caller's Box,
+/// `Rickett's Hornpipe {#2}` paired with `{No. 1, alternate 2}` was the one
+/// false positive in a 60-pair hand-classified sample, 2026-10-26. Digits
+/// only; a Roman numeral is too easily an ordinary word to read this way.
+final RegExp _partNumberAnnotationRe = RegExp(
+  r'^\s*(?:#|no\.?|number|part)?\s*\d+\s*$',
+);
+
+/// [s] (already trimmed) without its final bracketed group and the whitespace
+/// before it, or `null` when it does not end in one. Only a group whose
+/// opener has no other bracket of its kind inside counts, so an unbalanced
+/// `[ Rumble }` is left alone rather than eating the title, and the opener
+/// must start the title or follow whitespace, so `Trip(let)` is kept whole.
+String? _stripTrailingAnnotation(String s) {
+  if (s.length < 2) return null;
+  final close = s[s.length - 1];
+  final open = _annotationOpeners[close];
+  if (open == null) return null;
+  final start = s.lastIndexOf(open, s.length - 2);
+  if (start < 0) return null;
+  if (start > 0 && s[start - 1].trim().isNotEmpty) return null;
+  final inner = s.substring(start + 1, s.length - 1);
+  if (inner.contains(close)) return null;
+  if (_partNumberAnnotationRe.hasMatch(inner)) return null;
+  return s.substring(0, start).trimRight();
 }
 
 /// Normalizes an author name for comparison: NFC-composed, lowercased, diacritics

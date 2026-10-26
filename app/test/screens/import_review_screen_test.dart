@@ -824,6 +824,171 @@ void main() {
     expect(find.byKey(const ValueKey('import-summary-Linked')), findsOneWidget);
   });
 
+  group('possible matches under another title (#1907)', () {
+    // The reporter's collection: two dances by Chris Weiler, and an incoming
+    // Caller's Box variant spelled differently from both.
+    Future<CompendiumRepositories> reporterCollection() async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'weiler', name: 'Chris Weiler'),
+      );
+      for (final (id, title) in [
+        ('base', 'A1 Reel'),
+        ('impvar', 'A1 Reel (Imp Var)'),
+      ]) {
+        await repos.dances.create(
+          _dance(id, title).copyWith(authorIds: const ['weiler']),
+        );
+      }
+      return repos;
+    }
+
+    String incomingVariant() => encodeArchive(
+      CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        choreographers: [Choreographer(id: 'cw', name: 'Chris Weiler')],
+        dances: [
+          _dance(
+            'incoming',
+            'A-1 Reel {variant}',
+          ).copyWith(authorIds: const ['cw']),
+        ],
+      ),
+    );
+
+    testWidgets('are offered, labelled, and never chosen for the user', (
+      tester,
+    ) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = await reporterCollection();
+      await _pump(tester, repos, payload: incomingVariant());
+      await _toReview(tester);
+
+      expect(find.text(l10n.importReviewPossibleTitleMatch), findsOneWidget);
+      expect(
+        find.text(l10n.importReviewOptionPossibleTitle('A1 Reel (Imp Var)')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(l10n.importReviewOptionPossibleTitle('A1 Reel')),
+        findsOneWidget,
+      );
+      // New dance stays the default, so committing as-is adds a dance and
+      // replaces nothing.
+      expect(find.text(l10n.importReviewWillImport(1, 1)), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsNothing,
+      );
+      // Not a dedupe match, so the possible-match bulk control is not offered.
+      expect(
+        find.byKey(const ValueKey('import-bulk-skip-ambiguous')),
+        findsNothing,
+      );
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      expect(await repos.dances.listAll(), hasLength(3));
+    });
+
+    testWidgets('"Skip all possible matches" leaves a row whose only matches '
+        'are these on New dance', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = await reporterCollection();
+      await repos.dances.create(_dance('sackett', "Sackett's Harbor"));
+      await _pump(
+        tester,
+        repos,
+        payload: encodeArchive(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            choreographers: [Choreographer(id: 'cw', name: 'Chris Weiler')],
+            dances: [
+              // A genuine fuzzy match, so the bulk control is offered…
+              _dance('fuzzy', 'Sacketts Harbor'),
+              // …and a row whose only matches are under another title.
+              _dance(
+                'incoming',
+                'A-1 Reel {variant}',
+              ).copyWith(authorIds: const ['cw']),
+            ],
+          ),
+        ),
+      );
+      await _toReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-row-0-duplicate')));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.importReviewWillImport(2, 2)), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('import-bulk-skip-ambiguous')),
+      );
+      await tester.pumpAndSettle();
+
+      // The fuzzy row is skipped; the possible-only row is still New dance.
+      expect(find.text(l10n.importReviewWillImport(1, 2)), findsOneWidget);
+    });
+
+    testWidgets('a dance that is already a fuzzy candidate is offered once', (
+      tester,
+    ) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = await reporterCollection();
+      // `A-1 Reel` scores ~0.89 against `A1 Reel` (a fuzzy candidate) and has
+      // the same core title, so `base` is in both lists.
+      await _pump(
+        tester,
+        repos,
+        payload: encodeArchive(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            choreographers: [Choreographer(id: 'cw', name: 'Chris Weiler')],
+            dances: [
+              _dance('incoming', 'A-1 Reel').copyWith(authorIds: const ['cw']),
+            ],
+          ),
+        ),
+      );
+      await _toReview(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.byKey(const ValueKey('import-row-0-link-base')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(l10n.importReviewOptionPossibleTitle('A1 Reel')),
+        findsNothing,
+      );
+      expect(
+        find.text(l10n.importReviewOptionPossibleTitle('A1 Reel (Imp Var)')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('choosing one replaces that dance and only that one', (
+      tester,
+    ) async {
+      final repos = await reporterCollection();
+      await _pump(tester, repos, payload: incomingVariant());
+      await _toReview(tester);
+
+      await tester.tap(find.byKey(const ValueKey('import-row-0-link-impvar')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final all = {for (final d in await repos.dances.listAll()) d.id: d};
+      expect(all.keys, unorderedEquals(['base', 'impvar']));
+      expect(all['impvar']!.title, 'A-1 Reel {variant}');
+      expect(all['base']!.title, 'A1 Reel');
+    });
+  });
+
   testWidgets('batch errors are surfaced without blocking the good record', (
     tester,
   ) async {

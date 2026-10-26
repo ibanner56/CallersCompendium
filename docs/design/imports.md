@@ -39,8 +39,8 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **RawRecord** | Source-native payload preserved verbatim in memory + source id/version. The payload feeds `parse` and is **not persisted** — it was stored in `provenance.raw_payload` until schema v21 dropped that column (#781), because nothing read it back. Re-import dedupes on `(source, externalId)` and re-fetches from the source, so it needs no stored copy. |
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
-| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
-| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. An overwrite warning counts the existing dances a commit would replace; nothing silently mutates existing user data. |
+| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). Below the fuzzy tier, `DedupeVerdict.possibleMatchIds` lists dances that are **possibly** the same under a differently written title (see *Possible matches under another title*); it never changes the verdict. |
+| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. An overwrite warning counts the existing dances a commit would replace; nothing silently mutates existing user data. |
 | **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. |
 
 Adapters implement a small interface (`discover() / fetch() / parse()`) in the
@@ -177,6 +177,55 @@ this loop as in the parse loop, so a large batch does not freeze the UI.
   #686 will layer a richer resolution (a figure-diff "variation?" prompt) on
   top of this same trigger without needing to touch this file's scoring
   logic again.
+
+### Possible matches under another title (issue #1907)
+
+Archives write the same dance's title differently: The Caller's Box has
+`A-1 Reel {variant}` where a Caller's Companion import has `A1 Reel (Imp Var)`.
+`normalizeTitle` reads `A-1` as the article `a` plus `1`, and keeps the
+annotations, so the pair scores about 0.5 and is `isNew`.
+
+`DedupeIndex.possibleTitleMatches` adds a lower tier keyed on
+`dedupeCoreTitleKey`: lowercased and folded, trailing `{…}`/`(…)`/`[…]`
+annotations set off by whitespace dropped (unless what remains is a placeholder
+title such as `New Dance`, whose bracket is the real name, or the bracket holds
+only a part number such as `{#2}`), a leading article
+dropped only before a letter, and every non-`[a-z0-9]` character deleted. A
+possible match needs an equal non-empty core key, a shared normalized author on
+both sides, and a **different** `normalizeTitle`, which keeps the tier disjoint
+from confident candidates. The ids ride on `DedupeVerdict.possibleMatchIds`.
+
+- **Never changes the verdict.** `kind`, `candidates` and `hasConfidentMatch`
+  are untouched, so every caller that branches on them, including every
+  unattended path (`autoResolveAmbiguous`, the program resolvers, `.USR`
+  `import()`), behaves exactly as before. Folding the tier into `candidates`
+  would have flipped `isNew` rows to `ambiguous`, changing the review default
+  to Skip and making `.USR` `import()` skip them; making it `confident` would
+  have let the plaintext-program resolver auto-import a variation.
+- **Offered, never applied.** The review screen lists each as a labelled
+  "same dance under another title" link option while the row's default stays
+  unchanged. `commitPreviewedOnlinePlan` returns
+  `OnlineImportKind.needsPossibleMatchChoice` when no resolution is supplied,
+  and `resolveAndImportOnline` shows a dialog, only when the plan has no
+  confident candidate (those keep their #797/#811 dialogs). Unattended callers
+  always pass a resolution, so they never see it. A `link` or `variation`
+  resolution on an `isNew` plan is committed as `ambiguous`, since the pipeline
+  reads a resolution only there.
+- **Not the sync key.** `normalizeTitle` is unchanged: it is the sync
+  protocol's normative title (`sync-spec.md`, "Normalized title"), and
+  fresh-attach dedupe merges on it silently. The core key is exempt by name in
+  `tools/ci/check_sync_invariants.py` as an import-only key.
+- **Measured** with `packages/compendium_core/tool/measure_possible_matches.dart`
+  (2026-10-26, judged by title; a version, variant or alternate counts as the
+  same dance):
+  - ContraDB self-join (2,432 dances): the placeholder rule cut 130 pairs to
+    75, and all 75 were the same dance.
+  - The Caller's Box self-join (20,516 dances): 4,693 pairs; 1 of 60 sampled
+    was a different dance (`Rickett's Hornpipe {#2}` against
+    `{No. 1, alternate 2}`), which the part-number rule now excludes.
+  - ContraDB imported into a Caller's Box collection: 373 of 2,376 incoming
+    dances (15.7%) are offered a possible match; 0 of 60 sampled pairs was a
+    different dance.
 
 ### Program-import path (issue #685)
 

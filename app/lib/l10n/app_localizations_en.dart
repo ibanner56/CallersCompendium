@@ -5959,7 +5959,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.';
+    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.';
   }
 
   @override
@@ -5974,6 +5974,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
       'Import a second copy';
+
+  @override
+  String get onlineImportPossibleMatchDialogTitle =>
+      'Is this a dance you already have?';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '\"$incomingTitle\" may be a dance you already have under another title. Choose the dance to replace with this version, or import this one as a new dance.';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      'The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew =>
+      'Import as a new dance';
 
   @override
   String get onlineAttributionCallersBox => 'From The Caller\'s Box (online)';
@@ -6997,6 +7014,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importReviewPossibleMatch =>
       'Possible match — choose how to import:';
+
+  @override
+  String get importReviewPossibleTitleMatch =>
+      'Possibly a dance you already have, under another title — choose how to import:';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return 'Same dance under another title — replace \"$title\" with this version';
+  }
 
   @override
   String importReviewOptionLink(String title, int percent) {
@@ -9364,8 +9390,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceReimportJson => 'Callers Compendium JSON';
 
   @override
+  String get danceReimportLinkOrId => 'Link or ID';
+
+  @override
   String get danceReimportNoResults =>
-      'No matching dances were found. Choose another source or try again later.';
+      'No matching dances were found. Try a link or ID, choose another source, or try again later.';
+
+  @override
+  String get danceReimportFiguresUnavailable =>
+      'That source didn\'t provide this dance\'s figures, so it can\'t refresh your choreography. Your dance wasn\'t changed.';
 
   @override
   String get danceReimportChooseResult => 'Choose the dance to re-import';

@@ -538,7 +538,11 @@ def test_title_scan_rejects_alternate_implementation() -> None:
         assert any(v.kind == "normalizeTitle" for v in result.violations)
 
 
-def _scan_exempt_title_helpers(relative: str, extra: str = "") -> ScanResult:
+def _scan_exempt_title_helpers(
+    relative: str, names: frozenset[str], extra: str = ""
+) -> ScanResult:
+    """Scan a tree whose [relative] file defines one normalizer per [names]."""
+
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         title = root / "packages/core/lib/src/imports/dedupe.dart"
@@ -550,10 +554,11 @@ def _scan_exempt_title_helpers(relative: str, extra: str = "") -> ScanResult:
             encoding="utf-8",
         )
         helpers.write_text(
-            "String foldTitlePunctuation(String title) =>\n"
-            "    title.replaceAll('a', 'b').replaceAll('c', 'd');\n"
-            "String titleMatchKey(String title) =>\n"
-            "    foldTitlePunctuation(title).replaceAll('  ', ' ').toLowerCase();\n"
+            "".join(
+                f"String {name}(String title) =>\n"
+                "    title.replaceAll('a', 'b').toLowerCase();\n"
+                for name in sorted(names)
+            )
             + extra,
             encoding="utf-8",
         )
@@ -561,27 +566,29 @@ def _scan_exempt_title_helpers(relative: str, extra: str = "") -> ScanResult:
 
 
 def test_title_exemption_covers_only_its_named_helpers_in_its_file() -> None:
-    (exempt_path,) = ALTERNATE_TITLE_EXEMPTIONS
-    assert not any(
-        v.kind == "normalizeTitle"
-        for v in _scan_exempt_title_helpers(exempt_path).violations
-    )
+    assert ALTERNATE_TITLE_EXEMPTIONS
+    for exempt_path, names in ALTERNATE_TITLE_EXEMPTIONS.items():
+        assert not any(
+            v.kind == "normalizeTitle"
+            for v in _scan_exempt_title_helpers(exempt_path, names).violations
+        ), exempt_path
 
-    elsewhere = _scan_exempt_title_helpers(
-        "packages/compendium_core/lib/src/imports/title_key.dart"
-    )
-    assert (
-        sum(v.kind == "normalizeTitle" for v in elsewhere.violations) == 2
-    ), elsewhere.violations
+        elsewhere = _scan_exempt_title_helpers(
+            "packages/compendium_core/lib/src/imports/title_key.dart", names
+        )
+        assert sum(
+            v.kind == "normalizeTitle" for v in elsewhere.violations
+        ) == len(names), elsewhere.violations
 
-    third = _scan_exempt_title_helpers(
-        exempt_path,
-        "String titleKey(String title) =>\n"
-        "    title.toLowerCase().replaceAll(' ', '');\n",
-    )
-    assert (
-        sum(v.kind == "normalizeTitle" for v in third.violations) == 1
-    ), third.violations
+        third = _scan_exempt_title_helpers(
+            exempt_path,
+            names,
+            "String titleKey(String title) =>\n"
+            "    title.toLowerCase().replaceAll(' ', '');\n",
+        )
+        assert (
+            sum(v.kind == "normalizeTitle" for v in third.violations) == 1
+        ), third.violations
 
 
 def test_title_scan_requires_sync_call_sites_to_import_shared_definition() -> None:

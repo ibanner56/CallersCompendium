@@ -6068,7 +6068,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Votre version de « $existingTitle » sera remplacée par l’enregistrement en ligne — y compris ses figures, ses notes d’appel, ses tags, sa note et ses champs personnalisés. Elle conserve sa place dans vos programmes et son historique d’appel.';
+    return 'Votre version de « $existingTitle » sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.';
   }
 
   @override
@@ -6083,6 +6083,23 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
       'Importer une seconde copie';
+
+  @override
+  String get onlineImportPossibleMatchDialogTitle =>
+      'Avez-vous déjà cette danse ?';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '« $incomingTitle » est peut-être une danse que vous avez déjà sous un autre titre. Choisissez la danse à remplacer par cette version, ou importez celle-ci comme nouvelle danse.';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      'La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew =>
+      'Importer comme nouvelle danse';
 
   @override
   String get onlineAttributionCallersBox =>
@@ -7122,6 +7139,15 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importReviewPossibleMatch =>
       'Correspondance possible — choisissez la méthode d’import :';
+
+  @override
+  String get importReviewPossibleTitleMatch =>
+      'Peut-être une danse que vous avez déjà, sous un autre titre — choisissez la méthode d’import :';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return 'Même danse sous un autre titre – remplacer « $title » par cette version';
+  }
 
   @override
   String importReviewOptionLink(String title, int percent) {
@@ -9530,8 +9556,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceReimportJson => 'JSON de Callers Compendium';
 
   @override
+  String get danceReimportLinkOrId => 'Lien ou identifiant';
+
+  @override
   String get danceReimportNoResults =>
-      'Aucune danse correspondante trouvée. Choisissez une autre source ou réessayez plus tard.';
+      'Aucune danse correspondante trouvée. Essayez un lien ou un identifiant, choisissez une autre source ou réessayez plus tard.';
+
+  @override
+  String get danceReimportFiguresUnavailable =>
+      'Cette source n’a pas fourni les figures de cette danse : impossible de mettre à jour votre chorégraphie. Votre danse n’a pas été modifiée.';
 
   @override
   String get danceReimportChooseResult => 'Choisissez la danse à réimporter';

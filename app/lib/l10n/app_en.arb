@@ -7795,9 +7795,9 @@
   "@onlineImportVariationDialogActionLink": {
     "description": "Button label in the issue #797 resolution dialog: treat the incoming dance as the same dance and overwrite the existing record."
   },
-  "onlineImportVariationDialogLinkWarning": "Your version of \"{existingTitle}\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.",
+  "onlineImportVariationDialogLinkWarning": "Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.",
   "@onlineImportVariationDialogLinkWarning": {
-    "description": "Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves only id and createdAt from the existing dance; every other field — figures, callingNotes, tagIds, rating, customFields, tunes, links, sourceCitations, hook, title, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.",
+    "description": "Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves id and createdAt from the existing dance, and keeps its custom-field values for every field the incoming draft does not carry (#1890; online drafts carry none, so all are kept). Every other field — title, figures, callingNotes, tagIds, rating, tunes, links, sourceCitations, hook, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.",
     "placeholders": {
       "existingTitle": {
         "type": "String",
@@ -7822,6 +7822,28 @@
   "onlineImportCrossSourceDuplicateDialogActionDuplicate": "Import a second copy",
   "@onlineImportCrossSourceDuplicateDialogActionDuplicate": {
     "description": "Action button in the cross-source duplicate dialog (#811) that lets the user import the dance anyway, creating a second copy alongside the existing one."
+  },
+  "onlineImportPossibleMatchDialogTitle": "Is this a dance you already have?",
+  "@onlineImportPossibleMatchDialogTitle": {
+    "description": "Title of the dialog shown during a single-dance online import when the collection has dances whose title, ignoring punctuation and a trailing bracketed note such as {variant}, matches the incoming one and that share its choreographer (issue #1907). Nothing has been imported yet."
+  },
+  "onlineImportPossibleMatchDialogBody": "\"{incomingTitle}\" may be a dance you already have under another title. Choose the dance to replace with this version, or import this one as a new dance.",
+  "@onlineImportPossibleMatchDialogBody": {
+    "description": "Body of the possible-match dialog (issue #1907), above a list of the existing dances to choose from. incomingTitle is the online dance's title, an untrusted external value rendered as plain text.",
+    "placeholders": {
+      "incomingTitle": {
+        "type": "String",
+        "example": "A-1 Reel {variant}"
+      }
+    }
+  },
+  "onlineImportPossibleMatchDialogLinkWarning": "The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.",
+  "@onlineImportPossibleMatchDialogLinkWarning": {
+    "description": "Secondary text in the possible-match dialog (issue #1907): choosing an existing dance replaces it as onlineImportVariationDialogLinkWarning describes for a single named dance. The title is named first because here it is certain to change: the two titles are written differently."
+  },
+  "onlineImportPossibleMatchDialogActionNew": "Import as a new dance",
+  "@onlineImportPossibleMatchDialogActionNew": {
+    "description": "Button in the possible-match dialog (issue #1907): none of the listed dances is this one, so import it as a new dance."
   },
   "onlineAttributionCallersBox": "From The Caller's Box (online)",
   "@onlineAttributionCallersBox": {
@@ -9039,7 +9061,7 @@
   },
   "importReviewBulkSkipAmbiguous": "Skip all possible matches",
   "@importReviewBulkSkipAmbiguous": {
-    "description": "Bulk button: set every row marked as a possible match to skip."
+    "description": "Bulk button: set every row marked as a possible match (importReviewPossibleMatch) to skip. Rows whose only matches are under another title (importReviewPossibleTitleMatch) are left alone."
   },
   "importReviewOptionSkip": "Skip",
   "@importReviewOptionSkip": {
@@ -9062,6 +9084,20 @@
   "importReviewPossibleMatch": "Possible match — choose how to import:",
   "@importReviewPossibleMatch": {
     "description": "Prompt above the options for a record that ambiguously matches existing dances."
+  },
+  "importReviewPossibleTitleMatch": "Possibly a dance you already have, under another title — choose how to import:",
+  "@importReviewPossibleTitleMatch": {
+    "description": "Prompt above the options for a record whose title, ignoring punctuation and a trailing bracketed note such as {variant} or (Imp Var), equals that of an existing dance by the same choreographer. These are only offered; nothing is applied unless the user chooses it."
+  },
+  "importReviewOptionPossibleTitle": "Same dance under another title — replace \"{title}\" with this version",
+  "@importReviewOptionPossibleTitle": {
+    "description": "Per-record option: treat this record as the same dance as an existing dance whose title is written differently (for example A-1 Reel {variant} against A1 Reel (Imp Var)) but has the same choreographer. The existing dance keeps its identity but its content is replaced by the imported version. The title is an untrusted local value rendered as plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "A1 Reel (Imp Var)"
+      }
+    }
   },
   "importReviewOptionLink": "Same dance — replace \"{title}\" with this version ({percent}% match)",
   "@importReviewOptionLink": {
@@ -12240,9 +12276,17 @@
   "@danceReimportJson": {
     "description": "Source option for choosing a Callers Compendium JSON file for re-import."
   },
-  "danceReimportNoResults": "No matching dances were found. Choose another source or try again later.",
+  "danceReimportLinkOrId": "Link or ID",
+  "@danceReimportLinkOrId": {
+    "description": "Source option, and the title of its dialog, for re-importing one saved dance from a pasted Caller's Box or ContraDB dance link or dance ID number."
+  },
+  "danceReimportNoResults": "No matching dances were found. Try a link or ID, choose another source, or try again later.",
   "@danceReimportNoResults": {
-    "description": "Message shown when an online re-import search finds no dances."
+    "description": "Message shown when an online re-import search by the dance's title finds no dances. \"Link or ID\" refers to the re-import option of that name."
+  },
+  "danceReimportFiguresUnavailable": "That source didn't provide this dance's figures, so it can't refresh your choreography. Your dance wasn't changed.",
+  "@danceReimportFiguresUnavailable": {
+    "description": "Shown when an online re-import source sends a dance without any figures (for example, The Caller's Box withholds them unless the choreographer allows it), so nothing is replaced."
   },
   "danceReimportChooseResult": "Choose the dance to re-import",
   "@danceReimportChooseResult": {

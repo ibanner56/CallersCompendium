@@ -206,6 +206,13 @@ ALTERNATE_TITLE_EXEMPTIONS: dict[str, frozenset[str]] = {
     "packages/compendium_core/lib/src/imports/title_punctuation.dart": frozenset(
         {"foldTitlePunctuation", "titleMatchKey"}
     ),
+    # The import-only "possible match" lookup key (#1907). It is deliberately
+    # looser than `normalizeTitle` (drops trailing `{…}`/`(…)`/`[…]`, reads
+    # `A-1` as `a1`) and only proposes choices to a user. It is never a sync,
+    # merge or identity key, so it must not replace `normalizeTitle`.
+    "packages/compendium_core/lib/src/imports/dedupe.dart": frozenset(
+        {"dedupeCoreTitleKey"}
+    ),
 }
 
 

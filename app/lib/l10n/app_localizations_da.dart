@@ -5990,7 +5990,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Din version af „$existingTitle“ erstattes af onlineposten — inklusive dens figurer, noter, tags, vurdering og brugerdefinerede felter. Den beholder sin plads i dine programmer og sin kaldshistorik.';
+    return 'Din version af „$existingTitle“ erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
   }
 
   @override
@@ -6005,6 +6005,23 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
       'Importér endnu en kopi';
+
+  @override
+  String get onlineImportPossibleMatchDialogTitle =>
+      'Er det en dans, du allerede har?';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '„$incomingTitle“ er måske en dans, du allerede har under en anden titel. Vælg den dans, der skal erstattes med denne version, eller importér denne som en ny dans.';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      'Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew =>
+      'Importér som en ny dans';
 
   @override
   String get onlineAttributionCallersBox => 'Fra The Caller\'s Box (online)';
@@ -7028,6 +7045,15 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get importReviewPossibleMatch =>
       'Muligt match – vælg hvordan den importeres:';
+
+  @override
+  String get importReviewPossibleTitleMatch =>
+      'Måske en dans, du allerede har, under en anden titel – vælg hvordan den importeres:';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return 'Samme dans under en anden titel – erstat „$title“ med denne version';
+  }
 
   @override
   String importReviewOptionLink(String title, int percent) {
@@ -9403,8 +9429,15 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceReimportJson => 'Callers Compendium JSON';
 
   @override
+  String get danceReimportLinkOrId => 'Link eller id';
+
+  @override
   String get danceReimportNoResults =>
-      'Ingen matchende danse blev fundet. Vælg en anden kilde, eller prøv igen senere.';
+      'Ingen matchende danse blev fundet. Prøv et link eller id, vælg en anden kilde, eller prøv igen senere.';
+
+  @override
+  String get danceReimportFiguresUnavailable =>
+      'Kilden leverede ikke denne dans\' figurer, så den kan ikke opdatere din koreografi. Din dans blev ikke ændret.';
 
   @override
   String get danceReimportChooseResult =>

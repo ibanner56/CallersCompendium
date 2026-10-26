@@ -288,9 +288,10 @@ Future<_SourceAttempt> _attemptSource(
       // The verdict at this point has !hasConfidentMatch (the block above
       // handles the confident case without calling import()), so neither
       // needsConfirmation nor needsConfirmationIdentical can be returned by
-      // the real services here. Passing duplicate() makes the opt-out explicit
-      // and safe against future refactors that might change that structural
-      // guarantee.
+      // the real services here. #1907's needsPossibleMatchChoice *could* be
+      // (it needs no confident match), and only a supplied resolution rules it
+      // out, so passing duplicate() is what keeps this path unattended, not
+      // merely an explicit opt-out.
       ambiguousResolution: DedupeResolution.duplicate(),
     );
     final danceId = result.danceId;

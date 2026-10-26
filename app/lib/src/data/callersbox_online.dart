@@ -182,7 +182,7 @@ class CallersBoxOnline implements OnlineSearchService {
   }
 
   /// Commits [plan] into the local collection using the dedup-aware default:
-  /// - a brand-new dance is created;
+  /// - a dance that matches nothing is created;
   /// - an exact re-import match is reported as already-in-collection (nothing
   ///   written — no silent duplicate);
   /// - a fuzzy near-match with a confident title+author candidate and differing
@@ -195,6 +195,10 @@ class CallersBoxOnline implements OnlineSearchService {
   ///   caller can show a cross-source duplicate dialog (issue #811); dances with
   ///   null provenance (hand-entered) fall through to the next case rather than
   ///   being falsely labelled "from a different source";
+  /// - with no confident candidate, a possible match under another title
+  ///   ([DedupeVerdict.possibleMatchIds]) returns
+  ///   [OnlineImportKind.needsPossibleMatchChoice] (nothing written) so the
+  ///   caller can let the user choose (issue #1907);
   /// - any other fuzzy near-match is imported as a new dance (the user
   ///   explicitly asked for this Caller's Box dance).
   ///

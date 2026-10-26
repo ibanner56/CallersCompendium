@@ -258,6 +258,35 @@ class _CollectionShellState extends State<CollectionShell> {
         _onlinePreviewError = null;
         _detailMode = _DetailMode.onlinePreview;
       });
+    } on UrlFetchException catch (error, stackTrace) {
+      // Log-safe by construction: a typed reason plus status/timeout numbers.
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_shell._beginReimport',
+      );
+      if (!mounted) return;
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            importErrorMessage(AppLocalizations.of(context), error),
+          ),
+        ),
+      );
+    } on DanceReimportFiguresUnavailableException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_shell._beginReimport',
+      );
+      if (!mounted) return;
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).danceReimportFiguresUnavailable,
+          ),
+        ),
+      );
     } on DanceReimportJsonException catch (error) {
       logCaughtErrorTypeOnly(
         error,

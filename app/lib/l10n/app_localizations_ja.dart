@@ -5751,7 +5751,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。フィギュア、コーリングノート、タグ、評価、カスタムフィールドも含まれます。プログラム内の位置とコーリング履歴は保持されます。';
+    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグ、評価も含まれます。カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
   }
 
   @override
@@ -5765,6 +5765,21 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
       '2つ目のコピーをインポート';
+
+  @override
+  String get onlineImportPossibleMatchDialogTitle => 'このダンスはすでにありますか？';
+
+  @override
+  String onlineImportPossibleMatchDialogBody(String incomingTitle) {
+    return '「$incomingTitle」は、別のタイトルですでにあるダンスかもしれません。このバージョンで置き換えるダンスを選ぶか、新しいダンスとしてインポートしてください。';
+  }
+
+  @override
+  String get onlineImportPossibleMatchDialogLinkWarning =>
+      '選択したダンスは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグ、評価も含まれます。カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
+
+  @override
+  String get onlineImportPossibleMatchDialogActionNew => '新しいダンスとしてインポート';
 
   @override
   String get onlineAttributionCallersBox => 'The Caller\'s Box（オンライン）より';
@@ -6745,6 +6760,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewPossibleMatch => '候補が見つかりました — インポート方法を選択してください:';
+
+  @override
+  String get importReviewPossibleTitleMatch =>
+      '別のタイトルで既にあるダンスかもしれません — インポート方法を選択してください:';
+
+  @override
+  String importReviewOptionPossibleTitle(String title) {
+    return '別のタイトルの同じダンス – 「$title」をこのバージョンで置き換える';
+  }
 
   @override
   String importReviewOptionLink(String title, int percent) {
@@ -9036,8 +9060,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceReimportJson => 'Callers Compendium JSON';
 
   @override
+  String get danceReimportLinkOrId => 'リンクまたはID';
+
+  @override
   String get danceReimportNoResults =>
-      '一致するダンスが見つかりませんでした。別のソースを選ぶか、後でもう一度お試しください。';
+      '一致するダンスが見つかりませんでした。リンクまたはIDを試すか、別のソースを選ぶか、後でもう一度お試しください。';
+
+  @override
+  String get danceReimportFiguresUnavailable =>
+      'そのソースからこのダンスのフィギュアが提供されなかったため、振り付けを更新できません。ダンスは変更されていません。';
 
   @override
   String get danceReimportChooseResult => '再インポートするダンスを選択';
