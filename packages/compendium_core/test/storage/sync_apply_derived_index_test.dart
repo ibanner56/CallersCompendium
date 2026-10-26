@@ -82,6 +82,94 @@ final class _DerivedWrites extends QueryInterceptor {
   }
 }
 
+/// [CompendiumSyncStorage] whose parent write throws for [failing], as a body
+/// that passed reference validation but cannot be written would.
+final class _ParentFailingStorage
+    implements
+        SyncApplyReconciliationStorage,
+        SyncApplyConcurrencyStorage,
+        SyncApplyRestorableStorage {
+  _ParentFailingStorage(this._delegate, this.failing);
+
+  final CompendiumSyncStorage _delegate;
+  final SyncRecordAddress failing;
+
+  @override
+  Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) {
+    if (record.address == failing) {
+      throw const FormatException('scripted parent-write failure');
+    }
+    return _delegate.writeParentWithReport(record);
+  }
+
+  @override
+  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> currentCandidates(
+    Set<SyncRecordAddress> addresses,
+  ) => _delegate.currentCandidates(addresses);
+
+  @override
+  Future<T> transaction<T>(Future<T> Function() action) =>
+      _delegate.transaction(action);
+
+  @override
+  Future<Map<String, Object?>?> read(SyncRecordAddress address) =>
+      _delegate.read(address);
+
+  @override
+  Future<void> write(SyncApplyRecord record) => _delegate.write(record);
+
+  @override
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) =>
+      _delegate.reindexDerivedAfterApply(applied);
+
+  @override
+  Future<SyncReport?> validateInboundReferences(
+    SyncApplyRecord record, {
+    Set<SyncRecordAddress> inboundLiveAddresses = const {},
+    Set<SyncRecordAddress> inboundAddresses = const {},
+    Map<SyncRecordAddress, SyncApplyRecord> inboundRecords = const {},
+  }) => _delegate.validateInboundReferences(
+    record,
+    inboundLiveAddresses: inboundLiveAddresses,
+    inboundAddresses: inboundAddresses,
+    inboundRecords: inboundRecords,
+  );
+
+  @override
+  Future<SyncReport?> writeWithReport(SyncApplyRecord record) =>
+      _delegate.writeWithReport(record);
+
+  @override
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) =>
+      _delegate.writeJoinsWithReport(record);
+
+  @override
+  Future<SyncApplyPreparation> reconcileInbound(
+    List<SyncMergeCandidate> candidates, {
+    Map<SyncRecordAddress, String?>? expectedWireHashes,
+  }) => _delegate.reconcileInbound(
+    candidates,
+    expectedWireHashes: expectedWireHashes,
+  );
+
+  @override
+  Future<void> setInboundTombstoneContext(
+    Set<SyncRecordAddress> tombstonedAddresses,
+  ) => _delegate.setInboundTombstoneContext(tombstonedAddresses);
+
+  @override
+  Future<void> clearReconciliationContext() =>
+      _delegate.clearReconciliationContext();
+
+  @override
+  Future<Object?> capturePreImage(SyncRecordAddress address) =>
+      _delegate.capturePreImage(address);
+
+  @override
+  Future<void> restorePreImage(SyncRecordAddress address, Object? preImage) =>
+      _delegate.restorePreImage(address, preImage);
+}
+
 Map<String, Object?> _zoomPayload(String template) => {
   'form': 'contra',
   'template': template,
@@ -435,6 +523,48 @@ void main() {
       'd-new',
       'd-plain',
     });
+    await expectEquivalentToFullRebuild();
+  });
+
+  test('a dance whose parent row is written but which drops out before its '
+      'joins is still reindexed', () async {
+    // d-plain is renamed and links to d-new in the same batch; d-new's parent
+    // write fails, so d-plain's joins are never written and it is not
+    // applied, but its new parent row stays.
+    final failing = (kind: SyncRecordKind.dance, recordId: 'd-new');
+    writes.reset();
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: blob(
+            SyncRecordKind.dance,
+            sampleDance(
+              id: 'd-plain',
+              title: 'Renamed Reel',
+              links: [
+                DanceLink(
+                  id: 'l1',
+                  kind: LinkKind.relatedDance,
+                  targetDanceId: 'd-new',
+                ),
+              ],
+              createdAt: _local,
+              updatedAt: _local,
+            ),
+          ),
+        ),
+        SyncMergeCandidate(blob: blob(SyncRecordKind.dance, dance('d-new'))),
+      ],
+      storage: _ParentFailingStorage(storage, failing),
+    );
+    expect(result.applied, isEmpty);
+    expect(
+      (await repositories.dances.getById('d-plain'))!.title,
+      'Renamed Reel',
+      reason: 'the parent row was written and not undone',
+    );
+    expect(await repositories.dances.searchText('Renamed'), ['d-plain']);
+    expect(writes.ftsInsertedFor, {'d-plain'});
     await expectEquivalentToFullRebuild();
   });
 
