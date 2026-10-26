@@ -288,5 +288,6 @@ class SettingsWriteSummary {
 
   /// Whether the reported writes were all to keys that never sync, and there
   /// was at least one.
-  bool get deviceScopedOnly => deviceScopedWrites > 0 && syncRelevantWrites == 0;
+  bool get deviceScopedOnly =>
+      deviceScopedWrites > 0 && syncRelevantWrites == 0;
 }
