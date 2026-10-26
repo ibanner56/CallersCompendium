@@ -460,6 +460,9 @@ class AthenaeumApp {
           etag: rawBodyHash(body),
           writtenAt: manifest.writtenAt.millisecondsSinceEpoch ~/ 1000,
           body: body,
+          referencedHashes: [
+            for (final byId in manifest.records.values) ...byId.values,
+          ],
         );
       } on StoreEpochMismatch {
         throw const _RequestFailure(409, 'stale manifest epoch');
