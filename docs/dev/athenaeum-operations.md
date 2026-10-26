@@ -174,7 +174,12 @@ when the socket peer is loopback, and then reads only the rightmost entry, so a
 client-supplied prefix cannot choose the rate-limit key even behind a proxy that
 appends instead of overwriting; Apache derives it from the underlying
 connection peer (`CONN_REMOTE_ADDR`) even if host-level `mod_remoteip` is
-enabled, and the application otherwise uses its peer address. The
+enabled, and the application otherwise uses its peer address. Either way the
+rate-limit key is the IPv4 address, or for IPv6 the /64 (the address's first 64
+bits), because one IPv6 subscriber can present 2^64 addresses inside its
+delegated /64; an IPv4-mapped IPv6 address (`::ffff:a.b.c.d`) is keyed as its
+IPv4 address. A deployment that enforces a per-IP limit in the proxy too should
+apply the same /64 rule. The
 limits are independent: 5 requests per IP per second with a burst of 300, 15
 requests per store per second with a burst of 600, 10 failures per IP per
 minute, a burst of 20 failures per IP, 1,000 failures per minute server-wide,

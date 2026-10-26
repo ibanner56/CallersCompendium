@@ -2279,6 +2279,19 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | **Failed store resolutions**, server-wide | 1,000/minute |
 | Store creations (`201` from `POST /v1/store`), server-wide | 60/minute |
 
+**The client IP is keyed by network, not by every address, for IPv6.** The two
+per-client-IP rows count an IPv4 client per address and an IPv6 client per
+**/64**. A subscriber is normally delegated a /64 or more and can present 2⁶⁴
+distinct source addresses inside it, so a per-address key would hand an IPv6
+client a fresh full bucket per address — the per-IP row would see nothing of a
+guessing campaign (§7.5 requirement 6) — and minting addresses would fill the
+server's bounded bucket tables and evict honest clients. An IPv4-mapped address
+(`::ffff:a.b.c.d`) is keyed as its IPv4 address: its /64 is the same for every
+IPv4 client, and masking it would be one global bucket. Textual variants and
+zone IDs of one address are one client. A /48 holder still gets 65,536 buckets;
+that is accepted, and a wider mask was rejected because it would merge unrelated
+subscribers at carriers that give each device a /64.
+
 The request-rate rows bound load: the work every request costs whatever it
 carries — authentication, the store lookup and its `last_seen` write, the
 request-path deletion retry (§7.3) — and the bytes it sends. **A
@@ -4904,7 +4917,7 @@ behaviour of at least one common proxy violates it.
 | 3 | The proxy MUST NOT decompress request bodies. | §4 puts the decompression limit on the receiver, enforced streaming-abort style. Inflating at the proxy moves a security control to a component that does not implement it. |
 | 4 | The sync ID MUST NOT be written to any log. | Common log formats omit headers, so this holds by default and is lost the moment someone adds `%{Authorization}i` or `$http_authorization` to a debug format. §5.1 keeps the ID out of URLs for the same reason. |
 | 5 | The public listener MUST NOT serve `/v1` over plaintext HTTP. A plaintext request to `/v1` MUST be **refused**, never proxied and never redirected; other paths MAY redirect. The `https` origin SHOULD send `Strict-Transport-Security` with a `max-age` of at least six months, as browser-only defence in depth. | A vhost that owns `:80` for ACME HTTP-01 (which the reference deployment does — see ADR-004) will serve whatever its configuration reaches, and a `ProxyPass` written outside a vhost, or copied into both, silently exposes the API on both ports. Nothing in the response distinguishes the two. |
-| 6 | The **per-IP** rate limit MUST be enforced against the real client address — either by the proxy itself, or by the server reading a client-IP header the proxy is required to set. If the header route is taken, the proxy MUST **overwrite** any inbound value rather than append to it, and the server MUST accept the header only when the socket peer is loopback and MUST ignore it otherwise. | The server binds loopback, so its socket peer is the proxy on every request. A server that rate-limits by socket peer puts every user on earth in one bucket, and one active device can exhaust the limit for everybody. A server that trusts a forwarding header without the two conditions above is strictly worse than having no limit: an attacker sets a different value on every request and buys unlimited guesses against the small space §8 permits a user-chosen ID to occupy, while an honest shared-NAT user is still throttled. |
+| 6 | The **per-IP** rate limit MUST be enforced against the real client address (for IPv6, its /64; §5.4) — either by the proxy itself, or by the server reading a client-IP header the proxy is required to set. If the header route is taken, the proxy MUST **overwrite** any inbound value rather than append to it, and the server MUST accept the header only when the socket peer is loopback and MUST ignore it otherwise. | The server binds loopback, so its socket peer is the proxy on every request. A server that rate-limits by socket peer puts every user on earth in one bucket, and one active device can exhaust the limit for everybody. A server that trusts a forwarding header without the two conditions above is strictly worse than having no limit: an attacker sets a different value on every request and buys unlimited guesses against the small space §8 permits a user-chosen ID to occupy, while an honest shared-NAT user is still throttled. Keyed on the full IPv6 address, the limit would likewise bind nothing, since one client holds a /64 of them. |
 
 A server behind a proxy that violates (1) or (2) is **not conforming**: it will
 reject valid requests. Violations of (3), (4), (5) or (6) are not visible in

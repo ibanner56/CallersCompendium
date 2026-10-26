@@ -8,6 +8,17 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Fixed
+
+- The per-IP request and failed-resolution limits now count an IPv6 client by
+  its /64 instead of its full address. A single IPv6 subscriber can present 2^64
+  addresses inside its delegated /64, so each used to get a fresh bucket, the
+  limit never bound it, and minting addresses could evict honest clients from
+  the bounded bucket tables. IPv4 clients, and IPv4-mapped IPv6 addresses
+  (`::ffff:a.b.c.d`, keyed as the IPv4 address), are still counted per address.
+  The rule applies to both the socket peer and the loopback-trusted
+  `X-Forwarded-For` value. No configuration or schema change.
+
 ## [0.3.1] - 2026-10-17
 
 ### Changed
