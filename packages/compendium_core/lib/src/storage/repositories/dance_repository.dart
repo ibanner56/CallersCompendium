@@ -1190,9 +1190,10 @@ class DanceRepository {
   /// your own [userFigureId] (#1023), so search
   /// follows its definition. Editing a definition re-renders its uses without
   /// rewriting the dances (maintainer decision 2); this is what keeps their
-  /// index in step after a local write. A sync apply batch rebuilds every
-  /// dance's rows anyway ([rebuildAllDerived]). Returns the number of dances
-  /// rebuilt.
+  /// index in step after a local write. A sync apply batch does not come
+  /// through here: it reindexes the dances its batch affected, the ones
+  /// using an applied figure among them ([danceIdsDerivingFrom],
+  /// [reindexDerived]; #1920). Returns the number of dances rebuilt.
   ///
   /// A dance in the Trash is skipped: search never shows it, and restoring
   /// it rebuilds its rows from the figures live then ([restore]).
@@ -1200,21 +1201,122 @@ class DanceRepository {
     final ids = await _danceIdsUsingUserFigure(userFigureId);
     if (ids.isEmpty) return 0;
     return _db.transaction(() async {
-      final userFigures = await _liveUserFigures();
-      await _deleteFtsRowsFor(ids);
-      for (final chunk in _chunkIds(ids)) {
-        await (_db.delete(
-          _db.danceFigures,
-        )..where((t) => t.danceId.isIn(chunk))).go();
-        final rows = await (_db.select(
-          _db.dances,
-        )..where((t) => t.id.isIn(chunk))).get();
-        for (final dance in await _hydrateRows(rows)) {
-          await _insertDerivedRows(dance, userFigures: userFigures);
-        }
-      }
+      await _reindexDerived(ids);
       return ids.length;
     });
+  }
+
+  /// The ids of every dance, in the Trash or not, whose derived rows read
+  /// one of the given records (#1920): it credits one of [choreographerIds],
+  /// cites one of [sourceIds], holds a value for one of [customFieldIds], or
+  /// uses one of [userFigureIds] attached ([_insertDerivedRows] reads exactly
+  /// these four besides the dance itself).
+  ///
+  /// Dances in the Trash are included because [rebuildAllDerived] indexes
+  /// them too (#439), and a reindex that skipped them would leave their rows
+  /// different from what a full rebuild writes. The joins are read whatever
+  /// the parent's own state, so a tombstoned parent still finds the dances
+  /// whose rows must stop carrying its text (#898).
+  Future<Set<String>> danceIdsDerivingFrom({
+    Iterable<String> choreographerIds = const [],
+    Iterable<String> sourceIds = const [],
+    Iterable<String> customFieldIds = const [],
+    Iterable<String> userFigureIds = const [],
+  }) async {
+    final ids = <String>{};
+    for (final chunk in _chunkIds(choreographerIds.toSet().toList())) {
+      final rows = await (_db.select(
+        _db.danceAuthors,
+      )..where((t) => t.choreographerId.isIn(chunk))).get();
+      ids.addAll(rows.map((row) => row.danceId));
+    }
+    for (final chunk in _chunkIds(sourceIds.toSet().toList())) {
+      final rows = await (_db.select(
+        _db.danceSources,
+      )..where((t) => t.sourceId.isIn(chunk))).get();
+      ids.addAll(rows.map((row) => row.danceId));
+    }
+    for (final chunk in _chunkIds(customFieldIds.toSet().toList())) {
+      final rows = await (_db.select(
+        _db.customFieldValues,
+      )..where((t) => t.fieldId.isIn(chunk))).get();
+      ids.addAll(rows.map((row) => row.danceId));
+    }
+    final figureIds = userFigureIds.toSet();
+    if (figureIds.isNotEmpty) {
+      // One pass for every figure, not two per figure as
+      // [_danceIdsUsingUserFigure] would make it: a first sync can apply
+      // hundreds of glossary entries. The pattern only has to over-match;
+      // each candidate is decoded and checked.
+      final rows = await _db
+          .customSelect(
+            'SELECT id, figures_json FROM dances WHERE figures_json LIKE ?',
+            variables: [Variable.withString('%"$userFigureRefKey":%')],
+            readsFrom: {_db.dances},
+          )
+          .get();
+      for (final row in rows) {
+        final List<Figure> figures;
+        try {
+          figures = decodeFigures(row.read<String>('figures_json'));
+        } on Object {
+          continue;
+        }
+        if (userFigureIdsUsedBy(figures).any(figureIds.contains)) {
+          ids.add(row.read<String>('id'));
+        }
+      }
+    }
+    return ids;
+  }
+
+  /// Rebuilds the derived rows of exactly [danceIds] from their stored rows
+  /// (#1920), the way [rebuildAllDerived] would write them: each dance is
+  /// read back and hydrated as [listAll] hydrates it, so what the index
+  /// carries follows what is stored now, not the body a writer was handed.
+  /// An id with no `dances` row loses its derived rows and gains none.
+  /// Returns the number of dances rebuilt.
+  ///
+  /// For the sync apply, which used to call [rebuildAllDerived] after every
+  /// batch that applied anything; the caller works out which dances the
+  /// batch could have changed ([danceIdsDerivingFrom]).
+  Future<int> reindexDerived(Iterable<String> danceIds) async {
+    final ids = danceIds.toSet().toList()..sort();
+    if (ids.isEmpty) return 0;
+    return _db.transaction(() => _reindexDerived(ids));
+  }
+
+  /// [reindexDerived] inside the caller's transaction. The FTS rows are
+  /// deleted by `IN` over the ids ([_deleteFtsRowsFor]), never one scan of
+  /// the `UNINDEXED` `dance_id` column per dance (#440), and the lookups are
+  /// [rebuildAllDerived]'s own ([_derivedLookups]), read once, so a first
+  /// sync that applies the whole library does not cost more than the full
+  /// rebuild did. Measured on 5,000 dances (#1920, in-memory database):
+  /// reindexing every one took 573-620 ms against 686-812 ms for
+  /// [rebuildAllDerived], and reindexing 10 took 5-7 ms.
+  Future<int> _reindexDerived(List<String> ids) async {
+    var rebuilt = 0;
+    final lookups = await _derivedLookups();
+    await _deleteFtsRowsFor(ids);
+    for (final chunk in _chunkIds(ids)) {
+      await (_db.delete(
+        _db.danceFigures,
+      )..where((t) => t.danceId.isIn(chunk))).go();
+      final rows = await (_db.select(
+        _db.dances,
+      )..where((t) => t.id.isIn(chunk))).get();
+      for (final dance in await _hydrateRows(rows)) {
+        await _insertDerivedRows(
+          dance,
+          authorNames: lookups.authorNames,
+          sources: lookups.sources,
+          liveFieldIds: lookups.liveFieldIds,
+          userFigures: lookups.userFigures,
+        );
+        rebuilt++;
+      }
+    }
+    return rebuilt;
   }
 
   /// Freezes every use of the figure of your own [userFigureId] in a live
@@ -1446,6 +1548,54 @@ class DanceRepository {
     ];
   }
 
+  /// The lookups [_insertDerivedRows] resolves besides the dance itself, read
+  /// once for a pass over many dances ([rebuildAllDerived], [reindexDerived]).
+  ///
+  /// Prefetching makes per-dance FTS assembly O(1) reads instead of an N+1 of
+  /// single-row author/source selects. These tables are small relative to the
+  /// dance collection.
+  ///
+  /// Tombstoned rows are excluded (schema v25, issue #898): a soft-deleted
+  /// author, source or field definition must not contribute searchable text,
+  /// exactly as it no longer contributes a displayed credit, citation or
+  /// value. All three kinds are referentially guarded, so a tombstone here
+  /// can only exist once nothing *live* cites it — the filter is what keeps
+  /// that true if a guard is ever relaxed. #1328 relaxed exactly those
+  /// guards (a parent may now be deleted while only a soft-deleted dance
+  /// cites it), which is why the same filtering now also runs on the
+  /// single-write path and on restore (#1358). The user's own figures
+  /// (#1023) are live only too, as the per-write path reads them: a use of a
+  /// deleted figure is indexed as its stored line.
+  Future<
+    ({
+      Map<String, String> authorNames,
+      Map<String, PublishedSourceRow> sources,
+      Set<String> liveFieldIds,
+      UserFigureCatalog userFigures,
+    })
+  >
+  _derivedLookups() async => (
+    authorNames: {
+      for (final row in await (_db.select(
+        _db.choreographers,
+      )..where((t) => t.deletedAt.isNull())).get())
+        row.id: row.name,
+    },
+    sources: {
+      for (final row in await (_db.select(
+        _db.publishedSources,
+      )..where((t) => t.deletedAt.isNull())).get())
+        row.id: row,
+    },
+    liveFieldIds: {
+      for (final row in await (_db.select(
+        _db.customFieldDefs,
+      )..where((t) => t.deletedAt.isNull())).get())
+        row.id,
+    },
+    userFigures: await _liveUserFigures(),
+  );
+
   /// Number of dances rebuilt per transaction in [rebuildAllDerived]. Bounds
   /// each transaction's work so a large-collection rebuild commits incrementally
   /// (progress is reported per chunk and a crash loses at most one chunk) rather
@@ -1491,39 +1641,7 @@ class DanceRepository {
     final total = dances.length;
     onProgress?.call(DerivedRebuildProgress(completed: 0, total: total));
 
-    // Prefetch the shared lookups once so per-dance FTS assembly is O(1) reads
-    // instead of an N+1 of single-row author/source selects. These tables are
-    // small relative to the dance collection.
-    // Tombstoned rows are excluded (schema v25, issue #898): a soft-deleted
-    // author, source or field definition must not contribute searchable text,
-    // exactly as it no longer contributes a displayed credit, citation or
-    // value. All three kinds are referentially guarded, so a tombstone here
-    // can only exist once nothing *live* cites it — the filter is what keeps
-    // that true if a guard is ever relaxed. #1328 relaxed exactly those
-    // guards (a parent may now be deleted while only a soft-deleted dance
-    // cites it), which is why the same filtering now also runs on the
-    // single-write path and on restore (#1358).
-    final authorNames = {
-      for (final row in await (_db.select(
-        _db.choreographers,
-      )..where((t) => t.deletedAt.isNull())).get())
-        row.id: row.name,
-    };
-    final sources = {
-      for (final row in await (_db.select(
-        _db.publishedSources,
-      )..where((t) => t.deletedAt.isNull())).get())
-        row.id: row,
-    };
-    final liveFieldIds = {
-      for (final row in await (_db.select(
-        _db.customFieldDefs,
-      )..where((t) => t.deletedAt.isNull())).get())
-        row.id,
-    };
-    // The user's own figures (#1023), live only, as the per-write path reads
-    // them: a use of a deleted figure is indexed as its stored line.
-    final userFigures = await _liveUserFigures();
+    final lookups = await _derivedLookups();
 
     // One-shot bulk clear instead of N per-dance delete-by-scans. Both FTS5
     // tables are self-contained, so an unqualified DELETE resets each index
@@ -1545,10 +1663,10 @@ class DanceRepository {
         for (final dance in chunk) {
           await _insertDerivedRows(
             dance,
-            authorNames: authorNames,
-            sources: sources,
-            liveFieldIds: liveFieldIds,
-            userFigures: userFigures,
+            authorNames: lookups.authorNames,
+            sources: lookups.sources,
+            liveFieldIds: lookups.liveFieldIds,
+            userFigures: lookups.userFigures,
           );
         }
       });

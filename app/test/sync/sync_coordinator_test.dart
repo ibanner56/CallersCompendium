@@ -8408,7 +8408,8 @@ final class _SnapshotInterleavingStore
       _delegate.writeJoinsWithReport(record);
 
   @override
-  Future<void> rebuildDerivedIndexes() => _delegate.rebuildDerivedIndexes();
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) =>
+      _delegate.reindexDerivedAfterApply(applied);
 
   @override
   Future<SyncApplyPreparation> reconcileInbound(
@@ -8604,12 +8605,12 @@ final class _FakeStore implements SyncCoordinatorStore {
     writes.add(record);
   }
 
-  /// Thrown from [rebuildDerivedIndexes] when set: the apply engine runs it
+  /// Thrown from [reindexDerivedAfterApply] when set: the apply engine runs it
   /// inside its transaction, so this is an apply that rolls back and throws.
   Object? failRebuildDerivedIndexes;
 
   @override
-  Future<void> rebuildDerivedIndexes() async {
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {
     if (failRebuildDerivedIndexes case final error?) throw error;
   }
 

@@ -37,7 +37,7 @@ class SyncApplyRecord {
 /// An app adapter implements [transaction] with the database transaction that
 /// owns its repositories. [write] is responsible for mapping the already
 /// validated, shareable overlay to parent and join tables. The engine invokes
-/// [rebuildDerivedIndexes] once after the batch has been applied.
+/// [reindexDerivedAfterApply] once after the batch has been applied.
 abstract interface class SyncApplyStorage {
   Future<T> transaction<T>(Future<T> Function() action);
 
@@ -45,7 +45,18 @@ abstract interface class SyncApplyStorage {
 
   Future<void> write(SyncApplyRecord record);
 
-  Future<void> rebuildDerivedIndexes();
+  /// Brings the derived search indexes up to date with a batch that wrote
+  /// [applied], inside the apply transaction, before it commits.
+  ///
+  /// [applied] is every record the batch applied, and also every record whose
+  /// parent row it wrote but that then dropped out before its joins (a
+  /// same-group dependency failed). That row stays written, so its derived
+  /// rows must follow it. Called only when [applied] is not empty. The transaction holds the
+  /// database's write lock, so every app write waits for as long as this
+  /// takes: an adapter should rewrite only the derived rows the applied
+  /// records can change, and nothing when none can (#1920). What it leaves
+  /// must still equal what rebuilding every derived row would write.
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied);
 }
 
 /// Optional storage seam for guarding an inbound apply against a local edit
@@ -201,6 +212,9 @@ class SyncApplyEngine {
     Map<SyncRecordAddress, String?>? expectedWireHashes,
   }) async {
     final applied = <SyncRecordAddress>[];
+    // Every address whose parent row the two-phase path wrote, applied whole
+    // or not: what the derived step must cover (#1920).
+    final parentWritten = <SyncRecordAddress>{};
     final reports = <SyncReport>[];
     final windowEnd = syncQuarantineWindowEnd(now());
     final ordered = <SyncMergeCandidate>[];
@@ -246,6 +260,7 @@ class SyncApplyEngine {
               storage: storage,
               expectedWireHashes: expectedWireHashes,
               applied: applied,
+              parentWritten: parentWritten,
               reports: reports,
             );
           } else {
@@ -322,8 +337,9 @@ class SyncApplyEngine {
               applied.add(candidate.address);
             }
           }
-          if (applied.isNotEmpty) {
-            await storage.rebuildDerivedIndexes();
+          final written = {...applied, ...parentWritten};
+          if (written.isNotEmpty) {
+            await storage.reindexDerivedAfterApply(written);
           }
         });
       }
@@ -420,6 +436,7 @@ class SyncApplyEngine {
     required SyncApplyBatchStorage storage,
     required Map<SyncRecordAddress, String?>? expectedWireHashes,
     required List<SyncRecordAddress> applied,
+    required Set<SyncRecordAddress> parentWritten,
     required List<SyncReport> reports,
   }) async {
     var reconciledCandidates = candidates;
@@ -555,6 +572,7 @@ class SyncApplyEngine {
           final report = await storage.writeParentWithReport(record);
           if (report != null) reports.add(report);
           parentWrittenByAddress[record.address] = record;
+          parentWritten.add(record.address);
         } on FormatException catch (error) {
           reports.add(
             _writeReport(record, SyncReportCode.malformedRecord, '$error'),

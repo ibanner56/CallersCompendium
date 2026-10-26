@@ -575,9 +575,8 @@ class AthenaeumStore {
       _database.execute('BEGIN IMMEDIATE');
       inTransaction = true;
       final current = lookup(idKey);
-      if (current == null || current.epoch != epoch) {
-        throw const StoreEpochMismatch();
-      }
+      if (current == null) throw const StoreMissing();
+      if (current.epoch != epoch) throw const StoreEpochMismatch();
       final existed = _manifestExists(idKey, epoch, deviceId);
       _checkManifestDeviceQuota(idKey, epoch, deviceId, existed: existed);
       if (body.length > _manifestByteLimit(current, deviceId)) {
@@ -610,9 +609,8 @@ class AthenaeumStore {
     required String deviceId,
   }) {
     final current = lookup(idKey);
-    if (current == null || current.epoch != epoch) {
-      throw const StoreEpochMismatch();
-    }
+    if (current == null) throw const StoreMissing();
+    if (current.epoch != epoch) throw const StoreEpochMismatch();
     _checkManifestDeviceQuota(idKey, epoch, deviceId);
     final limit = _manifestByteLimit(current, deviceId);
     if (limit <= 0) throw const StoreQuotaExceeded('byte quota exhausted');
@@ -1587,6 +1585,15 @@ class StoreAlreadyExists implements Exception {
 
 class StoreEpochMismatch implements Exception {
   const StoreEpochMismatch();
+}
+
+/// The store row is gone: deleted, or reaped by a sweep, after the caller's own
+/// `lookup`. Distinct from [StoreEpochMismatch], which a manifest write raises
+/// only for a store that exists under a different epoch (deleted and recreated).
+/// Raised by `manifestUploadPreflight` and `putManifest`; the blob and deletion
+/// paths still signal a missing row with [StoreEpochMismatch].
+class StoreMissing implements Exception {
+  const StoreMissing();
 }
 
 /// A repair upload whose body does not match the stored blob's size or hash.
