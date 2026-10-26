@@ -8484,9 +8484,7 @@ final class _FakeStore implements SyncCoordinatorStore {
   }
 
   @override
-  Future<void> reindexDerivedAfterApply(
-    Set<SyncRecordAddress> applied,
-  ) async {}
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {}
 
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) async {

@@ -3635,8 +3635,9 @@ checked against the discriminator rule above.
 5. `POST /v1/blobs/batch` for each needed hash, up to 200 at a time
    (`GET /v1/blobs/{hash}` against a server without the route). **Verify the
    hash before applying.**
-6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
-   indexes.
+6. Apply in one transaction, **read-modify-write** (below). Inside it,
+   reindex the dances the batch can have changed (sync-spec §6.7, *Derived
+   indexes*).
 7. Recompute the local manifest from the post-apply state. Before any
    publication network request, record every address named by that final
    manifest in `published_records`; then `POST /v1/blobs/missing` and `PUT`

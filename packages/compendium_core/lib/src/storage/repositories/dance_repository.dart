@@ -1201,7 +1201,7 @@ class DanceRepository {
     final ids = await _danceIdsUsingUserFigure(userFigureId);
     if (ids.isEmpty) return 0;
     return _db.transaction(() async {
-      await _reindexDerived(ids, userFigures: await _liveUserFigures());
+      await _reindexDerived(ids);
       return ids.length;
     });
   }
@@ -1288,12 +1288,12 @@ class DanceRepository {
 
   /// [reindexDerived] inside the caller's transaction. The FTS rows are
   /// deleted by `IN` over the ids ([_deleteFtsRowsFor]), never one scan of
-  /// the `UNINDEXED` `dance_id` column per dance (#440).
-  Future<int> _reindexDerived(
-    List<String> ids, {
-    UserFigureCatalog? userFigures,
-  }) async {
+  /// the `UNINDEXED` `dance_id` column per dance (#440), and the lookups are
+  /// [rebuildAllDerived]'s own ([_derivedLookups]), read once, so a first
+  /// sync that applies the whole library costs what the full rebuild did.
+  Future<int> _reindexDerived(List<String> ids) async {
     var rebuilt = 0;
+    final lookups = await _derivedLookups();
     await _deleteFtsRowsFor(ids);
     for (final chunk in _chunkIds(ids)) {
       await (_db.delete(
@@ -1303,7 +1303,13 @@ class DanceRepository {
         _db.dances,
       )..where((t) => t.id.isIn(chunk))).get();
       for (final dance in await _hydrateRows(rows)) {
-        await _insertDerivedRows(dance, userFigures: userFigures);
+        await _insertDerivedRows(
+          dance,
+          authorNames: lookups.authorNames,
+          sources: lookups.sources,
+          liveFieldIds: lookups.liveFieldIds,
+          userFigures: lookups.userFigures,
+        );
         rebuilt++;
       }
     }
@@ -1539,6 +1545,54 @@ class DanceRepository {
     ];
   }
 
+  /// The lookups [_insertDerivedRows] resolves besides the dance itself, read
+  /// once for a pass over many dances ([rebuildAllDerived], [reindexDerived]).
+  ///
+  /// Prefetching makes per-dance FTS assembly O(1) reads instead of an N+1 of
+  /// single-row author/source selects. These tables are small relative to the
+  /// dance collection.
+  ///
+  /// Tombstoned rows are excluded (schema v25, issue #898): a soft-deleted
+  /// author, source or field definition must not contribute searchable text,
+  /// exactly as it no longer contributes a displayed credit, citation or
+  /// value. All three kinds are referentially guarded, so a tombstone here
+  /// can only exist once nothing *live* cites it — the filter is what keeps
+  /// that true if a guard is ever relaxed. #1328 relaxed exactly those
+  /// guards (a parent may now be deleted while only a soft-deleted dance
+  /// cites it), which is why the same filtering now also runs on the
+  /// single-write path and on restore (#1358). The user's own figures
+  /// (#1023) are live only too, as the per-write path reads them: a use of a
+  /// deleted figure is indexed as its stored line.
+  Future<
+    ({
+      Map<String, String> authorNames,
+      Map<String, PublishedSourceRow> sources,
+      Set<String> liveFieldIds,
+      UserFigureCatalog userFigures,
+    })
+  >
+  _derivedLookups() async => (
+    authorNames: {
+      for (final row in await (_db.select(
+        _db.choreographers,
+      )..where((t) => t.deletedAt.isNull())).get())
+        row.id: row.name,
+    },
+    sources: {
+      for (final row in await (_db.select(
+        _db.publishedSources,
+      )..where((t) => t.deletedAt.isNull())).get())
+        row.id: row,
+    },
+    liveFieldIds: {
+      for (final row in await (_db.select(
+        _db.customFieldDefs,
+      )..where((t) => t.deletedAt.isNull())).get())
+        row.id,
+    },
+    userFigures: await _liveUserFigures(),
+  );
+
   /// Number of dances rebuilt per transaction in [rebuildAllDerived]. Bounds
   /// each transaction's work so a large-collection rebuild commits incrementally
   /// (progress is reported per chunk and a crash loses at most one chunk) rather
@@ -1584,39 +1638,7 @@ class DanceRepository {
     final total = dances.length;
     onProgress?.call(DerivedRebuildProgress(completed: 0, total: total));
 
-    // Prefetch the shared lookups once so per-dance FTS assembly is O(1) reads
-    // instead of an N+1 of single-row author/source selects. These tables are
-    // small relative to the dance collection.
-    // Tombstoned rows are excluded (schema v25, issue #898): a soft-deleted
-    // author, source or field definition must not contribute searchable text,
-    // exactly as it no longer contributes a displayed credit, citation or
-    // value. All three kinds are referentially guarded, so a tombstone here
-    // can only exist once nothing *live* cites it — the filter is what keeps
-    // that true if a guard is ever relaxed. #1328 relaxed exactly those
-    // guards (a parent may now be deleted while only a soft-deleted dance
-    // cites it), which is why the same filtering now also runs on the
-    // single-write path and on restore (#1358).
-    final authorNames = {
-      for (final row in await (_db.select(
-        _db.choreographers,
-      )..where((t) => t.deletedAt.isNull())).get())
-        row.id: row.name,
-    };
-    final sources = {
-      for (final row in await (_db.select(
-        _db.publishedSources,
-      )..where((t) => t.deletedAt.isNull())).get())
-        row.id: row,
-    };
-    final liveFieldIds = {
-      for (final row in await (_db.select(
-        _db.customFieldDefs,
-      )..where((t) => t.deletedAt.isNull())).get())
-        row.id,
-    };
-    // The user's own figures (#1023), live only, as the per-write path reads
-    // them: a use of a deleted figure is indexed as its stored line.
-    final userFigures = await _liveUserFigures();
+    final lookups = await _derivedLookups();
 
     // One-shot bulk clear instead of N per-dance delete-by-scans. Both FTS5
     // tables are self-contained, so an unqualified DELETE resets each index
@@ -1638,10 +1660,10 @@ class DanceRepository {
         for (final dance in chunk) {
           await _insertDerivedRows(
             dance,
-            authorNames: authorNames,
-            sources: sources,
-            liveFieldIds: liveFieldIds,
-            userFigures: userFigures,
+            authorNames: lookups.authorNames,
+            sources: lookups.sources,
+            liveFieldIds: lookups.liveFieldIds,
+            userFigures: lookups.userFigures,
           );
         }
       });

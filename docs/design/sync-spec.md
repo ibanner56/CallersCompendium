@@ -1263,8 +1263,9 @@ four in-scope columns do not feed it.** `runDerivedRebuild` forwards to
 `DanceRepository.rebuildAllDerived`, which clears and repopulates `dance_fts`,
 `dance_substring_fts` and `dance_figures` for every dance; it is the only
 whole-library rebuild routine. (`reindexDancesUsingUserFigure`, #1023,
-rebuilds only the dances that use one figure of your own, and is not a
-general dance-scoped rebuild.) Its indexed columns are `title, authors, hook,
+rebuilds only the dances that use one figure of your own; `reindexDerived`,
+#1920, rebuilds a given set of dances, which an apply batch works out from
+the records it applied, and which this pass has no such mapping for.) Its indexed columns are `title, authors, hook,
 notes, figures_text, custom_values, sources`, and the row is assembled from
 resolved author names, custom-field *values*, source texts and, since #1023,
 the live definitions of the user's own figures the dance uses
@@ -2858,7 +2859,8 @@ republishes, which is an ordinary upload and needs no special path.
    > network failures stop the pass with it was decided in the change that added this paragraph, by
    > its author rather than the maintainer: they are what §6.12 already calls
    > transient on every other request in a pass.
-6. Apply in one transaction (§6.7). Rebuild derived indexes.
+6. Apply in one transaction (§6.7), bringing the derived indexes up to date
+   inside it for what the batch applied (§6.7, *Derived indexes*).
 7. Recompute the local manifest from the post-apply state. Before any
    publication network request, a client relying on §3.1's forfeiture rule
    MUST record every address named by this final manifest in
@@ -3660,6 +3662,26 @@ record MUST equal the peer's. `ProgramRepository`'s live-venue guard exists to
 protect interactive `create`/`update`; the inbound sync write paths
 (`writeFromSync`, `writeFromSyncParent`, `writeFromSyncRelations`) MUST NOT run
 it — they persist the peer's `venueId` as given, live or not.
+
+**Derived indexes.** The batch MUST leave `dance_fts`, `dance_substring_fts`
+and `dance_figures` exactly as `DanceRepository.rebuildAllDerived` would write
+them for the post-apply state (the same rows; FTS rowids may differ), and MUST
+do so inside the apply transaction, so a crash cannot commit records beside
+stale index rows. It SHOULD rewrite only
+the dances whose rows can have changed: that transaction holds the database's
+write lock, and a whole-library rebuild there stalled every app write for
+seconds on a large library (#1920). Which dances those are is read off what
+`_insertDerivedRows` reads, not off the FTS schema (the principle of #1346 and
+#1370 in §4.1): an applied dance; every dance, in the Trash or not, crediting an
+applied choreographer, citing an applied published source, holding a value for
+an applied custom-field definition, or using an applied glossary entry as a
+figure of your own; and every dance whose references reconciliation rewrote. A
+batch of only tags, difficulty levels, venues, programs, settings or figure
+notes rewrites no derived row. The reference client keeps the same promise for
+a pending tombstone that `snapshot()` releases outside any batch: the record is
+marked, and the next batch reindexes the dances that read it. Dances in the Trash
+keep their rows, filtered at query time, because the full rebuild indexes them
+too.
 
 **Hostile input.** Per-record decode MUST catch `Error` as well as `Exception`;
 `PartialDate.parse` throws `ArgumentError` for a well-shaped invalid date. Text

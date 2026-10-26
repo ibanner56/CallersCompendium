@@ -159,9 +159,10 @@ void main() {
       ('dance_substring_fts', 'dance_id'),
     ])
       table: [
-        for (final row in await db
-            .customSelect('SELECT * FROM $table ORDER BY $order')
-            .get())
+        for (final row
+            in await db
+                .customSelect('SELECT * FROM $table ORDER BY $order')
+                .get())
           row.data,
       ],
   };
@@ -377,11 +378,9 @@ void main() {
       ]);
       expect(writes.ftsInsertedFor, {'d-plain', 'd-author', 'd-source'});
       expect(await repositories.dances.searchText('Renamed'), ['d-plain']);
-      expect(
-        await repositories.dances.searchText('Old Book'),
-        ['d-source'],
-        reason: 'the restored dance is searchable again',
-      );
+      expect(await repositories.dances.searchText('Old Book'), [
+        'd-source',
+      ], reason: 'the restored dance is searchable again');
       // A dance in the Trash keeps its rows, filtered at query time (#439),
       // exactly as a full rebuild leaves it.
       expect(await repositories.dances.searchText('Oldname'), isEmpty);

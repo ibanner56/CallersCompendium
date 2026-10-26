@@ -552,9 +552,7 @@ final class _MapStorage implements SyncApplyConcurrencyStorage {
   }
 
   @override
-  Future<void> reindexDerivedAfterApply(
-    Set<SyncRecordAddress> applied,
-  ) async {}
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {}
 
   @override
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>> currentCandidates(
