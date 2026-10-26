@@ -3973,9 +3973,12 @@ transaction that already committed locally.
   Collection, Programs and Glossary toolbars (shown only while sync is on and paired) —
   the same pass as an automatic trigger. Every pass computes the wire hashes of
   the whole library, and publication of an unchanged manifest is skipped (see
-  §6.3 step 8 in the specification: the previous publication must be current,
-  within `kSyncPublicationRefreshInterval` of 12 hours, and no peer record was
-  refused). A separate **full re-verify** (rehash every local record,
+  §6.3 step 8 in the specification) when all of these hold: the store still
+  lists this device; the store last confirmed the manifest's blobs less than
+  `kSyncPublicationRefreshInterval` (12 hours) ago, measured from that
+  confirmation, not from the publish; no peer record was refused or could not
+  be taken in this pass; and the manifest hash equals the last published one.
+  A separate **full re-verify** (rehash every local record,
   reconcile against every peer) behind a long-press or a Settings action was
   designed but is **not built** (#1432).
 
