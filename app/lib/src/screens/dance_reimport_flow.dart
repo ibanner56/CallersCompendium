@@ -69,7 +69,9 @@ Future<DanceDetailData?> selectReimportDance(
   if (source == _ReimportSource.link) {
     final link = await showDialog<_ReimportLink>(
       context: context,
-      builder: (context) => const _ReimportLinkDialog(),
+      builder: (context) => _ReimportLinkDialog(
+        initialSource: _onlineSourceOf(target.provenance?.source),
+      ),
     );
     if (link == null || !context.mounted) return null;
     // The shape an OS-shared link uses (`main.dart`): the service rebuilds its
@@ -173,16 +175,28 @@ Future<T> _attributed<T>(
   }
 }
 
+/// The online source a dance was imported from, or null when it has none or
+/// came from somewhere a link cannot name (a file, a manual entry).
+OnlineSource? _onlineSourceOf(ProvenanceSource? source) => switch (source) {
+  ProvenanceSource.callersbox => OnlineSource.callersBox,
+  ProvenanceSource.contradb => OnlineSource.contraDb,
+  _ => null,
+};
+
 /// What [_ReimportLinkDialog] returns: a validated dance id and its source.
 typedef _ReimportLink = ({OnlineSource source, String id});
 
 /// Asks for a Caller's Box or ContraDB dance link or id. A recognised pasted
 /// link always selects its own source; the selector only decides where a bare
-/// id is looked up.
+/// id is looked up, and it starts on [initialSource] -- the target dance's own
+/// source -- so an id copied from that source is not fetched from the other.
 /// Input the URL builders reject is reported here, inline, so it can be fixed
 /// without starting over; nothing is fetched until it is valid.
 class _ReimportLinkDialog extends StatefulWidget {
-  const _ReimportLinkDialog();
+  const _ReimportLinkDialog({this.initialSource});
+
+  /// Null starts on The Caller's Box.
+  final OnlineSource? initialSource;
 
   @override
   State<_ReimportLinkDialog> createState() => _ReimportLinkDialogState();
@@ -190,7 +204,7 @@ class _ReimportLinkDialog extends StatefulWidget {
 
 class _ReimportLinkDialogState extends State<_ReimportLinkDialog> {
   final _controller = TextEditingController();
-  var _source = OnlineSource.callersBox;
+  late var _source = widget.initialSource ?? OnlineSource.callersBox;
   String? _error;
 
   @override

@@ -1,0 +1,9 @@
+{
+  "id": "reimport-link-default-source",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Re-import choreography's Link or ID now starts on the source the dance was imported from, so a ContraDB dance's ID is no longer looked up on The Caller's Box (and the reverse) unless you switch the source yourself."
+    ]
+  }
+}

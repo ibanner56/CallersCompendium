@@ -91,6 +91,7 @@ void main() {
 
   Future<void> pumpHost(
     WidgetTester tester, {
+    Dance? target,
     Future<String> Function(String url)? tcbJson,
     Future<String> Function(String url)? tcbSearch,
     String contraDbHtml = _contraDbHtml,
@@ -130,8 +131,10 @@ void main() {
           body: Builder(
             builder: (context) => TextButton(
               key: const ValueKey('open-reimport'),
-              onPressed: () =>
-                  coordinator.open(context, reimportPreviewData(saved)),
+              onPressed: () => coordinator.open(
+                context,
+                reimportPreviewData(target ?? saved),
+              ),
               child: const Text('open'),
             ),
           ),
@@ -200,6 +203,44 @@ void main() {
     expect(fetches.contraDb, ['https://contradb.com/dances/7']);
     expect(fetches.tcb, isEmpty);
     expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
+  });
+
+  testWidgets('the dialog starts on the dance\'s own source, so a bare id is '
+      'not looked up elsewhere (#1907)', (tester) async {
+    await pumpHost(
+      tester,
+      target: saved.copyWith(
+        provenance: Provenance(
+          source: ProvenanceSource.contradb,
+          externalId: '1234',
+          importedAt: DateTime.utc(2026),
+        ),
+      ),
+    );
+    await openLinkDialog(tester);
+    await fetchLink(tester, '1234');
+
+    expect(fetches.contraDb, ['https://contradb.com/dances/1234']);
+    expect(fetches.tcb, isEmpty);
+  });
+
+  testWidgets('a dance from an unsupported source starts on the default', (
+    tester,
+  ) async {
+    await pumpHost(
+      tester,
+      target: saved.copyWith(
+        provenance: Provenance(
+          source: ProvenanceSource.manual,
+          importedAt: DateTime.utc(2026),
+        ),
+      ),
+    );
+    await openLinkDialog(tester);
+    await fetchLink(tester, '1605');
+
+    expect(fetches.tcb, hasLength(1));
+    expect(fetches.contraDb, isEmpty);
   });
 
   testWidgets('a pasted ContraDB link selects ContraDB itself', (tester) async {

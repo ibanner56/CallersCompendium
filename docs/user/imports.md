@@ -577,8 +577,9 @@ Caller's Box against your `A1 Reel` — the title search finds nothing. Choose
 **Link or ID** instead and paste the dance's Caller's Box or ContraDB address,
 or enter its ID number, as for
 [importing a dance by link or ID](#import-a-dance-by-link-or-id). A pasted
-address selects its own source; for a bare ID number, pick the source above the
-field first. An address the app does not recognise is reported before anything
+address selects its own source. A bare ID number is looked up in the source
+selected above the field, which starts on the one your dance was imported from
+(The Caller's Box when it has none), so check it before you fetch. An address the app does not recognise is reported before anything
 is fetched, and a dance that does not exist, or a source that cannot be reached,
 says so in its own words.
 
