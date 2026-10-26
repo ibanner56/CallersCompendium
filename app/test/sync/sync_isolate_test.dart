@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
@@ -426,13 +427,12 @@ void main() {
         await directory.delete(recursive: true);
       });
 
-      final cache = SyncPeerManifestCache();
       final operation = IsolatedSyncPassOperation(
         databasePath: databasePath,
         endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
         syncId: 'alpha-beta-gamma-delta',
         deviceId: 'device-a',
-        peerManifestCache: cache,
+        peerManifestCache: SyncPeerManifestCache(),
       );
 
       final first = await operation.call();
@@ -443,7 +443,7 @@ void main() {
       expect(first.failure?.progressed, isTrue);
       expect(first.reports, isEmpty);
       expect(blobRequests, [losingHash, pendingHash]);
-      expect(cache.fetchedBlob(losingHash), losing);
+      expect(operation.peerManifestCache.fetchedBlob(losingHash), losing);
 
       pass = 2;
       blobRequests.clear();
@@ -677,13 +677,12 @@ void main() {
       await directory.delete(recursive: true);
     });
 
-    final cache = SyncPeerManifestCache();
     final operation = IsolatedSyncPassOperation(
       databasePath: databasePath,
       endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
       syncId: 'alpha-beta-gamma-delta',
       deviceId: 'device-a',
-      peerManifestCache: cache,
+      peerManifestCache: SyncPeerManifestCache(),
     );
 
     final first = await operation.call();
@@ -692,13 +691,120 @@ void main() {
     expect(first.reports, isEmpty);
     expect(requests, contains('POST /v1/blobs/batch'));
     expect(requests, contains('GET /v1/blobs/$hash'));
+    final cache = operation.peerManifestCache;
     expect(cache.blobBatchUnsupported, isTrue);
     expect(
       SyncPeerManifestCache.fromMessage(cache.toMessage()).blobBatchUnsupported,
       isTrue,
     );
     cache.clear();
-    expect(cache.blobBatchUnsupported, isFalse, reason: 'a new session');
+    expect(
+      cache.blobBatchUnsupported,
+      isFalse,
+      reason: 'clearing the cache, as a new session does, forgets it',
+    );
+  });
+
+  test('the main isolate refuses a malformed cache as decoding it did, without '
+      'decoding a manifest (#1934)', () {
+    final cache = SyncPeerManifestCache()
+      ..['peer'] = SyncPeerManifestCacheEntry(
+        epoch: 'epoch-1',
+        etag: '"peer-v1"',
+        manifest: SyncManifest(
+          deviceId: 'peer',
+          epoch: 'epoch-1',
+          writtenAt: DateTime.utc(2026, 7, 15, 12),
+          records: const {},
+        ),
+      )
+      ..rememberFetchedBlob('blob', [1, 2, 3]);
+    final message = cache.toMessage();
+    SyncPeerManifestCache.debugManifestBodiesDecoded = 0;
+    SyncPeerManifestCache.checkMessage(message);
+    SyncPeerManifestCache.checkMessage(null);
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 0);
+
+    Map<String, Object?> replacing(String key, Object? value) => {
+      ...message,
+      key: value,
+    };
+    final malformed = <Object?>[
+      'not a map',
+      replacing('_entries', null),
+      replacing('_entries', {
+        'peer': {'epoch': 'epoch-1', 'etag': '"peer-v1"', 'manifest': 7},
+      }),
+      replacing('_rejectedHashes', [1]),
+      replacing('_publications', [
+        {'kind': 'noSuchKind', 'recordId': 'r', 'hash': 'h', 'pass': 1},
+      ]),
+      replacing('_peerPublications', {
+        'peer': [
+          {'writtenAt': 'yesterday', 'pass': 1},
+        ],
+      }),
+      replacing('_fetchedBlobs', {
+        'blob': [1, 2, 3],
+      }),
+      replacing('_passSequence', -1),
+      replacing('_publicationEpoch', 1),
+      replacing('_blobBatchUnsupported', 'no'),
+      replacing('_blobUploadBatchUnsupported', 'no'),
+      replacing('_ownManifest', {'hash': 'h', 'blobHashes': 'all'}),
+    ];
+    for (final candidate in malformed) {
+      expect(
+        () => SyncPeerManifestCache.fromMessage(candidate),
+        throwsFormatException,
+      );
+      expect(
+        () => SyncPeerManifestCache.checkMessage(candidate),
+        throwsFormatException,
+        reason: '$candidate',
+      );
+    }
+  });
+
+  test('a malformed cache from the worker is refused on both terminal paths, '
+      'and the pre-pass cache kept (#1934)', () async {
+    final appliedKindCalls = <Set<SyncRecordKind>>[];
+    IsolatedSyncPassOperation operation(
+      void Function(Object? request) workerEntryPoint,
+    ) => IsolatedSyncPassOperation(
+      databasePath: 'unused',
+      endpoint: Uri.parse('http://127.0.0.1:1'),
+      syncId: 'alpha-beta-gamma-delta',
+      deviceId: 'device-a',
+      peerManifestCache: SyncPeerManifestCache(rejectedHashes: {'pre-pass'}),
+      onAppliedKinds: appliedKindCalls.add,
+      workerEntryPoint: workerEntryPoint,
+    );
+
+    // A completed pass whose cache is malformed fails, as decoding the cache
+    // here made it, before its applied kinds are reported.
+    final completed = operation(_completeWithMalformedCache);
+    await expectLater(completed.call(), throwsFormatException);
+    expect(appliedKindCalls, isEmpty);
+    expect(completed.peerManifestCache.rejectedHashes, {'pre-pass'});
+
+    // A failed pass's malformed cache is dropped, and its failure and applied
+    // kinds still reach the caller.
+    final failed = operation(_failWithMalformedCache);
+    await expectLater(
+      failed.call(),
+      throwsA(
+        isA<SyncWorkerFailure>()
+            .having((failure) => failure.message, 'message', 'pass failed')
+            .having((failure) => failure.appliedKinds, 'appliedKinds', {
+              SyncRecordKind.setting,
+            }),
+      ),
+    );
+    expect(appliedKindCalls, [
+      {SyncRecordKind.setting},
+    ]);
+    expect(failed.peerManifestCache.rejectedHashes, {'pre-pass'});
   });
 
   test('the session blob cache crosses the isolate and holds a byte cap', () {
@@ -910,7 +1016,7 @@ void main() {
     final rejectedHash = List.filled(64, 'f').join();
     // Evidence from earlier in the session: a publication under a hash the
     // store no longer has for that record, and one observation of the peer.
-    final peerManifestCache = SyncPeerManifestCache(
+    final seed = SyncPeerManifestCache(
       rejectedHashes: {rejectedHash},
       publications: {
         diagnosticAddress: (hash: List.filled(64, 'e').join(), pass: 7),
@@ -966,13 +1072,28 @@ void main() {
       endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
       syncId: 'alpha-beta-gamma-delta',
       deviceId: 'device-a',
-      peerManifestCache: peerManifestCache,
+      peerManifestCache: seed,
     );
+    SyncPeerManifestCache.debugManifestBodiesEncoded = 0;
+    SyncPeerManifestCache.debugManifestBodiesDecoded = 0;
 
     final first = await operation.call();
     expect(first.status, SyncPassStatus.completed);
     expect((await operation.call()).status, SyncPassStatus.completed);
     expect(manifestEtags, [null, '"peer-v1"']);
+    // The main isolate relays the cache and never reads it, so it neither
+    // decodes the peer manifest the first pass returned nor re-encodes it
+    // for the second; the counters are isolate-local, so the worker's own
+    // decoding is not counted here (#1934). Read before the decoding getter.
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 0);
+    expect(SyncPeerManifestCache.debugManifestBodiesEncoded, 0);
+    final peerManifestCache = operation.peerManifestCache;
+    expect(
+      peerManifestCache['peer']?.etag,
+      '"peer-v1"',
+      reason: 'the counters are zero for a cache that holds a manifest',
+    );
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 1);
     expect(peerManifestCache.rejectedHashes, {rejectedHash});
     // The peer summary crosses the boundary with the result: the peer lists
     // nothing, so everything this device publishes is waiting for it.
@@ -1164,6 +1285,7 @@ void main() {
         request.response.write(jsonEncode({'missing': <String>[]}));
       } else if (request.method == 'GET' &&
           request.uri.path == '/v1/manifests/peer') {
+        request.response.headers.set(HttpHeaders.etagHeader, '"peer-v1"');
         request.response.write(encodeSyncManifest(peerManifest));
       } else if (request.method == 'GET' &&
           request.uri.path == '/v1/blobs/$incomingHash') {
@@ -1205,6 +1327,8 @@ void main() {
         markSyncAppliedTablesUpdated(database, kinds);
       },
     );
+    SyncPeerManifestCache.debugManifestBodiesEncoded = 0;
+    SyncPeerManifestCache.debugManifestBodiesDecoded = 0;
     await expectLater(
       operation.call(),
       throwsA(
@@ -1236,14 +1360,26 @@ void main() {
       isTrue,
     );
     expect(changes.current.single.valueJson, jsonEncode('after-first'));
+    // The failed pass's cache was taken in without being decoded here (#1934);
+    // read before the decoding getter below.
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 0);
+    // What the failed pass learned was adopted rather than the pre-pass
+    // cache kept: the peer manifest it had verified.
+    expect(operation.peerManifestCache['peer']?.etag, '"peer-v1"');
 
     // The retry is no substitute: the row already matches the peer, so it
     // applies and reports nothing. That is why the failed pass must report.
     dropManifestPut = false;
+    SyncPeerManifestCache.debugManifestBodiesEncoded = 0;
+    SyncPeerManifestCache.debugManifestBodiesDecoded = 0;
     final retry = await operation.call();
     expect(retry.status, SyncPassStatus.completed);
     expect(retry.appliedKinds, isEmpty);
     expect(appliedKindCalls, hasLength(1));
+    // The main isolate relayed the failed pass's cache to the retry, and the
+    // retry's back again, without decoding or re-encoding either (#1934).
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 0);
+    expect(SyncPeerManifestCache.debugManifestBodiesEncoded, 0);
   });
 
   test('a worker that dies of an uncaught error reports every kind, once '
@@ -1421,6 +1557,44 @@ void main() {
     expect(requests, contains('GET /v1/manifests/peer'));
   });
 }
+
+/// Posts [message] as a worker's terminal message and waits, as the real
+/// worker does, for the acknowledgement.
+Future<void> _postTerminal(
+  Object? request,
+  Map<String, Object?> message,
+) async {
+  final acknowledgement = ReceivePort();
+  syncPassResultPort(
+    request,
+  ).send({...message, 'ack': acknowledgement.sendPort});
+  await acknowledgement.first;
+  acknowledgement.close();
+}
+
+const _malformedCache = {'_entries': 'not a map'};
+
+void _completeWithMalformedCache(Object? request) => unawaited(
+  _postTerminal(request, {
+    'type': 'result',
+    'result': {
+      'status': 'completed',
+      'appliedKinds': ['setting'],
+      'reports': <Object?>[],
+      '_peerManifestCache': _malformedCache,
+    },
+  }),
+);
+
+void _failWithMalformedCache(Object? request) => unawaited(
+  _postTerminal(request, {
+    'type': 'error',
+    'message': 'pass failed',
+    'failureCause': 'unreachable',
+    'appliedKinds': ['setting'],
+    '_peerManifestCache': _malformedCache,
+  }),
+);
 
 /// A worker entry point that dies the way a real worker's stray async error
 /// would: thrown outside any `try`, after the entry point has returned.

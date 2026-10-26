@@ -679,7 +679,17 @@ class SyncController extends ChangeNotifier {
   /// settings table; those are ignored inside the short window that follows the
   /// controller's own bookkeeping writes, because a pass that records its own
   /// success would otherwise re-trigger itself forever.
-  void notifyLocalChange({bool settingsOnly = false}) {
+  ///
+  /// [deviceScopedOnly] marks a settings-only write that touched nothing Device
+  /// Sync carries (a window frame, an update-check marker). It is accounted for
+  /// by the same counters as any settings write, then dropped: it is not an
+  /// edit, so it neither schedules a pass nor marks a running one dirty. It is
+  /// a property of the write, not an expectation, so it adds no counter that a
+  /// no-op write could strand.
+  void notifyLocalChange({
+    bool settingsOnly = false,
+    bool deviceScopedOnly = false,
+  }) {
     if (_disposed) return;
     // Consumed before the disabled check below: the matching
     // `expectSyncAppliedInvalidation()`/`_expectSelfWrite()` call already
@@ -697,6 +707,7 @@ class SyncController extends ChangeNotifier {
       _pendingSyncAppliedInvalidations--;
       return;
     }
+    if (settingsOnly && deviceScopedOnly) return;
     if (!_enabled) return;
     if (_inFlight > 0) {
       _dirty = true;
@@ -712,11 +723,25 @@ class SyncController extends ChangeNotifier {
   /// user edits and are dropped; an empty remainder schedules nothing.
   /// `settingsOnly` is computed on the remainder, so a batch of `settings`
   /// plus a bookkeeping table is a settings-only write.
+  ///
+  /// A batch that includes `settings` also drains the settings repository's
+  /// write summary, so a settings-only batch whose every write was to a key
+  /// that never syncs (device-scoped or device-local, by the privacy registry's
+  /// own classification) is dropped as a non-edit: see [notifyLocalChange]'s
+  /// `deviceScopedOnly`. Unclassified keys, and writes the repository did not
+  /// report, count as edits, as does any other table in the batch apart from
+  /// the sync engine's own bookkeeping tables, which are dropped first.
   void notifyTableUpdates(Set<String> tables) {
+    // Drained before the bookkeeping filter so the tally never outlives the
+    // batch it describes.
+    final deviceScopedOnly =
+        tables.contains('settings') &&
+        _settings.takeWriteSummary().deviceScopedOnly;
     final changed = tables.difference(syncBookkeepingTables);
     if (changed.isEmpty) return;
     notifyLocalChange(
       settingsOnly: changed.length == 1 && changed.contains('settings'),
+      deviceScopedOnly: deviceScopedOnly,
     );
   }
 

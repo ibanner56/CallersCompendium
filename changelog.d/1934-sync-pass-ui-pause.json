@@ -1,0 +1,9 @@
+{
+  "id": "1934-sync-pass-ui-pause",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "With Device Sync on and a large library, the app pauses much less as each sync starts and finishes."
+    ]
+  }
+}
