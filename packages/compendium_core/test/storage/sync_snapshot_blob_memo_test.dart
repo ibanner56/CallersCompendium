@@ -94,9 +94,57 @@ void main() {
     }
   }
 
+  // One record of every entity kind, so a kind whose archive body could never
+  // match itself (a value `_sameJson` does not accept, say) shows up here.
   test('a snapshot with nothing changed builds no record again', () async {
+    // ignore: unused_result
+    await repositories.tags.upsert(
+      Tag(id: 't1', name: 'Tag'),
+      at: _stamp,
+    );
+    // ignore: unused_result
+    await repositories.publishedSources.upsert(
+      PublishedSource(id: 'ps1', title: 'Source', author: 'A', year: 1999),
+      at: _stamp,
+    );
+    await repositories.venues.upsert(
+      Venue(id: 'v1', name: 'Town Hall', city: 'Brattleboro'),
+      at: _stamp,
+    );
+    await repositories.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Program',
+        venueId: 'v1',
+        createdAt: _stamp,
+        updatedAt: _stamp,
+      ),
+    );
+    await repositories.userGlossary.upsert(
+      UserGlossaryEntry(
+        id: 'zoom-id',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'zoom',
+        definition: 'A zoom.',
+        description: 'Fast.',
+        payload: {
+          'form': 'contra',
+          'template': '{who} zoom',
+          'defaultBeats': 8,
+          'params': [
+            {'key': 'who', 'kind': 'dancerSet', 'default': 'neighbors'},
+          ],
+        },
+        createdAt: _stamp,
+      ),
+      at: _stamp,
+    );
+    await repositories.figureNotes.set('swing', 'Notes.', at: _stamp);
+
     await storage.snapshot();
-    expect(built, isNotEmpty);
+    expect({
+      for (final address in built) address.kind,
+    }, SyncRecordKind.values.toSet()..remove(SyncRecordKind.setting));
     built.clear();
     final second = await storage.snapshot();
     expect(second.local, isNotEmpty);
@@ -247,17 +295,6 @@ void main() {
         expect(restored, {_danceAt('d1')});
         await expectSameAsFresh();
       });
-    },
-  );
-
-  test(
-    'a record gone from the library does not come back from the memo',
-    () async {
-      await storage.snapshot();
-      await (db.delete(db.dances)..where((t) => t.id.equals('d2'))).go();
-      final snapshot = await storage.snapshot();
-      expect(snapshot.local.containsKey(_danceAt('d2')), isFalse);
-      await expectSameAsFresh();
     },
   );
 

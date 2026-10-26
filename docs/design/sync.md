@@ -3821,9 +3821,10 @@ and can leave a field out: `Dance.==` does not compare `provenance`, which is on
 the wire. What a record shows of another one, such as a dance's authors, is
 already in its archive body, so no dependency tracking is needed. The memo is in
 memory only: each scan builds its own, which replaces the last one when the scan
-finishes, and the scan still writes nothing. It is never persisted, and since the worker
-builds a new storage per pass, it lives for one pass: the saving is on the
-second and later snapshots of a pass, not the first. Settings and records kept
+finishes, and the scan still writes nothing. It is never persisted and lives as
+long as its storage instance. The worker builds a new storage per pass, so there
+it lives for one pass, and the saving is on the second and later snapshots of a
+pass, not the first; the review screen keeps one storage while it is open. Settings and records kept
 whole are few, and still rebuilt every scan. The guard is
 `sync_snapshot_blob_memo_test.dart`, whose last group compares a memoised
 snapshot with a fresh instance's, byte for byte, after random edits.

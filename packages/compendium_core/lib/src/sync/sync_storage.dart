@@ -319,12 +319,14 @@ final class CompendiumSyncStorage
   /// Each record's blob and wire hash from this instance's latest
   /// [_scanSnapshot], with every input they were built from (#1931).
   ///
-  /// Like [_identityVerifierMemo], it lives for one pass: the worker builds a
-  /// new storage per pass, and nothing here is persisted. A later snapshot in
-  /// the pass reuses an entry only when every input matches what built it
-  /// ([_SnapshotBlobMemoEntry.matches]), so a hit returns exactly what a fresh
-  /// build would. It holds the records of the latest scan alone: each scan
-  /// replaces it with the entries it used, once the scan has finished.
+  /// It lives as long as this instance and is never persisted. The sync
+  /// worker builds a new storage per pass, so there it lasts one pass; the
+  /// review screen keeps one storage while it is open, so there it lasts that
+  /// long. A later snapshot reuses an entry only when every input matches what
+  /// built it ([_SnapshotBlobMemoEntry.matches]), so a hit returns exactly what
+  /// a fresh build would. It holds the records of the latest scan alone, about
+  /// one archive body and one blob per record: each scan replaces it with the
+  /// entries it used, once the scan has finished.
   Map<SyncRecordAddress, _SnapshotBlobMemoEntry> _snapshotBlobMemo = const {};
 
   CompendiumDatabase get _db => repositories.db;
@@ -6460,7 +6462,8 @@ final class CompendiumSyncStorage
   /// to fetch the current local body an arriving peer record is overlaid onto.
   /// Publication does not come through here: the coordinator publishes from
   /// `snapshot().local` / `.publication`, whose blobs `snapshot` builds
-  /// directly with `syncRecordBlobForEntity`. Earlier comments and the spec
+  /// itself, with `syncRecordBlobForArchiveBody` (reused from its memo when
+  /// nothing changed, #1931). Earlier comments and the spec
   /// text written alongside them called this one of four publish paths; it is
   /// not, and both were corrected with #1347's reporting half.
   ///
@@ -6885,10 +6888,12 @@ final class _SnapshotBlobMemoEntry {
     required this.candidate,
   });
 
-  // Neither JSON tree is modified after this: the archive body was built for
-  // this entry alone and the projection copies what it keeps, and the kept
-  // parts are decoded afresh by each scan. The id set is the scan's own, which
-  // it does not change once built.
+  // Neither JSON tree is modified after this. Both were built for this scan
+  // alone (the kept parts are decoded afresh by each scan). The projection and
+  // the merge of kept parts share leaf values with them, but write only to the
+  // new maps they return, and the blob constructor deep-copies its body, so
+  // nothing that outlives the build holds a reference it could write through.
+  // The id set is the scan's own, which it does not change once built.
   final Map<String, Object?> archiveBody;
   final DateTime updatedAt;
   final DateTime existenceAt;
