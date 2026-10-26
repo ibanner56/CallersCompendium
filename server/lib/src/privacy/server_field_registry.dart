@@ -64,6 +64,61 @@ const Map<String, DataClassification> serverFieldClassifications = {
     egress: EgressClass.shareable,
     note: 'Contains only the protocol manifest, not record content.',
   ),
+  'manifest_refs.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Copy of manifests.id_key; the GC index is keyed per store.',
+  ),
+  'manifest_refs.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'manifest_refs.device_id': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.protocolIdentifier,
+    isIdentity: true,
+    note:
+        'Copy of manifests.device_id, so it is the same linkable routing '
+        'identifier (§7.3) and is classified identically.',
+  ),
+  'manifest_refs.hash': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'A blob hash already present in the shareable manifests.body it was '
+        'read from; indexing it discloses nothing the body does not.',
+  ),
+  'indexed_manifests.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'indexed_manifests.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'indexed_manifests.device_id': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.protocolIdentifier,
+    isIdentity: true,
+    note:
+        'Copy of manifests.device_id, so it is the same linkable routing '
+        'identifier (§7.3) and is classified identically.',
+  ),
+  'indexed_manifests.etag': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'Copy of manifests.etag, recording which body the index was read '
+        'from; classified as the value it copies.',
+  ),
   'blob_refs.id_key': DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,

@@ -488,6 +488,14 @@ declaring success. To roll back, stop the new tag and restart the previous
 image; do not replace the volume or pepper. Keep the previous image until the
 post-upgrade retention and break-glass checks complete.
 
+Startup indexes the blob references of any manifest the reference index does
+not cover ([sync-spec §7.3](../design/sync-spec.md#73-ttl-and-garbage-collection)).
+The first start of an image with the index reads every stored manifest body
+once, so it takes longer than later starts; afterwards it reads only manifests
+an earlier image wrote, which is what a rollback followed by a fresh upgrade
+leaves behind. Rolling back is safe without further steps: the earlier image
+ignores the index, and the next upgrade rebuilds whatever it changed.
+
 The release workflow performs this upgrade itself: its `deploy_server` job builds
 `callers-compendium-athenaeum:<version>` from the tagged commit and swaps the
 container before the mobile uploads and the update manifest

@@ -87,6 +87,7 @@ Future<void> main(List<String> arguments) async {
     etag: sha256Hex(manifest),
     writtenAt: DateTime.utc(2026, 9, 1, 12).millisecondsSinceEpoch ~/ 1000,
     body: manifest,
+    referencedHashes: [for (final blob in library) blob.hash],
   );
 
   final requests = <String, int>{};
