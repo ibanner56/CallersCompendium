@@ -476,10 +476,13 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   none of the server's startup work (no schema or index creation, manifest
   indexing, orphan-blob reconcile, or pending-deletion retry), so it is safe to
   run against the live volume and neither blocks nor is blocked by the running
-  server's writes. Only the break-glass log database is written, which is where
-  the audit row goes. It never creates `athenaeum.sqlite`: if the server has
-  never run on the volume the command fails (`SqliteException`) rather than
-  reporting "store not found" against a fresh empty file. Run it as the same
+  server's writes to `athenaeum.sqlite`. Only the break-glass log database is
+  written, which is where the audit row goes. The running server's retention
+  sweep writes that database too, so each side waits up to 250 ms for the
+  other; past that, this command exits with `break-glass read failed` (re-run
+  it) or the sweep reports a `break_glass_retention` failure. It never creates
+  `athenaeum.sqlite`: if the server has never run on the volume the command
+  fails (`SqliteException`) rather than reporting "store not found" against a fresh empty file. Run it as the same
   user as the server, or with write access to the data directory: a read-only
   connection to a WAL database still needs the `-shm` file, and creates it if
   the server has shut down cleanly and left no `-wal`/`-shm`.
