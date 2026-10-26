@@ -25,6 +25,7 @@ import 'facet_panel.dart';
 import 'online_import_dialogs.dart';
 import 'online_result_tile.dart';
 import 'preview_hold_listener.dart';
+import 'search_panel_bar.dart';
 
 /// A reusable dance picker that reuses the Collection search stack (full-text
 /// search + [FacetPanel] + [ByPhrasePanel] + [AdvancedQueryBuilder] +
@@ -745,10 +746,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 slivers: [
                   SliverList(
                     delegate: SliverChildListDelegate([
-                      if (!_onlineEnabled) _buildFiltersPanel(data),
-                      if (!_onlineEnabled || _onlineSource.supportsByPhrase)
-                        _buildByPhrasePanel(data),
-                      _buildAdvancedPanel(data),
+                      _buildSearchPanels(data),
                       _buildResultCount(),
                       const Divider(height: 1),
                     ]),
@@ -769,58 +767,92 @@ class _CollectionPickerState extends State<CollectionPicker> {
     );
   }
 
-  Widget _buildFiltersPanel(CollectionData data) {
+  /// The same compact row of search tools as the Collection
+  /// ([SearchPanelBar]): Filters and By phrase are local-only (By phrase also
+  /// for online sources that support it), and Advanced is always offered.
+  Widget _buildSearchPanels(CollectionData data) {
     final l10n = AppLocalizations.of(context);
-    final activeCount = _facets.activeCount;
-    return ExpansionTile(
-      key: const ValueKey('picker-filters-panel'),
-      leading: const Icon(Icons.filter_alt_outlined),
-      title: Text(l10n.collectionPickerFilters(activeCount)),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      children: [
-        FacetPanel(
-          facets: _facets,
-          forms: data.forms,
-          formations: data.formations,
-          progressions: data.progressions,
-          statuses: data.statuses,
-          levels: data.levels,
-          hasMixedLevel: data.hasMixedLevel,
-          hasMixer: data.hasMixer,
-          hasRating: data.hasRating,
-          hasCallingHistory: data.callCounts.values.any(
-            (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+    final filtersActive = _facets.activeCount;
+    final byPhraseActive = _byPhraseActiveCount();
+    return SearchPanelBar(
+      storageId: 'picker',
+      panels: [
+        if (!_onlineEnabled)
+          SearchPanelSpec(
+            key: const ValueKey('picker-filters-panel'),
+            label: filtersActive == 0
+                ? l10n.collectionPickerFilters(0)
+                : l10n.searchToolActiveCount(
+                    l10n.collectionPickerFilters(0),
+                    filtersActive,
+                  ),
+            semanticsLabel: filtersActive == 0
+                ? null
+                : l10n.collectionPickerFilters(filtersActive),
+            builder: (_) => _buildFiltersPanel(data),
           ),
-          authors: data.authors,
-          tags: data.tags,
-          citedSources: data.citedSources,
-          tunes: data.tunes,
-          choiceFields: data.choiceFields,
-          booleanFields: data.booleanFields,
-          textFields: data.textFields,
-          numberFields: data.numberFields,
-          onChanged: _onFacetsChanged,
+        if (!_onlineEnabled || _onlineSource.supportsByPhrase)
+          SearchPanelSpec(
+            key: const ValueKey('picker-by-phrase-panel'),
+            label: byPhraseActive == 0
+                ? l10n.collectionPickerByPhrase(0)
+                : l10n.searchToolActiveCount(
+                    l10n.collectionPickerByPhrase(0),
+                    byPhraseActive,
+                  ),
+            semanticsLabel: byPhraseActive == 0
+                ? null
+                : l10n.collectionPickerByPhrase(byPhraseActive),
+            builder: (_) => _buildByPhrasePanel(data),
+          ),
+        SearchPanelSpec(
+          key: const ValueKey('picker-advanced-panel'),
+          // Online results are not narrowed by the query; only say it is on
+          // where it applies.
+          label:
+              !_onlineEnabled &&
+                  _advancedEnabled &&
+                  _advancedRoot.toFilter() != null
+              ? l10n.collectionAdvancedActive
+              : l10n.collectionPickerAdvanced,
+          builder: (_) => _buildAdvancedPanel(data),
         ),
       ],
     );
   }
 
+  Widget _buildFiltersPanel(CollectionData data) {
+    return FacetPanel(
+      facets: _facets,
+      forms: data.forms,
+      formations: data.formations,
+      progressions: data.progressions,
+      statuses: data.statuses,
+      levels: data.levels,
+      hasMixedLevel: data.hasMixedLevel,
+      hasMixer: data.hasMixer,
+      hasRating: data.hasRating,
+      hasCallingHistory: data.callCounts.values.any(
+        (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+      ),
+      authors: data.authors,
+      tags: data.tags,
+      citedSources: data.citedSources,
+      tunes: data.tunes,
+      choiceFields: data.choiceFields,
+      booleanFields: data.booleanFields,
+      textFields: data.textFields,
+      numberFields: data.numberFields,
+      onChanged: _onFacetsChanged,
+    );
+  }
+
   Widget _buildByPhrasePanel(CollectionData data) {
-    final l10n = AppLocalizations.of(context);
-    final activeCount = _byPhraseActiveCount();
-    return ExpansionTile(
-      key: const ValueKey('picker-by-phrase-panel'),
-      leading: const Icon(Icons.grid_view_outlined),
-      title: Text(l10n.collectionPickerByPhrase(activeCount)),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      children: [
-        ByPhrasePanel(
-          selections: _byPhrase,
-          taxonomy: data.taxonomy,
-          sectionLabels: data.sectionLabels,
-          onChanged: _onByPhraseChanged,
-        ),
-      ],
+    return ByPhrasePanel(
+      selections: _byPhrase,
+      taxonomy: data.taxonomy,
+      sectionLabels: data.sectionLabels,
+      onChanged: _onByPhraseChanged,
     );
   }
 
@@ -837,11 +869,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   Widget _buildAdvancedPanel(CollectionData data) {
     final l10n = AppLocalizations.of(context);
-    return ExpansionTile(
-      key: const ValueKey('picker-advanced-panel'),
-      leading: const Icon(Icons.account_tree_outlined),
-      title: Text(l10n.collectionPickerAdvanced),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.enableOnlineSearch) ...[
           SwitchListTile(

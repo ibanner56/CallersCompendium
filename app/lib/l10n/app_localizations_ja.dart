@@ -3570,6 +3570,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionAdvancedTitle => '詳細検索';
 
   @override
+  String get collectionAdvancedActive => '詳細検索（オン）';
+
+  @override
+  String searchToolActiveCount(String tool, int count) {
+    return '$tool・$count';
+  }
+
+  @override
   String get collectionUseAdvancedQuery => '詳細クエリを使用';
 
   @override
