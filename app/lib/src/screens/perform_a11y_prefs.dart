@@ -5,41 +5,33 @@ import '../data/perform_text_scale.dart'
 import '../data/settings_keys.dart';
 
 /// The in-Perform accessibility preferences persisted across sessions
-/// (issue #449): the manual text scale, the dark-stage high-contrast theme,
-/// and whether figures render canonical role/move tokens.
+/// (issue #449): the manual text scale and the dark-stage high-contrast theme.
 ///
 /// This is a plain value object with no Flutter or platform dependencies so the
 /// load/validate/save logic in [PerformA11yPrefsStore] stays unit-testable
 /// without a real device.
 class PerformA11yPrefs {
-  const PerformA11yPrefs({
-    required this.textScale,
-    required this.stageMode,
-    required this.canonicalView,
-  });
+  const PerformA11yPrefs({required this.textScale, required this.stageMode});
 
   /// The defaults applied on first run or when a stored value is absent or
   /// invalid. Match the historical in-view defaults so existing behaviour is
-  /// unchanged: a large default scale, stage mode on, canonical view off.
+  /// unchanged: a large default scale, stage mode on.
   static const PerformA11yPrefs defaults = PerformA11yPrefs(
     textScale: kPerformDefaultScale,
     stageMode: true,
-    canonicalView: false,
   );
 
   final double textScale;
   final bool stageMode;
-  final bool canonicalView;
 
   @override
   bool operator ==(Object other) =>
       other is PerformA11yPrefs &&
       other.textScale == textScale &&
-      other.stageMode == stageMode &&
-      other.canonicalView == canonicalView;
+      other.stageMode == stageMode;
 
   @override
-  int get hashCode => Object.hash(textScale, stageMode, canonicalView);
+  int get hashCode => Object.hash(textScale, stageMode);
 }
 
 /// Loads and persists the Perform accessibility preferences via the app's
@@ -58,7 +50,7 @@ class PerformA11yPrefsStore {
 
   final SettingsRepository _settings;
 
-  /// Reads all three prefs, coercing/validating each and substituting the
+  /// Reads both prefs, coercing/validating each and substituting the
   /// default for any absent or invalid entry. Never throws for missing keys.
   Future<PerformA11yPrefs> load() async {
     final textScale = _readTextScale(await _settings.get(kPerformTextScaleKey));
@@ -66,15 +58,7 @@ class PerformA11yPrefsStore {
       await _settings.get(kPerformStageModeKey),
       PerformA11yPrefs.defaults.stageMode,
     );
-    final canonicalView = _readBool(
-      await _settings.get(kPerformCanonicalViewKey),
-      PerformA11yPrefs.defaults.canonicalView,
-    );
-    return PerformA11yPrefs(
-      textScale: textScale,
-      stageMode: stageMode,
-      canonicalView: canonicalView,
-    );
+    return PerformA11yPrefs(textScale: textScale, stageMode: stageMode);
   }
 
   Future<void> saveTextScale(double value) =>
@@ -82,9 +66,6 @@ class PerformA11yPrefsStore {
 
   Future<void> saveStageMode(bool value) =>
       _settings.set(kPerformStageModeKey, value);
-
-  Future<void> saveCanonicalView(bool value) =>
-      _settings.set(kPerformCanonicalViewKey, value);
 
   /// Accepts a stored text scale only when it is a finite number at or above
   /// the enforced minimum; anything else (null, non-number, NaN/Infinity, or
