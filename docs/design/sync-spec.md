@@ -3663,25 +3663,25 @@ protect interactive `create`/`update`; the inbound sync write paths
 (`writeFromSync`, `writeFromSyncParent`, `writeFromSyncRelations`) MUST NOT run
 it — they persist the peer's `venueId` as given, live or not.
 
-**Derived indexes.** The batch MUST leave `dance_fts`, `dance_substring_fts`
-and `dance_figures` exactly as `DanceRepository.rebuildAllDerived` would write
-them for the post-apply state (the same rows; FTS rowids may differ), and MUST
-do so inside the apply transaction, so a crash cannot commit records beside
-stale index rows. It SHOULD rewrite only
-the dances whose rows can have changed: that transaction holds the database's
-write lock, and a whole-library rebuild there stalled every app write for
-seconds on a large library (#1920). Which dances those are is read off what
-`_insertDerivedRows` reads, not off the FTS schema (the principle of #1346 and
-#1370 in §4.1): an applied dance; every dance, in the Trash or not, crediting an
-applied choreographer, citing an applied published source, holding a value for
-an applied custom-field definition, or using an applied glossary entry as a
-figure of your own; and every dance whose references reconciliation rewrote. A
-batch of only tags, difficulty levels, venues, programs, settings or figure
-notes rewrites no derived row. A pending tombstone released outside any batch
-(§6.8, when its last live citation goes) MUST be followed in the same
-transaction by the same reindex of the dances that read it. Dances in the Trash
-keep their rows, filtered at query time, because the full rebuild indexes them
-too.
+**Derived indexes.** The batch MUST leave `dance_fts`, `dance_substring_fts` and
+`dance_figures` exactly as `DanceRepository.rebuildAllDerived` would write them
+for the post-apply state (the same rows; FTS rowids may differ), and MUST do so
+inside the apply transaction, so a crash cannot commit records beside stale
+index rows. It SHOULD rewrite only the dances whose rows can have changed: that
+transaction holds the database's write lock, and a whole-library rebuild there
+stalled every app write for seconds on a large library (#1920). Which dances
+those are is read off what `_insertDerivedRows` reads, not off the FTS schema
+(the principle of #1346 and #1370 in §4.1): an applied dance, or one whose
+parent row the batch wrote before it dropped out for a failed same-group
+dependency; every dance, in the Trash or not, crediting an applied
+choreographer, citing an applied published source, holding a value for an
+applied custom-field definition, or using an applied glossary entry as a figure
+of your own; and every dance whose references reconciliation rewrote. A batch of
+only tags, difficulty levels, venues, programs, settings or figure notes
+rewrites no derived row. A pending tombstone released outside any batch (§6.8,
+when its last live citation goes) MUST be followed in the same transaction by
+the same reindex of the dances that read it. Dances in the Trash keep their
+rows, filtered at query time, because the full rebuild indexes them too.
 
 **Hostile input.** Per-record decode MUST catch `Error` as well as `Exception`;
 `PartialDate.parse` throws `ArgumentError` for a well-shaped invalid date. Text
