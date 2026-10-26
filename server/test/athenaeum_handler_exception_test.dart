@@ -76,6 +76,22 @@ void main() {
     expectOnlyTypeLogged(stderrLines, '_LeakyError');
   });
 
+  test('a store fault while logging an ordinary 4xx still answers that 4xx '
+      'and logs only the fault\'s type', () async {
+    // The request authenticates (first lookup), then fails with a 400 whose
+    // diagnostic log looks the store up again (second lookup), which faults.
+    store.lookupErrorOnCall = 2;
+    final (response, stderrLines) = await _captureStderr(
+      () => app.call(authed('POST', '/v1/store', body: {'unexpected': true})),
+    );
+
+    expect(response.statusCode, 400);
+    expect(jsonDecode(await response.readAsString()), {
+      'error': 'store creation has no body',
+    });
+    expectOnlyTypeLogged(stderrLines, '_LeakyError');
+  });
+
   test('a failing heartbeat probe answers a JSON 500 and logs only its '
       'type', () async {
     store.checkHealthError = const _LeakyError();
@@ -143,6 +159,16 @@ class _FaultyStore extends AthenaeumStore {
   Object? touchError;
   String? blobRefErrorFor;
   Object? checkHealthError;
+
+  /// Throws a [_LeakyError] from the Nth call to [lookup] (1-based).
+  int? lookupErrorOnCall;
+  int _lookupCalls = 0;
+
+  @override
+  StoreRow? lookup(String idKey) {
+    if (++_lookupCalls == lookupErrorOnCall) throw const _LeakyError();
+    return super.lookup(idKey);
+  }
 
   @override
   void checkHealth() {
