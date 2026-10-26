@@ -494,7 +494,8 @@ final class CompendiumSyncStorage
     final withheld = <SyncReport>[];
     // Read here rather than beside its own loop below, because the withhold
     // report needs it before the dance scan. `_revalidatePendingDeletions()`
-    // has already run, so this is the current set.
+    // ran in phase 1, before this read view opened, so a citation removed in
+    // between leaves its deletion pending here until the next pass.
     final pendingRows = await repositories.syncLocal.listPendingDeletions();
     final pendingDanceIds = {
       for (final pending in pendingRows)
