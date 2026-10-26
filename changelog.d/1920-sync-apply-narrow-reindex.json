@@ -8,7 +8,7 @@
   },
   "core": {
     "changed": [
-      "`SyncApplyStorage.rebuildDerivedIndexes()` is replaced by `reindexDerivedAfterApply(Set<SyncRecordAddress> applied)`. `CompendiumSyncStorage` implements it by reindexing only the dances whose derived rows the applied records (and any dances reconciliation repointed) can change; `CompendiumSyncStorage.rebuildDerivedIndexes()` remains for the dedupe and review-resolution paths.",
+      "`SyncApplyStorage.rebuildDerivedIndexes()` is replaced by `reindexDerivedAfterApply(Set<SyncRecordAddress> applied)`. `CompendiumSyncStorage` implements it by reindexing only the dances whose derived rows the applied records can change, and a pending tombstone the snapshot releases now reindexes the dances that read it; `CompendiumSyncStorage.rebuildDerivedIndexes()` remains for the dedupe and review-resolution paths.",
       "`DanceRepository.reindexDerived(danceIds)` rebuilds the derived rows of a given set of dances, as `rebuildAllDerived` would write them; `DanceRepository.danceIdsDerivingFrom(...)` finds the dances, in the Trash or not, whose derived rows read given choreographers, published sources, custom-field definitions or figures of your own."
     ]
   }

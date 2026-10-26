@@ -291,20 +291,6 @@ final class CompendiumSyncStorage
   final Set<SyncRecordAddress> _pendingParentWrites = {};
   Set<SyncRecordAddress> _inboundTombstonedAddresses = {};
 
-  /// Records whose derived rows may be out of date: every record
-  /// [writeWithReport] has written, and every dance whose references
-  /// reconciliation rewrote ([_rewriteLocalReferences]) or whose row it
-  /// deleted, since the derived indexes were last brought up to date (#1920).
-  ///
-  /// [reindexDerivedAfterApply] reindexes these besides the batch's applied
-  /// records, because neither of these writes is one: a reconciliation
-  /// rewrite repoints dances no applied record names, and a pending
-  /// tombstone [snapshot] releases lands outside any apply batch. The full
-  /// rebuild used to bring both up to date as a side effect. Only ever
-  /// over-marks: reindexing a dance whose rows were already right rewrites
-  /// the same rows.
-  final Set<SyncRecordAddress> _derivedDirtyAddresses = {};
-
   /// Pending deletions this batch's reconciliation carried onto a survivor.
   ///
   /// A remap is not a revival: the inbound record is a different UUID that
@@ -1319,6 +1305,7 @@ final class CompendiumSyncStorage
   /// separate sync trigger.
   Future<void> _revalidatePendingDeletions({bool dropMissing = false}) async {
     final rows = await repositories.syncLocal.listPendingDeletions();
+    final released = <SyncRecordAddress>[];
     for (final row in rows) {
       if (await _hasCitation(row.kind, row.recordId)) continue;
       final blob = decodeSyncRecordBlob(row.tombstoneBlob);
@@ -1351,11 +1338,17 @@ final class CompendiumSyncStorage
         sourceBlob: blob,
       );
       await writeWithReport(record);
+      released.add(record.address);
       await repositories.syncLocal.deletePendingDeletion(
         kind: row.kind,
         recordId: row.recordId,
       );
     }
+    // A released tombstone is applied outside any batch, so no batch
+    // reindexes the dances it reads into (#1920): a dance in the Trash that
+    // still credits a choreographer released here must stop carrying its
+    // name, as a full rebuild would leave it.
+    if (released.isNotEmpty) await _reindexDerivedFor(released);
   }
 
   Map<String, Object?> _overlay(
@@ -1575,9 +1568,12 @@ final class CompendiumSyncStorage
   /// that stops being true. The cost is that every app write waits for
   /// everything inside the transaction, so nothing in it may scan the library
   /// that does not have to: the concurrency guard reads only the batch's
-  /// records ([currentCandidates]). Reconciliation's natural-key, alias and
-  /// baseline reads and the derived-index rebuild still read whole tables
-  /// inside it; narrowing those is separate work.
+  /// records ([currentCandidates]), and the derived-index step reindexes only
+  /// the dances the batch affected ([reindexDerivedAfterApply], #1920).
+  /// Reconciliation's natural-key, alias and baseline reads still read whole
+  /// tables inside it, as do the derived step's lookups of the four parent
+  /// tables and, when the batch applies a glossary entry, its one scan of the
+  /// dances' figures; narrowing those is separate work.
   @override
   Future<T> transaction<T>(Future<T> Function() action) =>
       repositories.transaction(action);
@@ -4964,7 +4960,6 @@ final class CompendiumSyncStorage
           _db.difficultyLevels,
         )..where((table) => table.id.equals(id))).go();
       case SyncRecordKind.dance:
-        _derivedDirtyAddresses.add((kind: SyncRecordKind.dance, recordId: id));
         for (final table in const ['dance_fts', 'dance_substring_fts']) {
           await _db.customStatement('DELETE FROM $table WHERE dance_id = ?', [
             id,
@@ -5169,10 +5164,6 @@ final class CompendiumSyncStorage
         return;
     }
     if (affectedDances.isEmpty) return;
-    _derivedDirtyAddresses.addAll([
-      for (final danceId in affectedDances)
-        (kind: SyncRecordKind.dance, recordId: danceId),
-    ]);
     final now = DateTime.now().toUtc();
     for (final danceId in affectedDances) {
       final row = await (_db.select(
@@ -5326,7 +5317,6 @@ final class CompendiumSyncStorage
   @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) async {
     record = _normalizeInboundRecord(record);
-    _derivedDirtyAddresses.add(record.address);
     final kind = record.address.kind;
     if (record.deletedAt != null &&
         await _hasCitation(
@@ -5734,11 +5724,14 @@ final class CompendiumSyncStorage
   /// batch reindexes only what it affected ([reindexDerivedAfterApply]).
   Future<void> rebuildDerivedIndexes() async {
     await repositories.dances.rebuildAllDerived();
-    _derivedDirtyAddresses.clear();
   }
 
-  /// Reindexes the dances whose derived rows [applied], or a write marked in
-  /// [_derivedDirtyAddresses], can have changed, and nothing else (#1920).
+  /// Reindexes the dances whose derived rows [applied] can have changed, and
+  /// nothing else (#1920).
+  ///
+  /// Reconciliation's rewrites need nothing extra: the dances
+  /// [_rewriteLocalReferences] repoints now cite the survivor, whose record
+  /// is the one the batch applies, so they are found through it.
   ///
   /// The mapping is what [DanceRepository.rebuildAllDerived] reads, not what
   /// the FTS schema names (sync-spec §4.1): a dance's rows are built from
@@ -5750,13 +5743,18 @@ final class CompendiumSyncStorage
   /// row, so a batch of only those rewrites nothing. A switch rather than a
   /// lookup, so a new kind cannot be added without deciding.
   @override
-  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) =>
+      _reindexDerivedFor(applied);
+
+  /// [reindexDerivedAfterApply] for [written], from any caller that writes
+  /// records outside an apply batch.
+  Future<void> _reindexDerivedFor(Iterable<SyncRecordAddress> written) async {
     final danceIds = <String>{};
     final choreographerIds = <String>{};
     final sourceIds = <String>{};
     final customFieldIds = <String>{};
     final userFigureIds = <String>{};
-    for (final address in {...applied, ..._derivedDirtyAddresses}) {
+    for (final address in written) {
       final id = address.recordId;
       switch (address.kind) {
         case SyncRecordKind.dance:
@@ -5789,7 +5787,6 @@ final class CompendiumSyncStorage
       ),
     );
     await repositories.dances.reindexDerived(danceIds);
-    _derivedDirtyAddresses.clear();
   }
 
   Future<String?> _missingDanceReference(

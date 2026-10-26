@@ -3677,9 +3677,9 @@ applied choreographer, citing an applied published source, holding a value for
 an applied custom-field definition, or using an applied glossary entry as a
 figure of your own; and every dance whose references reconciliation rewrote. A
 batch of only tags, difficulty levels, venues, programs, settings or figure
-notes rewrites no derived row. The reference client keeps the same promise for
-a pending tombstone that `snapshot()` releases outside any batch: the record is
-marked, and the next batch reindexes the dances that read it. Dances in the Trash
+notes rewrites no derived row. A pending tombstone released outside any batch
+(§6.8, when its last live citation goes) MUST be followed in the same
+transaction by the same reindex of the dances that read it. Dances in the Trash
 keep their rows, filtered at query time, because the full rebuild indexes them
 too.
 

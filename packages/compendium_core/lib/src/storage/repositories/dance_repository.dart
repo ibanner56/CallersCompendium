@@ -1290,7 +1290,10 @@ class DanceRepository {
   /// deleted by `IN` over the ids ([_deleteFtsRowsFor]), never one scan of
   /// the `UNINDEXED` `dance_id` column per dance (#440), and the lookups are
   /// [rebuildAllDerived]'s own ([_derivedLookups]), read once, so a first
-  /// sync that applies the whole library costs what the full rebuild did.
+  /// sync that applies the whole library does not cost more than the full
+  /// rebuild did. Measured on 5,000 dances (#1920, in-memory database):
+  /// reindexing every one took 573-620 ms against 686-812 ms for
+  /// [rebuildAllDerived], and reindexing 10 took 5-7 ms.
   Future<int> _reindexDerived(List<String> ids) async {
     var rebuilt = 0;
     final lookups = await _derivedLookups();

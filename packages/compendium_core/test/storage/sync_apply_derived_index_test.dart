@@ -438,8 +438,8 @@ void main() {
     await expectEquivalentToFullRebuild();
   });
 
-  test('a tombstone the snapshot releases outside a batch is reindexed by '
-      'the next batch', () async {
+  test('a tombstone the snapshot releases outside a batch reindexes the '
+      'dances that read it', () async {
     // The peer deletes the choreographer while a live dance credits it, so
     // the deletion waits (§6.8). Trashing the dance here releases it at the
     // next snapshot — a write no apply batch names.
@@ -451,6 +451,7 @@ void main() {
       ),
     ]);
     await repositories.dances.softDelete('d-author', at: _trashed);
+    writes.reset();
     await storage.snapshot();
     final released = await db
         .customSelect("SELECT deleted_at FROM choreographers WHERE id = 'c1'")
@@ -460,8 +461,6 @@ void main() {
       isNotNull,
       reason: 'the snapshot applied the waiting deletion',
     );
-
-    await applyInbound([setting()]);
     expect(writes.ftsInsertedFor, {'d-author'});
     await expectEquivalentToFullRebuild();
   });
