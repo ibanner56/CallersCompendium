@@ -4210,6 +4210,13 @@ sync does not run and a manual attempt routes to the setting. Every trigger
 passes the same connection gate, and a pass the gate suppresses runs at the next
 trigger.
 
+The "change" that arms the debounce is a change to something sync carries. A
+write to a `settings` key the privacy registry classifies as anything but
+`shareable` (a window frame, an update-check marker) is not one and schedules no
+pass; a `shareable` key, an unclassified key, and a batch that also touches any
+other table still do. The decision comes from `classifySettingsKey`, not a key
+list, so a key changes sides by changing its registry entry.
+
 > **Amended 2026-10-02.** This section said only that "a failure MUST retry on
 > the next trigger", and the client did exactly that: a pass that failed on a
 > dropped connection waited for the next app start, edit or manual Sync now.
