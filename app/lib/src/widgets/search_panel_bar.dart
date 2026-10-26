@@ -11,6 +11,7 @@ class SearchPanelSpec {
   const SearchPanelSpec({
     required this.key,
     required this.label,
+    this.semanticsLabel,
     required this.builder,
   });
 
@@ -18,10 +19,14 @@ class SearchPanelSpec {
   /// full-width panel header used to carry.
   final Key key;
 
-  /// The toggle's text, including any active indicator ("Filters (3 active)",
+  /// The toggle's text, including any active indicator ("Filters · 3",
   /// "Advanced (on)"), so a closed tool still shows that it is narrowing the
-  /// results.
+  /// results. Kept short so the row of toggles fits on one line.
   final String label;
+
+  /// What a screen reader hears instead of [label], when the short form needs
+  /// spelling out ("Filters (3 active)" for "Filters · 3").
+  final String? semanticsLabel;
 
   /// The panel's content.
   final WidgetBuilder builder;
@@ -199,7 +204,7 @@ class _PanelToggle extends StatelessWidget {
       button: true,
       enabled: true,
       expanded: open,
-      label: panel.label,
+      label: panel.semanticsLabel ?? panel.label,
       hint: stateHint,
       onTapHint: open
           ? localizations.expansionTileExpandedTapHint

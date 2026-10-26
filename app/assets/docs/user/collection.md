@@ -134,8 +134,9 @@ Under the search bar sit three buttons — **Filters**, **By phrase** and
 **Advanced** — that each open a panel of search tools. One panel is open at a
 time: tap a button to open its panel, and tap it again (or another button) to
 close it. Whatever you chose in a closed panel still applies, and its button
-says so: **Filters** and **By phrase** show how many choices are active, and
-**Advanced** reads **Advanced (on)** while a figure query is in use.
+says so: **Filters** and **By phrase** show how many choices are active (for
+example **Filters · 3**), and **Advanced** reads **Advanced (on)** while a
+figure query is in use.
 
 ## Narrow things down with filters
 

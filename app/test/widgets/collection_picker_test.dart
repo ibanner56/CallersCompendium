@@ -412,7 +412,7 @@ void main() {
         find.byKey(const ValueKey('picker-filters-panel')),
       );
 
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
     });
   }
 
@@ -436,7 +436,7 @@ void main() {
     await _tapVisible(tester, find.byKey(const ValueKey('untagged-chip')));
 
     expect(_titles(tester), ['Untagged Dance']);
-    expect(find.text('Filters (1 active)'), findsOneWidget);
+    expect(find.text('Filters · 1'), findsOneWidget);
   });
 
   testWidgets('title sort ignores leading articles by default', (tester) async {
@@ -1637,14 +1637,14 @@ void main() {
       );
       await _tapVisible(tester, find.byKey(const ValueKey('mixer-yes')));
       expect(_titles(tester), ['Mixer Dance']);
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
 
       hidden.value = {CollectionFacetIds.mixer};
       await tester.pumpAndSettle();
 
       expect(_titles(tester), ['Mixer Dance', 'Plain Dance']);
       expect(find.byKey(const ValueKey('facet-row-mixer')), findsNothing);
-      expect(find.text('Filters (1 active)'), findsNothing);
+      expect(find.text('Filters · 1'), findsNothing);
     });
   });
 }

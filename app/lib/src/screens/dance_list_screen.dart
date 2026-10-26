@@ -2494,6 +2494,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
             key: const ValueKey('filters-panel'),
             label: filtersActive == 0
                 ? l10n.collectionFiltersTitle
+                : l10n.searchToolActiveCount(
+                    l10n.collectionFiltersTitle,
+                    filtersActive,
+                  ),
+            semanticsLabel: filtersActive == 0
+                ? null
                 : l10n.collectionFiltersActive(filtersActive),
             builder: (_) => _buildFiltersPanel(data),
           ),
@@ -2503,6 +2509,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
             key: const ValueKey('by-phrase-panel'),
             label: byPhraseActive == 0
                 ? l10n.collectionByPhraseTitle
+                : l10n.searchToolActiveCount(
+                    l10n.collectionByPhraseTitle,
+                    byPhraseActive,
+                  ),
+            semanticsLabel: byPhraseActive == 0
+                ? null
                 : l10n.collectionByPhraseActive(byPhraseActive),
             builder: (_) => _buildByPhrasePanel(data),
           ),
