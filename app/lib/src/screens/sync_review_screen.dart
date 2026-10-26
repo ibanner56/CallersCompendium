@@ -143,19 +143,22 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
         await runWrite(write);
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.syncReviewResolved)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.syncReviewResolved)));
       _reload();
     } on SyncReviewException catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'sync_review_screen._resolve');
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(_failureMessage(l10n, error))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_failureMessage(l10n, error))));
     } on Object catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'sync_review_screen._resolve');
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.syncReviewActionFailed)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.syncReviewActionFailed)));
     } finally {
       if (mounted) setState(() => _busyKey = null);
     }
