@@ -8970,6 +8970,10 @@
   "@recentlyDeletedTitle": {
     "x-sourceSha256": "856154bb0f1be3786bfa47e56a2b5ec62f423265d8383cbb03e9743a72e44bbc"
   },
+  "recentlyDeletedLoadError": "Dine slettede elementer kunne ikke indlæses. Intet er blevet fjernet.",
+  "@recentlyDeletedLoadError": {
+    "x-sourceSha256": "43498db5ebede2c18f0150fa0eb1f228ab8f1287b1355e61c0f536673ca01ed3"
+  },
   "recentlyDeletedDeleteTitle": "Slet permanent?",
   "@recentlyDeletedDeleteTitle": {
     "x-sourceSha256": "c1b15a3712482b377f34d95ca8c2fc0d47ca1b9e64fd614367c2ee8c06ca5419"

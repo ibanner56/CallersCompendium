@@ -10,6 +10,7 @@ import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/section_header.dart';
@@ -250,8 +251,9 @@ class DanceEditorForm extends StatelessWidget {
         keyboardDismissBehavior: kTextEntryKeyboardDismiss,
         // Section headers carry their own padding; each section's content is
         // wrapped in horizontal AppSpacing.md so headers align with the fields
-        // they label. A trailing gap keeps the last section off the bottom edge.
-        padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+        // they label. A trailing gap lets the last section scroll clear of the
+        // Save FAB.
+        padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
         children: [
           if (controller.hasInvalidCustomFieldNumber)
             Padding(
@@ -910,6 +912,7 @@ Future<void> _fillWalkthroughFromSnippets(
             child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
             key: const ValueKey('fill-walkthrough-confirm'),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l10n.danceEditorFillWalkthroughReplaceConfirm),

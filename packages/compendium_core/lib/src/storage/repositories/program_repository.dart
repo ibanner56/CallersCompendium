@@ -688,6 +688,34 @@ class ProgramRepository {
     ];
   }
 
+  /// The programs among [ids], assembled exactly as [listAll] assembles them,
+  /// in a bounded number of batched queries rather than one [getById] per
+  /// program. Unordered; an id with no row is left out.
+  Future<List<Program>> getByIds(
+    Iterable<String> ids, {
+    bool includeDeleted = false,
+  }) async {
+    final rows = <ProgramRow>[];
+    for (final chunk in _chunkIds(ids.toSet().toList())) {
+      final query = _db.select(_db.programs)..where((t) => t.id.isIn(chunk));
+      if (!includeDeleted) {
+        query.where((t) => t.deletedAt.isNull());
+      }
+      rows.addAll(await query.get());
+    }
+    final found = [for (final r in rows) r.id];
+    final slotsByProgram = await _slotsForMany(found);
+    final provByProgram = await _provenanceForMany(found);
+    return [
+      for (final row in rows)
+        _toModel(
+          row,
+          slotsByProgram[row.id] ?? const [],
+          provByProgram[row.id],
+        ),
+    ];
+  }
+
   /// The tables [listAll] reads, and therefore the `readsFrom` set
   /// [watchAll] declares. Justified per table:
   ///

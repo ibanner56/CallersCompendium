@@ -10,6 +10,7 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/program_sort.dart';
 import '../search/program_sort_labels.dart';
+import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/program_list_tile.dart';
@@ -493,9 +494,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           // Sync is on and paired.
           const SyncNowAction(),
           if (_programs != null) ...[
-            if (openSearch != null)
-              _buildCompactMoreActions(l10n)
-            else ...[
+            // Overflow ⋮ goes last, as on every other app bar.
+            if (openSearch == null)
               PopupMenuButton<_ProgramImportSource>(
                 key: const ValueKey('programs-import'),
                 tooltip: l10n.importProgramTooltip,
@@ -525,20 +525,6 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   ),
                 ],
               ),
-              PopupMenuButton<_ProgramsCompactAction>(
-                key: const ValueKey('programs-more-actions'),
-                tooltip: l10n.danceMoreActions,
-                icon: const Icon(Icons.more_vert),
-                onSelected: (_) => _openRecentlyDeleted(),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    key: const ValueKey('programs-recently-deleted'),
-                    value: _ProgramsCompactAction.recentlyDeleted,
-                    child: Text(l10n.collectionRecentlyDeletedTooltip),
-                  ),
-                ],
-              ),
-            ],
             PopupMenuButton<ProgramSort>(
               key: const ValueKey('programs-sort'),
               tooltip: l10n.programsSortByTooltip(
@@ -582,6 +568,22 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 _persistLastUsedSort();
               },
             ),
+            if (openSearch != null)
+              _buildCompactMoreActions(l10n)
+            else
+              PopupMenuButton<_ProgramsCompactAction>(
+                key: const ValueKey('programs-more-actions'),
+                tooltip: l10n.danceMoreActions,
+                icon: const Icon(Icons.more_vert),
+                onSelected: (_) => _openRecentlyDeleted(),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    key: const ValueKey('programs-recently-deleted'),
+                    value: _ProgramsCompactAction.recentlyDeleted,
+                    child: Text(l10n.collectionRecentlyDeletedTooltip),
+                  ),
+                ],
+              ),
           ],
         ],
       ),
@@ -672,7 +674,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               Icon(
                 Icons.event_note_outlined,
                 size: 64,
-                color: Theme.of(context).colorScheme.outline,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 16),
               Text(
@@ -717,6 +719,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         const Divider(height: 1),
         Expanded(
           child: ListView.builder(
+            // Lets the last row scroll clear of the "New program" FAB.
+            padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
             itemCount: sorted.length,
             itemBuilder: (context, index) {
               final program = sorted[index];

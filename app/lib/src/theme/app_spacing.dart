@@ -10,4 +10,9 @@ class AppSpacing {
   static const double lg = 24;
   static const double xl = 32;
   static const double xxl = 48;
+
+  /// Trailing space a scrollable leaves below its last item when its screen
+  /// floats an extended FAB over it (56dp button + 16dp margin + 16dp gap), so
+  /// the last row's content and trailing actions can always be scrolled clear.
+  static const double fabClearance = 88;
 }

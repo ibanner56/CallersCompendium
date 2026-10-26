@@ -38,7 +38,9 @@ import '../export/share_sanitization.dart';
 import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart' show formationDisplayLabel;
+import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
+import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
@@ -2851,6 +2853,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             child: Text(l10n.programsKeepEditing),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
             key: const ValueKey('discard-confirm'),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.programsDiscard),
@@ -3065,6 +3068,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                           offstage: _previewPane == _PreviewPane.picker,
                           child: CollectionPicker(
                             key: const ValueKey('inline-picker'),
+                            bottomInset: AppSpacing.fabClearance,
                             data: data,
                             dialect: _dialect,
                             enrichment: _enrichment,
@@ -3356,7 +3360,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       key: _formKey,
       child: ListView(
         keyboardDismissBehavior: kTextEntryKeyboardDismiss,
-        padding: const EdgeInsets.all(16),
+        // The bottom inset lets the last slot scroll clear of the Save FAB.
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.fabClearance,
+        ),
         children: [
           _buildMetadataSection(),
           const SizedBox(height: 24),
@@ -4085,6 +4095,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       initialDate: initial,
       firstDate: DateTime(now.year - 10),
       lastDate: DateTime(now.year + 10),
+      builder: uncappedDialogBuilder,
     );
     if (picked != null) {
       setState(() {

@@ -8,6 +8,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/show_custom_figures_scope.dart';
 import '../editor/figure_draft.dart';
+import '../theme/destructive_button_style.dart';
 import '../widgets/compound_argument_editor.dart';
 import 'compound_shorthand_editor_screen.dart';
 import '../data/shorthand_mappings_controller.dart';
@@ -200,6 +201,7 @@ class ShorthandMappingsScreen extends StatelessWidget {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l10n.commonDelete),
           ),
@@ -378,6 +380,7 @@ class _CompoundShorthandsSectionState
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
             key: const ValueKey('compound-shorthand-delete-confirm'),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l10n.commonDelete),
