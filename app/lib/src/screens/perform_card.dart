@@ -551,49 +551,6 @@ class PerformSizeControls extends StatelessWidget {
   }
 }
 
-/// The canonical ⇄ dialect quick-toggle, shared by both Perform views. Hidden
-/// by callers when the active dialect is already [Dialect.canonical].
-class PerformDialectToggle extends StatelessWidget {
-  const PerformDialectToggle({
-    super.key,
-    required this.canonical,
-    required this.onChanged,
-  });
-
-  final bool canonical;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    // Icon-only toggle (consistent with PerformAutoSizeToggle and
-    // PerformStageToggle) so the Perform AppBar's action row fits narrow phones
-    // without overflowing — the earlier label+Switch layout was ~2.5x wider than
-    // its sibling actions and pushed the trailing toolbar past the screen edge.
-    // The accessible name stays 'Show canonical terms' and the on/off STATE is
-    // folded into the button's own node via Semantics.toggled, so assistive tech
-    // announces one control carrying role, name, tap action, and toggle state.
-    //
-    // Uses the app's Dialect glyph family (`Icons.groups`), NOT `Icons.translate`
-    // (which is reserved for Settings › Language & region / app locale). Canonical
-    // vs dialect terminology is a dialect-domain concern, so it shares the
-    // Dialect glyph and follows the outlined-idle/filled-active convention:
-    // outlined when showing dialect terms, filled when canonical terms are shown.
-    return MergeSemantics(
-      child: Semantics(
-        toggled: canonical,
-        child: IconButton(
-          key: const ValueKey('perform-dialect-toggle'),
-          tooltip: AppLocalizations.of(context).performShowCanonicalTerms,
-          isSelected: canonical,
-          icon: const Icon(Icons.groups_outlined),
-          selectedIcon: const Icon(Icons.groups),
-          onPressed: () => onChanged(!canonical),
-        ),
-      ),
-    );
-  }
-}
-
 /// Wraps a Perform screen's [Scaffold] in the high-contrast dark-stage
 /// [Theme] when [enabled], and renders under the app's ambient/inherited theme
 /// otherwise. Shared by both Perform views so the single-dance and program

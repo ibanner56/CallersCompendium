@@ -88,6 +88,8 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kShowProgramSlotCallerNotesKey,
     kAutoCommitProgramChangesKey,
     kPerformStageModeKey,
+    // No reader in this version (Perform's canonical toggle is gone); kept so
+    // a backup from an older version, which reads it, round-trips it.
     kPerformCanonicalViewKey,
     kSortIgnoreArticlesKey,
     kColourDanceThemeKey,

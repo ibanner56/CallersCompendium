@@ -289,7 +289,15 @@ final Map<String, DataClassification> settingsClassifications = {
   'show_individual_perform_timer': _preference,
   'show_program_slot_caller_notes': _preference,
   'auto_commit_program_changes': _preference,
-  'perform_canonical_view': _preference,
+  'perform_canonical_view': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'No longer read or written by this version (Perform lost its '
+        'canonical toggle). Kept classified and travelling so older-version '
+        'peers and backups, which still use it, round-trip it unchanged.',
+  ),
   'perform_stage_mode': _preference,
   'perform_text_scale': const DataClassification(
     term: DpvTerm.nonPersonal,

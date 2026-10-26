@@ -29,9 +29,9 @@ import 'settings_screen.dart'
 /// view and the program-mode Perform view render identically. Text size is
 /// controlled in-view via [PerformSizeControls] with a large default and no
 /// practical upper bound (a sensible lower bound is enforced). The active
-/// dialect is applied via [ActiveDialectScope], with the same canonical ⇄
-/// dialect toggle as the detail screen (hidden when the active dialect is
-/// already [Dialect.canonical]).
+/// dialect is applied via [ActiveDialectScope]; canonical wording is one of the
+/// choices in the dialect quick-switch, so Perform has no separate canonical
+/// toggle.
 class PerformDanceScreen extends StatefulWidget {
   const PerformDanceScreen({
     super.key,
@@ -84,7 +84,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// in-view, the async restore must not clobber that fresh choice.
   bool _textScaleUserSet = false;
   bool _stageModeUserSet = false;
-  bool _canonicalUserSet = false;
 
   /// Individual Perform timing is display-only and starts only after the
   /// persisted visibility preference has resolved. `null` is the loading state.
@@ -103,12 +102,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5).
   /// Persisted across sessions (issue #449) and restored on entry.
   bool _stageMode = true;
-
-  /// When `true` figures render canonical role/move tokens; otherwise the
-  /// user's active dialect. The toggle is hidden when the active dialect is
-  /// already canonical (toggling would be a no-op). Persisted across sessions
-  /// (issue #449) and restored on entry.
-  bool _canonicalView = false;
 
   /// Whether the on-demand walkthrough overlay is currently shown (issue #370).
   /// Session-scoped and default OFF — the walkthrough must never cover the
@@ -158,7 +151,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           setState(() {
             if (!_textScaleUserSet) _textScale = prefs.textScale;
             if (!_stageModeUserSet) _stageMode = prefs.stageMode;
-            if (!_canonicalUserSet) _canonicalView = prefs.canonicalView;
           });
         })
         .catchError((_) {
@@ -225,14 +217,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         .catchError(
           (_) {},
         ); // diagnostics: silent — stage-mode persist failed; best-effort.
-  }
-
-  void _persistCanonicalView() {
-    _a11yPrefs
-        ?.saveCanonicalView(_canonicalView)
-        .catchError(
-          (_) {},
-        ); // diagnostics: silent — canonical-view persist failed; best-effort.
   }
 
   void _toggleIndividualTimerPause() => setState(() {
@@ -418,9 +402,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final activeDialect = ActiveDialectScope.of(context);
-    final isCanonicalDialect = activeDialect == Dialect.canonical;
-    final dialect = _canonicalView ? Dialect.canonical : activeDialect;
+    final dialect = ActiveDialectScope.of(context);
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
@@ -473,17 +455,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                       _autoSize = value;
                     }),
                   ),
-                  if (!isCanonicalDialect)
-                    PerformDialectToggle(
-                      canonical: _canonicalView,
-                      onChanged: (value) {
-                        setState(() {
-                          _canonicalUserSet = true;
-                          _canonicalView = value;
-                        });
-                        _persistCanonicalView();
-                      },
-                    ),
                 ],
                 overflowActions: [
                   if (_hasWalkthrough)
@@ -525,20 +496,6 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                       _autoSize = !_autoSize;
                     }),
                   ),
-                  if (!isCanonicalDialect)
-                    PerformMenuAction(
-                      menuKey: const ValueKey('perform-dialect-toggle-menu'),
-                      icon: Icons.groups,
-                      label: l10n.performShowCanonicalTerms,
-                      toggledOn: _canonicalView,
-                      onSelected: () {
-                        setState(() {
-                          _canonicalUserSet = true;
-                          _canonicalView = !_canonicalView;
-                        });
-                        _persistCanonicalView();
-                      },
-                    ),
                 ],
                 trailingPrimary: PerformStageToggle(
                   stageOn: _stageMode,
