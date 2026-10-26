@@ -9,7 +9,6 @@ import 'package:compendium_app/src/sync/sync_failure.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -32,7 +31,7 @@ void main() {
   // manifest PUT on a flaky link); the failure then carries the applied kinds
   // instead of a result, and must reload the controllers just the same
   // (#1913). Before that fix it reloaded nothing until a relaunch.
-  for (final throwsAfterApply in [false, true])
+  for (final throwsAfterApply in [false, true]) {
     testWidgets(
       throwsAfterApply
           ? 'a sync pass that throws after applying a setting reloads the '
@@ -125,4 +124,5 @@ void main() {
         expect(passes, 2, reason: 'the reload schedules no follow-up pass');
       },
     );
+  }
 }
