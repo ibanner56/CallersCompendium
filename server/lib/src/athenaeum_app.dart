@@ -1415,9 +1415,35 @@ class AthenaeumApp {
       // Rightmost entry: the one the trusted proxy itself appended. Earlier
       // entries are whatever the client sent.
       final candidate = forwarded.split(',').last.trim();
-      if (InternetAddress.tryParse(candidate) != null) return candidate;
+      final parsed = InternetAddress.tryParse(candidate);
+      if (parsed != null) return _rateLimitKey(parsed);
     }
-    return peer.address;
+    return _rateLimitKey(peer);
+  }
+
+  /// The per-client rate-limit key, derived from the raw address bytes so that
+  /// textual variants and zone IDs of one address share a key.
+  ///
+  /// IPv4 clients key on the address. An IPv6 client is normally delegated a
+  /// /64 and can present 2^64 addresses inside it, so IPv6 keys on the /64.
+  /// `dart:io` keeps an IPv4-mapped address (`::ffff:a.b.c.d`) as IPv6, and its
+  /// /64 is `0:0:0:0` for every IPv4 client, so it is unwrapped to its IPv4
+  /// form before any masking. The `/64` suffix keeps IPv6 keys from colliding
+  /// with IPv4 ones.
+  static String _rateLimitKey(InternetAddress address) {
+    final bytes = address.rawAddress;
+    if (bytes.length == 4) return bytes.join('.');
+    if (bytes.length != 16) return address.address;
+    var mapped = bytes[10] == 0xff && bytes[11] == 0xff;
+    for (var i = 0; mapped && i < 10; i++) {
+      mapped = bytes[i] == 0;
+    }
+    if (mapped) return bytes.sublist(12).join('.');
+    final groups = [
+      for (var i = 0; i < 8; i += 2)
+        ((bytes[i] << 8) | bytes[i + 1]).toRadixString(16),
+    ];
+    return '${groups.join(':')}::/64';
   }
 }
 
