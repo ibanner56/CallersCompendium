@@ -90,16 +90,19 @@ final RegExp _legacyCallersBoxRollAwayClauseRe = RegExp(
 
 /// CRUD + search for [Dance]s.
 ///
-/// An ordinary write rebuilds the derived indexes ([DanceFigures] rows,
+/// A write rebuilds the derived indexes ([DanceFigures] rows,
 /// `dance_fts`, and `dance_substring_fts`) from `figures_json`, and from the
 /// live definitions of the user's own figures it uses (#1023), inside the same
 /// transaction, per
 /// `docs/design/storage.md` — the derived tables are never the source of
 /// truth and are always safe to drop and recompute (see [rebuildAllDerived]).
 ///
-/// The sync path differs: the phased inbound writes ([writeFromSyncParent],
-/// [writeFromSyncRelations]) do not rebuild, and the sync apply reindexes the
-/// dances its batch affected itself afterwards ([reindexDerived], #1929).
+/// Some writes skip the rebuild. The batch level, rating and tune setters
+/// change none of the rebuild's inputs and pass `rebuildDerived: false` for
+/// speed (see [_updateMany]). Sync writes can pass it too: the phased inbound
+/// writes ([writeFromSyncParent], [writeFromSyncRelations]) do not rebuild, and
+/// the sync apply reindexes the dances its batch affected itself afterwards
+/// ([reindexDerived], #1929).
 class DanceRepository {
   DanceRepository(this._db, this._taxonomy);
 
