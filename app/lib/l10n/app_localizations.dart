@@ -8469,7 +8469,7 @@ abstract class AppLocalizations {
   /// **'Increase text size'**
   String get performIncreaseTextSize;
 
-  /// Accessible name/tooltip for the perform-mode toggle that shows canonical (non-dialect) figure terms.
+  /// Names the synced setting behind a former Perform toggle that showed canonical (non-dialect) figure terms, in sync-conflict and sync-notice lists. This version no longer shows the toggle; devices on older versions still write the setting.
   ///
   /// In en, this message translates to:
   /// **'Show canonical terms'**

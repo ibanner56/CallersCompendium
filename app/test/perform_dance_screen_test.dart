@@ -191,14 +191,12 @@ void main() {
       'decrease-text-size',
       'increase-text-size',
       'perform-autosize-toggle',
-      'perform-dialect-toggle',
     ];
     const overflowItemKeys = [
       'perform-metronome-menu',
       'decrease-text-size-menu',
       'increase-text-size-menu',
       'perform-autosize-toggle-menu',
-      'perform-dialect-toggle-menu',
     ];
 
     for (final width in const [360.0, 430.0]) {
@@ -341,22 +339,40 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('canonical toggle flips the rendered figure text', (
-    tester,
-  ) async {
+  testWidgets('offers no separate canonical-terms toggle', (tester) async {
     await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
 
+    // Canonical wording is a choice in the dialect quick-switch instead.
+    expect(find.byKey(const ValueKey('perform-dialect-toggle')), findsNothing);
     expect(find.text('robins chain'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('perform-dialect-toggle')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('role2s chain'), findsOneWidget);
   });
 
-  testWidgets('dialect toggle is hidden when active dialect is canonical', (
-    tester,
-  ) async {
+  testWidgets('Canonical is a choice in the quick-switch, and picking it '
+      'makes it the active dialect', (tester) async {
+    final repos = openTestRepositories();
+    await repos.ensureMigrated();
+    final library = DialectLibraryController(repos.settings);
+    await library.load();
+    addTearDown(library.dispose);
+    await _pumpPerform(
+      tester,
+      dance: _dance(figures: [_chain()]),
+      dialectLibrary: library,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dialect-quick-switch')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(ValueKey('dialect-quick-switch-${Dialect.canonical.name}')),
+    );
+    await tester.pumpAndSettle();
+
+    // The app feeds ActiveDialectScope from this controller; the rendering
+    // that follows is covered by the next test.
+    expect(library.activeName, Dialect.canonical.name);
+  });
+
+  testWidgets('the canonical dialect renders canonical tokens', (tester) async {
     await _pumpPerform(
       tester,
       dance: _dance(figures: [_chain()]),
@@ -515,35 +531,6 @@ void main() {
 
     handle.dispose();
   });
-
-  testWidgets(
-    'dialect toggle exposes a single named toggle (no double-announce)',
-    (tester) async {
-      final handle = tester.ensureSemantics();
-
-      await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
-
-      // The icon button carries the accessible name (via its tooltip — the
-      // standard icon-button pattern) plus the toggle role/state. A redundant
-      // Semantics label would double-announce, so none is set. The decorative
-      // "Canonical" text no longer exists, so nothing is announced separately.
-      expect(
-        tester.getSemantics(
-          find.byKey(const ValueKey('perform-dialect-toggle')),
-        ),
-        isSemantics(
-          tooltip: 'Show canonical terms',
-          isButton: true,
-          isFocusable: true,
-          hasTapAction: true,
-          hasToggledState: true,
-        ),
-      );
-      expect(find.bySemanticsLabel('Canonical'), findsNothing);
-
-      handle.dispose();
-    },
-  );
 
   testWidgets('detail "Perform this dance" action navigates to the view', (
     tester,
@@ -1054,12 +1041,14 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('restores persisted stage mode and canonical view on entry', (
-      tester,
-    ) async {
+    testWidgets('restores persisted stage mode on entry, and ignores a '
+        'canonical view saved by an older version', (tester) async {
       final repos = openTestRepositories();
       await repos.settings.set(kAutoSizePerformKey, false);
       await repos.settings.set(kPerformStageModeKey, false);
+      // Older versions had a "Show canonical terms" toggle and persisted it.
+      // With the toggle gone, honoring it would strand the caller in
+      // canonical wording with no control to leave it.
       await repos.settings.set(kPerformCanonicalViewKey, true);
 
       await pumpWith(tester, repos, dance: _dance(figures: [_chain()]));
@@ -1069,9 +1058,9 @@ void main() {
         Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
         isNot(AppColorSchemes.highContrast),
       );
-      // Canonical view restored ON -> figures show canonical tokens.
-      expect(find.text('role2s chain'), findsOneWidget);
-      expect(find.text('robins chain'), findsNothing);
+      // The dialect's wording, not canonical tokens.
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('role2s chain'), findsNothing);
     });
 
     testWidgets('restores a persisted manual text scale on entry', (
@@ -1111,7 +1100,7 @@ void main() {
         Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
         AppColorSchemes.highContrast,
       );
-      // Canonical off by default -> active-dialect tokens.
+      // Active-dialect tokens.
       expect(find.text('robins chain'), findsOneWidget);
       expect(find.text('role2s chain'), findsNothing);
     });
@@ -1127,10 +1116,6 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
       await tester.pumpAndSettle();
       expect(await repos.settings.get(kPerformStageModeKey), isFalse);
-
-      await tester.tap(find.byKey(const ValueKey('perform-dialect-toggle')));
-      await tester.pumpAndSettle();
-      expect(await repos.settings.get(kPerformCanonicalViewKey), isTrue);
 
       await tester.tap(find.byKey(const ValueKey('increase-text-size')));
       await tester.pumpAndSettle();

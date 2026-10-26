@@ -2,7 +2,7 @@ import 'package:compendium_app/src/screens/perform_a11y_prefs.dart';
 import 'package:compendium_app/src/data/perform_text_scale.dart'
     show kPerformDefaultScale, kPerformMinScale;
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kPerformCanonicalViewKey, kPerformStageModeKey, kPerformTextScaleKey;
+    show kPerformStageModeKey, kPerformTextScaleKey;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
@@ -18,13 +18,11 @@ void main() {
       final repos = openTestRepositories();
       await repos.settings.set(kPerformTextScaleKey, 2.4);
       await repos.settings.set(kPerformStageModeKey, false);
-      await repos.settings.set(kPerformCanonicalViewKey, true);
 
       final prefs = await PerformA11yPrefsStore(repos.settings).load();
 
       expect(prefs.textScale, 2.4);
       expect(prefs.stageMode, isFalse);
-      expect(prefs.canonicalView, isTrue);
     });
 
     test('save methods round-trip through the store', () async {
@@ -33,12 +31,10 @@ void main() {
 
       await store.saveTextScale(2.6);
       await store.saveStageMode(false);
-      await store.saveCanonicalView(true);
 
       final prefs = await store.load();
       expect(prefs.textScale, 2.6);
       expect(prefs.stageMode, isFalse);
-      expect(prefs.canonicalView, isTrue);
     });
 
     test('load coerces an integer text scale to a double', () async {
@@ -74,15 +70,13 @@ void main() {
       },
     );
 
-    test('load rejects non-bool toggle values and uses defaults', () async {
+    test('load rejects a non-bool toggle value and uses the default', () async {
       final repos = openTestRepositories();
       await repos.settings.set(kPerformStageModeKey, 1);
-      await repos.settings.set(kPerformCanonicalViewKey, 'yes');
 
       final prefs = await PerformA11yPrefsStore(repos.settings).load();
 
       expect(prefs.stageMode, PerformA11yPrefs.defaults.stageMode);
-      expect(prefs.canonicalView, PerformA11yPrefs.defaults.canonicalView);
     });
   });
 }

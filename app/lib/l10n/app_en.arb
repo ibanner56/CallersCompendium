@@ -7176,7 +7176,7 @@
   },
   "performShowCanonicalTerms": "Show canonical terms",
   "@performShowCanonicalTerms": {
-    "description": "Accessible name/tooltip for the perform-mode toggle that shows canonical (non-dialect) figure terms."
+    "description": "Names the synced setting behind a former Perform toggle that showed canonical (non-dialect) figure terms, in sync-conflict and sync-notice lists. This version no longer shows the toggle; devices on older versions still write the setting."
   },
   "performMoreActions": "More actions",
   "@performMoreActions": {

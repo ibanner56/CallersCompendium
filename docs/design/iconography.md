@@ -15,8 +15,8 @@ Applies to:
 
 - **Toggles / selectable controls** — supply an outlined `icon` for the idle
   state and the filled counterpart as `selectedIcon`, gated by `isSelected`
-  (e.g. the Perform app bar's auto-size, stage, and canonical-terms toggles,
-  and the nav rail / navigation bar destinations).
+  (e.g. the Perform app bar's auto-size and stage toggles, and the nav rail /
+  navigation bar destinations).
 - **Decorative / metadata markers** — the small facet avatars on Collection
   rows (formation, level, mixed-level, rating, tags) and the Perform header's
   meta rows use the **outlined** weight.
@@ -31,11 +31,14 @@ Concept glyphs live in one place so the same idea always reads the same way:
 
 - `formationIcon` and `progressionIcon` — `app/lib/src/search/facet_labels.dart`.
 - **Dialect** = `Icons.groups_outlined` / `Icons.groups` (idle / active). Used by
-  the dance-view dialect quick-switch and the Perform canonical-terms toggle.
+  the dialect quick-switch (dance view and Perform). Perform has no separate
+  canonical-terms toggle: two identical glyphs side by side in one toolbar could
+  not be told apart, and Canonical is already a choice in the quick-switch.
 - **ECD dance form** = `Icons.diversity_3_outlined` (`danceFormIcon`) and
   **dancer level** = `Icons.signal_cellular_alt_outlined` (the same glyph the
   dance-list level facet and Perform header use). Neither reuses the Dialect
-  pair above, so a form or level marker is never mistaken for the dialect toggle.
+  pair above, so a form or level marker is never mistaken for the dialect
+  quick-switch.
 - **Language & region (app locale)** = `Icons.translate_outlined` /
   `Icons.translate`. `Icons.translate` is reserved for app-language/locale only
   and must **not** be reused for dialect selection (they are different concepts).

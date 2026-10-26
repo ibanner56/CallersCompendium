@@ -42,9 +42,10 @@ import 'settings_screen.dart'
 /// overview. When a group has alternates, a one-tap control swaps which member
 /// is shown. Exit is a deliberate close button back to the editor.
 ///
-/// In-view text size ([PerformSizeControls]) and the canonical ⇄ dialect toggle
-/// ([PerformDialectToggle]) are shared across all slots so the caller sets them
-/// once. This view is read-only: no destructive actions are reachable.
+/// In-view text size ([PerformSizeControls]) is shared across all slots so the
+/// caller sets it once. Canonical wording is one of the choices in the dialect
+/// quick-switch, so Perform has no separate canonical toggle. This view is
+/// read-only: no destructive actions are reachable.
 ///
 /// Exit is guarded (issue #434): a single stray tap on the close control (or a
 /// system back) can no longer drop the caller out mid-set — it asks for a
@@ -237,11 +238,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// size survives app relaunch instead of resetting to the default.
   double _textScale = kPerformDefaultScale;
 
-  /// When `true` figures render canonical role/move tokens; otherwise the
-  /// user's active dialect. Persisted across sessions (issue #449) and restored
-  /// on entry.
-  bool _canonicalView = false;
-
   /// A dialect picked from the quick-switch **during this Perform session**,
   /// while the program's own dialect is in force. Session-local on purpose: it
   /// is never written to the program or to the application dialect, and it is
@@ -309,7 +305,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// in-view, the async restore must not clobber that fresh choice.
   bool _textScaleUserSet = false;
   bool _stageModeUserSet = false;
-  bool _canonicalUserSet = false;
 
   /// Whether per-slot caller notes are shown above dance titles in program
   /// Perform. Defaults on and is persisted as a Program setting.
@@ -454,7 +449,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           setState(() {
             if (!_textScaleUserSet) _textScale = prefs.textScale;
             if (!_stageModeUserSet) _stageMode = prefs.stageMode;
-            if (!_canonicalUserSet) _canonicalView = prefs.canonicalView;
           });
         })
         .catchError((_) {
@@ -489,14 +483,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         .catchError(
           (_) {},
         ); // diagnostics: silent — stage-mode persist failed; best-effort.
-  }
-
-  void _persistCanonicalView() {
-    _a11yPrefs
-        ?.saveCanonicalView(_canonicalView)
-        .catchError(
-          (_) {},
-        ); // diagnostics: silent — canonical-view persist failed; best-effort.
   }
 
   /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
@@ -936,9 +922,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         data: widget.data,
         danceOverrides: widget.danceOverrides,
         authorNameOverrides: widget.authorNameOverrides,
-        dialect: _canonicalView
-            ? Dialect.canonical
-            : _effectiveDialect(context),
+        dialect: _effectiveDialect(context),
         enrichment: enrichment,
       ),
     );
@@ -976,8 +960,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     return resolveProgramDialect(_program.dialectName, library);
   }
 
-  /// The dialect Perform renders with, before the canonical-view toggle: the
-  /// session pick, else the program's dialect, else the application dialect.
+  /// The dialect Perform renders with: the session pick, else the program's
+  /// dialect, else the application dialect.
   /// [strict] keeps the existing `ActiveDialectScope.of` behaviour (throws
   /// without the scope) for the call sites that had it.
   Dialect _effectiveDialect(BuildContext context, {bool strict = true}) {
@@ -995,9 +979,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
     final programDialect = _programDialect(context);
-    final activeDialect = _effectiveDialect(context);
-    final isCanonicalDialect = activeDialect == Dialect.canonical;
-    final dialect = _canonicalView ? Dialect.canonical : activeDialect;
+    final dialect = _effectiveDialect(context);
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
@@ -1059,7 +1041,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 leadingPrimary: programDialect == null
                     ? const DialectQuickSwitch()
                     : DialectQuickSwitch(
-                        selectedName: activeDialect.name,
+                        selectedName: dialect.name,
                         onSelected: (name) =>
                             setState(() => _sessionDialectName = name),
                       ),
@@ -1110,17 +1092,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       _autoSize = value;
                     }),
                   ),
-                  if (!isCanonicalDialect)
-                    PerformDialectToggle(
-                      canonical: _canonicalView,
-                      onChanged: (value) {
-                        setState(() {
-                          _canonicalUserSet = true;
-                          _canonicalView = value;
-                        });
-                        _persistCanonicalView();
-                      },
-                    ),
                 ],
                 overflowActions: [
                   PerformMenuAction(
@@ -1181,20 +1152,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       _autoSize = !_autoSize;
                     }),
                   ),
-                  if (!isCanonicalDialect)
-                    PerformMenuAction(
-                      menuKey: const ValueKey('perform-dialect-toggle-menu'),
-                      icon: Icons.groups,
-                      label: l10n.performShowCanonicalTerms,
-                      toggledOn: _canonicalView,
-                      onSelected: () {
-                        setState(() {
-                          _canonicalUserSet = true;
-                          _canonicalView = !_canonicalView;
-                        });
-                        _persistCanonicalView();
-                      },
-                    ),
                 ],
                 trailingPrimary: PerformStageToggle(
                   stageOn: _stageMode,
