@@ -3778,8 +3778,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             ),
           );
         }
-        if (!figureless)
+        if (!figureless) {
           options.addAll(_possibleTitleOptions(i, verdict, l10n));
+        }
         options.add(
           _option(i, l10n.importReviewOptionDuplicate, _ActionKind.duplicate),
         );
