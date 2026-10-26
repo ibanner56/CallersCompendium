@@ -8,6 +8,22 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Changed
+
+- `--break-glass` opens `athenaeum.sqlite` read-only and runs none of the
+  server's startup work (schema and index creation, manifest indexing,
+  orphan-blob reconcile, pending-deletion retry), so running it against the live
+  volume no longer contends with the server's writes. Only the break-glass log
+  database, which holds the audit row, is opened for writing. The command no
+  longer creates `athenaeum.sqlite`: where the server has never run on the
+  volume it now exits `1` with `break-glass read failed (SqliteException)`
+  instead of reporting "store not found" against a fresh empty file. The
+  server's connections to both databases now wait up to 250 ms for a competing
+  writer before failing with `SQLITE_BUSY`; they used to fail at once. The wait
+  is deliberately short because it stalls every request on this single-isolate
+  server. The break-glass procedure and its failure modes are in
+  `docs/dev/athenaeum-operations.md`.
+
 ### Fixed
 
 - A store fault while logging an ordinary refusal (a 4xx) no longer escapes the
@@ -17,6 +33,41 @@ the app and of `compendium_core`; version headings below refer to
   text, including the failing statement and the store's `id_key`. The request
   now still answers its original status, and only the error's type is logged.
   No configuration or schema change.
+
+- Garbage collection no longer decodes every stored manifest body, under the
+  database write lock, on each manifest `PUT`: on a store with large manifests
+  that stalled every other store's requests. A manifest `PUT` now records the
+  blob hashes its records name in two new tables, `manifest_refs` and
+  `indexed_manifests`, in the same transaction as the manifest, and GC finds
+  unreferenced stale blobs with one indexed query. The tables are created
+  automatically; there is no migration step. **Upgrade note:** startup indexes
+  every manifest the index does not cover, so the first start of this version
+  reads every stored manifest body once and takes longer than later starts,
+  roughly in proportion to the data stored; the server accepts no requests until
+  it finishes. Later starts read only manifests an earlier image wrote.
+  Rolling back to the previous image is safe: it ignores the index, and the next
+  upgrade re-indexes whatever it changed. A body that does not decode is left
+  unindexed and GC still reads it, so GC fails closed as before. See
+  `docs/dev/athenaeum-operations.md` (upgrade section).
+
+- An exception no route anticipated is now caught and answered `500` with the
+  JSON body `{"error": "internal error"}`, and the server logs only its type
+  (`Athenaeum request failed unexpectedly (<Type>)`). Left to escape, shelf
+  logged the exception's text and stack, which for a SQLite error includes the
+  failing statement with its parameters (store identifier, epoch, device ID,
+  etag) and for a file error the blob path. The `/heartbeat` probe is covered
+  too and stays non-200 when it fails. An error inside a streamed
+  `POST /v1/blobs/batch` response, after its headers are sent, cannot become a
+  `500`: it is logged by type and the stream ends early, which the client
+  treats as an incomplete response.
+
+- A manifest `PUT` for a store that was deleted or reaped between the request's
+  store lookup and the write is answered with a `404` that counts as a failed
+  resolution (§5.4), instead of `409`. `409` on a manifest `PUT` now means only
+  a stale epoch, the one `409` that tells a client its store was reset under it
+  (sync spec §7.1); a store that no longer exists is `404`, as it already was on
+  the blob routes. No configuration or schema change.
+
 - The per-IP request and failed-resolution limits now count an IPv6 client by
   its /64 instead of its full address. A single IPv6 subscriber can present 2^64
   addresses inside its delegated /64, so each used to get a fresh bucket, the
