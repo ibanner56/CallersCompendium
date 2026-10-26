@@ -36,7 +36,8 @@ const Duration kUndoSnackBarDuration = Duration(seconds: 6);
 /// `MediaQuery.accessibleNavigationOf(context)`) and [undoLabel] (via
 /// `AppLocalizations.of(context).commonUndo`) before that gap.
 ///
-/// [key] is forwarded to the [SnackBar] so existing widget-test keys are kept.
+/// [key] is forwarded to the [SnackBar] and [actionKey] to its
+/// [SnackBarAction], so existing widget-test keys are kept.
 ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   ScaffoldMessengerState messenger, {
   required String message,
@@ -44,6 +45,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   required VoidCallback onUndo,
   required bool accessibleNavigation,
   Key? key,
+  Key? actionKey,
   Duration duration = kUndoSnackBarDuration,
 }) {
   messenger.clearSnackBars();
@@ -54,7 +56,11 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
       behavior: SnackBarBehavior.floating,
       duration: duration,
       persist: accessibleNavigation,
-      action: SnackBarAction(label: undoLabel, onPressed: onUndo),
+      action: SnackBarAction(
+        key: actionKey,
+        label: undoLabel,
+        onPressed: onUndo,
+      ),
     ),
   );
 }

@@ -136,11 +136,16 @@ void main() {
   });
 
   // Four guards, four tests, and one test per guard is not pedantry:
-  // `snapshotCandidates()` delegates straight to `snapshot()`, so asserting on
+  // `snapshotCandidates()` delegated straight to `snapshot()`, so asserting on
   // both only ever exercised the `snapshot()` guard and the other three could
   // be deleted with the suite still green. Each test below drives its own path
   // through a public entry point that reaches that guard and no other, so
   // removing one guard reds exactly one named test.
+  //
+  // A fifth site, added since (#1909), is the apply guard's
+  // `currentCandidates()`: it withholds an unreadable dance so its hash matches
+  // the snapshot's. It is covered, for both columns, by the every-kind parity
+  // test in `sync_apply_guard_test.dart` rather than by a test here.
   //
   // Three of the four are outbound publication: `snapshot()`, `_danceDedupePlan`
   // and `_danceCandidate`. Their shared hazard is that `tunesRaw` is dropped by

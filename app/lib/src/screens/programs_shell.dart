@@ -137,7 +137,7 @@ class _EmptyEditorPane extends StatelessWidget {
             Icon(
               Icons.event_note_outlined,
               size: 64,
-              color: Theme.of(context).colorScheme.outlineVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(

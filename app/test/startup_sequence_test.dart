@@ -1365,7 +1365,7 @@ void main() {
 
       await tester.tap(find.text('Reset Only'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Reset Only'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Reset Only'));
       await tester.pumpAndSettle();
 
       expect(find.byType(AppShell), findsOneWidget);
@@ -1898,7 +1898,7 @@ void main() {
     );
     await tester.tap(find.text('Reset Only'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, 'Reset Only'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Reset Only'));
     await tester.pumpAndSettle();
 
     expect(find.text('Reset failed'), findsOneWidget);

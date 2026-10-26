@@ -320,6 +320,14 @@ class AppShellState extends State<AppShell> {
                   selectedIndex: _guideSelected ? null : nav.indexOf(_current),
                   onDestinationSelected: _onSelect,
                   labelType: NavigationRailLabelType.all,
+                  // On a short window (a landscape phone, or a desktop window
+                  // near its minimum height) the rail's contents are taller
+                  // than the screen. Scroll the brand, search and destinations
+                  // together, and keep Guide pinned to the bottom, rather than
+                  // overflowing and clipping it.
+                  scrollable: true,
+                  leadingAtTop: false,
+                  trailingAtBottom: true,
                   leading: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Column(
@@ -351,18 +359,16 @@ class AppShellState extends State<AppShell> {
                   // Bottom-aligned Help affordance: the natural home for the
                   // "User guide" destination on wide layouts. It reads as
                   // selected while the guide is showing.
-                  trailing: Expanded(
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: _RailHelpButton(
-                          onPressed: _openGuide,
-                          selected: _guideSelected,
-                          label: _destinationLabel(l10n, _Destination.guide),
-                          tooltip: l10n.navGuideTooltip,
-                        ),
-                      ),
+                  trailing: Padding(
+                    padding: const EdgeInsets.only(
+                      top: AppSpacing.xs,
+                      bottom: AppSpacing.sm,
+                    ),
+                    child: _RailHelpButton(
+                      onPressed: _openGuide,
+                      selected: _guideSelected,
+                      label: _destinationLabel(l10n, _Destination.guide),
+                      tooltip: l10n.navGuideTooltip,
                     ),
                   ),
                 ),

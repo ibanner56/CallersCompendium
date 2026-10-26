@@ -466,7 +466,7 @@ class _PlaintextProgramImportScreenState
           l10n.importTitleListEmptyHint,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.outline,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       );
@@ -539,7 +539,7 @@ class _PlaintextProgramImportScreenState
       ),
       PlaintextLineResolution.unmatched => (
         Icons.sticky_note_2_outlined,
-        scheme.outline,
+        scheme.onSurfaceVariant,
         l10n.importPlaintextUnmatched,
       ),
     };

@@ -18,6 +18,7 @@ import '../../glossary/custom_figures.dart';
 import '../../glossary/user_figure_defaults.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/destructive_button_style.dart';
 import 'compound_editor_screen.dart';
 import 'user_figure_switch_screen.dart';
 
@@ -206,6 +207,9 @@ class _GlossaryCustomFigureDetailState
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
+            style: destructiveFilledButtonStyle(
+              Theme.of(dialogContext).colorScheme,
+            ),
             key: const ValueKey('glossary-custom-delete-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.commonDelete),
