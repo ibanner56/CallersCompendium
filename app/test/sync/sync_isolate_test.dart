@@ -1224,6 +1224,44 @@ void main() {
     expect(appliedKindCalls, hasLength(1));
   });
 
+  test('a worker that dies of an uncaught error reports every kind, once '
+      '(#1913)', () async {
+    // The pass's own `try` catches what the pass throws; an error from a timer
+    // or an unawaited future in the worker escapes it, and `errorsAreFatal`
+    // ends the worker with no terminal message. What it had committed is then
+    // as unknown as for a killed worker, so the same fallback must run, and
+    // only once although both the error and the exit port hear of the death.
+    final appliedKindCalls = <Set<SyncRecordKind>>[];
+    final operation = IsolatedSyncPassOperation(
+      databasePath: 'unused',
+      endpoint: Uri.parse('http://127.0.0.1:1'),
+      syncId: 'alpha-beta-gamma-delta',
+      deviceId: 'device-a',
+      onAppliedKinds: appliedKindCalls.add,
+      workerEntryPoint: _crashWithUncaughtError,
+    );
+
+    await expectLater(
+      operation.call(),
+      throwsA(
+        isA<SyncIsolateCrashed>()
+            .having(
+              (error) => error.message,
+              'message',
+              contains('uncaught in the worker'),
+            )
+            .having(
+              (error) => syncAppliedKindsForError(error),
+              'applied kinds',
+              SyncRecordKind.values.toSet(),
+            ),
+      ),
+    );
+    // Give a late exit-port message the chance to report a second time.
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(appliedKindCalls, [SyncRecordKind.values.toSet()]);
+  });
+
   test('terminating during apply leaves an atomic database state', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-',
@@ -1360,6 +1398,12 @@ void main() {
     );
     expect(requests, contains('GET /v1/manifests/peer'));
   });
+}
+
+/// A worker entry point that dies the way a real worker's stray async error
+/// would: thrown outside any `try`, after the entry point has returned.
+void _crashWithUncaughtError(Object? request) {
+  Timer.run(() => throw StateError('uncaught in the worker'));
 }
 
 SyncRecordBlob _setting(String id, String value, {int seconds = 0}) {

@@ -294,8 +294,9 @@ class SyncController extends ChangeNotifier {
   /// have applied records before it stopped, and the database holds them
   /// either way. A pass that threw does too when its error says what it had
   /// applied (`syncAppliedKindsForError`): the worker isolate reports the
-  /// kinds it committed before the throw, and an interrupted worker reports
-  /// every kind because what it committed is unknown (#1913). A later pass
+  /// kinds it committed before the throw, and a worker that dies without
+  /// reporting, killed or of an uncaught error, reports every kind because
+  /// what it committed is unknown (#1913). A later pass
   /// cannot stand in for this: the rows already match the peers, so it
   /// applies nothing and reports nothing. Not awaited: the reload is the
   /// app's work, not the pass's.

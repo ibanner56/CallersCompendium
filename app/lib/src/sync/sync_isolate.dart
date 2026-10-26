@@ -4,6 +4,7 @@ import 'dart:isolate';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'sync_coordinator.dart';
 import 'sync_failure.dart';
@@ -63,6 +64,21 @@ final class SyncIsolateInterrupted
   String toString() => 'Sync isolate terminated before returning a result';
 }
 
+/// Raised when the sync worker dies of an uncaught error before it returns a
+/// result: an error thrown outside the pass's own `try`, such as from a timer
+/// or an unawaited future, which `errorsAreFatal` turns into the worker's end.
+///
+/// Still a [StateError], as this path threw before, but like
+/// [SyncIsolateInterrupted] nothing crossed the port to say what the worker had
+/// committed, so [appliedKinds] is every kind (#1913).
+final class SyncIsolateCrashed extends StateError
+    implements SyncAppliedBeforeThrow {
+  SyncIsolateCrashed(super.message);
+
+  @override
+  Set<SyncRecordKind> get appliedKinds => SyncRecordKind.values.toSet();
+}
+
 /// A running pass that the caller can terminate at an isolate boundary.
 final class IsolatedSyncPassHandle {
   const IsolatedSyncPassHandle._(this.result, this._kill);
@@ -91,6 +107,7 @@ final class IsolatedSyncPassOperation {
     this.beforeTerminalAcknowledgement,
     this.onAppliedKinds,
     SyncPeerManifestCache? peerManifestCache,
+    @visibleForTesting this.workerEntryPoint,
   }) : peerManifestCache = peerManifestCache ?? SyncPeerManifestCache();
   final String databasePath;
   final Uri endpoint;
@@ -99,6 +116,12 @@ final class IsolatedSyncPassOperation {
   final Future<void> Function()? beforeTerminalAcknowledgement;
   final void Function(Set<SyncRecordKind> kinds)? onAppliedKinds;
   final SyncPeerManifestCache peerManifestCache;
+
+  /// Replaces the worker's entry point, so a test can make the worker die in
+  /// ways the real pass catches; it receives the same request the real
+  /// worker would. Must be a top-level or static function.
+  @visibleForTesting
+  final void Function(Object? request)? workerEntryPoint;
 
   Future<SyncPassResult> call({SyncStoreResult? initialStore}) async {
     final handle = await start(initialStore: initialStore);
@@ -247,17 +270,28 @@ final class IsolatedSyncPassOperation {
       }
     });
     errorSubscription = errorPort.listen((message) {
+      if (finished) return;
       final values = message is List<Object?> ? message : const <Object?>[];
       final error = values.isNotEmpty ? values.first : null;
       final stack = values.length > 1 ? values[1] : null;
+      final crashed = SyncIsolateCrashed(
+        error is String ? error : 'sync isolate failed',
+      );
+      // The worker dies of this without posting a terminal message, exactly
+      // as an interrupted one does, so the same every-kind report applies.
+      // The error port is heard before the exit port, and completing here
+      // cancels the exit listener, so this is the only report for the death.
+      if (!terminalMessageReceived) {
+        onAppliedKinds?.call(crashed.appliedKinds);
+      }
       completeError(
-        StateError(error is String ? error : 'sync isolate failed'),
+        crashed,
         stack is String ? StackTrace.fromString(stack) : null,
       );
     });
 
-    final isolate = await Isolate.spawn<_SyncPassRequest>(
-      _runSyncPassWorker,
+    final isolate = await Isolate.spawn<Object?>(
+      workerEntryPoint ?? _runSyncPassWorkerEntry,
       _SyncPassRequest(
         databasePath: databasePath,
         endpoint: endpoint.toString(),
@@ -300,6 +334,9 @@ final class _SyncPassRequest {
   final Map<String, Object?> peerManifestCache;
   final Map<String, Object?>? initialStore;
 }
+
+void _runSyncPassWorkerEntry(Object? request) =>
+    unawaited(_runSyncPassWorker(request! as _SyncPassRequest));
 
 Future<void> _runSyncPassWorker(_SyncPassRequest request) async {
   final acknowledgementPort = ReceivePort();
