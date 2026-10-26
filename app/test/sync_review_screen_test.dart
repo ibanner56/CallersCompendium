@@ -77,6 +77,20 @@ Future<void> _seedActionable(CompendiumRepositories repos) async {
   );
 }
 
+/// A second tombstone decision alongside [_seedActionable]'s, under its own
+/// name so the two rows are independent.
+Future<void> _seedSecondActionable(CompendiumRepositories repos) async {
+  final _ = await repos.choreographers.upsert(
+    Choreographer(id: 'local-caller', name: 'Other author'),
+    at: _stamp,
+  );
+  await _enqueue(
+    repos,
+    localId: 'local-caller',
+    candidate: _tombstone(id: 'peer-caller', name: 'Other author'),
+  );
+}
+
 Future<void> _seedDanceAmbiguity(CompendiumRepositories repos) async {
   await repos.dances.create(
     Dance(
@@ -148,13 +162,18 @@ Future<void> _pumpScreen(
   WidgetTester tester,
   CompendiumRepositories repos, {
   SyncWriterCallback? runWrite,
+  SyncWriterCallback? runRecordWrite,
 }) async {
   Widget screen = RepositoriesScope(
     repositories: repos,
     child: const SyncReviewScreen(),
   );
-  if (runWrite != null) {
-    screen = SyncWriterLifecycleScope(runWrite: runWrite, child: screen);
+  if (runWrite != null || runRecordWrite != null) {
+    screen = SyncWriterLifecycleScope(
+      runWrite: runWrite,
+      runRecordWrite: runRecordWrite,
+      child: screen,
+    );
   }
   await tester.pumpWidget(
     MaterialApp(
@@ -199,15 +218,23 @@ void main() {
   testWidgets('runs a resolve inside the sync writer boundary', (tester) async {
     final repos = openTestRepositories();
     await _seedActionable(repos);
-    // Models `_runSyncWriter`: the operation starts only once the boundary
-    // admits it, and the boundary does not return until it has finished.
+    // Models `_runSyncRecordWriter`: the operation starts only once the
+    // boundary admits it, and the boundary does not return until it has
+    // finished.
     final admit = Completer<void>();
     var calls = 0;
+    var rebuildingWrites = 0;
     var operationRan = false;
     await _pumpScreen(
       tester,
       repos,
-      runWrite: <T>(operation) async {
+      // The rebuilding boundary would start a full pass per resolve and drop
+      // the coordinator's session state; a resolve must not use it.
+      runWrite: <T>(operation) {
+        rebuildingWrites++;
+        return operation();
+      },
+      runRecordWrite: <T>(operation) async {
         calls++;
         await admit.future;
         operationRan = true;
@@ -233,9 +260,72 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(operationRan, isTrue);
+    expect(rebuildingWrites, 0);
     expect(await repos.syncLocal.listReviewQueue(), isEmpty);
     expect(find.byKey(const ValueKey('sync-review-empty')), findsOneWidget);
   });
+
+  testWidgets(
+    'disables every item while any resolve is waiting at the boundary',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _seedActionable(repos);
+      await _seedSecondActionable(repos);
+      // Holds the first resolve at the boundary, as a pass still in flight
+      // does in the app.
+      final admit = Completer<void>();
+      var calls = 0;
+      await _pumpScreen(
+        tester,
+        repos,
+        runRecordWrite: <T>(operation) async {
+          calls++;
+          await admit.future;
+          return operation();
+        },
+      );
+      const first = 'choreographer:local-author:peer-author';
+      const second = 'choreographer:local-caller:peer-caller';
+      VoidCallback? onPressed(String action, String key) => tester
+          .widget<ButtonStyleButton>(
+            find.byKey(ValueKey('sync-review-$action-$key')),
+          )
+          .onPressed;
+
+      await tester.tap(find.byKey(const ValueKey('sync-review-merge-$first')));
+      await tester.pump();
+      expect(calls, 1);
+
+      for (final key in [first, second]) {
+        for (final action in ['merge', 'keep-both']) {
+          expect(
+            onPressed(action, key),
+            isNull,
+            reason: '$action on $key while the first resolve waits',
+          );
+        }
+      }
+
+      // A tap on the other item must neither queue a second resolve nor take
+      // over the busy state (which re-enabled the first item's buttons).
+      await tester.tap(
+        find.byKey(const ValueKey('sync-review-merge-$second')),
+        warnIfMissed: false,
+      );
+      await tester.pump();
+      expect(calls, 1);
+      expect(onPressed('merge', first), isNull);
+
+      admit.complete();
+      await tester.pumpAndSettle();
+
+      expect(calls, 1);
+      final remaining = await repos.syncLocal.listReviewQueue();
+      expect(remaining.map((row) => row.recordId), ['local-caller']);
+      expect(onPressed('merge', second), isNotNull);
+      expect(onPressed('keep-both', second), isNotNull);
+    },
+  );
 
   testWidgets('validates and completes a Keep both decision', (tester) async {
     final repos = openTestRepositories();

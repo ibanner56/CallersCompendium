@@ -1571,6 +1571,27 @@ class SyncCoordinator {
     _paused = true;
   }
 
+  /// Completes once no pass is running: the in-flight one, any pass queued
+  /// behind it, and a replacement confirmation. Unlike [dispose] it leaves
+  /// this coordinator usable, with its session state (a declined
+  /// replacement's pause, the peer-manifest cache) intact.
+  ///
+  /// It does not stop new work, so a caller that needs this to stay true
+  /// must keep triggers away from the coordinator while it waits — the app's
+  /// record writer does so by un-publishing it first. A pass that throws
+  /// still counts as finished; [_watch] has already logged it.
+  Future<void> whenIdle() async {
+    while (true) {
+      final inFlight = _inFlight;
+      if (inFlight == null) return;
+      try {
+        await inFlight;
+      } on Object {
+        // Logged by [_watch]; only the pass's end matters here.
+      }
+    }
+  }
+
   /// Releases the event stream and the owned HTTP client, if any.
   Future<void> dispose() async {
     if (_disposed) return;

@@ -683,12 +683,20 @@ class _CompendiumAppState extends State<CompendiumApp>
   late final AppLifecycleListener _syncLifecycleListener;
   StreamSubscription<Set<TableUpdate>>? _syncChangeSubscription;
   SyncCoordinator? _syncCoordinator;
+
+  /// The coordinator a record writer ([_runSyncRecordWriter]) has taken out
+  /// of [_syncCoordinator] for the span of its operation, so no trigger can
+  /// reach it. [_disposeSyncCoordinator] disposes it like the live one: a
+  /// reconfigure or shutdown during the write supersedes it, and the writer
+  /// then rebuilds instead of putting it back.
+  SyncCoordinator? _heldSyncCoordinator;
   Future<void>? _syncCoordinatorDisposeFuture;
   Future<void>? _syncWriterTail;
 
-  /// `true` for the span between a writer boundary ([_runSyncWriter]) claiming
-  /// exclusivity (just before disposing whatever coordinator exists) and its
-  /// own `operation()` returning. Cleared in the writer's `finally` *before*
+  /// `true` for the span between a writer boundary ([_runSyncWriter] or
+  /// [_runSyncRecordWriter]) claiming exclusivity (just before disposing — or,
+  /// for a record writer, holding — whatever coordinator exists) and its own
+  /// `operation()` returning. Cleared in the writer's `finally` *before*
   /// that same `finally` calls the writer's post-operation reconfigure, not
   /// after that reconfigure completes: the hazard this flag closes is a sync
   /// pass running concurrently with the writer's `operation()` itself (e.g. a
@@ -699,7 +707,9 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// A sync reconfiguration ([_configureSyncCoordinatorNow]) that resolves its
   /// factory while this is true must not install (or start a pass on) the
   /// coordinator it just built: the writer already owns exclusivity, and the
-  /// writer's own `finally` reconfigures once it is safe. Without this check,
+  /// writer's own `finally` reconfigures once it is safe (a record writer
+  /// does too: the reconfigure's dispose took its held coordinator, so it has
+  /// none to put back). Without this check,
   /// a reconfigure still awaiting `factory(...)` when a writer starts finds
   /// nothing to dispose (the coordinator isn't installed yet), so the
   /// writer's operation (e.g. a backup restore) can run concurrently with a
@@ -900,6 +910,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     unawaited(_syncChangeSubscription?.cancel());
     _syncController.dispose();
     _syncCoordinator = null;
+    _heldSyncCoordinator = null;
 
     final appData = widget.appDataFactory();
     _windowService =
@@ -918,10 +929,13 @@ class _CompendiumAppState extends State<CompendiumApp>
     if (existing != null) return existing;
 
     final coordinator = _syncCoordinator;
+    final held = _heldSyncCoordinator;
     _syncCoordinator = null;
+    _heldSyncCoordinator = null;
     _syncController.attachCoordinator(null);
     final future = Future<void>.sync(() async {
       await coordinator?.dispose();
+      await held?.dispose();
     });
     _syncCoordinatorDisposeFuture = future;
     future
@@ -930,7 +944,32 @@ class _CompendiumAppState extends State<CompendiumApp>
     return future;
   }
 
-  Future<T> _runSyncWriter<T>(Future<T> Function() operation) async {
+  /// The writer boundary for a restore or an import: disposes the
+  /// coordinator, awaiting its in-flight pass, runs [operation], then rebuilds
+  /// the coordinator from current settings with an app-start pass (spec §6.11).
+  Future<T> _runSyncWriter<T>(Future<T> Function() operation) =>
+      _runSyncWriterBoundary(operation, keepCoordinator: false);
+
+  /// The writer boundary for a write that changes records the way an ordinary
+  /// local edit does — a sync review-queue resolution — rather than replacing
+  /// the library or the sync configuration.
+  ///
+  /// It is serialized with every other writer and awaited by shutdown, and the
+  /// operation still starts only after the in-flight pass has finished, with
+  /// no trigger able to reach the coordinator until it returns. But the same
+  /// coordinator is put back afterwards, without a pass: rebuilding it would
+  /// start a full pass the next resolve then had to wait for, and would
+  /// discard its session state, so a declined "replace the collection" prompt
+  /// came back. The write's own table events schedule the usual debounced
+  /// pass. If a reconfigure or shutdown disposed the held coordinator
+  /// meanwhile, this falls back to [_runSyncWriter]'s rebuild.
+  Future<T> _runSyncRecordWriter<T>(Future<T> Function() operation) =>
+      _runSyncWriterBoundary(operation, keepCoordinator: true);
+
+  Future<T> _runSyncWriterBoundary<T>(
+    Future<T> Function() operation, {
+    required bool keepCoordinator,
+  }) async {
     final prior = _syncWriterTail;
     final release = Completer<void>();
     final tail = release.future;
@@ -945,8 +984,13 @@ class _CompendiumAppState extends State<CompendiumApp>
       // returns — it must find `_syncWriterExclusive` true and back off. See
       // the field doc for the race this closes.
       _syncWriterExclusive = true;
+      SyncCoordinator? held;
       try {
-        await _disposeSyncCoordinator();
+        if (keepCoordinator) {
+          held = await _holdSyncCoordinator();
+        } else {
+          await _disposeSyncCoordinator();
+        }
         if (_shutdownRequested) {
           throw StateError('cannot start a database writer during shutdown');
         }
@@ -956,13 +1000,37 @@ class _CompendiumAppState extends State<CompendiumApp>
         // one racing in from outside — is free to install its coordinator.
         _syncWriterExclusive = false;
         if (!_shutdownRequested && mounted) {
-          await _configureSyncCoordinator();
+          if (held != null && identical(_heldSyncCoordinator, held)) {
+            // Still held, so nothing disposed it: put it back as it was. Its
+            // replacement-required subscription was never cancelled.
+            _heldSyncCoordinator = null;
+            _syncCoordinator = held;
+          } else {
+            await _configureSyncCoordinator();
+          }
         }
       }
     } finally {
       if (!release.isCompleted) release.complete();
       if (identical(_syncWriterTail, tail)) _syncWriterTail = null;
     }
+  }
+
+  /// Takes the live coordinator out of reach and waits for its passes to
+  /// finish, for [_runSyncRecordWriter]. Returns it, or `null` when none is
+  /// installed. Called with [_syncWriterExclusive] already set, so no
+  /// reconfigure can install another while this waits.
+  Future<SyncCoordinator?> _holdSyncCoordinator() async {
+    final disposing = _syncCoordinatorDisposeFuture;
+    if (disposing != null) await disposing;
+    final coordinator = _syncCoordinator;
+    if (coordinator == null) return null;
+    // Only un-published, not detached from the controller: a pass still
+    // running may yet report that the collection needs replacing.
+    _syncCoordinator = null;
+    _heldSyncCoordinator = coordinator;
+    await coordinator.whenIdle();
+    return coordinator;
   }
 
   void _clearSyncCoordinatorDisposeFuture(Future<void> future) {
@@ -1616,7 +1684,8 @@ class _CompendiumAppState extends State<CompendiumApp>
       return;
     }
     if (!mounted || _shutdownRequested || _syncWriterExclusive) {
-      // A writer boundary (backup restore / shared-archive import) claimed
+      // A writer boundary (backup restore / shared-archive import / sync
+      // review-queue resolution) claimed
       // exclusivity while `factory(...)` above was still resolving. Installing
       // this coordinator now — even without starting a pass — would let a
       // concurrent trigger (e.g. "Sync Now") reach it mid-write. Dispose it
@@ -2398,6 +2467,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     ),
     (child) => SyncWriterLifecycleScope(
       runWrite: _runSyncWriter,
+      runRecordWrite: _runSyncRecordWriter,
       onRestored: reloadFromSettings,
       child: child,
     ),

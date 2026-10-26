@@ -23,6 +23,12 @@ class SyncReviewScreen extends StatefulWidget {
 class _SyncReviewScreenState extends State<SyncReviewScreen> {
   late SyncReviewQueueResolver _resolver;
   Future<List<SyncReviewQueueItem>>? _future;
+
+  /// The item whose resolve is in flight, for its progress bar. While it is
+  /// set every item's actions are disabled, not just this one's: resolves
+  /// queue behind each other at the writer boundary, so a second tap would
+  /// otherwise re-enable the first item (and let it be submitted twice) and
+  /// have its `finally` clear the busy state of a resolve still waiting.
   String? _busyKey;
 
   @override
@@ -110,6 +116,7 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
     SyncReviewQueueItem item,
     SyncReviewAction action,
   ) async {
+    if (_busyKey != null) return;
     if (action == SyncReviewAction.merge && item.mergeDiscardsContactFields) {
       if (!await _confirmContactFieldLoss(context)) return;
       if (!mounted) return;
@@ -130,8 +137,12 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
       // runs on whatever boundary is current when the tap is committed. Pair
       // resolutions (tombstone, rename collision, dance ambiguity) only touch
       // natural-key records and dances, never `setting`, so unlike the
-      // conflict sheet there is no `onRestored` refresh to call.
-      final runWrite = SyncWriterLifecycleScope.maybeOf(context)?.runWrite;
+      // conflict sheet there is no `onRestored` refresh to call — and nothing
+      // the coordinator was built from changes, so the record boundary keeps
+      // it rather than rebuilding it with a full pass per resolve.
+      final runWrite = SyncWriterLifecycleScope.maybeOf(
+        context,
+      )?.runRecordWrite;
       Future<void> write() => _resolver.resolve(
         item: item,
         action: action,
@@ -204,6 +215,7 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
     final l10n = AppLocalizations.of(context);
     final key = _itemKey(item);
     final busy = _busyKey == key;
+    final anyBusy = _busyKey != null;
     final actionable = item.isActionable;
     return Card(
       key: ValueKey('sync-review-item-$key'),
@@ -253,14 +265,14 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
                   children: [
                     FilledButton.tonal(
                       key: ValueKey('sync-review-merge-$key'),
-                      onPressed: busy
+                      onPressed: anyBusy
                           ? null
                           : () => _resolve(item, SyncReviewAction.merge),
                       child: Text(l10n.syncReviewMergeAction),
                     ),
                     OutlinedButton(
                       key: ValueKey('sync-review-keep-both-$key'),
-                      onPressed: busy
+                      onPressed: anyBusy
                           ? null
                           : () => _resolve(item, SyncReviewAction.keepBoth),
                       child: Text(l10n.syncReviewKeepBothAction),

@@ -2380,6 +2380,43 @@ void main() {
     expect(transport.calls, isEmpty);
   });
 
+  test(
+    'whenIdle waits for a queued pass and leaves the coordinator usable',
+    () async {
+      final gates = [Completer<void>(), Completer<void>()];
+      var started = 0;
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: _FakeTransport(),
+        passOperation: ({SyncStoreResult? initialStore}) async {
+          final index = started++;
+          if (index < gates.length) await gates[index].future;
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+      addTearDown(coordinator.dispose);
+
+      unawaited(coordinator.syncNow());
+      // Queued behind the first, as a debounced edit landing mid-pass is.
+      unawaited(coordinator.onDebouncedChange());
+      var idle = false;
+      unawaited(coordinator.whenIdle().then((_) => idle = true));
+
+      gates[0].complete();
+      await pumpEventQueue();
+      expect(started, 2, reason: 'the queued pass started');
+      expect(idle, isFalse, reason: 'and is still running');
+
+      gates[1].complete();
+      await pumpEventQueue();
+      expect(idle, isTrue);
+      expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+      expect(started, 3);
+    },
+  );
+
   test('an isolated pass result still emits replacement once', () async {
     final events = <SyncReplacementRequiredEvent>[];
     final coordinator = SyncCoordinator(
