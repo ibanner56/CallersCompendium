@@ -334,8 +334,17 @@ declines the collapse.
   (`parseFigureLinesFanOut`: ContraDB > TCB > CC) — every line with content
   after scrubbing is retained: recognised moves structure into taxonomy
   figures, the rest as `importGap` customs (parse-never-fails); a line that is
-  empty after scrubbing yields nothing (nothing to store). Sets → Programs; user
-  fields → typed custom fields (below).
+  empty after scrubbing yields nothing (nothing to store). One CC-only retry sits
+  on top (#1908): a line the fan-out misses that carries exactly one
+  `left-hand`/`right-hand` is read again with the bare side, and the reading is
+  kept only when it is a single figure with no note whose `hand` is that side
+  (`Left-hand allemande` → allemande, hand left; `Left-hand circle` stays
+  custom). A token that qualifies the next word is not a hand and is not
+  retried: a diagonal (`on right-hand diagonal`) or a dancer by position
+  (`your right-hand lady`, `left-hand neighbor`). It lives in
+  `mapCallersCompanionDance`, not on the CC front-end, because free-text entry,
+  call-button seeding and the reparse upgrade fan out across that front-end
+  too. Sets → Programs; user fields → typed custom fields (below).
 - **`UserDefined_1..3` → text custom fields (#1890).** Each non-empty column
   becomes a `CustomFieldValue` on the dance; the column's `_Name` label (or
   `User field N` when blank) becomes `CustomFieldDef.label`. The mapper is pure

@@ -367,4 +367,119 @@ A1 (8) Do the thing
       expect(mapping.dance.callingNotes, contains('Music: any good reels'));
     });
   });
+
+  group('CallersCompanionTextAdapter — hand-prefixed lines (#1908)', () {
+    late CallersCompanionTextAdapter adapter;
+
+    setUp(() => adapter = CallersCompanionTextAdapter());
+
+    Future<List<Figure>> figuresFor(String bodyLine) async {
+      final drafts = await _importAll(
+        adapter,
+        'Hand Test\nType: Contra\n\nA1   $bodyLine\n',
+      );
+      return figuresOf(drafts.single.dance);
+    }
+
+    test('"Left-hand star" / "Right hand star 3/4" import as stars', () async {
+      final left = (await figuresFor('(8) Left-hand star')).single;
+      expect(left.move, 'star');
+      expect(left.params, {'hand': 'left', 'beats': 8});
+      final right = (await figuresFor('(6) Right hand star 3/4')).single;
+      expect(right.move, 'star');
+      expect(right.params, {'hand': 'right', 'places': 3, 'beats': 6});
+    });
+
+    test(
+      'another move with a hyphenated hand reads as its bare side',
+      () async {
+        final cases = <String, ({String move, Map<String, Object?> params})>{
+          '(8) Left-hand allemande': (
+            move: 'allemande',
+            params: {'who': 'neighbors', 'hand': 'left', 'beats': 8},
+          ),
+          '(8) Neighbors left-hand allemande 1 1/2': (
+            move: 'allemande',
+            params: {
+              'who': 'neighbors',
+              'hand': 'left',
+              'travel': 1.5,
+              'beats': 8,
+            },
+          ),
+          '(2) Right-hand pull by': (
+            move: 'pull_by',
+            params: {'hand': 'right', 'beats': 2},
+          ),
+          '(8) Left-hand revolving door': (
+            move: 'revolving_door',
+            params: {'hand': 'left', 'beats': 8},
+          ),
+          // A compound prefix on a line that reads as one figure keeps its
+          // total there, as for any other single-figure line.
+          '(4,4) Left-hand allemande': (
+            move: 'allemande',
+            params: {'who': 'neighbors', 'hand': 'left', 'beats': 8},
+          ),
+        };
+        for (final MapEntry(key: line, value: want) in cases.entries) {
+          final f = (await figuresFor(line)).single;
+          expect(f.move, want.move, reason: line);
+          expect(f.params, want.params, reason: line);
+          expect(f.note, isNull, reason: line);
+        }
+      },
+    );
+
+    test('a side the reading does not bind to a hand stays custom', () async {
+      for (final line in [
+        // Read as the circle's direction, not a hand.
+        'Left-hand circle',
+        // star promenade eats the side and carries no hand (taxonomy v26).
+        'Left-hand star promenade',
+        // A diagonal, not a hand; chain's own hand comes from its role.
+        'On right-hand diagonal ladies chain',
+        // A dancer named by position (square dance's "right-hand lady"), not
+        // a hand: read with the bare side these become "role2s allemande
+        // right", which names a role and a hand the line does not state.
+        'Allemande your right-hand lady',
+        'Right-hand lady allemande',
+        'Pull by the left-hand man',
+        'Allemande right-hand lark',
+        'Allemande left-hand neighbor',
+        // The parser drops the comma, so this reads as the line above.
+        'Allemande your right-hand, lady',
+        // Two hands. The retry's one-token rule does not decide this line:
+        // whichever token is rewritten, the other is left over. No line was
+        // found that the rule alone declines.
+        'Left-hand allemande and right-hand star',
+        // The retry reads "once" and leaves "and a half" as a note in
+        // rewritten words.
+        'Partners allemande right-hand once and a half',
+      ]) {
+        final f = (await figuresFor('(8) $line')).single;
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.customOrigin, CustomOrigin.importGap, reason: line);
+      }
+    });
+
+    test('a retry that splits into several figures stays custom', () async {
+      // Read with the bare side, the TCB attempt splits this on `;` into a
+      // pull by and a swing; the retry keeps only a one-figure reading.
+      final f = (await figuresFor('(4,4) Right-hand pull by; swing')).single;
+      expect(f.isCustom, isTrue);
+      expect(f.params['text'], 'Right-hand pull by; swing');
+    });
+
+    test('a line that already structures keeps its own reading', () async {
+      // The fan-out reads this as a revolving door with "left-hand" as its
+      // note. Read again with the bare side it would take the hand, but the
+      // retry only re-reads lines the fan-out missed, so what a line imports
+      // as today does not change.
+      final f = (await figuresFor('(8) Revolving door left-hand')).single;
+      expect(f.move, 'revolving_door');
+      expect(f.params, {'beats': 8});
+      expect(f.note, 'left-hand');
+    });
+  });
 }

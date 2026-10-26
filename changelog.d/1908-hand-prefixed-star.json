@@ -1,0 +1,16 @@
+{
+  "id": "1908-hand-prefixed-star",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "\"Left-hand star\" and \"Right hand star\" (with or without a turn amount such as \"3/4\" or \"once\") are now read as a star left or star right when you type them or import them, instead of becoming a custom figure.",
+      "Caller's Companion imports also recognize a single move written with a hyphenated hand, such as \"Left-hand allemande\" or \"Right-hand pull by\". A line where that would be a guess stays a custom figure, for example \"Allemande your right-hand lady\", a line with more than one move, or one that would need a note. Dances you imported before this keep those lines as custom figures unless you import them again; for stars, \"Re-check custom figures\" in Settings also picks them up."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The shared figure parser's `star` recognizer reads a `left-hand`/`right-hand` token or a `left hand`/`right hand` pair as the star's hand.",
+      "`mapCallersCompanionDance` retries a body line the fan-out missed when it carries exactly one `left-hand`/`right-hand`, reading it with the bare side, and keeps the result only when it is a single noteless figure whose `hand` is that side. A token followed by a dancer word or `diagonal` is not retried."
+    ]
+  }
+}

@@ -249,7 +249,10 @@ Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
 /// "trusted-local" fast-path, so a typed line behaves identically to the same
 /// line arriving from an import — `;`-compounds split all-or-nothing (in the
 /// CallersBox/TCB attempt) and a top-level `||` builds a meanwhile container
-/// when it is well-formed (a malformed one stays whole-custom).
+/// when it is well-formed (a malformed one stays whole-custom). One exception
+/// runs the other way: Caller's Companion imports also retry a missed line
+/// with a hyphenated hand (`Left-hand allemande`, #1908), which typed text
+/// does not get.
 ///
 /// On top of that grammar, which follows how source sites write calls, free
 /// text reads what a caller types (#1826, `typed_figure_names.dart`): spoken
