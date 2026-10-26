@@ -198,6 +198,7 @@ void _selfJoin(String label, List<_Record> records, int sampleSize, int seed) {
       'unordered pairs: ${pairs.length}; already surfaced by the 0.72 fuzzy '
       'tier: $alreadyFuzzy; new to the user: ${pairs.length - alreadyFuzzy}',
     );
+  _printCommonBases(records);
   _printSample(
     pairs.map((p) => (byId[p.$1]!, byId[p.$2]!)).toList(),
     sampleSize,
@@ -241,6 +242,27 @@ void _cross(
       '$alreadyFuzzy; new to the user: ${pairs.length - alreadyFuzzy}',
     );
   _printSample(pairs, sampleSize, seed);
+}
+
+/// The core keys most shared by titles ending in a bracket. A base carried by
+/// many differently annotated titles may be a placeholder name (`New Dance
+/// (Velvet)`), whose bracket is the real title; see `_placeholderCoreTitles`
+/// in `dedupe.dart`. Bases already treated as placeholders keep their bracket
+/// in the key, so they no longer appear here.
+void _printCommonBases(List<_Record> records) {
+  final counts = <String, int>{};
+  for (final r in records) {
+    final title = r.title.trimRight();
+    if (title.isEmpty || !')]}'.contains(title[title.length - 1])) continue;
+    final key = dedupeCoreTitleKey(title);
+    if (key.isNotEmpty) counts.update(key, (n) => n + 1, ifAbsent: () => 1);
+  }
+  final top = counts.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  stdout.writeln(
+    'commonest core titles among titles ending in a bracket: '
+    '${top.take(20).map((e) => '${e.key} ${e.value}').join(', ')}',
+  );
 }
 
 void _printSample(List<(_Record, _Record)> pairs, int sampleSize, int seed) {

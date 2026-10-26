@@ -541,7 +541,9 @@ String normalizeTitle(String title) {
 /// Lowercased and diacritic-folded like [normalizeTitle], then:
 /// - trailing bracketed annotations set off by whitespace are removed —
 ///   `{variant}`, `(Imp Var)`, `[alt]`, up to [_maxTitleAnnotations] of them
-///   (`Trip(let)` is a word, not an annotation, and is kept);
+///   (`Trip(let)` is a word, not an annotation, and is kept) — **unless**
+///   what is left is a placeholder title ([_placeholderCoreTitles]): in
+///   `New Dance (Velvet)` the bracket is the dance's real name, so it stays;
 /// - a single leading `the`/`a`/`an` is removed when a space or hyphen and
 ///   then a **letter** follow it, so `A Fine Romance` loses it but the `A` of
 ///   `A-1 Reel` and `A 1 Reel` is kept;
@@ -559,15 +561,32 @@ String normalizeTitle(String title) {
 /// only proposes choices to a user, and is exempt by name in
 /// `tools/ci/check_sync_invariants.py` for that reason.
 String dedupeCoreTitleKey(String title) {
-  var s = _foldDiacritics(title.toLowerCase()).trim();
+  final full = _foldDiacritics(title.toLowerCase()).trim();
+  var s = full;
   for (var i = 0; i < _maxTitleAnnotations; i++) {
     final stripped = _stripTrailingAnnotation(s);
     if (stripped == null) break;
     s = stripped;
   }
-  s = s.replaceFirst(_coreLeadingArticleRe, '');
-  return s.replaceAll(_nonAlphanumericNoSpaceRe, '');
+  final core = _coreKeyOf(s);
+  return _placeholderCoreTitles.contains(core) && s != full
+      ? _coreKeyOf(full)
+      : core;
 }
+
+String _coreKeyOf(String folded) => folded
+    .replaceFirst(_coreLeadingArticleRe, '')
+    .replaceAll(_nonAlphanumericNoSpaceRe, '');
+
+/// Core keys of titles that name no dance, only a slot for one, so that a
+/// trailing bracket after them is the real name and must not be stripped
+/// (#1907; the maintainer chose this on the measurement below, as recorded in
+/// the #1907 pull request). Measured on the
+/// ContraDB catalogue (2026-10-26): one choreographer's `New Dance (…)` titles
+/// produced 55 of the 130 possible-match pairs and every false positive in a
+/// 60-pair hand-classified sample. Add an entry only with evidence of the same
+/// kind; `tool/measure_possible_matches.dart` lists the commonest bases.
+const Set<String> _placeholderCoreTitles = {'newdance'};
 
 final RegExp _nonAlphanumericNoSpaceRe = RegExp(r'[^a-z0-9]');
 

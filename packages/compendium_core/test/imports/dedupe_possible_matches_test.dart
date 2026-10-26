@@ -45,6 +45,16 @@ void main() {
       expect(dedupeCoreTitleKey('Reel(2)'), 'reel2');
     });
 
+    test('keeps the bracket when the rest is a placeholder title', () {
+      // ContraDB: one choreographer titles dances `New Dance (Real Name)`.
+      expect(dedupeCoreTitleKey('New Dance ( Velvet )'), 'newdancevelvet');
+      expect(
+        dedupeCoreTitleKey('New Dance (Velvet)'),
+        isNot(dedupeCoreTitleKey('New Dance      (    Embrace  )')),
+      );
+      expect(dedupeCoreTitleKey('New Dance'), 'newdance');
+    });
+
     test('carries no signal for annotation-only or non-Latin titles', () {
       expect(dedupeCoreTitleKey('{variant}'), '');
       expect(dedupeCoreTitleKey('(Imp Var)'), '');
@@ -201,6 +211,27 @@ void main() {
       ]);
       expect(
         index.possibleTitleMatches('(Imp Var)', const ['Chris Weiler']),
+        isEmpty,
+      );
+    });
+
+    test('does not pair placeholder-titled dances through their brackets', () {
+      final index = DedupeIndex([
+        DedupeEntry(
+          danceId: 'velvet',
+          title: 'New Dance ( Velvet )',
+          authorNames: const ['Don Flaherty'],
+        ),
+        DedupeEntry(
+          danceId: 'plain',
+          title: 'New Dance',
+          authorNames: const ['Don Flaherty'],
+        ),
+      ]);
+      expect(
+        index.possibleTitleMatches('New Dance (Embrace)', const [
+          'Don Flaherty',
+        ]),
         isEmpty,
       );
     });
