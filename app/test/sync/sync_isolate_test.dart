@@ -1536,8 +1536,6 @@ void main() {
   });
 }
 
-/// A worker entry point that dies the way a real worker's stray async error
-/// would: thrown outside any `try`, after the entry point has returned.
 /// Posts [message] as a worker's terminal message and waits, as the real
 /// worker does, for the acknowledgement.
 Future<void> _postTerminal(
@@ -1576,6 +1574,8 @@ void _failWithMalformedCache(Object? request) => unawaited(
   }),
 );
 
+/// A worker entry point that dies the way a real worker's stray async error
+/// would: thrown outside any `try`, after the entry point has returned.
 void _crashWithUncaughtError(Object? request) {
   Timer.run(() => throw StateError('uncaught in the worker'));
 }
