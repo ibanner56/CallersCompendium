@@ -678,6 +678,67 @@ void main() {
     expect(cache.blobBatchUnsupported, isFalse, reason: 'a new session');
   });
 
+  test('the main isolate refuses a malformed cache as decoding it did, without '
+      'decoding a manifest (#1934)', () {
+    final cache = SyncPeerManifestCache()
+      ..['peer'] = SyncPeerManifestCacheEntry(
+        epoch: 'epoch-1',
+        etag: '"peer-v1"',
+        manifest: SyncManifest(
+          deviceId: 'peer',
+          epoch: 'epoch-1',
+          writtenAt: DateTime.utc(2026, 7, 15, 12),
+          records: const {},
+        ),
+      )
+      ..rememberFetchedBlob('blob', [1, 2, 3]);
+    final message = cache.toMessage();
+    SyncPeerManifestCache.debugManifestBodiesDecoded = 0;
+    SyncPeerManifestCache.checkMessage(message);
+    SyncPeerManifestCache.checkMessage(null);
+    expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 0);
+
+    Map<String, Object?> replacing(String key, Object? value) => {
+      ...message,
+      key: value,
+    };
+    final malformed = <Object?>[
+      'not a map',
+      replacing('_entries', null),
+      replacing('_entries', {
+        'peer': {'epoch': 'epoch-1', 'etag': '"peer-v1"', 'manifest': 7},
+      }),
+      replacing('_rejectedHashes', [1]),
+      replacing('_publications', [
+        {'kind': 'noSuchKind', 'recordId': 'r', 'hash': 'h', 'pass': 1},
+      ]),
+      replacing('_peerPublications', {
+        'peer': [
+          {'writtenAt': 'yesterday', 'pass': 1},
+        ],
+      }),
+      replacing('_fetchedBlobs', {
+        'blob': [1, 2, 3],
+      }),
+      replacing('_passSequence', -1),
+      replacing('_publicationEpoch', 1),
+      replacing('_blobBatchUnsupported', 'no'),
+      replacing('_blobUploadBatchUnsupported', 'no'),
+      replacing('_ownManifest', {'hash': 'h', 'blobHashes': 'all'}),
+    ];
+    for (final candidate in malformed) {
+      expect(
+        () => SyncPeerManifestCache.fromMessage(candidate),
+        throwsFormatException,
+      );
+      expect(
+        () => SyncPeerManifestCache.checkMessage(candidate),
+        throwsFormatException,
+        reason: '$candidate',
+      );
+    }
+  });
+
   test('the session blob cache crosses the isolate and holds a byte cap', () {
     final cache = SyncPeerManifestCache();
     final small = List<int>.filled(16, 1);
@@ -1133,7 +1194,6 @@ void main() {
       },
     );
     var dropManifestPut = true;
-    final manifestEtags = <String?>[];
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
       await request.drain<void>();
@@ -1157,14 +1217,8 @@ void main() {
         request.response.write(jsonEncode({'missing': <String>[]}));
       } else if (request.method == 'GET' &&
           request.uri.path == '/v1/manifests/peer') {
-        final etag = request.headers.value(HttpHeaders.ifNoneMatchHeader);
-        manifestEtags.add(etag);
         request.response.headers.set(HttpHeaders.etagHeader, '"peer-v1"');
-        if (etag == '"peer-v1"') {
-          request.response.statusCode = HttpStatus.notModified;
-        } else {
-          request.response.write(encodeSyncManifest(peerManifest));
-        }
+        request.response.write(encodeSyncManifest(peerManifest));
       } else if (request.method == 'GET' &&
           request.uri.path == '/v1/blobs/$incomingHash') {
         request.response.add(encodeSyncRecordBlobUtf8(incoming));
@@ -1236,6 +1290,9 @@ void main() {
       isTrue,
     );
     expect(changes.current.single.valueJson, jsonEncode('after-first'));
+    // What the failed pass learned was adopted rather than the pre-pass
+    // cache kept: the peer manifest it had verified.
+    expect(operation.peerManifestCache['peer']?.etag, '"peer-v1"');
 
     // The retry is no substitute: the row already matches the peer, so it
     // applies and reports nothing. That is why the failed pass must report.
@@ -1246,10 +1303,8 @@ void main() {
     expect(retry.status, SyncPassStatus.completed);
     expect(retry.appliedKinds, isEmpty);
     expect(appliedKindCalls, hasLength(1));
-    // The failed pass's cache was adopted, so the retry asked for the peer's
-    // manifest against the ETag the failed pass had seen, and the main
-    // isolate relayed that cache without decoding or re-encoding it (#1934).
-    expect(manifestEtags, [null, '"peer-v1"']);
+    // The main isolate relayed the failed pass's cache to the retry, and the
+    // retry's back again, without decoding or re-encoding either (#1934).
     expect(SyncPeerManifestCache.debugManifestBodiesDecoded, 0);
     expect(SyncPeerManifestCache.debugManifestBodiesEncoded, 0);
   });
