@@ -106,6 +106,10 @@ class AthenaeumStore {
       'CREATE INDEX IF NOT EXISTS stores_last_seen_idx '
       'ON stores (last_seen)',
     );
+    _database.execute(
+      'CREATE INDEX IF NOT EXISTS manifest_refs_hash_idx '
+      'ON manifest_refs (id_key, epoch, hash)',
+    );
     for (final table in breakGlassTableSchemas) {
       _breakGlassDatabase.execute(table.createSql());
     }
@@ -120,6 +124,7 @@ class AthenaeumStore {
       'CREATE INDEX IF NOT EXISTS diagnostic_events_recorded_at_idx '
       'ON diagnostic_events (recorded_at)',
     );
+    _indexUnindexedManifests();
     _reconcileOrphanedBlobFiles();
     retryPendingDeletions();
   }
@@ -165,6 +170,156 @@ class AthenaeumStore {
     _database.select('SELECT 1');
     _breakGlassDatabase.select('SELECT 1');
     _diagnosticDatabase.select('SELECT 1');
+  }
+
+  /// Builds `manifest_refs` for every unindexed manifest, and drops index rows
+  /// whose manifest is gone.
+  ///
+  /// A database written before #1910 has no index, and an earlier server
+  /// image run after a rollback writes and deletes manifests without touching
+  /// it, so this runs on every start rather than once. A body that does not
+  /// decode is left unindexed rather than failing startup; GC then reads it
+  /// the way it did before the index existed (see [collectGarbage]).
+  void _indexUnindexedManifests() {
+    final orphans = _database.select(
+      'SELECT id_key, epoch, device_id FROM indexed_manifests i '
+      'WHERE NOT EXISTS (SELECT 1 FROM manifests m '
+      'WHERE m.id_key = i.id_key AND m.epoch = i.epoch '
+      'AND m.device_id = i.device_id)',
+    );
+    for (final row in orphans) {
+      _inTransaction(
+        () => _deleteManifestRefs(
+          row['id_key'] as String,
+          row['epoch'] as String,
+          row['device_id'] as String,
+        ),
+      );
+    }
+    final unindexed = _database.select(
+      'SELECT m.rowid AS rowid, m.etag AS etag FROM manifests m '
+      'WHERE $_manifestUnindexedSql',
+    );
+    for (final row in unindexed) {
+      final body = _database.select(
+        'SELECT id_key, epoch, device_id, body FROM manifests WHERE rowid = ?',
+        [row['rowid']],
+      ).single;
+      final Set<String> hashes;
+      try {
+        hashes = _hashesNamedByManifest(body['body'] as List<int>);
+      } on FormatException {
+        continue;
+      }
+      _inTransaction(
+        () => _replaceManifestRefs(
+          body['id_key'] as String,
+          body['epoch'] as String,
+          body['device_id'] as String,
+          row['etag'] as String,
+          hashes,
+        ),
+      );
+    }
+  }
+
+  /// Matches a `manifests m` row whose `manifest_refs` were not read from its
+  /// current body. Reads `etag`, never `body`.
+  static const String _manifestUnindexedSql =
+      'NOT EXISTS (SELECT 1 FROM indexed_manifests i '
+      'WHERE i.id_key = m.id_key AND i.epoch = m.epoch '
+      'AND i.device_id = m.device_id AND i.etag = m.etag)';
+
+  /// The blob hashes a stored manifest body names: every hash-shaped string
+  /// under `records.<kind>.<id>`. Anything else in the body names nothing.
+  /// Throws [FormatException] if the body is not UTF-8 JSON.
+  static Set<String> _hashesNamedByManifest(List<int> body) {
+    final decoded = jsonDecode(utf8.decode(body));
+    if (decoded is! Map || decoded['records'] is! Map) return const {};
+    return {
+      for (final kind in (decoded['records'] as Map).values)
+        if (kind is Map)
+          for (final hash in kind.values)
+            if (hash is String && _hashPattern.hasMatch(hash)) hash,
+    };
+  }
+
+  /// Makes [hashes] the `manifest_refs` rows for one device's manifest and
+  /// records [etag] as the body they were read from. Caller holds the write
+  /// transaction.
+  void _replaceManifestRefs(
+    String idKey,
+    String epoch,
+    String deviceId,
+    String etag,
+    Set<String> hashes,
+  ) {
+    final existing = {
+      for (final row in _database.select(
+        'SELECT hash FROM manifest_refs '
+        'WHERE id_key = ? AND epoch = ? AND device_id = ?',
+        [idKey, epoch, deviceId],
+      ))
+        row['hash'] as String,
+    };
+    final delete = _database.prepare(
+      'DELETE FROM manifest_refs '
+      'WHERE id_key = ? AND epoch = ? AND device_id = ? AND hash = ?',
+    );
+    final insert = _database.prepare(
+      'INSERT INTO manifest_refs (id_key, epoch, device_id, hash) '
+      'VALUES (?, ?, ?, ?)',
+    );
+    try {
+      for (final hash in existing.difference(hashes)) {
+        delete.execute([idKey, epoch, deviceId, hash]);
+      }
+      for (final hash in hashes.difference(existing)) {
+        insert.execute([idKey, epoch, deviceId, hash]);
+      }
+    } finally {
+      delete.close();
+      insert.close();
+    }
+    _database.execute(
+      'INSERT INTO indexed_manifests (id_key, epoch, device_id, etag) '
+      'VALUES (?, ?, ?, ?) '
+      'ON CONFLICT (id_key, epoch, device_id) DO UPDATE SET '
+      'etag = excluded.etag',
+      [idKey, epoch, deviceId, etag],
+    );
+  }
+
+  /// Removes one device's `manifest_refs` rows. Caller holds the write
+  /// transaction.
+  void _deleteManifestRefs(String idKey, String epoch, String deviceId) {
+    _database.execute(
+      'DELETE FROM manifest_refs '
+      'WHERE id_key = ? AND epoch = ? AND device_id = ?',
+      [idKey, epoch, deviceId],
+    );
+    _database.execute(
+      'DELETE FROM indexed_manifests '
+      'WHERE id_key = ? AND epoch = ? AND device_id = ?',
+      [idKey, epoch, deviceId],
+    );
+  }
+
+  void _inTransaction(void Function() body) {
+    var inTransaction = false;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      body();
+      _database.execute('COMMIT');
+      inTransaction = false;
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
+    }
   }
 
   /// Queues crash-orphaned final blob files and temporary upload artifacts.
@@ -338,6 +493,9 @@ class AthenaeumStore {
     );
   }
 
+  /// Stores one device's manifest. [referencedHashes] are the blob hashes its
+  /// `records` name, which the caller has already decoded; they become the
+  /// rows GC reads instead of the body, in the same transaction.
   bool putManifest({
     required String idKey,
     required String epoch,
@@ -345,7 +503,10 @@ class AthenaeumStore {
     required String etag,
     required int writtenAt,
     required Uint8List body,
+    required Iterable<String> referencedHashes,
   }) {
+    final hashes = referencedHashes.toSet();
+    hashes.forEach(_validateHash);
     var inTransaction = false;
     try {
       _database.execute('BEGIN IMMEDIATE');
@@ -366,6 +527,7 @@ class AthenaeumStore {
         'etag = excluded.etag, written_at = excluded.written_at, body = excluded.body',
         [idKey, epoch, deviceId, etag, writtenAt, body],
       );
+      _replaceManifestRefs(idKey, epoch, deviceId, etag, hashes);
       _database.execute('COMMIT');
       inTransaction = false;
       return !existed;
@@ -456,10 +618,13 @@ class AthenaeumStore {
   }
 
   void deleteManifest(String idKey, String epoch, String deviceId) {
-    _database.execute(
-      'DELETE FROM manifests WHERE id_key = ? AND epoch = ? AND device_id = ?',
-      [idKey, epoch, deviceId],
-    );
+    _inTransaction(() {
+      _database.execute(
+        'DELETE FROM manifests WHERE id_key = ? AND epoch = ? AND device_id = ?',
+        [idKey, epoch, deviceId],
+      );
+      _deleteManifestRefs(idKey, epoch, deviceId);
+    });
   }
 
   BlobRef? blobRef(String idKey, String epoch, String hash) {
@@ -513,17 +678,24 @@ class AthenaeumStore {
     try {
       _database.execute('BEGIN IMMEDIATE');
       inTransaction = true;
+      // Reachability comes from `manifest_refs`, written at manifest PUT. A
+      // stale row for a device keeps a blob alive, never the reverse.
       final stale = _database.select(
-        'SELECT hash, size FROM blob_refs '
-        'WHERE id_key = ? AND epoch = ? AND uploaded_at < ?',
+        'SELECT hash, size FROM blob_refs b '
+        'WHERE id_key = ? AND epoch = ? AND uploaded_at < ? '
+        'AND NOT EXISTS (SELECT 1 FROM manifest_refs r '
+        'WHERE r.id_key = b.id_key AND r.epoch = b.epoch AND r.hash = b.hash)',
         [idKey, epoch, cutoff],
       );
       final candidates = <String>{
         for (final row in stale) row['hash'] as String,
       };
       if (candidates.isNotEmpty) {
+        // Only a manifest the index does not cover is decoded: one whose body
+        // did not decode at startup, which throws here as it always has.
         final manifestRows = _database.select(
-          'SELECT rowid FROM manifests WHERE id_key = ? AND epoch = ?',
+          'SELECT m.rowid AS rowid FROM manifests m '
+          'WHERE m.id_key = ? AND m.epoch = ? AND $_manifestUnindexedSql',
           [idKey, epoch],
         );
         for (final manifestRow in manifestRows) {
@@ -532,18 +704,7 @@ class AthenaeumStore {
                     manifestRow['rowid'],
                   ]).single['body']
                   as List<int>;
-          final decoded = jsonDecode(utf8.decode(body));
-          if (decoded is! Map || decoded['records'] is! Map) continue;
-          final records = decoded['records'] as Map;
-          for (final kind in records.values) {
-            if (kind is! Map) continue;
-            for (final hash in kind.values) {
-              if (hash is String && _hashPattern.hasMatch(hash)) {
-                candidates.remove(hash);
-              }
-            }
-            if (candidates.isEmpty) break;
-          }
+          candidates.removeAll(_hashesNamedByManifest(body));
           if (candidates.isEmpty) break;
         }
       }
@@ -1109,6 +1270,10 @@ class AthenaeumStore {
         );
       }
       _database.execute('DELETE FROM manifests WHERE id_key = ?', [idKey]);
+      _database.execute('DELETE FROM manifest_refs WHERE id_key = ?', [idKey]);
+      _database.execute('DELETE FROM indexed_manifests WHERE id_key = ?', [
+        idKey,
+      ]);
       _database.execute('DELETE FROM blob_refs WHERE id_key = ?', [idKey]);
       _database.execute('DELETE FROM stores WHERE id_key = ?', [idKey]);
       _database.execute('COMMIT');

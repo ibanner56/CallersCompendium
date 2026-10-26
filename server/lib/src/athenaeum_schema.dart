@@ -34,6 +34,23 @@ const List<AthenaeumTableSchema> athenaeumTableSchemas = [
     'written_at': 'INTEGER NOT NULL',
     'body': 'BLOB NOT NULL',
   }, tableConstraint: 'PRIMARY KEY (id_key, epoch, device_id)'),
+  // One row per blob hash a stored manifest names, read from `records` when
+  // the manifest is written so GC never decodes a manifest body (#1910).
+  AthenaeumTableSchema('manifest_refs', {
+    'id_key': 'TEXT NOT NULL',
+    'epoch': 'TEXT NOT NULL',
+    'device_id': 'TEXT NOT NULL',
+    'hash': 'TEXT NOT NULL',
+  }, tableConstraint: 'PRIMARY KEY (id_key, epoch, device_id, hash)'),
+  // The manifest etag each device's `manifest_refs` rows were read from. A
+  // manifest whose etag differs, or that has no row, is unindexed: written
+  // before the index existed, or by an earlier server image after a rollback.
+  AthenaeumTableSchema('indexed_manifests', {
+    'id_key': 'TEXT NOT NULL',
+    'epoch': 'TEXT NOT NULL',
+    'device_id': 'TEXT NOT NULL',
+    'etag': 'TEXT NOT NULL',
+  }, tableConstraint: 'PRIMARY KEY (id_key, epoch, device_id)'),
   AthenaeumTableSchema('blob_refs', {
     'id_key': 'TEXT NOT NULL',
     'epoch': 'TEXT NOT NULL',

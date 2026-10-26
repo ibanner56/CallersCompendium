@@ -31,7 +31,8 @@ void main() {
         .select(
           "SELECT name FROM sqlite_master WHERE type = 'index' "
           "AND name IN ('deletion_jobs_queued_at_idx', "
-          "'blob_deletion_jobs_queued_at_idx', 'stores_last_seen_idx')",
+          "'blob_deletion_jobs_queued_at_idx', 'stores_last_seen_idx', "
+          "'manifest_refs_hash_idx')",
         )
         .map((row) => row['name'] as String)
         .toSet();
@@ -41,6 +42,7 @@ void main() {
         'deletion_jobs_queued_at_idx',
         'blob_deletion_jobs_queued_at_idx',
         'stores_last_seen_idx',
+        'manifest_refs_hash_idx',
       }),
     );
     final breakGlassIndexes = breakGlassDatabase
@@ -196,6 +198,7 @@ void main() {
       etag: '4' * 64,
       writtenAt: now.millisecondsSinceEpoch ~/ 1000,
       body: Uint8List.fromList(manifestBody),
+      referencedHashes: [reachableHash],
     );
     database.execute(
       'UPDATE blob_refs SET uploaded_at = ? '
@@ -613,6 +616,7 @@ void main() {
         etag: 'd' * 64,
         writtenAt: 0,
         body: Uint8List.fromList([1]),
+        referencedHashes: const [],
       );
     }
     expect(
@@ -623,6 +627,7 @@ void main() {
         etag: 'e' * 64,
         writtenAt: 0,
         body: Uint8List.fromList([1]),
+        referencedHashes: const [],
       ),
       throwsA(isA<StoreQuotaExceeded>()),
     );
@@ -676,6 +681,7 @@ void main() {
       etag: 'd' * 64,
       writtenAt: 0,
       body: Uint8List(length)..fillRange(0, length, 1),
+      referencedHashes: const [],
     );
 
     test('a new device manifest over the remaining quota is rejected', () {
@@ -772,6 +778,7 @@ void main() {
       etag: 'b' * 64,
       writtenAt: 0,
       body: Uint8List.fromList([1]),
+      referencedHashes: const [],
     );
     store.putBlob(
       idKey: idKey,
