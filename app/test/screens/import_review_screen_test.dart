@@ -891,6 +891,44 @@ void main() {
       expect(await repos.dances.listAll(), hasLength(3));
     });
 
+    testWidgets('"Skip all possible matches" leaves a row whose only matches '
+        'are these on New dance', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = await reporterCollection();
+      await repos.dances.create(_dance('sackett', "Sackett's Harbor"));
+      await _pump(
+        tester,
+        repos,
+        payload: encodeArchive(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            choreographers: [Choreographer(id: 'cw', name: 'Chris Weiler')],
+            dances: [
+              // A genuine fuzzy match, so the bulk control is offered…
+              _dance('fuzzy', 'Sacketts Harbor'),
+              // …and a row whose only matches are under another title.
+              _dance(
+                'incoming',
+                'A-1 Reel {variant}',
+              ).copyWith(authorIds: const ['cw']),
+            ],
+          ),
+        ),
+      );
+      await _toReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-row-0-duplicate')));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.importReviewWillImport(2, 2)), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('import-bulk-skip-ambiguous')),
+      );
+      await tester.pumpAndSettle();
+
+      // The fuzzy row is skipped; the possible-only row is still New dance.
+      expect(find.text(l10n.importReviewWillImport(1, 2)), findsOneWidget);
+    });
+
     testWidgets('choosing one replaces that dance and only that one', (
       tester,
     ) async {
