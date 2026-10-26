@@ -184,8 +184,9 @@ class UserGlossaryRepository {
   /// Called, inside the write's transaction, after [upsert] or [delete]
   /// writes an entry that is or was a figure of your own (#1023): the dance
   /// index renders their uses from it, so the dances using it are reindexed.
-  /// An inbound sync apply needs nothing of its own: the apply engine
-  /// rebuilds every derived row after each batch, from the live figures.
+  /// An inbound sync apply needs nothing of its own: after each batch it
+  /// reindexes the dances using every glossary entry it wrote, from the live
+  /// figures (#1920, `CompendiumSyncStorage.reindexDerivedAfterApply`).
   final Future<void> Function(String id)? onUserFigureChanged;
 
   Future<void> _userFigureChanged(String id, {required bool wasOrIs}) async {

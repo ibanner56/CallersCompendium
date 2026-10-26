@@ -552,7 +552,7 @@ final class _MapStorage implements SyncApplyConcurrencyStorage {
   }
 
   @override
-  Future<void> rebuildDerivedIndexes() async {}
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {}
 
   @override
   Future<Map<SyncRecordAddress, SyncMergeCandidate?>> currentCandidates(
@@ -608,7 +608,8 @@ final class _GuardHookStorage
   Future<void> write(SyncApplyRecord record) => _delegate.write(record);
 
   @override
-  Future<void> rebuildDerivedIndexes() => _delegate.rebuildDerivedIndexes();
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) =>
+      _delegate.reindexDerivedAfterApply(applied);
 
   @override
   Future<SyncReport?> validateInboundReferences(

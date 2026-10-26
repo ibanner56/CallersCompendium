@@ -590,7 +590,7 @@ class _MemoryApplyStorage implements SyncApplyStorage {
   }
 
   @override
-  Future<void> rebuildDerivedIndexes() async {
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {
     rebuilds++;
   }
 }
