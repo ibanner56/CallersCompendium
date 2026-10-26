@@ -447,6 +447,13 @@ class AthenaeumApp {
           epoch: current.epoch,
           deviceId: deviceId,
         );
+      } on StoreMissing {
+        // The store row was deleted or reaped after the lookup above (a
+        // concurrent `DELETE /v1/store`, or a sweep). §7.1 reserves `409` for
+        // a stale-epoch manifest `PUT`, which is a store that still exists
+        // under another epoch; a store that no longer exists is the counted
+        // `404`, as for the blob routes (#1359).
+        return _failedResolution(request, 404, 'store not found');
       } on StoreEpochMismatch {
         throw const _RequestFailure(409, 'stale manifest epoch');
       } on StoreQuotaExceeded catch (error) {
@@ -485,6 +492,9 @@ class AthenaeumApp {
             for (final byId in manifest.records.values) ...byId.values,
           ],
         );
+      } on StoreMissing {
+        // Gone mid-write: the counted `404`, as at the preflight above.
+        return _failedResolution(request, 404, 'store not found');
       } on StoreEpochMismatch {
         throw const _RequestFailure(409, 'stale manifest epoch');
       } on StoreQuotaExceeded catch (error) {
