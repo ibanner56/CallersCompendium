@@ -76,6 +76,21 @@ void main() {
     expectOnlyTypeLogged(stderrLines, '_LeakyError');
   });
 
+  test('a failing heartbeat probe answers a JSON 500 and logs only its '
+      'type', () async {
+    store.checkHealthError = const _LeakyError();
+    final (response, stderrLines) = await _captureStderr(
+      () => app.call(Request('GET', Uri.parse('http://127.0.0.1/heartbeat'))),
+    );
+
+    expect(response.statusCode, 500);
+    expect(jsonDecode(await response.readAsString()), {
+      'error': 'internal error',
+    });
+    expectOnlyTypeLogged(stderrLines, '_LeakyError');
+    expect(stderrLines.join(), isNot(contains('.dart')));
+  });
+
   test('a non-file error mid batch stream ends the stream and logs only its '
       'type', () async {
     final first = Uint8List.fromList(utf8.encode('{"first":true}'));
@@ -127,6 +142,14 @@ class _FaultyStore extends AthenaeumStore {
 
   Object? touchError;
   String? blobRefErrorFor;
+  Object? checkHealthError;
+
+  @override
+  void checkHealth() {
+    final error = checkHealthError;
+    if (error != null) throw error;
+    super.checkHealth();
+  }
 
   @override
   void touch(String idKey) {

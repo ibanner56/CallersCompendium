@@ -284,7 +284,12 @@ class AthenaeumApp {
   Future<Response> call(Request request) async {
     final segments = request.url.pathSegments;
     if (segments.length == 1 && segments.first == 'heartbeat') {
-      return _healthRoute(request);
+      try {
+        return _healthRoute(request);
+      } on Object catch (error) {
+        // A failing probe stays non-200; only shelf's stack log is avoided.
+        return _unexpectedFailure(error);
+      }
     }
     if (segments.length < 2 || segments.first != 'v1') {
       return _jsonResponse(404, {'error': 'not found'});
@@ -319,16 +324,22 @@ class AthenaeumApp {
       _logFailure(request, error);
       return _jsonResponse(error.status, {'error': error.message});
     } on Object catch (error) {
-      // Left to escape, shelf logs `Error thrown by handler.` with the
-      // exception's toString() and stack. A SqliteException prints the failing
-      // statement and its parameters (id_key, epoch, device id, etag) and a
-      // FileSystemException prints the blob path, which spec §7.4 keeps out of
-      // logs. Log the type alone, as every other server log site does.
-      stderr.writeln(
-        'Athenaeum request failed unexpectedly (${error.runtimeType})',
-      );
-      return _jsonResponse(500, {'error': 'internal error'});
+      return _unexpectedFailure(error);
     }
+  }
+
+  /// The answer to an exception no route anticipated.
+  ///
+  /// Left to escape, shelf logs `Error thrown by handler.` with the
+  /// exception's toString() and stack. A SqliteException prints the failing
+  /// statement and its parameters (id_key, epoch, device id, etag) and a
+  /// FileSystemException prints the blob path, which spec §7.4 keeps out of
+  /// logs. Log the type alone, as every other server log site does.
+  Response _unexpectedFailure(Object error) {
+    stderr.writeln(
+      'Athenaeum request failed unexpectedly (${error.runtimeType})',
+    );
+    return _jsonResponse(500, {'error': 'internal error'});
   }
 
   Response _healthRoute(Request request) {
