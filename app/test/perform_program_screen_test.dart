@@ -355,9 +355,9 @@ void main() {
     // it used to RenderFlex-overflow, clipping the stage-mode toggle. Secondary
     // actions now collapse into a "More actions" overflow while the stage toggle
     // (and the per-gig dialect quick-switch) stay inline. These tests mount the
-    // FULL action set — DialectLibraryScope so the quick-switch renders, a group
-    // with alternates so alt-swap shows, and a non-canonical dialect so the
-    // canonical toggle shows — so the no-overflow assertions are meaningful.
+    // FULL action set — DialectLibraryScope so the quick-switch renders and a
+    // group with alternates so alt-swap shows — so the no-overflow assertions
+    // are meaningful.
 
     Future<DialectLibraryController> loadedLibrary() async {
       final repos = openTestRepositories();

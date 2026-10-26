@@ -165,8 +165,7 @@ void main() {
     // program view: on narrow phones secondary actions collapse into a "More
     // actions" overflow while the stage-mode toggle and dialect quick-switch
     // stay inline; the full set shows inline on wide layouts. Mount
-    // DialectLibraryScope so the quick-switch renders and keep a non-canonical
-    // dialect so the canonical toggle is part of the set.
+    // DialectLibraryScope so the quick-switch renders.
 
     Future<DialectLibraryController> loadedLibrary() async {
       final repos = openTestRepositories();
