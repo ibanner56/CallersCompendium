@@ -3785,6 +3785,22 @@ natural-key, alias and baseline tables, and a batch that applies anything
 rebuilds the derived search indexes — so an app write can still wait seconds on
 a large library; narrowing those is separate work.
 
+**The snapshot scans outside the write lock.** `snapshot()` reads and hashes the
+whole library, and the coordinator takes several per pass, idle ones included.
+It therefore runs in three phases (#1915). A short write transaction revalidates
+pending deletions. The scan runs in `CompendiumRepositories.readTransaction`, a
+deferred SQLite transaction opened through a `SAVEPOINT` under `PRAGMA
+query_only`. drift has no read-only transaction of its own. Under WAL the scan
+reads one consistent view and takes no lock an app write waits for, so the write
+commits mid-scan and is not seen by it. Only when the scan found kept fields
+(§6.7) with no record left to carry them does a second short write transaction
+delete them. It first re-checks each one against the library as it stands then:
+still kept, not pending, not a record the snapshot would publish
+(`currentCandidates`), not an unreadable dance it withholds. So an edit that
+lands between the scan and the sweep (a private custom field made shareable
+again, say) keeps what it needs. Called inside an open transaction, as conflict
+resolution calls it, all three phases run in that transaction.
+
 **"Carries" must be unambiguous.** The codec omits null fields today
 (`if (v.website != null)`), so on the wire *absent* means either "device-local,
 preserve the local value" or "shareable but empty, clear the local value".
