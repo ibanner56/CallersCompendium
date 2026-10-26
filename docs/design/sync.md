@@ -1826,7 +1826,13 @@ caches most preferences in memory: when a pass reports `setting` among its
 applied kinds, the app reloads its preferences and settings-backed controllers
 (#1828), as a backup restore does. Without that, the change would show only after
 a relaunch, and the next local edit of one of the collections above would write
-the stale collection back over the one the pass applied. The update and Device
+the stale collection back over the one the pass applied. That holds for a pass
+that throws after its apply has committed, too (a manifest `PUT` dropped on a
+flaky link): the worker isolate reports the kinds it had committed with its
+failure, and a worker that dies without reporting is taken to have applied every
+kind, at the cost of one spurious reload (#1913). Leaving either to the next pass
+does not work, because the rows already match the peers, so that pass applies
+nothing and reports nothing. The update and Device
 Sync controllers are left out, because none of their keys is a `shareable`
 setting.
 

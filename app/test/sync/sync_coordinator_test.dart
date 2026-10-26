@@ -8093,6 +8093,79 @@ void main() {
       );
     });
   });
+  group('a pass that throws still knows what it committed (#1913)', () {
+    // The worker isolate reads `passAppliedKinds` after a throw, because a
+    // throw carries no `SyncPassResult` to hold them; see sync_isolate.dart.
+    final theirs = SyncMergeCandidate.fromBlob(
+      _setting('theme_mode', 'theirs', seconds: 20),
+    );
+
+    _FakeTransport inbound({void Function(List<int> body)? onManifestPut}) =>
+        _FakeTransport(
+          devices: const ['device-a', 'peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.setting: {theirs.blob.id: theirs.wireHash},
+            },
+          ),
+          blobResponses: _blobs([theirs]),
+          onManifestPut: onManifestPut,
+        );
+
+    SyncCoordinator coordinatorFor(_FakeStore store, _FakeTransport transport) {
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+      addTearDown(coordinator.dispose);
+      return coordinator;
+    }
+
+    test('an apply that committed before the throw is recorded', () async {
+      final store = _FakeStore();
+      final coordinator = coordinatorFor(
+        store,
+        inbound(onManifestPut: (_) => throw const SocketException('reset')),
+      );
+
+      await expectLater(coordinator.syncNow(), throwsA(isA<SocketException>()));
+
+      expect(store.writes.map((write) => write.address), [theirs.address]);
+      expect(coordinator.passAppliedKinds, {SyncRecordKind.setting});
+    });
+
+    test('an apply that rolled back records nothing', () async {
+      // The rebuild runs inside the apply transaction, so its throw rolls the
+      // writes back and escapes the engine: nothing was committed, and a kind
+      // recorded before the commit would make the main isolate reload rows
+      // that never changed.
+      final store = _FakeStore()
+        ..failRebuildDerivedIndexes = StateError('rebuild failed');
+      final coordinator = coordinatorFor(store, inbound());
+
+      await expectLater(coordinator.syncNow(), throwsA(isA<StateError>()));
+
+      expect(coordinator.passAppliedKinds, isEmpty);
+    });
+
+    test('the success path returns the kinds it always did, and each pass '
+        'starts empty', () async {
+      final store = _FakeStore();
+      final coordinator = coordinatorFor(store, inbound());
+
+      final first = await coordinator.syncNow();
+      expect(first.appliedKinds, [SyncRecordKind.setting]);
+      expect(coordinator.passAppliedKinds, {SyncRecordKind.setting});
+
+      store.local[theirs.address] = theirs;
+      final second = await coordinator.syncNow();
+      expect(second.appliedKinds, isEmpty);
+      expect(coordinator.passAppliedKinds, isEmpty);
+    });
+  });
 }
 
 /// A [_FakeStore] that can write a capability record, recording each call.
@@ -8483,8 +8556,14 @@ final class _FakeStore implements SyncCoordinatorStore {
     writes.add(record);
   }
 
+  /// Thrown from [reindexDerivedAfterApply] when set: the apply engine runs it
+  /// inside its transaction, so this is an apply that rolls back and throws.
+  Object? failRebuildDerivedIndexes;
+
   @override
-  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {}
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {
+    if (failRebuildDerivedIndexes case final error?) throw error;
+  }
 
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) async {
