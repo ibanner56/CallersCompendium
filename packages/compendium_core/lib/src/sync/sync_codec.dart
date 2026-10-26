@@ -384,51 +384,79 @@ Map<String, Object?> syncBodyForEntity(
   Object entity, {
   Set<String> allowedCustomFieldIds = const {},
   Map<String, Object?>? retained,
+}) => syncBodyForArchiveBody(
+  kind,
+  syncArchiveBodyForEntity(kind, entity),
+  allowedCustomFieldIds: allowedCustomFieldIds,
+  retained: retained,
+);
+
+/// The first step of [syncBodyForEntity]: [entity] as an unprojected,
+/// archive-shaped JSON object, before anything is dropped for privacy.
+///
+/// Cheap next to the projection, validation and canonical encoding that
+/// follow, which is why the sync snapshot's per-instance memo keys on its
+/// output rather than on the entity (#1931).
+Map<String, Object?> syncArchiveBodyForEntity(
+  SyncRecordKind kind,
+  Object entity,
+) => switch (kind) {
+  SyncRecordKind.dance => archiveDanceToJson(
+    _requireEntity<Dance>(entity, kind),
+    const {},
+    includeOptionalFields: true,
+  ),
+  SyncRecordKind.program => archiveProgramToJson(
+    _requireEntity<Program>(entity, kind),
+    includeOptionalFields: true,
+  ),
+  SyncRecordKind.choreographer => archiveChoreographerToJson(
+    _requireEntity<Choreographer>(entity, kind),
+    includeOptionalFields: true,
+  ),
+  SyncRecordKind.tag => archiveTagToJson(
+    _requireEntity<Tag>(entity, kind),
+    includeOptionalFields: true,
+  ),
+  SyncRecordKind.publishedSource => archivePublishedSourceToJson(
+    _requireEntity<PublishedSource>(entity, kind),
+    includeOptionalFields: true,
+  ),
+  SyncRecordKind.customFieldDef => archiveCustomFieldDefToJson(
+    _requireEntity<CustomFieldDef>(entity, kind),
+    includeShareable: true,
+    includeOptionalFields: true,
+  ),
+  SyncRecordKind.difficultyLevel => archiveDifficultyLevelToJson(
+    _requireEntity<DifficultyLevel>(entity, kind),
+  ),
+  SyncRecordKind.venue => archiveVenueToJson(
+    _requireEntity<Venue>(entity, kind),
+    includeOptionalFields: true,
+  ),
+  SyncRecordKind.glossaryEntry => syncGlossaryEntryBody(
+    _requireEntity<StoredUserGlossaryEntry>(entity, kind),
+  ),
+  SyncRecordKind.figureNote => syncFigureNoteBody(
+    _requireEntity<FigureNote>(entity, kind),
+  ),
+  SyncRecordKind.setting => throw ArgumentError(
+    'settings use SyncSettingsRecord',
+  ),
+};
+
+/// The rest of [syncBodyForEntity]: [archiveBody], as
+/// [syncArchiveBodyForEntity] built it, projected to what this device shares,
+/// checked, and with [retained] put back.
+///
+/// A pure function of its arguments and of this build's wire registry, which
+/// is constant for the process. It does not modify [archiveBody].
+Map<String, Object?> syncBodyForArchiveBody(
+  SyncRecordKind kind,
+  Map<String, Object?> archiveBody, {
+  Set<String> allowedCustomFieldIds = const {},
+  Map<String, Object?>? retained,
 }) {
-  final archiveBody = switch (kind) {
-    SyncRecordKind.dance => archiveDanceToJson(
-      _requireEntity<Dance>(entity, kind),
-      const {},
-      includeOptionalFields: true,
-    ),
-    SyncRecordKind.program => archiveProgramToJson(
-      _requireEntity<Program>(entity, kind),
-      includeOptionalFields: true,
-    ),
-    SyncRecordKind.choreographer => archiveChoreographerToJson(
-      _requireEntity<Choreographer>(entity, kind),
-      includeOptionalFields: true,
-    ),
-    SyncRecordKind.tag => archiveTagToJson(
-      _requireEntity<Tag>(entity, kind),
-      includeOptionalFields: true,
-    ),
-    SyncRecordKind.publishedSource => archivePublishedSourceToJson(
-      _requireEntity<PublishedSource>(entity, kind),
-      includeOptionalFields: true,
-    ),
-    SyncRecordKind.customFieldDef => archiveCustomFieldDefToJson(
-      _requireEntity<CustomFieldDef>(entity, kind),
-      includeShareable: true,
-      includeOptionalFields: true,
-    ),
-    SyncRecordKind.difficultyLevel => archiveDifficultyLevelToJson(
-      _requireEntity<DifficultyLevel>(entity, kind),
-    ),
-    SyncRecordKind.venue => archiveVenueToJson(
-      _requireEntity<Venue>(entity, kind),
-      includeOptionalFields: true,
-    ),
-    SyncRecordKind.glossaryEntry => syncGlossaryEntryBody(
-      _requireEntity<StoredUserGlossaryEntry>(entity, kind),
-    ),
-    SyncRecordKind.figureNote => syncFigureNoteBody(
-      _requireEntity<FigureNote>(entity, kind),
-    ),
-    SyncRecordKind.setting => throw ArgumentError(
-      'settings use SyncSettingsRecord',
-    ),
-  };
   final projected = projectShareableRecordBody(
     kind,
     archiveBody,
@@ -554,9 +582,35 @@ SyncRecordBlob? syncRecordBlobForEntity(
   if (kind == SyncRecordKind.setting) {
     throw ArgumentError('settings use SyncSettingsRecord');
   }
-  final body = syncBodyForEntity(
+  return syncRecordBlobForArchiveBody(
     kind,
-    entity,
+    syncArchiveBodyForEntity(kind, entity),
+    updatedAt: updatedAt,
+    deletedAt: deletedAt,
+    existenceAt: existenceAt,
+    allowedCustomFieldIds: allowedCustomFieldIds,
+    retained: retained,
+  );
+}
+
+/// [syncRecordBlobForEntity] from the entity's [syncArchiveBodyForEntity]
+/// output: the blob is a function of [kind], [archiveBody], the three
+/// timestamps, [allowedCustomFieldIds] and [retained], and of nothing else.
+SyncRecordBlob? syncRecordBlobForArchiveBody(
+  SyncRecordKind kind,
+  Map<String, Object?> archiveBody, {
+  required DateTime updatedAt,
+  required DateTime existenceAt,
+  DateTime? deletedAt,
+  Set<String> allowedCustomFieldIds = const {},
+  Map<String, Object?>? retained,
+}) {
+  if (kind == SyncRecordKind.setting) {
+    throw ArgumentError('settings use SyncSettingsRecord');
+  }
+  final body = syncBodyForArchiveBody(
+    kind,
+    archiveBody,
     allowedCustomFieldIds: allowedCustomFieldIds,
     retained: retained,
   );
