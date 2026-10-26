@@ -9,6 +9,9 @@
     "changed": [
       "When Re-import choreography cannot reach a source, or the dance does not exist there, it now says which, instead of a general \"could not load\" message.",
       "Re-import choreography now refuses a dance that arrives without any figures (The Caller's Box withholds them for some dances), instead of replacing your figures with an empty list."
+    ],
+    "fixed": [
+      "The \"Same dance (update existing)\" warning in single-dance online import no longer says your custom fields will be replaced (they are kept), and now says the title will be."
     ]
   },
   "core": {

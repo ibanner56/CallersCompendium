@@ -9167,10 +9167,10 @@ abstract class AppLocalizations {
   /// **'Same dance (update existing)'**
   String get onlineImportVariationDialogActionLink;
 
-  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves only id and createdAt from the existing dance; every other field — figures, callingNotes, tagIds, rating, customFields, tunes, links, sourceCitations, hook, title, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
+  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves id and createdAt from the existing dance, and keeps its custom-field values for every field the incoming draft does not carry (#1890; online drafts carry none, so all are kept). Every other field — title, figures, callingNotes, tagIds, rating, tunes, links, sourceCitations, hook, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.'**
+  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.'**
   String onlineImportVariationDialogLinkWarning(String existingTitle);
 
   /// Title of the resolution dialog shown when a confident title+author match with identical figures is found from a different source during a single-dance online import (issue #811).
@@ -9200,13 +9200,13 @@ abstract class AppLocalizations {
   /// Body of the possible-match dialog (issue #1907), above a list of the existing dances to choose from. incomingTitle is the online dance's title, an untrusted external value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'\"{incomingTitle}\" may be a dance you already have under another title. Choose it to replace it with this version, or import this as a new dance.'**
+  /// **'\"{incomingTitle}\" may be a dance you already have under another title. Choose the dance to replace with this version, or import this one as a new dance.'**
   String onlineImportPossibleMatchDialogBody(String incomingTitle);
 
-  /// Secondary text in the possible-match dialog (issue #1907): choosing an existing dance replaces it wholesale, exactly as onlineImportVariationDialogLinkWarning describes for a single named dance.
+  /// Secondary text in the possible-match dialog (issue #1907): choosing an existing dance replaces it as onlineImportVariationDialogLinkWarning describes for a single named dance. The title is named first because here it is certain to change: the two titles are written differently.
   ///
   /// In en, this message translates to:
-  /// **'The dance you choose will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.'**
+  /// **'The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.'**
   String get onlineImportPossibleMatchDialogLinkWarning;
 
   /// Button in the possible-match dialog (issue #1907): none of the listed dances is this one, so import it as a new dance.
@@ -10601,7 +10601,7 @@ abstract class AppLocalizations {
   /// **'Skip'**
   String get importReviewBulkSkip;
 
-  /// Bulk button: set every row marked as a possible match to skip.
+  /// Bulk button: set every row marked as a possible match (importReviewPossibleMatch) to skip. Rows whose only matches are under another title (importReviewPossibleTitleMatch) are left alone.
   ///
   /// In en, this message translates to:
   /// **'Skip all possible matches'**

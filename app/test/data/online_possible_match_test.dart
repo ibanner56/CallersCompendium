@@ -12,9 +12,9 @@ import '../support/test_repositories.dart';
 /// The #1907 reporter's case through the real single-dance online path: a
 /// Caller's Box `A-1 Reel {variant}` arriving in a collection that holds
 /// `A1 Reel` and `A1 Reel (Imp Var)`, all by Chris Weiler.
-String _variantJson() => jsonEncode({
+String _variantJson({String name = 'A-1 Reel {variant}'}) => jsonEncode({
   'ID': '1606',
-  'Name': 'A-1 Reel {variant}',
+  'Name': name,
   'Authors': ['Chris Weiler'],
   'Permission': 'full',
   'FormationBase': 'Duple Minor - Improper',
@@ -85,6 +85,23 @@ void main() {
     final service = _service();
     final preview = await service.loadPreview(repos, _row);
     expect(preview.plan.verdict.isNewDance, isTrue);
+
+    final result = await service.import(repos, preview.plan);
+
+    expect(result.kind, OnlineImportKind.needsPossibleMatchChoice);
+    expect(result.possibleMatchIds, ['base', 'impvar']);
+    expect(await repos.dances.listAll(), hasLength(2));
+  });
+
+  test('an ambiguous verdict with no confident candidate is offered its '
+      'possible matches too', () async {
+    final repos = await _reporterCollection();
+    final service = CallersBoxOnline(
+      jsonFetcher: (_) async => _variantJson(name: 'A-1 Reel'),
+    );
+    final preview = await service.loadPreview(repos, _row);
+    expect(preview.plan.verdict.isAmbiguous, isTrue);
+    expect(preview.plan.verdict.hasConfidentMatch, isFalse);
 
     final result = await service.import(repos, preview.plan);
 

@@ -5951,7 +5951,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.';
+    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.';
   }
 
   @override
@@ -5973,12 +5973,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineImportPossibleMatchDialogBody(String incomingTitle) {
-    return '\"$incomingTitle\" may be a dance you already have under another title. Choose it to replace it with this version, or import this as a new dance.';
+    return '\"$incomingTitle\" may be a dance you already have under another title. Choose the dance to replace with this version, or import this one as a new dance.';
   }
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'The dance you choose will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.';
+      'The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.';
 
   @override
   String get onlineImportPossibleMatchDialogActionNew =>

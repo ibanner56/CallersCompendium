@@ -6014,9 +6014,9 @@
   "@onlineImportVariationDialogActionLink": {
     "x-sourceSha256": "7a89241607bf07561ac5217d1fead66bc5c4636e6f94a7608108da241cd65443"
   },
-  "onlineImportVariationDialogLinkWarning": "Din version af „{existingTitle}“ erstattes af onlineposten — inklusive dens figurer, noter, tags, vurdering og brugerdefinerede felter. Den beholder sin plads i dine programmer og sin kaldshistorik.",
+  "onlineImportVariationDialogLinkWarning": "Din version af „{existingTitle}“ erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.",
   "@onlineImportVariationDialogLinkWarning": {
-    "x-sourceSha256": "cd15280a51f320faab3ff9c1f9355e4bf18d09423f1d7118a6602a02d85a6558"
+    "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "Du har allerede denne dans",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
@@ -6034,13 +6034,13 @@
   "@onlineImportPossibleMatchDialogTitle": {
     "x-sourceSha256": "eb996ac93dc2a9064a9fe9d58a8b4cc5a9f79a0f0c66c7259e76b14cf7f6d802"
   },
-  "onlineImportPossibleMatchDialogBody": "„{incomingTitle}“ er måske en dans, du allerede har under en anden titel. Vælg den for at erstatte den med denne version, eller importér denne som en ny dans.",
+  "onlineImportPossibleMatchDialogBody": "„{incomingTitle}“ er måske en dans, du allerede har under en anden titel. Vælg den dans, der skal erstattes med denne version, eller importér denne som en ny dans.",
   "@onlineImportPossibleMatchDialogBody": {
-    "x-sourceSha256": "b82a9ee02fc9e90bbdd45abc6839fb946c333eb7be3377fe5e01232fd70ce6a3"
+    "x-sourceSha256": "c23d4f0bdd76d65aa431c58419d8a497eca0ed5d84d68e16e2ebee368fc2b303"
   },
-  "onlineImportPossibleMatchDialogLinkWarning": "Den dans, du vælger, erstattes af onlineposten — inklusive dens figurer, noter, tags, vurdering og brugerdefinerede felter. Den beholder sin plads i dine programmer og sin kaldshistorik.",
+  "onlineImportPossibleMatchDialogLinkWarning": "Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
-    "x-sourceSha256": "8be77751e0111059d98cc9b94cdf5d0ab2fc990cbe82c49479763527b937d0a7"
+    "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
   },
   "onlineImportPossibleMatchDialogActionNew": "Importér som en ny dans",
   "@onlineImportPossibleMatchDialogActionNew": {

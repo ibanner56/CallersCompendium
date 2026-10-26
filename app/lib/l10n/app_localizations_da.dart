@@ -5982,7 +5982,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Din version af „$existingTitle“ erstattes af onlineposten — inklusive dens figurer, noter, tags, vurdering og brugerdefinerede felter. Den beholder sin plads i dine programmer og sin kaldshistorik.';
+    return 'Din version af „$existingTitle“ erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
   }
 
   @override
@@ -6004,12 +6004,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineImportPossibleMatchDialogBody(String incomingTitle) {
-    return '„$incomingTitle“ er måske en dans, du allerede har under en anden titel. Vælg den for at erstatte den med denne version, eller importér denne som en ny dans.';
+    return '„$incomingTitle“ er måske en dans, du allerede har under en anden titel. Vælg den dans, der skal erstattes med denne version, eller importér denne som en ny dans.';
   }
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'Den dans, du vælger, erstattes af onlineposten — inklusive dens figurer, noter, tags, vurdering og brugerdefinerede felter. Den beholder sin plads i dine programmer og sin kaldshistorik.';
+      'Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
 
   @override
   String get onlineImportPossibleMatchDialogActionNew =>

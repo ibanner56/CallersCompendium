@@ -178,8 +178,8 @@ class ContraDbOnline implements OnlineSearchService {
   }
 
   /// Commits [plan] into the local collection using the dedup-aware default
-  /// (identical policy to [CallersBoxOnline.import]): a brand-new dance is
-  /// created; an exact re-import match is reported as already-in-collection
+  /// (identical policy to [CallersBoxOnline.import]): a dance that matches
+  /// nothing is created; an exact re-import match is reported as already-in-collection
   /// (nothing written); a fuzzy near-match with a confident title+author
   /// candidate and differing figures returns
   /// [OnlineImportKind.needsConfirmation] (nothing written) so the caller can

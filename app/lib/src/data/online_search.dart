@@ -133,7 +133,9 @@ class OnlineSearchQuery {
 
 /// What a direct online import ended up doing (drives the result snackbar).
 enum OnlineImportKind {
-  /// A brand-new dance was written to the collection.
+  /// A dance was written to the collection: a new one, or, when the user chose
+  /// an existing dance to replace (a #797 link or a #1907 possible match),
+  /// that dance under its own id.
   created,
 
   /// The exact online dance was already imported before; nothing written.
@@ -184,7 +186,8 @@ class OnlineImportResult {
   /// user may choose between, in collection order. Empty otherwise.
   final List<String> possibleMatchIds;
 
-  /// Id of the imported dance for [OnlineImportKind.created], or the id of the
+  /// Id of the written dance for [OnlineImportKind.created] (the replaced
+  /// dance's own id when the user chose one to replace), or the id of the
   /// existing matching dance for [OnlineImportKind.alreadyInCollection] when it
   /// can be resolved, or the **existing** dance's id for
   /// [OnlineImportKind.needsConfirmation] /

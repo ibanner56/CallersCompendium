@@ -73,9 +73,9 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
 /// - **Cancel** (FilledButton, primary/safe): nothing is imported.
 /// - **Same dance** (TextButton): links the existing dance to the incoming
 ///   online record via [DedupeResolution.link], updating its provenance.
-///   **Destructive** — replaces the existing dance wholesale (figures, notes,
-///   tags, rating, custom fields); its place in programs and calling history
-///   survive because the dance id is preserved.
+///   **Destructive** — replaces the existing dance's title, figures, notes,
+///   tags and rating; its custom fields (#1890), its place in programs and its
+///   calling history survive, the last two because the dance id is preserved.
 /// - **Import a second copy** (TextButton): creates a new dance via
 ///   [DedupeResolution.duplicate] alongside the existing one.
 ///

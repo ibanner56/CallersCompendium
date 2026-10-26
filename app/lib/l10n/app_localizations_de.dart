@@ -6048,7 +6048,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Ihre Version von „$existingTitle“ wird durch den Online-Eintrag ersetzt — einschließlich ihrer Figuren, Notizen, Tags, Bewertung und benutzerdefinierten Felder. Sie behält ihren Platz in Ihren Programmen und ihren Calling-Verlauf.';
+    return 'Ihre Version von „$existingTitle“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen, Tags und Bewertung. Sie behält Ihre benutzerdefinierten Felder, ihren Platz in Ihren Programmen und ihren Calling-Verlauf.';
   }
 
   @override
@@ -6070,12 +6070,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String onlineImportPossibleMatchDialogBody(String incomingTitle) {
-    return '„$incomingTitle“ ist möglicherweise ein Tanz, den Sie bereits unter einem anderen Titel haben. Wählen Sie ihn aus, um ihn durch diese Version zu ersetzen, oder importieren Sie diesen als neuen Tanz.';
+    return '„$incomingTitle“ ist möglicherweise ein Tanz, den Sie bereits unter einem anderen Titel haben. Wählen Sie den Tanz, der durch diese Version ersetzt werden soll, oder importieren Sie diesen als neuen Tanz.';
   }
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seiner Figuren, Notizen, Tags, Bewertung und benutzerdefinierten Felder. Er behält seinen Platz in Ihren Programmen und seinen Calling-Verlauf.';
+      'Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen, Tags und Bewertung. Er behält Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.';
 
   @override
   String get onlineImportPossibleMatchDialogActionNew =>

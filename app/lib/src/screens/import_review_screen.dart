@@ -975,7 +975,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }) async {
     final titles = batch.records.isEmpty
         // Nothing to review means nothing to name: `_titlesById` only labels
-        // candidate/re-import targets on a row, so loading the collection's
+        // candidate, possible-title and re-import targets on a row, so loading
+        // the collection's
         // titles for an empty batch is a read whose result is never read.
         ? const <String, String>{}
         : {
@@ -1212,7 +1213,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   /// Bulk controls above the rows, so a large re-import is not one tap per row.
-  /// Shown only when the batch has a re-import match or a possible match. The
+  /// Shown only when the batch has a re-import match or a possible match (an
+  /// ambiguous verdict; a row with only possible matches under another title,
+  /// #1907, is not one and is never swept). The
   /// per-row defaults are unchanged (#446); these only rewrite the choices.
   Widget _buildBulkControls(BuildContext context, ImportBatchResult batch) {
     final l10n = AppLocalizations.of(context);

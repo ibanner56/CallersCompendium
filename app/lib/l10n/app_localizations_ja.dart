@@ -5743,7 +5743,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。フィギュア、コーリングノート、タグ、評価、カスタムフィールドも含まれます。プログラム内の位置とコーリング履歴は保持されます。';
+    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグ、評価も含まれます。カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
   }
 
   @override
@@ -5763,12 +5763,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineImportPossibleMatchDialogBody(String incomingTitle) {
-    return '「$incomingTitle」は、別のタイトルですでにあるダンスかもしれません。選択するとこのバージョンで置き換えます。または、新しいダンスとしてインポートしてください。';
+    return '「$incomingTitle」は、別のタイトルですでにあるダンスかもしれません。このバージョンで置き換えるダンスを選ぶか、新しいダンスとしてインポートしてください。';
   }
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      '選択したダンスは、オンラインの記録に置き換えられます。フィギュア、コーリングノート、タグ、評価、カスタムフィールドも含まれます。プログラム内の位置とコーリング履歴は保持されます。';
+      '選択したダンスは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグ、評価も含まれます。カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
 
   @override
   String get onlineImportPossibleMatchDialogActionNew => '新しいダンスとしてインポート';

@@ -929,6 +929,43 @@ void main() {
       expect(find.text(l10n.importReviewWillImport(1, 2)), findsOneWidget);
     });
 
+    testWidgets('a dance that is already a fuzzy candidate is offered once', (
+      tester,
+    ) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = await reporterCollection();
+      // `A-1 Reel` scores ~0.89 against `A1 Reel` (a fuzzy candidate) and has
+      // the same core title, so `base` is in both lists.
+      await _pump(
+        tester,
+        repos,
+        payload: encodeArchive(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            choreographers: [Choreographer(id: 'cw', name: 'Chris Weiler')],
+            dances: [
+              _dance('incoming', 'A-1 Reel').copyWith(authorIds: const ['cw']),
+            ],
+          ),
+        ),
+      );
+      await _toReview(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.byKey(const ValueKey('import-row-0-link-base')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(l10n.importReviewOptionPossibleTitle('A1 Reel')),
+        findsNothing,
+      );
+      expect(
+        find.text(l10n.importReviewOptionPossibleTitle('A1 Reel (Imp Var)')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('choosing one replaces that dance and only that one', (
       tester,
     ) async {

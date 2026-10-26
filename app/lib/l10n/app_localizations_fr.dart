@@ -6060,7 +6060,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Votre version de « $existingTitle » sera remplacée par l’enregistrement en ligne — y compris ses figures, ses notes d’appel, ses tags, sa note et ses champs personnalisés. Elle conserve sa place dans vos programmes et son historique d’appel.';
+    return 'Votre version de « $existingTitle » sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.';
   }
 
   @override
@@ -6082,12 +6082,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String onlineImportPossibleMatchDialogBody(String incomingTitle) {
-    return '« $incomingTitle » est peut-être une danse que vous avez déjà sous un autre titre. Choisissez-la pour la remplacer par cette version, ou importez celle-ci comme nouvelle danse.';
+    return '« $incomingTitle » est peut-être une danse que vous avez déjà sous un autre titre. Choisissez la danse à remplacer par cette version, ou importez celle-ci comme nouvelle danse.';
   }
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris ses figures, ses notes d’appel, ses tags, sa note et ses champs personnalisés. Elle conserve sa place dans vos programmes et son historique d’appel.';
+      'La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.';
 
   @override
   String get onlineImportPossibleMatchDialogActionNew =>
