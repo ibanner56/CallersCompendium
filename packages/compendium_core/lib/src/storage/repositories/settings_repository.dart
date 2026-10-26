@@ -62,6 +62,49 @@ class SettingsRepository {
 
   final CompendiumDatabase _db;
 
+  /// Writes this repository has made since the last [takeWriteSummary], kept
+  /// per database so a second repository over the same connection shares it.
+  _WriteTally get _tally => _tallies[_db] ??= _WriteTally();
+  static final Expando<_WriteTally> _tallies = Expando('settings write tally');
+
+  /// Reads and clears the tally of settings writes made through any
+  /// repository over this database since the last call.
+  ///
+  /// The `settings` table mixes keys that travel with keys that never do, and
+  /// drift's table-update event carries only the table name. Device Sync needs
+  /// to know whether a `settings` event was an edit to something it syncs, so
+  /// it asks here when the event arrives. [SettingsWriteSummary.deviceScopedOnly]
+  /// is true only when this repository positively reported at least one write
+  /// and every one was classified, by [classifySettingsKey], as anything but
+  /// `shareable`. An unclassified key counts as an edit, as do writes from
+  /// anywhere that does not report here, so the failure direction is an extra
+  /// pass, never a missed one.
+  ///
+  /// Writes are recorded inside the write's own transaction, so they are
+  /// visible before the commit's event can be delivered. A tally is only a
+  /// count, never an expectation that must be matched by an event: nothing
+  /// here can swallow a later edit if a write turns out to be a no-op.
+  SettingsWriteSummary takeWriteSummary() {
+    final tally = _tally;
+    final summary = SettingsWriteSummary._(
+      deviceScopedWrites: tally.deviceScoped,
+      syncRelevantWrites: tally.syncRelevant,
+    );
+    tally
+      ..deviceScoped = 0
+      ..syncRelevant = 0;
+    return summary;
+  }
+
+  void _recordWrite(String key) {
+    final egress = classifySettingsKey(key)?.egress;
+    if (egress == null || egress == EgressClass.shareable) {
+      _tally.syncRelevant++;
+    } else {
+      _tally.deviceScoped++;
+    }
+  }
+
   /// Writes [key], reviving it if it was previously removed.
   ///
   /// `key` is the primary key, so re-setting a removed setting lands on its
@@ -125,6 +168,7 @@ class SettingsRepository {
         key: key,
         at: now,
       );
+      _recordWrite(key);
     });
   }
 
@@ -186,23 +230,34 @@ class SettingsRepository {
               at: resolveStamp(at),
               deleted: true,
             );
+            _recordWrite(key);
             return;
           }
-          await (_db.delete(
+          final removed = await (_db.delete(
             _db.settings,
           )..where((t) => t.key.equals(key))).go();
+          if (removed > 0) _recordWrite(key);
         });
       }
-      return (_db.delete(_db.settings)..where((t) => t.key.equals(key))).go();
+      return _db.transaction(() async {
+        // Only a deleted row emits a table update, so only that is recorded.
+        final removed = await (_db.delete(
+          _db.settings,
+        )..where((t) => t.key.equals(key))).go();
+        if (removed > 0) _recordWrite(key);
+      });
     }
-    return stampExistenceTransition(
-      _db,
-      table: _db.settings,
-      keyColumn: 'key',
-      key: key,
-      at: resolveStamp(at),
-      deleted: true,
-    );
+    return _db.transaction(() async {
+      await stampExistenceTransition(
+        _db,
+        table: _db.settings,
+        keyColumn: 'key',
+        key: key,
+        at: resolveStamp(at),
+        deleted: true,
+      );
+      _recordWrite(key);
+    });
   }
 
   Future<Map<String, Object?>> all() async {
@@ -211,4 +266,27 @@ class SettingsRepository {
     )..where((t) => t.deletedAt.isNull())).get();
     return {for (final r in rows) r.key: jsonDecode(r.valueJson)};
   }
+}
+
+class _WriteTally {
+  int deviceScoped = 0;
+  int syncRelevant = 0;
+}
+
+/// What [SettingsRepository.takeWriteSummary] reports.
+class SettingsWriteSummary {
+  const SettingsWriteSummary._({
+    required this.deviceScopedWrites,
+    required this.syncRelevantWrites,
+  });
+
+  /// Writes to keys classified `deviceScoped` or `deviceLocal`.
+  final int deviceScopedWrites;
+
+  /// Writes to `shareable` keys and to keys the registry does not classify.
+  final int syncRelevantWrites;
+
+  /// Whether the reported writes were all to keys that never sync, and there
+  /// was at least one.
+  bool get deviceScopedOnly => deviceScopedWrites > 0 && syncRelevantWrites == 0;
 }
