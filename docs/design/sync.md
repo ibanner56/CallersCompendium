@@ -3641,8 +3641,9 @@ checked against the discriminator rule above.
 5. `POST /v1/blobs/batch` for each needed hash, up to 200 at a time
    (`GET /v1/blobs/{hash}` against a server without the route). **Verify the
    hash before applying.**
-6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
-   indexes.
+6. Apply in one transaction, **read-modify-write** (below). Inside it,
+   reindex the dances the batch can have changed (sync-spec §6.7, *Derived
+   indexes*).
 7. Recompute the local manifest from the post-apply state. Before any
    publication network request, record every address named by that final
    manifest in `published_records`; then `POST /v1/blobs/missing` and `PUT`
@@ -3787,9 +3788,53 @@ MUST NOT become a whole-library snapshot: it once was, and on a large library it
 held every app write for seconds, long enough on the largest to approach the
 30-second busy timeout after which the user's edit fails outright (#1909). The
 transaction still does whole-table work of its own — reconciliation reads the
-natural-key, alias and baseline tables, and a batch that applies anything
-rebuilds the derived search indexes — so an app write can still wait seconds on
-a large library; narrowing those is separate work.
+natural-key, alias and baseline tables, and the derived-index step reads the
+four tables a dance's index rows draw on besides the dance and, for a batch
+with a glossary entry, scans the dances' figures once — so an app write can
+still wait on a large library; narrowing those is separate work. The derived
+step itself reindexes only the dances the batch affected, and a batch of none
+of their inputs writes no index row (#1920; sync-spec §6.7, *Derived
+indexes*).
+
+**The snapshot scans outside the write lock.** `snapshot()` reads the whole
+library, and hashes all of it the first time in a pass, and the coordinator
+takes several per pass, idle ones included.
+It therefore runs in three phases (#1915). A short write transaction revalidates
+pending deletions. The scan runs in `CompendiumRepositories.readTransaction`, a
+deferred SQLite transaction opened through a `SAVEPOINT` under `PRAGMA
+query_only`. drift has no read-only transaction of its own. Under WAL the scan
+reads one consistent view and takes no lock an app write waits for, so the write
+commits mid-scan and is not seen by it. Only when the scan found kept fields
+(§6.7) with no record left to carry them does a second short write transaction
+delete them. It first re-checks each one against the library as it stands then:
+still kept, not pending, not a record the snapshot would publish
+(`currentCandidates`), not an unreadable dance it withholds. So an edit that
+lands between the scan and the sweep (a private custom field made shareable
+again, say) keeps what it needs. Called inside an open transaction, as conflict
+resolution calls it, all three phases run in that transaction.
+
+**A pass's later snapshots reuse what did not change.** The scan still hydrates
+every record, but a `CompendiumSyncStorage` built with `memoizeSnapshots`
+remembers, for each entity record of its latest scan, the blob and wire hash it built and every input it built them
+from, and a later scan reuses them when all of those inputs are unchanged
+(#1931). The inputs are the record's address, its unprojected archive body
+(`syncArchiveBodyForEntity`), its three timestamps, the set of shareable
+custom-field ids, and its kept parts (§6.7). Nothing else reaches the blob but
+this build's wire registry, which is constant for the process. The key is the
+archive body, not the entity, because model equality is written by hand per class
+and can leave a field out: `Dance.==` does not compare `provenance`, which is on
+the wire. What a record shows of another one, such as a dance's authors, is
+already in its archive body, so no dependency tracking is needed. The memo is in
+memory only: each scan builds its own, which replaces the last one when the scan
+finishes, and the scan still writes nothing. It is never persisted and lives as
+long as its storage instance, which is why it is opt-in: only the sync worker's
+per-pass store (`syncPassStore`) turns it on, so it lives for one pass, and the
+saving is on the second and later snapshots of a pass, not the first. Every
+other storage, the review screen's and the main isolate's coordinator's among
+them, keeps no memo, and its snapshots are built in full as before. Settings and records kept
+whole are few, and still rebuilt every scan. The guard is
+`sync_snapshot_blob_memo_test.dart`, whose last group compares a memoised
+snapshot with a fresh instance's, byte for byte, after random edits.
 
 **"Carries" must be unambiguous.** The codec omits null fields today
 (`if (v.website != null)`), so on the wire *absent* means either "device-local,

@@ -718,6 +718,27 @@ String? _takeSide(List<String> w) {
   return null;
 }
 
+/// Removes and returns the side of the first stated hand, or null: a
+/// hyphenated `left-hand`/`right-hand` token (one word after [_normalize]),
+/// else a spaced `left hand`/`right hand` pair, else a bare side
+/// ([_takeSide]). Any second side word stays in [w], so a contradictory line
+/// (`right-hand star left`) is left over and declines to custom.
+String? _takeHand(List<String> w) {
+  for (var i = 0; i < w.length; i++) {
+    if (w[i] == 'left-hand' || w[i] == 'right-hand') {
+      return w.removeAt(i) == 'left-hand' ? 'left' : 'right';
+    }
+  }
+  for (var i = 0; i + 1 < w.length; i++) {
+    if ((w[i] == 'left' || w[i] == 'right') && w[i + 1] == 'hand') {
+      final side = w[i];
+      w.removeRange(i, i + 2);
+      return side;
+    }
+  }
+  return _takeSide(w);
+}
+
 /// TCB N-prefix neighbor tags (`N0`..`N4`). Used to absorb a trailing numeric
 /// neighbor qualifier ("with neighbor N2", "chain to neighbor N2") that would
 /// otherwise be left over and force the custom fallback.
@@ -1449,7 +1470,8 @@ _Match? _facingStar(List<String> w) {
 
 _Match? _star(List<String> w) {
   if (!_consumePhrase(w, ['star'])) return null;
-  final hand = _takeSide(w);
+  // "Star left", "left star", and the glossary's "left-hand star" (#1908).
+  final hand = _takeHand(w);
   final places = _takePlaces(w);
   // TCB writes "Hands-across star right/left"; recognise the grip qualifier
   // (hyphenated single token or two words). It carries no render token.

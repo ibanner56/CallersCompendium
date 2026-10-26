@@ -1,0 +1,17 @@
+{
+  "id": "1915-sync-snapshot-read-transaction",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Saving an edit while Device Sync is running no longer waits for sync to read through your whole collection, which on a very large collection could take long enough for the save to fail with \"database is locked\". A save can still wait while sync applies changes from another device."
+    ]
+  },
+  "core": {
+    "added": [
+      "`CompendiumRepositories.readTransaction` runs a read-only action as one SQLite read transaction, without taking the write lock."
+    ],
+    "changed": [
+      "`CompendiumSyncStorage.snapshot()` scans the library in a read transaction. Its writes, revalidating pending deletions and sweeping orphaned kept fields, run in short write transactions before and after the scan, and the sweep re-checks each record before it deletes. The returned snapshot is unchanged."
+    ]
+  }
+}

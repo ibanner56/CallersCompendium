@@ -3799,6 +3799,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionAdvancedTitle => 'Avancé';
 
   @override
+  String get collectionAdvancedActive => 'Avancé (activé)';
+
+  @override
+  String searchToolActiveCount(String tool, int count) {
+    return '$tool · $count';
+  }
+
+  @override
   String get collectionUseAdvancedQuery => 'Utiliser la recherche avancée';
 
   @override

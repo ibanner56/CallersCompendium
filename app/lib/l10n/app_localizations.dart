@@ -5875,7 +5875,7 @@ abstract class AppLocalizations {
   /// **'Filters'**
   String get collectionFiltersTitle;
 
-  /// Title of the facet filters panel, noting how many filters are active.
+  /// What screen readers hear for the Collection's Filters button while filters are active; the button itself shows the shorter searchToolActiveCount form ("Filters · 3").
   ///
   /// In en, this message translates to:
   /// **'Filters ({count} active)'**
@@ -5887,7 +5887,7 @@ abstract class AppLocalizations {
   /// **'By phrase'**
   String get collectionByPhraseTitle;
 
-  /// Title of the by-phrase filter panel, noting how many phrase constraints are active.
+  /// What screen readers hear for the Collection's By phrase button while phrase constraints are active; the button itself shows the shorter searchToolActiveCount form ("By phrase · 2").
   ///
   /// In en, this message translates to:
   /// **'By phrase ({count} active)'**
@@ -5898,6 +5898,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Advanced'**
   String get collectionAdvancedTitle;
+
+  /// Label of the Advanced search-tool button (Collection and the program builder's dance picker) while an advanced figure query is turned on and has at least one condition, so the user can see it is still narrowing the results after its panel closes. Shown in full, like the short "Filters · 3" count on the Filters button.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced (on)'**
+  String get collectionAdvancedActive;
+
+  /// Short label of a search-tool button (Filters, By phrase) in the Collection and the program builder's dance picker while that tool is narrowing the results, e.g. "Filters · 3". Kept short so the row of tool buttons fits on one line; screen readers hear the longer "Filters (3 active)" form instead. {tool} is the tool's own name.
+  ///
+  /// In en, this message translates to:
+  /// **'{tool} · {count}'**
+  String searchToolActiveCount(String tool, int count);
 
   /// Toggle that enables the boolean advanced-query builder.
   ///
@@ -12620,13 +12632,13 @@ abstract class AppLocalizations {
   /// **'Find a dance to add'**
   String get collectionPickerSearchLabel;
 
-  /// Collection-picker Filters section header; shows the number of active filters when any are set.
+  /// The dance picker's Filters button: its plain name (count 0), and what screen readers hear while filters are active; the button itself then shows the shorter searchToolActiveCount form ("Filters · 3").
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =0{Filters} other{Filters ({count} active)}}'**
   String collectionPickerFilters(int count);
 
-  /// Collection-picker By-phrase section header; shows the number of active phrase conditions when any are set.
+  /// The dance picker's By phrase button: its plain name (count 0), and what screen readers hear while phrase conditions are active; the button itself then shows the shorter searchToolActiveCount form ("By phrase · 2").
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =0{By phrase} other{By phrase ({count} active)}}'**

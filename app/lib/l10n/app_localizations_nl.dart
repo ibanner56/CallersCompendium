@@ -3770,6 +3770,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionAdvancedTitle => 'Geavanceerd';
 
   @override
+  String get collectionAdvancedActive => 'Geavanceerd (aan)';
+
+  @override
+  String searchToolActiveCount(String tool, int count) {
+    return '$tool · $count';
+  }
+
+  @override
   String get collectionUseAdvancedQuery =>
       'Geavanceerde zoekopdracht gebruiken';
 

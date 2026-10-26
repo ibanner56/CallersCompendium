@@ -414,7 +414,7 @@ void main() {
         find.byKey(const ValueKey('picker-filters-panel')),
       );
 
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
     });
   }
 
@@ -438,7 +438,7 @@ void main() {
     await _tapVisible(tester, find.byKey(const ValueKey('untagged-chip')));
 
     expect(_titles(tester), ['Untagged Dance']);
-    expect(find.text('Filters (1 active)'), findsOneWidget);
+    expect(find.text('Filters · 1'), findsOneWidget);
   });
 
   testWidgets('title sort ignores leading articles by default', (tester) async {
@@ -646,7 +646,13 @@ void main() {
       ),
     );
 
-    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      callersBoxOnline: _DedupeOnlineService(OnlineImportKind.created),
+    );
     await tester.pumpAndSettle();
 
     await _tapVisible(
@@ -670,6 +676,20 @@ void main() {
     // The advanced tree compiles through buildCollectionFilter and re-runs the
     // search, so only the dance with the figure survives.
     expect(_titles(tester), ['Has Petronella']);
+    expect(find.text('Advanced (on)'), findsOneWidget);
+
+    // Online results are not narrowed by the query, so the button stops
+    // saying it is on.
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    expect(find.text('Advanced (on)'), findsNothing);
+    expect(find.text('Advanced'), findsOneWidget);
   });
 
   testWidgets('advanced builder: two "Has tag" rows find dances with both '
@@ -1673,14 +1693,14 @@ void main() {
       );
       await _tapVisible(tester, find.byKey(const ValueKey('mixer-yes')));
       expect(_titles(tester), ['Mixer Dance']);
-      expect(find.text('Filters (1 active)'), findsOneWidget);
+      expect(find.text('Filters · 1'), findsOneWidget);
 
       hidden.value = {CollectionFacetIds.mixer};
       await tester.pumpAndSettle();
 
       expect(_titles(tester), ['Mixer Dance', 'Plain Dance']);
       expect(find.byKey(const ValueKey('facet-row-mixer')), findsNothing);
-      expect(find.text('Filters (1 active)'), findsNothing);
+      expect(find.text('Filters · 1'), findsNothing);
     });
   });
 }

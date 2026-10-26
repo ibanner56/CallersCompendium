@@ -2287,6 +2287,96 @@ void main() {
     ]);
   });
 
+  // The attach pass after a confirmed `POST` can fail (a 429 on a large first
+  // download) and be finished by an ordinary trigger rather than by
+  // `confirmReplacement`. The "already created" flag must not outlive that
+  // decision, or a later, separate replacement decision skips its `POST` and
+  // asks the user a second time (#1939).
+  test('a later replacement decision posts again after a trigger-completed '
+      'retry', () async {
+    final transport = _FakeTransport(
+      missingKind: SyncStoreMissingKind.replacementRequired,
+      // Lookup 1 starts decision one; lookups 2-3 are the confirmation's
+      // attach and its pass, 4 the retry, 5 starts decision two.
+      missingStoreCalls: {1, 5},
+      // The confirmation's attach pass fails; the retry then completes.
+      putManifestStatuses: [500, 200],
+    );
+    final events = <SyncReplacementRequiredEvent>[];
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(
+        previouslyUsed: true,
+        snapshotEpochs: [null, null, null, null, null, null, 'epoch-1'],
+      ),
+      transport: transport,
+    );
+    final subscription = coordinator.replacementRequired.listen(events.add);
+    addTearDown(subscription.cancel);
+    addTearDown(coordinator.dispose);
+
+    await coordinator.onAppStart();
+    await Future<void>.delayed(Duration.zero);
+    expect(events, hasLength(1));
+    expect(
+      (await coordinator.confirmReplacement()).status,
+      SyncPassStatus.failed,
+    );
+    expect(transport.createCalls, 1);
+    expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+    expect(transport.createCalls, 1, reason: 'the retry is not a decision');
+
+    expect(
+      (await coordinator.syncNow()).status,
+      SyncPassStatus.replacementRequired,
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(events, hasLength(2));
+
+    final second = await coordinator.confirmReplacement();
+    expect(second.status, SyncPassStatus.completed);
+    expect(
+      transport.createCalls,
+      2,
+      reason: 'a new decision issues its own POST and does not re-ask',
+    );
+    expect(events, hasLength(2));
+  });
+
+  // The other direction: a `POST` that succeeded but whose lookup failed
+  // leaves the same decision pending, so its retry must not `POST` again.
+  test('a retry after a created store with a failed lookup sends no second '
+      'POST', () async {
+    final transport = _FakeTransport(
+      missingKind: SyncStoreMissingKind.replacementRequired,
+      // Lookup 1 starts the decision; lookup 2, right after the `POST`, fails.
+      missingStoreCalls: {1, 2},
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(
+        previouslyUsed: true,
+        snapshotEpochs: [null, null, null, null, 'epoch-1'],
+      ),
+      transport: transport,
+    );
+    addTearDown(coordinator.dispose);
+
+    await coordinator.onAppStart();
+    expect(
+      (await coordinator.confirmReplacement()).status,
+      SyncPassStatus.failed,
+    );
+    expect(transport.createCalls, 1);
+    expect(
+      (await coordinator.confirmReplacement()).status,
+      SyncPassStatus.completed,
+    );
+    expect(transport.createCalls, 1);
+  });
+
   test('failed replacement confirmation can be retried', () async {
     final transport = _FakeTransport(
       missingKind: SyncStoreMissingKind.replacementRequired,
@@ -5403,6 +5493,55 @@ void main() {
       },
     );
 
+    test('a fresh attach with an unreadable peer manifest downloads no blobs, '
+        'however many the readable peers hold', () async {
+      // The attach cannot finish without every peer's list (spec §6.2), so
+      // anything fetched before the check was thrown away, and was fetched
+      // again on every re-run.
+      final peerCandidate = SyncMergeCandidate.fromBlob(
+        _setting('default_program_band', 'peer'),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer-a', 'peer-b'],
+        manifestResponses: {
+          'peer-a': [_FakeTransport.response(404)],
+          'peer-b': [
+            SyncHttpResponse(
+              statusCode: 200,
+              kind: SyncResponseKind.success,
+              headers: const {'etag': '"peer-b-v1"'},
+              body: encodeSyncManifestUtf8(
+                _manifest(
+                  deviceId: 'peer-b',
+                  records: {
+                    SyncRecordKind.setting: {
+                      peerCandidate.blob.id: peerCandidate.wireHash,
+                    },
+                  },
+                ),
+              ),
+            ),
+          ],
+        },
+        blobResponses: {
+          peerCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(peerCandidate.blob)),
+          ),
+        },
+      );
+
+      final result = await coordinatorFor(
+        _FakeStore(epoch: null),
+        transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.peerUnavailable);
+      expect(result.failure?.statusCode, 404);
+      expect(transport.blobCalls, 0);
+    });
+
     test('a completed pass carries no failure', () async {
       final result = await coordinatorFor(
         _FakeStore(),
@@ -8359,7 +8498,8 @@ final class _SnapshotInterleavingStore
       _delegate.writeJoinsWithReport(record);
 
   @override
-  Future<void> rebuildDerivedIndexes() => _delegate.rebuildDerivedIndexes();
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) =>
+      _delegate.reindexDerivedAfterApply(applied);
 
   @override
   Future<SyncApplyPreparation> reconcileInbound(
@@ -8555,12 +8695,12 @@ final class _FakeStore implements SyncCoordinatorStore {
     writes.add(record);
   }
 
-  /// Thrown from [rebuildDerivedIndexes] when set: the apply engine runs it
+  /// Thrown from [reindexDerivedAfterApply] when set: the apply engine runs it
   /// inside its transaction, so this is an apply that rolls back and throws.
   Object? failRebuildDerivedIndexes;
 
   @override
-  Future<void> rebuildDerivedIndexes() async {
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) async {
     if (failRebuildDerivedIndexes case final error?) throw error;
   }
 
@@ -8725,6 +8865,7 @@ final class _FakeStore implements SyncCoordinatorStore {
 final class _FakeTransport implements SyncCoordinatorTransport {
   _FakeTransport({
     this.missingKind,
+    Set<int>? missingStoreCalls,
     this._storeReadGate,
     this.devices = const [],
     List<String>? storeEpochs,
@@ -8744,7 +8885,8 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this.storeQuota,
     this.batchSupported = false,
     this.uploadBatchSupported = false,
-  }) : createResponses = [...createResponses ?? const []],
+  }) : missingStoreCalls = missingStoreCalls ?? const {1},
+       createResponses = [...createResponses ?? const []],
        storeEpochs = [
          ...storeEpochs ?? const ['epoch-1'],
        ],
@@ -8762,6 +8904,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
        };
 
   final SyncStoreMissingKind? missingKind;
+
+  /// The 1-based [getStore] calls that answer "store missing" with
+  /// [missingKind]; only the first by default.
+  final Set<int> missingStoreCalls;
 
   /// The `quota` member of every store answer, verbatim; omitted when null.
   final Object? storeQuota;
@@ -8856,8 +9002,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
         storeEpochs[(storeCalls - 1) < storeEpochs.length
             ? storeCalls - 1
             : storeEpochs.length - 1];
+    final missing =
+        missingKind != null && missingStoreCalls.contains(storeCalls);
     final response = _response(
-      missingKind == null || storeCalls > 1 ? 200 : 404,
+      missing ? 404 : 200,
       body: jsonEncode({
         'epoch': epoch,
         'devices': devices,
@@ -8866,7 +9014,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     );
     return SyncStoreResult(
       response: response,
-      missingKind: storeCalls == 1 ? missingKind : null,
+      missingKind: missing ? missingKind : null,
     );
   }
 

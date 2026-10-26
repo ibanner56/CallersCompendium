@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../diagnostics/error_log.dart';
 import 'sync_failure.dart';
@@ -451,10 +452,16 @@ final class CompendiumSyncCoordinatorStore
         SyncApplyReconciliationStorage,
         SyncApplyRestorableStorage,
         SyncCapabilityRecordStore {
+  /// [memoizeSnapshots] is passed to [CompendiumSyncStorage]: only a store
+  /// built for one pass and dropped after, as the sync worker's is, sets it.
   CompendiumSyncCoordinatorStore(
     CompendiumRepositories repositories, {
     this.syncId,
-  }) : storage = CompendiumSyncStorage(repositories);
+    bool memoizeSnapshots = false,
+  }) : storage = CompendiumSyncStorage(
+         repositories,
+         memoizeSnapshots: memoizeSnapshots,
+       );
 
   final CompendiumSyncStorage storage;
   final String? syncId;
@@ -683,7 +690,8 @@ final class CompendiumSyncCoordinatorStore
       storage.writeJoinsWithReport(record);
 
   @override
-  Future<void> rebuildDerivedIndexes() => storage.rebuildDerivedIndexes();
+  Future<void> reindexDerivedAfterApply(Set<SyncRecordAddress> applied) =>
+      storage.reindexDerivedAfterApply(applied);
 }
 
 /// The transport surface consumed by [SyncCoordinator].
@@ -819,7 +827,9 @@ final class SyncPeerManifestCacheEntry {
 ///
 /// Isolate boundaries cannot retain the coordinator instance, so this cache
 /// has an explicit message representation that the pass operation can return
-/// to its owner after each worker finishes.
+/// to its owner after each worker finishes. Only the worker decodes it: the
+/// owner holds the message as it came back, checked with [checkMessage], and
+/// hands it to the next worker as is (#1934).
 ///
 /// It also carries the session-scoped evidence the §6.9 unreflected-publication
 /// judgement is made from: when this device first published each record's
@@ -983,40 +993,28 @@ final class SyncPeerManifestCache {
     ownManifest = null;
   }
 
-  void replaceFrom(SyncPeerManifestCache source) {
-    _entries
-      ..clear()
-      ..addAll(source._entries);
-    rejectedHashes
-      ..clear()
-      ..addAll(source.rejectedHashes);
-    publications
-      ..clear()
-      ..addAll(source.publications);
-    peerPublications
-      ..clear()
-      ..addAll({
-        for (final entry in source.peerPublications.entries)
-          entry.key: [...entry.value],
-      });
-    _fetchedBlobs
-      ..clear()
-      ..addAll(source._fetchedBlobs);
-    _fetchedBlobBytes = source._fetchedBlobBytes;
-    passSequence = source.passSequence;
-    publicationEpoch = source.publicationEpoch;
-    blobBatchUnsupported = source.blobBatchUnsupported;
-    blobUploadBatchUnsupported = source.blobUploadBatchUnsupported;
-    ownManifest = source.ownManifest;
-  }
+  /// How many manifest bodies [toMessage] has encoded and [fromMessage] has
+  /// decoded in this isolate. Isolate-local, as every static is, so a test on
+  /// the main isolate counts the main isolate's own work and not the worker's.
+  @visibleForTesting
+  static int debugManifestBodiesEncoded = 0;
 
+  /// See [debugManifestBodiesEncoded].
+  @visibleForTesting
+  static int debugManifestBodiesDecoded = 0;
+
+  /// This cache as a message for the isolate boundary.
+  ///
+  /// Encodes every cached peer manifest, so it is costly on a large library:
+  /// the worker calls it, and the main isolate only to seed a session's first
+  /// pass with a cache a test or benchmark built (#1934).
   Map<String, Object?> toMessage() => {
     '_entries': {
       for (final entry in _entries.entries)
         entry.key: {
           'epoch': entry.value.epoch,
           'etag': entry.value.etag,
-          'manifest': utf8.decode(encodeSyncManifestUtf8(entry.value.manifest)),
+          'manifest': _encodeManifestBody(entry.value.manifest),
           'stored': entry.value.stored,
         },
     },
@@ -1056,8 +1054,35 @@ final class SyncPeerManifestCache {
     },
   };
 
-  static SyncPeerManifestCache fromMessage(Object? message) {
-    if (message == null) return SyncPeerManifestCache();
+  static String _encodeManifestBody(SyncManifest manifest) {
+    debugManifestBodiesEncoded++;
+    return utf8.decode(encodeSyncManifestUtf8(manifest));
+  }
+
+  /// The cache [message] holds, where null is an empty cache. Throws a
+  /// [FormatException] when it is malformed.
+  ///
+  /// Decodes every cached peer manifest, so, like [toMessage], it is the
+  /// worker's to call (#1934).
+  static SyncPeerManifestCache fromMessage(Object? message) =>
+      _fromMessage(message, build: true)!;
+
+  /// Throws the [FormatException] [fromMessage] would for [message], without
+  /// decoding its manifest bodies or building the cache.
+  ///
+  /// What the main isolate checks a worker's cache with. The one thing it
+  /// leaves to the next worker's [fromMessage] is whether each manifest body
+  /// decodes, and each is the worker's own [toMessage] encoding of a manifest
+  /// it had already decoded or built.
+  static void checkMessage(Object? message) {
+    _fromMessage(message, build: false);
+  }
+
+  static SyncPeerManifestCache? _fromMessage(
+    Object? message, {
+    required bool build,
+  }) {
+    if (message == null) return build ? SyncPeerManifestCache() : null;
     if (message is! Map<Object?, Object?>) {
       throw const FormatException('sync isolate returned a malformed cache');
     }
@@ -1083,6 +1108,8 @@ final class SyncPeerManifestCache {
           stored is! bool) {
         throw const FormatException('sync isolate returned a malformed cache');
       }
+      if (!build) continue;
+      debugManifestBodiesDecoded++;
       entries[peerId] = SyncPeerManifestCacheEntry(
         epoch: epoch,
         etag: etag,
@@ -1205,6 +1232,7 @@ final class SyncPeerManifestCache {
       }
       ownManifest = (hash: hash, blobHashes: blobHashes.cast<String>().toSet());
     }
+    if (!build) return null;
     return SyncPeerManifestCache(
       entries: entries,
       rejectedHashes: rejectedHashes,
@@ -1989,6 +2017,42 @@ class SyncCoordinator {
       await store.retireAliases(peerAddresses: peerAddresses);
     }
 
+    // Only a missing peer *manifest* aborts the attach. There the union is
+    // incomplete for every record that peer holds, and nothing downstream can
+    // tell which those are, so persisting an epoch would baseline a library
+    // whose shape this device has never seen.
+    //
+    // A per-record failure is not that. §6.2 step 4 says inbound rejection
+    // "applies here as in steady state", and §6.3 step 5, §6.5 and §6.9 all
+    // specify one record skipped with the batch left intact. Failing the whole
+    // pass instead was unrecoverable rather than merely strict: the epoch is
+    // persisted only at the end, so every later trigger repeated the attach and
+    // failed identically until the condition cleared on the *other* device. One
+    // blob its manifest outlived (§7.3), or one peer on an older build whose
+    // body this device refuses as non-canonical, could keep a new device from
+    // ever attaching. `normalizedUnresolved` still flows into the merge's
+    // `unresolved` set, which skips exactly those addresses and leaves their
+    // reports standing.
+    //
+    // The check precedes the downloads because it needs none of them: it reads
+    // only `allPeerManifestsAvailable`, which is final once the manifests are
+    // fetched, and a failing attach discards whatever it downloaded. Tested
+    // after them, every re-run (app start, foreground, debounce) paid for the
+    // whole library from the readable peers and threw it away.
+    if (freshAttach && !allPeerManifestsAvailable) {
+      return SyncPassResult(
+        SyncPassStatus.failed,
+        reports: reports.reports,
+        message:
+            'fresh attach requires every peer manifest', // i18n-ignore: internal status
+        failure: SyncFailure(
+          SyncFailureCause.peerUnavailable,
+          step: SyncFailureStep.download,
+          statusCode: unavailableManifestStatus,
+        ),
+      );
+    }
+
     // Every blob this device can build from what it holds needs no download,
     // not only those it publishes: a blob is addressed by the hash of its
     // bytes, so a peer's copy with the same hash is this one. Publication
@@ -2089,36 +2153,6 @@ class SyncCoordinator {
     normalizedUnresolved.addAll(
       normalizedRejectedPeerAddresses.difference(normalizedPeerAddresses),
     );
-    // Only a missing peer *manifest* aborts the attach. There the union is
-    // incomplete for every record that peer holds, and nothing downstream can
-    // tell which those are, so persisting an epoch would baseline a library
-    // whose shape this device has never seen.
-    //
-    // A per-record failure is not that. §6.2 step 4 says inbound rejection
-    // "applies here as in steady state", and §6.3 step 5, §6.5 and §6.9 all
-    // specify one record skipped with the batch left intact. Failing the whole
-    // pass instead was unrecoverable rather than merely strict: the epoch is
-    // persisted only at the end, so every later trigger repeated the attach and
-    // failed identically until the condition cleared on the *other* device. One
-    // blob its manifest outlived (§7.3), or one peer on an older build whose
-    // body this device refuses as non-canonical, could keep a new device from
-    // ever attaching. `normalizedUnresolved` still flows into the merge's
-    // `unresolved` set, which skips exactly those addresses and leaves their
-    // reports standing.
-    if (freshAttach && !allPeerManifestsAvailable) {
-      return SyncPassResult(
-        SyncPassStatus.failed,
-        reports: reports.reports,
-        message:
-            'fresh attach requires every peer manifest', // i18n-ignore: internal status
-        failure: SyncFailure(
-          SyncFailureCause.peerUnavailable,
-          step: SyncFailureStep.download,
-          statusCode: unavailableManifestStatus,
-        ),
-      );
-    }
-
     final repairCandidates = <SyncMergeCandidate>[];
     final quarantinedLocal = <SyncRecordAddress>{};
     final repairLocal = <SyncRecordAddress, SyncMergeCandidate?>{
@@ -3870,6 +3904,12 @@ class SyncCoordinator {
     if (_disposed) return;
     if (_replacementPending) return;
     _replacementPending = true;
+    // A new decision is a new `POST /v1/store` (§6.3 step 1). The flag only
+    // survives a pass that failed after the `POST`, which is a retry of the
+    // same decision; a retry finished by an ordinary trigger never cleared it.
+    // A decision still pending, as after a `POST` whose lookup failed, returns
+    // above and keeps the flag, so its retry sends no second `POST`.
+    _replacementCreated = false;
     _confirmation = null;
     _replacementEvents.add(const SyncReplacementRequiredEvent());
   }

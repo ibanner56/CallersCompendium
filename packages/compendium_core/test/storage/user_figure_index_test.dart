@@ -296,8 +296,9 @@ void main() {
     expect(await repos.userGlossary.getById('zoom-id'), isNotNull);
   });
 
-  // A sync apply batch rebuilds every dance's rows: these pin that the
-  // rebuild reads the live figures, whichever arrives first.
+  // A sync apply batch reindexes the dances using a glossary entry it applies
+  // (#1920): these pin that the reindex reads the live figures, whichever
+  // arrives first.
   group('by sync', () {
     late CompendiumRepositories peer;
     setUp(

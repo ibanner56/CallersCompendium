@@ -23,6 +23,17 @@ void main() {
       expect(f.move, 'swing');
     });
 
+    test('upgrades an import-gap "Left-hand star" (#1908)', () {
+      final result = reparseImportGapFigures([
+        importGap('Left-hand star', beats: 8),
+      ]);
+
+      expect(result.upgradedCount, 1);
+      final f = result.figures.single;
+      expect(f.move, 'star');
+      expect(f.params, {'hand': 'left', 'beats': 8});
+    });
+
     test('preserves beats and progression when upgrading', () {
       final result = reparseImportGapFigures([
         importGap('Neighbor swing', beats: 12, progression: true),

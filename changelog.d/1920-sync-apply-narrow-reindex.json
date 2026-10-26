@@ -1,0 +1,15 @@
+{
+  "id": "1920-sync-apply-narrow-reindex",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Device Sync no longer rebuilds the whole search index each time it brings in changes from your other devices. It now updates only the dances those changes affect, and when nothing it brought in feeds search — a setting or a program, say — it leaves the index alone. A save you make while a sync brings in a few changes no longer waits for your whole library to be reindexed."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`SyncApplyStorage.rebuildDerivedIndexes()` is replaced by `reindexDerivedAfterApply(Set<SyncRecordAddress> applied)`. `CompendiumSyncStorage` implements it by reindexing only the dances whose derived rows the applied records can change, and a pending tombstone the snapshot releases now reindexes the dances that read it; `CompendiumSyncStorage.rebuildDerivedIndexes()` remains for the dedupe and review-resolution paths.",
+      "`DanceRepository.reindexDerived(danceIds)` rebuilds the derived rows of a given set of dances, as `rebuildAllDerived` would write them; `DanceRepository.danceIdsDerivingFrom(...)` finds the dances, in the Trash or not, whose derived rows read given choreographers, published sources, custom-field definitions or figures of your own."
+    ]
+  }
+}

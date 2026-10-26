@@ -1970,4 +1970,50 @@ void main() {
       },
     );
   });
+
+  group('star — hand-prefixed spellings (#1908)', () {
+    // "Left-hand star" is the glossary's own wording (contra_figure_
+    // definitions.dart) and how Caller's Companion users write the move. The
+    // hyphenated form is one token after `_normalize`, and the spaced form
+    // leaves `hand` over, so both used to decline to custom.
+    final cases = <String, Map<String, Object?>>{
+      'Left-hand star': {'hand': 'left'},
+      'Right-hand star': {'hand': 'right'},
+      'Left hand star': {'hand': 'left'},
+      'Right hand star': {'hand': 'right'},
+      'Left-hand star 1': {'hand': 'left', 'places': 4},
+      'Right-hand star once': {'hand': 'right', 'places': 4},
+      'Left-hand star 3/4': {'hand': 'left', 'places': 3},
+      'Left hand star 1': {'hand': 'left', 'places': 4},
+      'Right hand star once': {'hand': 'right', 'places': 4},
+      'Right hand star 3/4': {'hand': 'right', 'places': 3},
+    };
+    for (final MapEntry(key: line, value: params) in cases.entries) {
+      test('"$line" → star $params (TCB and canonical front-ends)', () {
+        for (final f in [_parseLine(line), parseFigureLine(line)]) {
+          expect(f!.move, 'star', reason: line);
+          expect(f.params, params, reason: line);
+          expect(f.note, isNull, reason: line);
+        }
+      });
+    }
+
+    test('lines the hand does not account for stay custom', () {
+      for (final line in [
+        // `star` has no `who` param, so a stated dancer set must not be
+        // dropped.
+        'Neighbors left-hand star',
+        'Neighbors left hand star',
+        // Two sides contradict each other.
+        'Right-hand star left',
+        'Left hand star right',
+        // star_promenade carries no hand (taxonomy v26).
+        'Left-hand star promenade',
+      ]) {
+        final f = parseFigureLine(line);
+        expect(f!.isCustom, isTrue, reason: line);
+        expect(_text(f), line, reason: line);
+      }
+    });
+  });
 }

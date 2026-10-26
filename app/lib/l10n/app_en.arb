@@ -4677,7 +4677,7 @@
   },
   "collectionFiltersActive": "Filters ({count} active)",
   "@collectionFiltersActive": {
-    "description": "Title of the facet filters panel, noting how many filters are active.",
+    "description": "What screen readers hear for the Collection's Filters button while filters are active; the button itself shows the shorter searchToolActiveCount form (\"Filters · 3\").",
     "placeholders": {
       "count": {
         "type": "int",
@@ -4691,7 +4691,7 @@
   },
   "collectionByPhraseActive": "By phrase ({count} active)",
   "@collectionByPhraseActive": {
-    "description": "Title of the by-phrase filter panel, noting how many phrase constraints are active.",
+    "description": "What screen readers hear for the Collection's By phrase button while phrase constraints are active; the button itself shows the shorter searchToolActiveCount form (\"By phrase · 2\").",
     "placeholders": {
       "count": {
         "type": "int",
@@ -4702,6 +4702,24 @@
   "collectionAdvancedTitle": "Advanced",
   "@collectionAdvancedTitle": {
     "description": "Title of the advanced (online toggle + boolean query builder) filter panel."
+  },
+  "collectionAdvancedActive": "Advanced (on)",
+  "@collectionAdvancedActive": {
+    "description": "Label of the Advanced search-tool button (Collection and the program builder's dance picker) while an advanced figure query is turned on and has at least one condition, so the user can see it is still narrowing the results after its panel closes. Shown in full, like the short \"Filters · 3\" count on the Filters button."
+  },
+  "searchToolActiveCount": "{tool} · {count}",
+  "@searchToolActiveCount": {
+    "description": "Short label of a search-tool button (Filters, By phrase) in the Collection and the program builder's dance picker while that tool is narrowing the results, e.g. \"Filters · 3\". Kept short so the row of tool buttons fits on one line; screen readers hear the longer \"Filters (3 active)\" form instead. {tool} is the tool's own name.",
+    "placeholders": {
+      "tool": {
+        "type": "String",
+        "example": "Filters"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
   "collectionUseAdvancedQuery": "Use advanced query",
   "@collectionUseAdvancedQuery": {
@@ -11023,7 +11041,7 @@
   },
   "collectionPickerFilters": "{count, plural, =0{Filters} other{Filters ({count} active)}}",
   "@collectionPickerFilters": {
-    "description": "Collection-picker Filters section header; shows the number of active filters when any are set.",
+    "description": "The dance picker's Filters button: its plain name (count 0), and what screen readers hear while filters are active; the button itself then shows the shorter searchToolActiveCount form (\"Filters · 3\").",
     "placeholders": {
       "count": {
         "type": "int"
@@ -11032,7 +11050,7 @@
   },
   "collectionPickerByPhrase": "{count, plural, =0{By phrase} other{By phrase ({count} active)}}",
   "@collectionPickerByPhrase": {
-    "description": "Collection-picker By-phrase section header; shows the number of active phrase conditions when any are set.",
+    "description": "The dance picker's By phrase button: its plain name (count 0), and what screen readers hear while phrase conditions are active; the button itself then shows the shorter searchToolActiveCount form (\"By phrase · 2\").",
     "placeholders": {
       "count": {
         "type": "int"
