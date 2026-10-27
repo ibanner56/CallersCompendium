@@ -8,7 +8,13 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-26
+
 ### Changed
+
+- The `compendium_core` dependency advances to `0.9.1`. The schema stays at
+  v40 and the generated sync allow-list is unchanged, so this release adds no
+  wire fields or record kinds.
 
 - `--break-glass` opens `athenaeum.sqlite` read-only and runs none of the
   server's startup work (schema and index creation, manifest indexing,

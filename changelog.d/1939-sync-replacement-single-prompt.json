@@ -1,9 +1,0 @@
-{
-  "id": "1939-sync-replacement-single-prompt",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "If Device Sync had to replace a missing sync store a second time in one session, the app no longer asks you to confirm twice."
-    ]
-  }
-}
