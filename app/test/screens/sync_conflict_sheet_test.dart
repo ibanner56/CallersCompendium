@@ -793,7 +793,7 @@ void main() {
       // in; the swing both versions share is not repeated.
       expect(find.text('A2'), findsOneWidget);
       expect(find.text('This device: circle left 3 places'), findsOneWidget);
-      expect(find.text('Another device: star right 4 places'), findsOneWidget);
+      expect(find.text('Another device: star left 4 places'), findsOneWidget);
       expect(find.text('A1'), findsNothing);
     });
 

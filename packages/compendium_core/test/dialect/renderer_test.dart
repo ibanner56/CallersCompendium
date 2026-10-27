@@ -2808,9 +2808,9 @@ void main() {
       final cases = <String, Figure>{
         'role2s box circulate': Figure(move: 'box_circulate'),
         'partners cross trails across neighbors': Figure(move: 'cross_trails'),
-        'ones poussette neighbors half clockwise': Figure(move: 'poussette'),
+        'role1s poussette neighbors half clockwise': Figure(move: 'poussette'),
         'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
-        'partners square through 4 places': Figure(move: 'square_through'),
+        'partners square through 2 places': Figure(move: 'square_through'),
         'role2s hey right': Figure(move: 'hey'),
         'ones dolphin hey right': Figure(move: 'dolphin_hey'),
         'role1s form long waves': Figure(move: 'form_long_waves'),
@@ -2821,7 +2821,7 @@ void main() {
           move: 'cross_trails',
           params: {'where': 'along'},
         ),
-        'ones poussette neighbors full counterclockwise': Figure(
+        'role1s poussette neighbors full counterclockwise': Figure(
           move: 'poussette',
           params: {'fraction': 'full', 'direction': 'counterclockwise'},
         ),
@@ -2829,9 +2829,9 @@ void main() {
           move: 'facing_star',
           params: {'direction': 'counterclockwise'},
         ),
-        'partners square through 2 places': Figure(
+        'partners square through 4 places': Figure(
           move: 'square_through',
-          params: {'places': 2},
+          params: {'places': 4},
         ),
       };
       cases.forEach((expected, figure) {
@@ -2920,7 +2920,7 @@ void main() {
       test('default: half + clockwise -> "back then left"', () {
         expect(
           renderer.render(Figure(move: 'poussette'), d),
-          'half poussette - ones pull neighbor back then left',
+          'half poussette - role1s pull neighbor back then left',
         );
       });
       test('full + counterclockwise -> "back then right"', () {
@@ -2932,7 +2932,7 @@ void main() {
             ),
             d,
           ),
-          'full poussette - ones pull neighbor back then right',
+          'full poussette - role1s pull neighbor back then right',
         );
       });
     });
@@ -2959,13 +2959,22 @@ void main() {
     });
 
     group('square_through (ContraDB squareThroughWords)', () {
-      test('default (4 places): embedded balance + "then repeat" tail', () {
+      test('default (2 places): embedded balance, no tail', () {
         expect(
           renderer.render(Figure(move: 'square_through'), d),
+          'square through two - partner balance & pull by right, then neighbor pull by left',
+        );
+      });
+      test('4 places: embedded balance + "then repeat" tail', () {
+        expect(
+          renderer.render(
+            Figure(move: 'square_through', params: {'places': 4}),
+            d,
+          ),
           'square through four - partner balance & pull by right, then neighbor pull by left, then repeat',
         );
       });
-      test('2 places: no tail', () {
+      test('2 places stated: no tail', () {
         expect(
           renderer.render(
             Figure(move: 'square_through', params: {'places': 2}),
@@ -2986,7 +2995,10 @@ void main() {
       test('balance:false drops the embedded balance', () {
         expect(
           renderer.render(
-            Figure(move: 'square_through', params: {'balance': false}),
+            Figure(
+              move: 'square_through',
+              params: {'balance': false, 'places': 4},
+            ),
             d,
           ),
           'square through four - partner pull by right, then neighbor pull by left, then repeat',
@@ -2994,7 +3006,10 @@ void main() {
       });
       test('verbose spells the embedded balance as "balance and"', () {
         expect(
-          renderer.renderVerbose(Figure(move: 'square_through'), d),
+          renderer.renderVerbose(
+            Figure(move: 'square_through', params: {'places': 4}),
+            d,
+          ),
           'square through four - partner balance and pull by right, then neighbor pull by left, then repeat',
         );
       });
@@ -3171,7 +3186,7 @@ void main() {
             Figure(move: 'poussette', params: {'direction': 'sideways'}),
             d,
           ),
-          'half poussette - ones pull neighbor',
+          'half poussette - role1s pull neighbor',
         );
       });
       test('hey surfaces an unknown shoulder rather than blanking', () {

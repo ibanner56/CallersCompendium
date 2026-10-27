@@ -1244,7 +1244,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'poussette',
       displayName: 'poussette',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
         'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'fraction': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
         'direction': ParamSpec(
@@ -1345,9 +1345,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'star',
       displayName: 'star',
       params: {
-        // ContraDB forces a hand selection (no default); 'right' is the
-        // community default.
-        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        // ContraDB forces a hand selection (no default); the
+        // editor offers 'left'.
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
         'places': ParamSpec(ParamKind.places, defaultValue: 4),
         // grip is a canonical render token since taxonomy v27 (issue #749):
         // emitted in ALL render paths (render / renderVerbose / renderSummary /
@@ -1390,11 +1390,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         // ContraDB restricts to 2-4 places; that restriction is typical-only
         // (the domain stays the full 1..10), not enforced.
-        'places': ParamSpec(ParamKind.places, defaultValue: 4),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 16),
+        'places': ParamSpec(ParamKind.places, defaultValue: 2),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {places}',
-      goodBeats: [16],
+      goodBeats: [8, 16],
     ),
     // --- Roadmap 2.4a: hey / wave family (PR5) — completes the 2.4a set ---
     // The heys and wave-formations. All fit the existing ParamKind set (no new

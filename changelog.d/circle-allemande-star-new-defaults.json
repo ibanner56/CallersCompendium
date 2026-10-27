@@ -1,0 +1,14 @@
+{
+  "id": "circle-allemande-star-new-defaults",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "New circle figures now start at 3 places, new allemande figures start at 1½ turns, new star figures start with the left hand, new poussette figures start with the larks (first roles), and new square through figures start at 2 places and 8 beats. Figures you have already saved are not rebuilt."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Change the taxonomy defaults for `circle.places` (4 to 3), `allemande.travel` (1 to 1.5), `star.hand` (right to left), `poussette.who` (`ones` to `role1s`) and `square_through` places/beats (4/16 to 2/8) without a taxonomy version bump."
+    ]
+  }
+}

@@ -84,9 +84,9 @@ void main() {
     final cases = <String, Figure>{
       'circle left 3 places': Figure(move: 'circle'),
       // star grip 'none' emits no grip clause in any render path.
-      'star right 4 places': Figure(move: 'star'),
+      'star left 4 places': Figure(move: 'star'),
       'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
-      'partners square through 4 places': Figure(move: 'square_through'),
+      'partners square through 2 places': Figure(move: 'square_through'),
     };
     cases.forEach((expected, figure) {
       test('"$expected"', () {
@@ -275,17 +275,17 @@ void main() {
 
     group('star.grip — mirrors ContraDB starWords " - <grip> - " clause', () {
       test('grip: none (default) — no grip clause', () {
-        expect(renderer.render(Figure(move: 'star'), d), 'star right 4 places');
+        expect(renderer.render(Figure(move: 'star'), d), 'star left 4 places');
       });
 
-      test('grip: wristGrip — "star right - wrist grip - 4 places"', () {
+      test('grip: wristGrip — "star left - wrist grip - 4 places"', () {
         final f = testFigure(move: 'star', params: {'grip': 'wristGrip'});
-        expect(renderer.render(f, d), 'star right - wrist grip - 4 places');
+        expect(renderer.render(f, d), 'star left - wrist grip - 4 places');
       });
 
-      test('grip: handsAcross — "star right - hands across - 4 places"', () {
+      test('grip: handsAcross — "star left - hands across - 4 places"', () {
         final f = testFigure(move: 'star', params: {'grip': 'handsAcross'});
-        expect(renderer.render(f, d), 'star right - hands across - 4 places');
+        expect(renderer.render(f, d), 'star left - hands across - 4 places');
       });
 
       test('grip shows in renderVerbose and renderSummary too', () {
@@ -306,10 +306,10 @@ void main() {
       test('grip: none with non-default hand still omits the grip clause', () {
         expect(
           renderer.render(
-            testFigure(move: 'star', params: {'hand': 'left', 'grip': 'none'}),
+            testFigure(move: 'star', params: {'hand': 'right', 'grip': 'none'}),
             d,
           ),
-          'star left 4 places',
+          'star right 4 places',
         );
       });
     });
