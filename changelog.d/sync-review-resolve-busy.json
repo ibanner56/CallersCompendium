@@ -1,9 +1,0 @@
-{
-  "id": "sync-review-resolve-busy",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "While the Device Sync review screen applies one of your choices, every decision's buttons are disabled until it finishes, so a decision can no longer be submitted twice by tapping another one in the meantime."
-    ]
-  }
-}

@@ -21,6 +21,35 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-26
+
+### Added
+
+- `DedupeVerdict.possibleMatchIds`, filled by `DedupeIndex.possibleTitleMatches` on `isNew` and `ambiguous` verdicts: existing dances with the same `dedupeCoreTitleKey` (trailing `{…}`/`(…)`/`[…]` annotations dropped unless the rest is a placeholder title such as `New Dance` or the bracket holds only a part number such as `{#2}`; `A-1` read as `a1`) and a shared author, but a different `normalizeTitle`. It never changes a verdict's kind or candidates and is never confident. `normalizeTitle` is unchanged.
+- `DanceRepository.getByIds` and `ProgramRepository.getByIds` read a set of records in batched queries, hydrated as `listAll` hydrates them.
+- `CompendiumRepositories.readTransaction` runs a read-only action as one SQLite read transaction, without taking the write lock.
+- `syncArchiveBodyForEntity`, `syncBodyForArchiveBody` and `syncRecordBlobForArchiveBody` split `syncBodyForEntity` and `syncRecordBlobForEntity` into the archive-shaped body and the projection from it. The existing functions return what they did.
+- `SettingsRepository.takeWriteSummary` reports whether the settings writes since the last call were all to keys that never sync.
+- `SyncBaselineEntry.hasSameHashesAs(other)` says whether two baseline entries carry the same wire hash, body hash and body-hash version.
+- ParamOpposites treats partners and the neighbor series as opposites for dancer sets.
+- `CompendiumSyncStorage.existingRecords` reports which of a set of sync records still have a row, live or tombstoned, reading ids alone.
+- `SyncLocalRepository.publishedAmong` reports which of a set of sync records carry a publication marker, read by key.
+- Conditional wording templates (`wording_conditions.dart`): `checkWording` reads a template's display form against a `WordingVocabulary` and returns its stored form or `WordingIssue`s; `wordingForEditing` shows a stored template in words; `FigureRenderer.moveWordingVocabulary` and `userFigureWordingVocabulary` build the vocabularies; conditions render through the existing template assembly.
+
+### Changed
+
+- The shared figure parser's `star` recognizer reads a `left-hand`/`right-hand` token or a `left hand`/`right hand` pair as the star's hand.
+- `mapCallersCompanionDance` retries a body line the fan-out missed when it carries exactly one `left-hand`/`right-hand`, reading it with the bare side, and keeps the result only when it is a single noteless figure whose `hand` is that side. A token followed by a dancer word or `diagonal` is not retried.
+- `SyncApplyConcurrencyStorage.snapshotCandidates()` is replaced by `currentCandidates(addresses)`, which reads only the records an inbound batch touches instead of the whole library.
+- `CompendiumSyncStorage.snapshot()` scans the library in a read transaction. Its writes, revalidating pending deletions and sweeping orphaned kept fields, run in short write transactions before and after the scan, and the sweep re-checks each record before it deletes. The returned snapshot is unchanged.
+- `SyncApplyStorage.rebuildDerivedIndexes()` is replaced by `reindexDerivedAfterApply(Set<SyncRecordAddress> applied)`. `CompendiumSyncStorage` implements it by reindexing only the dances whose derived rows the applied records can change, and a pending tombstone the snapshot releases now reindexes the dances that read it; `CompendiumSyncStorage.rebuildDerivedIndexes()` remains for the dedupe and review-resolution paths.
+- `DanceRepository.reindexDerived(danceIds)` rebuilds the derived rows of a given set of dances, as `rebuildAllDerived` would write them; `DanceRepository.danceIdsDerivingFrom(...)` finds the dances, in the Trash or not, whose derived rows read given choreographers, published sources, custom-field definitions or figures of your own.
+- `CompendiumSyncStorage(memoizeSnapshots: true)` makes a later `snapshot()` reuse each entity record's blob and wire hash from the same instance's previous one when every input that built them is unchanged. It is off by default; the sync worker turns it on for its per-pass storage only. The returned snapshot is unchanged.
+- `SyncLocalRepository.advanceBaseline` and `replaceBaseline` write their entries in one batch rather than one statement per entry. The rows they leave are unchanged.
+- A user glossary entry's description may be empty, in the repository, archive import and sync body.
+- A stored wording template may hold `{?if …}` condition markers; `FigureRenderer.isValidMoveWordingTemplate` reads them, and the 512 cap applies to the stored form.
+- `wordingReservedWords` joins the reserved parameter keys of a figure of your own, and a definition whose conditions don't fit it is invalid (`UserFigureIssueCodes.badCondition`).
+
 ## [0.9.0] - 2026-10-17
 
 ### Added

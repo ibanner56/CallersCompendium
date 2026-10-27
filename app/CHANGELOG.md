@@ -36,6 +36,63 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-26
+
+### Added
+
+- Re-import choreography can now take a Caller's Box or ContraDB link or ID number, so a dance whose title is spelled differently at the source (A-1 Reel against your A1 Reel) can still be refreshed.
+- When an imported dance may be one you already have under a differently written title (A-1 Reel {variant} against your A1 Reel (Imp Var), by the same choreographer), the import review and single-dance online import offer to replace that dance. Nothing is replaced unless you choose it.
+- Experimental settings now has a **Your figures** row that opens your own figures, where you can add, edit and delete them, as the figure shorthands do.
+- You can now sync from the Glossary: a Sync now button sits beside the add button, as on Collection and Programs.
+- A custom figure's who and whom parameters now offer partners as the opposite of neighbors (including next, third and other neighbors), and neighbors as the opposite of partners.
+- Move wording templates and the wording of your own figures can now word a move differently in some cases: write `[if who is neighbors then neighbor swing else {who} swing]`. A condition can test a value, a list of values with `is in (…)`, whether a detail is filled in, or a number, and join tests with `and`, `or` and `not`. When a condition can't be read, the message under the field says what is wrong and how to fix it.
+
+### Changed
+
+- When Re-import choreography cannot reach a source, or the dance does not exist there, it now says which, instead of a general "could not load" message.
+- Re-import choreography now refuses a dance that arrives without any figures (The Caller's Box withholds them for some dances), instead of replacing your figures with an empty list.
+- Device Sync does less work on a large collection: when it checks your collection again during the same sync, it reuses what it worked out for records that have not changed, instead of preparing every record again.
+- Device Sync writes less to your device's storage when a sync has nothing new: it now updates its record of what your devices share only for the items that changed, instead of rewriting all of them on every sync.
+- The Collection tab now uses a flipped stack-of-cards icon, so it no longer looks like the Glossary's open book.
+- The Collection's search controls take much less room, so more dances fit on screen: Search in now sits beside the search bar, and Filters, By phrase and Advanced are a row of buttons that each open their panel. Everything is still one tap away, and a closed panel's button shows that it is still narrowing the results — how many filters are active, or “Advanced (on)”. The program builder's dance picker works the same way.
+- A figure or term of your own's **Description** is now called **More Details**, and it's optional.
+- Custom Figures no longer needs Show Glossary: you can turn it on, edit your figures and use them in dances with the Glossary hidden.
+- If you turned Custom Figures on in an earlier version and later turned the Glossary off, the setting was greyed out but kept its "on". It now takes effect, so your own figures show again everywhere Custom Figures shows them. Turn Custom Figures off in Settings › Experimental to hide them again; nothing is deleted either way.
+- A Finalized program's status chip is now green in every theme, so it no longer looks like a warning beside Broken.
+- Buttons that delete, discard, reset or replace your data now all look the same: red, so they never look like an ordinary confirm.
+- Dialogs no longer stretch across a wide desktop window; long messages wrap at a comfortable reading width.
+- The Programs toolbar's ⋮ menu is now at the end of the toolbar, as it is in the Collection.
+- A disabled text field now keeps the same rounded corners as the fields around it.
+- A parameter of your own figure can no longer be named `if`, `then`, `else`, `not`, `and`, `or` or `is`. A figure that already has one is marked **Needs repair** until you rename it.
+- The message under a move wording template that can't be read now says what is wrong and where, instead of only that it is invalid.
+- Square brackets in a wording that start with the word “if” now hold a condition. A template saved earlier with such brackets reads as before: the editor shows them starting with an empty `[]`, which keeps them as words.
+
+### Fixed
+
+- The "Same dance (update existing)" warning in single-dance online import no longer says your custom fields will be replaced (they are kept), and now says the title will be.
+- "Left-hand star" and "Right hand star" (with or without a turn amount such as "3/4" or "once") are now read as a star left or star right when you type them or import them, instead of becoming a custom figure.
+- Caller's Companion imports also recognize a single move written with a hyphenated hand, such as "Left-hand allemande" or "Right-hand pull by". A line where that would be a guess stays a custom figure, for example "Allemande your right-hand lady", a line with more than one move, or one that would need a note. Dances you imported before this keep those lines as custom figures unless you import them again; for stars, "Re-check custom figures" in Settings also picks them up.
+- Saving an edit while Device Sync is bringing in changes from another device waits less on a large collection: sync no longer reads your whole collection a second time, just to check for edits you made, before applying.
+- When a Device Sync pass brings in changes from another device and then fails, for example because the connection drops while it finishes, those changes now show straight away, settings included, instead of only after the app is restarted. Before, editing one of those settings in the meantime could put the old value back on every device.
+- Saving an edit while Device Sync is running no longer waits for sync to read through your whole collection, which on a very large collection could take long enough for the save to fail with "database is locked". A save can still wait while sync applies changes from another device, and, rarely, while sync reads your collection again because a record was deleted or merged at the moment it was preparing what to share.
+- Device Sync no longer rebuilds the whole search index each time it brings in changes from your other devices. It now updates only the dances those changes affect, and when nothing it brought in feeds search — a setting or a program, say — it leaves the index alone. A save you make while a sync brings in a few changes no longer waits for your whole library to be reindexed.
+- Moving or resizing the window on desktop no longer starts a Device Sync pass when nothing has changed that another device would need.
+- With Device Sync on and a large library, the app pauses much less as each sync starts and finishes.
+- If Device Sync had to replace a missing sync store a second time in one session, the app no longer asks you to confirm twice.
+- Importing a dance that arrives without any figures (The Caller's Box withholds them for some dances) can no longer replace one of your dances with an empty one. The import review and single-dance online import no longer offer **Same dance** or **Same dance under another title** for such a record; it can still be imported as a new dance, and a note says why.
+- Re-import choreography's Link or ID now starts on the source the dance was imported from, so a ContraDB dance's ID is no longer looked up on The Caller's Box (and the reverse) unless you switch the source yourself.
+- While the Device Sync review screen applies one of your choices, every decision's buttons are disabled until it finishes, so a decision can no longer be submitted twice by tapping another one in the meantime.
+- The last item in your Collection, Programs, venues, a dance, a program summary and the editors now scrolls clear of the floating New, Edit or Save button instead of staying hidden underneath it.
+- On a short window or a phone turned sideways, the left navigation rail now scrolls instead of cutting off the Guide button.
+- Recently deleted now shows an error with a Retry button if it can't load, instead of wrongly saying there is nothing in the trash.
+- The “Your choices are saved” message after resolving a sync conflict now goes away on its own, instead of staying until dismissed and hiding later messages.
+- A dance's status (Deprecated, Broken, Draft, Variation) now shows the same icon and color on the dance page and in Perform as it does in the Collection list, and wraps instead of running off the screen at large Perform text sizes.
+- Added and removed figures in import review now stay readable in dark and custom themes; removed lines are also struck through.
+
+### Removed
+
+- Perform no longer has a separate “Show canonical terms” button, which looked identical to Switch dialect beside it. To see the shared wording in Perform, choose Canonical under Switch dialect; unless the program has its own dialect, that changes your active dialect for the whole app, so switch back afterwards. If you had the old button turned on, Perform now opens in your dialect.
+
 ## [0.8.0] - 2026-10-17
 
 ### Added

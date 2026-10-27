@@ -1,9 +1,0 @@
-{
-  "id": "glossary-sync-now",
-  "user_visible": true,
-  "app": {
-    "added": [
-      "You can now sync from the Glossary: a Sync now button sits beside the add button, as on Collection and Programs."
-    ]
-  }
-}

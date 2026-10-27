@@ -1,9 +1,0 @@
-{
-  "id": "1913-sync-failed-pass-reload",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "When a Device Sync pass brings in changes from another device and then fails, for example because the connection drops while it finishes, those changes now show straight away, settings included, instead of only after the app is restarted. Before, editing one of those settings in the meantime could put the old value back on every device."
-    ]
-  }
-}
