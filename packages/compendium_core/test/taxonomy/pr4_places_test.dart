@@ -56,10 +56,10 @@ void main() {
   });
 
   group('places rendering ("N places", singular "1 place")', () {
-    test('circle default renders 4 places', () {
+    test('circle default renders 3 places', () {
       expect(
         renderer.renderCanonical(Figure(move: 'circle')),
-        'circle left 4 places',
+        'circle left 3 places',
       );
     });
 
@@ -82,7 +82,7 @@ void main() {
 
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
-      'circle left 4 places': Figure(move: 'circle'),
+      'circle left 3 places': Figure(move: 'circle'),
       // star grip 'none' emits no grip clause in any render path.
       'star right 4 places': Figure(move: 'star'),
       'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
@@ -144,14 +144,14 @@ void main() {
           renderer.renderCanonical(
             testFigure(move: 'circle', params: {'singleFile': true}),
           ),
-          'single file promenade left 4 places (circle, clockwise)',
+          'single file promenade left 3 places (circle, clockwise)',
         );
         // Default (singleFile=false) is unchanged.
         expect(
           renderer.renderCanonical(
             testFigure(move: 'circle', params: {'singleFile': false}),
           ),
-          'circle left 4 places',
+          'circle left 3 places',
         );
       },
     );
@@ -407,12 +407,12 @@ void main() {
       test('singleFile: false — renders normally', () {
         expect(
           renderer.render(Figure(move: 'circle'), d),
-          'circle left 4 places',
+          'circle left 3 places',
         );
       });
 
       test(
-        'singleFile: true — "single file circle left 4 places" (prefix form, raw direction v30 #989)',
+        'singleFile: true — "single file circle left 3 places" (prefix form, raw direction v30 #989)',
         () {
           final f = testFigure(move: 'circle', params: {'singleFile': true});
           // Prefix form replaces the v26 suffix ("circle … - single file").
@@ -420,7 +420,7 @@ void main() {
           // — the clockwise/counterclockwise substitution this test used to
           // assert is REMOVED; the spin word now lives only in canonical's
           // parenthetical.
-          expect(renderer.render(f, d), 'single file circle left 4 places');
+          expect(renderer.render(f, d), 'single file circle left 3 places');
         },
       );
 
@@ -437,14 +437,14 @@ void main() {
           move: 'circle',
           params: {'singleFile': true, 'direction': 'right'},
         );
-        expect(renderer.render(f, d), 'single file circle right 4 places');
+        expect(renderer.render(f, d), 'single file circle right 3 places');
       });
 
       test('singleFile: true shows in renderSummary', () {
         final f = testFigure(move: 'circle', params: {'singleFile': true});
         expect(
           renderer.renderSummary(f, d),
-          'single file circle left 4 places',
+          'single file circle left 3 places',
         );
       });
     });
@@ -495,7 +495,7 @@ void main() {
       () {
         expect(
           renderer.render(Figure(move: 'circle'), Dialect.larksRobins),
-          'circle left 4 places',
+          'circle left 3 places',
         );
       },
     );

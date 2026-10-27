@@ -260,7 +260,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
-        'travel': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'travel': ParamSpec(ParamKind.rotation, defaultValue: 1.5),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {hand} {travel}',
@@ -1311,7 +1311,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'left',
           choices: ['left', 'right'],
         ),
-        'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        'places': ParamSpec(ParamKind.places, defaultValue: 3),
         // Issue #634: ContraDB free text occasionally renders a single-file
         // circulation around the ring as "promenade single file around the
         // circle N places" (real render: Travels with Rick and Kim #455) — a

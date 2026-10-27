@@ -1193,7 +1193,7 @@ void main() {
       // Overridden param takes the configured value...
       expect(drafts.single.params['direction'], 'right');
       // ...while non-overridden params keep their taxonomy defaults.
-      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['places'], 3);
       expect(drafts.single.params['beats'], 8);
     });
 
@@ -1211,7 +1211,7 @@ void main() {
       await _selectMove(tester, 0, 'circle', 'circle');
 
       expect(drafts.single.params['direction'], 'left');
-      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['places'], 3);
     });
 
     testWidgets('stale v34 override key not in the move schema is ignored', (
@@ -1239,7 +1239,7 @@ void main() {
       await _selectMove(tester, 0, 'circle', 'circle');
 
       expect(drafts.single.params['direction'], 'left');
-      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['places'], 3);
     });
   });
 

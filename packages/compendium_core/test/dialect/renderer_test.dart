@@ -9,7 +9,7 @@ void main() {
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
       'partners swing': Figure(move: 'swing', params: {'who': 'partners'}),
-      'neighbors allemande right once': Figure(move: 'allemande'),
+      'neighbors allemande right 1½': Figure(move: 'allemande'),
       'neighbors allemande left 1½': Figure(
         move: 'allemande',
         params: {'hand': 'left', 'travel': 1.5},
@@ -530,7 +530,7 @@ void main() {
       );
       expect(
         renderer.render(container, larks),
-        'ROBINS pass right while neighbor allemande right once',
+        'ROBINS pass right while neighbor allemande right 1½',
       );
       final wholeLine = container.copyWith(
         wordingOverride: 'ROLE1S call together',
@@ -538,7 +538,7 @@ void main() {
       expect(renderer.render(wholeLine, larks), 'LARKS call together');
       expect(
         renderer.renderCanonical(wholeLine),
-        'partners swing meanwhile neighbors allemande right once',
+        'partners swing meanwhile neighbors allemande right 1½',
       );
     });
   });

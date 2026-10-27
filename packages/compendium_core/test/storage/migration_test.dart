@@ -603,7 +603,7 @@ void main() {
             .get();
         expect(
           indexed.map((row) => row.read<String>('canonical_text')),
-          containsAll(['partners swing', 'petronella', 'circle left 4 places']),
+          containsAll(['partners swing', 'petronella', 'circle left 3 places']),
         );
         final fts = await db
             .customSelect(
