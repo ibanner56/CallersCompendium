@@ -10803,7 +10803,7 @@
   },
   "updateDownloadFailureDestination": "Could not choose a place to download the update.",
   "@updateDownloadFailureDestination": {
-    "description": "Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file."
+    "description": "Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file, or (on Windows and Linux) when something already occupied the app-chosen download path."
   },
   "updateDownloadFailureDestinationOccupied": "Something is already at that location. Choose another name or folder, or use \"View release\".",
   "@updateDownloadFailureDestinationOccupied": {

@@ -12380,7 +12380,7 @@ abstract class AppLocalizations {
   /// **'The update could not be downloaded.'**
   String get updateBannerDownloadFailed;
 
-  /// Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file.
+  /// Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file, or (on Windows and Linux) when something already occupied the app-chosen download path.
   ///
   /// In en, this message translates to:
   /// **'Could not choose a place to download the update.'**
