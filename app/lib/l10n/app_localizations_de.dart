@@ -3049,11 +3049,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Gelöschte Tänze behalten für';
+      'Gelöschte Elemente behalten für';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Gelöschte Tänze werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.';
+      'Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -9414,6 +9414,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'Nichts im Papierkorb. Gelöschte Tänze erscheinen hier für $days Tage, bevor sie entfernt werden.';
   }
+
+  @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Nichts im Papierkorb. Gelöschte Programme werden hier aufbewahrt, bis Sie sie entfernen.';
 
   @override
   String recentlyDeletedEmptyProgramsRetention(int days) {

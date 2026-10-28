@@ -3013,11 +3013,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Behold slettede danse i';
+      'Behold slettede elementer i';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Slettede danse bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.';
+      'Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -9307,6 +9307,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'Intet i papirkurven. Slettede danse vises her i $days dage, inden de fjernes.';
   }
+
+  @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Intet i papirkurven. Slettede programmer bevares her, indtil du fjerner dem.';
 
   @override
   String recentlyDeletedEmptyProgramsRetention(int days) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/soft_delete_retention.dart';
 import 'package:compendium_app/src/screens/recently_deleted_screen.dart';
 
 import 'support/l10n_harness.dart';
@@ -73,5 +74,91 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(await repos.programs.getById('p1', includeDeleted: true), isNull);
+  });
+
+  testWidgets(
+    'permanent delete removes only the chosen program, not other expired ones '
+    '(LIFE-1)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kSoftDeleteRetentionKey,
+        kSoftDeleteRetentionNever,
+      );
+      final now = DateTime.now().toUtc();
+      for (final (id, daysAgo) in [('a', 5), ('b', 60), ('c', 10)]) {
+        await repos.programs.create(_program(id: id, title: 'Program $id'));
+        await repos.programs.softDelete(
+          id,
+          at: now.subtract(Duration(days: daysAgo)),
+        );
+      }
+      await _pump(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('permanent-delete-a')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('confirm-permanent-delete')));
+      await tester.pumpAndSettle();
+
+      expect(await repos.programs.getById('a', includeDeleted: true), isNull);
+      expect(
+        await repos.programs.getById('b', includeDeleted: true),
+        isNotNull,
+      );
+      expect(
+        await repos.programs.getById('c', includeDeleted: true),
+        isNotNull,
+      );
+    },
+  );
+
+  testWidgets('never-auto-purge hides the program countdown (LIFE-3)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kSoftDeleteRetentionKey,
+      kSoftDeleteRetentionNever,
+    );
+    await repos.programs.create(_program(id: 'p1', title: 'Kept Forever'));
+    await repos.programs.softDelete('p1', at: _now);
+
+    await _pump(tester, repos);
+
+    expect(find.textContaining('Auto-deleted in'), findsNothing);
+    expect(find.text('Kept until you delete it'), findsOneWidget);
+  });
+
+  testWidgets('program purge ETA reflects the configured 90-day retention '
+      '(LIFE-3)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kSoftDeleteRetentionKey, 90);
+    await repos.programs.create(_program(id: 'p1', title: 'Kept Longer'));
+    // Half-day offset keeps the countdown away from an inDays boundary.
+    final deletedAt = DateTime.now().toUtc().subtract(
+      const Duration(days: 20, hours: 12),
+    );
+    await repos.programs.softDelete('p1', at: deletedAt);
+
+    await _pump(tester, repos);
+
+    expect(find.textContaining('Auto-deleted in 69 days'), findsOneWidget);
+  });
+
+  testWidgets('program empty-state copy reflects never-auto-purge (LIFE-3)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kSoftDeleteRetentionKey,
+      kSoftDeleteRetentionNever,
+    );
+
+    await _pump(tester, repos);
+
+    expect(
+      find.textContaining('Deleted programs are kept here until you remove'),
+      findsOneWidget,
+    );
   });
 }

@@ -3024,13 +3024,13 @@
   "@settingsGeneralDeletedItemsHeader": {
     "x-sourceSha256": "fbd1d68504a288998473058bd2ce29416791756fd8ced5e9b784cfc8ad31151b"
   },
-  "settingsGeneralSoftDeleteRetentionTitle": "削除したダンスを保持する期間",
+  "settingsGeneralSoftDeleteRetentionTitle": "削除した項目を保持する期間",
   "@settingsGeneralSoftDeleteRetentionTitle": {
-    "x-sourceSha256": "762e99330c044f8a92fc3aa4fb7b74ef62041a7e3463a0b670162dab182e0e26"
+    "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "削除したダンスは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
-    "x-sourceSha256": "eaf52455114c21dcdd36703f277c37687ed08253bf1bdc49c7c84437b79e1f58"
+    "x-sourceSha256": "e9121427d1a14e56df8a472c097142bf74ac95a239c8ba1756f1ef77e8a1ea76"
   },
   "settingsGeneralSoftDeleteRetentionDays": "{days}日間",
   "@settingsGeneralSoftDeleteRetentionDays": {
@@ -9101,6 +9101,10 @@
   "recentlyDeletedEmptyDancesRetention": "ゴミ箱は空です。削除したダンスは削除されるまで{days}日間ここに表示されます。",
   "@recentlyDeletedEmptyDancesRetention": {
     "x-sourceSha256": "c9d92a66a393f687c97281fca98943aeb84880a3567f05db7a68e3288e3b4454"
+  },
+  "recentlyDeletedEmptyProgramsKept": "ゴミ箱は空です。削除したプログラムは手動で削除するまでここに保持されます。",
+  "@recentlyDeletedEmptyProgramsKept": {
+    "x-sourceSha256": "40782a3a929823e198a707b72464757047db592e1cc6560bc2e9d2002ae6590d"
   },
   "recentlyDeletedEmptyProgramsRetention": "ゴミ箱は空です。削除したプログラムは削除されるまで{days}日間ここに表示されます。",
   "@recentlyDeletedEmptyProgramsRetention": {

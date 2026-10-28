@@ -3068,11 +3068,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Conserver les danses supprimées pendant';
+      'Conserver les éléments supprimés pendant';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Les danses supprimées sont conservées pendant cette durée avant d’être définitivement supprimées au lancement de l’application. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.';
+      'Les danses et programmes supprimés sont conservés pendant cette durée avant d’être définitivement supprimés au lancement de l’application. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -9435,6 +9435,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'La corbeille est vide. Les danses supprimées apparaissent ici pendant $days jours avant d’être supprimées.';
   }
+
+  @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'La corbeille est vide. Les programmes supprimés sont conservés ici jusqu’à ce que vous les supprimiez.';
 
   @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
