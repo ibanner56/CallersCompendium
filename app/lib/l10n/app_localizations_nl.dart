@@ -262,40 +262,40 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsExperimentalTitle => 'Experimenteel';
 
   @override
-  String get settingsDeveloperOptionsHeader => 'Developer Options';
+  String get settingsDeveloperOptionsHeader => 'Ontwikkelaarsopties';
 
   @override
-  String get settingsDeveloperResetTitle => 'Reset database';
+  String get settingsDeveloperResetTitle => 'Database resetten';
 
   @override
   String get settingsDeveloperResetSubtitle =>
-      'Delete everything on this device and start over, as on a fresh install.';
+      'Alles op dit apparaat verwijderen en opnieuw beginnen, zoals bij een verse installatie.';
 
   @override
-  String get settingsDeveloperResetConfirmTitle => 'Reset the database?';
+  String get settingsDeveloperResetConfirmTitle => 'Database resetten?';
 
   @override
   String get settingsDeveloperResetConfirmBody =>
-      'This permanently deletes every dance, program, collection, setting and note on this device and restarts the app as if it had just been installed. It cannot be undone.';
+      'Hiermee worden alle dansen, programma’s, collecties, instellingen en notities op dit apparaat definitief verwijderd en start de app opnieuw alsof hij net is geïnstalleerd. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get settingsDeveloperResetConfirmSyncNote =>
-      'This device is connected to a Device Sync store. It will first remove itself from the store so it isn\'t left behind as an orphaned device. Anything it has not yet synced to your other devices is lost.';
+      'Dit apparaat is verbonden met een synchronisatieopslag. Het verwijdert zichzelf eerst uit de opslag, zodat het niet als verweesd apparaat achterblijft. Alles wat het nog niet naar je andere apparaten heeft gesynchroniseerd, gaat verloren.';
 
   @override
   String get settingsDeveloperResetConfirmCheckbox =>
-      'I understand this can\'t be undone, and I\'ve already taken a backup if I want one.';
+      'Ik begrijp dat dit niet ongedaan kan worden gemaakt en ik heb al een back-up gemaakt als ik die wil.';
 
   @override
-  String get settingsDeveloperResetConfirmAction => 'Reset database';
+  String get settingsDeveloperResetConfirmAction => 'Database resetten';
 
   @override
   String get settingsDeveloperResetLeaveFailed =>
-      'Couldn\'t remove this device from the sync store, so nothing was reset. Check your connection and try again.';
+      'Dit apparaat kon niet uit de synchronisatieopslag worden verwijderd, dus er is niets gereset. Controleer je verbinding en probeer het opnieuw.';
 
   @override
   String get settingsDeveloperResetFailed =>
-      'Couldn\'t reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.';
+      'De database kon niet worden gereset, dus je gegevens zijn ongewijzigd. Als dit apparaat met een synchronisatieopslag was verbonden, heeft het die al verlaten.';
 
   @override
   String get settingsExperimentalPlaceholder =>

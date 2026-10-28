@@ -254,40 +254,40 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsExperimentalTitle => '実験的';
 
   @override
-  String get settingsDeveloperOptionsHeader => 'Developer Options';
+  String get settingsDeveloperOptionsHeader => '開発者向けオプション';
 
   @override
-  String get settingsDeveloperResetTitle => 'Reset database';
+  String get settingsDeveloperResetTitle => 'データベースをリセット';
 
   @override
   String get settingsDeveloperResetSubtitle =>
-      'Delete everything on this device and start over, as on a fresh install.';
+      'このデバイス上のすべてを削除し、新規インストールの状態から始め直します。';
 
   @override
-  String get settingsDeveloperResetConfirmTitle => 'Reset the database?';
+  String get settingsDeveloperResetConfirmTitle => 'データベースをリセットしますか？';
 
   @override
   String get settingsDeveloperResetConfirmBody =>
-      'This permanently deletes every dance, program, collection, setting and note on this device and restarts the app as if it had just been installed. It cannot be undone.';
+      'このデバイス上のすべてのダンス、プログラム、コレクション、設定、メモが完全に削除され、アプリはインストール直後の状態で再起動します。この操作は元に戻せません。';
 
   @override
   String get settingsDeveloperResetConfirmSyncNote =>
-      'This device is connected to a Device Sync store. It will first remove itself from the store so it isn\'t left behind as an orphaned device. Anything it has not yet synced to your other devices is lost.';
+      'このデバイスは同期ストアに接続されています。孤立したデバイスとして残らないよう、最初にストアから自身を削除します。他のデバイスにまだ同期されていない内容は失われます。';
 
   @override
   String get settingsDeveloperResetConfirmCheckbox =>
-      'I understand this can\'t be undone, and I\'ve already taken a backup if I want one.';
+      '元に戻せないことを理解しており、必要な場合はすでにバックアップを取っています。';
 
   @override
-  String get settingsDeveloperResetConfirmAction => 'Reset database';
+  String get settingsDeveloperResetConfirmAction => 'データベースをリセット';
 
   @override
   String get settingsDeveloperResetLeaveFailed =>
-      'Couldn\'t remove this device from the sync store, so nothing was reset. Check your connection and try again.';
+      'このデバイスを同期ストアから削除できなかったため、何もリセットされていません。接続を確認して、もう一度お試しください。';
 
   @override
   String get settingsDeveloperResetFailed =>
-      'Couldn\'t reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.';
+      'データベースをリセットできませんでした。データは変更されていません。このデバイスが同期ストアに接続されていた場合、すでにストアから切断されています。';
 
   @override
   String get settingsExperimentalPlaceholder => '開発中の新機能がここに表示される場合があります。';

@@ -272,6 +272,46 @@
   "@settingsExperimentalTitle": {
     "x-sourceSha256": "3dc9f569422dcfdadcb2c33f3eb2ee6fcebc8ba679bd63e690f9ddd0ff7c24be"
   },
+  "settingsDeveloperOptionsHeader": "Options pour les développeurs",
+  "@settingsDeveloperOptionsHeader": {
+    "x-sourceSha256": "d7de9cfa12968ab7b7b85e5087c51954cd21e321e3d946fe5de1f3df7657ec49"
+  },
+  "settingsDeveloperResetTitle": "Réinitialiser la base de données",
+  "@settingsDeveloperResetTitle": {
+    "x-sourceSha256": "f65a3dd84895a094fa1c28c4c020a69f4a252b96b20c76214048bc2cc85e29ca"
+  },
+  "settingsDeveloperResetSubtitle": "Supprimer tout ce qui se trouve sur cet appareil et repartir de zéro, comme après une nouvelle installation.",
+  "@settingsDeveloperResetSubtitle": {
+    "x-sourceSha256": "32ecbff3cb17c1a9e612d8f024811b36cec37083525cf260f438f0e27cade785"
+  },
+  "settingsDeveloperResetConfirmTitle": "Réinitialiser la base de données ?",
+  "@settingsDeveloperResetConfirmTitle": {
+    "x-sourceSha256": "1826f2e842c2e72608eef7bb7a85b321f814e6b472dae52a1e0a419f146d0ac9"
+  },
+  "settingsDeveloperResetConfirmBody": "Cela supprime définitivement toutes les danses, tous les programmes, collections, réglages et notes de cet appareil, puis relance l’application comme si elle venait d’être installée. Cette action est irréversible.",
+  "@settingsDeveloperResetConfirmBody": {
+    "x-sourceSha256": "da2ae15b97a677308efd19bac5f7e6be2611c4e355217bd9aa97d745e95369c9"
+  },
+  "settingsDeveloperResetConfirmSyncNote": "Cet appareil est connecté à un espace de synchronisation. Il commencera par s’en retirer lui-même, pour ne pas y rester comme appareil orphelin. Tout ce qu’il n’a pas encore synchronisé vers vos autres appareils sera perdu.",
+  "@settingsDeveloperResetConfirmSyncNote": {
+    "x-sourceSha256": "16c6e60d5526a34a888c9a20d703794f21f48110d09c0c4633eac0ec7980bac8"
+  },
+  "settingsDeveloperResetConfirmCheckbox": "Je comprends que cette action est irréversible et j’ai déjà fait une sauvegarde si je le souhaitais.",
+  "@settingsDeveloperResetConfirmCheckbox": {
+    "x-sourceSha256": "6cc38943ebd41c955931c0709e81ea661b3057d0bf9b4817556825bf9671f0fa"
+  },
+  "settingsDeveloperResetConfirmAction": "Réinitialiser la base de données",
+  "@settingsDeveloperResetConfirmAction": {
+    "x-sourceSha256": "f65a3dd84895a094fa1c28c4c020a69f4a252b96b20c76214048bc2cc85e29ca"
+  },
+  "settingsDeveloperResetLeaveFailed": "Impossible de retirer cet appareil de l’espace de synchronisation ; rien n’a été réinitialisé. Vérifiez votre connexion et réessayez.",
+  "@settingsDeveloperResetLeaveFailed": {
+    "x-sourceSha256": "db5e241a2a578eb79dc76c5839f985b6a5799932232800d0eb837e7d4ae045f0"
+  },
+  "settingsDeveloperResetFailed": "Impossible de réinitialiser la base de données ; vos données sont inchangées. Si cet appareil était connecté à un espace de synchronisation, il l’a déjà quitté.",
+  "@settingsDeveloperResetFailed": {
+    "x-sourceSha256": "25cfd9546ea2367a176db8fb69ffb245b40333f915912b9ced3c4a7ef320daee"
+  },
   "settingsExperimentalPlaceholder": "De nouvelles fonctionnalités peuvent apparaître ici pendant qu’elles sont encore en développement.",
   "@settingsExperimentalPlaceholder": {
     "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
