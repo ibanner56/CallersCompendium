@@ -2235,10 +2235,13 @@ class _CompendiumAppState extends State<CompendiumApp>
           _startBootstrap();
         });
         final context = _navigatorKey.currentContext;
-        // Not while closing: shutdown waits for this whole reset, and the
-        // closing overlay would cover the dialog's button.
+        // Shown, not awaited: the developer reset runs inside the span
+        // shutdown waits for, and the closing overlay would cover this
+        // dialog's button, so a close while it is open would never finish.
+        // No caller does anything after this returns. Not shown at all once
+        // closing has begun.
         if (context != null && context.mounted && !_shutdownRequested) {
-          await showDialog<void>(
+          final dialog = showDialog<void>(
             context: context,
             builder: (ctx) => AlertDialog(
               icon: const Icon(Icons.error_outline),
@@ -2253,6 +2256,7 @@ class _CompendiumAppState extends State<CompendiumApp>
               ],
             ),
           );
+          unawaited(dialog);
         }
       }
       return false;

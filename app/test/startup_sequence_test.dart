@@ -1374,6 +1374,54 @@ void main() {
     );
 
     testWidgets(
+      'finishes when the developer reset\'s wipe-failed dialog is open, '
+      'which the closing overlay would cover',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final appData = openTestAppData();
+        final shutdownController = ApplicationShutdownController(() async {});
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: NoopWindowService(appData.repositories.settings),
+            applicationShutdownController: shutdownController,
+            integrityCheck: () async => true,
+            databaseFileResolver: () async => File('unused.sqlite'),
+            databaseResetter: (_) async =>
+                const ResetFailed('injected reset failure'),
+            appDataFactory: () =>
+                AppData(openWidgetTestDatabase(closeOnTearDown: true)),
+            windowServiceFactory: (settings) => NoopWindowService(settings),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final reset = tester
+            .widget<SyncWriterLifecycleScope>(
+              find.byType(SyncWriterLifecycleScope),
+            )
+            .resetToCleanInstall!;
+        final resetResult = reset();
+        await tester.pumpAndSettle();
+        expect(find.text('Reset failed'), findsOneWidget);
+
+        var closed = false;
+        final closing = shutdownController.close().then((_) => closed = true);
+        await tester.pump();
+        await tester.pump();
+        expect(
+          closed,
+          isTrue,
+          reason: 'the open dialog must not hold the close behind the overlay',
+        );
+        await closing;
+        expect(await resetResult, isFalse);
+      },
+    );
+
+    testWidgets(
       'waits for a writer already inside its operation, however long it '
       'takes, but not for one still waiting to start',
       (tester) async {
