@@ -243,24 +243,30 @@ void main() {
     });
   });
 
-  test('Undo of a re-import puts back the links the dance had', () async {
-    final json = _share([
-      _dance('sender-a', 'Alpha', links: [_related('link-1', 'sender-b')]),
-      _dance('sender-b', 'Beta'),
-    ]);
-    await _receive(db, json);
-    Future<List<String?>> alphaTargets() async => [
-      for (final l in _titled(await dances.listAll(), 'Alpha').links)
-        l.targetDanceId,
-    ];
-    final before = await alphaTargets();
+  test('Undo of a re-import takes back the link it added', () async {
+    await _receive(
+      db,
+      _share([_dance('sender-a', 'Alpha'), _dance('sender-b', 'Beta')]),
+    );
 
-    final again = await _receive(db, json);
+    // The sender has since linked the two; both rows re-import.
+    final again = await _receive(
+      db,
+      _share([
+        _dance('sender-a', 'Alpha', links: [_related('link-1', 'sender-b')]),
+        _dance('sender-b', 'Beta'),
+      ]),
+    );
+    final all = await dances.listAll();
     expect(again.danceSession.updatedDancePriorStates, hasLength(2));
+    expect(
+      [for (final l in _titled(all, 'Alpha').links) l.targetDanceId],
+      [_titled(all, 'Beta').id],
+    );
+
     await _importer(db).undo(again);
 
-    expect(await alphaTargets(), before);
-    expect(await dances.listAll(), hasLength(2));
+    expect(_titled(await dances.listAll(), 'Alpha').links, isEmpty);
   });
 
   test('Undo removes the links it added along with the dances', () async {
