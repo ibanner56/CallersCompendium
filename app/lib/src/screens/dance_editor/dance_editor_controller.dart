@@ -10,6 +10,7 @@ import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
 import '../../editor/editor_undo_stack.dart';
 import '../../editor/figure_draft.dart';
+import '../../editor/free_text_composer_controller.dart';
 import '../../editor/user_figure_draft.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'link_draft.dart';
@@ -46,7 +47,9 @@ class DanceEditorController extends ChangeNotifier {
        walkthroughController = LingoTextEditingController(dialect: dialect),
        phraseController = LingoTextEditingController(dialect: dialect),
        formationDetailController = LingoTextEditingController(dialect: dialect),
-       tuneController = LingoTextEditingController(dialect: dialect);
+       tuneController = LingoTextEditingController(dialect: dialect) {
+    freeTextComposer.addListener(_notify);
+  }
 
   final CompendiumRepositories _repos;
 
@@ -449,7 +452,15 @@ class DanceEditorController extends ChangeNotifier {
   /// guard (`PopScope`) so backing out of a dirty editor prompts before
   /// discarding. Reset on a successful save.
   bool _dirty = false;
-  bool get dirty => _dirty;
+
+  /// Whether leaving now would lose work: an unsaved edit, or a line typed into
+  /// the free-text composer and not yet added ([freeTextComposer]), which is
+  /// in neither the figure drafts nor the autosave draft.
+  bool get dirty => _dirty || freeTextComposer.hasPendingLine;
+
+  /// The figure list's free-text composer (#419), so a line still in its box
+  /// counts as unsaved ([dirty]) and Save can add it first.
+  final freeTextComposer = FreeTextComposerController();
 
   String get draftKey => '$kDanceEditorDraftKeyPrefix${danceId ?? 'new'}';
 
@@ -885,7 +896,16 @@ class DanceEditorController extends ChangeNotifier {
     });
   }
 
+  /// Pushes a text edit still waiting out [scheduleUndoPush]'s debounce, so
+  /// an undo or redo made within that window starts from what is on screen.
+  /// Cancelling it instead would lose the typing and step back one entry too
+  /// far.
+  void _flushPendingUndoPush() {
+    if (_undoTimer?.isActive ?? false) pushUndoNow();
+  }
+
   void undo() {
+    _flushPendingUndoPush();
     if (!_undoStack.canUndo) return;
     _autosaveTimer?.cancel();
     _undoTimer?.cancel();
@@ -900,6 +920,9 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   void redo() {
+    // A pending edit is newer than anything to redo; pushing it clears the
+    // redo tail, so the redo does nothing rather than overwrite the typing.
+    _flushPendingUndoPush();
     if (!_undoStack.canRedo) return;
     _autosaveTimer?.cancel();
     _undoTimer?.cancel();
@@ -1794,6 +1817,7 @@ class DanceEditorController extends ChangeNotifier {
     for (final c in sourceCitations) {
       c.dispose();
     }
+    freeTextComposer.dispose();
     super.dispose();
   }
 }

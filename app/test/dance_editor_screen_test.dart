@@ -2622,7 +2622,10 @@ void main() {
 
       await typeAndSubmit(tester, 'neighbors balance & swing');
       expect(
-        find.text('Added 1 figure. Type another, or choose Done to finish.'),
+        find.text(
+          "Added 1 figure. Type another, or choose Finish adding when you're "
+          'done.',
+        ),
         findsOneWidget,
       );
       // Touch users have no Escape key; the visible line must not name it.
@@ -2631,6 +2634,39 @@ void main() {
       await tester.enterText(find.byKey(fieldKey), 'c');
       await tester.pumpAndSettle();
       expect(find.textContaining('Added 1 figure'), findsNothing);
+    });
+
+    testWidgets('Save adds a line still in the box, as Enter would (AUTH-1)', (
+      tester,
+    ) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await openComposer(tester);
+
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = figuresOf((await repos.dances.getById('d1'))!);
+      expect(saved, hasLength(7));
+      expect(saved.last.move, 'swing');
+      expect(saved.last.params['who'], 'neighbors');
+    });
+
+    testWidgets('Back with a line still in the box asks before discarding it '
+        '(AUTH-1)', (tester) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await openComposer(tester);
+
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.byKey(fieldKey), findsOneWidget);
     });
 
     testWidgets('the visible confirmation reports the count and goes away '

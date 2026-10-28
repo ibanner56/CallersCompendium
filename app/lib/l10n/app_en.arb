@@ -10226,9 +10226,23 @@
       }
     }
   },
-  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{Added 1 figure. Type another, or choose Done to finish.} other{Added {count} figures. Type another, or choose Done to finish.}}",
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{Added 1 figure. Type another, or choose Finish adding when you're done.} other{Added {count} figures. Type another, or choose Finish adding when you're done.}}",
   "@danceEditorFreeTextFiguresAddedConfirmation": {
-    "description": "Visible line under the free-text figure box after adding figure(s). \"Done\" is the button next to the box (commonDone) that closes it; keep the wording in step with that button's label.",
+    "description": "Visible line under the free-text figure box after adding figure(s). \"Finish adding\" is the button under the box (danceEditorFreeTextFinish) that closes it; keep the wording in step with that button's label.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorFreeTextFinish": "Finish adding",
+  "@danceEditorFreeTextFinish": {
+    "description": "Button under the free-text figure box. It means 'I have finished entering figures': it adds any line still in the box, as Enter would, and then closes the box. It must not read as finishing the one figure being typed (an earlier 'Done' label did, and callers lost the line they had typed)."
+  },
+  "danceEditorFreeTextFinishedAnnouncement": "{count, plural, =1{Added 1 figure.} other{Added {count} figures.}}",
+  "@danceEditorFreeTextFinishedAnnouncement": {
+    "description": "Screen-reader announcement when Finish adding (danceEditorFreeTextFinish) adds the line still in the free-text figure box and closes the box.",
     "placeholders": {
       "count": {
         "type": "int",

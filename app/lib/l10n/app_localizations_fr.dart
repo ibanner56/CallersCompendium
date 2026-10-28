@@ -7997,9 +7997,23 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count figures ajoutées. Saisissez-en une autre ou choisissez « Terminé » pour terminer.',
+          '$count figures ajoutées. Saisissez-en une autre ou choisissez « Terminer l’ajout » quand vous avez fini.',
       one:
-          '1 figure ajoutée. Saisissez-en une autre ou choisissez « Terminé » pour terminer.',
+          '1 figure ajoutée. Saisissez-en une autre ou choisissez « Terminer l’ajout » quand vous avez fini.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Terminer l’ajout';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures ajoutées.',
+      one: '1 figure ajoutée.',
     );
     return '$_temp0';
   }

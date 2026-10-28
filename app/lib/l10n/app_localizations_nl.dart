@@ -7947,9 +7947,23 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count figuren toegevoegd. Typ nog een figuur of kies Klaar om te voltooien.',
+          '$count figuren toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
       one:
-          '1 figuur toegevoegd. Typ nog een figuur of kies Klaar om te voltooien.',
+          '1 figuur toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Toevoegen afronden';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren toegevoegd.',
+      one: '1 figuur toegevoegd.',
     );
     return '$_temp0';
   }

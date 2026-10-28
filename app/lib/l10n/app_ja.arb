@@ -7850,9 +7850,17 @@
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
     "x-sourceSha256": "c4d66c29eef8a2480eeff9c01651a491f5f23569bc7a17aa9f6d79d0e522c6ed"
   },
-  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, other{{count}件のフィギュアを追加しました。さらに入力するか、「完了」を選んで終了してください。}}",
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, other{{count}件のフィギュアを追加しました。さらに入力するか、終わったら「追加を終了」を選んでください。}}",
   "@danceEditorFreeTextFiguresAddedConfirmation": {
-    "x-sourceSha256": "9d440af03e3cb398e592743aab104875b7a185a58ec28037919fb3fd2b40d32a"
+    "x-sourceSha256": "492ea68521c3329c5c4c55e7a94ffcd161f61c8240efbc69ae6d9bccc84aca55"
+  },
+  "danceEditorFreeTextFinish": "追加を終了",
+  "@danceEditorFreeTextFinish": {
+    "x-sourceSha256": "822ab693183cc7a79d852b38ab77f9b77de01e7a750b9e29d7aa0b4ce22e2c2a"
+  },
+  "danceEditorFreeTextFinishedAnnouncement": "{count, plural, other{{count}件のフィギュアを追加しました。}}",
+  "@danceEditorFreeTextFinishedAnnouncement": {
+    "x-sourceSha256": "5b20631febe204eefea272194085884fb6a762be6f2643b898e4d183f96d4796"
   },
   "danceEditorFreeTextRowReplacedAnnouncement": "{count, plural, other{フィギュアを{count}件のフィギュアに置き換えました。}}",
   "@danceEditorFreeTextRowReplacedAnnouncement": {

@@ -11925,11 +11925,23 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}'**
   String danceEditorFreeTextFiguresAddedAnnouncement(int count);
 
-  /// Visible line under the free-text figure box after adding figure(s). "Done" is the button next to the box (commonDone) that closes it; keep the wording in step with that button's label.
+  /// Visible line under the free-text figure box after adding figure(s). "Finish adding" is the button under the box (danceEditorFreeTextFinish) that closes it; keep the wording in step with that button's label.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Added 1 figure. Type another, or choose Done to finish.} other{Added {count} figures. Type another, or choose Done to finish.}}'**
+  /// **'{count, plural, =1{Added 1 figure. Type another, or choose Finish adding when you\'re done.} other{Added {count} figures. Type another, or choose Finish adding when you\'re done.}}'**
   String danceEditorFreeTextFiguresAddedConfirmation(int count);
+
+  /// Button under the free-text figure box. It means 'I have finished entering figures': it adds any line still in the box, as Enter would, and then closes the box. It must not read as finishing the one figure being typed (an earlier 'Done' label did, and callers lost the line they had typed).
+  ///
+  /// In en, this message translates to:
+  /// **'Finish adding'**
+  String get danceEditorFreeTextFinish;
+
+  /// Screen-reader announcement when Finish adding (danceEditorFreeTextFinish) adds the line still in the free-text figure box and closes the box.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 figure.} other{Added {count} figures.}}'**
+  String danceEditorFreeTextFinishedAnnouncement(int count);
 
   /// Screen-reader announcement after a line typed into an existing figure's move field (with free-text entry on) replaced that figure with the figure(s) parsed from it.
   ///
