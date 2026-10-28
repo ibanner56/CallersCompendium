@@ -288,6 +288,9 @@ Future<void> saveDanceWithRelatedLinks(
 /// LIFE-12). Persisting it with the title already applied also means no
 /// failure can leave an exact-title twin behind the way create-then-rename did.
 ///
+/// A copy of a member of a group too large to reconcile (past
+/// [kMaxTransitiveDanceGroupSize]) is made with ordinary links instead.
+///
 /// A related-dance link whose target is gone (missing, or in Recently deleted)
 /// is left off the copy: it could not be given a reverse link, and saving it
 /// would refuse the whole duplicate over a dance the user cannot see.
@@ -316,8 +319,30 @@ Future<Dance> duplicateDanceWithRelatedLinks(
     }
     links.add(link);
   }
-  final copy = draft.copyWith(links: links);
-  await saveDanceWithRelatedLinks(repos, dance: copy);
+  var copy = draft.copyWith(links: links);
+  try {
+    await saveDanceWithRelatedLinks(repos, dance: copy);
+  } on RelatedDanceLinkSaveException catch (error) {
+    // A group past the inspection bound cannot be reconciled, but duplicating
+    // a member of one worked before and must keep working: the copy is made
+    // with ordinary links, outside the group, as it was.
+    if (error.maxSize == null) rethrow;
+    copy = copy.copyWith(
+      links: [
+        for (final link in copy.links)
+          if (!link.transitive)
+            link
+          else
+            DanceLink(
+              id: link.id,
+              kind: link.kind,
+              targetDanceId: link.targetDanceId,
+              label: link.label,
+            ),
+      ],
+    );
+    await saveDanceWithRelatedLinks(repos, dance: copy);
+  }
   return copy;
 });
 

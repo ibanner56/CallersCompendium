@@ -888,6 +888,41 @@ void main() {
       expect(await repos.dances.getById('copy'), isNotNull);
     });
 
+    test(
+      'a member of a group too large to reconcile is still copied',
+      () async {
+        final repos = openTestRepositories();
+        final ids = [
+          for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++) 'g$i',
+        ];
+        for (final id in ids) {
+          await repos.dances.create(_dance(id: id));
+        }
+        // One hub linked transitively to every other member: 101 in all.
+        await repos.dances.update(
+          (await repos.dances.getById('g0'))!.copyWith(
+            links: [
+              for (final id in ids.skip(1))
+                _related('l-$id', id, transitive: true),
+            ],
+            updatedAt: DateTime.utc(2026, 1, 2),
+          ),
+        );
+
+        final copy = await duplicateDanceWithRelatedLinks(
+          repos,
+          id: 'g0',
+          newId: 'copy',
+          now: DateTime.utc(2026, 2, 1),
+          copyTitle: suffix,
+        );
+
+        expect(copy.links, hasLength(ids.length - 1));
+        expect(copy.links.any((l) => l.transitive), isFalse);
+        expect(await repos.dances.getById('copy'), isNotNull);
+      },
+    );
+
     test('a failure part-way leaves no copy behind', () async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'other'));
