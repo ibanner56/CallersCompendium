@@ -243,6 +243,42 @@ void main() {
     });
   });
 
+  test('re-importing your own export onto a dance keeps its link to a '
+      'dance whose row is skipped', () async {
+    await dances.create(_dance('mine-b', 'Beta'));
+    await dances.create(
+      _dance('mine-a', 'Alpha', links: [_related('L1', 'mine-b')]),
+    );
+    final pipeline = ImportPipeline(
+      dances,
+      ChoreographerRepository(db),
+      difficultyLevels: DifficultyLevelRepository(db),
+    );
+    final planned = await pipeline.plan(
+      GenericJsonAdapter(),
+      ImportRequest(payload: _share(await dances.listAll())),
+    );
+
+    final session = await pipeline.commit(
+      ImportBatchResult(
+        records: [
+          for (final r in planned.records)
+            if (r.draft.dance.id == 'mine-a') r,
+        ],
+      ),
+      now: DateTime.utc(2026, 10, 27),
+      newId: uuidV4,
+      resolutions: {0: DedupeResolution.link('mine-a')},
+    );
+
+    expect(session.records.single.error, isNull);
+    expect(session.records.single.action, CommitAction.link);
+    expect(session.records.single.danceId, 'mine-a');
+    final alpha = await dances.getById('mine-a');
+    expect([for (final l in alpha!.links) l.targetDanceId], ['mine-b']);
+    expect(session.issues, isEmpty);
+  });
+
   test('Undo of a re-import takes back the link it added', () async {
     await _receive(
       db,

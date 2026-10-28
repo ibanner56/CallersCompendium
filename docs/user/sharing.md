@@ -77,10 +77,10 @@ reused, and their own edits are never overwritten. If the file has a custom fiel
 with the same key as one of theirs but set up differently, the import is refused
 rather than changing what their field means. A link to a video or web page
 comes along as it is. A link to a related dance comes along when that dance is
-in the same file. It also comes along when the recipient already has the related
-dance from an earlier file, as long as that dance is in this file too or the
-sender added it by hand rather than importing it. Otherwise that one link is
-left out, and the rest of the dance still imports. After the import, the confirmation message offers **Undo**. If
+imported from the same file. It also comes along when the recipient already has
+the related dance from an earlier file, as long as that dance is in this file
+too or the sender added it by hand rather than importing it. Otherwise that one
+link is left out, and the rest of the dance still imports. After the import, the confirmation message offers **Undo**. If
 any dance could not be imported, the message says how many.
 
 ## Share a program

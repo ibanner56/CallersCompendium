@@ -627,8 +627,9 @@ class ImportPipeline {
   /// [PublishedCollectionAdapter] rewrite the file's dance id to it), and is
   /// held back until every record has been written. It is then added to its
   /// dance with its target resolved: to the dance the record of this batch
-  /// with that external id was written as, or else to a live dance already
-  /// received from this source under that external id. A link
+  /// with that external id was written as, else to a live dance already
+  /// received from this source under that external id, else to a live dance
+  /// whose id it is (a file this library wrote). A link
   /// whose target resolves to neither is left out with an
   /// `archive_related_dance_unresolved` note in [ImportSession.issues]. The
   /// link is written by a second update of a dance this batch already wrote,
@@ -1015,7 +1016,12 @@ class ImportPipeline {
         final targetKey = link.targetDanceId!;
         final target =
             writtenIdByExternalId[targetKey] ??
-            index.findByExternalId(source, targetKey);
+            index.findByExternalId(source, targetKey) ??
+            // The key is the dance's own id when it had no provenance, so a
+            // file this library wrote (its own export, or its dance shared and
+            // sent back) names a dance still here. A sender's id or a
+            // namespaced key matches no other library's dance.
+            (await _dances.getById(targetKey))?.id;
         if (target == null) {
           issues.add(unresolved(danceId));
           continue;
