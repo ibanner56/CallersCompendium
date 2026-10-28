@@ -100,6 +100,7 @@ Across the 71 IDs: 33 Medium and 38 Low. None is High: all three remaining Highs
 
 ### F3 `fix/editor-entry-paths`: every way of making a row behaves the same
 
+- **Added from F4 (#1990, merged):** free-text entry still keeps a wrong structured reading when a turn amount is spelled out ("three quarters", "two times"). Add spelled-out numbers to the leftover rule's turn tokens, with tests, in `free_text_entry.dart`.
 - **Findings:**
   - **AUTH-7:** apply Move defaults on the free-text and shorthand paths, but only to parameters the parser left at their defaults, so an explicit "half hey" is not overridden.
   - **AUTH-8:** pressing Enter in a Move box prefers an exact name, then a shorthand token, before falling back to the first substring match.
