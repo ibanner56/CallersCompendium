@@ -7384,7 +7384,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'フィギュア$positionは$actual拍のシーケンスで、1フレーズ（$limit拍）より長くなっています。';
+    return 'フィギュア$positionのシーケンスは$actual拍で、1フレーズ（$limit拍）より長くなっています。';
   }
 
   @override

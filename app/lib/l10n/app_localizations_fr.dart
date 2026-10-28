@@ -7800,7 +7800,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'La figure $position est une séquence de $actual temps, plus longue qu’une phrase ($limit temps).';
+    return 'Une séquence de la figure $position dure $actual temps, plus qu’une phrase ($limit temps).';
   }
 
   @override

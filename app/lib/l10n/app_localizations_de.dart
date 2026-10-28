@@ -7783,7 +7783,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'Figur $position ist eine Sequenz von $actual Beats, länger als eine Phrase ($limit Beats).';
+    return 'Eine Sequenz in Figur $position hat $actual Beats und ist länger als eine Phrase ($limit Beats).';
   }
 
   @override

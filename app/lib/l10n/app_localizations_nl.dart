@@ -7750,7 +7750,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'Figuur $position is een reeks van $actual tellen, langer dan één frase ($limit tellen).';
+    return 'Een reeks in figuur $position duurt $actual tellen, langer dan één frase ($limit tellen).';
   }
 
   @override

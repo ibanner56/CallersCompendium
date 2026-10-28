@@ -7693,7 +7693,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'Figur $position er en sekvens på $actual slag, længere end én frase ($limit slag).';
+    return 'En sekvens i figur $position er $actual slag, længere end én frase ($limit slag).';
   }
 
   @override

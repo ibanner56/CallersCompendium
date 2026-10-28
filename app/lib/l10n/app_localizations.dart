@@ -11555,10 +11555,10 @@ abstract class AppLocalizations {
   /// **'The figures total {actual} beats; the phrase structure expects {expected}.'**
   String validationPhraseBeatMismatch(int actual, int expected);
 
-  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance, for example after the phrase structure was changed.
+  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.
   ///
   /// In en, this message translates to:
-  /// **'Figure {position} is a sequence of {actual} beats, longer than one phrase ({limit} beats).'**
+  /// **'A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).'**
   String validationSequenceExceedsPhrase(int position, int actual, int limit);
 
   /// Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds).
