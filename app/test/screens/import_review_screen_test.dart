@@ -158,6 +158,8 @@ Future<void> _pumpForEdit(
   WidgetTester tester,
   CompendiumRepositories repos, {
   required String payload,
+  List<ImportSource>? sources,
+  ImportBytePicker? bytePicker,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1000, 1600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -172,13 +174,16 @@ Future<void> _pumpForEdit(
         child: ActiveDialectScope(notifier: notifier, child: child!),
       ),
       home: ImportReviewScreen(
-        sources: [
-          ImportSource(
-            kind: ImportSourceKind.genericJson,
-            adapterFactory: GenericJsonAdapter.new,
-          ),
-        ],
+        sources:
+            sources ??
+            [
+              ImportSource(
+                kind: ImportSourceKind.genericJson,
+                adapterFactory: GenericJsonAdapter.new,
+              ),
+            ],
         picker: () async => payload,
+        bytePicker: bytePicker,
       ),
     ),
   );
@@ -2320,58 +2325,65 @@ void main() {
     // (external ids 4/7 → "Simplicity Swing", "Petronella"), one set whose
     // Location becomes the program title ("Grange Hall"), and a SetItem
     // referencing an absent dance (99) so a program note is produced.
-    Uint8List ccUsrBytes({bool thirdDance = false}) => buildFmp12Fixture([
-      FmpFixtureTable(
-        index: 1,
-        name: 'Dance',
-        columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
-        rows: [
-          MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
-          MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
-          if (thirdDance) MapEntry(12, {1: '9', 2: 'Chorus Jig', 3: 'Trad'}),
-        ],
-      ),
-      FmpFixtureTable(
-        index: 2,
-        name: 'Set',
-        columnNames: [
-          'zk_Set_ID',
-          'Date',
-          'Location',
-          'Band',
-          'Caller',
-          'Notes',
-        ],
-        rows: [
-          MapEntry(20, {
-            1: '1',
-            2: '3/14/2020',
-            3: 'Grange Hall',
-            4: 'The Band',
-            5: 'Jane',
-            6: 'a good night',
-          }),
-        ],
-      ),
-      FmpFixtureTable(
-        index: 3,
-        name: 'SetItem',
-        columnNames: [
-          'zk_Set_ID',
-          'zk_SetItem_ID',
-          'zk_Dance_ID',
-          'Order',
-          'Time',
-          'Break',
-        ],
-        rows: [
-          MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
-          MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
-          MapEntry(32, {1: '1', 2: '103', 4: '3', 6: 'Waltz break'}),
-          MapEntry(33, {1: '1', 2: '104', 3: '99', 4: '4'}),
-        ],
-      ),
-    ]);
+    Uint8List ccUsrBytes({bool thirdDance = false, String? userField}) =>
+        buildFmp12Fixture([
+          FmpFixtureTable(
+            index: 1,
+            name: 'Dance',
+            columnNames: ['zk_Dance_ID', 'Name', 'Author1', 'UserDefined_1'],
+            rows: [
+              MapEntry(10, {
+                1: '4',
+                2: 'Simplicity Swing',
+                3: 'Becky Hill',
+                4: ?userField,
+              }),
+              MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
+              if (thirdDance)
+                MapEntry(12, {1: '9', 2: 'Chorus Jig', 3: 'Trad'}),
+            ],
+          ),
+          FmpFixtureTable(
+            index: 2,
+            name: 'Set',
+            columnNames: [
+              'zk_Set_ID',
+              'Date',
+              'Location',
+              'Band',
+              'Caller',
+              'Notes',
+            ],
+            rows: [
+              MapEntry(20, {
+                1: '1',
+                2: '3/14/2020',
+                3: 'Grange Hall',
+                4: 'The Band',
+                5: 'Jane',
+                6: 'a good night',
+              }),
+            ],
+          ),
+          FmpFixtureTable(
+            index: 3,
+            name: 'SetItem',
+            columnNames: [
+              'zk_Set_ID',
+              'zk_SetItem_ID',
+              'zk_Dance_ID',
+              'Order',
+              'Time',
+              'Break',
+            ],
+            rows: [
+              MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
+              MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
+              MapEntry(32, {1: '1', 2: '103', 4: '3', 6: 'Waltz break'}),
+              MapEntry(33, {1: '1', 2: '104', 3: '99', 4: '4'}),
+            ],
+          ),
+        ]);
 
     List<ImportSource> sourcesFor(ImportBytePicker picker) => [
       ImportSource(
@@ -2398,6 +2410,40 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('import-continue')));
       await tester.pumpAndSettle();
     }
+
+    // A dance carrying a CC user field could not be committed on its own, and
+    // the sets a later Import built recorded an Edit-committed dance as "not
+    // imported".
+    testWidgets('Edit commits a dance with a user field, and the later Import '
+        'puts it in its set', (tester) async {
+      final repos = openTestRepositories();
+      final bytes = ccUsrBytes(userField: 'Needs card');
+      await _pumpForEdit(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => bytes),
+        bytePicker: () async => bytes,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+
+      await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('import-edit-error')), findsNothing);
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+      final edited = (await repos.dances.listAll()).single;
+      expect(edited.title, 'Simplicity Swing');
+      expect(edited.customFields.single.value, 'Needs card');
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final program = (await repos.programs.listAll()).single;
+      expect(program.slots.first.danceId, edited.id);
+    });
 
     testWidgets('the byte source shows a .USR file button, not URL/paste', (
       tester,
@@ -3619,6 +3665,49 @@ void main() {
         expect(
           find.byKey(const ValueKey('import-result-dialog')),
           findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'a dance that fails to import is reported in the undo snackbar, not '
+      'counted as a success',
+      (tester) async {
+        final repos = openTestRepositories();
+        // A commit failure is recorded on its record rather than thrown, so
+        // the rest of the file still imports.
+        await repos.db.customStatement(
+          'CREATE TRIGGER boom BEFORE INSERT ON dances '
+          "WHEN NEW.title = 'Doomed Reel' BEGIN SELECT RAISE(ABORT, 'boom'); END",
+        );
+        final archive = danceProgramVenueArchive();
+        await pumpShared(
+          tester,
+          repos,
+          bundleFor(
+            CompendiumArchive(
+              exportedAt: archive.exportedAt,
+              dances: [...archive.dances, sharedDance('d2', 'Doomed Reel')],
+              programs: archive.programs,
+              venues: archive.venues,
+            ),
+          ),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        expect((await repos.dances.listAll()).map((d) => d.title), [
+          'Shared Reel',
+        ]);
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        // One dance and one program imported; one dance failed.
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('shared-import-undo-snackbar')),
+            matching: find.text(l10n.sharedImportCompleteWithFailures(2, 1)),
+          ),
+          findsOneWidget,
         );
       },
     );

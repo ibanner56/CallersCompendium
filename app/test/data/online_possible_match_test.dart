@@ -169,7 +169,7 @@ void main() {
       'acts on a possible match', () async {
     final repos = await _reporterCollection();
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       [
         ParsedProgramLine(
           text: 'A-1 Reel {variant}',
@@ -178,7 +178,7 @@ void main() {
       ],
       service: _service(),
       repos: repos,
-    );
+    )).lines;
 
     expect(resolved.single.importedOnline, isTrue);
     final linked = resolved.single.danceId;

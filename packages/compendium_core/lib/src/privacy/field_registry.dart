@@ -579,9 +579,14 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'What the caller is paid for the program (DPV pd:Income). The '
         'subject is the app user: it is their own earnings, not a fact about '
-        'the venue, band or any other third party. Shareable so it follows '
-        'the caller to their other devices and into their own archive '
-        'export; it is not part of the shared program text or PDF.',
+        'the venue, band or any other third party. Egress today: it follows '
+        'the caller to their other devices (Device Sync) and into their own '
+        'archive and backup, and it is also written into program share files '
+        'sent to other people (docs/user/sharing.md), where it becomes the '
+        "recipient's copy of the sender's earnings. It is never part of the "
+        'shared set-list text or PDF. Whether pay should travel in share '
+        'files is a pending maintainer decision; the '
+        'classification is unchanged until it is made.',
   ),
   'programs.pay_currency': const DataClassification(
     term: DpvTerm.income,

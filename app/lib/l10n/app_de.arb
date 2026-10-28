@@ -272,6 +272,46 @@
   "@settingsExperimentalTitle": {
     "x-sourceSha256": "3dc9f569422dcfdadcb2c33f3eb2ee6fcebc8ba679bd63e690f9ddd0ff7c24be"
   },
+  "settingsDeveloperOptionsHeader": "Entwickleroptionen",
+  "@settingsDeveloperOptionsHeader": {
+    "x-sourceSha256": "d7de9cfa12968ab7b7b85e5087c51954cd21e321e3d946fe5de1f3df7657ec49"
+  },
+  "settingsDeveloperResetTitle": "Datenbank zurücksetzen",
+  "@settingsDeveloperResetTitle": {
+    "x-sourceSha256": "f65a3dd84895a094fa1c28c4c020a69f4a252b96b20c76214048bc2cc85e29ca"
+  },
+  "settingsDeveloperResetSubtitle": "Alles auf diesem Gerät löschen und neu beginnen, wie bei einer frischen Installation.",
+  "@settingsDeveloperResetSubtitle": {
+    "x-sourceSha256": "32ecbff3cb17c1a9e612d8f024811b36cec37083525cf260f438f0e27cade785"
+  },
+  "settingsDeveloperResetConfirmTitle": "Datenbank zurücksetzen?",
+  "@settingsDeveloperResetConfirmTitle": {
+    "x-sourceSha256": "1826f2e842c2e72608eef7bb7a85b321f814e6b472dae52a1e0a419f146d0ac9"
+  },
+  "settingsDeveloperResetConfirmBody": "Dadurch werden alle Tänze, Programme, Sammlungen, Einstellungen und Notizen auf diesem Gerät dauerhaft gelöscht, und die App startet neu, als wäre sie gerade erst installiert worden. Das lässt sich nicht rückgängig machen.",
+  "@settingsDeveloperResetConfirmBody": {
+    "x-sourceSha256": "da2ae15b97a677308efd19bac5f7e6be2611c4e355217bd9aa97d745e95369c9"
+  },
+  "settingsDeveloperResetConfirmSyncNote": "Dieses Gerät ist mit einem Synchronisierungsspeicher verbunden. Es entfernt sich zuerst selbst aus dem Speicher, damit es nicht als verwaistes Gerät zurückbleibt. Alles, was es noch nicht mit deinen anderen Geräten synchronisiert hat, geht verloren.",
+  "@settingsDeveloperResetConfirmSyncNote": {
+    "x-sourceSha256": "16c6e60d5526a34a888c9a20d703794f21f48110d09c0c4633eac0ec7980bac8"
+  },
+  "settingsDeveloperResetConfirmCheckbox": "Ich verstehe, dass sich das nicht rückgängig machen lässt, und ich habe bereits eine Sicherung erstellt, falls ich eine möchte.",
+  "@settingsDeveloperResetConfirmCheckbox": {
+    "x-sourceSha256": "6cc38943ebd41c955931c0709e81ea661b3057d0bf9b4817556825bf9671f0fa"
+  },
+  "settingsDeveloperResetConfirmAction": "Datenbank zurücksetzen",
+  "@settingsDeveloperResetConfirmAction": {
+    "x-sourceSha256": "f65a3dd84895a094fa1c28c4c020a69f4a252b96b20c76214048bc2cc85e29ca"
+  },
+  "settingsDeveloperResetLeaveFailed": "Dieses Gerät konnte nicht aus dem Synchronisierungsspeicher entfernt werden, daher wurde nichts zurückgesetzt. Prüfe deine Verbindung und versuche es erneut.",
+  "@settingsDeveloperResetLeaveFailed": {
+    "x-sourceSha256": "db5e241a2a578eb79dc76c5839f985b6a5799932232800d0eb837e7d4ae045f0"
+  },
+  "settingsDeveloperResetFailed": "Die Datenbank konnte nicht zurückgesetzt werden, deine Daten sind unverändert. Falls dieses Gerät mit einem Synchronisierungsspeicher verbunden war, hat es ihn bereits verlassen.",
+  "@settingsDeveloperResetFailed": {
+    "x-sourceSha256": "25cfd9546ea2367a176db8fb69ffb245b40333f915912b9ced3c4a7ef320daee"
+  },
   "settingsExperimentalPlaceholder": "Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.",
   "@settingsExperimentalPlaceholder": {
     "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
@@ -2244,9 +2284,9 @@
   "@settingsAppearanceNewThemeDefaultName": {
     "x-sourceSha256": "83389aefec657bff4f34672c6a577634b97cb2197c25a9a4fa515216954a20cc"
   },
-  "settingsAppearanceCustomThemesEmpty": "Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden auf diesem Gerät gespeichert.",
+  "settingsAppearanceCustomThemesEmpty": "Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden mit Ihren anderen Geräten synchronisiert, wenn die Synchronisierung aktiviert ist.",
   "@settingsAppearanceCustomThemesEmpty": {
-    "x-sourceSha256": "b979ad177eaacbcddbd8f4d5c3e61aaf2d17fa29e2fba50a12b8918ba5ffbb3b"
+    "x-sourceSha256": "95b8a0f6f3b5190ec400652935ba9981213e44fc2eacb56637799159e84c7d3f"
   },
   "settingsAppearanceDeleteThemeTitle": "Design löschen?",
   "@settingsAppearanceDeleteThemeTitle": {
@@ -2984,13 +3024,13 @@
   "@settingsGeneralDeletedItemsHeader": {
     "x-sourceSha256": "fbd1d68504a288998473058bd2ce29416791756fd8ced5e9b784cfc8ad31151b"
   },
-  "settingsGeneralSoftDeleteRetentionTitle": "Gelöschte Tänze behalten für",
+  "settingsGeneralSoftDeleteRetentionTitle": "Gelöschte Elemente behalten für",
   "@settingsGeneralSoftDeleteRetentionTitle": {
-    "x-sourceSha256": "762e99330c044f8a92fc3aa4fb7b74ef62041a7e3463a0b670162dab182e0e26"
+    "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "Gelöschte Tänze werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
-    "x-sourceSha256": "eaf52455114c21dcdd36703f277c37687ed08253bf1bdc49c7c84437b79e1f58"
+    "x-sourceSha256": "e9121427d1a14e56df8a472c097142bf74ac95a239c8ba1756f1ef77e8a1ea76"
   },
   "settingsGeneralSoftDeleteRetentionDays": "{days} Tage",
   "@settingsGeneralSoftDeleteRetentionDays": {
@@ -3456,9 +3496,9 @@
   "@crashFallbackTitle": {
     "x-sourceSha256": "f50cc0209cfd0a6cf57b948a4820f4367c4be1799303ae3415187ce9a246f8d9"
   },
-  "crashFallbackBody": "Dieser Teil der App ist auf einen unerwarteten Fehler gestoßen und hat sich erholt. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das Ihr Gerät nie verlässt.",
+  "crashFallbackBody": "Dieser Teil der App ist auf einen unerwarteten Fehler gestoßen und konnte nicht angezeigt werden. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das Ihr Gerät nie verlässt.",
   "@crashFallbackBody": {
-    "x-sourceSha256": "d06f0dcd8e86d4b1b0feb84da5366ef6cfacd0a61b0cbbd0738b612e0245381c"
+    "x-sourceSha256": "a50566a5a48bce88b20359d2dfd22ab16e48ca69577e1540df5b58e81b1a51e7"
   },
   "crashFallbackCopied": "Kopiert",
   "@crashFallbackCopied": {
@@ -3696,9 +3736,9 @@
   "@collectionNewDance": {
     "x-sourceSha256": "c1e50f8630ba63be7971930aab740a917fb1fb614e5cfb1ca8e06fe390cb15d2"
   },
-  "collectionSearchTooltip": "Suchen (Strg/Cmd-K)",
+  "collectionSearchTooltip": "{platform, select, apple{Suchen (⌘K)} other{Suchen (Strg+K)}}",
   "@collectionSearchTooltip": {
-    "x-sourceSha256": "79eb0580e719e00ab217df80df8be9617cc4370f21e18de0ee2f9fd47c181a23"
+    "x-sourceSha256": "900e726652ea89b7d8abaf9b217c45c7336101cde2a7182b4b94448318375296"
   },
   "collectionSelectDancesTooltip": "Tänze auswählen",
   "@collectionSelectDancesTooltip": {
@@ -5322,6 +5362,10 @@
   "@performExitBody": {
     "x-sourceSha256": "973f65aa6bf4115cdbcce3c7b82658c8b7a9323c4d22d78034cca7eaee2ae6cd"
   },
+  "performDanceExitBody": "Perform-Ansicht verlassen? Beim Perform eines einzelnen Tanzes wird Ihr Platz nicht gespeichert, daher beginnt es beim nächsten Mal von vorn.",
+  "@performDanceExitBody": {
+    "x-sourceSha256": "a8f188b774ac34941809bf0b06620d34a9739d2b8717dabbd8c2e63d33ec4104"
+  },
   "performExitCancel": "Weitermachen",
   "@performExitCancel": {
     "x-sourceSha256": "c4bd58aad7b8cbf2b2ae60b9a3ccd2bb1d50b47298866b8f7394ee69c00dfffb"
@@ -6194,6 +6238,18 @@
   "@importContraDbResolveError": {
     "x-sourceSha256": "62c90ed70c6cec758aafc15d73c546f9ccdf6fc712b8b7067cb451004c81bd97"
   },
+  "importContraDbProgramProgress": "Tanz {done} von {total} wird importiert…",
+  "@importContraDbProgramProgress": {
+    "x-sourceSha256": "fbd8c6778031827ce8acc922cd76181fe6253462e1d474d5c914aeb69c1f37e0"
+  },
+  "importContraDbProgramConnectionFailed": "Die Online-Archive konnten nicht erreicht werden, daher wurde nichts importiert. Versuchen Sie es erneut, sobald Sie online sind.",
+  "@importContraDbProgramConnectionFailed": {
+    "x-sourceSha256": "f90475f594f9aed9601b28b34b6f6d2095c8803fd86711035ca6238ac629e0f9"
+  },
+  "importContraDbProgramCancelled": "Import abgebrochen – es wurde nichts hinzugefügt.",
+  "@importContraDbProgramCancelled": {
+    "x-sourceSha256": "95247a79235ff9b09cba7d8ef6f747e1139b18b75cd5a4c8c0528869918304fe"
+  },
   "importContraDbActivityCount": "{activities, plural, =1{1 Aktivität} other{{activities} Aktivitäten}} ({dances, plural, =1{1 Tanz} other{{dances} Tänze}}, {notes, plural, =1{1 Notiz} other{{notes} Notizen}})",
   "@importContraDbActivityCount": {
     "x-sourceSha256": "daa88207884e597a966a7016042d636ce053de951a712b16c3cb3d71b5167ffa"
@@ -6281,6 +6337,14 @@
   "importPlaintextResolvedLinked": "{linked, plural, =1{{linked} Titel} other{{linked} Titel}} online verknüpft{remaining, plural, =0{.} =1{; {remaining} weiterhin eine Notiz.} other{; {remaining} weiterhin Notizen.}}",
   "@importPlaintextResolvedLinked": {
     "x-sourceSha256": "1419cd7e44ccda1131261da7617c9e873071b64a1940d8efb5023cd96ff58d32"
+  },
+  "importPlaintextResolveConnectionFailed": "Die Suche nach Titeln wurde nach einem Verbindungsfehler abgebrochen{linked, plural, =0{.} =1{ – {linked} Titel online verknüpft.} other{ – {linked} Titel online verknüpft.}} Versuchen Sie es mit dem Rest erneut, sobald Sie online sind.",
+  "@importPlaintextResolveConnectionFailed": {
+    "x-sourceSha256": "08a1ca27be4823f896e736886923c6ca1f07a5b4d10fd58689932a6a14a43eee"
+  },
+  "importPlaintextResolveCancelled": "Die Suche nach Titeln wurde abgebrochen{linked, plural, =0{.} =1{ – {linked} Titel online verknüpft.} other{ – {linked} Titel online verknüpft.}}",
+  "@importPlaintextResolveCancelled": {
+    "x-sourceSha256": "fbddf933b61c43b49d4cd00117044d72be6476c0c66c16e81f544c46f148817f"
   },
   "importReviewClose": "Import schließen",
   "@importReviewClose": {
@@ -7034,6 +7098,10 @@
   "@sharedImportComplete": {
     "x-sourceSha256": "8e3c26a3b8d4edd5107078763ce244601af4951039f94ef831d74067d6851880"
   },
+  "sharedImportCompleteWithFailures": "{count, plural, =0{Nichts wurde importiert.} =1{1 Element importiert.} other{{count} Elemente importiert.}} {failed, plural, =1{1 Tanz konnte nicht importiert werden.} other{{failed} Tänze konnten nicht importiert werden.}}",
+  "@sharedImportCompleteWithFailures": {
+    "x-sourceSha256": "f51ff55e57fc1acbb9e22aa82a03ccf59f17c32898446283e422343d9e7c19de"
+  },
   "sharedImportProgramsOnly": "{count, plural, =1{Diese Freigabe enthält 1 Programm und keine Tänze.} other{Diese Freigabe enthält {count} Programme und keine Tänze.}}",
   "@sharedImportProgramsOnly": {
     "x-sourceSha256": "15aefeb2289ff8575bb68e5527da094f93c18c28f4091aa9ed8884892f3b9253"
@@ -7710,13 +7778,13 @@
   "@danceEditorRedoLabel": {
     "x-sourceSha256": "74273989b0966e2369b6d01aadb23af4ad6a9e724643fa88f2bde99202a36708"
   },
-  "danceEditorUndoShortcutTooltip": "Rückgängig (Strg+Z)",
+  "danceEditorUndoShortcutTooltip": "{platform, select, apple{Rückgängig (⌘Z)} other{Rückgängig (Strg+Z)}}",
   "@danceEditorUndoShortcutTooltip": {
-    "x-sourceSha256": "a67232246217b31bf81c53caa7ae5b734ea8af3a0513d84c042a648adaf8cf5d"
+    "x-sourceSha256": "70c5caddd837408dbb753994191f5f964172e998aef3087ad2e7d5cfc9b36528"
   },
-  "danceEditorRedoShortcutTooltip": "Wiederholen (Strg+Umschalt+Z)",
+  "danceEditorRedoShortcutTooltip": "{platform, select, apple{Wiederholen (⇧⌘Z)} other{Wiederholen (Strg+Umschalt+Z)}}",
   "@danceEditorRedoShortcutTooltip": {
-    "x-sourceSha256": "b30696d9a53af724f043cad344b4d9a13624e3d424a6fd4d3c84fdb18616e75d"
+    "x-sourceSha256": "e296fde92421b8bd550e837eca8e579316d76c98fc432e0dec7c6041387aa5be"
   },
   "danceEditorDeleteDanceTooltip": "Tanz löschen",
   "@danceEditorDeleteDanceTooltip": {
@@ -7810,9 +7878,17 @@
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
     "x-sourceSha256": "c4d66c29eef8a2480eeff9c01651a491f5f23569bc7a17aa9f6d79d0e522c6ed"
   },
-  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{1 Figur hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Fertig“, um zu beenden.} other{{count} Figuren hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Fertig“, um zu beenden.}}",
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{1 Figur hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Hinzufügen beenden“, wenn Sie fertig sind.} other{{count} Figuren hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Hinzufügen beenden“, wenn Sie fertig sind.}}",
   "@danceEditorFreeTextFiguresAddedConfirmation": {
-    "x-sourceSha256": "9d440af03e3cb398e592743aab104875b7a185a58ec28037919fb3fd2b40d32a"
+    "x-sourceSha256": "492ea68521c3329c5c4c55e7a94ffcd161f61c8240efbc69ae6d9bccc84aca55"
+  },
+  "danceEditorFreeTextFinish": "Hinzufügen beenden",
+  "@danceEditorFreeTextFinish": {
+    "x-sourceSha256": "822ab693183cc7a79d852b38ab77f9b77de01e7a750b9e29d7aa0b4ce22e2c2a"
+  },
+  "danceEditorFreeTextFinishedAnnouncement": "{count, plural, =1{1 Figur hinzugefügt.} other{{count} Figuren hinzugefügt.}}",
+  "@danceEditorFreeTextFinishedAnnouncement": {
+    "x-sourceSha256": "5b20631febe204eefea272194085884fb6a762be6f2643b898e4d183f96d4796"
   },
   "danceEditorFreeTextRowReplacedAnnouncement": "{count, plural, =1{Figur ersetzt.} other{Figur durch {count} Figuren ersetzt.}}",
   "@danceEditorFreeTextRowReplacedAnnouncement": {
@@ -8165,6 +8241,18 @@
   "updateDownloadFailureUnreachable": "Das Update konnte nicht heruntergeladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.",
   "@updateDownloadFailureUnreachable": {
     "x-sourceSha256": "1c201c02be93aad9d8d0ed525a227d4c119bb8e54e3bd4aa9667cbe9f91398ac"
+  },
+  "updateDownloadFailureServerError": "Der Update-Server konnte die Datei nicht bereitstellen. Versuchen Sie es später erneut oder verwenden Sie „Release ansehen“.",
+  "@updateDownloadFailureServerError": {
+    "x-sourceSha256": "4338a8e9d36a12cf4d4ae938595585ad4c51a44c0fae849c83d24cb455b553e3"
+  },
+  "updateDownloadFailureDiskFull": "Es ist nicht genug freier Speicherplatz vorhanden, um das Update zu speichern. Schaffen Sie Platz und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.",
+  "@updateDownloadFailureDiskFull": {
+    "x-sourceSha256": "5d4f7d6e3ab2a579945c55b6926d2f050473c47771901c487de5d3267ed87332"
+  },
+  "updateDownloadFailureUnwritable": "Das Update konnte nicht gespeichert werden, weil der Download-Ort nicht beschreibbar ist. Prüfen Sie die Berechtigungen und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.",
+  "@updateDownloadFailureUnwritable": {
+    "x-sourceSha256": "69d9b3ec764ae6d45e0a00b084db3375138a8f12a58130d9903fdc98f8f32289"
   },
   "updateDownloadFailureChecksumMismatch": "Das heruntergeladene Update hat die Sicherheitsprüfung (sha256) nicht bestanden und wurde gelöscht. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.",
   "@updateDownloadFailureChecksumMismatch": {
@@ -9058,6 +9146,10 @@
   "@recentlyDeletedEmptyDancesRetention": {
     "x-sourceSha256": "c9d92a66a393f687c97281fca98943aeb84880a3567f05db7a68e3288e3b4454"
   },
+  "recentlyDeletedEmptyProgramsKept": "Nichts im Papierkorb. Gelöschte Programme werden hier aufbewahrt, bis Sie sie entfernen.",
+  "@recentlyDeletedEmptyProgramsKept": {
+    "x-sourceSha256": "40782a3a929823e198a707b72464757047db592e1cc6560bc2e9d2002ae6590d"
+  },
   "recentlyDeletedEmptyProgramsRetention": "Nichts im Papierkorb. Gelöschte Programme erscheinen hier für {days} Tage, bevor sie entfernt werden.",
   "@recentlyDeletedEmptyProgramsRetention": {
     "x-sourceSha256": "83326b6c0a1d50400c6f6471a1e62c73897514a9eb0cf10cc921d57a7cad3a20"
@@ -9329,6 +9421,14 @@
   "publishedCollectionsUnavailable": "Veröffentlichte Sammlungen sind vorübergehend nicht verfügbar.",
   "@publishedCollectionsUnavailable": {
     "x-sourceSha256": "286ca7d1f2dfaf05d973b18f9d8167ca700dd94c02afc27cd91e74f85abbd35f"
+  },
+  "publishedCollectionsOffline": "Veröffentlichte Sammlungen konnten nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+  "@publishedCollectionsOffline": {
+    "x-sourceSha256": "9d5685db1bd84a665edf1099bdca7fbbe48285bd68a1426598c99ee55c348fa5"
+  },
+  "publishedCollectionsNeedsNewerApp": "Diese veröffentlichten Sammlungen benötigen eine neuere App-Version. Aktualisieren Sie die App, um sie zu sehen.",
+  "@publishedCollectionsNeedsNewerApp": {
+    "x-sourceSha256": "0cad4410562e2480c61c29e63be41b3101e5d9562c150eeb28db9e393e98f213"
   },
   "publishedCollectionImport": "Sammlung importieren",
   "@publishedCollectionImport": {

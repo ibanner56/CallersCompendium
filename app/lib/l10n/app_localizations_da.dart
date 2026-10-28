@@ -263,6 +263,42 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsExperimentalTitle => 'Eksperimentelt';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Udviklerindstillinger';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Nulstil databasen';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Slet alt på denne enhed og start forfra, som på en ny installation.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle => 'Nulstille databasen?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'Dette sletter permanent alle danse, programmer, samlinger, indstillinger og noter på denne enhed og genstarter appen, som var den lige blevet installeret. Det kan ikke fortrydes.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'Denne enhed er forbundet til et synkroniseringslager. Den fjerner først sig selv fra lageret, så den ikke efterlades som en forældreløs enhed. Alt, den endnu ikke har synkroniseret til dine andre enheder, går tabt.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'Jeg forstår, at det ikke kan fortrydes, og jeg har allerede taget en sikkerhedskopi, hvis jeg ønsker en.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction => 'Nulstil databasen';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Denne enhed kunne ikke fjernes fra synkroniseringslageret, så intet blev nulstillet. Tjek din forbindelse, og prøv igen.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'Databasen kunne ikke nulstilles, så dine data er uændrede. Hvis denne enhed var forbundet til et synkroniseringslager, har den allerede forladt det.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'Nye funktioner vises muligvis her, mens de stadig er under udvikling.';
 
@@ -2305,7 +2341,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Kopier det aktuelle tema og juster en vilkårlig farve. Brugerdefinerede temaer gemmes på denne enhed.';
+      'Kopier det aktuelle tema og juster en vilkårlig farve. Brugerdefinerede temaer synkroniseres til dine andre enheder, når synkronisering er slået til.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Slet tema?';
@@ -2977,11 +3013,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Behold slettede danse i';
+      'Behold slettede elementer i';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Slettede danse bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.';
+      'Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3409,7 +3445,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Denne del af appen stødte på en uventet fejl og kom sig. Detaljerne blev gemt til en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed.';
+      'Denne del af appen stødte på en uventet fejl og kunne ikke vises. Detaljerne blev gemt til en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed.';
 
   @override
   String get crashFallbackCopied => 'Kopieret';
@@ -3600,7 +3636,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionNewDance => 'Ny dans';
 
   @override
-  String get collectionSearchTooltip => 'Søg (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Søg (⌘K)',
+      'other': 'Søg (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Vælg danse';
@@ -5271,6 +5313,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Forlad fremførelsesvisningen? Din placering og det kørende ur bevares, så du kan genoptage når som helst.';
 
   @override
+  String get performDanceExitBody =>
+      'Forlad fremførelsesvisningen? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.';
+
+  @override
   String get performExitCancel => 'Fortsæt fremførelse';
 
   @override
@@ -6161,6 +6207,19 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke importere ContraDB-programmet.';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return 'Importerer dans $done af $total…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'Kunne ikke nå onlinearkiverne, så intet blev importeret. Prøv igen, når du er online.';
+
+  @override
+  String get importContraDbProgramCancelled =>
+      'Import annulleret – intet blev tilføjet.';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6278,6 +6337,30 @@ class AppLocalizationsDa extends AppLocalizations {
       zero: '.',
     );
     return 'Koblede $_temp0 online$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titler koblet online.',
+      one: ' – $linked titel koblet online.',
+      zero: '.',
+    );
+    return 'Opslaget af titler blev stoppet efter en forbindelsesfejl$_temp0 Prøv resten igen, når du er online.';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titler koblet online.',
+      one: ' – $linked titel koblet online.',
+      zero: '.',
+    );
+    return 'Opslaget af titler blev stoppet$_temp0';
   }
 
   @override
@@ -7109,6 +7192,24 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String sharedImportCompleteWithFailures(int count, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Importerede $count elementer.',
+      one: 'Importerede 1 element.',
+      zero: 'Intet blev importeret.',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '$failed danse kunne ikke importeres.',
+      one: '1 dans kunne ikke importeres.',
+    );
+    return '$_temp0 $_temp1';
+  }
+
+  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7749,11 +7850,22 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorRedoLabel => 'Annullér fortryd';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Fortryd (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Fortryd (⌘Z)',
+      'other': 'Fortryd (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip =>
-      'Annullér fortryd (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Annullér fortryd (⇧⌘Z)',
+      'other': 'Annullér fortryd (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Slet dans';
@@ -7853,9 +7965,23 @@ class AppLocalizationsDa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Tilføjede $count figurer. Skriv en anden, eller vælg Færdig for at afslutte.',
+          'Tilføjede $count figurer. Skriv en anden, eller vælg Afslut tilføjelse, når du er færdig.',
       one:
-          'Tilføjede 1 figur. Skriv en anden, eller vælg Færdig for at afslutte.',
+          'Tilføjede 1 figur. Skriv en anden, eller vælg Afslut tilføjelse, når du er færdig.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Afslut tilføjelse';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tilføjede $count figurer.',
+      one: 'Tilføjede 1 figur.',
     );
     return '$_temp0';
   }
@@ -8295,6 +8421,18 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get updateDownloadFailureUnreachable =>
       'Opdateringen kunne ikke hentes. Tjek din forbindelse, og prøv igen, eller brug „Se udgivelse“.';
+
+  @override
+  String get updateDownloadFailureServerError =>
+      'Opdateringsserveren kunne ikke levere filen. Prøv igen senere, eller brug „Se udgivelse“.';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'Der er ikke nok ledig diskplads til at gemme opdateringen. Frigør plads, og prøv igen, eller brug „Se udgivelse“.';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'Opdateringen kunne ikke gemmes, fordi der ikke kan skrives til overførselsplaceringen. Tjek dens tilladelser, og prøv igen, eller brug „Se udgivelse“.';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -9255,6 +9393,10 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Intet i papirkurven. Slettede programmer bevares her, indtil du fjerner dem.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'Intet i papirkurven. Slettede programmer vises her i $days dage, inden de fjernes.';
   }
@@ -9486,6 +9628,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Udgivne samlinger er midlertidigt utilgængelige.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Udgivne samlinger kunne ikke nås. Tjek din forbindelse, og prøv igen.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'Disse udgivne samlinger kræver en nyere appversion. Opdater appen for at se dem.';
 
   @override
   String get publishedCollectionImport => 'Importér samling';

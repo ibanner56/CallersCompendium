@@ -9,7 +9,7 @@ void main() {
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
       'partners swing': Figure(move: 'swing', params: {'who': 'partners'}),
-      'neighbors allemande right once': Figure(move: 'allemande'),
+      'neighbors allemande right 1½': Figure(move: 'allemande'),
       'neighbors allemande left 1½': Figure(
         move: 'allemande',
         params: {'hand': 'left', 'travel': 1.5},
@@ -530,7 +530,7 @@ void main() {
       );
       expect(
         renderer.render(container, larks),
-        'ROBINS pass right while neighbor allemande right once',
+        'ROBINS pass right while neighbor allemande right 1½',
       );
       final wholeLine = container.copyWith(
         wordingOverride: 'ROLE1S call together',
@@ -538,7 +538,7 @@ void main() {
       expect(renderer.render(wholeLine, larks), 'LARKS call together');
       expect(
         renderer.renderCanonical(wholeLine),
-        'partners swing meanwhile neighbors allemande right once',
+        'partners swing meanwhile neighbors allemande right 1½',
       );
     });
   });
@@ -590,6 +590,21 @@ void main() {
         'ones half figure 8 down between twos',
       );
       expect(renderer.renderCanonical(figure), 'ones half figure 8');
+    });
+
+    test('figure eight with no stated direction defaults to above', () {
+      expect(
+        renderer.render(Figure(move: 'figure_8'), Dialect.canonical),
+        'ones half figure 8 up between twos',
+      );
+      // `none` stays a valid stored value: no direction clause.
+      expect(
+        renderer.render(
+          Figure(move: 'figure_8', params: {'where': 'none'}),
+          Dialect.canonical,
+        ),
+        'ones half figure 8',
+      );
     });
 
     test('figure eight direction uses the effective default subject', () {
@@ -693,14 +708,20 @@ void main() {
     test('spells out fraction params without camelCase', () {
       expect(
         renderer.renderVerbose(
-          Figure(move: 'figure_8', params: {'fraction': 'threeQuarter'}),
+          Figure(
+            move: 'figure_8',
+            params: {'fraction': 'threeQuarter', 'where': 'none'},
+          ),
           larks,
         ),
         'ones three quarters figure 8',
       );
       expect(
         renderer.renderVerbose(
-          Figure(move: 'figure_8', params: {'fraction': 'full'}),
+          Figure(
+            move: 'figure_8',
+            params: {'fraction': 'full', 'where': 'none'},
+          ),
           larks,
         ),
         'ones the whole way figure 8',
@@ -948,7 +969,7 @@ void main() {
       // `_renderValue` (template path): figure_8 renders `{who} {half} {move}`.
       final templateFigure = Figure(
         move: 'figure_8',
-        params: {'who': 'twosRole2'},
+        params: {'who': 'twosRole2', 'where': 'none'},
       );
       // `_displayDancer` (display base-line path): swing has a base renderer.
       final baseLineFigure = Figure(
@@ -1159,11 +1180,11 @@ void main() {
           move: 'box_circulate',
           params: {'balance': true},
         ),
-        'partners box the gnat': Figure(
+        'neighbors box the gnat': Figure(
           move: 'box_the_gnat',
           params: {'balance': true},
         ),
-        'partners swat the flea': Figure(
+        'neighbors swat the flea': Figure(
           move: 'swat_the_flea',
           params: {'balance': true},
         ),
@@ -1369,7 +1390,7 @@ void main() {
         expect(renderer.renderSummary(figure, larks), 'LARKS call together');
         expect(
           renderer.renderCanonical(figure),
-          'partners swing modifier neighbors roll away partners',
+          'partners swing modifier role1s roll away partners',
         );
       });
 
@@ -1469,8 +1490,8 @@ void main() {
 
         expect(
           renderer.renderSummary(figure, Dialect.canonical),
-          'partner swing, partner boxing the gnat, balancing the ring, and '
-          'ones arching and diving',
+          'partner swing, neighbor boxing the gnat, balancing the ring, and '
+          'twos arching and diving',
         );
       });
 
@@ -1822,10 +1843,10 @@ void main() {
         // balance, so adding "balance &" is a strict improvement, not a new
         // divergence (the hand omission is pre-existing base behavior).
         final f = Figure(move: 'box_the_gnat', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partner balance & box the gnat');
+        expect(renderer.renderSummary(f, d), 'neighbor balance & box the gnat');
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'partner balance and box the gnat',
+          'neighbor balance and box the gnat',
         );
         final g = Figure(move: 'box_the_gnat', params: {'balance': false});
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -1834,10 +1855,13 @@ void main() {
         // The alias renders under its own name, so the connective must splice
         // before the RENDERED alias name ("swat the flea"), not the target's.
         final f = Figure(move: 'swat_the_flea', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partner balance & swat the flea');
+        expect(
+          renderer.renderSummary(f, d),
+          'neighbor balance & swat the flea',
+        );
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'partner balance and swat the flea',
+          'neighbor balance and swat the flea',
         );
         final g = Figure(move: 'swat_the_flea', params: {'balance': false});
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -2808,9 +2832,9 @@ void main() {
       final cases = <String, Figure>{
         'role2s box circulate': Figure(move: 'box_circulate'),
         'partners cross trails across neighbors': Figure(move: 'cross_trails'),
-        'ones poussette neighbors half clockwise': Figure(move: 'poussette'),
+        'role1s poussette neighbors half clockwise': Figure(move: 'poussette'),
         'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
-        'partners square through 4 places': Figure(move: 'square_through'),
+        'partners square through 2 places': Figure(move: 'square_through'),
         'role2s hey right': Figure(move: 'hey'),
         'ones dolphin hey right': Figure(move: 'dolphin_hey'),
         'role1s form long waves': Figure(move: 'form_long_waves'),
@@ -2821,7 +2845,7 @@ void main() {
           move: 'cross_trails',
           params: {'where': 'along'},
         ),
-        'ones poussette neighbors full counterclockwise': Figure(
+        'role1s poussette neighbors full counterclockwise': Figure(
           move: 'poussette',
           params: {'fraction': 'full', 'direction': 'counterclockwise'},
         ),
@@ -2829,9 +2853,9 @@ void main() {
           move: 'facing_star',
           params: {'direction': 'counterclockwise'},
         ),
-        'partners square through 2 places': Figure(
+        'partners square through 4 places': Figure(
           move: 'square_through',
-          params: {'places': 2},
+          params: {'places': 4},
         ),
       };
       cases.forEach((expected, figure) {
@@ -2878,7 +2902,7 @@ void main() {
       test('default renders who + direction + amount', () {
         expect(
           renderer.render(Figure(move: 'orbit'), d),
-          'ones orbit clockwise ½',
+          'role1s orbit clockwise ½',
         );
       });
       test('counterclockwise direction', () {
@@ -2887,13 +2911,13 @@ void main() {
             Figure(move: 'orbit', params: {'direction': 'counterclockwise'}),
             d,
           ),
-          'ones orbit counterclockwise ½',
+          'role1s orbit counterclockwise ½',
         );
       });
       test('verbose spells the amount out', () {
         expect(
           renderer.renderVerbose(Figure(move: 'orbit'), d),
-          'ones orbit clockwise halfway',
+          'role1s orbit clockwise halfway',
         );
       });
     });
@@ -2920,7 +2944,7 @@ void main() {
       test('default: half + clockwise -> "back then left"', () {
         expect(
           renderer.render(Figure(move: 'poussette'), d),
-          'half poussette - ones pull neighbor back then left',
+          'half poussette - role1s pull neighbor back then left',
         );
       });
       test('full + counterclockwise -> "back then right"', () {
@@ -2932,7 +2956,7 @@ void main() {
             ),
             d,
           ),
-          'full poussette - ones pull neighbor back then right',
+          'full poussette - role1s pull neighbor back then right',
         );
       });
     });
@@ -2959,13 +2983,22 @@ void main() {
     });
 
     group('square_through (ContraDB squareThroughWords)', () {
-      test('default (4 places): embedded balance + "then repeat" tail', () {
+      test('default (2 places): embedded balance, no tail', () {
         expect(
           renderer.render(Figure(move: 'square_through'), d),
+          'square through two - partner balance & pull by right, then neighbor pull by left',
+        );
+      });
+      test('4 places: embedded balance + "then repeat" tail', () {
+        expect(
+          renderer.render(
+            Figure(move: 'square_through', params: {'places': 4}),
+            d,
+          ),
           'square through four - partner balance & pull by right, then neighbor pull by left, then repeat',
         );
       });
-      test('2 places: no tail', () {
+      test('2 places stated: no tail', () {
         expect(
           renderer.render(
             Figure(move: 'square_through', params: {'places': 2}),
@@ -2986,7 +3019,10 @@ void main() {
       test('balance:false drops the embedded balance', () {
         expect(
           renderer.render(
-            Figure(move: 'square_through', params: {'balance': false}),
+            Figure(
+              move: 'square_through',
+              params: {'balance': false, 'places': 4},
+            ),
             d,
           ),
           'square through four - partner pull by right, then neighbor pull by left, then repeat',
@@ -2994,7 +3030,10 @@ void main() {
       });
       test('verbose spells the embedded balance as "balance and"', () {
         expect(
-          renderer.renderVerbose(Figure(move: 'square_through'), d),
+          renderer.renderVerbose(
+            Figure(move: 'square_through', params: {'places': 4}),
+            d,
+          ),
           'square through four - partner balance and pull by right, then neighbor pull by left, then repeat',
         );
       });
@@ -3171,7 +3210,7 @@ void main() {
             Figure(move: 'poussette', params: {'direction': 'sideways'}),
             d,
           ),
-          'half poussette - ones pull neighbor',
+          'half poussette - role1s pull neighbor',
         );
       });
       test('hey surfaces an unknown shoulder rather than blanking', () {
@@ -3322,7 +3361,7 @@ void main() {
           Dialect.canonical,
           decimals: true,
         ),
-        'ones orbit clockwise 0.5',
+        'role1s orbit clockwise 0.5',
       );
     });
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/l10n/app_localizations_en.dart';
@@ -30,6 +31,9 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart' show NativeDatabase;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:share_plus/share_plus.dart' show ShareResult, ShareResultStatus;
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -145,6 +149,17 @@ Future<void> _pumpGeneral(
   await tester.pumpAndSettle();
 }
 
+class _TempPathProvider extends Fake
+    with MockPlatformInterfaceMixin
+    implements PathProviderPlatform {
+  _TempPathProvider(this.temp);
+
+  final String temp;
+
+  @override
+  Future<String?> getTemporaryPath() async => temp;
+}
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -194,6 +209,43 @@ void main() {
         isNotNull,
       );
       expect(find.text('Backup exported.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'dismissing the phone share sheet shows no success and stamps nothing',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('d1', 'A Dance'));
+      final temp = Directory.systemTemp.createTempSync('backup_dismissed');
+      final originalPaths = PathProviderPlatform.instance;
+      final originalShare = shareFilesViaSheet;
+      final originalDesktop = isDesktopPlatform;
+      PathProviderPlatform.instance = _TempPathProvider(temp.path);
+      shareFilesViaSheet = (_) async =>
+          ShareResult('', ShareResultStatus.dismissed);
+      isDesktopPlatform = () => false;
+      addTearDown(() {
+        PathProviderPlatform.instance = originalPaths;
+        shareFilesViaSheet = originalShare;
+        isDesktopPlatform = originalDesktop;
+        temp.deleteSync(recursive: true);
+      });
+
+      await _pumpGeneral(tester, repos, saver: saveBackupToFile);
+      await tester.tap(find.byKey(const ValueKey('backup-export-button')));
+      // The real saver does temp-file I/O, which fake async can't advance.
+      for (var i = 0; i < 20; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(find.text('Backup exported.'), findsNothing);
+      expect(find.text("Couldn't export a backup."), findsNothing);
+      expect(find.byKey(const ValueKey('export-progress')), findsNothing);
+      expect(await repos.settings.get(kLastBackupAtKey), isNull);
     },
   );
 

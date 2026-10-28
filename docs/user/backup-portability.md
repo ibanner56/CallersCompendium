@@ -35,15 +35,15 @@ A few good moments to export a backup:
 3. Choose **Export** beside **Export a backup**.
 
 While the backup is prepared, a progress bar shows that the app is
-working. On a computer it closes once you have finished with the save
-sheet; on a phone or tablet it closes as soon as the share sheet opens.
+working. It closes once you have finished with the save or share sheet.
 
 The app creates a single dated file — something like
 `callers-compendium-backup-2026-07-15.json` — and hands it to your
 device's normal share or save sheet. From there you decide where it
 goes: a cloud drive, your Files area, an email to yourself, or a folder
 of your choosing. When it's done, you'll see a **Backup exported.**
-confirmation.
+confirmation. If you close the sheet without choosing a destination, nothing is
+saved, no confirmation appears, and the overdue-backup reminder stays.
 
 The app won't write a backup larger than it can restore. If your collection is
 too large to export as a single backup, it says so, shows the size and the

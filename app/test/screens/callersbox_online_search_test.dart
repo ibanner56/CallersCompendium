@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
@@ -292,5 +294,62 @@ void main() {
     // view (Edit FAB), not the preview (Import FAB).
     expect(find.byKey(const ValueKey('edit-dance')), findsOneWidget);
     expect(find.byKey(const ValueKey('import-dance')), findsNothing);
+  });
+
+  testWidgets('the loader while an online dance is fetched can be cancelled', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final gate = Completer<String>();
+    await _pumpShell(
+      tester,
+      repos,
+      _online(json: (_) => gate.future),
+      size: const Size(500, 900),
+    );
+    await _enableOnline(tester);
+    await _search(tester, 'Money Musk');
+
+    await tester.tap(find.byType(OnlineResultTile));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('online-preview-loading')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('online-preview-cancel')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('online-preview-loading')), findsNothing);
+    // A late answer is dropped: no preview opens, no error is shown.
+    gate.complete(_danceJson());
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('import-dance')), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.byType(OnlineResultTile), findsOneWidget);
+  });
+
+  testWidgets('the loader can be dismissed with Back, and a late failure is '
+      'swallowed', (tester) async {
+    final repos = openTestRepositories();
+    final gate = Completer<String>();
+    await _pumpShell(
+      tester,
+      repos,
+      _online(json: (_) => gate.future),
+      size: const Size(500, 900),
+    );
+    await _enableOnline(tester);
+    await _search(tester, 'Money Musk');
+    await tester.tap(find.byType(OnlineResultTile));
+    await tester.pump();
+
+    await tester.tapAt(const Offset(5, 5)); // the modal barrier
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('online-preview-loading')), findsNothing);
+
+    gate.completeError(StateError('late'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SnackBar), findsNothing);
   });
 }

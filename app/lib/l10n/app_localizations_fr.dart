@@ -266,6 +266,44 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsExperimentalTitle => 'Expérimental';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Options pour les développeurs';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Réinitialiser la base de données';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Supprimer tout ce qui se trouve sur cet appareil et repartir de zéro, comme après une nouvelle installation.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle =>
+      'Réinitialiser la base de données ?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'Cela supprime définitivement toutes les danses, tous les programmes, collections, réglages et notes de cet appareil, puis relance l’application comme si elle venait d’être installée. Cette action est irréversible.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'Cet appareil est connecté à un espace de synchronisation. Il commencera par s’en retirer lui-même, pour ne pas y rester comme appareil orphelin. Tout ce qu’il n’a pas encore synchronisé vers vos autres appareils sera perdu.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'Je comprends que cette action est irréversible et j’ai déjà fait une sauvegarde si je le souhaitais.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction =>
+      'Réinitialiser la base de données';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Impossible de retirer cet appareil de l’espace de synchronisation ; rien n’a été réinitialisé. Vérifiez votre connexion et réessayez.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'Impossible de réinitialiser la base de données ; vos données sont inchangées. Si cet appareil était connecté à un espace de synchronisation, il l’a déjà quitté.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'De nouvelles fonctionnalités peuvent apparaître ici pendant qu’elles sont encore en développement.';
 
@@ -2337,7 +2375,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Copiez le thème actuel et ajustez n’importe quelle couleur. Les thèmes personnalisés sont enregistrés sur cet appareil.';
+      'Copiez le thème actuel et ajustez n’importe quelle couleur. Les thèmes personnalisés se synchronisent avec vos autres appareils lorsque la synchronisation est activée.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Supprimer le thème ?';
@@ -3030,11 +3068,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Conserver les danses supprimées pendant';
+      'Conserver les éléments supprimés pendant';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Les danses supprimées sont conservées pendant cette durée avant d’être définitivement supprimées au lancement de l’application. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.';
+      'Les danses et programmes supprimés sont conservés pendant cette durée avant d’être définitivement supprimés au lancement de l’application. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3462,7 +3500,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Cette partie de l’application a rencontré une erreur inattendue et a récupéré. Les détails ont été enregistrés dans un journal de diagnostic local (Paramètres ▸ Diagnostic) qui ne quitte jamais votre appareil.';
+      'Cette partie de l’application a rencontré une erreur inattendue et n’a pas pu être affichée. Les détails ont été enregistrés dans un journal de diagnostic local (Paramètres ▸ Diagnostic) qui ne quitte jamais votre appareil.';
 
   @override
   String get crashFallbackCopied => 'Copié';
@@ -3653,7 +3691,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionNewDance => 'Nouvelle danse';
 
   @override
-  String get collectionSearchTooltip => 'Rechercher (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Rechercher (⌘K)',
+      'other': 'Rechercher (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Sélectionner des danses';
@@ -5342,6 +5386,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Quitter la vue Perform ? Votre position et le chrono en cours sont conservés, vous pouvez reprendre là où vous en étiez.';
 
   @override
+  String get performDanceExitBody =>
+      'Quitter la vue Perform ? La présentation d’une seule danse ne conserve pas votre position ; la prochaine fois, elle repartira de zéro.';
+
+  @override
   String get performExitCancel => 'Continuer';
 
   @override
@@ -6243,6 +6291,19 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’importer le programme ContraDB.';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return 'Import de la danse $done sur $total…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'Impossible d’atteindre les archives en ligne, rien n’a donc été importé. Réessayez une fois en ligne.';
+
+  @override
+  String get importContraDbProgramCancelled =>
+      'Import annulé – rien n’a été ajouté.';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6364,6 +6425,30 @@ class AppLocalizationsFr extends AppLocalizations {
       zero: '.',
     );
     return '$_temp0 en ligne$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titres liés en ligne.',
+      one: ' – $linked titre lié en ligne.',
+      zero: '.',
+    );
+    return 'La recherche des titres s’est arrêtée après une erreur de connexion$_temp0 Réessayez les autres une fois en ligne.';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titres liés en ligne.',
+      one: ' – $linked titre lié en ligne.',
+      zero: '.',
+    );
+    return 'La recherche des titres a été arrêtée$_temp0';
   }
 
   @override
@@ -7203,6 +7288,24 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String sharedImportCompleteWithFailures(int count, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count éléments importés.',
+      one: '1 élément importé.',
+      zero: 'Rien n’a été importé.',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '$failed danses n’ont pas pu être importées.',
+      one: '1 danse n’a pas pu être importée.',
+    );
+    return '$_temp0 $_temp1';
+  }
+
+  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7856,10 +7959,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorRedoLabel => 'Rétablir';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Annuler (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Annuler (⌘Z)',
+      'other': 'Annuler (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip => 'Rétablir (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Rétablir (⇧⌘Z)',
+      'other': 'Rétablir (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Supprimer la danse';
@@ -7959,9 +8074,23 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count figures ajoutées. Saisissez-en une autre ou choisissez « Terminé » pour terminer.',
+          '$count figures ajoutées. Saisissez-en une autre ou choisissez « Terminer l’ajout » quand vous avez fini.',
       one:
-          '1 figure ajoutée. Saisissez-en une autre ou choisissez « Terminé » pour terminer.',
+          '1 figure ajoutée. Saisissez-en une autre ou choisissez « Terminer l’ajout » quand vous avez fini.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Terminer l’ajout';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures ajoutées.',
+      one: '1 figure ajoutée.',
     );
     return '$_temp0';
   }
@@ -8409,6 +8538,18 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get updateDownloadFailureUnreachable =>
       'Impossible de télécharger la mise à jour. Vérifiez votre connexion et réessayez, ou utilisez « Voir la version ».';
+
+  @override
+  String get updateDownloadFailureServerError =>
+      'Le serveur de mises à jour n’a pas pu fournir le fichier. Réessayez plus tard, ou utilisez « Voir la version ».';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'L’espace disque libre est insuffisant pour enregistrer la mise à jour. Libérez de l’espace et réessayez, ou utilisez « Voir la version ».';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'La mise à jour n’a pas pu être enregistrée, car l’emplacement de téléchargement n’est pas accessible en écriture. Vérifiez ses autorisations et réessayez, ou utilisez « Voir la version ».';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -9381,6 +9522,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'La corbeille est vide. Les programmes supprimés sont conservés ici jusqu’à ce que vous les supprimiez.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'La corbeille est vide. Les programmes supprimés apparaissent ici pendant $days jours avant d’être supprimés.';
   }
@@ -9613,6 +9758,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Les collections publiées sont temporairement indisponibles.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Impossible d’accéder aux collections publiées. Vérifiez votre connexion et réessayez.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'Ces collections publiées nécessitent une version plus récente de l’app. Mettez l’app à jour pour les voir.';
 
   @override
   String get publishedCollectionImport => 'Importer la collection';

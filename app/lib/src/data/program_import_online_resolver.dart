@@ -3,6 +3,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'online_search.dart';
 import 'online_title_lookup.dart';
 import 'plaintext_program_import.dart';
+import 'program_import_rollback.dart';
 
 /// Resolves the `unmatched` lines of a parsed plaintext program against an
 /// ordered chain of online sources — The Caller's Box first (epic #291,
@@ -42,30 +43,99 @@ import 'plaintext_program_import.dart';
 /// Sources are tried strictly one at a time, sequentially, with no delay
 /// between them (issue #943's ruling on network cost: reuse the existing
 /// pacing, which is none).
-Future<List<ParsedProgramLine>> resolveUnmatchedOnline(
+///
+/// **Stopping.** A source that cannot be reached (offline, timed out, or its
+/// search answering an HTTP error — see `isConnectionFailure`) says nothing
+/// about the title, and the next title would fail the same way, so the pass
+/// stops at the first such failure, as the Collection title-list import does.
+/// The lines already resolved are kept, every line not yet looked up comes
+/// back unchanged, and [ProgramOnlineResolution.stoppedAfterConnectionFailure]
+/// is set so the screen can say "couldn't reach" rather than "no matches".
+/// [isCancelled] is checked before each title and each source; once it
+/// returns true the pass stops the same way and sets
+/// [ProgramOnlineResolution.cancelled]. [onProgress] reports `(done, total)`
+/// over the unmatched lines.
+///
+/// **Undo.** Every dance this pass writes is recorded in [rollback] when one
+/// is supplied, so the program import can take it back out on Undo or when
+/// the user backs out without creating the program (see
+/// [ProgramImportRollback]).
+Future<ProgramOnlineResolution> resolveUnmatchedOnline(
   List<ParsedProgramLine> lines, {
   required OnlineSearchService service,
   List<OnlineSearchService> fallbacks = const [],
   required CompendiumRepositories repos,
   DateTime? now,
+  ProgramImportRollback? rollback,
+  void Function(int done, int total)? onProgress,
+  bool Function()? isCancelled,
 }) async {
   final services = [service, ...fallbacks];
+  final total = lines
+      .where((l) => l.resolution == PlaintextLineResolution.unmatched)
+      .length;
+  var done = 0;
+  var stopped = false;
+  var cancelled = false;
+  if (total > 0) onProgress?.call(done, total);
   final resolved = <ParsedProgramLine>[];
   for (final line in lines) {
-    if (line.resolution != PlaintextLineResolution.unmatched) {
+    if (line.resolution != PlaintextLineResolution.unmatched ||
+        stopped ||
+        cancelled) {
       resolved.add(line);
       continue;
     }
-    resolved.add(
-      await _resolveLineAcrossSources(
-        line,
-        services: services,
-        repos: repos,
-        now: now,
-      ),
-    );
+    try {
+      resolved.add(
+        await _resolveLineAcrossSources(
+          line,
+          services: services,
+          repos: repos,
+          now: now,
+          rollback: rollback,
+          isCancelled: isCancelled,
+        ),
+      );
+    } on ProgramImportConnectionFailed {
+      // diagnostics: silent — reported through stoppedAfterConnectionFailure
+      stopped = true;
+      resolved.add(line);
+      continue;
+    } on ProgramImportCancelled {
+      // diagnostics: silent — user-initiated, reported through `cancelled`
+      cancelled = true;
+      resolved.add(line);
+      continue;
+    }
+    done++;
+    onProgress?.call(done, total);
   }
-  return resolved;
+  return ProgramOnlineResolution(
+    lines: resolved,
+    stoppedAfterConnectionFailure: stopped,
+    cancelled: cancelled,
+  );
+}
+
+/// What [resolveUnmatchedOnline] produced: the [lines] (one per input line, in
+/// order) and whether the pass ended early.
+class ProgramOnlineResolution {
+  const ProgramOnlineResolution({
+    required this.lines,
+    this.stoppedAfterConnectionFailure = false,
+    this.cancelled = false,
+  });
+
+  final List<ParsedProgramLine> lines;
+
+  /// An online source could not be reached, so the pass stopped; lines after
+  /// that point were not looked up and come back unchanged.
+  final bool stoppedAfterConnectionFailure;
+
+  /// The `isCancelled` callback tripped, so the pass stopped; lines after that
+  /// point were not looked up and come back unchanged.
+  final bool cancelled;
 }
 
 /// Tries each of [services] in order for [line]'s title, stopping at the
@@ -86,19 +156,26 @@ Future<List<ParsedProgramLine>> resolveUnmatchedOnline(
 /// exhausted with no confident match and no decline, those accumulated rows
 /// (empty if every source simply missed) become
 /// [ParsedProgramLine.onlineCandidates] on the returned line.
+///
+/// Throws [ProgramImportConnectionFailed] when a source cannot be reached, and
+/// [ProgramImportCancelled] when [isCancelled] trips before a source is asked.
 Future<ParsedProgramLine> _resolveLineAcrossSources(
   ParsedProgramLine line, {
   required List<OnlineSearchService> services,
   required CompendiumRepositories repos,
   DateTime? now,
+  ProgramImportRollback? rollback,
+  bool Function()? isCancelled,
 }) async {
   final ambiguousCandidates = <OnlineSearchResultRow>[];
   for (final service in services) {
+    if (isCancelled?.call() ?? false) throw const ProgramImportCancelled();
     final attempt = await _attemptSource(
       line.text,
       service: service,
       repos: repos,
       now: now,
+      rollback: rollback,
     );
     switch (attempt) {
       case _SourceImported(:final danceId):
@@ -171,8 +248,9 @@ class _SourceDeclined extends _SourceAttempt {
 }
 
 /// No usable result from this source alone: no results, no exact-title hit
-/// (only fuzzy/substring matches), a fetch/parse/import error, or an import
-/// that yielded no dance id. Advances to the next source.
+/// (only fuzzy/substring matches), a fetch/parse/import error that is not a
+/// connection failure, or an import that yielded no dance id. Advances to the
+/// next source.
 class _SourceMiss extends _SourceAttempt {
   const _SourceMiss();
 }
@@ -193,29 +271,35 @@ class _SourceAmbiguous extends _SourceAttempt {
 /// single-source, single-call wrapper for its other caller
 /// ([contradb_program_import.dart]'s Caller's Box fallback, issue #314) and its
 /// own test suite.
+///
+/// Every dance it writes is recorded in [rollback]. A source that cannot be
+/// reached throws [ProgramImportConnectionFailed] rather than reading as a
+/// miss: "offline" and "the archive has no such dance" need different words.
 Future<_SourceAttempt> _attemptSource(
   String title, {
   required OnlineSearchService service,
   required CompendiumRepositories repos,
   DateTime? now,
+  ProgramImportRollback? rollback,
 }) async {
-  // requireFigures: false — this path is NON-INTERACTIVE and commits on its
-  // own (see the #685/#686 rules below), so it deliberately keeps the wider,
-  // pre-#845 result set. Narrowing it can promote an ambiguous
-  // multipleExactMatches — which is a considered no-op — into a single
-  // confident hit that this function then imports with nobody watching.
-  // Changing what an unattended committer finds is a bigger decision than
-  // changing what a search screen shows, so it is not made here.
-  final lookup = await lookupUniqueExactTitle(
-    title,
-    service: service,
-    requireFigures: false,
-  );
+  // requireFigures is left at its #845 default (true), as the Collection
+  // title-list import leaves it: a title held only by a dance the source will
+  // not hand over with its figures is not something to import unattended into
+  // a program slot (imports.md, "a list of titles"). It can turn two exact
+  // hits, one of them figure-hidden, into a single confident hit; that hit is
+  // then the only one of the two worth having.
+  final lookup = await lookupUniqueExactTitle(title, service: service);
   if (lookup is OnlineTitleMiss) {
-    if (lookup.failure == OnlineTitleLookupFailure.multipleExactMatches) {
-      return _SourceAmbiguous(lookup.candidates);
+    switch (lookup.failure) {
+      case OnlineTitleLookupFailure.multipleExactMatches:
+        return _SourceAmbiguous(lookup.candidates);
+      case OnlineTitleLookupFailure.unreachable:
+        throw const ProgramImportConnectionFailed();
+      case OnlineTitleLookupFailure.noResults ||
+          OnlineTitleLookupFailure.noExactMatch ||
+          OnlineTitleLookupFailure.fetchError:
+        return const _SourceMiss();
     }
-    return const _SourceMiss();
   }
   try {
     final hit = lookup as OnlineTitleHit;
@@ -275,6 +359,7 @@ Future<_SourceAttempt> _attemptSource(
         newId: uuidV4,
         resolutions: {0: DedupeResolution.variation(targetId)},
       );
+      await rollback?.record(session);
       final record = session.records.first;
       return record.succeeded && record.danceId != null
           ? _SourceImported(record.danceId!)
@@ -294,9 +379,14 @@ Future<_SourceAttempt> _attemptSource(
       // merely an explicit opt-out.
       ambiguousResolution: DedupeResolution.duplicate(),
     );
+    final session = result.session;
+    if (session != null) await rollback?.record(session);
     final danceId = result.danceId;
     return danceId != null ? _SourceImported(danceId) : const _SourceMiss();
-  } on Exception catch (_) {
+  } on Exception catch (e) {
+    // No HTTP-status reasons: a 404 on one dance's page is about that dance,
+    // not the connection (the same split `title_list_import.dart` makes).
+    if (isConnectionFailure(e)) throw const ProgramImportConnectionFailed();
     // diagnostics: silent — fetch/import failure returns _SourceMiss; surfaced as unmatched/note slot to import review
     return const _SourceMiss();
   }
@@ -311,11 +401,14 @@ Future<_SourceAttempt> _attemptSource(
 /// or more than one exact hit), when the previewed dance is already a
 /// **confident local duplicate** (issue #685 — exact-normalized-title with an
 /// overlapping tokenized author set, see [DedupeVerdict.hasConfidentMatch]),
-/// or when the import yields no id. Any fetch / parse / import [Exception] is
-/// swallowed and returns null so one bad title can't abort a batch; `Error`s
-/// (assertion/programmer bugs) still surface. The search step's own failures are
-/// already folded into an [OnlineTitleMiss]; every miss reason maps to the same
-/// null here, because a program line has no user present to tell them apart.
+/// or when the import yields no id. Any other fetch / parse / import
+/// [Exception] is swallowed and returns null so one bad title can't abort a
+/// batch; `Error`s (assertion/programmer bugs) still surface. The one
+/// exception is a source that cannot be reached at all (`isConnectionFailure`):
+/// that throws [ProgramImportConnectionFailed], because it says nothing about
+/// this title and the caller should stop rather than keep asking.
+///
+/// Every dance it writes is recorded in [rollback] when one is supplied.
 ///
 /// This is the **single-source** entry point: [resolveUnmatchedOnline]'s
 /// multi-source fallback chain (issue #943) drives the shared [_attemptSource]
@@ -375,12 +468,14 @@ Future<String?> resolveConfidentOnlineDanceId(
   required OnlineSearchService service,
   required CompendiumRepositories repos,
   DateTime? now,
+  ProgramImportRollback? rollback,
 }) async {
   final attempt = await _attemptSource(
     title,
     service: service,
     repos: repos,
     now: now,
+    rollback: rollback,
   );
   return switch (attempt) {
     _SourceImported(:final danceId) => danceId,

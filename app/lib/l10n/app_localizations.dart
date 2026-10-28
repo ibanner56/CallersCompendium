@@ -518,6 +518,66 @@ abstract class AppLocalizations {
   /// **'Experimental'**
   String get settingsExperimentalTitle;
 
+  /// Header of the expandable Developer Options section in Experimental settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Options'**
+  String get settingsDeveloperOptionsHeader;
+
+  /// Title of the row that resets the database to a clean install.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset database'**
+  String get settingsDeveloperResetTitle;
+
+  /// Subtitle of the reset database row.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everything on this device and start over, as on a fresh install.'**
+  String get settingsDeveloperResetSubtitle;
+
+  /// Title of the confirmation dialog for resetting the database.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the database?'**
+  String get settingsDeveloperResetConfirmTitle;
+
+  /// Body of the reset database confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes every dance, program, collection, setting and note on this device and restarts the app as if it had just been installed. It cannot be undone.'**
+  String get settingsDeveloperResetConfirmBody;
+
+  /// Extra paragraph in the reset confirmation shown only while the device is connected to a sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is connected to a Device Sync store. It will first remove itself from the store so it isn\'t left behind as an orphaned device. Anything it has not yet synced to your other devices is lost.'**
+  String get settingsDeveloperResetConfirmSyncNote;
+
+  /// Checkbox label that must be ticked before the reset can be confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand this can\'t be undone, and I\'ve already taken a backup if I want one.'**
+  String get settingsDeveloperResetConfirmCheckbox;
+
+  /// Label of the destructive confirm button of the reset dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset database'**
+  String get settingsDeveloperResetConfirmAction;
+
+  /// Snackbar shown when leaving the sync store before a reset fails; the database is untouched and the device stays connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove this device from the sync store, so nothing was reset. Check your connection and try again.'**
+  String get settingsDeveloperResetLeaveFailed;
+
+  /// Snackbar shown when the reset did not delete the database (it threw, or the wipe failed). A connected device has already left its sync store by then.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.'**
+  String get settingsDeveloperResetFailed;
+
   /// Placeholder text explaining that the Experimental settings section will contain features still in development.
   ///
   /// In en, this message translates to:
@@ -3484,7 +3544,7 @@ abstract class AppLocalizations {
   /// Helper text shown when the user has no saved custom themes yet.
   ///
   /// In en, this message translates to:
-  /// **'Copy the current theme and tune any color. Custom themes are saved on this device.'**
+  /// **'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.'**
   String get settingsAppearanceCustomThemesEmpty;
 
   /// Title of the confirm-delete dialog for a custom theme.
@@ -4591,16 +4651,16 @@ abstract class AppLocalizations {
   /// **'Deleted items'**
   String get settingsGeneralDeletedItemsHeader;
 
-  /// Title of the General settings row that controls how long deleted dances are retained.
+  /// Title of the General settings row that controls how long deleted dances and programs are retained.
   ///
   /// In en, this message translates to:
-  /// **'Keep deleted dances for'**
+  /// **'Keep deleted items for'**
   String get settingsGeneralSoftDeleteRetentionTitle;
 
   /// Subtitle explaining the deleted-dance retention duration setting.
   ///
   /// In en, this message translates to:
-  /// **'Deleted dances are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.'**
+  /// **'Deleted dances and programs are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.'**
   String get settingsGeneralSoftDeleteRetentionSubtitle;
 
   /// Deleted-dance retention dropdown option showing a fixed number of days. Keep 'days' literal for every value to preserve the current English UI.
@@ -5302,7 +5362,7 @@ abstract class AppLocalizations {
   /// Body text in the friendly crash fallback widget explaining that details were saved locally only.
   ///
   /// In en, this message translates to:
-  /// **'This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.'**
+  /// **'This part of the app hit an unexpected error and couldn\'t be shown. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.'**
   String get crashFallbackBody;
 
   /// Button label in the crash fallback widget after copying error details to the clipboard.
@@ -5662,8 +5722,8 @@ abstract class AppLocalizations {
   /// Tooltip for the app-bar search button, noting its keyboard shortcut.
   ///
   /// In en, this message translates to:
-  /// **'Search (Ctrl/Cmd-K)'**
-  String get collectionSearchTooltip;
+  /// **'{platform, select, apple{Search (⌘K)} other{Search (Ctrl+K)}}'**
+  String collectionSearchTooltip(String platform);
 
   /// Tooltip for the app-bar button that enters multi-select (batch) mode.
   ///
@@ -8103,6 +8163,12 @@ abstract class AppLocalizations {
   /// **'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.'**
   String get performExitBody;
 
+  /// Body text of the exit-confirmation dialog for single-dance Perform, which keeps no resume state (unlike program Perform, performExitBody).
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the performance view? Performing a single dance doesn\'t keep your place, so the next time starts fresh.'**
+  String get performDanceExitBody;
+
   /// Button that dismisses the exit-confirmation dialog and stays in the Perform view.
   ///
   /// In en, this message translates to:
@@ -9437,6 +9503,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t import the ContraDB program.'**
   String get importContraDbResolveError;
 
+  /// Progress line while a ContraDB program's dances are imported one at a time, beside a Cancel button.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing dance {done} of {total}…'**
+  String importContraDbProgramProgress(int done, int total);
+
+  /// Snackbar shown when importing a ContraDB program stops because ContraDB or The Caller's Box could not be reached. No program is created and any dances already imported are removed again.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the online archives, so nothing was imported. Try again once you\'re online.'**
+  String get importContraDbProgramConnectionFailed;
+
+  /// Snackbar shown when the user cancels a ContraDB program import part-way through. No program is created and any dances already imported are removed again.
+  ///
+  /// In en, this message translates to:
+  /// **'Import cancelled — nothing was added.'**
+  String get importContraDbProgramCancelled;
+
   /// Summary of a fetched ContraDB program's activities shown above the preview list.
   ///
   /// In en, this message translates to:
@@ -9568,6 +9652,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Linked {linked, plural, =1{{linked} title} other{{linked} titles}} online{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}'**
   String importPlaintextResolvedLinked(int linked, int remaining);
+
+  /// Snackbar shown when the program title list's online lookup stopped because an online source could not be reached. Says that the rest were not checked, rather than that no matches exist. Does not name a source (it tries The Caller's Box then ContraDB).
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped looking up titles after a connection failure{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}} Try the rest again once you\'re online.'**
+  String importPlaintextResolveConnectionFailed(int linked);
+
+  /// Snackbar shown when the user cancels the program title list's online lookup part-way through.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped looking up titles{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}}'**
+  String importPlaintextResolveCancelled(int linked);
 
   /// Tooltip on the close button of the embedded import review screen.
   ///
@@ -10697,6 +10793,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Import complete.} =1{Imported 1 item.} other{Imported {count} items.}}'**
   String sharedImportComplete(int count);
 
+  /// Transient snackbar message shown, alongside an Undo action, after a shared bundle is imported when some of its dances failed to import. {count} is what did import (dances, programs and other items); {failed} is the number of dances that failed (always at least 1).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Nothing was imported.} =1{Imported 1 item.} other{Imported {count} items.}} {failed, plural, =1{1 dance couldn\'t be imported.} other{{failed} dances couldn\'t be imported.}}'**
+  String sharedImportCompleteWithFailures(int count, int failed);
+
   /// Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.
   ///
   /// In en, this message translates to:
@@ -11718,14 +11820,14 @@ abstract class AppLocalizations {
   /// Tooltip for the undo app-bar action including its keyboard shortcut.
   ///
   /// In en, this message translates to:
-  /// **'Undo (Ctrl+Z)'**
-  String get danceEditorUndoShortcutTooltip;
+  /// **'{platform, select, apple{Undo (⌘Z)} other{Undo (Ctrl+Z)}}'**
+  String danceEditorUndoShortcutTooltip(String platform);
 
   /// Tooltip for the redo app-bar action including its keyboard shortcut.
   ///
   /// In en, this message translates to:
-  /// **'Redo (Ctrl+Shift+Z)'**
-  String get danceEditorRedoShortcutTooltip;
+  /// **'{platform, select, apple{Redo (⇧⌘Z)} other{Redo (Ctrl+Shift+Z)}}'**
+  String danceEditorRedoShortcutTooltip(String platform);
 
   /// Tooltip for the app-bar action that deletes the current dance.
   ///
@@ -11865,11 +11967,23 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}'**
   String danceEditorFreeTextFiguresAddedAnnouncement(int count);
 
-  /// Visible line under the free-text figure box after adding figure(s). "Done" is the button next to the box (commonDone) that closes it; keep the wording in step with that button's label.
+  /// Visible line under the free-text figure box after adding figure(s). "Finish adding" is the button under the box (danceEditorFreeTextFinish) that closes it; keep the wording in step with that button's label.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Added 1 figure. Type another, or choose Done to finish.} other{Added {count} figures. Type another, or choose Done to finish.}}'**
+  /// **'{count, plural, =1{Added 1 figure. Type another, or choose Finish adding when you\'re done.} other{Added {count} figures. Type another, or choose Finish adding when you\'re done.}}'**
   String danceEditorFreeTextFiguresAddedConfirmation(int count);
+
+  /// Button under the free-text figure box. It means 'I have finished entering figures': it adds any line still in the box, as Enter would, and then closes the box. It must not read as finishing the one figure being typed (an earlier 'Done' label did, and callers lost the line they had typed).
+  ///
+  /// In en, this message translates to:
+  /// **'Finish adding'**
+  String get danceEditorFreeTextFinish;
+
+  /// Screen-reader announcement when Finish adding (danceEditorFreeTextFinish) adds the line still in the free-text figure box and closes the box.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 figure.} other{Added {count} figures.}}'**
+  String danceEditorFreeTextFinishedAnnouncement(int count);
 
   /// Screen-reader announcement after a line typed into an existing figure's move field (with free-text entry on) replaced that figure with the figure(s) parsed from it.
   ///
@@ -12380,7 +12494,7 @@ abstract class AppLocalizations {
   /// **'The update could not be downloaded.'**
   String get updateBannerDownloadFailed;
 
-  /// Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file.
+  /// Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file, or (on Windows and Linux) when something already occupied the app-chosen download path.
   ///
   /// In en, this message translates to:
   /// **'Could not choose a place to download the update.'**
@@ -12409,6 +12523,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The update could not be downloaded. Check your connection and try again, or use \"View release\".'**
   String get updateDownloadFailureUnreachable;
+
+  /// Update download error shown when the server answered with an error status (for example 404 or 5xx).
+  ///
+  /// In en, this message translates to:
+  /// **'The update server could not provide the file. Try again later, or use \"View release\".'**
+  String get updateDownloadFailureServerError;
+
+  /// Update download error shown when writing the downloaded file failed because the disk is full.
+  ///
+  /// In en, this message translates to:
+  /// **'There is not enough free disk space to save the update. Free up some space and try again, or use \"View release\".'**
+  String get updateDownloadFailureDiskFull;
+
+  /// Update download error shown when the downloaded file could not be created or written because of permissions.
+  ///
+  /// In en, this message translates to:
+  /// **'The update could not be saved because the download location is not writable. Check its permissions and try again, or use \"View release\".'**
+  String get updateDownloadFailureUnwritable;
 
   /// Assisted-download error shown when the downloaded file's sha256 did not match the manifest, so the file was deleted. "sha256" is the literal checksum name and stays as-is. "View release" must match the translation of updateBannerViewRelease.
   ///
@@ -13748,6 +13880,12 @@ abstract class AppLocalizations {
   /// **'Nothing in the trash. Deleted dances appear here for {days} days before being removed.'**
   String recentlyDeletedEmptyDancesRetention(int days);
 
+  /// Empty state for recently-deleted programs when there is no retention window.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in the trash. Deleted programs are kept here until you remove them.'**
+  String get recentlyDeletedEmptyProgramsKept;
+
   /// Empty state for recently-deleted programs with a retention window of {days} days.
   ///
   /// In en, this message translates to:
@@ -14150,11 +14288,23 @@ abstract class AppLocalizations {
   /// **'Loading published collections…'**
   String get publishedCollectionsLoading;
 
-  /// Non-leaking error shown when the signed catalog cannot be fetched or verified.
+  /// Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check.
   ///
   /// In en, this message translates to:
   /// **'Published collections are temporarily unavailable.'**
   String get publishedCollectionsUnavailable;
+
+  /// Error shown when the signed published-collection catalog or an archive could not be fetched because the network is unreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Published collections could not be reached. Check your connection and try again.'**
+  String get publishedCollectionsOffline;
+
+  /// Error shown when the published-collection catalog uses a format newer than this app can read.
+  ///
+  /// In en, this message translates to:
+  /// **'These published collections need a newer app version. Update the app to see them.'**
+  String get publishedCollectionsNeedsNewerApp;
 
   /// Action that begins importing one signed published collection.
   ///

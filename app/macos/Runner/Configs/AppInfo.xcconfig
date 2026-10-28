@@ -11,4 +11,4 @@ PRODUCT_NAME = Caller’s Compendium
 PRODUCT_BUNDLE_IDENTIFIER = org.callerscompendium.compendiumApp
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 org.callerscompendium. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Caller’s Compendium contributors. Licensed under the GNU AGPL-3.0.

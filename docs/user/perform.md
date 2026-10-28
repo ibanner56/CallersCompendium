@@ -247,7 +247,9 @@ Choose **Exit performance view** and the app checks first:
 calling a program, your place and the clock are kept for as long as that
 program stays open, so you can step out to check something and choose **Perform
 this program** again to pick up where you left off. Closing the program, or
-performing a single dance, starts the next session fresh.
+performing a single dance, starts the next session fresh. For that reason the
+exit check on a single dance says so instead of promising a resume: *Performing
+a single dance doesn't keep your place, so the next time starts fresh.*
 
 ## Print or share a single dance
 

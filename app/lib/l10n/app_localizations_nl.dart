@@ -262,6 +262,42 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsExperimentalTitle => 'Experimenteel';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Ontwikkelaarsopties';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Database resetten';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Alles op dit apparaat verwijderen en opnieuw beginnen, zoals bij een verse installatie.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle => 'Database resetten?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'Hiermee worden alle dansen, programma’s, collecties, instellingen en notities op dit apparaat definitief verwijderd en start de app opnieuw alsof hij net is geïnstalleerd. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'Dit apparaat is verbonden met een synchronisatieopslag. Het verwijdert zichzelf eerst uit de opslag, zodat het niet als verweesd apparaat achterblijft. Alles wat het nog niet naar je andere apparaten heeft gesynchroniseerd, gaat verloren.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'Ik begrijp dat dit niet ongedaan kan worden gemaakt en ik heb al een back-up gemaakt als ik die wil.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction => 'Database resetten';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Dit apparaat kon niet uit de synchronisatieopslag worden verwijderd, dus er is niets gereset. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'De database kon niet worden gereset, dus je gegevens zijn ongewijzigd. Als dit apparaat met een synchronisatieopslag was verbonden, heeft het die al verlaten.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
 
@@ -2318,7 +2354,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Kopieer het huidige thema en pas elke kleur aan. Aangepaste thema\'s worden op dit apparaat opgeslagen.';
+      'Kopieer het huidige thema en pas elke kleur aan. Aangepaste thema\'s worden gesynchroniseerd met je andere apparaten wanneer synchronisatie aan staat.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Thema verwijderen?';
@@ -3002,11 +3038,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Verwijderde dansen bewaren voor';
+      'Verwijderde items bewaren voor';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Verwijderde dansen worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Nooit bewaart ze totdat je ze handmatig opschoont.';
+      'Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Nooit bewaart ze totdat je ze handmatig opschoont.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3436,7 +3472,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Dit deel van de app heeft een onverwachte fout ondervonden en is hersteld. De details zijn opgeslagen in een lokaal diagnosticslog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat.';
+      'Dit deel van de app heeft een onverwachte fout ondervonden en kon niet worden weergegeven. De details zijn opgeslagen in een lokaal diagnosticslog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat.';
 
   @override
   String get crashFallbackCopied => 'Gekopieerd';
@@ -3627,7 +3663,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionNewDance => 'Nieuwe dans';
 
   @override
-  String get collectionSearchTooltip => 'Zoeken (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Zoeken (⌘K)',
+      'other': 'Zoeken (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Dansen selecteren';
@@ -5309,6 +5351,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'De uitvoerweergave verlaten? Je plek en de lopende klok worden bewaard, zodat je kunt hervatten waar je gebleven was.';
 
   @override
+  String get performDanceExitBody =>
+      'De uitvoerweergave verlaten? Bij het uitvoeren van één dans wordt je plek niet bewaard, dus de volgende keer begin je opnieuw.';
+
+  @override
   String get performExitCancel => 'Doorgaan met uitvoeren';
 
   @override
@@ -6204,6 +6250,19 @@ class AppLocalizationsNl extends AppLocalizations {
       'Het ContraDB-programma kon niet worden geïmporteerd.';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return 'Dans $done van $total importeren…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'De online archieven waren niet bereikbaar, dus er is niets geïmporteerd. Probeer het opnieuw zodra je online bent.';
+
+  @override
+  String get importContraDbProgramCancelled =>
+      'Import geannuleerd – er is niets toegevoegd.';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6324,6 +6383,30 @@ class AppLocalizationsNl extends AppLocalizations {
       zero: '.',
     );
     return '$_temp0 online gekoppeld$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titels online gekoppeld.',
+      one: ' – $linked titel online gekoppeld.',
+      zero: '.',
+    );
+    return 'Het opzoeken van titels is gestopt na een verbindingsfout$_temp0 Probeer de rest opnieuw zodra je online bent.';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titels online gekoppeld.',
+      one: ' – $linked titel online gekoppeld.',
+      zero: '.',
+    );
+    return 'Het opzoeken van titels is gestopt$_temp0';
   }
 
   @override
@@ -7161,6 +7244,24 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String sharedImportCompleteWithFailures(int count, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items geïmporteerd.',
+      one: '1 item geïmporteerd.',
+      zero: 'Er is niets geïmporteerd.',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '$failed dansen konden niet worden geïmporteerd.',
+      one: '1 dans kon niet worden geïmporteerd.',
+    );
+    return '$_temp0 $_temp1';
+  }
+
+  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7807,11 +7908,22 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorRedoLabel => 'Opnieuw uitvoeren';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Ongedaan maken (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Ongedaan maken (⌘Z)',
+      'other': 'Ongedaan maken (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip =>
-      'Opnieuw uitvoeren (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Opnieuw uitvoeren (⇧⌘Z)',
+      'other': 'Opnieuw uitvoeren (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Dans verwijderen';
@@ -7911,9 +8023,23 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count figuren toegevoegd. Typ nog een figuur of kies Klaar om te voltooien.',
+          '$count figuren toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
       one:
-          '1 figuur toegevoegd. Typ nog een figuur of kies Klaar om te voltooien.',
+          '1 figuur toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Toevoegen afronden';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren toegevoegd.',
+      one: '1 figuur toegevoegd.',
     );
     return '$_temp0';
   }
@@ -8355,6 +8481,18 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get updateDownloadFailureUnreachable =>
       'De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw, of gebruik „Release bekijken”.';
+
+  @override
+  String get updateDownloadFailureServerError =>
+      'De updateserver kon het bestand niet leveren. Probeer het later opnieuw, of gebruik „Release bekijken”.';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'Er is niet genoeg vrije schijfruimte om de update op te slaan. Maak ruimte vrij en probeer het opnieuw, of gebruik „Release bekijken”.';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'De update kon niet worden opgeslagen omdat de downloadlocatie niet beschrijfbaar is. Controleer de rechten en probeer het opnieuw, of gebruik „Release bekijken”.';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -9321,6 +9459,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Niets in de prullenbak. Verwijderde programma’s worden hier bewaard totdat je ze verwijdert.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'Niets in de prullenbak. Verwijderde programma’s verschijnen hier voor $days dagen voordat ze worden verwijderd.';
   }
@@ -9553,6 +9695,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Gepubliceerde collecties zijn tijdelijk niet beschikbaar.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Gepubliceerde collecties konden niet worden bereikt. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'Deze gepubliceerde collecties hebben een nieuwere appversie nodig. Werk de app bij om ze te zien.';
 
   @override
   String get publishedCollectionImport => 'Collectie importeren';

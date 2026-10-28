@@ -56,10 +56,10 @@ void main() {
   });
 
   group('places rendering ("N places", singular "1 place")', () {
-    test('circle default renders 4 places', () {
+    test('circle default renders 3 places', () {
       expect(
         renderer.renderCanonical(Figure(move: 'circle')),
-        'circle left 4 places',
+        'circle left 3 places',
       );
     });
 
@@ -82,11 +82,11 @@ void main() {
 
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
-      'circle left 4 places': Figure(move: 'circle'),
+      'circle left 3 places': Figure(move: 'circle'),
       // star grip 'none' emits no grip clause in any render path.
-      'star right 4 places': Figure(move: 'star'),
+      'star left 4 places': Figure(move: 'star'),
       'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
-      'partners square through 4 places': Figure(move: 'square_through'),
+      'partners square through 2 places': Figure(move: 'square_through'),
     };
     cases.forEach((expected, figure) {
       test('"$expected"', () {
@@ -94,11 +94,11 @@ void main() {
       });
     });
 
-    test('contraTaxonomyVersion is 37', () {
+    test('contraTaxonomyVersion is 38', () {
       // Guard: fails when the version is bumped without updating this test.
       // Update this assertion (and add a new test group documenting the new
       // version's changes) when bumping contraTaxonomyVersion.
-      expect(contraTaxonomyVersion, 37);
+      expect(contraTaxonomyVersion, 38);
     });
 
     test(
@@ -144,14 +144,14 @@ void main() {
           renderer.renderCanonical(
             testFigure(move: 'circle', params: {'singleFile': true}),
           ),
-          'single file promenade left 4 places (circle, clockwise)',
+          'single file promenade left 3 places (circle, clockwise)',
         );
         // Default (singleFile=false) is unchanged.
         expect(
           renderer.renderCanonical(
             testFigure(move: 'circle', params: {'singleFile': false}),
           ),
-          'circle left 4 places',
+          'circle left 3 places',
         );
       },
     );
@@ -275,17 +275,17 @@ void main() {
 
     group('star.grip — mirrors ContraDB starWords " - <grip> - " clause', () {
       test('grip: none (default) — no grip clause', () {
-        expect(renderer.render(Figure(move: 'star'), d), 'star right 4 places');
+        expect(renderer.render(Figure(move: 'star'), d), 'star left 4 places');
       });
 
-      test('grip: wristGrip — "star right - wrist grip - 4 places"', () {
+      test('grip: wristGrip — "star left - wrist grip - 4 places"', () {
         final f = testFigure(move: 'star', params: {'grip': 'wristGrip'});
-        expect(renderer.render(f, d), 'star right - wrist grip - 4 places');
+        expect(renderer.render(f, d), 'star left - wrist grip - 4 places');
       });
 
-      test('grip: handsAcross — "star right - hands across - 4 places"', () {
+      test('grip: handsAcross — "star left - hands across - 4 places"', () {
         final f = testFigure(move: 'star', params: {'grip': 'handsAcross'});
-        expect(renderer.render(f, d), 'star right - hands across - 4 places');
+        expect(renderer.render(f, d), 'star left - hands across - 4 places');
       });
 
       test('grip shows in renderVerbose and renderSummary too', () {
@@ -306,10 +306,10 @@ void main() {
       test('grip: none with non-default hand still omits the grip clause', () {
         expect(
           renderer.render(
-            testFigure(move: 'star', params: {'hand': 'left', 'grip': 'none'}),
+            testFigure(move: 'star', params: {'hand': 'right', 'grip': 'none'}),
             d,
           ),
-          'star left 4 places',
+          'star right 4 places',
         );
       });
     });
@@ -407,12 +407,12 @@ void main() {
       test('singleFile: false — renders normally', () {
         expect(
           renderer.render(Figure(move: 'circle'), d),
-          'circle left 4 places',
+          'circle left 3 places',
         );
       });
 
       test(
-        'singleFile: true — "single file circle left 4 places" (prefix form, raw direction v30 #989)',
+        'singleFile: true — "single file circle left 3 places" (prefix form, raw direction v30 #989)',
         () {
           final f = testFigure(move: 'circle', params: {'singleFile': true});
           // Prefix form replaces the v26 suffix ("circle … - single file").
@@ -420,7 +420,7 @@ void main() {
           // — the clockwise/counterclockwise substitution this test used to
           // assert is REMOVED; the spin word now lives only in canonical's
           // parenthetical.
-          expect(renderer.render(f, d), 'single file circle left 4 places');
+          expect(renderer.render(f, d), 'single file circle left 3 places');
         },
       );
 
@@ -437,14 +437,14 @@ void main() {
           move: 'circle',
           params: {'singleFile': true, 'direction': 'right'},
         );
-        expect(renderer.render(f, d), 'single file circle right 4 places');
+        expect(renderer.render(f, d), 'single file circle right 3 places');
       });
 
       test('singleFile: true shows in renderSummary', () {
         final f = testFigure(move: 'circle', params: {'singleFile': true});
         expect(
           renderer.renderSummary(f, d),
-          'single file circle left 4 places',
+          'single file circle left 3 places',
         );
       });
     });
@@ -456,6 +456,30 @@ void main() {
         Figure(move: 'circle', params: {'beats': 6}),
       );
       expect(issues.single.code, 'atypical_beats');
+    });
+
+    test('square_through accepts both its 8-beat default and 16 beats', () {
+      // The default is 2 places / 8 beats; four-place figures run 16 beats.
+      // Neither may raise `atypical_beats`.
+      for (final beats in [8, 16]) {
+        final issues = tax.validateFigure(
+          testFigure(move: 'square_through', params: {'beats': beats}),
+        );
+        expect(
+          issues.where((i) => i.code == 'atypical_beats'),
+          isEmpty,
+          reason: '$beats beats is typical for square_through',
+        );
+      }
+      expect(
+        tax
+            .validateFigure(
+              Figure(move: 'square_through', params: {'beats': 4}),
+            )
+            .single
+            .code,
+        'atypical_beats',
+      );
     });
 
     test('square_through accepts an atypical place count without error', () {
@@ -495,7 +519,7 @@ void main() {
       () {
         expect(
           renderer.render(Figure(move: 'circle'), Dialect.larksRobins),
-          'circle left 4 places',
+          'circle left 3 places',
         );
       },
     );

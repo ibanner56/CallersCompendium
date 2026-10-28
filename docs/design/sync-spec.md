@@ -41,7 +41,7 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 | **epoch** | An opaque 128-bit value identifying one incarnation of a store. |
 | **pass** | One complete sync cycle. |
 | **quarantine** | Local state of a record whose timestamps are implausible. |
-| **detach** | Stop syncing on *this* device: forget the sync ID and the baseline locally. The forgetting is local and never waits on the network. Afterwards the client MAY make one best-effort request to remove this device's own manifest, and only when every entry of it is already carried by a peer manifest (§3.3, *detach clean-up*); otherwise it leaves this device's manifest and every blob on the server. It affects no peer's data. |
+| **detach** | Stop syncing on *this* device: forget the sync ID and the baseline locally. The forgetting is local and never waits on the network. Afterwards the client MAY make one best-effort request to remove this device's own manifest, and only when every entry of it is already carried by a peer manifest (§3.3, *detach clean-up*); otherwise it leaves this device's manifest and every blob on the server. (A client resetting its whole database removes its own manifest unconditionally first; §3.3, *reset-time self-removal*.) It affects no peer's data. |
 | **wipe** | Destroy the whole store server-side via `DELETE /v1/store`, for every device at once. Not reversible, and not what the Settings detach control does. |
 | **report** | Surface a condition to the user as a non-blocking notice that survives the pass which raised it. Reporting MUST NOT block a write, gate a pass, or require a gesture to clear. Distinct from `review_queue`, which holds candidate *records* awaiting a decision: a report names a condition, not a pending choice. |
 | **tick** | The smallest interval the timestamp storage representation can distinguish. Currently **one second**: `DateTimeColumn` persists as a unix second count, so a sub-second increment does not survive a write. Every `+ 1 tick` in this document means this quantity, not a fixed millisecond. |
@@ -355,7 +355,8 @@ restore brought back is still correct.
 no current peer manifest lists the losing id (§6.6) — and that bound is not
 available here. This device's own manifest is one of the manifests keeping the
 record reachable, and it survives detach unless a peer manifest carries every
-entry of it (§3.3); retiring against peer manifests alone would ignore it. The failure modes are also asymmetric, which is what settles
+entry of it (§3.3), though a client that resets its database removes it
+unconditionally (§3.3, *reset-time self-removal*); retiring against peer manifests alone would ignore it. The failure modes are also asymmetric, which is what settles
 it: a wrongly-retired alias skips and reports one record, while a
 wrongly-retired marker silently resurrects a deletion. Growth is bounded by the
 number of records ever selected for publication rather than by activity: one
@@ -474,6 +475,22 @@ part-way through a pass may find the manifest gone and report it as unreadable
 for that pass, which is the hazard removing a device under *Other devices*
 already accepts. The reference client uses a 10-second per-request and 30-second
 overall deadline.
+
+**Reset-time self-removal.** A client that is about to delete its whole local
+database (the reference client's *Reset database* under Developer Options) MAY
+instead remove itself from the store first, because once the database is gone
+so is the sync ID, and with it any way to remove this device's manifest. This is
+a different operation from the detach clean-up above and does not share its
+conditions: it is **unconditional** (no condition 5 — the data the manifest
+describes is about to be destroyed anyway), **awaited** rather than best-effort,
+and **fail-closed**. The client sends `DELETE /v1/manifests/{self}` with the
+credentials it still holds; `204` (sent whether or not the manifest existed) and
+`404` (the store itself is gone) both mean it is gone, and any other answer, a
+transport failure, or a detach or wipe already in flight means the client MUST
+NOT proceed to delete the database and stays attached. Only then does it clear
+the attachment locally, as detach does. Its cost is that records only this
+manifest named, which no peer has yet pulled, become unreachable for those
+peers; the user is told so before confirming.
 
 *Amended 2026-10-02 (@ibanner56's ruling, from a planning session): detach used
 to send no request at all, which left every re-attach's previous manifest

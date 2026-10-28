@@ -8,14 +8,19 @@ import '../data/decimal_turns_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../search/facet_labels.dart';
 import 'import_gap_badge.dart';
+import 'warnings_card.dart';
 
 /// Read-only figure table grouped by derived phrase section (`docs/design/ux.md`
 /// §2). Each section (A1, A2, …) heads a group; rows show the rendered figure
 /// text (under [dialect]), a progression marker, and the beat count.
 ///
-/// Structured editing of these rows lands with roadmap 3.3b; here the table is
-/// display-only, shared by the dance detail view and the (read-only) figure
-/// section of the editor.
+/// When the figures' beats do not add up to [phraseStructure], the table
+/// opens with the same warning the editor shows ([WarningsCard]): the section
+/// labels are then derived from the wrong totals, and the detail view is where
+/// a saved dance is read (AUTH-12, October behaviour audit). Perform and print
+/// do not show it: a warning on stage is not something the caller can act on.
+///
+/// The table is display-only; the dance detail view shows it.
 class FigureTable extends StatelessWidget {
   const FigureTable({
     super.key,
@@ -41,7 +46,12 @@ class FigureTable extends StatelessWidget {
       );
     }
 
-    final sectioned = deriveSections(figures, phraseStructure);
+    final warnings = <ValidationIssue>[];
+    final sectioned = deriveSections(
+      figures,
+      phraseStructure,
+      issues: warnings,
+    );
     // ROADMAP G.7: when "always verbose" is on, the visible row text uses the
     // spoken-style verbose rendering instead of the terse notation.
     final verbose = VerboseFigureRenderingScope.of(context);
@@ -49,7 +59,12 @@ class FigureTable extends StatelessWidget {
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
-    final rows = <Widget>[];
+    final rows = <Widget>[
+      if (warnings.isNotEmpty) ...[
+        WarningsCard(warnings: warnings),
+        const SizedBox(height: 8),
+      ],
+    ];
     String renderSummary(
       Figure figure, {
       bool verbose = false,

@@ -5,6 +5,7 @@ import 'package:meta/meta.dart';
 import '../model/collection_import_event.dart';
 import '../model/choreographer.dart';
 import '../model/dance.dart';
+import '../model/dance_link.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../serialization/archive_codec.dart';
@@ -286,7 +287,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
         CompendiumArchive(
           schemaVersion: _schemaVersion,
           exportedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-          dances: [dance],
+          dances: [_withRelatedTargetsByExternalId(dance)],
           choreographers: [
             for (final authorId in dance.authorIds)
               if (_choreographersById[authorId] != null)
@@ -301,6 +302,29 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
         mode: ArchiveSerializationMode.share,
       ),
       contentType: 'application/json',
+    );
+  }
+
+  /// [dance] with each `relatedDance` link to another dance of this collection
+  /// naming it by that dance's record external id, which is what
+  /// [ImportPipeline.commit] resolves related targets by.
+  Dance _withRelatedTargetsByExternalId(Dance dance) {
+    if (!dance.links.any((l) => l.kind == LinkKind.relatedDance)) return dance;
+    return dance.copyWith(
+      links: [
+        for (final link in dance.links)
+          if (link.kind == LinkKind.relatedDance &&
+              _dancesById.containsKey(link.targetDanceId))
+            DanceLink(
+              id: link.id,
+              kind: link.kind,
+              targetDanceId: '${metadata.collectionId}/${link.targetDanceId}',
+              label: link.label,
+              transitive: link.transitive,
+            )
+          else
+            link,
+      ],
     );
   }
 

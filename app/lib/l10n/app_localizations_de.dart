@@ -262,6 +262,42 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsExperimentalTitle => 'Experimentell';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Entwickleroptionen';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Datenbank zurücksetzen';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Alles auf diesem Gerät löschen und neu beginnen, wie bei einer frischen Installation.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle => 'Datenbank zurücksetzen?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'Dadurch werden alle Tänze, Programme, Sammlungen, Einstellungen und Notizen auf diesem Gerät dauerhaft gelöscht, und die App startet neu, als wäre sie gerade erst installiert worden. Das lässt sich nicht rückgängig machen.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'Dieses Gerät ist mit einem Synchronisierungsspeicher verbunden. Es entfernt sich zuerst selbst aus dem Speicher, damit es nicht als verwaistes Gerät zurückbleibt. Alles, was es noch nicht mit deinen anderen Geräten synchronisiert hat, geht verloren.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'Ich verstehe, dass sich das nicht rückgängig machen lässt, und ich habe bereits eine Sicherung erstellt, falls ich eine möchte.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction => 'Datenbank zurücksetzen';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Dieses Gerät konnte nicht aus dem Synchronisierungsspeicher entfernt werden, daher wurde nichts zurückgesetzt. Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'Die Datenbank konnte nicht zurückgesetzt werden, deine Daten sind unverändert. Falls dieses Gerät mit einem Synchronisierungsspeicher verbunden war, hat es ihn bereits verlassen.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.';
 
@@ -2327,7 +2363,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden auf diesem Gerät gespeichert.';
+      'Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden mit Ihren anderen Geräten synchronisiert, wenn die Synchronisierung aktiviert ist.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Design löschen?';
@@ -3013,11 +3049,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Gelöschte Tänze behalten für';
+      'Gelöschte Elemente behalten für';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Gelöschte Tänze werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.';
+      'Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3449,7 +3485,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Dieser Teil der App ist auf einen unerwarteten Fehler gestoßen und hat sich erholt. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das Ihr Gerät nie verlässt.';
+      'Dieser Teil der App ist auf einen unerwarteten Fehler gestoßen und konnte nicht angezeigt werden. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das Ihr Gerät nie verlässt.';
 
   @override
   String get crashFallbackCopied => 'Kopiert';
@@ -3640,7 +3676,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionNewDance => 'Neuer Tanz';
 
   @override
-  String get collectionSearchTooltip => 'Suchen (Strg/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Suchen (⌘K)',
+      'other': 'Suchen (Strg+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Tänze auswählen';
@@ -5327,6 +5369,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Perform-Ansicht verlassen? Ihr Platz und die laufende Uhr werden gespeichert, sodass Sie dort weitermachen können, wo Sie aufgehört haben.';
 
   @override
+  String get performDanceExitBody =>
+      'Perform-Ansicht verlassen? Beim Perform eines einzelnen Tanzes wird Ihr Platz nicht gespeichert, daher beginnt es beim nächsten Mal von vorn.';
+
+  @override
   String get performExitCancel => 'Weitermachen';
 
   @override
@@ -6228,6 +6274,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das ContraDB-Programm konnte nicht importiert werden.';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return 'Tanz $done von $total wird importiert…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'Die Online-Archive konnten nicht erreicht werden, daher wurde nichts importiert. Versuchen Sie es erneut, sobald Sie online sind.';
+
+  @override
+  String get importContraDbProgramCancelled =>
+      'Import abgebrochen – es wurde nichts hinzugefügt.';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6348,6 +6407,30 @@ class AppLocalizationsDe extends AppLocalizations {
       zero: '.',
     );
     return '$_temp0 online verknüpft$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked Titel online verknüpft.',
+      one: ' – $linked Titel online verknüpft.',
+      zero: '.',
+    );
+    return 'Die Suche nach Titeln wurde nach einem Verbindungsfehler abgebrochen$_temp0 Versuchen Sie es mit dem Rest erneut, sobald Sie online sind.';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked Titel online verknüpft.',
+      one: ' – $linked Titel online verknüpft.',
+      zero: '.',
+    );
+    return 'Die Suche nach Titeln wurde abgebrochen$_temp0';
   }
 
   @override
@@ -7190,6 +7273,24 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String sharedImportCompleteWithFailures(int count, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Elemente importiert.',
+      one: '1 Element importiert.',
+      zero: 'Nichts wurde importiert.',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '$failed Tänze konnten nicht importiert werden.',
+      one: '1 Tanz konnte nicht importiert werden.',
+    );
+    return '$_temp0 $_temp1';
+  }
+
+  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7840,10 +7941,22 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorRedoLabel => 'Wiederholen';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Rückgängig (Strg+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Rückgängig (⌘Z)',
+      'other': 'Rückgängig (Strg+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip => 'Wiederholen (Strg+Umschalt+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Wiederholen (⇧⌘Z)',
+      'other': 'Wiederholen (Strg+Umschalt+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Tanz löschen';
@@ -7943,9 +8056,23 @@ class AppLocalizationsDe extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Fertig“, um zu beenden.',
+          '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Hinzufügen beenden“, wenn Sie fertig sind.',
       one:
-          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Fertig“, um zu beenden.',
+          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Hinzufügen beenden“, wenn Sie fertig sind.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Hinzufügen beenden';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Figuren hinzugefügt.',
+      one: '1 Figur hinzugefügt.',
     );
     return '$_temp0';
   }
@@ -8391,6 +8518,18 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get updateDownloadFailureUnreachable =>
       'Das Update konnte nicht heruntergeladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
+
+  @override
+  String get updateDownloadFailureServerError =>
+      'Der Update-Server konnte die Datei nicht bereitstellen. Versuchen Sie es später erneut oder verwenden Sie „Release ansehen“.';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'Es ist nicht genug freier Speicherplatz vorhanden, um das Update zu speichern. Schaffen Sie Platz und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'Das Update konnte nicht gespeichert werden, weil der Download-Ort nicht beschreibbar ist. Prüfen Sie die Berechtigungen und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -9362,6 +9501,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Nichts im Papierkorb. Gelöschte Programme werden hier aufbewahrt, bis Sie sie entfernen.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'Nichts im Papierkorb. Gelöschte Programme erscheinen hier für $days Tage, bevor sie entfernt werden.';
   }
@@ -9599,6 +9742,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Veröffentlichte Sammlungen sind vorübergehend nicht verfügbar.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Veröffentlichte Sammlungen konnten nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'Diese veröffentlichten Sammlungen benötigen eine neuere App-Version. Aktualisieren Sie die App, um sie zu sehen.';
 
   @override
   String get publishedCollectionImport => 'Sammlung importieren';

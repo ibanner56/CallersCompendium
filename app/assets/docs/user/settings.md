@@ -72,10 +72,11 @@ the full picture.
 
 ### Deleted items
 
-- **Keep deleted dances for** — choose **30 days**, **90 days**, or **Never**
-  (default is **30 days**). Deleted dances are held for this long and
-  then purged. For how soft-delete and restore work, see
-  [Collection & search](./collection.md).
+- **Keep deleted items for** — choose **30 days**, **90 days**, or **Never**
+  (default is **30 days**). Deleted dances and deleted programs are held for
+  this long and then purged. Choosing **Permanently delete** on one item in
+  **Recently deleted** removes only that item. For how soft-delete and restore
+  work, see [Collection & search](./collection.md).
 
 ### Import
 
@@ -211,7 +212,7 @@ There's a **High contrast** theme for maximum legibility — see the
 - **New custom theme** — opens an editor seeded from your current theme, so you
   start from something familiar. You can tune any colour in it.
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
-  They are saved on this device.
+  They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
 
 ### Easter eggs
 
@@ -297,7 +298,9 @@ The **Language & region** section handles formats and localization.
 
 - **Date format** — choose **System default**, **Year-month-day**,
   **Day/month/year**, **Month/day/year**, or **Custom…**. A live example shows the
-  result, and your choice controls how program event dates appear.
+  result, and your choice controls how program event dates appear: in the
+  Programs list and editor, in a dance's calling history, and in printed and
+  emailed set lists and PDFs. **System default** always includes the year.
 
   A custom pattern is built from these tokens:
 
@@ -503,6 +506,12 @@ keep the AppImage, move it out of the temporary folder to somewhere permanent
 banner's link takes you to the release to download it the usual way for your
 platform.
 
+If the download fails, the message says why: your connection, an error from the
+update server, a full disk, or a folder the app cannot write to. Free some space
+(on macOS, you can also choose another location), then try again. **View release** is always there as
+a manual fallback. A failure during the transfer or while saving the file is also recorded in
+**Settings** → **Diagnostics**, without file paths.
+
 Your privacy is built in: an update check downloads a small version file over a
 secure connection and nothing else. No information about you, your device, or how
 you use the app is ever sent.
@@ -558,7 +567,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary** and **Device Sync**. Anything here can change
+today, that's the **Glossary**, **Device Sync** and **Developer Options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -1175,6 +1184,29 @@ are.
   choose. When the same item was simply changed differently on two devices,
   you choose between the versions instead — see
   [Choosing which version to keep](#choosing-which-version-to-keep).
+
+### Developer Options
+
+This section is closed until you open it. Today it holds one action.
+
+**Reset database** deletes everything on this device and restarts the app as if
+it had just been installed: every dance, program, collection, note and setting
+is gone. It cannot be undone. Take a [backup](#backup--restore) first if you
+want to keep anything.
+
+Choosing it opens a confirmation. **Reset database** in the dialog stays
+disabled until you tick the box saying you understand this can't be undone and
+that you've already taken a backup if you wanted one.
+
+If this device is [connected to a Device Sync store](#device-sync), it first
+removes itself from the store, so it isn't left behind as a device that never
+comes back. This removal is not the careful one **Disconnect this device** does,
+which only goes ahead when your other devices already have everything: anything
+this device had not yet synced is lost. If the store can't be reached (for
+example, you're offline), nothing is reset and the device stays connected;
+connect and try again. If the store is gone for good, choose **Disconnect this
+device** first, then reset. If the removal succeeds but the wipe itself then
+fails, your data is unchanged but the device has already left the store. Your other devices and the store itself are not touched.
 
 ## About
 

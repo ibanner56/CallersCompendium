@@ -1,0 +1,12 @@
+{
+  "id": "program-import-undo-offline",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Undo after importing a program from a title list or from ContraDB now also removes the dances it imported for that program, and leaving the title-list screen without importing removes the dances it looked up online.",
+      "Importing a program while offline now says it couldn't reach the online archives, instead of reporting every dance as not found. The online lookup stops at the first connection failure, shows its progress, can be cancelled, and stops when you leave the screen; an offline or cancelled ContraDB import creates no program.",
+      "Resolving a program's titles online no longer imports a Caller's Box dance that has no figures, matching Collection's list-of-titles import.",
+      "A dance picked on the review screen for a program's ambiguous title no longer gets your default import tags, as Settings describes."
+    ]
+  }
+}

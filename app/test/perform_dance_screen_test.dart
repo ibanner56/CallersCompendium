@@ -569,6 +569,30 @@ void main() {
     expect(find.byType(DanceDetailScreen), findsOneWidget);
   });
 
+  testWidgets('exit dialog does not promise a resume (no resume state)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Perform Me'));
+
+    await _pumpDetail(tester, repos, 'd1');
+    await tester.tap(find.byKey(const ValueKey('perform-dance')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exit-perform')));
+    await tester.pumpAndSettle();
+
+    final dialog = find.byKey(const ValueKey('perform-exit-dialog'));
+    expect(dialog, findsOneWidget);
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('resume')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('fresh')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('a stray single tap on the exit control does not leave Perform', (
     tester,
   ) async {

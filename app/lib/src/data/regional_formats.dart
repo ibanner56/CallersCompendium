@@ -30,7 +30,7 @@ const String kDateFormatCustomPatternKey = 'date_format_custom';
 
 /// How program event dates render on screen.
 enum DateFormatPref {
-  /// Defer to the platform locale via [MaterialLocalizations.formatMediumDate].
+  /// Defer to the platform locale via [MaterialLocalizations.formatShortDate].
   system('system'),
 
   /// ISO-like year-month-day, e.g. `2026-07-15`.
@@ -183,7 +183,9 @@ MonthNames monthNamesFromL10n(AppLocalizations l10n) => MonthNames(
 /// Formats a program event [date] for on-screen display per [setting].
 ///
 /// For [DateFormatPref.system] (and any invalid custom pattern) this defers to
-/// the platform locale via [material] (`formatMediumDate`). For the fixed tokens
+/// the platform locale via [material] (`formatShortDate`, the locale's
+/// year-bearing abbreviated-month date; `formatMediumDate` omits the year, so
+/// a printed set list from last season would read like this season's). For the fixed tokens
 /// and a valid custom pattern it uses a dependency-free zero-padded pattern (no
 /// `intl`); written-out month tokens (`MMM`/`MMMM`) render localized month names
 /// built from [l10n].
@@ -198,7 +200,7 @@ String formatEventDate(
     setting,
     monthNames: monthNamesFromL10n(l10n),
   );
-  return fixed ?? material.formatMediumDate(date);
+  return fixed ?? material.formatShortDate(date);
 }
 
 /// Returns the fixed zero-padded pattern for [date] under [setting], or `null`

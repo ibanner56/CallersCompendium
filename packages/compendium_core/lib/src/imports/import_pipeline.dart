@@ -166,13 +166,20 @@ class ImportSession {
     required List<Dance> priorStates,
     List<String> createdChoreographerIds = const [],
     List<String> revivedChoreographerIds = const [],
+    List<ImportIssue> issues = const [],
   }) : records = List.unmodifiable(records),
        _insertedDanceIds = List.unmodifiable(insertedDanceIds),
        _priorStates = List.unmodifiable(priorStates),
        _createdChoreographerIds = List.unmodifiable(createdChoreographerIds),
-       _revivedChoreographerIds = List.unmodifiable(revivedChoreographerIds);
+       _revivedChoreographerIds = List.unmodifiable(revivedChoreographerIds),
+       issues = List.unmodifiable(issues);
 
   final List<CommittedRecord> records;
+
+  /// Non-fatal notes raised while committing: a related-dance link the batch
+  /// carried was left out because its target was not imported (see
+  /// [ImportPipeline.commit]).
+  final List<ImportIssue> issues;
   final List<String> _insertedDanceIds;
   final List<Dance> _priorStates;
   final List<String> _createdChoreographerIds;
@@ -613,6 +620,21 @@ class ImportPipeline {
   /// (written, skipped or failed), and once more with `(total, total)` when the
   /// loop ends.
   ///
+  /// A draft's links come from the source's id space (a shared file carries the
+  /// sender's link ids), so they are never written as given. Every link gets a
+  /// fresh id from [newId]. A `relatedDance` link names its target by the
+  /// target's external id in this source ([GenericJsonAdapter] and
+  /// [PublishedCollectionAdapter] rewrite the file's dance id to it), and is
+  /// held back until every record has been written. It is then added to its
+  /// dance with its target resolved: to the dance the record of this batch
+  /// with that external id was written as, else to a live dance already
+  /// received from this source under that external id, else to a live dance
+  /// whose id it is (a file this library wrote). A link
+  /// whose target resolves to neither is left out with an
+  /// `archive_related_dance_unresolved` note in [ImportSession.issues]. The
+  /// link is written by a second update of a dance this batch already wrote,
+  /// so [undo] reverts it with that dance.
+  ///
   /// Returns an [ImportSession] recording what was written so the batch can be
   /// [undo]ne.
   Future<ImportSession> commit(
@@ -653,6 +675,11 @@ class ImportPipeline {
     }
     final createdChoreographerIds = <String>[];
     final revivedChoreographerIds = <String>[];
+    // Each written dance's held-back related links, and each written record's
+    // external id → the id it was written as (see the doc above).
+    final heldRelatedLinks =
+        <String, ({ProvenanceSource source, List<DanceLink> links})>{};
+    final writtenIdByExternalId = <String, String>{};
 
     final total = batch.records.length;
     for (var i = 0; i < total; i++) {
@@ -733,12 +760,16 @@ class ImportPipeline {
         final prov = _provenanceFrom(plan.draft, now);
         if (writesNewDance) {
           final id = newId();
+          final (draftDance: incoming, :relatedLinks) = _withFreshLinks(
+            plan.draft.dance,
+            newId,
+          );
           // #686: a `.variation` commit with `linkBack` (the default) attaches
           // a `relatedDance` link to the target BEFORE `_rebuildWithIdentity`
           // — that helper copies `src.links` verbatim, so this is the one
           // place the new dance's link list can be extended at creation time
           // (no second write needed on the new-dance side).
-          var draftDance = plan.draft.dance;
+          var draftDance = incoming;
           if (defaultTagIds.isNotEmpty) {
             draftDance = draftDance.copyWith(
               tagIds: [
@@ -809,6 +840,15 @@ class ImportPipeline {
               );
             }
           }
+          if (plan.draft.raw.externalId case final externalId?) {
+            writtenIdByExternalId[externalId] = id;
+          }
+          if (relatedLinks.isNotEmpty) {
+            heldRelatedLinks[id] = (
+              source: plan.draft.raw.source,
+              links: relatedLinks,
+            );
+          }
           committed.add(
             CommittedRecord(
               action: action,
@@ -823,8 +863,12 @@ class ImportPipeline {
           // Non-null: a missing target `continue`d before authors were resolved.
           final existing = prior!;
           if (priorCapturedFor.add(id)) priorStates.add(existing);
-          final dance = _rebuildWithIdentity(
+          final (draftDance: incoming, :relatedLinks) = _withFreshLinks(
             plan.draft.dance,
+            newId,
+          );
+          final dance = _rebuildWithIdentity(
+            incoming,
             id: id,
             authorIds: authorIds,
             createdAt: existing.createdAt,
@@ -833,6 +877,15 @@ class ImportPipeline {
             keepCustomFieldsFrom: existing,
           );
           await _dances.update(dance);
+          if (plan.draft.raw.externalId case final externalId?) {
+            writtenIdByExternalId[externalId] = id;
+          }
+          if (relatedLinks.isNotEmpty) {
+            heldRelatedLinks[id] = (
+              source: plan.draft.raw.source,
+              links: relatedLinks,
+            );
+          }
           committed.add(
             CommittedRecord(
               action: action,
@@ -874,6 +927,12 @@ class ImportPipeline {
       }
       onProgress?.call(i + 1, total);
     }
+    final issues = await _addHeldRelatedLinks(
+      heldRelatedLinks,
+      writtenIdByExternalId: writtenIdByExternalId,
+      newId: newId,
+      now: now,
+    );
     onProgress?.call(total, total);
 
     return ImportSession(
@@ -882,7 +941,113 @@ class ImportPipeline {
       priorStates: priorStates,
       createdChoreographerIds: createdChoreographerIds,
       revivedChoreographerIds: revivedChoreographerIds,
+      issues: issues,
     );
+  }
+
+  /// [dance] with a fresh id from [newId] on every link but its `relatedDance`
+  /// ones, which are removed and returned for [_addHeldRelatedLinks].
+  ({Dance draftDance, List<DanceLink> relatedLinks}) _withFreshLinks(
+    Dance dance,
+    String Function() newId,
+  ) {
+    if (dance.links.isEmpty) {
+      return (draftDance: dance, relatedLinks: const []);
+    }
+    return (
+      draftDance: dance.copyWith(
+        links: [
+          for (final link in dance.links)
+            if (link.kind != LinkKind.relatedDance)
+              DanceLink(
+                id: newId(),
+                kind: link.kind,
+                url: link.url,
+                label: link.label,
+              ),
+        ],
+      ),
+      relatedLinks: [
+        for (final link in dance.links)
+          if (link.kind == LinkKind.relatedDance) link,
+      ],
+    );
+  }
+
+  /// Adds each dance's [held] related links once the whole batch is written, so
+  /// a target imported by a later record resolves (see [commit]). Every dance
+  /// in [held] was written by this batch and is already in its undo ledger.
+  ///
+  /// A link is skipped when it would point the dance at itself or repeat a
+  /// target it already links to (a variation's link-back). A failed write keeps
+  /// the dance as the batch wrote it and notes each link it lost, since the
+  /// record itself did import.
+  Future<List<ImportIssue>> _addHeldRelatedLinks(
+    Map<String, ({ProvenanceSource source, List<DanceLink> links})> held, {
+    required Map<String, String> writtenIdByExternalId,
+    required String Function() newId,
+    required DateTime now,
+  }) async {
+    final issues = <ImportIssue>[];
+    if (held.isEmpty) return issues;
+    // Read after the batch's writes, so it is current whatever snapshot the
+    // caller planned with (a review screen rebuilds its batch without one).
+    final index = await buildDedupeIndex();
+    ImportIssue unresolved(String danceId) => ImportIssue(
+      severity: ImportIssueSeverity.warning,
+      code: 'archive_related_dance_unresolved',
+      message:
+          'Dance "$danceId" had a related-dance link to a dance that was not '
+          'imported; the link was left out.',
+    );
+    for (final MapEntry(key: danceId, value: (:source, :links))
+        in held.entries) {
+      final dance = await _dances.getById(danceId);
+      if (dance == null) {
+        issues.addAll([for (final _ in links) unresolved(danceId)]);
+        continue;
+      }
+      final linkedTargets = {
+        for (final link in dance.links)
+          if (link.kind == LinkKind.relatedDance) link.targetDanceId,
+      };
+      final added = <DanceLink>[];
+      for (final link in links) {
+        final targetKey = link.targetDanceId!;
+        final target =
+            writtenIdByExternalId[targetKey] ??
+            index.findByExternalId(source, targetKey) ??
+            // The key is the dance's own id when it had no provenance, so a
+            // file this library wrote (its own export, or its dance shared and
+            // sent back) names a dance still here. A sender's id or a
+            // namespaced key matches no other library's dance.
+            (await _dances.getById(targetKey))?.id;
+        if (target == null) {
+          issues.add(unresolved(danceId));
+          continue;
+        }
+        if (target == danceId || !linkedTargets.add(target)) continue;
+        added.add(
+          DanceLink(
+            id: newId(),
+            kind: LinkKind.relatedDance,
+            targetDanceId: target,
+            label: link.label,
+            transitive: link.transitive,
+          ),
+        );
+      }
+      if (added.isEmpty) continue;
+      try {
+        await _dances.update(
+          dance.copyWith(links: [...dance.links, ...added], updatedAt: now),
+        );
+      } catch (_) {
+        // diagnostics: the lost links are reported as notes below.
+        issues.addAll([for (final _ in added) unresolved(danceId)]);
+      }
+    }
+    return issues;
   }
 
   /// Auto-resolves the **ambiguous** records of [batch] for an automated,

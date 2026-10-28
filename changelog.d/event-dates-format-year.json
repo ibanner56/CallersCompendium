@@ -1,0 +1,10 @@
+{
+  "id": "event-dates-format-year",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A dance marked performed by setting a program's status to Performed no longer shows the day before the event in its calling history for callers west of UTC.",
+      "Your Date format setting now applies to calling history and to printed and emailed set lists and PDFs, and System default now includes the year."
+    ]
+  }
+}

@@ -341,6 +341,46 @@
   "@settingsExperimentalTitle": {
     "description": "Settings section navigation title (sidebar/app bar) and content header for features still in development."
   },
+  "settingsDeveloperOptionsHeader": "Developer Options",
+  "@settingsDeveloperOptionsHeader": {
+    "description": "Header of the expandable Developer Options section in Experimental settings."
+  },
+  "settingsDeveloperResetTitle": "Reset database",
+  "@settingsDeveloperResetTitle": {
+    "description": "Title of the row that resets the database to a clean install."
+  },
+  "settingsDeveloperResetSubtitle": "Delete everything on this device and start over, as on a fresh install.",
+  "@settingsDeveloperResetSubtitle": {
+    "description": "Subtitle of the reset database row."
+  },
+  "settingsDeveloperResetConfirmTitle": "Reset the database?",
+  "@settingsDeveloperResetConfirmTitle": {
+    "description": "Title of the confirmation dialog for resetting the database."
+  },
+  "settingsDeveloperResetConfirmBody": "This permanently deletes every dance, program, collection, setting and note on this device and restarts the app as if it had just been installed. It cannot be undone.",
+  "@settingsDeveloperResetConfirmBody": {
+    "description": "Body of the reset database confirmation dialog."
+  },
+  "settingsDeveloperResetConfirmSyncNote": "This device is connected to a Device Sync store. It will first remove itself from the store so it isn't left behind as an orphaned device. Anything it has not yet synced to your other devices is lost.",
+  "@settingsDeveloperResetConfirmSyncNote": {
+    "description": "Extra paragraph in the reset confirmation shown only while the device is connected to a sync store."
+  },
+  "settingsDeveloperResetConfirmCheckbox": "I understand this can't be undone, and I've already taken a backup if I want one.",
+  "@settingsDeveloperResetConfirmCheckbox": {
+    "description": "Checkbox label that must be ticked before the reset can be confirmed."
+  },
+  "settingsDeveloperResetConfirmAction": "Reset database",
+  "@settingsDeveloperResetConfirmAction": {
+    "description": "Label of the destructive confirm button of the reset dialog."
+  },
+  "settingsDeveloperResetLeaveFailed": "Couldn't remove this device from the sync store, so nothing was reset. Check your connection and try again.",
+  "@settingsDeveloperResetLeaveFailed": {
+    "description": "Snackbar shown when leaving the sync store before a reset fails; the database is untouched and the device stays connected."
+  },
+  "settingsDeveloperResetFailed": "Couldn't reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.",
+  "@settingsDeveloperResetFailed": {
+    "description": "Snackbar shown when the reset did not delete the database (it threw, or the wipe failed). A connected device has already left its sync store by then."
+  },
   "settingsExperimentalPlaceholder": "New features may appear here while they are still in development.",
   "@settingsExperimentalPlaceholder": {
     "description": "Placeholder text explaining that the Experimental settings section will contain features still in development."
@@ -2876,7 +2916,7 @@
   "@settingsAppearanceNewThemeDefaultName": {
     "description": "Default name a brand-new custom theme is seeded with before the user renames it."
   },
-  "settingsAppearanceCustomThemesEmpty": "Copy the current theme and tune any color. Custom themes are saved on this device.",
+  "settingsAppearanceCustomThemesEmpty": "Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.",
   "@settingsAppearanceCustomThemesEmpty": {
     "description": "Helper text shown when the user has no saved custom themes yet."
   },
@@ -3669,11 +3709,11 @@
   "@settingsGeneralDeletedItemsHeader": {
     "description": "General settings section header for deleted-item retention preferences."
   },
-  "settingsGeneralSoftDeleteRetentionTitle": "Keep deleted dances for",
+  "settingsGeneralSoftDeleteRetentionTitle": "Keep deleted items for",
   "@settingsGeneralSoftDeleteRetentionTitle": {
-    "description": "Title of the General settings row that controls how long deleted dances are retained."
+    "description": "Title of the General settings row that controls how long deleted dances and programs are retained."
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "Deleted dances are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "Deleted dances and programs are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
     "description": "Subtitle explaining the deleted-dance retention duration setting."
   },
@@ -4231,7 +4271,7 @@
   "@crashFallbackTitle": {
     "description": "Title shown in the friendly crash fallback widget when a subtree fails to build."
   },
-  "crashFallbackBody": "This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.",
+  "crashFallbackBody": "This part of the app hit an unexpected error and couldn't be shown. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.",
   "@crashFallbackBody": {
     "description": "Body text in the friendly crash fallback widget explaining that details were saved locally only."
   },
@@ -4497,9 +4537,15 @@
   "@collectionNewDance": {
     "description": "Label of the floating action button that creates a new dance."
   },
-  "collectionSearchTooltip": "Search (Ctrl/Cmd-K)",
+  "collectionSearchTooltip": "{platform, select, apple{Search (⌘K)} other{Search (Ctrl+K)}}",
   "@collectionSearchTooltip": {
-    "description": "Tooltip for the app-bar search button, noting its keyboard shortcut."
+    "description": "Tooltip for the app-bar search button, noting its keyboard shortcut.",
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "description": "'apple' on macOS and iOS, where shortcuts use the Command key; 'other' everywhere else."
+      }
+    }
   },
   "collectionSelectDancesTooltip": "Select dances",
   "@collectionSelectDancesTooltip": {
@@ -6792,6 +6838,10 @@
   "@performExitBody": {
     "description": "Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry."
   },
+  "performDanceExitBody": "Leave the performance view? Performing a single dance doesn't keep your place, so the next time starts fresh.",
+  "@performDanceExitBody": {
+    "description": "Body text of the exit-confirmation dialog for single-dance Perform, which keeps no resume state (unlike program Perform, performExitBody)."
+  },
   "performExitCancel": "Keep performing",
   "@performExitCancel": {
     "description": "Button that dismisses the exit-confirmation dialog and stays in the Perform view."
@@ -8012,6 +8062,26 @@
   "@importContraDbResolveError": {
     "description": "Snackbar shown when resolving a ContraDB program's activities before commit fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209)."
   },
+  "importContraDbProgramProgress": "Importing dance {done} of {total}…",
+  "@importContraDbProgramProgress": {
+    "description": "Progress line while a ContraDB program's dances are imported one at a time, beside a Cancel button.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "importContraDbProgramConnectionFailed": "Couldn't reach the online archives, so nothing was imported. Try again once you're online.",
+  "@importContraDbProgramConnectionFailed": {
+    "description": "Snackbar shown when importing a ContraDB program stops because ContraDB or The Caller's Box could not be reached. No program is created and any dances already imported are removed again."
+  },
+  "importContraDbProgramCancelled": "Import cancelled — nothing was added.",
+  "@importContraDbProgramCancelled": {
+    "description": "Snackbar shown when the user cancels a ContraDB program import part-way through. No program is created and any dances already imported are removed again."
+  },
   "importContraDbActivityCount": "{activities, plural, =1{1 activity} other{{activities} activities}} ({dances, plural, =1{1 dance} other{{dances} dances}}, {notes, plural, =1{1 note} other{{notes} notes}})",
   "@importContraDbActivityCount": {
     "description": "Summary of a fetched ContraDB program's activities shown above the preview list.",
@@ -8125,6 +8195,24 @@
         "type": "int"
       },
       "remaining": {
+        "type": "int"
+      }
+    }
+  },
+  "importPlaintextResolveConnectionFailed": "Stopped looking up titles after a connection failure{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}} Try the rest again once you're online.",
+  "@importPlaintextResolveConnectionFailed": {
+    "description": "Snackbar shown when the program title list's online lookup stopped because an online source could not be reached. Says that the rest were not checked, rather than that no matches exist. Does not name a source (it tries The Caller's Box then ContraDB).",
+    "placeholders": {
+      "linked": {
+        "type": "int"
+      }
+    }
+  },
+  "importPlaintextResolveCancelled": "Stopped looking up titles{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}}",
+  "@importPlaintextResolveCancelled": {
+    "description": "Snackbar shown when the user cancels the program title list's online lookup part-way through.",
+    "placeholders": {
+      "linked": {
         "type": "int"
       }
     }
@@ -9157,6 +9245,18 @@
       }
     }
   },
+  "sharedImportCompleteWithFailures": "{count, plural, =0{Nothing was imported.} =1{Imported 1 item.} other{Imported {count} items.}} {failed, plural, =1{1 dance couldn't be imported.} other{{failed} dances couldn't be imported.}}",
+  "@sharedImportCompleteWithFailures": {
+    "description": "Transient snackbar message shown, alongside an Undo action, after a shared bundle is imported when some of its dances failed to import. {count} is what did import (dances, programs and other items); {failed} is the number of dances that failed (always at least 1).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "sharedImportProgramsOnly": "{count, plural, =1{This share contains 1 program and no dances.} other{This share contains {count} programs and no dances.}}",
   "@sharedImportProgramsOnly": {
     "description": "Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.",
@@ -10042,13 +10142,25 @@
   "@danceEditorRedoLabel": {
     "description": "Semantics label for the redo action."
   },
-  "danceEditorUndoShortcutTooltip": "Undo (Ctrl+Z)",
+  "danceEditorUndoShortcutTooltip": "{platform, select, apple{Undo (⌘Z)} other{Undo (Ctrl+Z)}}",
   "@danceEditorUndoShortcutTooltip": {
-    "description": "Tooltip for the undo app-bar action including its keyboard shortcut."
+    "description": "Tooltip for the undo app-bar action including its keyboard shortcut.",
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "description": "'apple' on macOS and iOS, where shortcuts use the Command key; 'other' everywhere else."
+      }
+    }
   },
-  "danceEditorRedoShortcutTooltip": "Redo (Ctrl+Shift+Z)",
+  "danceEditorRedoShortcutTooltip": "{platform, select, apple{Redo (⇧⌘Z)} other{Redo (Ctrl+Shift+Z)}}",
   "@danceEditorRedoShortcutTooltip": {
-    "description": "Tooltip for the redo app-bar action including its keyboard shortcut."
+    "description": "Tooltip for the redo app-bar action including its keyboard shortcut.",
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "description": "'apple' on macOS and iOS, where shortcuts use the Command key; 'other' everywhere else."
+      }
+    }
   },
   "danceEditorDeleteDanceTooltip": "Delete dance",
   "@danceEditorDeleteDanceTooltip": {
@@ -10186,9 +10298,23 @@
       }
     }
   },
-  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{Added 1 figure. Type another, or choose Done to finish.} other{Added {count} figures. Type another, or choose Done to finish.}}",
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{Added 1 figure. Type another, or choose Finish adding when you're done.} other{Added {count} figures. Type another, or choose Finish adding when you're done.}}",
   "@danceEditorFreeTextFiguresAddedConfirmation": {
-    "description": "Visible line under the free-text figure box after adding figure(s). \"Done\" is the button next to the box (commonDone) that closes it; keep the wording in step with that button's label.",
+    "description": "Visible line under the free-text figure box after adding figure(s). \"Finish adding\" is the button under the box (danceEditorFreeTextFinish) that closes it; keep the wording in step with that button's label.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorFreeTextFinish": "Finish adding",
+  "@danceEditorFreeTextFinish": {
+    "description": "Button under the free-text figure box. It means 'I have finished entering figures': it adds any line still in the box, as Enter would, and then closes the box. It must not read as finishing the one figure being typed (an earlier 'Done' label did, and callers lost the line they had typed)."
+  },
+  "danceEditorFreeTextFinishedAnnouncement": "{count, plural, =1{Added 1 figure.} other{Added {count} figures.}}",
+  "@danceEditorFreeTextFinishedAnnouncement": {
+    "description": "Screen-reader announcement when Finish adding (danceEditorFreeTextFinish) adds the line still in the free-text figure box and closes the box.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -10803,7 +10929,7 @@
   },
   "updateDownloadFailureDestination": "Could not choose a place to download the update.",
   "@updateDownloadFailureDestination": {
-    "description": "Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file."
+    "description": "Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file, or (on Windows and Linux) when something already occupied the app-chosen download path."
   },
   "updateDownloadFailureDestinationOccupied": "Something is already at that location. Choose another name or folder, or use \"View release\".",
   "@updateDownloadFailureDestinationOccupied": {
@@ -10820,6 +10946,18 @@
   "updateDownloadFailureUnreachable": "The update could not be downloaded. Check your connection and try again, or use \"View release\".",
   "@updateDownloadFailureUnreachable": {
     "description": "Assisted-download error shown when the download failed for a network or other transport reason. \"View release\" must match the translation of updateBannerViewRelease."
+  },
+  "updateDownloadFailureServerError": "The update server could not provide the file. Try again later, or use \"View release\".",
+  "@updateDownloadFailureServerError": {
+    "description": "Update download error shown when the server answered with an error status (for example 404 or 5xx)."
+  },
+  "updateDownloadFailureDiskFull": "There is not enough free disk space to save the update. Free up some space and try again, or use \"View release\".",
+  "@updateDownloadFailureDiskFull": {
+    "description": "Update download error shown when writing the downloaded file failed because the disk is full."
+  },
+  "updateDownloadFailureUnwritable": "The update could not be saved because the download location is not writable. Check its permissions and try again, or use \"View release\".",
+  "@updateDownloadFailureUnwritable": {
+    "description": "Update download error shown when the downloaded file could not be created or written because of permissions."
   },
   "updateDownloadFailureChecksumMismatch": "The downloaded update failed its security (sha256) check and was deleted. Try again, or use \"View release\" to download it manually.",
   "@updateDownloadFailureChecksumMismatch": {
@@ -12023,6 +12161,10 @@
       }
     }
   },
+  "recentlyDeletedEmptyProgramsKept": "Nothing in the trash. Deleted programs are kept here until you remove them.",
+  "@recentlyDeletedEmptyProgramsKept": {
+    "description": "Empty state for recently-deleted programs when there is no retention window."
+  },
   "recentlyDeletedEmptyProgramsRetention": "Nothing in the trash. Deleted programs appear here for {days} days before being removed.",
   "@recentlyDeletedEmptyProgramsRetention": {
     "description": "Empty state for recently-deleted programs with a retention window of {days} days.",
@@ -12338,7 +12480,15 @@
   },
   "publishedCollectionsUnavailable": "Published collections are temporarily unavailable.",
   "@publishedCollectionsUnavailable": {
-    "description": "Non-leaking error shown when the signed catalog cannot be fetched or verified."
+    "description": "Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check."
+  },
+  "publishedCollectionsOffline": "Published collections could not be reached. Check your connection and try again.",
+  "@publishedCollectionsOffline": {
+    "description": "Error shown when the signed published-collection catalog or an archive could not be fetched because the network is unreachable."
+  },
+  "publishedCollectionsNeedsNewerApp": "These published collections need a newer app version. Update the app to see them.",
+  "@publishedCollectionsNeedsNewerApp": {
+    "description": "Error shown when the published-collection catalog uses a format newer than this app can read."
   },
   "publishedCollectionImport": "Import collection",
   "@publishedCollectionImport": {
