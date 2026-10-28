@@ -1346,6 +1346,70 @@ void main() {
       expect(await dances.getById(targetId), isNotNull);
       expect((await dances.getById(editedId))!.links, isEmpty);
     });
+    test("the batch's own dance wins for a CC id it also commits", () async {
+      await dances.create(
+        Dance(id: 'other', title: 'Other', createdAt: now, updatedAt: now),
+      );
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      final batch = await importer.plan(_ccUsrBytes());
+
+      final result = await importer.commit(
+        batch,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': 'other'},
+      );
+
+      final byExternal = await danceIdByExternalId(result.danceSession);
+      expect(result.programs.single.slots.first.danceId, byExternal['4']);
+    });
+
+    test(
+      'a failed commit removes the link it added to the earlier dance',
+      () async {
+        // As above, a re-import, so the failed commit restores dance 7 rather
+        // than deleting it and the repository cannot clean the link up itself.
+        await importer.import(
+          _ccUsrBytesWithRelated([]),
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+        );
+        final adapter = CallersCompanionUsrAdapter();
+        final failing = _FailingLinkWriteDanceRepository(db);
+        final reimporter = CallersCompanionUsrImporter(
+          ImportPipeline(failing, choreographers),
+          programs,
+          venues,
+          customFieldDefs,
+          adapter: adapter,
+        );
+        final (rest, editedId) = await editFirst(
+          _ccUsrBytesWithRelated([('4', '7'), ('7', '4')]),
+          '4',
+          reimporter,
+        );
+        failing.failLinksOnOtherThan = editedId;
+
+        await expectLater(
+          reimporter.commit(
+            rest,
+            adapter.discoveredArchive!,
+            now: now,
+            venueEntityMode: false,
+            newId: nextId,
+            earlierDanceIds: {'4': editedId},
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        expect((await dances.getById(editedId))!.links, isEmpty);
+        expect(await dances.listAll(), hasLength(2));
+      },
+    );
   });
 
   group('related-dance links (issue #688)', () {
@@ -1587,5 +1651,24 @@ class _CountingVenueRepository extends VenueRepository {
   Future<List<Venue>> listAll({bool includeDeleted = false}) {
     listAllCallCount++;
     return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+/// A [DanceRepository] that refuses to write a dance carrying related links,
+/// unless it is the dance [failLinksOnOtherThan] names: the related-dance step
+/// of a `.USR` commit then fails after linking that one dance.
+class _FailingLinkWriteDanceRepository extends DanceRepository {
+  _FailingLinkWriteDanceRepository(CompendiumDatabase db)
+    : super(db, contraTaxonomy);
+
+  String? failLinksOnOtherThan;
+
+  @override
+  Future<void> update(Dance dance, {bool localUserEdit = false}) {
+    final spare = failLinksOnOtherThan;
+    if (spare != null && dance.id != spare && dance.links.isNotEmpty) {
+      throw StateError('simulated related-link write failure');
+    }
+    return super.update(dance, localUserEdit: localUserEdit);
   }
 }

@@ -251,8 +251,8 @@ class CallersCompanionUsrImporter {
   /// venue on every re-import.
   ///
   /// **Related dances (issue #688):** after the programs are persisted, each
-  /// archive `Dance_Related` pair is resolved via [_danceIdByCcRowId] and
-  /// turned into a directed `relatedDance` [DanceLink] on the source dance
+  /// archive `Dance_Related` pair is resolved via [_danceIdByCcRowId] (and
+  /// `earlierDanceIds`, below) and turned into a directed `relatedDance` [DanceLink] on the source dance
   /// (see [buildCcRelatedDanceLinks]'s doc for the full directionality,
   /// dedupe and OWASP-hardening rationale). A pair with an unresolved
   /// endpoint is skipped with a warning [ImportIssue] on
@@ -532,7 +532,6 @@ class CallersCompanionUsrImporter {
         }
       }
     } catch (_) {
-      await _removeLinks(linksAddedToEarlier);
       await _programs.hardDelete(insertedIds);
       for (final prior in priorStates) {
         await _programs.update(prior);
@@ -542,6 +541,8 @@ class CallersCompanionUsrImporter {
       }
       await _venues.hardDelete(insertedVenueIds);
       await _pipeline.undo(danceSession);
+      // Last, so the older steps above run even if this one throws.
+      await _removeLinks(linksAddedToEarlier);
       await _revertUserFieldDefinitions(keptInserted, keptRestored);
       rethrow;
     }
@@ -1017,8 +1018,8 @@ class CallersCompanionUsrImporter {
     // any surviving program row still names (tombstoned ones included) is left
     // untouched rather than orphaning that reference.
     await _venues.hardDelete(result.insertedVenueIds);
-    await _removeLinks(result.linksAddedToEarlierDances);
     await _pipeline.undo(result.danceSession);
+    await _removeLinks(result.linksAddedToEarlierDances);
     // After the dances: the guard refuses to remove a definition a live dance
     // still holds a value for, so the definitions can only go once this
     // import's dances have.

@@ -9,7 +9,7 @@
   },
   "core": {
     "added": [
-      "CallersCompanionUsrImporter.commitDances commits .USR dances alone, creating their user-field definitions first; commit takes earlierDanceIds so its programs and related-dance links can name those dances."
+      "CallersCompanionUsrImporter.commitDances commits .USR dances alone, creating their user-field definitions first; commit takes earlierDanceIds so its programs and related-dance links can name those dances, and records the links it adds to them in CcUsrImportResult.linksAddedToEarlierDances."
     ]
   }
 }
