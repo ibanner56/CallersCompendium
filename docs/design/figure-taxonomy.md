@@ -1675,6 +1675,19 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     every courtesy turn without a stated direction changes, so v37 owes a
     one-time canonical/FTS rebuild, guarded by
     `taxonomyV37CanonicalRebuildDoneKey`.
+- v38: changes five seeded defaults, the ones the figure editor offers on entry:
+    `circle.places` 4 -> 3, `allemande.travel` 1 -> 1.5, `star.hand` right ->
+    left, `poussette.who` `ones` -> `role1s`, and `square_through`
+    `places`/`beats` 4/16 -> 2/8 (maintainer, on the PR that made this change).
+    `square_through.goodBeats` becomes `[8, 16]` so existing four-place,
+    16-beat figures keep raising no `atypical_beats` warning. Source JSON is
+    unchanged: a stored figure that never stated one of these now means the new
+    default, and one that stated a value keeps it. The canonical text of every
+    figure that leaves one of them unstated changes, so v38 owes a one-time
+    canonical/FTS rebuild, guarded by `taxonomyV38CanonicalRebuildDoneKey`.
+    No backfill pins the old values into stored figures (maintainer's call
+    in this session: the editor should offer the new defaults), so a device
+    still on v37 renders such a figure with the old default until it updates.
 
 ## Open questions (to resolve during implementation, with user input)
 

@@ -23,7 +23,7 @@ import 'taxonomy.dart';
 /// Bump only when the current value has shipped in a release. While it has
 /// not, a taxonomy change joins that version and amends its entry instead
 /// (CONTRIBUTING.md, "Versioned formats").
-const int contraTaxonomyVersion = 37;
+const int contraTaxonomyVersion = 38;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
