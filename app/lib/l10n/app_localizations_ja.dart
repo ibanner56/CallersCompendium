@@ -3184,6 +3184,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'このバックアップを置き換えるための空き容量が足りません（必要 $neededMb MB、空き $freeMb MB）。何も保存されておらず、以前のバックアップは変更されていません。';
+  }
+
+  @override
   String get backupExportInProgress => 'バックアップを準備しています…';
 
   @override

@@ -164,3 +164,20 @@ final class InstallLocationTests: XCTestCase {
         bundleURL: URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)/App.app")))
   }
 }
+
+/// FAIL-16: the free-space answer behind the in-place backup write's check.
+final class BackupVolumeTests: XCTestCase {
+  func testExistingFileReportsFreeSpace() throws {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("backup-volume-\(UUID().uuidString).json")
+    try Data("{}".utf8).write(to: url)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let bytes = try XCTUnwrap(BackupVolume.availableBytes(path: url.path))
+    XCTAssertGreaterThan(bytes, 0)
+  }
+
+  /// A path statfs cannot read answers "unknown", which lets the save go ahead.
+  func testMissingPathIsUnknown() {
+    XCTAssertNil(BackupVolume.availableBytes(path: "/nonexistent-\(UUID().uuidString)/b.json"))
+  }
+}

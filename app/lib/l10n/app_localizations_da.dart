@@ -3347,6 +3347,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'Der er ikke nok ledig plads til at erstatte denne sikkerhedskopi ($neededMb MB nødvendig; $freeMb MB ledig), så intet blev gemt. Din tidligere sikkerhedskopi er uændret.';
+  }
+
+  @override
   String get backupExportInProgress => 'Forbereder din sikkerhedskopi…';
 
   @override

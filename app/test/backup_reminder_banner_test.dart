@@ -8,6 +8,8 @@ import 'package:compendium_app/src/data/backup_document.dart'
         defaultBackupCodecRunner,
         runBackupCodecInline,
         runBackupCodecOnIsolate;
+import 'package:compendium_app/src/data/backup_io.dart'
+    show BackupDiskFullException;
 import 'package:compendium_app/src/data/backup_reminder.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -159,6 +161,33 @@ void main() {
       await appData.repositories.settings.get(kLastBackupAtKey),
     );
     expect(DateTime.now().toUtc().difference(stamped!).inMinutes, lessThan(5));
+  });
+
+  testWidgets('Export backup with no room to replace the old one says so and '
+      'keeps the banner', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final l10n = await _l10n();
+    final appData = openTestAppData();
+    await _seed(appData, cadence: 'weekly');
+
+    await _pump(
+      tester,
+      appData,
+      saver: (_, _) async => throw const BackupDiskFullException(
+        requiredBytes: 31 * 1024 * 1024,
+        availableBytes: 12 * 1024 * 1024,
+      ),
+    );
+    await tester.tap(find.text(l10n.backupReminderBannerExport));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(l10n.backupExportDiskFull('31.0', '12.0')),
+      findsOneWidget,
+    );
+    expect(find.byKey(_bannerKey), findsOneWidget);
+    expect(await appData.repositories.settings.get(kLastBackupAtKey), isNull);
   });
 
   testWidgets(

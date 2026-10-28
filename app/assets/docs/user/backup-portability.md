@@ -49,6 +49,20 @@ The app won't write a backup larger than it can restore. If your collection is
 too large to export as a single backup, it says so, shows the size and the
 limit, and saves nothing — your data is unchanged.
 
+### Saving over an older backup
+
+On Windows and Linux, the app writes a new backup beside the file you chose
+and swaps it in only once it is complete, so a save that fails part way
+leaves your earlier backup as it was.
+
+On a Mac, macOS lets the app write only to the exact file you chose, so saving
+over an older backup replaces that file in place. Before it does, the app
+checks that the disk has room for the new backup. If it doesn't, the app says
+how much space the backup needs and how much is free, saves nothing, and
+leaves your earlier backup unchanged. Free up some space and export again, or
+save under a new name. The check can't foresee another app filling the disk
+during the save, so it's worth keeping more than one backup.
+
 ### An integrity check, not a lock
 
 A backup is plain, readable text — open it in any text editor and you'll
@@ -127,6 +141,13 @@ file that couldn't say what your settings, themes and dialects should
 become), the restore stops *before* any of your current data is touched —
 so you never lose what you already have by trying. A file too large to be a
 backup is refused the same way, with its size and the limit.
+
+> **Restoring on an older version of the app.** A backup that holds your own
+> Glossary figures or notes, or pay or a Perform dialect on any program, needs
+> version 0.8.0 or later. Versions 0.5.2 to 0.7.0 refuse it as coming from a
+> newer version, rather than restoring it without those details. Versions
+> before 0.5.2 don't check, and may restore it without them. Install the
+> current version before you restore.
 
 If you use [Device Sync](./settings.md#device-sync) with another device that
 runs a newer version of the app, a restore keeps the details that version added

@@ -3372,6 +3372,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'Er is niet genoeg vrije ruimte om deze back-up te vervangen ($neededMb MB nodig; $freeMb MB vrij), dus er is niets opgeslagen. Je eerdere back-up is ongewijzigd.';
+  }
+
+  @override
   String get backupExportInProgress => 'Je back-up wordt voorbereid…';
 
   @override

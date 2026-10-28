@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart'
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../data/backup_export_labels.dart';
 import '../../data/backup_io.dart';
 import '../../data/backup_service.dart';
 import '../../data/repositories_scope.dart';
@@ -117,25 +118,11 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           'callers-compendium-backup-${now.toUtc().toIso8601String().substring(0, 10)}.json',
         );
         if (delivered) await service.recordBackup(now);
-      } on BackupExportTooLargeException catch (e, st) {
-        logCaughtError(e, st, source: 'sync_pairing_screen._offerBackup');
-        if (mounted) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                l10n.backupExportTooLarge(
-                  backupMegabytes(e.sizeBytes),
-                  backupMegabytes(e.maxBytes),
-                ),
-              ),
-            ),
-          );
-        }
       } on Object catch (e, st) {
         logCaughtError(e, st, source: 'sync_pairing_screen._offerBackup');
         if (mounted) {
           messenger.showSnackBar(
-            SnackBar(content: Text(l10n.backupExportFailed)),
+            SnackBar(content: Text(backupExportFailureMessage(l10n, e))),
           );
         }
       }

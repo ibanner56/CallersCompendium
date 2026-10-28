@@ -5191,6 +5191,12 @@ abstract class AppLocalizations {
   /// **'Your collection is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.'**
   String backupExportTooLarge(String sizeMb, String limitMb);
 
+  /// Snackbar shown on macOS when saving a backup over an existing backup file is refused because the disk does not have room for the new one; the existing file is left as it was. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'There isn\'t enough free space to replace this backup ({neededMb} MB needed; {freeMb} MB free), so nothing was saved. Your earlier backup is unchanged.'**
+  String backupExportDiskFull(String neededMb, String freeMb);
+
   /// Text in the progress dialog shown while a backup is being built and saved. No percentage is shown.
   ///
   /// In en, this message translates to:
