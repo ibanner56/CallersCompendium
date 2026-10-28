@@ -262,10 +262,9 @@ const String taxonomyV37CanonicalRebuildDoneKey =
     '__taxonomy_v37_canonical_rebuild_done__';
 
 /// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v38.
-/// The defaults of `circle.places`, `allemande.travel`, `star.hand`,
-/// `poussette.who` and `square_through.places`/`beats` changed, which changes
-/// the canonical text of every stored figure that does not state them,
-/// without changing its source JSON.
+/// Ten seeded defaults changed (listed in the v38 entry of
+/// `docs/design/figure-taxonomy.md`), which changes the canonical text of every
+/// stored figure that does not state them, without changing its source JSON.
 const String taxonomyV38CanonicalRebuildDoneKey =
     '__taxonomy_v38_canonical_rebuild_done__';
 

@@ -2323,11 +2323,10 @@ class CompendiumRepositories {
     return true;
   }
 
-  /// Rebuilds canonical/FTS text after taxonomy v38 changed the defaults of
-  /// `circle.places`, `allemande.travel`, `star.hand`, `poussette.who` and
-  /// `square_through.places`/`beats`. Source JSON is unchanged: a figure that
-  /// never stated one of these now means the new default, and only its derived
-  /// canonical text and search rows were stale.
+  /// Rebuilds canonical/FTS text after taxonomy v38 changed ten seeded defaults
+  /// (listed in the v38 entry of `docs/design/figure-taxonomy.md`). Source JSON
+  /// is unchanged: a figure that never stated one of these now means the new
+  /// default, and only its derived canonical text and search rows were stale.
   Future<bool> _emitTaxonomyV38CanonicalTextIfNeeded({
     bool alreadyRebuilt = false,
     DerivedRebuildProgressCallback? onProgress,
