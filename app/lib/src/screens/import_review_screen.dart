@@ -2881,9 +2881,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // programs regardless of how dance rows are dispositioned, so the button
     // gate must account for programs — not just the dance count. Mirrors the
     // identical check at the top of this method that routes zero-dance archives
-    // to _buildSharedProgramsOnlyReview.
+    // to _buildSharedProgramsOnlyReview. A `.USR` file's sets are committed
+    // as programs the same way, so a re-import that leaves every known dance
+    // at Skip can still bring in new or changed sets.
     final effectiveBundle = _effectiveSharedBundle;
-    final programCount = effectiveBundle?.archive.programs.length ?? 0;
+    final programCount =
+        effectiveBundle?.archive.programs.length ??
+        _usrArchive?.sets.length ??
+        0;
     final hasPrograms = programCount > 0;
     // How many *distinct* existing local dances a commit would overwrite (issue
     // #446): the unique target ids across rows the user has set to "Re-import
