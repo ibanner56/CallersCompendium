@@ -70,6 +70,11 @@ Map<String, Object?> _danceContentJson(Dance dance) {
   for (final key in ['id', 'provenance', 'createdAt', 'updatedAt']) {
     content.remove(key);
   }
+  // A link's id is the sender's, and an import gives it a fresh one.
+  content['links'] = [
+    for (final link in content['links']! as List)
+      Map<String, Object?>.from(link as Map)..remove('id'),
+  ];
   return content;
 }
 
@@ -251,6 +256,7 @@ void main() {
       final imported = await dances.getById(session.insertedDanceIds.single);
       expect(imported, isNotNull);
       expect(_danceContentJson(imported!), _danceContentJson(source));
+      expect(imported.links.single.id, isNot('link-1'));
     });
 
     test('enumerates one record per dance with correct labels/ids', () async {
