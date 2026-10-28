@@ -50,8 +50,8 @@ class DanceEditorController extends ChangeNotifier {
        formationDetailController = LingoTextEditingController(dialect: dialect),
        tuneController = LingoTextEditingController(dialect: dialect),
        _draftKey = danceId == null
-           ? '$kNewDanceEditorDraftKeyPrefix${uuidV4()}'
-           : '$kDanceEditorDraftKeyPrefix$danceId' {
+           ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
+           : danceEditorDraftKey(danceId) {
     freeTextComposer.addListener(_notify);
     _openDraftKeys.add(_draftKey);
   }

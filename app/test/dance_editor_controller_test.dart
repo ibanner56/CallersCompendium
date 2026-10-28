@@ -2120,8 +2120,14 @@ void main() {
         addTearDown(a.dispose);
         final b = await newDanceController(repos);
         addTearDown(b.dispose);
-        expect(a.draftKey, startsWith(kNewDanceEditorDraftKeyPrefix));
-        expect(b.draftKey, startsWith(kNewDanceEditorDraftKeyPrefix));
+        expect(
+          a.draftKey,
+          startsWith(danceEditorDraftKey(kNewDanceDraftIdPrefix)),
+        );
+        expect(
+          b.draftKey,
+          startsWith(danceEditorDraftKey(kNewDanceDraftIdPrefix)),
+        );
         expect(a.draftKey, isNot(b.draftKey));
 
         a.titleController.text = 'First';
@@ -2194,7 +2200,7 @@ void main() {
           'that editor lets it go', () async {
         final repos = openTestRepositories();
         await repos.settings.set(
-          kLegacyNewDanceEditorDraftKey,
+          danceEditorDraftKey(kLegacyNewDanceDraftId),
           '{"v":13,"title":"Legacy","form":"contra",'
           '"formationShape":"dupleImproper","progression":"single",'
           '"status":"active","figureDrafts":[]}',
@@ -2218,7 +2224,7 @@ void main() {
         () async {
           final repos = openTestRepositories();
           await repos.settings.set(
-            kLegacyNewDanceEditorDraftKey,
+            danceEditorDraftKey(kLegacyNewDanceDraftId),
             '{"v":13,"title":"Legacy","form":"contra",'
             '"formationShape":"dupleImproper","progression":"single",'
             '"status":"active","figureDrafts":[]}',
@@ -2241,15 +2247,15 @@ void main() {
             '"form":"contra","formationShape":"dupleImproper",'
             '"progression":"single","status":"active","figureDrafts":[]}';
         await repos.settings.set(
-          kLegacyNewDanceEditorDraftKey,
+          danceEditorDraftKey(kLegacyNewDanceDraftId),
           draftJson('Undated', null),
         );
         await repos.settings.set(
-          '${kNewDanceEditorDraftKeyPrefix}a',
+          '${danceEditorDraftKey(kNewDanceDraftIdPrefix)}a',
           draftJson('Newest', '2026-10-28T12:00:00.000Z'),
         );
         await repos.settings.set(
-          '${kNewDanceEditorDraftKeyPrefix}b',
+          '${danceEditorDraftKey(kNewDanceDraftIdPrefix)}b',
           draftJson('Older', '2026-10-27T12:00:00.000Z'),
         );
         final controller = await newDanceController(repos);

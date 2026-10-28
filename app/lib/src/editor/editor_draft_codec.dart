@@ -7,9 +7,8 @@ import 'figure_draft.dart';
 
 /// Settings-table key prefix for the dance editor's transient autosave drafts.
 ///
-/// Draft keys are dynamic (`editor_draft:<danceId>`, or
-/// [kNewDanceEditorDraftKeyPrefix] plus a per-editor id for a dance not yet
-/// saved) and hold unsaved,
+/// Draft keys are dynamic ([danceEditorDraftKey]: `editor_draft:<danceId>`, or
+/// `editor_draft:new:<editor id>` for a dance not yet saved) and hold unsaved,
 /// device-local in-progress edits — not user content or preferences. They must
 /// never travel in a backup, so `backup_service.dart` excludes this prefix from
 /// both export and restore (see `kBackupSettingsDenylistPrefixes`). It lives in
@@ -17,19 +16,25 @@ import 'figure_draft.dart';
 /// it without a data→UI dependency.
 const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 
-/// The draft key every new dance shared before each new dance got its own
-/// (AUTH-10). A draft still stored under it is read as one more new dance's.
-const String kLegacyNewDanceEditorDraftKey = 'editor_draft:new';
+/// The draft key for [id] under [kDanceEditorDraftKeyPrefix]: a dance's id,
+/// or for a dance not yet saved, an id made from [kNewDanceDraftIdPrefix].
+String danceEditorDraftKey(String id) => '$kDanceEditorDraftKeyPrefix$id';
 
-/// Key prefix for the draft of a dance not yet saved: each new-dance editor
+/// The draft id every new dance shared before each new dance got its own
+/// (AUTH-10). A draft still stored under it is read as one more new dance's.
+const String kLegacyNewDanceDraftId = 'new';
+
+/// How the draft id of a dance not yet saved starts: each new-dance editor
 /// writes under this plus its own id, so two new dances never share a draft.
-const String kNewDanceEditorDraftKeyPrefix = 'editor_draft:new:';
+const String kNewDanceDraftIdPrefix = '$kLegacyNewDanceDraftId:';
 
 /// Whether [key] holds the draft of a dance not yet saved, under either the
-/// per-editor form or the legacy shared key.
-bool isNewDanceEditorDraftKey(String key) =>
-    key == kLegacyNewDanceEditorDraftKey ||
-    key.startsWith(kNewDanceEditorDraftKeyPrefix);
+/// per-editor form or the legacy shared id.
+bool isNewDanceEditorDraftKey(String key) {
+  if (!key.startsWith(kDanceEditorDraftKeyPrefix)) return false;
+  final id = key.substring(kDanceEditorDraftKeyPrefix.length);
+  return id == kLegacyNewDanceDraftId || id.startsWith(kNewDanceDraftIdPrefix);
+}
 
 /// Draft schema version. Increment if the JSON shape changes in a
 /// backward-incompatible way; [decodeDraft] checks this and rejects
@@ -97,8 +102,8 @@ bool isNewDanceEditorDraftKey(String key) =>
 ///   converts them; an older build reads them as before.
 ///
 /// An older build does look for a new dance's draft under the shared key
-/// [kLegacyNewDanceEditorDraftKey] only, so after a downgrade it does not
-/// offer a draft written under [kNewDanceEditorDraftKeyPrefix]. The draft is
+/// `editor_draft:new` only, so after a downgrade it does not
+/// offer a draft written under a per-editor key. The draft is
 /// not deleted, and is offered again once the newer build is back.
 const _kDraftVersion = 14;
 

@@ -6,7 +6,7 @@ import 'package:compendium_core/compendium_core.dart';
 /// one, so a test that does not hold the editor reads them by prefix.
 Future<List<String>> newDanceDraftKeys(CompendiumRepositories repos) async => [
   for (final key in await repos.settings.keysWithPrefix(
-    kLegacyNewDanceEditorDraftKey,
+    danceEditorDraftKey(kLegacyNewDanceDraftId),
   ))
     if (isNewDanceEditorDraftKey(key)) key,
 ];

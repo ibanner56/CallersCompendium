@@ -370,26 +370,7 @@ final Map<String, DataClassification> settingsClassifications = {
   '__taxonomy_v35_figure_normalization_done__': _installState,
   '__callersbox_roll_away_role_repair_done__': _installState,
   '__normalisation_derived_index_repair_done__': _installState,
-
-  // -- Editor autosave drafts ------------------------------------------------
-  // The draft every new dance shared before each got its own key (AUTH-10),
-  // still read so a draft left under it is offered. It is one key under the
-  // `editor_draft:` prefix and classified the same way, for the same reason.
-  'editor_draft:new': _editorDraft,
 };
-
-/// The dance-editor autosave draft, under every key it is written to.
-const _editorDraft = DataClassification(
-  term: DpvTerm.nonPersonal,
-  subject: DataSubject.appUser,
-  egress: EgressClass.deviceScoped,
-  note:
-      'Transient dance-editor autosave draft, keyed per dance '
-      '(editor_draft:<id>, or editor_draft:new:<editor id> for a dance not '
-      'yet saved). Unsaved user-authored choreography text that '
-      'must never leave this device by any route, including a local '
-      'backup file — see backup_service.dart.',
-);
 
 /// Classification for settings keys that are *built at runtime* from a known
 /// prefix rather than declared as an exact `const String`, keyed by the
@@ -410,10 +391,17 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
   // thing this data must never do. `deviceScoped` (never transmitted by any
   // route) is the classification that actually matches the existing backup
   // exclusion. Maintainer-ruled on issue #923 (2026-08-13 comment).
-  'editor_draft:': _editorDraft,
-  // The per-editor draft of a dance not yet saved (AUTH-10): a narrower form
-  // of `editor_draft:`, classified the same way for the same reason.
-  'editor_draft:new:': _editorDraft,
+  'editor_draft:': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Transient dance-editor autosave draft, keyed per dance '
+        '(editor_draft:<id>, or editor_draft:new:<editor id> for a dance not '
+        'yet saved). Unsaved user-authored choreography text that '
+        'must never leave this device by any route, including a local '
+        'backup file — see backup_service.dart.',
+  ),
   'program_editor_draft:': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,

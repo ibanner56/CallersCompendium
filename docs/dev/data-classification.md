@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**104 settings keys**: 67 shareable, 8 device-local, 27 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**103 settings keys**: 67 shareable, 8 device-local, 26 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -535,7 +535,6 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `default_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_starting_program` | `dpv:NonPersonalData` | app user | shareable | User-authored semantic slot template for manually created programs. It contains selected dance references and caller notes, so it travels with the user preference in local backups. |
 | `ecd_convert_prompt_dismissed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
-| `editor_draft:new` | `dpv:NonPersonalData` | app user | device-scoped | Transient dance-editor autosave draft, keyed per dance (editor_draft:<id>, or editor_draft:new:<editor id> for a dance not yet saved). Unsaved user-authored choreography text that must never leave this device by any route, including a local backup file — see backup_service.dart. |
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `free_text_entry` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -586,12 +585,11 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 
 Some settings-table keys are built at runtime from a per-entity suffix rather than declared as an exact key (`editor_draft:<id>`), so they cannot appear in the table above. Each prefix below classifies every key it matches; `classifySettingsKey` resolves the longest matching prefix.
 
-**4 settings key prefixes**: 1 shareable, 3 device-scoped. 0 personal data by category.
+**3 settings key prefixes**: 1 shareable, 2 device-scoped. 0 personal data by category.
 
 | Key prefix | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
 | `editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient dance-editor autosave draft, keyed per dance (editor_draft:<id>, or editor_draft:new:<editor id> for a dance not yet saved). Unsaved user-authored choreography text that must never leave this device by any route, including a local backup file — see backup_service.dart. |
-| `editor_draft:new:` | `dpv:NonPersonalData` | app user | device-scoped | Transient dance-editor autosave draft, keyed per dance (editor_draft:<id>, or editor_draft:new:<editor id> for a dance not yet saved). Unsaved user-authored choreography text that must never leave this device by any route, including a local backup file — see backup_service.dart. |
 | `program_editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient program-editor autosave draft, keyed per program (program_editor_draft:<id>). Same rationale as editor_draft:. |
 | `sync_capabilities:` | `dpv:NonPersonalData` | — | shareable | Sync protocol metadata, keyed per attachment (sync_capabilities:<deviceId>): the names of the sync capabilities the device's build understands, nothing about the user. Travels so every device can see what the others can read (#709 capability gate). The device id in the key is the same protocolIdentifier every manifest already carries. Never restored from a backup (backup_service.dart denylists the prefix), since only its own device may write it, apart from the tombstone written when a device is removed from the store. Erased, not tombstoned, on detach (SyncLocalRepository.clearOnDetach), so the device ids of a store this device has left never reach the next one. |
 

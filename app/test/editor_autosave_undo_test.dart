@@ -459,20 +459,19 @@ void main() {
       expect(decoded.figureDrafts.first.note, 'Larks go');
     });
 
-    test('the new-dance draft keys sit under the editor draft prefix, so '
-        'backup excludes them and the registry classifies them', () {
+    test('new-dance drafts are keyed under the editor draft prefix, which '
+        'backup excludes and the registry classifies', () {
+      expect(danceEditorDraftKey(kLegacyNewDanceDraftId), 'editor_draft:new');
+      expect(danceEditorDraftKey(kNewDanceDraftIdPrefix), 'editor_draft:new:');
       expect(
-        kLegacyNewDanceEditorDraftKey,
-        startsWith(kDanceEditorDraftKeyPrefix),
+        classifySettingsKey('editor_draft:new:x')?.egress,
+        EgressClass.deviceScoped,
       );
-      expect(kNewDanceEditorDraftKeyPrefix, '$kLegacyNewDanceEditorDraftKey:');
-      expect(isNewDanceEditorDraftKey(kLegacyNewDanceEditorDraftKey), isTrue);
-      expect(
-        isNewDanceEditorDraftKey('${kNewDanceEditorDraftKeyPrefix}x'),
-        isTrue,
-      );
+      expect(isNewDanceEditorDraftKey('editor_draft:new'), isTrue);
+      expect(isNewDanceEditorDraftKey('editor_draft:new:x'), isTrue);
       expect(isNewDanceEditorDraftKey('editor_draft:newer'), isFalse);
       expect(isNewDanceEditorDraftKey('editor_draft:d1'), isFalse);
+      expect(isNewDanceEditorDraftKey('program_editor_draft:new'), isFalse);
     });
 
     test('unreadable text roles read as unknown, not as no roles', () {
@@ -1111,7 +1110,7 @@ void main() {
         'name, not as "this dance" (AUTH-10)', (tester) async {
       final repos = openTestRepositories();
       await repos.settings.set(
-        kLegacyNewDanceEditorDraftKey,
+        danceEditorDraftKey(kLegacyNewDanceDraftId),
         encodeDraft(_snap(title: 'Abandoned')),
       );
 
