@@ -2224,7 +2224,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      '現在のテーマをコピーして色を調整できます。カスタムテーマはこのデバイスに保存されます。';
+      '現在のテーマをコピーして色を調整できます。カスタムテーマは、同期がオンのとき、他のデバイスと同期されます。';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'テーマを削除しますか？';
@@ -3277,7 +3277,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'アプリのこの部分で予期しないエラーが発生し、復旧しました。詳細はデバイスを離れないローカル診断ログ（設定 ▸ 診断）に保存されました。';
+      'アプリのこの部分で予期しないエラーが発生し、表示できませんでした。詳細はデバイスを離れないローカル診断ログ（設定 ▸ 診断）に保存されました。';
 
   @override
   String get crashFallbackCopied => 'コピーしました';
@@ -3466,7 +3466,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionNewDance => '新しいダンス';
 
   @override
-  String get collectionSearchTooltip => '検索 (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': '検索 (⌘K)',
+      'other': '検索 (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'ダンスを選択';
@@ -5088,6 +5094,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get performExitBody =>
       'パフォームビューを終了しますか？位置と実行中のタイマーは保持されるため、中断した場所から再開できます。';
+
+  @override
+  String get performDanceExitBody =>
+      'パフォームビューを終了しますか？単一のダンスのパフォームでは位置は保持されないため、次回は最初から始まります。';
 
   @override
   String get performExitCancel => 'パフォームを続ける';
@@ -7492,10 +7502,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorRedoLabel => 'やり直し';
 
   @override
-  String get danceEditorUndoShortcutTooltip => '元に戻す (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': '元に戻す (⌘Z)',
+      'other': '元に戻す (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip => 'やり直し (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'やり直し (⇧⌘Z)',
+      'other': 'やり直し (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'ダンスを削除';

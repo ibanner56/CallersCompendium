@@ -2341,7 +2341,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Kopier det aktuelle tema og juster en vilkårlig farve. Brugerdefinerede temaer gemmes på denne enhed.';
+      'Kopier det aktuelle tema og juster en vilkårlig farve. Brugerdefinerede temaer synkroniseres til dine andre enheder, når synkronisering er slået til.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Slet tema?';
@@ -3445,7 +3445,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Denne del af appen stødte på en uventet fejl og kom sig. Detaljerne blev gemt til en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed.';
+      'Denne del af appen stødte på en uventet fejl og kunne ikke vises. Detaljerne blev gemt til en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed.';
 
   @override
   String get crashFallbackCopied => 'Kopieret';
@@ -3636,7 +3636,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionNewDance => 'Ny dans';
 
   @override
-  String get collectionSearchTooltip => 'Søg (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Søg (⌘K)',
+      'other': 'Søg (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Vælg danse';
@@ -5305,6 +5311,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get performExitBody =>
       'Forlad fremførelsesvisningen? Din placering og det kørende ur bevares, så du kan genoptage når som helst.';
+
+  @override
+  String get performDanceExitBody =>
+      'Forlad fremførelsesvisningen? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.';
 
   @override
   String get performExitCancel => 'Fortsæt fremførelse';
@@ -7803,11 +7813,22 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorRedoLabel => 'Annullér fortryd';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Fortryd (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Fortryd (⌘Z)',
+      'other': 'Fortryd (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip =>
-      'Annullér fortryd (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Annullér fortryd (⇧⌘Z)',
+      'other': 'Annullér fortryd (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Slet dans';

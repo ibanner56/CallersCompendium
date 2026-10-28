@@ -212,7 +212,7 @@ There's a **High contrast** theme for maximum legibility — see the
 - **New custom theme** — opens an editor seeded from your current theme, so you
   start from something familiar. You can tune any colour in it.
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
-  They are saved on this device.
+  They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
 
 ### Easter eggs
 

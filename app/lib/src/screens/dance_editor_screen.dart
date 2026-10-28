@@ -16,6 +16,7 @@ import '../diagnostics/error_log.dart';
 import '../search/dance_editor_reference_data.dart';
 import '../theme/destructive_button_style.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/choreographer_details_dialog.dart';
 import '../widgets/published_source_details_dialog.dart';
@@ -862,7 +863,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                       label: l10n.commonUndo,
                       child: IconButton(
                         key: const ValueKey('undo-button'),
-                        tooltip: l10n.danceEditorUndoShortcutTooltip,
+                        tooltip: l10n.danceEditorUndoShortcutTooltip(
+                          shortcutPlatform(context),
+                        ),
                         icon: const Icon(Icons.undo),
                         onPressed: _controller.canUndo
                             ? _controller.undo
@@ -873,7 +876,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                       label: l10n.danceEditorRedoLabel,
                       child: IconButton(
                         key: const ValueKey('redo-button'),
-                        tooltip: l10n.danceEditorRedoShortcutTooltip,
+                        tooltip: l10n.danceEditorRedoShortcutTooltip(
+                          shortcutPlatform(context),
+                        ),
                         icon: const Icon(Icons.redo),
                         onPressed: _controller.canRedo
                             ? _controller.redo

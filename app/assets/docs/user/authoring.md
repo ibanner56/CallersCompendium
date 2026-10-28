@@ -533,6 +533,17 @@ referenced.
 | Undo | Ctrl-Z | Cmd-Z |
 | Redo | Ctrl-Shift-Z or Ctrl-Y | Cmd-Shift-Z |
 
+The tooltips on the Undo and Redo buttons show the shortcut for your platform.
+
+### Figure keyboard shortcuts
+
+With a keyboard attached, these work on the figure list in the dance editor:
+
+| Action | Linux / Windows | macOS |
+|---|---|---|
+| Move the focused figure up or down | Alt-↑ / Alt-↓ | Option-↑ / Option-↓ |
+| Commit the figure you are editing and open the next (or add one at the end) | Ctrl-Enter | Cmd-Enter |
+
 ### Your work is kept while you type
 
 The editor keeps a draft as you work. If the app closes before you save —

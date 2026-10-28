@@ -2363,7 +2363,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden auf diesem Gerät gespeichert.';
+      'Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden mit Ihren anderen Geräten synchronisiert, wenn die Synchronisierung aktiviert ist.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Design löschen?';
@@ -3485,7 +3485,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Dieser Teil der App ist auf einen unerwarteten Fehler gestoßen und hat sich erholt. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das Ihr Gerät nie verlässt.';
+      'Dieser Teil der App ist auf einen unerwarteten Fehler gestoßen und konnte nicht angezeigt werden. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das Ihr Gerät nie verlässt.';
 
   @override
   String get crashFallbackCopied => 'Kopiert';
@@ -3676,7 +3676,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionNewDance => 'Neuer Tanz';
 
   @override
-  String get collectionSearchTooltip => 'Suchen (Strg/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Suchen (⌘K)',
+      'other': 'Suchen (Strg+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Tänze auswählen';
@@ -5361,6 +5367,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get performExitBody =>
       'Perform-Ansicht verlassen? Ihr Platz und die laufende Uhr werden gespeichert, sodass Sie dort weitermachen können, wo Sie aufgehört haben.';
+
+  @override
+  String get performDanceExitBody =>
+      'Perform-Ansicht verlassen? Beim Perform eines einzelnen Tanzes wird Ihr Platz nicht gespeichert, daher beginnt es beim nächsten Mal von vorn.';
 
   @override
   String get performExitCancel => 'Weitermachen';
@@ -7894,10 +7904,22 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorRedoLabel => 'Wiederholen';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Rückgängig (Strg+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Rückgängig (⌘Z)',
+      'other': 'Rückgängig (Strg+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip => 'Wiederholen (Strg+Umschalt+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Wiederholen (⇧⌘Z)',
+      'other': 'Wiederholen (Strg+Umschalt+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Tanz löschen';
