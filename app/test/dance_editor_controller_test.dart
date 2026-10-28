@@ -1048,7 +1048,7 @@ void main() {
       addTearDown(controller.dispose);
 
       Figure noted(String move, String note) =>
-          Figure(move: move, params: const {'beats': 8}, note: note);
+          testFigure(move: move, params: const {'beats': 8}, note: note);
       final stored = sampleDance(id: 'd1').copyWith(
         figures: [
           Figure.sequence(

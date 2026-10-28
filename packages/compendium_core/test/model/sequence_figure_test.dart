@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 import '../storage/fixtures.dart';
@@ -11,9 +12,9 @@ import '../storage/test_database.dart';
 /// the one-phrase warning, and ordered search rows.
 void main() {
   Figure balance({String who = 'ones', int beats = 4}) =>
-      Figure(move: 'balance', params: {'who': who, 'beats': beats});
+      testFigure(move: 'balance', params: {'who': who, 'beats': beats});
   Figure swing({String who = 'ones', int beats = 12}) =>
-      Figure(move: 'swing', params: {'who': who, 'beats': beats});
+      testFigure(move: 'swing', params: {'who': who, 'beats': beats});
   final balanceAndSwing = Figure.sequence(
     figures: [balance(), swing()],
     beats: 16,
