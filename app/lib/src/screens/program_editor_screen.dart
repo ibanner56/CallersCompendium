@@ -2109,77 +2109,53 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final expected = _performStored;
     if (expected == null) return false;
     final keepDirty = _dirty;
-    final previousSlots = _slots;
     final workingSlots = undo(_slots);
     final replacement = expected.copyWith(slots: undo(expected.slots));
-    // With other edits unsaved, the working copy takes the Undo now, so a
-    // shutdown flush during the write snapshots it without the undone change;
-    // it is put back below if the restore is refused or fails.
-    if (keepDirty) setState(() => _slots = workingSlots);
     _autoCommitTimer?.cancel();
     final generation = ++_editGeneration;
-    final operation = _commitQueueTail.then(
-      (_) => _repos.programs.replaceIfUnchanged(
+    final operation = _commitQueueTail.then((_) async {
+      final restored = await _repos.programs.replaceIfUnchanged(
         expected: expected,
         replacement: replacement,
         updatedAt: DateTime.now().toUtc(),
-      ),
-    );
-    // What a shutdown flush must write ([_prepareShutdownFlush] writes its
-    // snapshot unless the outcome is `committed`). With other edits unsaved,
-    // a restore leaves them to write (not a clean commit). A refused or
-    // failed one leaves the draft on disk right: the Perform write saved it,
-    // with no edit since; the snapshot, taken after the Undo above, is not.
+      );
+      // With other unsaved edits, the working copy takes the Undo only once
+      // the restore has landed, and still inside the commit queue: a refused
+      // Undo never touches it, and a commit queued behind this one reads the
+      // undone copy. Its draft is written here as a prepared draft, which a
+      // shutdown flush does not suppress. An edit made during the write
+      // keeps its working copy (see below).
+      if (restored && keepDirty && mounted && generation == _editGeneration) {
+        setState(() => _slots = workingSlots);
+        await _saveDraft(preparedDraft: _captureDraft());
+      }
+      return restored;
+    });
+    // Nothing is left for a shutdown flush to write: a restore saved its own
+    // draft above, and a refused or failed one left the working copy, and the
+    // draft the Perform write saved, as they were.
     _commitQueueTail = operation.then<_AutoCommitOutcome>(
-      (restored) => keepDirty && restored
-          ? _AutoCommitOutcome.notCommitted(generation)
-          : _AutoCommitOutcome.committed(generation),
+      (_) => _AutoCommitOutcome.committed(generation),
       onError: (Object error, StackTrace stackTrace) {
         logCaughtError(
           error,
           stackTrace,
           source: 'program_editor_screen._restorePerformSnapshot',
         );
-        return keepDirty
-            ? _AutoCommitOutcome.committed(generation)
-            : _AutoCommitOutcome.failed(generation);
+        return _AutoCommitOutcome.failed(generation);
       },
     );
-    void putBack() {
-      if (!keepDirty || !mounted) return;
-      if (identical(_slots, workingSlots)) {
-        setState(() => _slots = previousSlots);
-        return;
-      }
-      // Edited during the write: the edit is built on the undone copy, so
-      // apply the adjustment to it again, and save that as the draft.
-      setState(() {
-        _slots = _renumber(
-          rebaseSlotEdits(
-            before: previous.slots,
-            after: adjusted.slots,
-            onto: _slots,
-          ),
-        );
-      });
-      _scheduleAutosave();
-    }
-
     final bool restored;
     try {
       restored = await operation;
     } on Object catch (_) {
       // diagnostics: silent — logged by the commit queue above; the Undo is refused.
-      putBack();
       return false;
     }
-    if (!restored) putBack();
     if (!restored || !mounted) return restored;
     final live = await _repos.programs.getById(existing.id);
     // An edit made while the restore was in flight keeps its working copy;
-    // saving it will write that edit over the restore, with the adjusted slots
-    // only when the builder had no other unsaved edits (otherwise the working
-    // copy took the Undo before the write).
+    // saving it will write that edit (and the adjusted slots) over the restore.
     if (!mounted || live == null || _editGeneration != generation) {
       return restored;
     }
@@ -2188,10 +2164,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _slots = keepDirty ? workingSlots : live.slots.toList();
       _dirty = keepDirty;
     });
-    if (keepDirty) {
-      _scheduleAutosave();
-      _scheduleAutoCommit();
-    }
+    if (keepDirty) _scheduleAutoCommit();
     return restored;
   }
 

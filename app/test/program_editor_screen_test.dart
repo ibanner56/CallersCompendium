@@ -4423,6 +4423,82 @@ void main() {
     },
   );
 
+  testWidgets(
+    'with auto-save on, a refused post-exit Undo keeps the adjustment when '
+    'the builder was edited during its write (GIG-4)',
+    (tester) async {
+      installFakeWakelock();
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        autoCommit: true,
+        size: const Size(800, 1600),
+      );
+
+      // An unparseable pay keeps the builder dirty without auto-committing.
+      await _expandMoreDetails(tester);
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), 'x');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+
+      // A write from elsewhere, so the Undo will be refused.
+      final stored = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        stored.copyWith(
+          notes: 'Synced note',
+          updatedAt: stored.updatedAt.add(const Duration(seconds: 1)),
+        ),
+      );
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgramEditorScreen)),
+      );
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pump();
+      await delayed.programs.writeStarted;
+      // An edit while the Undo's write is in flight, which makes the builder
+      // committable, so its auto-commit queues behind the Undo.
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), '20');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
+
+      final committed = await repos.programs.getById('p1');
+      expect(committed!.payMinorUnits, 2000, reason: 'the edit auto-committed');
+      expect(
+        committed!.slots.first.performedAt,
+        isNotNull,
+        reason: 'the mark the refused Undo kept must not be erased',
+      );
+    },
+  );
+
   testWidgets('blocks clearing a free-text slot to empty', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(
