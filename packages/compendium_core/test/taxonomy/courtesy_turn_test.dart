@@ -76,8 +76,9 @@ void main() {
       // Schema 38 (#1418) adds the nullable programs pay columns, also
       // leaving the taxonomy alone. Schema 39 adds the retained_sync_fields
       // table (sync-spec §6.7), and leaves the taxonomy alone too. Schema 40
-      // (#709) adds the user glossary tables, taxonomy untouched.
-      expect(kCompendiumSchemaVersion, 40);
+      // (#709) adds the user glossary tables, taxonomy untouched. Schema 41
+      // (#1935) adds lookup indexes on the dance join tables, likewise.
+      expect(kCompendiumSchemaVersion, 41);
     });
 
     test('registers with the maintainer-ruled param set', () {

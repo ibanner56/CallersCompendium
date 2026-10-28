@@ -10,15 +10,18 @@
 // (`drift_dev schema dump lib/src/storage/database.dart …`), which is drift's
 // more usual invocation:
 //
-//   * A source dump captures only drift-*managed* entities. Five entities in
+//   * A source dump captures only drift-*managed* entities. Twelve entities in
 //     this schema are created by raw `customStatement` DDL in `onCreate` — the
-//     `dance_fts` FTS5 virtual table and the four lookup indices
+//     `dance_fts` and `dance_substring_fts` FTS5 virtual tables and the ten
+//     lookup indices
 //     (`dance_figures_move_section`, `dance_links_dance_id`,
-//     `programs_venue_id`, `program_slots_dance_id`) — so a source dump omits
+//     `dance_links_target_transitive`, `dances_level_id`, `programs_venue_id`,
+//     `program_slots_dance_id` and the four cited-id indexes of
+//     `citedIdLookupIndexSql`) — so a source dump omits
 //     exactly the entities that are maintained by hand in two places and are
 //     therefore the likeliest to diverge.
 //   * The historical dumps are taken from the committed `test/storage/fixtures/
-//     v*.sqlite` databases, which *do* contain those five. Dumping head the
+//     v*.sqlite` databases, which *do* contain those twelve. Dumping head the
 //     same way keeps every dump in `drift_schemas/generated/` homogeneous; a
 //     source-dumped head would be the one file in the set with a different
 //     meaning.

@@ -113,6 +113,36 @@ const String programSlotsDanceIdIndexSql =
     'CREATE INDEX IF NOT EXISTS program_slots_dance_id '
     'ON program_slots(dance_id)';
 
+/// Lookup indexes over the cited-id column of the four dance join tables
+/// (schema v41, #1935).
+///
+/// `dance_authors {danceId, choreographerId}`, `dance_tags {danceId, tagId}`,
+/// `dance_sources {danceId, sourceId}` and `custom_field_values {danceId,
+/// fieldId}` all lead their primary key with `dance_id`, so the implicit index
+/// serves "what does this dance cite" but not "who cites this record". Two
+/// queries ask the second question, and without these each is a full scan of
+/// the join table:
+///
+/// * `CompendiumSyncStorage._hasCitation`, for a choreographer, tag,
+///   published source or custom field: run for every pending deletion on every
+///   `snapshot()` and for each inbound tombstone.
+/// * `DanceRepository.danceIdsDerivingFrom` (#1920), which looks up the dances
+///   citing a changed choreographer, source or custom field. It never reads
+///   `dance_tags`, so that table's index serves `_hasCitation` alone.
+///
+/// Plain lookup indexes, not covering, as for [danceLinksDanceIdIndexSql]. The
+/// `dance_links` target, `program_slots.dance_id`, `programs.venue_id` and
+/// `dances.level_id` lookups `_hasCitation` also makes are already indexed.
+const List<String> citedIdLookupIndexSql = [
+  'CREATE INDEX IF NOT EXISTS dance_authors_choreographer_id '
+      'ON dance_authors(choreographer_id)',
+  'CREATE INDEX IF NOT EXISTS dance_tags_tag_id ON dance_tags(tag_id)',
+  'CREATE INDEX IF NOT EXISTS dance_sources_source_id '
+      'ON dance_sources(source_id)',
+  'CREATE INDEX IF NOT EXISTS custom_field_values_field_id '
+      'ON custom_field_values(field_id)',
+];
+
 /// Settings key marking that a schema migration touched the derived figure
 /// index and the `dance_figures` rows must be rebuilt from `figures_json`.
 ///
@@ -484,7 +514,7 @@ Future<void> clearNormalisationSkipAt(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 40;
+const int kCompendiumSchemaVersion = 41;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -699,6 +729,15 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     }
   }
 
+  /// The v41 additions (#1935): the cited-id lookup indexes. No table or
+  /// column changes, so no data is touched and no derived rebuild is needed;
+  /// `IF NOT EXISTS` keeps the step idempotent.
+  Future<void> _ensureV41Schema() async {
+    for (final sql in citedIdLookupIndexSql) {
+      await customStatement(sql);
+    }
+  }
+
   @override
   int get schemaVersion => kCompendiumSchemaVersion;
 
@@ -719,6 +758,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await customStatement(sql);
       }
       await customStatement(programSlotsDanceIdIndexSql);
+      await _ensureV41Schema();
     },
     onUpgrade: (m, from, to) async {
       // Belt-and-suspenders downgrade guard. drift is forward-only and has no
@@ -853,6 +893,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         }
         if (from < 39) await _ensureV39Schema(m);
         if (from < 40) await _ensureV40Schema(m);
+        if (from < 41) await _ensureV41Schema();
 
         // Last statement in the transaction: see the comment above its
         // opening for why this closes the remaining crash window. `to` is

@@ -777,6 +777,22 @@ database already carries it. The steps that can still fire are v36 onward.
   be edited down and deleted from, but not grown; the user-initiated writes stay
   budgeted.
 
+- v41 (issue #1935): performance-only indexes. Adds
+  `dance_authors_choreographer_id`, `dance_tags_tag_id`,
+  `dance_sources_source_id` and `custom_field_values_field_id`, one plain
+  lookup index on the cited-id column of each dance join table (see
+  [citedIdLookupIndexSql]). Each table's primary key leads with `dance_id`, so
+  "who cites this record" scanned the whole table. Two queries ask it:
+  `CompendiumSyncStorage._hasCitation` (a choreographer, tag, published source
+  or custom field; run per pending deletion on every `snapshot()` and per
+  inbound tombstone) and `DanceRepository.danceIdsDerivingFrom` (all but
+  tags). `_hasCitation` also became one `EXISTS` over the join and `dances`,
+  not a `dances` select per citing row. The other lookups it makes were
+  already indexed (`dance_links_target_transitive`, `program_slots_dance_id`,
+  `programs_venue_id`, `dances_level_id`). Run in `onCreate` and in the
+  `from < 41` step, guarded by `IF NOT EXISTS`. Pure DDL: no columns or tables
+  added, no data rewritten, no derived rebuild.
+
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published
