@@ -7,13 +7,29 @@ import 'figure_draft.dart';
 
 /// Settings-table key prefix for the dance editor's transient autosave drafts.
 ///
-/// Draft keys are dynamic (`editor_draft:<danceId|new>`) and hold unsaved,
+/// Draft keys are dynamic (`editor_draft:<danceId>`, or
+/// [kNewDanceEditorDraftKeyPrefix] plus a per-editor id for a dance not yet
+/// saved) and hold unsaved,
 /// device-local in-progress edits — not user content or preferences. They must
 /// never travel in a backup, so `backup_service.dart` excludes this prefix from
 /// both export and restore (see `kBackupSettingsDenylistPrefixes`). It lives in
 /// this non-UI module so both the editor screen and `BackupService` can share
 /// it without a data→UI dependency.
 const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
+
+/// The draft key every new dance shared before each new dance got its own
+/// (AUTH-10). A draft still stored under it is read as one more new dance's.
+const String kLegacyNewDanceEditorDraftKey = '${kDanceEditorDraftKeyPrefix}new';
+
+/// Key prefix for the draft of a dance not yet saved: each new-dance editor
+/// writes under this plus its own id, so two new dances never share a draft.
+const String kNewDanceEditorDraftKeyPrefix = '$kLegacyNewDanceEditorDraftKey:';
+
+/// Whether [key] holds the draft of a dance not yet saved, under either the
+/// per-editor form or the legacy shared key.
+bool isNewDanceEditorDraftKey(String key) =>
+    key == kLegacyNewDanceEditorDraftKey ||
+    key.startsWith(kNewDanceEditorDraftKeyPrefix);
 
 /// Draft schema version. Increment if the JSON shape changes in a
 /// backward-incompatible way; [decodeDraft] checks this and rejects
@@ -83,6 +99,9 @@ const _kDraftVersionWithoutCompounds = 13;
 /// ```jsonc
 /// {
 ///   "v": 14,
+///   "savedAt": "2026-10-28T15:04:05.000Z",
+///   "baseUpdatedAt": "2026-10-27T09:00:00.000Z",
+///   "canonicalText": true,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -105,10 +124,10 @@ const _kDraftVersionWithoutCompounds = 13;
 ///   "figureDrafts": [
 ///     {"id":"...", "move":"swing",
 ///      "params":{"who":"partners","beats":16},
-///      "note":"", "progression":false, "sv":1,
+///      "note":"", "progression":false, "sv":1, "beatsTouched":true,
 ///      "walkthroughOverride":"Swing them."},
 ///     {"id":"...", "move":null, "params":{}, "note":"", "progression":false,
-///      "sv":1,
+///      "sv":1, "beatsTouched":false,
 ///      "compound":{"id":"...","name":"grand right and left",
 ///                  "args":{"hand":"right"},"beats":8}}
 ///   ]
@@ -117,7 +136,9 @@ const _kDraftVersionWithoutCompounds = 13;
 /// `move` may be `null` for an incomplete draft row, and is for a compound
 /// placeholder.
 /// `label`, `url`, and `targetDanceId` may be omitted when empty/null.
-/// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset.
+/// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset, as
+/// are `savedAt` and `baseUpdatedAt`; `canonicalText` is written only when
+/// true.
 /// `sourceCitations` is omitted when empty; per-citation `page`/`number` are
 /// omitted when null.
 String encodeDraft(EditorSnapshot snapshot) {
@@ -125,6 +146,12 @@ String encodeDraft(EditorSnapshot snapshot) {
     'v': snapshot.figureDrafts.any((d) => d.compound != null)
         ? _kDraftVersion
         : _kDraftVersionWithoutCompounds,
+    if (snapshot.savedAt case final savedAt?)
+      'savedAt': savedAt.toUtc().toIso8601String(),
+    if (snapshot.baseUpdatedAt case final base?)
+      'baseUpdatedAt': base.toUtc().toIso8601String(),
+    if (identical(snapshot.textDialect, Dialect.canonical))
+      'canonicalText': true,
     'title': snapshot.title,
     'hook': snapshot.hook,
     'notes': snapshot.notes,
@@ -251,8 +278,16 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     sourceCitations: _parseSourceCitations(json['sourceCitations']),
     customValues: _parseCustomValues(json['customValues']),
     figureDrafts: _parseFigureDrafts(json['figureDrafts']),
+    textDialect: json['canonicalText'] == true ? Dialect.canonical : null,
+    savedAt: _parseNullableTimestamp(json['savedAt']),
+    baseUpdatedAt: _parseNullableTimestamp(json['baseUpdatedAt']),
   );
 }
+
+/// Reads an optional ISO-8601 timestamp. Tolerant: the draft is still worth
+/// restoring without one, so an absent or unreadable value reads as `null`.
+DateTime? _parseNullableTimestamp(Object? raw) =>
+    raw is String ? DateTime.tryParse(raw)?.toUtc() : null;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -535,6 +570,12 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     note: note,
     progression: progression,
     schemaVersion: sv,
+    // Additive/tolerant (AUTH-5): a draft from before the flag was written
+    // reads a stored count as the caller's, as `FigureDraft.fromFigure` does.
+    beatsTouched: switch (m['beatsTouched']) {
+      final bool touched => touched,
+      _ => (normalized?.params ?? parsedParams).containsKey('beats'),
+    },
     // Additive/tolerant (#460): absent or non-bool → not assumed.
     assumedSubject: m['assumedSubject'] == true,
     // Additive/tolerant (#419): only the string 'importGap' flags a parser-gap
@@ -594,6 +635,7 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
     'note': draft.note,
     'progression': draft.progression,
     'sv': draft.schemaVersion,
+    'beatsTouched': draft.beatsTouched,
     if (draft.assumedSubject) 'assumedSubject': true,
     if (draft.customOrigin == CustomOrigin.importGap)
       'customOrigin': 'importGap',

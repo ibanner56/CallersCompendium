@@ -7746,6 +7746,22 @@
   "@danceEditorUnsavedDraftMessage": {
     "x-sourceSha256": "4361737050c69693981e562c818bb6e1759d9787f3c3063b7c5a24110ff4bd05"
   },
+  "danceEditorUnsavedNewDanceDraftMessage": "別の新しいダンス「{title}」の未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？",
+  "@danceEditorUnsavedNewDanceDraftMessage": {
+    "x-sourceSha256": "cfa0a260dbb7d319cf1657e51a6a8c15425b1eeb38646cecfe70f1b5513810c7"
+  },
+  "danceEditorUnsavedNewDanceDraftUntitledMessage": "まだタイトルのない、別の新しいダンスの未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？",
+  "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
+    "x-sourceSha256": "cc94ad5921a82b7a09da9609d23e294e7143bbf350f0726fb70299e73c9003e9"
+  },
+  "danceEditorUnsavedDraftSavedAt": "下書きの保存日時: {when}",
+  "@danceEditorUnsavedDraftSavedAt": {
+    "x-sourceSha256": "0a54afbff697740ab32849f748b479e07b7e7368e5d94fa21defb9d187ca2092"
+  },
+  "danceEditorUnsavedDraftChangedSince": "下書きの保存後に、このダンスは変更されています。下書きを復元すると、それらの変更は置き換えられます。",
+  "@danceEditorUnsavedDraftChangedSince": {
+    "x-sourceSha256": "3a7cbbf1fc29a4de9fc4d7ddfd2d0542dba59459363b98374e564ac0ff457703"
+  },
   "danceEditorDiscard": "破棄",
   "@danceEditorDiscard": {
     "x-sourceSha256": "eb1a70e39274bb762b5d7c1adb5debeea2b05e12af28207f21a375b596853273"

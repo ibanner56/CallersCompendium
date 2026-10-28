@@ -16,6 +16,7 @@ class FigureDraftSnapshot {
     required this.note,
     required this.progression,
     required this.schemaVersion,
+    this.beatsTouched = false,
     this.assumedSubject = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
@@ -33,6 +34,7 @@ class FigureDraftSnapshot {
         note: draft.note,
         progression: draft.progression,
         schemaVersion: draft.schemaVersion,
+        beatsTouched: draft.beatsTouched,
         assumedSubject: draft.assumedSubject,
         customOrigin: draft.customOrigin,
         walkthroughOverride: draft.walkthroughOverride,
@@ -56,6 +58,12 @@ class FigureDraftSnapshot {
   final String note;
   final bool progression;
   final int schemaVersion;
+
+  /// Whether the caller set this figure's beat count themselves
+  /// ([FigureDraft.beatsTouched]); preserved across undo/redo and autosave so
+  /// a typed count stays protected from a parameter change's recompute after
+  /// an undo or a restore, as it is on the dance as opened (AUTH-5).
+  final bool beatsTouched;
 
   /// Whether the figure's subject was parser-assumed (#460); preserved across
   /// undo/redo and autosave so the non-authoritative marker never silently
@@ -96,6 +104,7 @@ class FigureDraftSnapshot {
     note: note,
     progression: progression,
     schemaVersion: schemaVersion,
+    beatsTouched: beatsTouched,
     assumedSubject: assumedSubject,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
@@ -177,7 +186,49 @@ class EditorSnapshot {
     required this.customValues,
     required this.figureDrafts,
     this.stagedTags = const [],
+    this.textDialect,
+    this.savedAt,
+    this.baseUpdatedAt,
   });
+
+  /// A copy holding [figureDrafts] in place of this snapshot's figures, their
+  /// note and custom text written in [textDialect], and [savedAt] and
+  /// [baseUpdatedAt] where given. Everything else is shared, which is safe
+  /// because every field is immutable.
+  EditorSnapshot withFigureDrafts(
+    List<FigureDraftSnapshot> figureDrafts, {
+    required Dialect textDialect,
+    DateTime? savedAt,
+    DateTime? baseUpdatedAt,
+  }) => EditorSnapshot(
+    title: title,
+    hook: hook,
+    notes: notes,
+    walkthrough: walkthrough,
+    phrase: phrase,
+    formationDetail: formationDetail,
+    form: form,
+    formationShape: formationShape,
+    progression: progression,
+    status: status,
+    level: level,
+    mixedLevel: mixedLevel,
+    mixer: mixer,
+    rating: rating,
+    composedOn: composedOn,
+    revisedOn: revisedOn,
+    authorIds: authorIds,
+    tagIds: tagIds,
+    tunes: tunes,
+    links: links,
+    sourceCitations: sourceCitations,
+    customValues: customValues,
+    figureDrafts: List.unmodifiable(figureDrafts),
+    stagedTags: stagedTags,
+    textDialect: textDialect,
+    savedAt: savedAt ?? this.savedAt,
+    baseUpdatedAt: baseUpdatedAt ?? this.baseUpdatedAt,
+  );
 
   // ---- Text fields ----
   final String title;
@@ -242,4 +293,23 @@ class EditorSnapshot {
 
   // ---- Figures ----
   final List<FigureDraftSnapshot> figureDrafts;
+
+  /// The dialect the figure notes and custom-figure text in [figureDrafts] are
+  /// written in: the editor shows them in its active dialect, and Save
+  /// canonicalizes them against it, so a snapshot taken under one dialect is
+  /// converted before it is applied under another (AUTH-17).
+  /// [Dialect.canonical] means the text is stored canonical, as an autosave
+  /// draft holds it. `null` means unknown — a draft written before this was
+  /// recorded — and the text is taken to be in the active dialect.
+  final Dialect? textDialect;
+
+  /// When this snapshot was written as an autosave draft; `null` for an
+  /// in-memory undo entry, or a draft written before this was recorded.
+  final DateTime? savedAt;
+
+  /// The `updatedAt` of the stored dance the draft was edited from, so a
+  /// restore can tell whether the dance has changed since (AUTH-10). `null`
+  /// for a new dance, an in-memory undo entry, or a draft written before this
+  /// was recorded.
+  final DateTime? baseUpdatedAt;
 }

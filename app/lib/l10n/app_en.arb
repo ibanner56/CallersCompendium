@@ -10110,6 +10110,34 @@
   "@danceEditorUnsavedDraftMessage": {
     "description": "Dialog body asking whether to restore a pending autosave draft."
   },
+  "danceEditorUnsavedNewDanceDraftMessage": "You have an unsaved draft of another new dance, “{title}”. Would you like to restore it instead of starting a new one?",
+  "@danceEditorUnsavedNewDanceDraftMessage": {
+    "description": "Dialog body when the caller starts a new dance and a draft of a different new dance, never saved, is waiting from an earlier session. Restoring continues that dance; discarding deletes it.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Lady of the Lake"
+      }
+    }
+  },
+  "danceEditorUnsavedNewDanceDraftUntitledMessage": "You have an unsaved draft of another new dance, not yet titled. Would you like to restore it instead of starting a new one?",
+  "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
+    "description": "Dialog body when the caller starts a new dance and an untitled draft of a different new dance, never saved, is waiting from an earlier session."
+  },
+  "danceEditorUnsavedDraftSavedAt": "Draft saved {when}.",
+  "@danceEditorUnsavedDraftSavedAt": {
+    "description": "Line in the restore-draft dialog giving when the autosave draft was last written, so the caller can judge how old it is.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "Oct 28, 2026 3:15 PM"
+      }
+    }
+  },
+  "danceEditorUnsavedDraftChangedSince": "This dance has been changed since the draft was saved. Restoring the draft replaces those changes.",
+  "@danceEditorUnsavedDraftChangedSince": {
+    "description": "Warning in the restore-draft dialog when the saved dance was edited elsewhere (a bulk tag, a rating, a sync, a re-check) after the draft was written; restoring overwrites those later changes."
+  },
   "danceEditorDiscard": "Discard",
   "@danceEditorDiscard": {
     "description": "Button label for discarding a draft or unsaved changes."

@@ -7916,6 +7916,24 @@ class AppLocalizationsDe extends AppLocalizations {
       'Sie haben einen nicht gespeicherten Entwurf für diesen Tanz. Möchten Sie ihn wiederherstellen?';
 
   @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, „$title“. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, noch ohne Titel. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Entwurf gespeichert: $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Dieser Tanz wurde geändert, seit der Entwurf gespeichert wurde. Wenn Sie den Entwurf wiederherstellen, werden diese Änderungen ersetzt.';
+
+  @override
   String get danceEditorDiscard => 'Verwerfen';
 
   @override
