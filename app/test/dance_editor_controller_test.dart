@@ -2273,6 +2273,36 @@ void main() {
       );
 
       test(
+        'a draft restored under the same dialect keeps the text as typed',
+        () async {
+          final repos = openTestRepositories();
+          final first = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialect: Dialect.larksRobins,
+            debounce: testDebounce,
+          );
+          await first.load(dance: noteDance(), fieldDefs: const []);
+          // A legacy synonym, which Save would canonicalize to role2s.
+          first.figureDrafts.first.note = 'Ladies wait';
+          first.onFiguresChanged();
+          expect(await draftPersisted(repos, 'editor_draft:d1'), isTrue);
+          await settleDebounce();
+          first.dispose();
+
+          final second = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialect: Dialect.larksRobins,
+          );
+          addTearDown(second.dispose);
+          await second.load(dance: noteDance(), fieldDefs: const []);
+          second.applyRestoredDraft(second.pendingDraft!);
+          expect(second.figureDrafts.first.note, 'Ladies wait');
+        },
+      );
+
+      test(
         'a dialect change while editing re-renders the figure text',
         () async {
           final controller = DanceEditorController(

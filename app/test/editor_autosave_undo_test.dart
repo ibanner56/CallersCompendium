@@ -419,16 +419,16 @@ void main() {
     });
 
     test('a draft round-trips beatsTouched, its save time and baseline, and '
-        'canonical text (AUTH-5, AUTH-10, AUTH-17)', () {
+        'the role terms its text is in (AUTH-5, AUTH-10, AUTH-17)', () {
       final savedAt = DateTime.utc(2026, 10, 28, 15, 4, 5);
       final base = DateTime.utc(2026, 10, 27, 9);
-      final snapshot = _snap(title: 'T').withFigureDrafts(
-        const [
+      final snapshot = _snap(title: 'T').copyWith(
+        figureDrafts: const [
           FigureDraftSnapshot(
             id: 'typed',
             move: 'swing',
             params: {'beats': 12},
-            note: 'role1s go',
+            note: 'Larks go',
             progression: false,
             schemaVersion: 1,
             beatsTouched: true,
@@ -442,7 +442,7 @@ void main() {
             schemaVersion: 1,
           ),
         ],
-        textDialect: Dialect.canonical,
+        textDialect: Dialect.larksRobins,
         savedAt: savedAt,
         baseUpdatedAt: base,
       );
@@ -453,8 +453,21 @@ void main() {
       );
       expect(decoded.savedAt, savedAt);
       expect(decoded.baseUpdatedAt, base);
-      expect(decoded.textDialect, same(Dialect.canonical));
-      expect(decoded.figureDrafts.first.note, 'role1s go');
+      expect(decoded.textDialect?.roles, Dialect.larksRobins.roles);
+      // The text is kept as typed; only a restore under other roles converts.
+      expect(decoded.figureDrafts.first.note, 'Larks go');
+    });
+
+    test('unreadable text roles read as unknown, not as no roles', () {
+      final decoded = decodeDraft({
+        'v': 13,
+        'form': 'contra',
+        'formationShape': 'dupleImproper',
+        'progression': 'single',
+        'status': 'active',
+        'textRoles': {'role1': 'lark'},
+      });
+      expect(decoded.textDialect, isNull);
     });
 
     test('a draft written before F2 still decodes, with a stored count read '
@@ -1032,9 +1045,7 @@ void main() {
       await repos.settings.set(
         'editor_draft:d5',
         encodeDraft(
-          _snap(title: 'Pending').withFigureDrafts(
-            const [],
-            textDialect: Dialect.canonical,
+          _snap(title: 'Pending').copyWith(
             savedAt: DateTime.utc(2026, 10, 28, 15, 4),
             baseUpdatedAt: stored.updatedAt.subtract(const Duration(hours: 1)),
           ),
@@ -1062,9 +1073,7 @@ void main() {
       await repos.settings.set(
         'editor_draft:d6',
         encodeDraft(
-          _snap(title: 'Pending').withFigureDrafts(
-            const [],
-            textDialect: Dialect.canonical,
+          _snap(title: 'Pending').copyWith(
             savedAt: DateTime.utc(2026, 10, 28, 15, 4),
             baseUpdatedAt: stored.updatedAt,
           ),

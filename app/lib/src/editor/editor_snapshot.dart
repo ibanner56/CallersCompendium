@@ -191,13 +191,12 @@ class EditorSnapshot {
     this.baseUpdatedAt,
   });
 
-  /// A copy holding [figureDrafts] in place of this snapshot's figures, their
-  /// note and custom text written in [textDialect], and [savedAt] and
-  /// [baseUpdatedAt] where given. Everything else is shared, which is safe
-  /// because every field is immutable.
-  EditorSnapshot withFigureDrafts(
-    List<FigureDraftSnapshot> figureDrafts, {
-    required Dialect textDialect,
+  /// A copy with the given figure state and draft stamps in place of this
+  /// snapshot's. Everything else is shared, which is safe because every field
+  /// is immutable.
+  EditorSnapshot copyWith({
+    List<FigureDraftSnapshot>? figureDrafts,
+    Dialect? textDialect,
     DateTime? savedAt,
     DateTime? baseUpdatedAt,
   }) => EditorSnapshot(
@@ -223,9 +222,11 @@ class EditorSnapshot {
     links: links,
     sourceCitations: sourceCitations,
     customValues: customValues,
-    figureDrafts: List.unmodifiable(figureDrafts),
+    figureDrafts: figureDrafts == null
+        ? this.figureDrafts
+        : List.unmodifiable(figureDrafts),
     stagedTags: stagedTags,
-    textDialect: textDialect,
+    textDialect: textDialect ?? this.textDialect,
     savedAt: savedAt ?? this.savedAt,
     baseUpdatedAt: baseUpdatedAt ?? this.baseUpdatedAt,
   );
@@ -297,10 +298,11 @@ class EditorSnapshot {
   /// The dialect the figure notes and custom-figure text in [figureDrafts] are
   /// written in: the editor shows them in its active dialect, and Save
   /// canonicalizes them against it, so a snapshot taken under one dialect is
-  /// converted before it is applied under another (AUTH-17).
-  /// [Dialect.canonical] means the text is stored canonical, as an autosave
-  /// draft holds it. `null` means unknown — a draft written before this was
-  /// recorded — and the text is taken to be in the active dialect.
+  /// converted before it is applied under another (AUTH-17). Only its
+  /// [Dialect.roles] take part in that conversion, so an autosave draft
+  /// records only those, and decodes as a dialect holding just them. `null`
+  /// means unknown — a draft written before this was recorded — and the text
+  /// is taken to be in the active dialect.
   final Dialect? textDialect;
 
   /// When this snapshot was written as an autosave draft; `null` for an

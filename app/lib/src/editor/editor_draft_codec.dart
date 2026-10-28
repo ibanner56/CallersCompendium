@@ -83,6 +83,18 @@ bool isNewDanceEditorDraftKey(String key) =>
 /// draft as unreadable instead — and, as for any unknown version, deletes it
 /// when the editor opens — while every other draft stays v13 and still
 /// restores there.
+///
+/// Added without a version bump, because a build that ignores them still
+/// restores the draft without losing anything (AUTH-5, AUTH-10, AUTH-17):
+/// - per-figure `beatsTouched` (bool). A draft without it reads each figure as
+///   touched when it carries a `beats` count, as opening a saved dance does.
+/// - `savedAt` and `baseUpdatedAt` (ISO-8601 UTC timestamps, omitted when
+///   unknown): when the draft was written, and the stored dance's `updatedAt`
+///   it was edited from.
+/// - `textRoles` (role id → `{singular, plural}`, as [RoleTerm.toJson]): the
+///   role terms of the dialect the figure notes and custom-figure text are
+///   written in, which stay as typed. A restore under other role terms
+///   converts them; an older build reads them as before.
 const _kDraftVersion = 14;
 
 /// The version a draft without a compound placeholder is stamped with.
@@ -101,7 +113,8 @@ const _kDraftVersionWithoutCompounds = 13;
 ///   "v": 14,
 ///   "savedAt": "2026-10-28T15:04:05.000Z",
 ///   "baseUpdatedAt": "2026-10-27T09:00:00.000Z",
-///   "canonicalText": true,
+///   "textRoles": {"role1": {"singular": "lark", "plural": "larks"},
+///                 "role2": {"singular": "robin", "plural": "robins"}},
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -137,8 +150,7 @@ const _kDraftVersionWithoutCompounds = 13;
 /// placeholder.
 /// `label`, `url`, and `targetDanceId` may be omitted when empty/null.
 /// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset, as
-/// are `savedAt` and `baseUpdatedAt`; `canonicalText` is written only when
-/// true.
+/// are `savedAt`, `baseUpdatedAt` and `textRoles`.
 /// `sourceCitations` is omitted when empty; per-citation `page`/`number` are
 /// omitted when null.
 String encodeDraft(EditorSnapshot snapshot) {
@@ -150,8 +162,10 @@ String encodeDraft(EditorSnapshot snapshot) {
       'savedAt': savedAt.toUtc().toIso8601String(),
     if (snapshot.baseUpdatedAt case final base?)
       'baseUpdatedAt': base.toUtc().toIso8601String(),
-    if (identical(snapshot.textDialect, Dialect.canonical))
-      'canonicalText': true,
+    if (snapshot.textDialect case final dialect?)
+      'textRoles': {
+        for (final e in dialect.roles.entries) e.key: e.value.toJson(),
+      },
     'title': snapshot.title,
     'hook': snapshot.hook,
     'notes': snapshot.notes,
@@ -278,10 +292,27 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     sourceCitations: _parseSourceCitations(json['sourceCitations']),
     customValues: _parseCustomValues(json['customValues']),
     figureDrafts: _parseFigureDrafts(json['figureDrafts']),
-    textDialect: json['canonicalText'] == true ? Dialect.canonical : null,
+    textDialect: _parseTextRoles(json['textRoles']),
     savedAt: _parseNullableTimestamp(json['savedAt']),
     baseUpdatedAt: _parseNullableTimestamp(json['baseUpdatedAt']),
   );
+}
+
+/// Reads the optional `textRoles` as a dialect holding just those role terms,
+/// which is all the conversion between dialects reads. Tolerant, like the
+/// timestamps: an absent or unreadable value reads as `null`, and the text is
+/// then taken to be in the active dialect, as before the key existed.
+Dialect? _parseTextRoles(Object? raw) {
+  if (raw is! Map) return null;
+  final roles = <String, RoleTerm>{};
+  for (final entry in raw.entries) {
+    final value = entry.value;
+    if (value is! Map) return null;
+    final term = RoleTerm.fromJson(value.cast<String, Object?>());
+    if (term == null) return null;
+    roles[entry.key.toString()] = term;
+  }
+  return Dialect(name: 'Draft text', roles: roles);
 }
 
 /// Reads an optional ISO-8601 timestamp. Tolerant: the draft is still worth

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/widgets.dart';
 
 import '../../data/editor_draft_shutdown_scope.dart';
@@ -142,14 +143,8 @@ class DanceEditorController extends ChangeNotifier {
     required Dialect from,
     required Dialect to,
   }) {
-    String convert(String text) {
-      final canonical = identical(from, Dialect.canonical)
-          ? text
-          : canonicalizeText(text, from);
-      return identical(to, Dialect.canonical)
-          ? canonical
-          : _noteRenderer.renderFreeText(canonical, to);
-    }
+    String convert(String text) =>
+        _noteRenderer.renderFreeText(canonicalizeText(text, from), to);
 
     void convertAll(Iterable<FigureDraft> drafts) {
       for (final draft in drafts) {
@@ -171,10 +166,15 @@ class DanceEditorController extends ChangeNotifier {
     return [for (final d in converted) FigureDraftSnapshot.fromDraft(d)];
   }
 
+  /// Whether text written in [a] reads the same in [b]: the conversion reads
+  /// only role terms.
+  static bool _sameRoles(Dialect a, Dialect b) => mapEquals(a.roles, b.roles);
+
   /// The figure drafts [s] holds, with their text in the active dialect.
+  /// Text written in the active dialect's own role terms is kept as typed.
   List<FigureDraft> _draftsInActiveDialect(EditorSnapshot s) {
     final from = s.textDialect;
-    final snapshots = from == null || from == _activeDialect
+    final snapshots = from == null || _sameRoles(from, _activeDialect)
         ? s.figureDrafts
         : _convertDraftText(s.figureDrafts, from: from, to: _activeDialect);
     return [for (final d in snapshots) d.toDraft()];
@@ -564,7 +564,7 @@ class DanceEditorController extends ChangeNotifier {
     for (final c in _proseLingoControllers) {
       c.updateDialect(newDialect);
     }
-    if (previous == newDialect || figureDrafts.isEmpty) return;
+    if (_sameRoles(previous, newDialect) || figureDrafts.isEmpty) return;
     final current = [
       for (final d in figureDrafts) FigureDraftSnapshot.fromDraft(d),
     ];
@@ -1147,16 +1147,11 @@ class DanceEditorController extends ChangeNotifier {
     if (!_loaded || _disposed) return Future<void>.value();
     final generation = _draftGeneration;
     final captured = preparedSnapshot ?? captureSnapshot();
-    // Stored canonical, so a restore under another dialect reads it right
-    // (AUTH-17), with the time and the dance version it was edited from
-    // (AUTH-10).
-    final snapshot = captured.withFigureDrafts(
-      _convertDraftText(
-        captured.figureDrafts,
-        from: captured.textDialect ?? _activeDialect,
-        to: Dialect.canonical,
-      ),
-      textDialect: Dialect.canonical,
+    // Stamped with the dialect its text is in (AUTH-17), so a restore under
+    // another converts it, and with the time and the dance version it was
+    // edited from (AUTH-10).
+    final snapshot = captured.copyWith(
+      textDialect: captured.textDialect ?? _activeDialect,
       savedAt: DateTime.now().toUtc(),
       baseUpdatedAt: _original?.updatedAt,
     );
