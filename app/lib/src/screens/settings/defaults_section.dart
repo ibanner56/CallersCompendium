@@ -801,23 +801,49 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// equals the value the editor offers for that param on entry, the key is
   /// dropped (falling back to it); otherwise it is recorded. Persists on
   /// change. The move stays shown even when its last diff is dropped.
+  ///
+  /// A `balance` change on a move whose balance is offered on entry carries its
+  /// beats with it, by the same +/-4 rule the dance editor applies when balance
+  /// is toggled ([applyParamChange]). Saved defaults are applied to a new figure
+  /// as plain values, so recording `balance: false` alone would seed an
+  /// unbalanced figure that still has the balanced beat count.
   void _onMoveParamOverrideChanged(
     String moveId,
     String paramKey,
     Object? value,
   ) {
-    final taxonomyDefault = contraTaxonomy.entryParams(moveId)[paramKey];
+    final entry = contraTaxonomy.entryParams(moveId);
     setState(() {
       final inner = _defaultMoveParamOverrides.putIfAbsent(
         moveId,
         () => <String, Object?>{},
       );
-      if (value == taxonomyDefault) {
-        inner.remove(paramKey);
-        if (inner.isEmpty) _defaultMoveParamOverrides.remove(moveId);
-      } else {
-        inner[paramKey] = value;
+      void record(String key, Object? v) {
+        if (v == entry[key]) {
+          inner.remove(key);
+        } else {
+          inner[key] = v;
+        }
       }
+
+      final balanceSpec = contraTaxonomy.resolve(moveId)?.params['balance'];
+      if (paramKey == 'balance' &&
+          value is bool &&
+          balanceSpec?.entryDefault != null) {
+        final params = {...entry, ...inner};
+        applyParamChange(
+          contraTaxonomy,
+          move: moveId,
+          params: params,
+          key: 'balance',
+          value: value,
+          beatsTouched: false,
+          aggressiveBeats: false,
+        );
+        record('beats', params['beats']);
+      }
+      record(paramKey, value);
+      if (inner.isEmpty) _defaultMoveParamOverrides.remove(moveId);
     });
     _persistMoveParamOverrides();
   }

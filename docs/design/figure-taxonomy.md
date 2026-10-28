@@ -1708,7 +1708,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     `box_the_gnat.goodBeats` and `box_circulate.goodBeats` become `[4, 8]` so
     the seeded 8 raises no `atypical_beats` warning. The Settings per-move
     defaults diff against `entryParams`, so a saved override is a diff from
-    what the editor actually offers.
+    what the editor actually offers, and changing `balance` there records the
+    matching `beats` too (the same +/-4 rule), because a saved default is
+    applied to a new figure as plain values.
 
 ## Open questions (to resolve during implementation, with user input)
 

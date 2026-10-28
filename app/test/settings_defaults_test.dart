@@ -1938,6 +1938,52 @@ void main() {
       },
     );
 
+    testWidgets('unticking balance saves the beats that go with it', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'box_the_gnat': {'who': 'partners'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.pumpAndSettle();
+      // The key sits on the editor wrapper and on the switch inside it.
+      final balanceSwitch = find.byWidgetPredicate(
+        (w) =>
+            w is Switch &&
+            w.key == const ValueKey('move-default-box_the_gnat-balance'),
+      );
+
+      // The card starts at the entry state: balanced, 8 beats.
+      await tester.tap(balanceSwitch);
+      await tester.pumpAndSettle();
+
+      final saved = moveParamOverridesFromStored(
+        await repos.settings.get(kDefaultMoveParamOverridesKey),
+      );
+      // Saving `balance: false` alone would seed an unbalanced figure that
+      // still carries the balanced 8 beats.
+      expect(saved, {
+        'box_the_gnat': {'who': 'partners', 'balance': false, 'beats': 4},
+      });
+
+      // Ticking it again returns to the entry state, so only `who` is left.
+      await tester.tap(balanceSwitch);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'box_the_gnat': {'who': 'partners'},
+        },
+      );
+    });
+
     testWidgets('removing a move override persists and hides its card', (
       tester,
     ) async {
