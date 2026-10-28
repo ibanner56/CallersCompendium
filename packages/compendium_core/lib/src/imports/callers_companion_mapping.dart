@@ -93,6 +93,7 @@ class CcDanceRecord {
     this.contraForm,
     this.direction,
     this.formationOther,
+    this.fromUsrColumns = false,
     this.level,
     this.progression,
     this.music,
@@ -121,8 +122,8 @@ class CcDanceRecord {
   final String? subType;
 
   /// A single formation string (e.g. "Improper", "Becket", "Proper"), as the
-  /// CC text export gives it. Read only when none of the separate `.USR`
-  /// columns below is present.
+  /// CC text export gives it. Not read for a `.USR` record
+  /// ([fromUsrColumns]), which carries the separate columns below.
   final String? formation;
 
   /// CC `Formation`: the shape family ("Duple Minor", "Four Facing Four",
@@ -140,6 +141,13 @@ class CcDanceRecord {
   /// CC `FormationOther`: the caller's own description of the start
   /// ("Long Waves, R-hand to Neighbor", "Five couple horseshoe").
   final String? formationOther;
+
+  /// Whether this record was read from a `.USR`'s columns
+  /// (`ccDanceRecordFromColumns`), so its formation comes from
+  /// [formationFamily], [contraForm], [direction] and [formationOther] and its
+  /// mixer flag from [type] and [subType] (#1972). The text export's records
+  /// leave it false and keep the single [formation] string.
+  final bool fromUsrColumns;
 
   /// CC `Level` (e.g. "Beginner", "Intermediate", "Advanced", "Mixed").
   final String? level;
@@ -319,19 +327,21 @@ CcDanceMapping mapCallersCompanionDance(
   // Level → shipped difficulty-level id (+ mixedLevel), best-effort.
   final (difficultyLevelId, mixedLevel) = _mapLevel(record.level, issues);
 
-  // Type → DanceForm, best-effort; unknown types are preserved as a note.
-  final (form, typeNote) = _mapForm(record.type, issues);
+  // A `.USR` carries the formation in separate columns, and its formation
+  // types and mixer SubTypes are read into the formation and the mixer flag
+  // (#1972); the text export gives one formation string.
+  final usr = record.fromUsrColumns;
 
-  // Formation → FormationShape, preserving unmapped text as detail. A `.USR`
-  // carries the formation in separate columns (#1972); the text export gives
-  // one string.
-  final structured = _hasFormationColumns(record);
-  final formation = structured
+  // Type → DanceForm, best-effort; unknown types are preserved as a note.
+  final (form, typeNote) = _mapForm(record.type, issues, typeIsFormation: usr);
+
+  // Formation → FormationShape, preserving unmapped text as detail.
+  final formation = usr
       ? _mapFormationColumns(record, issues)
       : _mapFormation(record.formation, issues);
   // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
-  // SubType ("Mixer, H H S S") (#1972).
-  final mixer = structured && _isCcMixer(record);
+  // SubType ("Mixer, H H S S").
+  final mixer = usr && _isCcMixer(record);
 
   // Progression → Progression enum, best-effort.
   final progression = _mapProgression(record.progression, issues);
@@ -649,13 +659,20 @@ bool callersCompanionDifficultyLabelMatches(
   };
 }
 
-(DanceForm, String?) _mapForm(String? raw, List<ImportIssue> issues) {
+(DanceForm, String?) _mapForm(
+  String? raw,
+  List<ImportIssue> issues, {
+  bool typeIsFormation = false,
+}) {
   final value = raw?.trim().toLowerCase() ?? '';
   if (value.isEmpty) return (DanceForm.contra, null);
   if (value.contains('contra')) return (DanceForm.contra, null);
   if (value.contains('square')) return (DanceForm.square, null);
-  // Formation types, read into the formation instead (#1972).
-  if (_ccFormationTypes.contains(value)) return (DanceForm.contra, null);
+  // Formation types, read into the formation instead when it is built from the
+  // `.USR` columns (#1972); the text export keeps them as a note.
+  if (typeIsFormation && _ccFormationTypes.contains(value)) {
+    return (DanceForm.contra, null);
+  }
   if (value.contains('english') || value == 'ecd') {
     return (DanceForm.ecd, null);
   }
@@ -678,22 +695,28 @@ const Set<String> _ccFormationTypes = {
   'longways',
 };
 
-bool _hasFormationColumns(CcDanceRecord r) => [
-  r.formationFamily,
-  r.contraForm,
-  r.direction,
-  r.formationOther,
-].any((v) => v != null && v.trim().isNotEmpty);
-
 bool _isCcMixer(CcDanceRecord r) {
   final type = r.type?.trim().toLowerCase() ?? '';
   final subType = r.subType?.trim().toLowerCase() ?? '';
-  return type.endsWith('mixer') || subType.startsWith('mixer');
+  return type == 'circle mixer' ||
+      type == 'scatter mixer' ||
+      subType.startsWith('mixer');
+}
+
+/// [f] with [detail] appended to its own detail.
+Formation _withDetail(Formation f, String? detail) {
+  if (detail == null) return f;
+  return Formation(
+    f.shape,
+    detail: f.detail == null ? detail : '${f.detail}; $detail',
+  );
 }
 
 /// The formation from a `.USR`'s separate columns (#1972). `Type` and the
 /// `Formation` family decide the shape; a duple minor's `ContraForm` and
-/// `Direction` refine it; `FormationOther` is the detail.
+/// `Direction` refine it; `FormationOther` is the detail. A family or start
+/// outside the values CC offers is read as the text export's single string
+/// would be, so it keeps that reading or is preserved as text.
 Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
   String low(String? v) => v?.trim().toLowerCase() ?? '';
   final type = low(r.type);
@@ -735,36 +758,25 @@ Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
     case '' || 'duple minor':
       break;
     default:
-      final raw = _sanitizeLine(r.formationFamily)!;
-      issues.add(
-        ImportIssue(
-          severity: ImportIssueSeverity.warning,
-          code: 'cc_unmapped_formation',
-          message:
-              'Formation "$raw" is unrecognized; preserved as free-text '
-              'detail.',
-        ),
-      );
-      return Formation(
-        FormationShape.other,
-        detail: detail == null ? raw : '$raw; $detail',
-      );
+      return _withDetail(_mapFormation(r.formationFamily, issues), detail);
   }
   final FormationShape shape;
-  if (contraForm.contains('becket')) {
-    shape = direction == 'ccw'
-        ? FormationShape.becketCcw
-        : FormationShape.becketCw;
-  } else if (contraForm.contains('indecent')) {
-    shape = FormationShape.dupleIndecent;
-  } else if (contraForm.contains('proper') &&
-      !contraForm.contains('improper')) {
-    shape = FormationShape.dupleProper;
-  } else if (direction == 'rev') {
-    shape = FormationShape.reverseProgressionImproper;
-  } else {
-    // Improper, or no start stated (as the single-string path defaults).
-    shape = FormationShape.dupleImproper;
+  switch (contraForm) {
+    case 'becket':
+      shape = direction == 'ccw'
+          ? FormationShape.becketCcw
+          : FormationShape.becketCw;
+    case 'indecent':
+      shape = FormationShape.dupleIndecent;
+    case 'proper':
+      shape = FormationShape.dupleProper;
+    case 'improper' || '':
+      // No start stated defaults to improper, as the single-string path does.
+      shape = direction == 'rev'
+          ? FormationShape.reverseProgressionImproper
+          : FormationShape.dupleImproper;
+    default:
+      return _withDetail(_mapFormation(r.contraForm, issues), detail);
   }
   return Formation(shape, detail: detail);
 }

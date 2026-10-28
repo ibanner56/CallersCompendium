@@ -1,16 +1,28 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/src/imports/callers_companion_usr_archive.dart';
-import 'package:compendium_core/src/imports/fmp/fmp_reader.dart';
 import 'package:test/test.dart';
 
 /// #1972: a `.USR` dance's formation comes from its separate columns, `Type`,
 /// `Formation`, `ContraForm`, `Direction` and `FormationOther`, not from the
 /// first non-empty one. The cases are the column combinations of a beta
-/// tester's library, each with the dance it came from.
+/// tester's library, each with the dance it came from, read through the
+/// adapter's parse path (the columns the fetch stage serialises).
 void main() {
-  Dance map(Map<String, String> columns) => mapCallersCompanionDance(
-    ccDanceRecordFromColumns({'Name': 'D', ...columns}),
-  ).dance;
+  final adapter = CallersCompanionUsrAdapter();
+  StructuredDraft parse(Map<String, String> columns) => adapter.parse(
+    RawRecord(
+      source: ProvenanceSource.callersCompanion,
+      externalId: '7',
+      sourceVersion: CallersCompanionUsrAdapter.sourceVersion,
+      payload: jsonEncode({
+        'rowId': '7',
+        'columns': {'Name': 'D', ...columns},
+      }),
+      contentType: 'application/json',
+    ),
+  );
+  Dance map(Map<String, String> columns) => parse(columns).dance;
 
   void expectFormation(
     Map<String, String> columns,
@@ -180,6 +192,51 @@ void main() {
   test('a recognised type adds no "Type:" line to the calling notes', () {
     final d = map({'Type': 'Circle Mixer', 'Formation': 'Duple Minor'});
     expect(d.callingNotes, isNot(contains('Type:')));
+  });
+
+  test('the type and SubType count without any formation column', () {
+    expectFormation({'Type': 'Longways'}, FormationShape.longways);
+    expectFormation(
+      {'Type': 'Circle Mixer'},
+      FormationShape.circleMixer,
+      mixer: true,
+    );
+    expectFormation(
+      {'Type': 'Square', 'SubType': 'Mixer, H H S S'},
+      FormationShape.dupleImproper,
+      mixer: true,
+      form: DanceForm.square,
+    );
+  });
+
+  test('a start CC does not offer is read as the text export reads it', () {
+    expectFormation({
+      'ContraForm': 'Sicilian Circle',
+    }, FormationShape.sicilianCircle);
+    expectFormation({'ContraForm': 'Triple Minor'}, FormationShape.tripleMinor);
+    final draft = parse({'ContraForm': 'Long lines facing'});
+    expect(draft.dance.formation.shape, FormationShape.other);
+    expect(draft.dance.formation.detail, 'Long lines facing');
+    expect(draft.issues.map((i) => i.code), contains('cc_unmapped_formation'));
+  });
+
+  test('a family CC does not offer is read as the text export reads it', () {
+    expectFormation({'Formation': 'Becket'}, FormationShape.becketCw);
+    expectFormation(
+      {'Formation': 'Sicilian Circle', 'FormationOther': 'Facing pairs'},
+      FormationShape.sicilianCircle,
+      detail: 'Facing pairs',
+    );
+  });
+
+  test('the text export keeps its single formation string and Type note', () {
+    final mapping = mapCallersCompanionDance(
+      CcDanceRecord(name: 'D', type: 'Circle Mixer', formation: 'Improper'),
+    );
+    expect(mapping.dance.formation.shape, FormationShape.dupleImproper);
+    expect(mapping.dance.mixer, isFalse);
+    expect(mapping.dance.callingNotes, contains('Type: Circle Mixer'));
+    expect(mapping.issues.map((i) => i.code), contains('cc_unmapped_type'));
   });
 
   test('a set item marked ALT is an alternate', () {

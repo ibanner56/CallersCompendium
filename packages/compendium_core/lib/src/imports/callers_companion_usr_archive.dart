@@ -497,11 +497,6 @@ CcDanceRecord ccDanceRecordFromColumns(
     lookup.get('Author2'),
   ].whereType<String>().where((s) => s.trim().isNotEmpty).toList();
 
-  final formation = lookup.firstNonEmpty([
-    'ContraForm',
-    'Formation',
-    'FormationOther',
-  ]);
   final progression = lookup.firstNonEmpty(['Progression', 'ProgressionOther']);
 
   var level = lookup.get('Level');
@@ -571,11 +566,11 @@ CcDanceRecord ccDanceRecordFromColumns(
     authors: authors,
     type: lookup.firstNonEmpty(['Type', 'SubType']),
     subType: lookup.get('SubType'),
-    formation: formation,
     formationFamily: lookup.get('Formation'),
     contraForm: lookup.get('ContraForm'),
     direction: lookup.get('Direction'),
     formationOther: lookup.get('FormationOther'),
+    fromUsrColumns: true,
     level: level,
     progression: progression,
     music: lookup.get('Music'),
