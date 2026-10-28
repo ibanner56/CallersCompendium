@@ -1623,6 +1623,39 @@ void main() {
         },
       );
 
+      test(
+        'the relevance sort direction still flips a fragment query',
+        () async {
+          await dances.create(
+            _dance(id: 'many', title: 'Rosy Rogue Robin Rover Rowan Roy'),
+          );
+          await dances.create(_dance(id: 'one', title: 'Roman Holiday Jig'));
+          await dances.create(
+            _dance(
+              id: 'roll',
+              title: 'Plain Two',
+              figures: [
+                Figure(move: 'custom', params: const {'text': 'roll away'}),
+              ],
+            ),
+          );
+          final asc = await dances.search(
+            const FullTextFilter('ro'),
+            dialect: Dialect.larksRobins,
+            sort: SearchSort.relevance,
+            direction: SortDirection.ascending,
+          );
+          final desc = await dances.search(
+            const FullTextFilter('ro'),
+            dialect: Dialect.larksRobins,
+            sort: SearchSort.relevance,
+            direction: SortDirection.descending,
+          );
+          expect(asc.toSet(), {'many', 'one', 'roll'});
+          expect(desc, asc.reversed.toList());
+        },
+      );
+
       test('the relevance sort leaves the token out too', () async {
         await seed();
         expect(

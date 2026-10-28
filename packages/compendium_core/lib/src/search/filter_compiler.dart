@@ -190,8 +190,9 @@ class FilterCompiler {
         : 'bm25(dance_fts)';
     if (fragment) {
       // The figure text arrives as a second, role-token-free branch. Each row
-      // is scored by its own MATCH, and a dance found by both keeps its best.
-      final pick = dir == SortDirection.descending ? 'MAX' : 'MIN';
+      // is scored by its own MATCH, and a dance found by both keeps its best
+      // (lowest) score; the direction then orders by that, as [order] does.
+      final direction = dir == SortDirection.descending ? ' DESC' : '';
       final sql =
           'SELECT dance_id FROM ('
           'SELECT dance_fts.dance_id AS dance_id, bm25(dance_fts) AS score '
@@ -202,7 +203,7 @@ class FilterCompiler {
           'JOIN dances ON dances.id = dance_fts.dance_id '
           'WHERE figures_text MATCH ? AND dances.deleted_at IS NULL '
           "AND (' ' || $_figuresTextWithoutRoleTokens) LIKE ? ESCAPE '\\'"
-          ') GROUP BY dance_id ORDER BY $pick(score)';
+          ') GROUP BY dance_id ORDER BY MIN(score)$direction';
       return CompiledFilter(sql, [
         query,
         canonicalQuery,
