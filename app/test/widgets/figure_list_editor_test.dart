@@ -2333,6 +2333,79 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // Rewriting an unparsed custom's text (AUTH-14, October behaviour audit)
+  // -------------------------------------------------------------------------
+
+  testWidgets(
+    'editing an import-gap custom\'s text makes it the caller\'s own',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          move: customMove,
+          params: {'text': 'petronella twice', 'beats': 8},
+          customOrigin: CustomOrigin.importGap,
+        ),
+      ];
+      await _pump(tester, drafts);
+      expect(find.byType(ImportGapBadge), findsOneWidget);
+      await _openFigure(tester, 0);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-text')),
+        'petronella, two full turns',
+      );
+      await tester.pumpAndSettle();
+
+      expect(drafts.single.customOrigin, CustomOrigin.userEntered);
+      expect(drafts.single.toFigure()!.customOrigin, CustomOrigin.userEntered);
+      expect(find.byType(ImportGapBadge), findsNothing);
+    },
+  );
+
+  for (final group in const ['meanwhile', 'modifier']) {
+    testWidgets('editing an import-gap $group child\'s text makes it the '
+        'caller\'s own', (tester) async {
+      final drafts = <FigureDraft>[
+        group == 'meanwhile'
+            ? FigureDraft(
+                meanwhileSides: [
+                  FigureDraft(
+                    move: customMove,
+                    params: {'text': 'larks orbit', 'beats': 8},
+                    customOrigin: CustomOrigin.importGap,
+                  ),
+                  FigureDraft(move: 'swing', params: {'who': 'partners'}),
+                ],
+              )
+            : FigureDraft(
+                modifierFigures: [
+                  FigureDraft(move: 'swing', params: {'who': 'partners'}),
+                  FigureDraft(
+                    move: customMove,
+                    params: {'text': 'larks orbit', 'beats': 8},
+                    customOrigin: CustomOrigin.importGap,
+                  ),
+                ],
+              ),
+      ]..single.params['beats'] = 8;
+      final children =
+          drafts.single.meanwhileSides ?? drafts.single.modifierFigures!;
+      final child = group == 'meanwhile' ? children[0] : children[1];
+      final index = group == 'meanwhile' ? 0 : 1;
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      await tester.enterText(
+        find.byKey(ValueKey('figure-0-side-$index-text')),
+        'larks orbit once',
+      );
+      await tester.pumpAndSettle();
+
+      expect(child.customOrigin, CustomOrigin.userEntered);
+    });
+  }
+
+  // -------------------------------------------------------------------------
   // Custom figure beats editor (#795)
   // -------------------------------------------------------------------------
 
