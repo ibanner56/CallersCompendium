@@ -67,8 +67,13 @@ beat total visible below the list.*
 ![The dance editor showing figure entry in progress, recognized figure rows, and the running beat total](images/dance-editor-figure-entry.png)
 
 The box stays open after each figure so you can keep going: type, Enter, type,
-Enter. Choose **Done**, press Escape, or press Enter on a blank box when you
-are done.
+Enter. When you have entered all your figures, choose **Finish adding**: it adds
+a line still in the box, as Enter would, and then closes the box. Press Enter on
+a blank box to close it too. Escape closes the box without adding what is in it.
+
+A line you have typed but not added is not lost if you move on. **Save** adds it
+first, as Enter would, and leaving the editor with a line in the box asks
+**Discard changes?**.
 
 ### Free-text entry
 
@@ -392,7 +397,8 @@ group first. It starts with your **Meanwhile defaults** (see
 stand-still sides if you have not set any. If you have cleared those defaults
 you get two blank sides, and a single default side is paired with one blank
 one. The group is saved with the dance once at least two of its sides are
-filled in.
+filled in; until then it is not counted in the **Total** (see
+[Keep an eye on the beats](#keep-an-eye-on-the-beats)).
 
 Inside the group, each side is labelled **Side 1**, **Side 2**, and so on, and has
 its own controls to move up, move down, or **Remove this side**. **Add side** adds
@@ -415,6 +421,11 @@ Under the figure list the app shows a running **Total** against what the dance's
 [phrase structure](./glossary.md#phrase-structure) expects, and says **Over by**
 or **Under by** when the two disagree. It is a nudge, not a rule — you can save a
 dance whose beats do not add up, and sometimes that is the honest transcription.
+
+The Total counts only rows that will be saved. A group that is not complete yet,
+such as a meanwhile group with one side filled in, is left out, and so is a row
+with no move. A row with no move but a note is saved as a custom figure holding
+the note, so the note is not lost.
 
 ## Details, notes, and credits
 
