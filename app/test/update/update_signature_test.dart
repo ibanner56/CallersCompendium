@@ -171,8 +171,10 @@ void main() {
   });
 
   // security-2: the client pins a SET of keys (current + next) so a signing-key
-  // rotation never strands an install. A manifest is accepted when its
-  // signature verifies against ANY pinned key; everything else fails closed.
+  // rotation strands no install that already pins the next key (older installs
+  // are the documented exception; docs/dev/releasing.md, "Key rotation"). A
+  // manifest is accepted when its signature verifies against ANY pinned key;
+  // everything else fails closed.
   group('verifyManifestSignatureWith — pinned key set', () {
     test(
       'accepts a signature made by the SECOND key of a two-key set',

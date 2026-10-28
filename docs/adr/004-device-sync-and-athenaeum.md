@@ -1,6 +1,15 @@
 # ADR-004: Device Sync, and the Athenaeum sync store
 
 - **Status**: Accepted
+- **Erratum (2026-10-28)**: the `deviceScoped` bullet in "Decision" gives
+  "per-device text scale" as an example. The registry classifies
+  `perform_text_scale` as `deviceLocal`, not `deviceScoped`
+  (`packages/compendium_core/lib/src/privacy/settings_registry.dart`), and the
+  registry is authoritative: its entry states the reason (the scale is tuned to
+  one screen, yet it may travel in a user-controlled local backup, which
+  `deviceScoped` forbids). The accepted text below is left as written; read
+  that example as illustrative only. Window position remains a true
+  `deviceScoped` example.
 - **Roadmap item**: Amends the v1 non-goals list in `docs/ROADMAP.md` (removing
   "cloud sync") and supersedes the Later-milestones item "Optional
   device-to-device sync, beyond Apple-native AirDrop support". Referenced by

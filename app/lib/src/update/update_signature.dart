@@ -2,7 +2,10 @@
 /// a **detached Ed25519 signature** over the exact manifest bytes against the
 /// in-app pinned public keys ([kUpdateManifestPublicKeys]); a signature that
 /// verifies against **any** pinned key is accepted, so a signing-key rotation
-/// never strands an install (security-2).
+/// that pins the next key one release ahead of switching the signer strands
+/// no install that took that release (security-2). Installs that predate the
+/// release pinning the new key trust only the old one and stop seeing updates
+/// once the signer switches; see "Key rotation" in docs/dev/releasing.md.
 ///
 /// This is the trust anchor for the *decision to download*: the mandatory
 /// sha256 gate ([artifact_verifier.dart]) proves an artifact matches what the
