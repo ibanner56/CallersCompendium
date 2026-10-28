@@ -51,8 +51,6 @@ void main() {
     temp.deleteSync(recursive: true);
   });
 
-  // `SharePlus.instance` captures `SharePlatform.instance` once, on first use,
-  // so one fake is installed up front and its status switched per case.
   group('mobile share sheet result', () {
     for (final entry in {
       ShareResultStatus.dismissed: false,
@@ -64,6 +62,13 @@ void main() {
         () async {
           status = entry.key;
           expect(await saveBackupToFile('{}', 'b.json'), entry.value);
+        },
+      );
+
+      test(
+        '${entry.key.name}: saveDiagnosticsLog returns ${entry.value}',
+        () async {
+          status = entry.key;
           expect(await saveDiagnosticsLog('log', 'l.txt'), entry.value);
         },
       );
