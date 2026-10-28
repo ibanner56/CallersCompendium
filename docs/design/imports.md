@@ -394,6 +394,17 @@ declines the collapse.
   `mapCallersCompanionDance`, not on the CC front-end, because free-text entry,
   call-button seeding and the reparse upgrade fan out across that front-end
   too. Sets → Programs; user fields → typed custom fields (below).
+- **Program slots link to dances the commit did not write (INTAKE-1).** A slot
+  resolves its CC dance id through the records the commit wrote *plus*
+  `existingDanceIdByExternalId`: the review passes each re-import row's target
+  (the row defaults to Skip, #446, and is left out of the batch). A row
+  committed through Import and edit is resolved by `earlierDanceIds` instead
+  (see *Per-row Edit* below), which wins over this map. Without it a routine
+  re-import turned every slot for a skipped dance into a "Dance not imported"
+  note on a program it then updated in place. The map links slots only: a dance in it is
+  not written and gets no `Dance_Related` link, since undo has no prior state
+  for it. An id deleted since planning is dropped, keeping the note. The share
+  importer (`CompendiumArchiveImporter.commit`) takes the same map.
 - **`UserDefined_1..3` → text custom fields (#1890).** Each non-empty column
   becomes a `CustomFieldValue` on the dance; the column's `_Name` label (or
   `User field N` when blank) becomes `CustomFieldDef.label`. The mapper is pure
