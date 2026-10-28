@@ -12,7 +12,9 @@ import 'structured_draft.dart';
 /// The source front-ends the local free-text consumers fan OUT across, in
 /// descending PRECEDENCE order (issue: free-text fan-out). On a shorthand miss,
 /// [parseFigureLineFanOut]/[parseFigureLinesFanOut] try each front-end in this
-/// order and take the HIGHEST-PRECEDENCE result that yields a non-custom parse:
+/// order and take the HIGHEST-PRECEDENCE result that yields a non-custom parse
+/// (among note-bearing results, the one leaving fewer letters and digits in its
+/// notes comes first; see [_AttemptTier]):
 ///
 ///   [contraDbHtmlFigureFrontEnd] > [tcbFigureFrontEnd] > [callersCompanionFigureFrontEnd]
 ///
@@ -157,14 +159,17 @@ _AttemptTier _classify(
       : _AttemptTier.clean;
 }
 
-/// A note opening with an amount: a whole number, a fraction, a decimal, a
-/// hyphenated mixed number (`1-1/2`) or a fraction glyph, standing alone (so
-/// `1s arch` and `2nd time` are not amounts, and `(8 beats)` opens with a
-/// bracket). A number with a unit (`8 beats`, `4 bars`) is a count, which
+/// A note opening with an amount: a whole number, a fraction, a decimal
+/// (`.5` too), a hyphenated mixed number (`1-1/2`) or a fraction glyph, with an
+/// optional `th(s)` (`3/4ths`), standing alone (so `1s arch` and `2nd time` are
+/// not amounts, and `(8 beats)` opens with a bracket). A count with `x` (`1x`)
+/// is not one of decision 7's forms (#1971), so ContraDB's `1x - don't let go`
+/// tail stays a note. A number with a unit (`8 beats`, `4 bars`) is a count, which
 /// keeps the note it always had (#1863).
 final RegExp _amountLed = RegExp(
-  r'^\s*(?:\d+(?:[./]\d+)?(?:-\d+/\d+)?|[\u00BC-\u00BE\u2150-\u215E])'
-  r'(?=$|[\s,;:()\[\]])(?!\s+(?:beats?|bars?|counts?)\b)',
+  r'^\s*(?:(?:\d+(?:[./]\d+)?|\.\d+)(?:-\d+/\d+)?(?:ths?)?'
+  r'|[\u00BC-\u00BE\u2150-\u215E])'
+  r'(?=$|[\s,;:.()\[\]])(?!\s+(?:beats?|bars?|counts?)\b)',
   caseSensitive: false,
 );
 

@@ -6809,7 +6809,7 @@
 {"in":"Ring balance, give-and-take to Larks side","scrub":"Ring balance, give-and-take to role1s side","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Ring balance, give-and-take to role1s side\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Circle Left 3/4, Partner Roll Away with half sashay","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Circle Left 3/4, Partner Roll Away with half sashay\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Larks allemande Left 1.5, Robins Orbit CW 0.5","scrub":"role1s allemande Left 1.5, role2s Orbit CW 0.5","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s allemande Left 1.5, role2s Orbit CW 0.5\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Square through 3 (NL, PR, NL)","fanOut":"[{\"schemaVersion\":1,\"move\":\"square_through\",\"params\":{\"places\":3,\"who\":\"neighbors\",\"who2\":\"partners\",\"hand\":\"left\",\"balance\":false}}]"}
+{"in":"Square through 3 (NL, PR, NL)","fanOut":"[{\"schemaVersion\":1,\"move\":\"square_through\",\"params\":{\"places\":3}}]"}
 {"in":"Right and left through (R to P, Courtesy turn N)","fanOut":"[{\"schemaVersion\":1,\"move\":\"right_left_through\",\"note\":\"R to P, Courtesy turn N\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Right and left through (R to P, Courtesy turn N)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Cross trail thru (PR, NL, to new wave)","fanOut":"[{\"schemaVersion\":1,\"move\":\"cross_trails\",\"note\":\"PR, NL, to new wave\"}]"}
 {"in":"(N2) Right-hand star 1.0","fanOut":"[{\"schemaVersion\":1,\"move\":\"star\",\"params\":{\"hand\":\"right\",\"places\":4},\"note\":\"N2\"}]"}

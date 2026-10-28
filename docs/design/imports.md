@@ -395,9 +395,9 @@ declines the collapse.
   (`your right-hand lady`, `left-hand neighbor`). It lives in
   `mapCallersCompanionDance`, not on the CC front-end, because free-text entry,
   call-button seeding and the reparse upgrade fan out across that front-end
-  too. **Amounts (#1971, shared by every free-text path):** a line that states
-  an amount is never saved as a structured figure with a different one. A
-  reading whose note opens with an amount it did not take (`Circle Left 3/4,
+  too. **Amounts (#1971, shared by every free-text path):** a reading never
+  keeps a default amount while the amount the line stated sits at the start of
+  its note. A reading whose note opens with an amount it did not take (`Circle Left 3/4,
   make short waves` → circle {3/4, …}) is not a structured win, so the line goes
   to another front-end's reading or stays custom; a number with a unit (`8
   beats`) is a count and keeps its note (#1863), and a figure that did take an
@@ -822,7 +822,9 @@ equal `n`; every cell must be `<people-code><R|L>` with the code in
 trailing clause, an unmappable code (`C1`–`C3`, out-of-range neighbors, a bare
 `R`/`L`), an inconsistent dancer or a non-alternating hand all return `null`, so
 the line falls through to the shared recognizer's bare, defaulted reading rather
-than being half-structured. Untrusted import text is length-capped **before**
+than being half-structured. The one exception is a Caller's Companion comma list
+on a `without hands` line (below), where words after the list are a note unless
+they open another clause (#1971). Untrusted import text is length-capped **before**
 the pass list is split into cells (`_boundedPassListCells`), so a hostile line
 with millions of `;` is rejected in O(1) rather than allocating the oversized
 list first — a bound shared with the hey and grand-right-and-left decoders (the
@@ -855,10 +857,13 @@ as for TCB heys.
 
 Caller's Companion writes the same list with commas, `Square through 3 without
 hands (NR, PL, NR) to new Neighbor`; that list decodes the same way and the words
-after it become the note (#1971). Without a pass list nothing says who starts, so
+after it become the note (#1971), unless they open another clause (`, then
+balance`, `and swing`), which leaves the line custom. A comma list on a square
+through *with* hands is not read. Without a pass list nothing says who starts, so
 there is no circular hey: the line reads as a `square_through` with
-`places: n` and the note "without hands" (maintainer decision on #1971). A line
-with a pass list stays custom when the second group repeats the first (a ring of four never passes the same
+`places: n`, `balance: false` and the note "without hands" (maintainer decision
+on #1971). A `without hands` line with a pass-list-shaped bracket that does not
+decode stays custom, as does one whose second group repeats the first (a ring of four never passes the same
 group twice running), when that group is outside `who2`'s vocabulary, and on
 any failure of the square-through checks above. Lines imported before this
 change keep their custom text; there is no backfill (maintainer decision on the

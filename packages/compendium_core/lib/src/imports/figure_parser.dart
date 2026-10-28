@@ -532,6 +532,13 @@ const Set<String> _neighborWords = {
   'neighbours',
 };
 
+/// Whether the words from [at] are the fraction of a mixed number: `1/2`, or
+/// `and 1/2` as `_normalize` leaves TCB's `1 & 1/2`.
+bool _startsMixedNumber(List<String> w, int at) {
+  if (at < w.length && w[at] == 'and') at++;
+  return at < w.length && _slashFractionRe.hasMatch(w[at]);
+}
+
 /// A bare whole number, as a dancer number or an amount is written.
 final RegExp _bareInteger = RegExp(r'^\d+$');
 
@@ -544,11 +551,15 @@ final RegExp _bareInteger = RegExp(r'^\d+$');
 /// number after a dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) is
 /// marked with a leading `#`, which no recognizer reads, so the line falls to
 /// custom (or into a prefix match's note) rather than lending its number to an
-/// amount.
+/// amount. A number that starts a mixed number is left alone: it is the amount
+/// (`Gypsy partner 1 1/2`, `Allemande left neighbor 1½`).
 void _foldDancerNumbers(List<String> w) {
   for (var i = 0; i + 1 < w.length; i++) {
     final number = w[i + 1];
     if (!_bareInteger.hasMatch(number)) continue;
+    // A whole number starting a mixed number is an amount, not a dancer:
+    // `Allemande left neighbor 1½` (`_normalize` splits `1½` into `1 1/2`).
+    if (_startsMixedNumber(w, i + 2)) continue;
     if (_neighborWords.contains(w[i]) && number.length == 1) {
       final n = int.parse(number);
       if (n <= 4) {

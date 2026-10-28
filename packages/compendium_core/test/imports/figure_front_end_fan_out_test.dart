@@ -6,7 +6,8 @@ import 'package:test/test.dart';
 /// test can tell WHICH front-end produced a fan-out winner by its note. Because
 /// it always carries a note it is a NOTE-BEARING (tier-2) attempt, which is
 /// exactly what the precedence-within-a-tier tests below want (they compare
-/// several note-bearing stubs, so the highest-precedence one wins). When [when]
+/// several note-bearing stubs with equal-length notes, so the highest-precedence
+/// one wins; #1971 ranks unequal notes by length first). When [when]
 /// is not satisfied the pre-recognizer returns null and the line falls to the
 /// shared recognizers (which do not recognize the nonsense sentinels used here),
 /// so the stub effectively "misses" and degrades to custom.

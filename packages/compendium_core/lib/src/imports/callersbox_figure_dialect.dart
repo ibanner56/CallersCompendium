@@ -2165,9 +2165,13 @@ FigureMatch? _proseAnnotation(String scrubbed) {
       )
       .toList();
   if (prose.isEmpty) return null;
-  // A side run beside the prose is [_decodeSideRunAnnotation]'s, which keeps
-  // both; reading the line here would drop the run (#1971).
-  if (_sideRunAndProse(scrubbed) != null) return null;
+  // A side run beside the prose is [_decodeSideRunAnnotation]'s when it
+  // decodes the line, keeping both; reading the line here would drop the run
+  // (#1971). When it declines, the prose is kept here as before.
+  if (_sideRunAndProse(scrubbed) != null &&
+      _decodeSideRunAnnotation(scrubbed) != null) {
+    return null;
+  }
 
   final match = recognizeSharedFigureLine(
     scrubbed,
@@ -2627,7 +2631,8 @@ _sideRunAndProse(String scrubbed) {
   final prose = <String>[];
   String? shorthand;
   for (final body in annotations) {
-    if (_annotationBodyHasLowercase(body) && !_looksLikePerRoleBody(body)) {
+    if ((_annotationBodyHasLowercase(body) && !_looksLikePerRoleBody(body)) ||
+        _isDancerTagBody(body)) {
       prose.add(body);
     } else if (shorthand == null) {
       shorthand = body;
@@ -3136,14 +3141,37 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   // A square through `without hands` with a pass list is a circular hey. One
   // whose list does not decode stays custom: the shared reader would otherwise
   // drop the list and save a square through with a "without hands" note
-  // (#1971), which only a line with no pass list gets.
+  // (#1971), which only a line with no pass list gets. Any other bracket
+  // (`(optional)`, `(8 beats)`) is not a pass list and is left to the later
+  // readers.
   final lower = scrubbed.toLowerCase();
-  return lower.contains('without hands') &&
-          lower.contains('square through') &&
-          lower.contains('(')
-      ? const FigureMatch.customFallback()
-      : null;
+  if (!lower.contains('without hands') || !_squareThroughWord.hasMatch(lower)) {
+    return null;
+  }
+  for (final m in _bracketBody.allMatches(lower)) {
+    if (_passListShape.hasMatch(m.group(1)!)) {
+      return const FigureMatch.customFallback();
+    }
+  }
+  return null;
 }
+
+/// Words that open another clause rather than a note on this one.
+final RegExp _nextClause = RegExp(
+  r'^(?:[,;:]|(?:and|then|while)\b)',
+  caseSensitive: false,
+);
+
+final RegExp _squareThroughWord = RegExp(r'\bsquare\s+thr(?:ough|u)\b');
+
+/// A `(...)` or `[...]` body, bounded like [_parenAnnotationRe].
+final RegExp _bracketBody = RegExp(r'[(\[]([^()\[\]]{0,120})[)\]]');
+
+/// A body made only of pass cells (`NR;PL;NR`, `NR, PL, NR`, `N1R;P1L~`),
+/// whether or not each code is one this file can decode.
+final RegExp _passListShape = RegExp(
+  r'^\s*[a-z][a-z0-9-]{0,4}[rl]~?\s*(?:[;,]\s*[a-z][a-z0-9-]{0,4}[rl]~?\s*)*$',
+);
 
 FigureMatch? _decodeSquareThroughPassList(String scrubbed) {
   final lower = scrubbed.toLowerCase();
@@ -3179,6 +3207,10 @@ FigureMatch? _decodeSquareThroughPassList(String scrubbed) {
       outWords[3] == 'without' &&
       outWords[4] == 'hands';
   if (outWords.length != 3 && !withoutHands) return null;
+  // The comma list is read only for the circular hey (#1971), and words after
+  // it that open another clause (`, then balance`, `and swing`) are a second
+  // figure, not a note, so the line stays custom.
+  if (ccList && (!withoutHands || _nextClause.hasMatch(after))) return null;
   if (outWords[0] != 'square' || outWords[1] != 'through') return null;
   final places = int.tryParse(outWords[2]);
   // A square through has at least 2 passes; the upper bound mirrors the shared

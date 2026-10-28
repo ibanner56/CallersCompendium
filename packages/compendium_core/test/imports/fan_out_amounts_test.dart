@@ -116,7 +116,31 @@ void main() {
     }, note: 'N2');
   });
 
+  test('a mixed number after a dancer word is the amount', () {
+    // `_normalize` splits `1½` into `1 1/2`; the `1` must not fold into N1.
+    expectReads('Allemande left neighbor 1½', 'allemande', {
+      'who': 'neighbors',
+      'travel': 1.5,
+    });
+    expectReads('Gypsy partner 1 1/2', 'shoulder_round', {
+      'who': 'partners',
+      'travel': 1.5,
+    });
+  });
+
+  test('an amount spelled with a suffix or a full stop is still an amount', () {
+    expectCustom('Circle Left 3/4. Make short waves');
+    expectCustom('Circle left 3/4ths');
+  });
+
   test('a single-file promenade clockwise is a single-file circle left', () {
+    // With a note, so the ranking decides it: on `main` the promenade's own
+    // reading won and noted the rest.
+    expectReads('Single file promenade clockwise 3/4 (with N2)', 'circle', {
+      'direction': 'left',
+      'singleFile': true,
+      'places': 3,
+    }, note: '(with N2)');
     expectReads('Single file promenade clockwise 3/4', 'circle', {
       'direction': 'left',
       'singleFile': true,

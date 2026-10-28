@@ -13,7 +13,8 @@ import '../figures_support.dart';
 /// the even cells' dancers are `who2` (taxonomy v37), the first cell's side is
 /// `shoulder`, and the count is `changes`. The pass list does not say whether
 /// the first pass runs across or along, so `where` is left to the taxonomy
-/// default, as for TCB heys. A line with no pass list stays custom.
+/// default, as for TCB heys. A line with no pass list is a square through
+/// noting "without hands" (#1971); one whose list does not decode stays custom.
 List<Figure> _parse(String text, {int beats = 0}) =>
     parseFigureLines(text, beats: beats, frontEnd: tcbFigureFrontEnd);
 
@@ -33,6 +34,11 @@ Future<List<Figure>> _importedFigures(List<String> lines) async {
 }
 
 void main() {
+  void expectCustomLine(String line) {
+    final f = _parse(line, beats: 8).single;
+    expect(f.isCustom, isTrue, reason: line);
+  }
+
   group('square through without hands -> circular_hey', () {
     test('(NR;PL;NR): three changes, neighbors first by the right', () {
       final f = _parse(
@@ -87,6 +93,29 @@ void main() {
       // No balance-and-pull, and an import never gains an unstated balance.
       expect(f.params['balance'], isFalse);
       expect(f.note, 'without hands');
+    });
+
+    test('a bracket that is not a pass list does not block the reading', () {
+      final f = _parse('Square through 4 without hands (optional)').single;
+      expect(f.move, 'square_through');
+      expect(f.note, 'without hands; optional');
+    });
+
+    test('"thru" with an undecodable list stays custom too', () {
+      expectCustomLine('Square thru 3 without hands (NR;PR;NR)');
+      expectCustomLine('Square thru 3 without hands (NR;PL;NR)');
+    });
+
+    test('a comma list followed by another clause stays custom', () {
+      expectCustomLine(
+        'Square through 4 without hands (NR, PL, NR, PL), then balance',
+      );
+    });
+
+    test('a comma list on a square through with hands is not read', () {
+      final f = _parse('Square through 3 (NL, PR, NL)', beats: 8).single;
+      expect(f.move, 'square_through');
+      expect(f.params.containsKey('who2'), isFalse);
     });
 
     test("Caller's Companion's comma pass list is read too (#1971)", () {

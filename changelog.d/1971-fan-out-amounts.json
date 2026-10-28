@@ -11,6 +11,10 @@
     "added": [
       "Amounts written as decimals or hyphenated numbers are now read: \"1.0\", \"0.5\", \"1-1/2\", and \"Circle Left 5/4\" as five places.",
       "\"Square through 3 without hands (NR, PL, NR)\" in a Caller's Companion library now imports as a circular hey. Without the pass list it imports as a square through noting \"without hands\"."
+    ],
+    "changed": [
+      "\"Single file promenade clockwise\" (or counterclockwise) is now read as a single-file circle left (or right), with any amount as places.",
+      "A dancer tag in brackets, such as \"(N2)\" in \"(N2) Right-hand star 1.0\", is now kept as the figure's note instead of being dropped."
     ]
   },
   "core": {
