@@ -302,8 +302,9 @@ App call sites resolve the localized labels from `AppLocalizations` through
 `programMatrixExportLabels(l10n)`) and pass them into the builder. Content
 **values** (formation / status / level names) route through the existing
 localized helpers in `search/facet_labels.dart` (`formationLabel`,
-`danceStatusLabel`, `danceLevelLabel`); dates already use
-`MaterialLocalizations.formatMediumDate`. Never call `AppLocalizations` from a
+`danceStatusLabel`, `danceLevelLabel`); dates go through
+`formatEventDate` under the user's Date format setting (System falls back to
+`MaterialLocalizations.formatShortDate`). Never call `AppLocalizations` from a
 core renderer, and never add a Flutter dependency to `compendium_core` — inject a
 label object instead.
 

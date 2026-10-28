@@ -56,7 +56,7 @@ void main() {
     expect(find.textContaining('07.15.26'), findsOneWidget);
   });
 
-  testWidgets('an invalid custom pattern falls back to the platform medium '
+  testWidgets('an invalid custom pattern falls back to the platform short '
       'date', (tester) async {
     await _pumpTile(
       tester,
@@ -69,7 +69,7 @@ void main() {
     expect(find.textContaining('bogus'), findsNothing);
   });
 
-  testWidgets('the same tile renders the platform medium date under system', (
+  testWidgets('the same tile renders the platform short date under system', (
     tester,
   ) async {
     await _pumpTile(tester, DateFormatSetting(DateFormatPref.system));
@@ -78,7 +78,7 @@ void main() {
     );
     expect(find.textContaining(expected), findsOneWidget);
     // The fixed ymd pattern must NOT appear under the system default, and the
-    // medium date must genuinely differ from it for this locale.
+    // short date must genuinely differ from it for this locale.
     expect(find.textContaining('2026-07-15'), findsNothing);
     expect(expected, isNot('2026-07-15'));
   });
