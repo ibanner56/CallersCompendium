@@ -262,6 +262,42 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsExperimentalTitle => 'Experimenteel';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Ontwikkelaarsopties';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Database resetten';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Alles op dit apparaat verwijderen en opnieuw beginnen, zoals bij een verse installatie.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle => 'Database resetten?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'Hiermee worden alle dansen, programma’s, collecties, instellingen en notities op dit apparaat definitief verwijderd en start de app opnieuw alsof hij net is geïnstalleerd. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'Dit apparaat is verbonden met een synchronisatieopslag. Het verwijdert zichzelf eerst uit de opslag, zodat het niet als verweesd apparaat achterblijft. Alles wat het nog niet naar je andere apparaten heeft gesynchroniseerd, gaat verloren.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'Ik begrijp dat dit niet ongedaan kan worden gemaakt en ik heb al een back-up gemaakt als ik die wil.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction => 'Database resetten';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Dit apparaat kon niet uit de synchronisatieopslag worden verwijderd, dus er is niets gereset. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'De database kon niet worden gereset, dus je gegevens zijn ongewijzigd. Als dit apparaat met een synchronisatieopslag was verbonden, heeft het die al verlaten.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
 

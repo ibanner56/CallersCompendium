@@ -1,0 +1,9 @@
+{
+  "id": "developer-options-reset-database",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Settings ▸ Experimental has a new Developer Options section with a Reset database button that wipes the app back to a clean install. It asks you to confirm, and if this device is connected to a Device Sync store it removes itself from the store first."
+    ]
+  }
+}

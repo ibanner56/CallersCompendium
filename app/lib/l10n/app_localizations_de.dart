@@ -262,6 +262,42 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsExperimentalTitle => 'Experimentell';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Entwickleroptionen';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Datenbank zurücksetzen';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Alles auf diesem Gerät löschen und neu beginnen, wie bei einer frischen Installation.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle => 'Datenbank zurücksetzen?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'Dadurch werden alle Tänze, Programme, Sammlungen, Einstellungen und Notizen auf diesem Gerät dauerhaft gelöscht, und die App startet neu, als wäre sie gerade erst installiert worden. Das lässt sich nicht rückgängig machen.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'Dieses Gerät ist mit einem Synchronisierungsspeicher verbunden. Es entfernt sich zuerst selbst aus dem Speicher, damit es nicht als verwaistes Gerät zurückbleibt. Alles, was es noch nicht mit deinen anderen Geräten synchronisiert hat, geht verloren.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'Ich verstehe, dass sich das nicht rückgängig machen lässt, und ich habe bereits eine Sicherung erstellt, falls ich eine möchte.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction => 'Datenbank zurücksetzen';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Dieses Gerät konnte nicht aus dem Synchronisierungsspeicher entfernt werden, daher wurde nichts zurückgesetzt. Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'Die Datenbank konnte nicht zurückgesetzt werden, deine Daten sind unverändert. Falls dieses Gerät mit einem Synchronisierungsspeicher verbunden war, hat es ihn bereits verlassen.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.';
 

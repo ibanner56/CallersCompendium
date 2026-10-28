@@ -263,6 +263,42 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsExperimentalTitle => 'Eksperimentelt';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Udviklerindstillinger';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Nulstil databasen';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Slet alt på denne enhed og start forfra, som på en ny installation.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle => 'Nulstille databasen?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'Dette sletter permanent alle danse, programmer, samlinger, indstillinger og noter på denne enhed og genstarter appen, som var den lige blevet installeret. Det kan ikke fortrydes.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'Denne enhed er forbundet til et synkroniseringslager. Den fjerner først sig selv fra lageret, så den ikke efterlades som en forældreløs enhed. Alt, den endnu ikke har synkroniseret til dine andre enheder, går tabt.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'Jeg forstår, at det ikke kan fortrydes, og jeg har allerede taget en sikkerhedskopi, hvis jeg ønsker en.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction => 'Nulstil databasen';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Denne enhed kunne ikke fjernes fra synkroniseringslageret, så intet blev nulstillet. Tjek din forbindelse, og prøv igen.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'Databasen kunne ikke nulstilles, så dine data er uændrede. Hvis denne enhed var forbundet til et synkroniseringslager, har den allerede forladt det.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'Nye funktioner vises muligvis her, mens de stadig er under udvikling.';
 

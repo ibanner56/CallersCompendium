@@ -254,6 +254,42 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsExperimentalTitle => '実験的';
 
   @override
+  String get settingsDeveloperOptionsHeader => '開発者向けオプション';
+
+  @override
+  String get settingsDeveloperResetTitle => 'データベースをリセット';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'このデバイス上のすべてを削除し、新規インストールの状態から始め直します。';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle => 'データベースをリセットしますか？';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'このデバイス上のすべてのダンス、プログラム、コレクション、設定、メモが完全に削除され、アプリはインストール直後の状態で再起動します。この操作は元に戻せません。';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'このデバイスは同期ストアに接続されています。孤立したデバイスとして残らないよう、最初にストアから自身を削除します。他のデバイスにまだ同期されていない内容は失われます。';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      '元に戻せないことを理解しており、必要な場合はすでにバックアップを取っています。';
+
+  @override
+  String get settingsDeveloperResetConfirmAction => 'データベースをリセット';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'このデバイスを同期ストアから削除できなかったため、何もリセットされていません。接続を確認して、もう一度お試しください。';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'データベースをリセットできませんでした。データは変更されていません。このデバイスが同期ストアに接続されていた場合、すでにストアから切断されています。';
+
+  @override
   String get settingsExperimentalPlaceholder => '開発中の新機能がここに表示される場合があります。';
 
   @override
