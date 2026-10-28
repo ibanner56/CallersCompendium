@@ -7,7 +7,7 @@
       "The Programs list now follows Ignore leading articles when sorting, so \"The Spring Fling\" files under S.",
       "Quick search (Ctrl-K / Cmd-K) ignores accents, lists an exact or starting-with title ahead of other matches, and orders titles without regard to case or a leading article.",
       "Typing the first letters of a name such as \"Roodman\" or \"Rolling\" no longer matches nearly every dance through hidden role text in the figures, while real moves such as \"roll away\" are still found.",
-      "The Reduce motion switch now also turns off the fade between themes, reaches the app's own animations and animated images, and the program matrix's column-hide button no longer fades when it is on."
+      "The Reduce motion switch, when on, now also turns off the fade between themes and the app's own animations, and the program matrix's column-hide button no longer fades when it is on."
     ]
   },
   "core": {

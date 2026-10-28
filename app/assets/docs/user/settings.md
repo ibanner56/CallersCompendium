@@ -59,10 +59,11 @@ The **General** section gathers everyday behavior into small groups.
 ### Accessibility
 
 - **Reduce motion** — trims animations and movement. Follows your device's system
-  *Reduce Motion* setting by default; flip this switch to override it either way
-  for the app's own animations and for the fade between themes. A few
-  animations built into the system's own controls may still follow the device
-  setting.
+  *Reduce Motion* setting by default; turn this switch on to
+  switch off the app's animations and the fade between themes even when your
+  device allows motion. Turning it off stops the app removing its own
+  animations, but cannot restore animations your device's setting has already
+  shortened.
 - **Always show verbose figure text** — shows the full spoken-style
   [figure](./glossary.md#figure) wording on screen in the dance view, not only to
   screen readers. Turn it off for the terse notation. This affects the dance view;

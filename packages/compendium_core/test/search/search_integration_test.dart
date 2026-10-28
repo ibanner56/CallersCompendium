@@ -1597,6 +1597,32 @@ void main() {
         },
       );
 
+      test(
+        'a multi-word query ending in a short word still finds the figure',
+        () async {
+          await dances.create(
+            _dance(
+              id: 'circ',
+              title: 'Plain Three',
+              figures: [
+                Figure(
+                  move: 'custom',
+                  params: const {'text': 'circle left 3 places'},
+                ),
+              ],
+            ),
+          );
+          await seed();
+          expect(
+            await dances.search(
+              const FullTextFilter('circle le'),
+              dialect: Dialect.larksRobins,
+            ),
+            ['circ'],
+          );
+        },
+      );
+
       test('the relevance sort leaves the token out too', () async {
         await seed();
         expect(
