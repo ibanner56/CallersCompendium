@@ -1,5 +1,6 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'callers_companion_mapping.dart';
 import 'callersbox_figure_dialect.dart';
@@ -42,7 +43,11 @@ final List<FigureFrontEnd> figureFanOutFrontEnds = List.unmodifiable([
 /// `and swing (NR)` dropped into a note, or `circle left 3/4` → `circle` with
 /// `3/4` as a note instead of `places: 3`). Preferring a CLEAN (noteless) parse
 /// from ANY front-end over a note-bearing one keeps the highest-fidelity reading
-/// while still honouring precedence WITHIN each tier.
+/// while still honouring precedence among clean parses. Among note-bearing ones
+/// the reading that leaves fewer letters and digits in its notes wins
+/// ([_unexplainedChars]), and precedence breaks a tie (#1971): ContraDB's
+/// `allemande left {1.5 (face P)}` defaulted the amount the TCB reading,
+/// `allemande left 1½ {face P}`, takes.
 enum _AttemptTier {
   /// Non-empty, every figure structured (non-custom), and none carries a note.
   /// A container with a custom child is NOT clean (see [_hasCustomDescendant]):
@@ -69,7 +74,9 @@ enum _AttemptTier {
   /// captured note swallowed a top-level `;`/`||`. The latter means the
   /// front-end absorbed compound (`;`) or simultaneity (`||`) syntax it must
   /// not represent as one figure, so it is rejected here and the line is left
-  /// to the TCB splitter / custom fallback.
+  /// to the TCB splitter / custom fallback. OR, for every caller, a figure whose
+  /// note opens with an amount while it took none ([_leavesAmountUnread]): the
+  /// line stated an amount and the figure would carry its default (#1971).
   ///
   /// [tcbFigureFrontEnd] is exempt from the swallow check because it already
   /// handles top-level `;`/`||` splitting before producing any note. A `||`
@@ -120,10 +127,17 @@ _AttemptTier _classify(
   required FigureFrontEnd frontEnd,
   bool demoteNoteTails = false,
   _LeftoverVocabulary? vocabulary,
+  Taxonomy? taxonomy,
 }) {
   if (result.isEmpty || result.any((f) => f.isCustom)) return _AttemptTier.none;
   if (!identical(frontEnd, tcbFigureFrontEnd) &&
       result.any((f) => _noteSwallowedCompound(f.note))) {
+    return _AttemptTier.none;
+  }
+  // A note that opens with an amount, on a figure that took none, is an amount
+  // the reader did not read: the figure would carry its default instead of
+  // what the line said (#1971).
+  if (_leavesAmountUnread(result, taxonomy ?? contraTaxonomy)) {
     return _AttemptTier.none;
   }
   if (demoteNoteTails) {
@@ -142,6 +156,60 @@ _AttemptTier _classify(
       ? _AttemptTier.noteBearing
       : _AttemptTier.clean;
 }
+
+/// A note opening with an amount: a whole number, a fraction, a decimal, a
+/// hyphenated mixed number (`1-1/2`) or a fraction glyph, standing alone (so
+/// `1s arch` and `2nd time` are not amounts, and `(8 beats)` opens with a
+/// bracket). A number with a unit (`8 beats`, `4 bars`) is a count, which
+/// keeps the note it always had (#1863).
+final RegExp _amountLed = RegExp(
+  r'^\s*(?:\d+(?:[./]\d+)?(?:-\d+/\d+)?|[\u00BC-\u00BE\u2150-\u215E])'
+  r'(?=$|[\s,;:()\[\]])(?!\s+(?:beats?|bars?|counts?)\b)',
+  caseSensitive: false,
+);
+
+/// Whether a figure in [figures] (sub-figures included) has a note opening
+/// with an amount while carrying no amount param of its own. A figure that
+/// did take an amount may legitimately open its note with one: a rounded
+/// fraction's source spelling (`Star left 1 & 1/8` → 5 places, note
+/// `1 & 1/8`).
+bool _leavesAmountUnread(Iterable<Figure> figures, Taxonomy taxonomy) {
+  for (final f in figures) {
+    final note = f.note;
+    if (note != null && _amountLed.hasMatch(note)) {
+      final specs = taxonomy.moves[f.move]?.params ?? const {};
+      final tookAmount = f.params.keys.any(
+        (k) => _amountKinds.contains(specs[k]?.kind),
+      );
+      if (!tookAmount) return true;
+    }
+    if (f.isContainer && _leavesAmountUnread(f.subFigures, taxonomy)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// The param kinds that state how far a figure goes.
+const Set<ParamKind> _amountKinds = {
+  ParamKind.rotation,
+  ParamKind.places,
+  ParamKind.fraction,
+};
+
+/// How much of the line [figures] left unexplained: the letters and digits in
+/// their notes, sub-figures included. Brackets and punctuation do not count, so
+/// a front-end that only tidies `(NR)` to `NR` does not outrank one that kept
+/// the brackets (#1971).
+int _unexplainedChars(List<Figure> figures) {
+  var n = 0;
+  for (final note in _allNotes(figures)) {
+    n += note.replaceAll(_notLetterOrDigit, '').length;
+  }
+  return n;
+}
+
+final RegExp _notLetterOrDigit = RegExp(r'[^A-Za-z0-9]');
 
 /// Every non-null note on [figures] and, recursively, their sub-figures.
 Iterable<String> _allNotes(Iterable<Figure> figures) sync* {
@@ -446,9 +514,10 @@ Figure? _attemptLine(
 ///   over a higher-precedence front-end that only prefix-matched and dumped the
 ///   remainder into a note (e.g. TCB's `swing{prefix: balance}` is taken over
 ///   ContraDB's bare `balance` + `"and swing"` note);
-/// - failing any clean parse, the highest-precedence NOTE-BEARING structured
-///   figure is returned (e.g. a legitimate ContraDB note-tail such as an
-///   allemande's `- don't let go`), UNLESS it came from a non-TCB
+/// - failing any clean parse, the NOTE-BEARING structured figure that leaves
+///   the fewest letters and digits unexplained is returned, precedence
+///   breaking a tie (e.g. a legitimate ContraDB note-tail such as an
+///   allemande's `- don't let go`, #1971), UNLESS it came from a non-TCB
 ///   front-end (ContraDB, CallersCompanion) whose note swallowed a top-level
 ///   `;`/`||` — compound/simultaneity syntax a single figure must not absorb,
 ///   so it is rejected in favour of custom. [tcbFigureFrontEnd] is exempt: its
@@ -502,12 +571,16 @@ Figure? parseFigureLineFanOut(
       frontEnd: fe,
       demoteNoteTails: demoteNoteTails,
       vocabulary: vocabulary,
+      taxonomy: taxonomy,
     )) {
       case _AttemptTier.clean:
         // Highest-precedence clean parse: nothing lower can beat it.
         return parsed;
       case _AttemptTier.noteBearing:
-        noteWin ??= parsed;
+        if (noteWin == null ||
+            _unexplainedChars([parsed]) < _unexplainedChars([noteWin])) {
+          noteWin = parsed;
+        }
       case _AttemptTier.none:
         if (parsed.isCustom) {
           customFallback ??= parsed;
@@ -536,8 +609,9 @@ Figure? parseFigureLineFanOut(
 ///   all-or-nothing split (its clauses are clean) rather than being swallowed
 ///   whole by a higher-precedence front-end that would capture the `;`-tail as a
 ///   single figure's note;
-/// - failing any clean attempt, the highest-precedence NOTE-BEARING attempt
-///   wins, UNLESS it came from a non-TCB front-end (ContraDB,
+/// - failing any clean attempt, the NOTE-BEARING attempt leaving the fewest
+///   letters and digits unexplained wins, precedence breaking a tie (#1971),
+///   UNLESS it came from a non-TCB front-end (ContraDB,
 ///   CallersCompanion) whose note swallowed a top-level `;`/`||`
 ///   (compound/simultaneity syntax that the front-end absorbed instead of
 ///   splitting) — such an attempt is rejected so the line stays custom.
@@ -602,11 +676,15 @@ List<Figure> parseFigureLinesFanOut(
       frontEnd: fe,
       demoteNoteTails: demoteNoteTails,
       vocabulary: vocabulary,
+      taxonomy: taxonomy,
     )) {
       case _AttemptTier.clean:
         return result;
       case _AttemptTier.noteBearing:
-        noteWin ??= result;
+        if (noteWin == null ||
+            _unexplainedChars(result) < _unexplainedChars(noteWin)) {
+          noteWin = result;
+        }
       case _AttemptTier.none:
         if (result.every((f) => f.isCustom)) {
           customFallback ??= result;

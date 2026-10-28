@@ -1,0 +1,21 @@
+{
+  "id": "1971-fan-out-amounts",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A figure line that states an amount the app cannot read, such as \"Circle Left 3/4, make short waves\", now stays as your text instead of becoming a figure with a different amount (it used to save circle left 4 places).",
+      "\"Larks allemande Left 1.5 (face P)\" and similar lines with words after the amount now keep the amount you wrote instead of \"once\".",
+      "\"Neighbor 2 Do-si-do\" now reads as a do-si-do with your next neighbor, not a do-si-do twice, and \"Neighbor 1 allemande Left 3/4\" turns ¾, not 1¾.",
+      "\"Pass through along (NR) (optional)\" keeps the right shoulder alongside the note \"optional\"."
+    ],
+    "added": [
+      "Amounts written as decimals or hyphenated numbers are now read: \"1.0\", \"0.5\", \"1-1/2\", and \"Circle Left 5/4\" as five places.",
+      "\"Square through 3 without hands (NR, PL, NR)\" in a Caller's Companion library now imports as a circular hey. Without the pass list it imports as a square through noting \"without hands\"."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The free-text fan-out ranks note-bearing readings by the letters and digits left in their notes, with front-end precedence breaking a tie, and rejects a reading whose note opens with an amount it did not take."
+    ]
+  }
+}

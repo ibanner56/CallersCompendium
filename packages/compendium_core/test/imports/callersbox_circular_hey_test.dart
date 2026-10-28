@@ -79,6 +79,29 @@ void main() {
       expect(next.params['who2'], 'nextNeighbors');
     });
 
+    test('no pass list: a square through noting "without hands" (#1971)', () {
+      // The first passer is unknown, so there is no circular hey to build.
+      final f = _parse('Square through 3 without hands', beats: 8).single;
+      expect(f.move, 'square_through');
+      expect(f.params['places'], 3);
+      // No balance-and-pull, and an import never gains an unstated balance.
+      expect(f.params['balance'], isFalse);
+      expect(f.note, 'without hands');
+    });
+
+    test("Caller's Companion's comma pass list is read too (#1971)", () {
+      final f = _parse(
+        'Square through 3 without hands (NR, PL, NR) to new Neighbor',
+        beats: 8,
+      ).single;
+      expect(f.move, 'circular_hey');
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['who2'], 'partners');
+      expect(f.params['changes'], 3);
+      expect(f.params['shoulder'], 'right');
+      expect(f.note, 'to new Neighbor');
+    });
+
     test('a square through WITH hands is still a square through', () {
       final f = _parse('Square through 3 (NR;PL;NR)', beats: 8).single;
       expect(f.move, 'square_through');
@@ -94,10 +117,6 @@ void main() {
       expect(f.isCustom, isTrue, reason: line);
       expect(f.params['text'], line);
     }
-
-    test('no pass list: the first passer is unknown', () {
-      expectCustom('Square through 3 without hands');
-    });
 
     test('the same group passed twice running', () {
       expectCustom('Square through 2 without hands (NR;NL)');

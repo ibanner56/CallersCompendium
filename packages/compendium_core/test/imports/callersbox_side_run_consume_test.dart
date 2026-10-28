@@ -353,9 +353,17 @@ void main() {
       },
     );
 
-    test('a second parenthetical declines rather than guessing', () async {
-      final f = await _importTcbLine('(2) Pass through along (NR) (optional)');
+    test('a second parenthetical that is not prose declines', () async {
+      final f = await _importTcbLine('(2) Pass through along (NR) (OR)');
       expect(f.params.containsKey('shoulder'), isFalse);
+    });
+
+    test('a prose second parenthetical becomes the note (#1971)', () async {
+      // Before #1971 the run was dropped: the shoulder went unset and only
+      // "optional" survived.
+      final f = await _importTcbLine('(2) Pass through along (NR) (optional)');
+      expect(f.params['shoulder'], 'right');
+      expect(f.note, 'optional');
     });
   });
 

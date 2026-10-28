@@ -380,7 +380,9 @@ declines the collapse.
   each dance's body from it. The `Dance`-row `A1..C2` path is kept as a
   **fallback** for exports that carry it and for the CC text adapter. Each body
   line is routed through the **shared free-text fan-out**
-  (`parseFigureLinesFanOut`: ContraDB > TCB > CC) — every line with content
+  (`parseFigureLinesFanOut`: ContraDB > TCB > CC; a clean reading beats a
+  note-bearing one, and among note-bearing readings the one leaving fewer letters
+  and digits in its notes wins, precedence breaking a tie, #1971) — every line with content
   after scrubbing is retained: recognised moves structure into taxonomy
   figures, the rest as `importGap` customs (parse-never-fails); a line that is
   empty after scrubbing yields nothing (nothing to store). One CC-only retry sits
@@ -393,7 +395,18 @@ declines the collapse.
   (`your right-hand lady`, `left-hand neighbor`). It lives in
   `mapCallersCompanionDance`, not on the CC front-end, because free-text entry,
   call-button seeding and the reparse upgrade fan out across that front-end
-  too. Sets → Programs; user fields → typed custom fields (below).
+  too. **Amounts (#1971, shared by every free-text path):** a line that states
+  an amount is never saved as a structured figure with a different one. A
+  reading whose note opens with an amount it did not take (`Circle Left 3/4,
+  make short waves` → circle {3/4, …}) is not a structured win, so the line goes
+  to another front-end's reading or stays custom; a number with a unit (`8
+  beats`) is a count and keeps its note (#1863), and a figure that did take an
+  amount may open its note with the source spelling of a rounded fraction.
+  Decimal and hyphenated amounts are read (`1.0`, `0.5`, `1-1/2` turns;
+  `1.0`/`0.5` circles, and `5/4` = 5 places). A number right after a dancer
+  word is the dancer, never an amount: `Neighbor 0`–`Neighbor 4` read as the
+  `N0`–`N4` tags, and any other (`Partner 2`) leaves the line custom.
+  Sets → Programs; user fields → typed custom fields (below).
 - **`UserDefined_1..3` → text custom fields (#1890).** Each non-empty column
   becomes a `CustomFieldValue` on the dance; the column's `_Name` label (or
   `User field N` when blank) becomes `CustomFieldDef.label`. The mapper is pure
@@ -840,8 +853,12 @@ The pass list names who passes and by which shoulder, not whether the first
 pass runs across or along the set, so `where` is left to the taxonomy default,
 as for TCB heys.
 
-The line stays custom when there is no pass list (nothing says who starts),
-when the second group repeats the first (a ring of four never passes the same
+Caller's Companion writes the same list with commas, `Square through 3 without
+hands (NR, PL, NR) to new Neighbor`; that list decodes the same way and the words
+after it become the note (#1971). Without a pass list nothing says who starts, so
+there is no circular hey: the line reads as a `square_through` with
+`places: n` and the note "without hands" (maintainer decision on #1971). A line
+with a pass list stays custom when the second group repeats the first (a ring of four never passes the same
 group twice running), when that group is outside `who2`'s vocabulary, and on
 any failure of the square-through checks above. Lines imported before this
 change keep their custom text; there is no backfill (maintainer decision on the

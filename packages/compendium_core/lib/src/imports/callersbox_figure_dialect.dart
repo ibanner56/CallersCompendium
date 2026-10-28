@@ -2158,9 +2158,16 @@ FigureMatch? _proseAnnotation(String scrubbed) {
   // synthesis (e.g. digit-bearing `M1 past M3, W1 past W2`) so they are never
   // frozen as gendered shorthand in a verbatim note.
   final prose = annotations
-      .where((b) => _annotationBodyHasLowercase(b) && !_looksLikePerRoleBody(b))
+      .where(
+        (b) =>
+            (_annotationBodyHasLowercase(b) && !_looksLikePerRoleBody(b)) ||
+            _isDancerTagBody(b),
+      )
       .toList();
   if (prose.isEmpty) return null;
+  // A side run beside the prose is [_decodeSideRunAnnotation]'s, which keeps
+  // both; reading the line here would drop the run (#1971).
+  if (_sideRunAndProse(scrubbed) != null) return null;
 
   final match = recognizeSharedFigureLine(
     scrubbed,
@@ -2170,6 +2177,17 @@ FigureMatch? _proseAnnotation(String scrubbed) {
 
   return _withAnnotationNote(match, _joinAnnotations(prose));
 }
+
+/// Whether [body] is just a dancer tag (`N2`, `P`, `S1`): shorthand the shape
+/// rule would drop, though it names who the figure is with, so it is kept as
+/// the note (maintainer decision on #1971). The gendered `M`/`W` codes are
+/// not, so no gendered shorthand is frozen into a note.
+bool _isDancerTagBody(String body) {
+  final tag = body.trim().toLowerCase();
+  return _dancerTagRe.hasMatch(tag) && tcbPassPeople.containsKey(tag);
+}
+
+final RegExp _dancerTagRe = RegExp(r'^[nps][0-9]?$');
 
 /// True iff [body] contains at least one lowercase ASCII letter (`a`–`z`).
 /// Used as the shape-rule discriminant: prose has lowercase words; shorthand
@@ -2449,7 +2467,9 @@ bool _isSquareRoleSetDescriptor(String body) =>
 /// owner's call, not this decoder's.)
 ///
 /// **Declines (returns `null` → the ordinary annotation-stripped path) when:**
-///   * the line has no `(...)` annotation, or more than one;
+///   * the line has no `(...)` annotation, or more than one unless exactly one
+///     is a side run and the others are prose, which becomes the note
+///     (`Pass through along (NR) (optional)`, #1971);
 ///   * the annotation is not entirely `<people-code><R|L>` cells, or any
 ///     people code is absent from [tcbPassPeople] (`O`, `Ph`, `SRN`, `C1`–`C3`,
 ///     out-of-range neighbors/shadows) — never approximated onto a token that
@@ -2490,47 +2510,22 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   if (open == -1) return null;
   final close = lower.indexOf(')', open + 1);
   if (close == -1) return null;
-  // A second parenthetical means extra structure we do not model -> decline.
-  if (lower.indexOf('(', close + 1) != -1) return null;
-
-  final cells = _boundedPassListCellsIn(lower, open, close);
-  if (cells == null || cells.isEmpty || cells.length > kMaxPassListCells) {
-    return null;
+  final List<_SideCell> decoded;
+  final String sideBase;
+  String? prose;
+  if (lower.indexOf('(', close + 1) == -1) {
+    final run = _decodeSideCells(_boundedPassListCellsIn(lower, open, close));
+    if (run == null) return null;
+    (cells: decoded, base: sideBase) = run;
+  } else {
+    // More than one parenthetical: one side run plus prose, which becomes the
+    // note (`Pass through along (NR) (optional)`, #1971). Anything else is
+    // extra structure we do not model -> decline.
+    final split = _sideRunAndProse(scrubbed);
+    if (split == null) return null;
+    (cells: decoded, base: sideBase) = split.run;
+    prose = _joinAnnotations(split.prose);
   }
-
-  // Decode every cell before consulting the taxonomy: a run we cannot fully
-  // account for declines outright, so no line is ever partially structured.
-  final decoded = <_SideCell>[];
-  String? sideBase;
-  for (var i = 0; i < cells.length; i++) {
-    // The `~` partial-last-pass marker is informational only (ratified) and is
-    // dropped here exactly as the hey decoder drops it.
-    final cell = cells[i].endsWith('~')
-        ? cells[i].substring(0, cells[i].length - 1)
-        : cells[i];
-    if (cell.length < 2) return null;
-    final sideChar = cell[cell.length - 1];
-    final side = sideChar == 'r'
-        ? 'right'
-        : sideChar == 'l'
-        ? 'left'
-        : null;
-    if (side == null) return null;
-    final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
-    if (who == null) return null;
-
-    // Sides alternate by parity; derive the base (position-1) side and require
-    // every later cell to agree — a run that does not alternate is malformed.
-    final position = i + 1;
-    final impliedBase = position.isOdd ? side : _otherShoulder(side);
-    if (sideBase == null) {
-      sideBase = impliedBase;
-    } else if (sideBase != impliedBase) {
-      return null;
-    }
-    decoded.add(_SideCell(who, side));
-  }
-  if (sideBase == null) return null;
 
   final match = recognizeSharedFigureLine(
     scrubbed,
@@ -2576,9 +2571,73 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   return FigureMatch(
     match.moveId,
     params: params,
-    note: match.note,
+    note: combineFigureNotes(match.note, prose),
     assumedSubject: match.assumedSubject,
   );
+}
+
+/// Decodes a side run's [cells] (lowercased) into the dancers and sides they
+/// name, and the side of position 1, or `null` when any cell is not
+/// `<people-code><R|L>` with the code in [tcbPassPeople], or the sides do not
+/// alternate. A run is decoded whole, never partially.
+({List<_SideCell> cells, String base})? _decodeSideCells(List<String>? cells) {
+  if (cells == null || cells.isEmpty || cells.length > kMaxPassListCells) {
+    return null;
+  }
+  final decoded = <_SideCell>[];
+  String? sideBase;
+  for (var i = 0; i < cells.length; i++) {
+    // The `~` partial-last-pass marker is informational only (ratified) and is
+    // dropped here exactly as the hey decoder drops it.
+    final cell = cells[i].endsWith('~')
+        ? cells[i].substring(0, cells[i].length - 1)
+        : cells[i];
+    if (cell.length < 2) return null;
+    final sideChar = cell[cell.length - 1];
+    final side = sideChar == 'r'
+        ? 'right'
+        : sideChar == 'l'
+        ? 'left'
+        : null;
+    if (side == null) return null;
+    final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
+    if (who == null) return null;
+
+    // Sides alternate by parity; derive the base (position-1) side and require
+    // every later cell to agree — a run that does not alternate is malformed.
+    final position = i + 1;
+    final impliedBase = position.isOdd ? side : _otherShoulder(side);
+    if (sideBase == null) {
+      sideBase = impliedBase;
+    } else if (sideBase != impliedBase) {
+      return null;
+    }
+    decoded.add(_SideCell(who, side));
+  }
+  if (sideBase == null) return null;
+  return (cells: decoded, base: sideBase);
+}
+
+/// Splits [scrubbed]'s parentheticals into exactly one decodable side run and
+/// one or more prose annotations, or returns `null` when they are anything
+/// else. Lets a side run share its line with prose (#1971).
+({({List<_SideCell> cells, String base}) run, List<String> prose})?
+_sideRunAndProse(String scrubbed) {
+  final annotations = _parenAnnotations(scrubbed);
+  final prose = <String>[];
+  String? shorthand;
+  for (final body in annotations) {
+    if (_annotationBodyHasLowercase(body) && !_looksLikePerRoleBody(body)) {
+      prose.add(body);
+    } else if (shorthand == null) {
+      shorthand = body;
+    } else {
+      return null;
+    }
+  }
+  if (shorthand == null || prose.isEmpty) return null;
+  final run = _decodeSideCells(_boundedPassListCells(shorthand.toLowerCase()));
+  return run == null ? null : (run: run, prose: prose);
 }
 
 /// One decoded `<people-code><R|L>` cell: the dancer it names and the side.
@@ -3045,7 +3104,9 @@ FigureMatch? _circulate(String scrubbed) {
 ///   * the text OUTSIDE the pass list is not exactly `square through <n>`
 ///     or `square through <n> without hands` (modulo filler), `n` in
 ///     2..10 — so an `interrupted`/`modified` qualifier, a trailing `-`
-///     clause, an inline `balance`, or any other prose stays out;
+///     clause, an inline `balance`, or any other prose stays out. The one
+///     exception is Caller's Companion's comma-separated list (`(NR, PL, NR)`,
+///     #1971): the words after it become the note (`… to new Neighbor`);
 ///   * the cell count does not equal `n` (a square through of `n` has `n`
 ///     passes; a mismatch is an unmodeled variant);
 ///   * any cell is not `<people-code><R|L>` with the people code present in
@@ -3065,8 +3126,26 @@ FigureMatch? _circulate(String scrubbed) {
 /// so with `without hands` between the count and the pass list the same decode
 /// yields a `circular_hey` instead: `who` from the odd cells, `who2` from the
 /// even cells (v37), `changes` from `n`, and the first cell's side as the
-/// `shoulder`. See [_circularHeyFromPasses] for what it declines.
+/// `shoulder`. See [_circularHeyFromPasses] for what it declines. A `without
+/// hands` line with a pass list that does not decode stays custom
+/// ([FigureMatch.customFallback]); without a pass list the shared recognizer
+/// reads it as a `square_through` noting "without hands" (#1971).
 FigureMatch? _squareThroughPassList(String scrubbed) {
+  final decoded = _decodeSquareThroughPassList(scrubbed);
+  if (decoded != null) return decoded;
+  // A square through `without hands` with a pass list is a circular hey. One
+  // whose list does not decode stays custom: the shared reader would otherwise
+  // drop the list and save a square through with a "without hands" note
+  // (#1971), which only a line with no pass list gets.
+  final lower = scrubbed.toLowerCase();
+  return lower.contains('without hands') &&
+          lower.contains('square through') &&
+          lower.contains('(')
+      ? const FigureMatch.customFallback()
+      : null;
+}
+
+FigureMatch? _decodeSquareThroughPassList(String scrubbed) {
   final lower = scrubbed.toLowerCase();
   final open = lower.indexOf('(');
   if (open == -1) return null;
@@ -3079,7 +3158,14 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   // here, so the same O(1) bound is applied inline rather than via that helper.
   if (close - open - 1 > _maxPassListChars) return null;
   final passText = lower.substring(open + 1, close);
-  final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
+  // Caller's Companion writes the pass list with commas (`(NR, PL, NR)`) and
+  // its own words after it (`… (NR, PL, NR) to new Neighbor`), which become
+  // the note (#1971). A TCB list never has a comma, and keeps its exact rule.
+  final ccList = !passText.contains(';') && passText.contains(',');
+  final after = scrubbed.substring(close + 1).trim();
+  final outside = ccList
+      ? lower.substring(0, open)
+      : '${lower.substring(0, open)} ${lower.substring(close + 1)}';
 
   // Outside the pass list must be EXACTLY "square through <n>", optionally
   // followed by "without hands" (+ filler).
@@ -3099,7 +3185,9 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   // recognizer's 1..10 places domain.
   if (places == null || places < 2 || places > 10) return null;
 
-  final cells = _boundedPassListCells(passText);
+  final cells = ccList
+      ? passText.split(',').map((c) => c.trim()).toList()
+      : _boundedPassListCells(passText);
   // "Square through n" is exactly n passes; a mismatch is an unmodeled variant.
   // The OWASP cell bound is enforced pre-split by [_boundedPassListCells]; here
   // `== places` (places <= 10) already constrains the count.
@@ -3148,13 +3236,15 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   }
   if (who == null || handBase == null) return null;
 
+  final note = ccList && after.isNotEmpty ? after : null;
   if (withoutHands) {
-    return _circularHeyFromPasses(
+    final hey = _circularHeyFromPasses(
       changes: places,
       who: who,
       who2: who2,
       shoulder: handBase,
     );
+    return hey == null ? null : _withAnnotationNote(hey, note);
   }
 
   return FigureMatch(
@@ -3167,6 +3257,7 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
       // Import fidelity: TCB never inlines the balance on a square-through line.
       'balance': false,
     },
+    note: note,
   );
 }
 
