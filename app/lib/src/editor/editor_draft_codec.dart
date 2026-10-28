@@ -19,11 +19,11 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 
 /// The draft key every new dance shared before each new dance got its own
 /// (AUTH-10). A draft still stored under it is read as one more new dance's.
-const String kLegacyNewDanceEditorDraftKey = '${kDanceEditorDraftKeyPrefix}new';
+const String kLegacyNewDanceEditorDraftKey = 'editor_draft:new';
 
 /// Key prefix for the draft of a dance not yet saved: each new-dance editor
 /// writes under this plus its own id, so two new dances never share a draft.
-const String kNewDanceEditorDraftKeyPrefix = '$kLegacyNewDanceEditorDraftKey:';
+const String kNewDanceEditorDraftKeyPrefix = 'editor_draft:new:';
 
 /// Whether [key] holds the draft of a dance not yet saved, under either the
 /// per-editor form or the legacy shared key.

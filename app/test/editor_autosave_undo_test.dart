@@ -459,6 +459,22 @@ void main() {
       expect(decoded.figureDrafts.first.note, 'Larks go');
     });
 
+    test('the new-dance draft keys sit under the editor draft prefix, so '
+        'backup excludes them and the registry classifies them', () {
+      expect(
+        kLegacyNewDanceEditorDraftKey,
+        startsWith(kDanceEditorDraftKeyPrefix),
+      );
+      expect(kNewDanceEditorDraftKeyPrefix, '$kLegacyNewDanceEditorDraftKey:');
+      expect(isNewDanceEditorDraftKey(kLegacyNewDanceEditorDraftKey), isTrue);
+      expect(
+        isNewDanceEditorDraftKey('${kNewDanceEditorDraftKeyPrefix}x'),
+        isTrue,
+      );
+      expect(isNewDanceEditorDraftKey('editor_draft:newer'), isFalse);
+      expect(isNewDanceEditorDraftKey('editor_draft:d1'), isFalse);
+    });
+
     test('unreadable text roles read as unknown, not as no roles', () {
       final decoded = decodeDraft({
         'v': 13,
