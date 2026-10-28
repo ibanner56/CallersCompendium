@@ -2818,18 +2818,23 @@ class DanceRepository {
     );
   }
 
-  /// [Dance.duplicate] (fresh identity, no provenance) and persists it.
+  /// [Dance.duplicate] (fresh identity, no provenance) and persists it in one
+  /// write. [newTitle] is applied to the copy before it is written; see
+  /// [Dance.duplicate]. This does not touch the *other* dances' reverse
+  /// related-dance links; callers that want those maintained go through the
+  /// app layer's `duplicateDanceWithRelatedLinks`.
   Future<Dance> duplicate({
     required String id,
     required String newId,
     required DateTime now,
+    String? newTitle,
   }) async {
     assertUtc(now, 'now');
     final source = await getById(id, includeDeleted: true);
     if (source == null) {
       throw ArgumentError.value(id, 'id', 'no such dance');
     }
-    final copy = source.duplicate(newId: newId, now: now);
+    final copy = source.duplicate(newId: newId, now: now, newTitle: newTitle);
     await create(copy);
     return copy;
   }

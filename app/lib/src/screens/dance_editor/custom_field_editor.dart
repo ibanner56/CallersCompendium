@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
-import 'dance_editor_controller.dart' show AddChoiceResult;
+import 'choice_option.dart' show AddChoiceResult;
 import 'lingo_discouraged_hint.dart';
 
 /// Renders the editor control for a single [CustomFieldDef], dispatching on its
@@ -139,14 +139,26 @@ class CustomFieldEditor extends StatelessWidget {
   /// delegates to [onAddOption]. The input is capped at
   /// [kMaxCustomFieldChoiceLength] characters; empty and duplicate values are
   /// reported inline in the dialog rather than silently dropped.
-  Future<void> _promptAddOption(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) =>
-          _AddChoiceOptionDialog(label: def.label, onAddOption: onAddOption!),
-    );
-  }
+  Future<void> _promptAddOption(BuildContext context) =>
+      showAddChoiceOptionDialog(
+        context,
+        label: def.label,
+        onAddOption: onAddOption!,
+      );
 }
+
+/// Opens the "add an option" dialog for the `choice` field called [label] and
+/// reports a rejected value inline (empty, duplicate) instead of closing.
+/// Shared by the dance editor and the Collection's batch custom-field dialog.
+Future<void> showAddChoiceOptionDialog(
+  BuildContext context, {
+  required String label,
+  required Future<AddChoiceResult> Function(String raw) onAddOption,
+}) => showDialog<void>(
+  context: context,
+  builder: (dialogContext) =>
+      _AddChoiceOptionDialog(label: label, onAddOption: onAddOption),
+);
 
 /// Modal for adding a new option to a `choice` custom field from the dance
 /// editor (issue #373). A [StatefulWidget] so it owns its [TextEditingController]

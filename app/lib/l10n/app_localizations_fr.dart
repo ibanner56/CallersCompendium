@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3429,6 +3430,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’exporter le journal de diagnostic.';
 
   @override
+  String get diagnosticsClearFailed =>
+      'Impossible d’effacer le journal de diagnostic.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Effacer le journal de diagnostic ?';
 
   @override
@@ -3516,6 +3521,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get commonUndo => 'Annuler';
+
+  @override
+  String get commonUndoFailed =>
+      'Impossible d’annuler. Vérifiez le résultat et réessayez.';
 
   @override
   String get commonRetry => 'Réessayer';

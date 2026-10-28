@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/utils/undo_snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// isolation (issue #463).
 Widget _harness({
   required bool accessibleNavigation,
-  required VoidCallback onUndo,
+  required FutureOr<void> Function() onUndo,
   Duration duration = const Duration(seconds: 6),
 }) {
   return MaterialApp(
@@ -21,6 +23,7 @@ Widget _harness({
               key: const ValueKey('undo-snackbar'),
               message: 'Item deleted.',
               undoLabel: 'Undo',
+              undoFailedMessage: 'Undo failed.',
               accessibleNavigation: accessibleNavigation,
               duration: duration,
               onUndo: onUndo,
@@ -121,6 +124,64 @@ void main() {
 
       expect(find.byType(SnackBar), findsOneWidget);
       expect(find.text('Undo'), findsOneWidget);
+    });
+
+    testWidgets('an Undo that throws asynchronously says it failed', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          accessibleNavigation: false,
+          onUndo: () async {
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            throw StateError('disk full');
+          },
+        ),
+      );
+      await _showAndAwaitEntrance(tester);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      // Reported, not escaped to the zone: the test would fail on an uncaught
+      // async error.
+      expect(
+        find.byKey(const ValueKey('undo-failed-snackbar')),
+        findsOneWidget,
+      );
+      expect(find.text('Undo failed.'), findsOneWidget);
+      expect(find.text('Item deleted.'), findsNothing);
+    });
+
+    testWidgets('an Undo that throws synchronously says it failed', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          accessibleNavigation: false,
+          onUndo: () => throw StateError('locked'),
+        ),
+      );
+      await _showAndAwaitEntrance(tester);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Undo failed.'), findsOneWidget);
+    });
+
+    testWidgets('an Undo that succeeds shows no failure message', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(accessibleNavigation: false, onUndo: () async {}),
+      );
+      await _showAndAwaitEntrance(tester);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Undo failed.'), findsNothing);
     });
   });
 }

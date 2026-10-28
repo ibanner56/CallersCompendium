@@ -1939,7 +1939,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ?failed,
         ].join(' '),
         undoLabel: l10n.commonUndo,
-        onUndo: () => unawaited(applied.undo()),
+        undoFailedMessage: l10n.commonUndoFailed,
+        onUndo: applied.undo,
         accessibleNavigation: accessibleNavigation,
       );
     } else if (failed != null) {
@@ -2143,6 +2144,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ? l10n.sharedImportComplete(importedCount)
           : l10n.sharedImportCompleteWithFailures(importedCount, failedDances),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: accessibleNavigation,
       onUndo: () async {
         // Idempotent: a repeated tap (or a tap after another undo) is a no-op.

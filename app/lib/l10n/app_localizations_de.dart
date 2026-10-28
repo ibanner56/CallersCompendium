@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3414,6 +3415,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diagnoseprotokoll konnte nicht exportiert werden.';
 
   @override
+  String get diagnosticsClearFailed =>
+      'Diagnoseprotokoll konnte nicht gelöscht werden.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Diagnoseprotokoll löschen?';
 
   @override
@@ -3501,6 +3506,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get commonUndo => 'Rückgängig';
+
+  @override
+  String get commonUndoFailed =>
+      'Das konnte nicht rückgängig gemacht werden. Bitte das Ergebnis prüfen und es erneut versuchen.';
 
   @override
   String get commonRetry => 'Erneut versuchen';

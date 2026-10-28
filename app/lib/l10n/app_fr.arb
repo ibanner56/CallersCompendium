@@ -3416,6 +3416,10 @@
   "@diagnosticsExportFailed": {
     "x-sourceSha256": "7a4bc94bc88c3750a70e7afa82ad0573ef674a2baad7c1f34ec0418a39347620"
   },
+  "diagnosticsClearFailed": "Impossible d’effacer le journal de diagnostic.",
+  "@diagnosticsClearFailed": {
+    "x-sourceSha256": "50ce27d1bce5db751b69e08e7ddbf3573dc466a5c04aefbdd637f5e11e7e4857"
+  },
   "diagnosticsClearLogTitle": "Effacer le journal de diagnostic ?",
   "@diagnosticsClearLogTitle": {
     "x-sourceSha256": "0a9b465b72b0b9539a23e5e44494ee4b1769ffb663ed14bbb6cb92bfdc28374a"
@@ -3519,6 +3523,10 @@
   "commonUndo": "Annuler",
   "@commonUndo": {
     "x-sourceSha256": "a8283ade31856f71220db0e6f60a257c6889dc4dad0f275f66ad44b9ed9bf8d5"
+  },
+  "commonUndoFailed": "Impossible d’annuler. Vérifiez le résultat et réessayez.",
+  "@commonUndoFailed": {
+    "x-sourceSha256": "64cb613fabf9e2b50bffb15126b715f3b0c14864606feab0fb1c7cf39226199e"
   },
   "commonRetry": "Réessayer",
   "@commonRetry": {

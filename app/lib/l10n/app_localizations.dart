@@ -5239,6 +5239,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t export the diagnostics log.'**
   String get diagnosticsExportFailed;
 
+  /// Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t clear the diagnostics log.'**
+  String get diagnosticsClearFailed;
+
   /// Title of the confirmation dialog for clearing the local diagnostics log.
   ///
   /// In en, this message translates to:
@@ -5394,6 +5400,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Undo'**
   String get commonUndo;
+
+  /// Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t undo that. Please check the result and try again.'**
+  String get commonUndoFailed;
 
   /// Button that re-attempts a failed load.
   ///
@@ -6619,7 +6631,7 @@ abstract class AppLocalizations {
   /// **'Create tag'**
   String get collectionCreateTagButton;
 
-  /// Snackbar shown when applying a batch tag operation fails.
+  /// Snackbar shown when applying a batch operation (tags, level, rating, tunes, custom field) fails.
   ///
   /// In en, this message translates to:
   /// **'Could not apply batch changes. Try again.'**

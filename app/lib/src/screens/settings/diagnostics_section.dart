@@ -224,6 +224,14 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.diagnosticsLogCleared)),
       );
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'diagnostics_section._clear');
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('diagnostics-clear-failed'),
+          content: Text(l10n.diagnosticsClearFailed),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
       _reload();

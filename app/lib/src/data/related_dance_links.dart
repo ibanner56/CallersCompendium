@@ -279,6 +279,48 @@ Future<void> saveDanceWithRelatedLinks(
   });
 }
 
+/// Duplicates the dance [id] as [newId] in a single write, titled
+/// `copyTitle(source.title)`, and returns the copy.
+///
+/// The copy goes through [saveDanceWithRelatedLinks], so a dance it relates to
+/// gets its reverse link, and a copy of a dance in a transitive group joins
+/// that group, rather than holding links nothing points back at (audit
+/// LIFE-12). Persisting it with the title already applied also means no
+/// failure can leave an exact-title twin behind the way create-then-rename did.
+///
+/// A related-dance link whose target is gone (missing, or in Recently deleted)
+/// is left off the copy: it could not be given a reverse link, and saving it
+/// would refuse the whole duplicate over a dance the user cannot see.
+Future<Dance> duplicateDanceWithRelatedLinks(
+  CompendiumRepositories repos, {
+  required String id,
+  required String newId,
+  required DateTime now,
+  required String Function(String sourceTitle) copyTitle,
+}) => repos.db.transaction(() async {
+  final source = await repos.dances.getById(id, includeDeleted: true);
+  if (source == null) {
+    throw ArgumentError.value(id, 'id', 'no such dance');
+  }
+  final draft = source.duplicate(
+    newId: newId,
+    now: now,
+    newTitle: copyTitle(source.title),
+  );
+  final links = <DanceLink>[];
+  for (final link in draft.links) {
+    final targetId = link.targetDanceId;
+    if (link.kind == LinkKind.relatedDance && targetId != null) {
+      final target = await repos.dances.getById(targetId, includeDeleted: true);
+      if (target == null || target.isDeleted) continue;
+    }
+    links.add(link);
+  }
+  final copy = draft.copyWith(links: links);
+  await saveDanceWithRelatedLinks(repos, dance: copy);
+  return copy;
+});
+
 Map<String, List<DanceLink>> _relatedLinksByTarget(List<DanceLink>? links) {
   final result = <String, List<DanceLink>>{};
   for (final link in links ?? const <DanceLink>[]) {

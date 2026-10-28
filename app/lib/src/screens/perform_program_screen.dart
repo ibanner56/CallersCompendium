@@ -828,6 +828,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       messenger,
       message: message,
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () {
         // The snackbar lives on the app-root messenger, so it can outlive this

@@ -4191,6 +4191,10 @@
   "@diagnosticsExportFailed": {
     "description": "Snackbar shown when diagnostics log export fails. Details are not shown in the UI."
   },
+  "diagnosticsClearFailed": "Couldn’t clear the diagnostics log.",
+  "@diagnosticsClearFailed": {
+    "description": "Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI."
+  },
   "diagnosticsClearLogTitle": "Clear diagnostics log?",
   "@diagnosticsClearLogTitle": {
     "description": "Title of the confirmation dialog for clearing the local diagnostics log."
@@ -4294,6 +4298,10 @@
   "commonUndo": "Undo",
   "@commonUndo": {
     "description": "Snackbar action that reverses the action just performed (delete, batch tag/level change)."
+  },
+  "commonUndoFailed": "Couldn’t undo that. Please check the result and try again.",
+  "@commonUndoFailed": {
+    "description": "Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string."
   },
   "commonRetry": "Retry",
   "@commonRetry": {
@@ -5371,7 +5379,7 @@
   },
   "collectionBatchApplyError": "Could not apply batch changes. Try again.",
   "@collectionBatchApplyError": {
-    "description": "Snackbar shown when applying a batch tag operation fails."
+    "description": "Snackbar shown when applying a batch operation (tags, level, rating, tunes, custom field) fails."
   },
   "collectionBatchTagAddConfirm": "Add",
   "@collectionBatchTagAddConfirm": {
