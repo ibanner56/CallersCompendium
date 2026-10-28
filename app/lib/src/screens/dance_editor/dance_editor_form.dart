@@ -417,6 +417,10 @@ class DanceEditorForm extends StatelessWidget {
           ),
           SectionHeader(title: l10n.danceEditorFiguresSection),
           Padding(
+            // Keyed so a child shown or hidden above it (the custom-number
+            // banner) moves this section rather than rebuilding it, which
+            // would lose a line waiting in the free-text composer.
+            key: const ValueKey('figures-section'),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

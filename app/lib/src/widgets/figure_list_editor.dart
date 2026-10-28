@@ -375,6 +375,8 @@ class _FigureListEditorState extends State<FigureListEditor>
     super.initState();
     _freeTextController.addListener(_reportPendingLine);
     widget.freeTextComposerController?.attach(_submitPendingLine);
+    // A fresh editor has no line; this clears a flag left by one it replaced.
+    _reportPendingLine();
   }
 
   @override

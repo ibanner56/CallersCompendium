@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
+import 'package:compendium_app/src/editor/free_text_composer_controller.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/figure_param_editors.dart';
@@ -3928,6 +3929,47 @@ void main() {
       expect(find.byKey(fieldKey), findsNothing);
       expect(drafts, hasLength(1));
       expect(drafts.single.toFigure()!.move, 'swing');
+    });
+
+    testWidgets('a replacement editor clears the pending flag the one it '
+        'replaced left behind', (tester) async {
+      final composer = FreeTextComposerController();
+      addTearDown(composer.dispose);
+      final drafts = <FigureDraft>[];
+      Widget host(Key key) => MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: FigureListEditor(
+              key: key,
+              drafts: drafts,
+              taxonomy: contraTaxonomy,
+              phraseStructure: PhraseStructure.standard,
+              onChanged: () {},
+              onAdd: () {},
+              onDelete: (_) {},
+              freeTextEntry: true,
+              onAddFreeText: (figures) => figures.length,
+              freeTextComposerController: composer,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(host(const ValueKey('first')));
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing');
+      await tester.pumpAndSettle();
+      expect(composer.hasPendingLine, isTrue);
+
+      // A new key: the replacement attaches before the first is disposed,
+      // and the first's detach no longer clears the flag.
+      await tester.pumpWidget(host(const ValueKey('second')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(composer.hasPendingLine, isFalse);
     });
 
     testWidgets('a blank submit closes the composer without inserting', (

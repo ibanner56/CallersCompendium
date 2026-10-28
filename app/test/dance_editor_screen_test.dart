@@ -2709,6 +2709,54 @@ void main() {
       expect(saved.last.move, 'swing');
     });
 
+    testWidgets('a line in the box survives the custom-number banner '
+        'appearing above the figures', (tester) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f-num',
+          key: 'number',
+          label: 'Number',
+          type: CustomFieldType.number,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await openComposer(tester);
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+
+      // An invalid number shows the banner as the form's first child, which
+      // shifts every child below it.
+      await _expandMoreDetails(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('custom-f-num')),
+        '1e400',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('custom-field-validation-error')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(fieldKey, skipOffstage: false))
+            .controller!
+            .text,
+        'neighbors balance & swing',
+      );
+
+      await tester.enterText(find.byKey(const ValueKey('custom-f-num')), '5');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = figuresOf((await repos.dances.getById('d1'))!);
+      expect(saved, hasLength(7));
+      expect(saved.last.move, 'swing');
+    });
+
     testWidgets('the visible confirmation reports the count and goes away '
         'with the box', (tester) async {
       final repos = await reposWith(freeText: true);
