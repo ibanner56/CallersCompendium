@@ -267,10 +267,18 @@ void main() {
     controller.titleController.text = 'Typed after undo';
     controller.onTextEdited();
 
+    var notified = 0;
+    controller.addListener(() => notified++);
+
     // The typing is newer than the redo entry, so redo has nothing to do.
     controller.redo();
     expect(controller.titleController.text, 'Typed after undo');
     expect(controller.status, DanceStatus.active);
+    // The Undo and Redo buttons hear that the typing is now undoable and
+    // there is nothing left to redo.
+    expect(controller.canUndo, isTrue);
+    expect(controller.canRedo, isFalse);
+    expect(notified, greaterThan(0));
   });
 
   test('the injected debounce governs the autosave timer', () async {

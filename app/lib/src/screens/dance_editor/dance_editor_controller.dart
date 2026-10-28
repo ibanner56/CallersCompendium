@@ -901,7 +901,11 @@ class DanceEditorController extends ChangeNotifier {
   /// Cancelling it instead would lose the typing and step back one entry too
   /// far.
   void _flushPendingUndoPush() {
-    if (_undoTimer?.isActive ?? false) pushUndoNow();
+    if (!(_undoTimer?.isActive ?? false)) return;
+    pushUndoNow();
+    // The cancelled timer would have refreshed canUndo/canRedo, and a redo
+    // this push empties returns before its own notify.
+    _notify();
   }
 
   void undo() {

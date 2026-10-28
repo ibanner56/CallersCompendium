@@ -29,8 +29,12 @@ class FreeTextComposerController extends ChangeNotifier {
   /// [submit] adds the pending line and returns whether none is left.
   void attach(bool Function() submit) => _submit = submit;
 
-  /// Called by the composer's editor when it stops serving this controller.
-  void detach() {
+  /// Called by the composer's editor when it stops serving this controller,
+  /// with the [submit] it attached. A replacement editor attaches before the
+  /// one it replaces is disposed, so a [submit] other than the attached one
+  /// is ignored rather than disconnecting the replacement.
+  void detach(bool Function() submit) {
+    if (_submit != submit) return;
     _submit = null;
     updatePendingLine(false);
   }

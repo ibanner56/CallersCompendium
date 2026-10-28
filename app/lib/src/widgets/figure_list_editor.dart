@@ -380,7 +380,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
   void didUpdateWidget(FigureListEditor old) {
     super.didUpdateWidget(old);
     if (old.freeTextComposerController != widget.freeTextComposerController) {
-      old.freeTextComposerController?.detach();
+      old.freeTextComposerController?.detach(_submitPendingLine);
       widget.freeTextComposerController?.attach(_submitPendingLine);
       _reportPendingLine();
     }
@@ -426,7 +426,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     }
     _addButtonFocusNode.dispose();
     _addMenuFirstItemFocusNode.dispose();
-    widget.freeTextComposerController?.detach();
+    widget.freeTextComposerController?.detach(_submitPendingLine);
     _freeTextController.dispose();
     _freeTextFocusNode.dispose();
     super.dispose();
