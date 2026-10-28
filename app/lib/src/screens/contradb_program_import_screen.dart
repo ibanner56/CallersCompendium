@@ -519,7 +519,7 @@ class _ContraDbProgramImportScreenState
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.hardDelete([id]);
-        await imported.rollBack();
+        await imported.rollBack(undoneProgramId: id);
       },
     );
     navigator.pop(id);
@@ -541,9 +541,12 @@ class _ContraDbProgramImportScreenState
   /// Takes back every dance [imported] holds. Never throws: it runs on paths
   /// that are already reporting something else, or after the screen is gone,
   /// so a failure can only be logged.
-  Future<void> _discard(ProgramImportRollback imported) async {
+  Future<void> _discard(
+    ProgramImportRollback imported, {
+    String? undoneProgramId,
+  }) async {
     try {
-      await imported.rollBack();
+      await imported.rollBack(undoneProgramId: undoneProgramId);
     } catch (error, stackTrace) {
       logCaughtError(
         error,
@@ -570,7 +573,7 @@ class _ContraDbProgramImportScreenState
       // The program may still link these dances, so they stay with it.
       return;
     }
-    await _discard(imported);
+    await _discard(imported, undoneProgramId: id);
   }
 
   /// Maximum caller length accepted from a scraped contributor. Defense-in-depth

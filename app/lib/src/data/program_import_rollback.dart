@@ -50,30 +50,56 @@ class ProgramImportRollback {
   /// found. Idempotent: a session already undone is skipped, and a second call
   /// has nothing left to revert.
   ///
-  /// A session whose dance some program still links is **kept**. The caller
-  /// removes its own program first, so a link that remains was made since —
-  /// the user added the dance to another program while the Undo was still on
-  /// offer (it can persist under accessible navigation). Removing the dance
-  /// would empty that program's slot behind the user's back. Soft-deleted
-  /// programs count too: restoring one must not find its slot emptied.
-  Future<void> rollBack() async {
+  /// A dance some program still links is **kept**. Removing it would empty
+  /// that program's slot behind the user's back: the user can add an imported
+  /// dance to another program while the Undo is still on offer (it can persist
+  /// under accessible navigation). Soft-deleted programs count too, since
+  /// restoring one must not find its slot emptied. [undoneProgramId] names the
+  /// program this import created, whose own slots never count: removing it may
+  /// leave a tombstone that still holds them (a program sync has published is
+  /// tombstoned rather than erased).
+  ///
+  /// Each dance is judged on its own. Most sessions hold one dance, but the
+  /// review screen's commit for ambiguous titles holds one per title, so a
+  /// session with some dances kept is reverted for the rest only: their
+  /// dances and the authors it created go (an author a kept dance still
+  /// credits stays, by [ImportPipeline.undo]'s own guard), and the dances it
+  /// updated in place keep their new state, since restoring them could drop a
+  /// link a kept dance relies on.
+  Future<void> rollBack({String? undoneProgramId}) async {
     _closed = true;
     final sessions = _sessions.reversed.toList();
     _sessions.clear();
     if (sessions.isEmpty) return;
-    final linked = await _danceIdsLinkedByPrograms();
+    final linked = await _danceIdsLinkedByPrograms(except: undoneProgramId);
     final pipeline = _pipeline();
     for (final session in sessions) {
-      if (session.insertedDanceIds.any(linked.contains)) continue;
-      await pipeline.undo(session);
+      final kept = session.insertedDanceIds.where(linked.contains).toSet();
+      if (kept.isEmpty) {
+        await pipeline.undo(session);
+      } else if (kept.length < session.insertedDanceIds.length) {
+        await pipeline.undo(
+          ImportSession(
+            records: const [],
+            insertedDanceIds: [
+              for (final id in session.insertedDanceIds)
+                if (!kept.contains(id)) id,
+            ],
+            priorStates: const [],
+            createdChoreographerIds: session.createdChoreographerIds,
+            revivedChoreographerIds: session.revivedChoreographerIds,
+          ),
+        );
+      }
     }
   }
 
-  Future<Set<String>> _danceIdsLinkedByPrograms() async {
+  Future<Set<String>> _danceIdsLinkedByPrograms({String? except}) async {
     final programs = await _repos.programs.listAll(includeDeleted: true);
     return {
       for (final program in programs)
-        for (final slot in program.slots) ?slot.danceId,
+        if (program.id != except)
+          for (final slot in program.slots) ?slot.danceId,
     };
   }
 

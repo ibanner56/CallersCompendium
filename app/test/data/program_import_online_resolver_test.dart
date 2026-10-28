@@ -1257,6 +1257,97 @@ void main() {
       },
     );
 
+    test("rolling back ignores the undone program's own tombstone", () async {
+      // A program sync has published is tombstoned, not erased, and keeps its
+      // slots — they must not read as "linked since".
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'one': [_row('One', id: '1')],
+        },
+        commitForReal: true,
+      );
+      final rollback = ProgramImportRollback(repos);
+      final result = await resolveUnmatchedOnline(
+        [_unmatched('One')],
+        service: service,
+        repos: repos,
+        rollback: rollback,
+      );
+      final danceId = result.lines.single.danceId!;
+      final now = DateTime.utc(2026, 10, 28);
+      await repos.programs.create(
+        Program(
+          id: 'imported',
+          title: 'Imported',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: danceId)],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await repos.db.customStatement(
+        "INSERT INTO published_records (kind, record_id) "
+        "VALUES ('program', 'imported')",
+      );
+      await repos.programs.hardDelete(['imported']);
+      // Precondition: the tombstone really does still hold the slot.
+      expect(
+        (await repos.programs.getById(
+          'imported',
+          includeDeleted: true,
+        ))!.slots.single.danceId,
+        danceId,
+      );
+
+      await rollback.rollBack(undoneProgramId: 'imported');
+
+      expect(await repos.dances.getById(danceId), isNull);
+    });
+
+    test('a two-dance session with one dance linked since removes only the '
+        'other', () async {
+      final repos = openTestRepositories();
+      ImportRecordPlan plan(String title, String externalId) =>
+          ImportRecordPlan(
+            draft: StructuredDraft(
+              dance: _localDance(
+                id: '',
+                figures: const [],
+              ).copyWith(title: title),
+              raw: RawRecord(
+                source: ProvenanceSource.callersbox,
+                externalId: externalId,
+                payload: '{}',
+              ),
+            ),
+            verdict: DedupeVerdict.isNew(),
+          );
+      final session = await ImportPipeline(repos.dances, repos.choreographers)
+          .commit(
+            ImportBatchResult(records: [plan('Alpha', 'a'), plan('Beta', 'b')]),
+            now: DateTime.utc(2026, 10, 28),
+            newId: uuidV4,
+          );
+      final [alpha, beta] = session.insertedDanceIds;
+      final rollback = ProgramImportRollback(repos);
+      await rollback.record(session);
+      final now = DateTime.utc(2026, 10, 28);
+      await repos.programs.create(
+        Program(
+          id: 'other',
+          title: 'Built meanwhile',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: alpha)],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      await rollback.rollBack();
+
+      expect(await repos.dances.getById(alpha), isNotNull);
+      expect(await repos.dances.getById(beta), isNull);
+    });
+
     test('a session recorded after rolling back is reverted at once', () async {
       final repos = openTestRepositories();
       final service = _FakeOnlineService(

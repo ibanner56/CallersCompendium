@@ -169,9 +169,9 @@ class _PlaintextProgramImportScreenState
 
   /// Removes every dance the online pass imported, for a back-out. Never
   /// throws: the screen is gone, so a failure can only be logged.
-  Future<void> _discardImported() async {
+  Future<void> _discardImported({String? undoneProgramId}) async {
     try {
-      await _imported.rollBack();
+      await _imported.rollBack(undoneProgramId: undoneProgramId);
     } catch (error, stackTrace) {
       logCaughtError(
         error,
@@ -487,7 +487,7 @@ class _PlaintextProgramImportScreenState
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.hardDelete([id]);
-        await imported.rollBack();
+        await imported.rollBack(undoneProgramId: id);
       },
     );
     navigator.pop(id);
@@ -507,7 +507,7 @@ class _PlaintextProgramImportScreenState
       // The program may still link these dances, so they stay with it.
       return;
     }
-    await _discardImported();
+    await _discardImported(undoneProgramId: id);
   }
 
   @override
