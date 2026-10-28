@@ -3544,7 +3544,7 @@ abstract class AppLocalizations {
   /// Helper text shown when the user has no saved custom themes yet.
   ///
   /// In en, this message translates to:
-  /// **'Copy the current theme and tune any color. Custom themes are saved on this device.'**
+  /// **'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.'**
   String get settingsAppearanceCustomThemesEmpty;
 
   /// Title of the confirm-delete dialog for a custom theme.
@@ -5362,7 +5362,7 @@ abstract class AppLocalizations {
   /// Body text in the friendly crash fallback widget explaining that details were saved locally only.
   ///
   /// In en, this message translates to:
-  /// **'This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.'**
+  /// **'This part of the app hit an unexpected error and couldn\'t be shown. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.'**
   String get crashFallbackBody;
 
   /// Button label in the crash fallback widget after copying error details to the clipboard.
@@ -5722,8 +5722,8 @@ abstract class AppLocalizations {
   /// Tooltip for the app-bar search button, noting its keyboard shortcut.
   ///
   /// In en, this message translates to:
-  /// **'Search (Ctrl/Cmd-K)'**
-  String get collectionSearchTooltip;
+  /// **'{platform, select, apple{Search (⌘K)} other{Search (Ctrl+K)}}'**
+  String collectionSearchTooltip(String platform);
 
   /// Tooltip for the app-bar button that enters multi-select (batch) mode.
   ///
@@ -8162,6 +8162,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.'**
   String get performExitBody;
+
+  /// Body text of the exit-confirmation dialog for single-dance Perform, which keeps no resume state (unlike program Perform, performExitBody).
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the performance view? Performing a single dance doesn\'t keep your place, so the next time starts fresh.'**
+  String get performDanceExitBody;
 
   /// Button that dismisses the exit-confirmation dialog and stays in the Perform view.
   ///
@@ -11778,14 +11784,14 @@ abstract class AppLocalizations {
   /// Tooltip for the undo app-bar action including its keyboard shortcut.
   ///
   /// In en, this message translates to:
-  /// **'Undo (Ctrl+Z)'**
-  String get danceEditorUndoShortcutTooltip;
+  /// **'{platform, select, apple{Undo (⌘Z)} other{Undo (Ctrl+Z)}}'**
+  String danceEditorUndoShortcutTooltip(String platform);
 
   /// Tooltip for the redo app-bar action including its keyboard shortcut.
   ///
   /// In en, this message translates to:
-  /// **'Redo (Ctrl+Shift+Z)'**
-  String get danceEditorRedoShortcutTooltip;
+  /// **'{platform, select, apple{Redo (⇧⌘Z)} other{Redo (Ctrl+Shift+Z)}}'**
+  String danceEditorRedoShortcutTooltip(String platform);
 
   /// Tooltip for the app-bar action that deletes the current dance.
   ///

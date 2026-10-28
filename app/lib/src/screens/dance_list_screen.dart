@@ -34,6 +34,7 @@ import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
@@ -1912,7 +1913,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         if (openSearch != null)
           IconButton(
             key: const ValueKey('collection-search'),
-            tooltip: l10n.collectionSearchTooltip,
+            tooltip: l10n.collectionSearchTooltip(shortcutPlatform(context)),
             icon: const Icon(Icons.search),
             onPressed: openSearch,
           ),

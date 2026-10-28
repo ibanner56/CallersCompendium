@@ -2916,7 +2916,7 @@
   "@settingsAppearanceNewThemeDefaultName": {
     "description": "Default name a brand-new custom theme is seeded with before the user renames it."
   },
-  "settingsAppearanceCustomThemesEmpty": "Copy the current theme and tune any color. Custom themes are saved on this device.",
+  "settingsAppearanceCustomThemesEmpty": "Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.",
   "@settingsAppearanceCustomThemesEmpty": {
     "description": "Helper text shown when the user has no saved custom themes yet."
   },
@@ -4271,7 +4271,7 @@
   "@crashFallbackTitle": {
     "description": "Title shown in the friendly crash fallback widget when a subtree fails to build."
   },
-  "crashFallbackBody": "This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.",
+  "crashFallbackBody": "This part of the app hit an unexpected error and couldn't be shown. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.",
   "@crashFallbackBody": {
     "description": "Body text in the friendly crash fallback widget explaining that details were saved locally only."
   },
@@ -4537,9 +4537,15 @@
   "@collectionNewDance": {
     "description": "Label of the floating action button that creates a new dance."
   },
-  "collectionSearchTooltip": "Search (Ctrl/Cmd-K)",
+  "collectionSearchTooltip": "{platform, select, apple{Search (⌘K)} other{Search (Ctrl+K)}}",
   "@collectionSearchTooltip": {
-    "description": "Tooltip for the app-bar search button, noting its keyboard shortcut."
+    "description": "Tooltip for the app-bar search button, noting its keyboard shortcut.",
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "description": "'apple' on macOS and iOS, where shortcuts use the Command key; 'other' everywhere else."
+      }
+    }
   },
   "collectionSelectDancesTooltip": "Select dances",
   "@collectionSelectDancesTooltip": {
@@ -6831,6 +6837,10 @@
   "performExitBody": "Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.",
   "@performExitBody": {
     "description": "Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry."
+  },
+  "performDanceExitBody": "Leave the performance view? Performing a single dance doesn't keep your place, so the next time starts fresh.",
+  "@performDanceExitBody": {
+    "description": "Body text of the exit-confirmation dialog for single-dance Perform, which keeps no resume state (unlike program Perform, performExitBody)."
   },
   "performExitCancel": "Keep performing",
   "@performExitCancel": {
@@ -10082,13 +10092,25 @@
   "@danceEditorRedoLabel": {
     "description": "Semantics label for the redo action."
   },
-  "danceEditorUndoShortcutTooltip": "Undo (Ctrl+Z)",
+  "danceEditorUndoShortcutTooltip": "{platform, select, apple{Undo (⌘Z)} other{Undo (Ctrl+Z)}}",
   "@danceEditorUndoShortcutTooltip": {
-    "description": "Tooltip for the undo app-bar action including its keyboard shortcut."
+    "description": "Tooltip for the undo app-bar action including its keyboard shortcut.",
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "description": "'apple' on macOS and iOS, where shortcuts use the Command key; 'other' everywhere else."
+      }
+    }
   },
-  "danceEditorRedoShortcutTooltip": "Redo (Ctrl+Shift+Z)",
+  "danceEditorRedoShortcutTooltip": "{platform, select, apple{Redo (⇧⌘Z)} other{Redo (Ctrl+Shift+Z)}}",
   "@danceEditorRedoShortcutTooltip": {
-    "description": "Tooltip for the redo app-bar action including its keyboard shortcut."
+    "description": "Tooltip for the redo app-bar action including its keyboard shortcut.",
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "description": "'apple' on macOS and iOS, where shortcuts use the Command key; 'other' everywhere else."
+      }
+    }
   },
   "danceEditorDeleteDanceTooltip": "Delete dance",
   "@danceEditorDeleteDanceTooltip": {

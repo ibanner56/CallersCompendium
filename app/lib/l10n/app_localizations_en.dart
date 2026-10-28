@@ -2323,7 +2323,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Copy the current theme and tune any color. Custom themes are saved on this device.';
+      'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Delete theme?';
@@ -3416,7 +3416,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.';
+      'This part of the app hit an unexpected error and couldn\'t be shown. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.';
 
   @override
   String get crashFallbackCopied => 'Copied';
@@ -3607,7 +3607,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionNewDance => 'New dance';
 
   @override
-  String get collectionSearchTooltip => 'Search (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Search (⌘K)',
+      'other': 'Search (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Select dances';
@@ -5273,6 +5279,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get performExitBody =>
       'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.';
+
+  @override
+  String get performDanceExitBody =>
+      'Leave the performance view? Performing a single dance doesn\'t keep your place, so the next time starts fresh.';
 
   @override
   String get performExitCancel => 'Keep performing';
@@ -7754,10 +7764,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorRedoLabel => 'Redo';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Undo (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Undo (⌘Z)',
+      'other': 'Undo (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip => 'Redo (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Redo (⇧⌘Z)',
+      'other': 'Redo (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Delete dance';

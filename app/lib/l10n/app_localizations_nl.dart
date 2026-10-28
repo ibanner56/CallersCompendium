@@ -2354,7 +2354,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Kopieer het huidige thema en pas elke kleur aan. Aangepaste thema\'s worden op dit apparaat opgeslagen.';
+      'Kopieer het huidige thema en pas elke kleur aan. Aangepaste thema\'s worden gesynchroniseerd met je andere apparaten wanneer synchronisatie aan staat.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Thema verwijderen?';
@@ -3472,7 +3472,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Dit deel van de app heeft een onverwachte fout ondervonden en is hersteld. De details zijn opgeslagen in een lokaal diagnosticslog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat.';
+      'Dit deel van de app heeft een onverwachte fout ondervonden en kon niet worden weergegeven. De details zijn opgeslagen in een lokaal diagnosticslog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat.';
 
   @override
   String get crashFallbackCopied => 'Gekopieerd';
@@ -3663,7 +3663,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionNewDance => 'Nieuwe dans';
 
   @override
-  String get collectionSearchTooltip => 'Zoeken (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Zoeken (⌘K)',
+      'other': 'Zoeken (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Dansen selecteren';
@@ -5343,6 +5349,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get performExitBody =>
       'De uitvoerweergave verlaten? Je plek en de lopende klok worden bewaard, zodat je kunt hervatten waar je gebleven was.';
+
+  @override
+  String get performDanceExitBody =>
+      'De uitvoerweergave verlaten? Bij het uitvoeren van één dans wordt je plek niet bewaard, dus de volgende keer begin je opnieuw.';
 
   @override
   String get performExitCancel => 'Doorgaan met uitvoeren';
@@ -7843,11 +7853,22 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorRedoLabel => 'Opnieuw uitvoeren';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Ongedaan maken (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Ongedaan maken (⌘Z)',
+      'other': 'Ongedaan maken (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip =>
-      'Opnieuw uitvoeren (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Opnieuw uitvoeren (⇧⌘Z)',
+      'other': 'Opnieuw uitvoeren (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Dans verwijderen';

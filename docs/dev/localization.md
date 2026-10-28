@@ -416,10 +416,13 @@ You do **not** need to write code to translate the app.
    (`locale_scope.dart`) matches the device's language list against the
    supported locales and falls back to **English** — not `supportedLocales.first`,
    which is alphabetical (`da`) — when none match. The OS per-app language
-   pickers do depend on platform manifests, though: macOS `knownRegions` in
-   `app/macos/Runner.xcodeproj/project.pbxproj` lists only `en, Base`, and
-   Android declares no `localeConfig`, so those pickers do not yet offer every
-   bundled language.
+   pickers do depend on platform manifests, though, so add the locale to each:
+   `CFBundleLocalizations` in `app/macos/Runner/Info.plist`,
+   `app/android/app/src/main/res/xml/locales_config.xml` (Android 13+), and the
+   `[Languages]` section of `packaging/windows/CallersCompendium.iss` (pick the
+   matching `compiler:Languages\*.isl`). macOS `knownRegions` in
+   `app/macos/Runner.xcodeproj/project.pbxproj` still lists only `en, Base`; the
+   macOS plist entry has not been confirmed on a Mac to be enough on its own.
 6. That's it — your language automatically appears in **Settings ▸ Language &
    region ▸ App language**, shown by its native name, with no code change. If the
    endonym doesn't yet have an entry in `nativeLanguageName` it falls back to the

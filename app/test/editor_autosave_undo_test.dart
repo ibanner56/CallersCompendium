@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -689,6 +691,30 @@ void main() {
         isNull,
       );
     });
+
+    for (final (platform, undo, redo) in [
+      (TargetPlatform.android, 'Undo (Ctrl+Z)', 'Redo (Ctrl+Shift+Z)'),
+      (TargetPlatform.macOS, 'Undo (\u2318Z)', 'Redo (\u21e7\u2318Z)'),
+    ]) {
+      testWidgets('undo and redo tooltips name the $platform shortcut', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        debugDefaultTargetPlatformOverride = platform;
+        try {
+          await _pumpEditor(tester, repos);
+
+          String tooltipOf(String key) =>
+              tester.widget<IconButton>(find.byKey(ValueKey(key))).tooltip!;
+          expect(tooltipOf('undo-button'), undo);
+          expect(tooltipOf('redo-button'), redo);
+        } finally {
+          // Must be cleared before the test body returns: the binding checks
+          // foundation debug variables before any addTearDown callback runs.
+          debugDefaultTargetPlatformOverride = null;
+        }
+      });
+    }
 
     testWidgets('keyboard shortcut Ctrl+Z triggers undo', (tester) async {
       final repos = openTestRepositories();

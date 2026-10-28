@@ -1138,7 +1138,7 @@ void main() {
         find.byKey(const ValueKey('new-custom-theme')),
       );
       expect(find.byKey(const ValueKey('new-custom-theme')), findsOneWidget);
-      expect(find.textContaining('saved on this device'), findsOneWidget);
+      expect(find.textContaining('sync to your other devices'), findsOneWidget);
     });
 
     testWidgets('renders a card for each saved custom theme', (tester) async {

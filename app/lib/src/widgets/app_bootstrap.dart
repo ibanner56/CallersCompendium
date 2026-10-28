@@ -354,11 +354,18 @@ class _BootstrapErrorScreen extends StatefulWidget {
 class _BootstrapErrorScreenState extends State<_BootstrapErrorScreen> {
   bool _copied = false;
 
+  /// The error type and its stack scrubbed by [CrashRedactor], the same shape
+  /// `CrashFallback` copies, so the two "Copy details" buttons agree and the
+  /// stack's absolute paths are collapsed before it reaches the clipboard.
+  String get _detailsText {
+    final stack = widget.stackTrace;
+    if (stack == null) return widget.errorType;
+    return '${widget.errorType}\n\n${CrashRedactor().scrub(stack.toString())}';
+  }
+
   Future<void> _copy() async {
     try {
-      await Clipboard.setData(
-        ClipboardData(text: '${widget.errorType}\n\n${widget.stackTrace}'),
-      );
+      await Clipboard.setData(ClipboardData(text: _detailsText));
       if (mounted) setState(() => _copied = true);
     } catch (error, stackTrace) {
       // A clipboard failure is new information (the bootstrap failure itself is

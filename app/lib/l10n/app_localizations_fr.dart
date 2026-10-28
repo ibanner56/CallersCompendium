@@ -2375,7 +2375,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Copiez le thème actuel et ajustez n’importe quelle couleur. Les thèmes personnalisés sont enregistrés sur cet appareil.';
+      'Copiez le thème actuel et ajustez n’importe quelle couleur. Les thèmes personnalisés se synchronisent avec vos autres appareils lorsque la synchronisation est activée.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Supprimer le thème ?';
@@ -3500,7 +3500,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Cette partie de l’application a rencontré une erreur inattendue et a récupéré. Les détails ont été enregistrés dans un journal de diagnostic local (Paramètres ▸ Diagnostic) qui ne quitte jamais votre appareil.';
+      'Cette partie de l’application a rencontré une erreur inattendue et n’a pas pu être affichée. Les détails ont été enregistrés dans un journal de diagnostic local (Paramètres ▸ Diagnostic) qui ne quitte jamais votre appareil.';
 
   @override
   String get crashFallbackCopied => 'Copié';
@@ -3691,7 +3691,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionNewDance => 'Nouvelle danse';
 
   @override
-  String get collectionSearchTooltip => 'Rechercher (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Rechercher (⌘K)',
+      'other': 'Rechercher (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Sélectionner des danses';
@@ -5378,6 +5384,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get performExitBody =>
       'Quitter la vue Perform ? Votre position et le chrono en cours sont conservés, vous pouvez reprendre là où vous en étiez.';
+
+  @override
+  String get performDanceExitBody =>
+      'Quitter la vue Perform ? La présentation d’une seule danse ne conserve pas votre position ; la prochaine fois, elle repartira de zéro.';
 
   @override
   String get performExitCancel => 'Continuer';
@@ -7894,10 +7904,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorRedoLabel => 'Rétablir';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Annuler (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Annuler (⌘Z)',
+      'other': 'Annuler (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip => 'Rétablir (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Rétablir (⇧⌘Z)',
+      'other': 'Rétablir (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Supprimer la danse';
