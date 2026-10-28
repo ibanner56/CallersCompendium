@@ -32,6 +32,7 @@ import '../diagnostics/error_log.dart';
 
 import '../editor/pay_currency.dart';
 import '../editor/program_editor_draft_codec.dart';
+import '../editor/program_slot_rebase.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
 import '../export/share_sanitization.dart';
@@ -251,6 +252,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// transaction as the write); null for an unsaved program. The post-exit
   /// Undo restores only while the stored program still equals this.
   Program? _performStored;
+
+  /// The program Perform last showed: what it was opened with, then each
+  /// program it handed to `onProgramChanged`. Each adjustment is the change
+  /// from this to the new program, applied to the stored program and to the
+  /// working slots ([rebaseSlotEdits]).
+  Program? _performBase;
   int _collectionDataGeneration = 0;
 
   bool get _pickerImporting => _pickerImportOwners.isNotEmpty;
@@ -1889,6 +1896,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // Resolved before the push: the route may rebuild after this screen has
     // gone, when its context can no longer be read.
     final renderer = UserFiguresScope.rendererOf(context);
+    _performBase = program;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         // Ctrl-K is suppressed while this route is on top ([performRouteName]).
@@ -1924,36 +1932,65 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           // change (e.g. a mark-performed stamp) straight to the repository
           // immediately. This keeps the live Perform path durable regardless of
           // whether the optional metadata auto-commit preference is enabled.
+          //
+          // Only Perform's own change is written, applied to the program as
+          // stored (GIG-4): Perform was opened with the builder's working copy,
+          // and any other unsaved edit in it stays unsaved here, for the caller
+          // to save or discard. Applying the change rather than writing
+          // Perform's copy also keeps stamps that copy never had (GIG-3).
+          //
           // A brand-new, still-unsaved program has nothing to update in the DB
           // yet, so its adjustments stay in the working slots to be saved
           // explicitly; a failed write falls back the same way rather than
           // dropping the change.
           onProgramChanged: (updated) async {
             if (!mounted) return;
-            final slots = _renumber(updated.slots.toList());
+            final before = _performBase ?? updated;
+            _performBase = updated;
+            final previousSlots = _slots;
+            setState(() {
+              _slots = _renumber(
+                rebaseSlotEdits(
+                  before: before.slots,
+                  after: updated.slots,
+                  onto: previousSlots,
+                ),
+              );
+            });
             final existing = _existing;
             if (existing != null) {
-              // Perform may follow metadata edits that are still queued for
-              // auto-commit. Rebase the performed slots onto that working
-              // snapshot and serialize the whole update with the same queue.
-              final base = _draftProgram ?? existing;
-              // An unparseable pay was replaced by the stored one in `base`:
-              // persist the slots, but keep the typed text as unsaved work.
-              final payInvalid = _parsedPay().isInvalid;
-              final persisted = base.copyWith(
-                slots: slots,
-                updatedAt: DateTime.now().toUtc(),
-              );
+              // Other unsaved edits, including an unparseable pay, stay
+              // unsaved: keep the recovery draft and the dirty state for them.
+              final keepDirty = _dirty || _parsedPay().isInvalid;
               _autoCommitTimer?.cancel();
               final generation = ++_editGeneration;
+              // Serialized behind any queued commit, and the stored program is
+              // read once that commit has landed, so the change is applied to
+              // what it wrote.
               final operation = _commitQueueTail.then((_) async {
+                final current = await _repos.programs.getById(existing.id);
+                if (current == null) {
+                  throw StateError('program "${existing.id}" is gone');
+                }
                 final stored = await _repos.programs.updateAndReadBack(
-                  persisted,
+                  current.copyWith(
+                    slots: _renumber(
+                      rebaseSlotEdits(
+                        before: before.slots,
+                        after: updated.slots,
+                        onto: current.slots,
+                      ),
+                    ),
+                    updatedAt: DateTime.now().toUtc(),
+                  ),
                 );
-                if (payInvalid) {
+                if (keepDirty || generation != _editGeneration) {
                   await _saveDraft();
                 } else {
-                  await _clearDraft(waitForCommits: false);
+                  await _clearDraft(
+                    waitForCommits: false,
+                    resetEditorState: false,
+                  );
                 }
                 return stored;
               });
@@ -1974,10 +2011,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 final stored = await operation;
                 if (!mounted) return;
                 setState(() {
-                  _existing = persisted;
-                  _slots = slots;
-                  _dirty = payInvalid;
+                  _existing = stored;
+                  // No edit since: with nothing else unsaved, the working copy
+                  // is the stored program.
+                  if (generation == _editGeneration) {
+                    _dirty = keepDirty;
+                    if (!keepDirty) _slots = stored.slots;
+                  }
                 });
+                if (_dirty) _scheduleAutoCommit();
                 _performAdjusted = updated;
                 _performAdjustedGeneration = _editGeneration;
                 _performStored = stored;
@@ -1992,9 +2034,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               }
             }
             if (!mounted) return;
-            setState(() {
-              _slots = slots;
-            });
             _markDirty();
             _performAdjusted = updated;
             _performAdjustedGeneration = _editGeneration;
@@ -2026,19 +2065,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       return false;
     }
     _performAdjusted = null;
-    final slots = _renumber(previous.slots.toList());
+    // Undo the adjustment's own change, as it was applied (see
+    // `onProgramChanged` in [_performProgram]): other unsaved edits in the
+    // working copy, and stamps the stored program has, stay.
+    List<ProgramSlot> undo(List<ProgramSlot> onto) => _renumber(
+      rebaseSlotEdits(
+        before: adjusted.slots,
+        after: previous.slots,
+        onto: onto,
+      ),
+    );
     final existing = _existing;
     if (existing == null) {
       // Unsaved: the adjustment only ever lived in the working slots.
-      setState(() => _slots = slots);
+      setState(() => _slots = undo(_slots));
       _markDirty();
       return true;
     }
     final expected = _performStored;
     if (expected == null) return false;
-    // No edit since the Perform write, which left `_existing` equal to the
-    // working copy, so restoring onto it keeps every other field.
-    final replacement = existing.copyWith(slots: slots);
+    final keepDirty = _dirty;
+    final workingSlots = undo(_slots);
+    final replacement = expected.copyWith(slots: undo(expected.slots));
     _autoCommitTimer?.cancel();
     final generation = ++_editGeneration;
     final operation = _commitQueueTail.then(
@@ -2075,9 +2123,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
     setState(() {
       _existing = live;
-      _slots = live.slots.toList();
-      _dirty = false;
+      _slots = keepDirty ? workingSlots : live.slots.toList();
+      _dirty = keepDirty;
     });
+    if (keepDirty) {
+      _scheduleAutosave();
+      _scheduleAutoCommit();
+    }
     return restored;
   }
 
@@ -2634,6 +2686,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
+  /// Writes [draft] and returns the program as stored, which every caller
+  /// adopts as [_existing] and the working slots. The write can change the
+  /// slots: a change of status to Performed stamps them, and only on that
+  /// change, so writing back the pre-write copy later would erase the stamps
+  /// (GIG-3).
   Future<Program> _persistDraft(Program draft) async {
     final now = DateTime.now().toUtc();
     final existing = _existing;
@@ -2658,12 +2715,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       deletedAt: existing?.deletedAt,
       provenance: existing?.provenance,
     );
-    if (existing == null) {
-      await _repos.programs.create(persisted);
-    } else {
-      await _repos.programs.update(persisted);
+    if (existing != null) {
+      return _repos.programs.updateAndReadBack(persisted);
     }
-    return persisted;
+    await _repos.programs.create(persisted);
+    final stored = await _repos.programs.getById(persisted.id);
+    if (stored == null) {
+      throw StateError('program "${persisted.id}" vanished after its create');
+    }
+    return stored;
   }
 
   Future<void> _save() async {
