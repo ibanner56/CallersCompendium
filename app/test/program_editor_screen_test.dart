@@ -5502,6 +5502,61 @@ void main() {
       );
     });
 
+    testWidgets('a Perform adjustment after an auto-commit stamped the program '
+        'keeps the stamps Perform never saw', (tester) async {
+      installFakeWakelock();
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        autoCommit: true,
+        size: const Size(800, 1600),
+      );
+
+      // The status commit is held until Perform is open, so the stamps it
+      // makes are not in the copy Perform was given.
+      delayed.programs.holdNextWrite();
+      await setStatusPerformed(tester);
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      final stamped = await repos.programs.getById('p1');
+      expect(stamped!.status, ProgramStatus.performed);
+      expect(stamped.slots.single.performedAt, isNotNull);
+
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('adjust-note-field')),
+        'Announcements',
+      );
+      await tester.tap(find.byKey(const ValueKey('adjust-add-note')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots, hasLength(2));
+      expect(
+        saved.slots.first.performedAt,
+        stamped.slots.single.performedAt,
+        reason: "Perform's stale copy must not be written over the stamp",
+      );
+    });
+
     testWidgets('a Perform adjustment persists only its slot change; unsaved '
         'builder edits stay unsaved', (tester) async {
       installFakeWakelock();
