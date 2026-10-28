@@ -165,7 +165,8 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
 /// unconsumed tail of a line a recognizer matched only as a PREFIX, so the
 /// structured figure would carry the wrong beats, turn or moves while the rest
 /// of what was typed sits in the note (#1612). A note is a leftover when it is
-/// `and back` (`over & back` too) or a bare number (`16`), or when
+/// `and back` (`over & back` too), a bare number (`16`) or exactly a move's
+/// name (`petronella`), as before; or when
 /// - a clause of it is another figure: it starts with a move's name and reads,
 ///   on its own, as a whole figure with no note of its own. The note is cut at
 ///   `,`, `;`, `:`, `and` and `then` (`and swing, end facing down`,
@@ -202,7 +203,7 @@ bool _noteIsLeftover(String note, _LeftoverVocabulary vocabulary) {
   if (_andBackNote.hasMatch(n)) return true;
   n = n.replaceFirst(_leadingConnective, '');
   if (n.isEmpty) return false;
-  if (_bareNumber.hasMatch(n)) return true;
+  if (_bareNumber.hasMatch(n) || vocabulary.names.contains(n)) return true;
   if (_turnToken.hasMatch(n)) return true;
   return n.split(_clauseBreak).map((c) => c.trim()).any(vocabulary.isFigure);
 }
@@ -231,7 +232,7 @@ const String _moreThanOne = r'(?:[2-9]|[1-9]\d+)';
 /// against ([isFigure]). The custom
 /// move is left out: "custom" is not a move a caller types.
 class _LeftoverVocabulary {
-  _LeftoverVocabulary._(this.leadingMoveName, this.taxonomy);
+  _LeftoverVocabulary._(this.names, this.leadingMoveName, this.taxonomy);
 
   factory _LeftoverVocabulary.of(Taxonomy taxonomy) =>
       _cache[taxonomy] ??= _build(taxonomy);
@@ -253,6 +254,7 @@ class _LeftoverVocabulary {
         ...namesOf(a.id, a.displayName, a.searchKeywords),
     }..removeWhere((n) => n.trim().isEmpty);
     return _LeftoverVocabulary._(
+      names,
       RegExp('^(?:${names.map(RegExp.escape).join('|')})(?![a-z0-9])'),
       taxonomy,
     );
@@ -260,10 +262,12 @@ class _LeftoverVocabulary {
 
   /// Never matches: the vocabulary of a caller that does not demote.
   static final _LeftoverVocabulary none = _LeftoverVocabulary._(
+    const {},
     RegExp(r'(?!)'),
     contraTaxonomy,
   );
 
+  final Set<String> names;
   final RegExp leadingMoveName;
   final Taxonomy taxonomy;
 

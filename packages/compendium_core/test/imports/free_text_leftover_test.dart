@@ -24,6 +24,9 @@ void main() {
       'down the hall four in line, turn alone',
       'neighbors box the gnat and swat the flea',
       'Ladies chain over & back',
+      // A note that is exactly a move's name, as #1612 already ruled.
+      'balance and swing petronella',
+      '(4) Balance long wave',
     ]) {
       test(line, () {
         final f = parse(line).single;
