@@ -2081,6 +2081,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final importedDances = result.danceSession.records
         .where((r) => r.succeeded && r.action != CommitAction.skip)
         .length;
+    // A dance that failed is recorded on its record, not thrown, so it has to
+    // be counted here: otherwise a file whose dances all failed reads as a
+    // success.
+    final failedDances = result.danceSession.records
+        .where((r) => !r.succeeded)
+        .length;
     final importedCount =
         importedDances +
         result.programs.length +
@@ -2090,7 +2096,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     showUndoSnackBar(
       messenger,
       key: const ValueKey('shared-import-undo-snackbar'),
-      message: l10n.sharedImportComplete(importedCount),
+      message: failedDances == 0
+          ? l10n.sharedImportComplete(importedCount)
+          : l10n.sharedImportCompleteWithFailures(importedCount, failedDances),
       undoLabel: l10n.commonUndo,
       accessibleNavigation: accessibleNavigation,
       onUndo: () async {

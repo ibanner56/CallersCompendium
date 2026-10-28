@@ -3624,6 +3624,49 @@ void main() {
     );
 
     testWidgets(
+      'a dance that fails to import is reported in the undo snackbar, not '
+      'counted as a success',
+      (tester) async {
+        final repos = openTestRepositories();
+        // A commit failure is recorded on its record rather than thrown, so
+        // the rest of the file still imports.
+        await repos.db.customStatement(
+          'CREATE TRIGGER boom BEFORE INSERT ON dances '
+          "WHEN NEW.title = 'Doomed Reel' BEGIN SELECT RAISE(ABORT, 'boom'); END",
+        );
+        final archive = danceProgramVenueArchive();
+        await pumpShared(
+          tester,
+          repos,
+          bundleFor(
+            CompendiumArchive(
+              exportedAt: archive.exportedAt,
+              dances: [...archive.dances, sharedDance('d2', 'Doomed Reel')],
+              programs: archive.programs,
+              venues: archive.venues,
+            ),
+          ),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        expect((await repos.dances.listAll()).map((d) => d.title), [
+          'Shared Reel',
+        ]);
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        // One dance and one program imported; one dance failed.
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('shared-import-undo-snackbar')),
+            matching: find.text(l10n.sharedImportCompleteWithFailures(2, 1)),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
       '#880: after Try another edits share-target text, Import commits the edit',
       (tester) async {
         final repos = openTestRepositories();

@@ -10757,6 +10757,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Import complete.} =1{Imported 1 item.} other{Imported {count} items.}}'**
   String sharedImportComplete(int count);
 
+  /// Transient snackbar message shown, alongside an Undo action, after a shared bundle is imported when some of its dances failed to import. {count} is what did import (dances, programs and other items); {failed} is the number of dances that failed (always at least 1).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Nothing was imported.} =1{Imported 1 item.} other{Imported {count} items.}} {failed, plural, =1{1 dance couldn\'t be imported.} other{{failed} dances couldn\'t be imported.}}'**
+  String sharedImportCompleteWithFailures(int count, int failed);
+
   /// Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.
   ///
   /// In en, this message translates to:

@@ -7197,6 +7197,24 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String sharedImportCompleteWithFailures(int count, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items geïmporteerd.',
+      one: '1 item geïmporteerd.',
+      zero: 'Er is niets geïmporteerd.',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '$failed dansen konden niet worden geïmporteerd.',
+      one: '1 dans kon niet worden geïmporteerd.',
+    );
+    return '$_temp0 $_temp1';
+  }
+
+  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
