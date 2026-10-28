@@ -208,12 +208,15 @@ From it you can:
 - **mark the current slot performed** (choose it again to clear the mark).
 
 An inserted dance and an ad-hoc note both land right after the current slot, so
-"play this next" is one action away. Every change offers **Undo**, and changes
-to a saved program are saved with it. The Undo is still offered for a moment
-after you leave Perform (for as long as you need with a screen reader), but it
-puts back the whole program as it was before the change. So if the program has
-been changed since, for example edited in the builder, Undo does nothing except
-tell you it can no longer undo, and the later change is kept. If you have set calling history to count
+"play this next" is one action away. Every change offers **Undo**, and a change
+to a saved program is saved right away. Only the change you made in Perform is
+saved: if you opened Perform from the builder with unsaved edits, those edits
+stay unsaved in the builder, for you to save or discard when you return. The
+Undo is still offered for a moment after you leave Perform (for as long as you
+need with a screen reader), but only while the program is as the change left
+it. So if the program has been changed since, for example edited in the
+builder, Undo does nothing except tell you it can no longer undo, and the later
+change is kept. If you have set calling history to count
 only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 
