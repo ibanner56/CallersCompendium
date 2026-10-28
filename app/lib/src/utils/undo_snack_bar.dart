@@ -87,9 +87,9 @@ Future<void> _runUndo(
     await onUndo();
   } catch (error, stackTrace) {
     logCaughtError(error, stackTrace, source: 'showUndoSnackBar.onUndo');
-    // The messenger outlives the screen that offered the Undo (it is the
-    // app-root one for every caller that navigates away), so this needs no
-    // `mounted` check; a messenger that was itself disposed ignores the call.
+    // The screen that offered the Undo may be gone, so there is no widget
+    // check here, but the messenger itself must still be mounted: showing a
+    // snackbar on a disposed one throws, inside an Undo that has already failed.
     if (!messenger.mounted) return;
     messenger
       ..clearSnackBars()

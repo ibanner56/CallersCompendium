@@ -10,5 +10,11 @@
       "Duplicating a dance is now a single save, so it can't leave behind a twin with the original title. The copy keeps its related-dance groups, and the dances it relates to link back to it.",
       "Tapping an online search result again after Cancel no longer starts a second download while the first is still running."
     ]
+  },
+  "core": {
+    "changed": [
+      "`Dance.duplicate` keeps each link's `transitive` flag, so a copy of a grouped dance stays in its group.",
+      "`Dance.duplicate` and `DanceRepository.duplicate` accept `newTitle`, applied in the same write that creates the copy."
+    ]
   }
 }
