@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
+import '../model/program.dart' show Program;
 import '../storage/shareable_text.dart' show normalizeShareableText;
 import '../storage/repositories/user_glossary_repository.dart'
     show maxUserGlossaryNameLength, maxUserGlossaryTextLength;
@@ -257,6 +258,7 @@ class CcSet {
     this.caller,
     this.dancerLevel,
     this.notes,
+    this.hideAlternates = false,
     required this.items,
   });
 
@@ -268,6 +270,9 @@ class CcSet {
   final String? caller;
   final String? dancerLevel;
   final String? notes;
+
+  /// CC `SetList_HideALT`: the set list leaves its alternates out (#1974).
+  final bool hideAlternates;
   final List<CcSetItem> items;
 }
 
@@ -278,6 +283,7 @@ class CcSetItem {
     this.danceRecordId,
     this.breakText,
     this.isAlt = false,
+    this.breakAfter = false,
     this.guestCaller,
     this.minutes,
   });
@@ -296,6 +302,11 @@ class CcSetItem {
   /// a dance reference.
   final String? breakText;
   final bool isAlt;
+
+  /// CC `SetItem.Break` on a dance: the evening's break comes after this dance
+  /// (#1974). A real file sets it ("1") on one dance in a set, never on a slot
+  /// without a dance.
+  final bool breakAfter;
   final String? guestCaller;
 
   /// Planned minutes (CC `SetItem.Time`), best-effort; `null` when unparseable.
@@ -503,6 +514,12 @@ CcDanceRecord ccDanceRecordFromColumns(
     'FormationOther',
   ]);
   final progression = lookup.firstNonEmpty(['Progression', 'ProgressionOther']);
+  // Beside a stated `Progression`, `ProgressionOther` is its detail ("Keeper",
+  // "Ls CCW, Rs 2xCCW") rather than a fallback (#1974).
+  final statedProgression = lookup.get('Progression')?.trim() ?? '';
+  final progressionOther = statedProgression.isEmpty
+      ? null
+      : lookup.get('ProgressionOther');
 
   var level = lookup.get('Level');
   if ((level == null || level.trim().isEmpty) &&
@@ -573,8 +590,17 @@ CcDanceRecord ccDanceRecordFromColumns(
     formation: formation,
     level: level,
     progression: progression,
+    progressionOther: progressionOther,
     music: lookup.get('Music'),
     notes: lookup.get('Credits'),
+    callingNotes: lookup.get('CallingNotes'),
+    otherNotes: lookup.get('NotesOther'),
+    from: lookup.get('From'),
+    reference: lookup.get('Reference'),
+    pageNumber: lookup.get('PageNumber'),
+    callersBoxId: lookup.get('CallersBox_id'),
+    sourceUrls: [?lookup.get('SourceURL')],
+    videoUrls: [for (final column in _ccVideoColumns) ?lookup.get(column)],
     composed: lookup.get('DateComposed'),
     revised: lookup.get('DateRevised'),
     rating: lookup.get('Rating'),
@@ -913,8 +939,13 @@ List<CcSet> _extractSets(FmpDatabase db, _UsrWarnings warnings) {
       final setId = setFk == null ? null : cols.get(setFk)?.trim();
       if (setId == null || setId.isEmpty) continue;
       final danceId = danceFk == null ? null : cols.get(danceFk)?.trim();
-      final breakText = cols.firstNonEmpty(['Break', 'BreakText', 'Note']);
+      final breakFlag = _isTruthy(cols.get('Break'));
       final hasDance = danceId != null && danceId.isNotEmpty;
+      // `Break` is a flag in a real file; a slot without a dance that carries
+      // it is the break itself, not the text "1".
+      final breakText =
+          cols.firstNonEmpty([if (!breakFlag) 'Break', 'BreakText', 'Note']) ??
+          (breakFlag ? Program.breakSlotText : null);
       items
           .putIfAbsent(setId, () => [])
           .add(
@@ -923,6 +954,7 @@ List<CcSet> _extractSets(FmpDatabase db, _UsrWarnings warnings) {
               danceRecordId: hasDance ? danceId : null,
               breakText: hasDance ? null : breakText,
               isAlt: _isTruthy(cols.get('AlternateDance')),
+              breakAfter: hasDance && breakFlag,
               guestCaller: cols.get('Caller'),
               minutes: _parseInt(cols.get('Time')),
             ),
@@ -947,6 +979,7 @@ List<CcSet> _extractSets(FmpDatabase db, _UsrWarnings warnings) {
         caller: cols.get('Caller'),
         dancerLevel: cols.firstNonEmpty(['DancerLevel', 'Level']),
         notes: cols.get('Notes'),
+        hideAlternates: _isTruthy(cols.get('SetList_HideALT')),
         items: setItems,
       ),
     );
@@ -1356,6 +1389,15 @@ List<CcRelatedDancePair> _extractRelatedDancePairs(
 
 // --- Helpers ---------------------------------------------------------------
 
+/// CC's video columns: `VideoURL`, then `VideoURL2` … `VideoURL5`.
+const List<String> _ccVideoColumns = [
+  'VideoURL',
+  'VideoURL2',
+  'VideoURL3',
+  'VideoURL4',
+  'VideoURL5',
+];
+
 /// Every fixed `Dance` column name [ccDanceRecordFromColumns] looks up (the
 /// dance-key column is resolved separately, by [_danceIdSpec]). A real `Dance`
 /// table has ~200 columns, most of them CC's own derived search/display helpers
@@ -1389,6 +1431,14 @@ const List<String> kCcDanceColumnsRead = [
   'SubType',
   'Music',
   'Credits',
+  'CallingNotes',
+  'NotesOther',
+  'From',
+  'Reference',
+  'PageNumber',
+  'CallersBox_id',
+  'SourceURL',
+  ..._ccVideoColumns,
   'DateComposed',
   'DateRevised',
   'Rating',

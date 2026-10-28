@@ -183,6 +183,7 @@ void main() {
       programs,
       venues,
       customFieldDefs,
+      publishedSources: PublishedSourceRepository(db),
     );
     nextId = sequentialIds();
   });
@@ -218,6 +219,7 @@ void main() {
         programs,
         venues,
         customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
         adapter: CallersCompanionUsrAdapter(
           reader: (bytes, limits) async {
             reads++;
@@ -250,6 +252,7 @@ void main() {
           programs,
           venues,
           customFieldDefs,
+          publishedSources: PublishedSourceRepository(db),
           adapter: CallersCompanionUsrAdapter(
             reader: (bytes, limits) async {
               reads++;
@@ -285,6 +288,7 @@ void main() {
         programs,
         venues,
         customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
         adapter: CallersCompanionUsrAdapter(
           limits: const FmpReadLimits(maxTables: 1),
           reader: (bytes, limits) async {
@@ -564,6 +568,7 @@ void main() {
           failing,
           venues,
           customFieldDefs,
+          publishedSources: PublishedSourceRepository(db),
         );
 
         await expectLater(
@@ -606,6 +611,7 @@ void main() {
           failing,
           venues,
           customFieldDefs,
+          publishedSources: PublishedSourceRepository(db),
         );
         await expectLater(
           rollbackImporter.import(
@@ -917,6 +923,7 @@ void main() {
         programs,
         countingVenues,
         customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
       );
 
       final result = await spiedImporter.import(
@@ -1224,6 +1231,7 @@ void main() {
       programs,
       venues,
       customFieldDefs,
+      publishedSources: PublishedSourceRepository(db),
       adapter: adapter,
     );
 
@@ -1385,6 +1393,7 @@ void main() {
           programs,
           venues,
           customFieldDefs,
+          publishedSources: PublishedSourceRepository(db),
           adapter: adapter,
         );
         final (rest, editedId) = await editFirst(

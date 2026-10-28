@@ -357,6 +357,16 @@ Importing a dance again no longer clears custom-field values you have added to
 it since. A column you emptied in Caller's Companion does not clear the value
 already in that field; clear it in the app.
 
+Your **notes and sources** come across with each dance. Your calling notes
+come first, then the music, any progression detail, your other notes (under
+"Other notes:"), and where the dance came from (under "Source:"). Source and
+video web addresses become links on the dance, a dance with a Caller's Box
+number gets a link to its page there, and a book reference becomes a published
+source cited with its page, reusing a source you already have with the same
+title. In your programs, a dance you marked with a
+break is followed by a **Break** slot, and a set that hid its alternates keeps
+them hidden.
+
 Your **venues** and **related-dance links** come across as well. Set locations
 become real venue entries — matching one you already have when it is clearly the
 same place, and creating a new one when it isn't (an ambiguous match always
