@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A backup that holds pay or a Perform dialect on any program is marked so that versions 0.5.2 to 0.7.0 refuse to restore it, instead of restoring it without them. Version 0.8.0 and later restore it as before.",
+      "A backup that holds pay or a Perform dialect on any program now needs version 0.8.0 or later to restore. Versions 0.5.2 to 0.5.4 used to restore it without those details; they now refuse it instead. Versions 0.6.0 and 0.7.0, which restored it in full, now refuse it too, because a backup can't tell them apart from 0.5.x.",
       "On a Mac, saving a backup over an older one checks for free space first. If the disk is too full, the app says how much the backup needs and how much is free, and leaves your earlier backup unchanged instead of overwriting it with a cut-off file."
     ]
   }

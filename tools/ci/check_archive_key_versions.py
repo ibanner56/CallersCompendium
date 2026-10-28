@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI ratchet: every key an archive entity writes names the version case that covers it.
+"""CI ratchet: every key an archive entity function writes names the version case that covers it.
 
 A reader skips archive keys it does not know (``archive_codec.dart``). So when
 an entity gains a key, an older build reads a file that carries it, drops the
@@ -28,9 +28,19 @@ the manifest cannot drift into describing keys nobody writes.
 
 Keys are found with the source masked (comments and string contents blanked,
 as ``check_caught_error_logged.mask_source`` does): a string literal followed
-by ``:`` at the map literal's own nesting level. Keys of nested literals (a
-``switch`` arm) and the keys of other helpers' maps are not the function's own;
-each helper is checked under its own name.
+by ``:`` at the map literal's own nesting level. The keys of another helper's
+map are not the function's own; each ``archive*ToJson`` helper is checked under
+its own name. A shape whose keys this reader cannot see fails the check rather
+than passing unread: a spread, a collection ``for``, a key that is not a plain
+``'word'`` literal, a map literal nested inside the entity's own, and an
+``archive*ToJson`` declared with any other signature than
+``Map<String, Object?> archiveXToJson(``.
+
+Scope: the entity functions in ``archive_entity_codec.dart`` only. The
+envelope's own keys (``archiveToJson`` in ``archive_codec.dart``), a figure's
+keys (``figureToJson``) and the backup's ``app`` section are not covered. A
+key the function adds to its map after building it (``m['k'] = v``) is not
+seen either; build the map as one literal.
 
 What this does not check: that the case actually tests for the key's data.
 That a constant is named is enforced; that its condition is the right one is a
@@ -74,6 +84,9 @@ STAMPERS = (
 _FUNCTION_RE = re.compile(
     r"^Map\s*<\s*String\s*,\s*Object\?\s*>\s+(archive\w+ToJson)\s*\(", re.M
 )
+# Any top-level declaration of an `archive*ToJson`, whatever its return type
+# or type parameters, so one this reader would skip is reported, not ignored.
+_ANY_TO_JSON_RE = re.compile(r"^[A-Za-z_][^\n;=]*?\b(archive\w+ToJson)\s*[<(]", re.M)
 _OPENERS = {"(": ")", "[": "]", "{": "}"}
 
 
@@ -140,55 +153,121 @@ def _comment_ends(text: str, masked: str) -> dict[int, int]:
     return ends
 
 
-def map_keys(text: str, masked: str, brace: int) -> list[tuple[str, int]]:
+def _starts_entry(masked: str, open_idx: int, i: int) -> bool:
+    """Whether offset [i] begins an entry of the collection opened at
+    [open_idx]: first in it, after a `,`, or after a collection `if (...)` /
+    `else`. A string after `?` is a ternary's value, not an entry."""
+    before = masked[open_idx + 1 : i].rstrip()
+    return before == "" or before.endswith((",", ")", "else"))
+
+
+def map_keys(
+    text: str, masked: str, brace: int
+) -> tuple[list[tuple[str, int]], list[str]]:
     """`(key, offset)` of each string-literal key directly inside the map
-    literal opened at [brace], in source order."""
+    literal opened at [brace], in source order, and a description of each
+    shape whose keys this reader cannot see.
+
+    Unsupported shapes are reported rather than skipped, so a key cannot slip
+    past the ratchet by being written another way: a spread (`...{}` or
+    `...helper()`), a collection `for`, a key that is not a plain
+    `'word'` literal (raw, interpolated, hyphenated, or an identifier), and a
+    map literal nested inside the entity's own (a value's keys are invisible
+    here; build it in an `archive*ToJson` helper instead).
+    """
     end = _match_brace(masked, brace)
     if end is None:
-        return []
+        return [], ["the map literal has no closing brace"]
     comments = _comment_ends(text, masked)
     keys: list[tuple[str, int]] = []
-    depth = 0
+    unsupported: list[str] = []
+    # Offset of each open bracket enclosing i, innermost last.
+    stack: list[int] = [brace]
     i = brace + 1
+
+    def line(at: int) -> int:
+        return text.count("\n", 0, at) + 1
+
     while i < end:
         if i in comments:
             i = comments[i]
             continue
         ch = masked[i]
         if ch in _OPENERS:
-            depth += 1
-        elif ch in ")]}":
-            depth -= 1
-        elif depth == 0 and text[i] in "'\"" and ch == " ":
-            quote = text[i]
-            close = text.find(quote, i + 1)
-            if close == -1 or close >= end:
+            stack.append(i)
+            i += 1
+            continue
+        if ch in ")]}":
+            stack.pop()
+            i += 1
+            continue
+        own = len(stack) == 1
+        inner_map = masked[stack[-1]] == "{"
+        if own and masked.startswith("...", i):
+            unsupported.append(f"line {line(i)}: a spread")
+            i += 3
+            continue
+        if own and _starts_entry(masked, stack[-1], i):
+            word = re.compile(r"[A-Za-z_][\w.]*").match(masked, i)
+            if word and word.group(0) == "for":
+                unsupported.append(f"line {line(i)}: a collection `for`")
+            elif word and word.group(0) not in ("if", "else"):
+                after = re.compile(r"\s*:(?!:)").match(masked, word.end())
+                if after:
+                    raw = word.group(0) == "r" and text[word.end()] in "'\""
+                    unsupported.append(
+                        f"line {line(i)}: "
+                        + ("a raw-string key" if raw else "an identifier key")
+                    )
+        if text[i] in "'\"" and ch == " ":
+            close = _string_end(text, i)
+            if close > end:
                 break
-            after = re.compile(r"\s*:").match(masked, close + 1)
-            literal = text[i + 1 : close]
-            before = masked[brace + 1 : i].rstrip()
-            # An entry starts the map, follows a `,`, or follows a collection
-            # `if (...)` / `else`; a string after `?` is a ternary's value.
-            starts_entry = before == "" or before.endswith((",", ")", "else"))
-            if after and starts_entry and re.fullmatch(r"\w+", literal):
-                keys.append((literal, i))
-            i = close + 1
+            is_key = bool(re.compile(r"\s*:").match(masked, close)) and (
+                _starts_entry(masked, stack[-1], i)
+            )
+            literal = text[i + 1 : close - 1]
+            if is_key and own:
+                if re.fullmatch(r"\w+", literal):
+                    keys.append((literal, i))
+                else:
+                    unsupported.append(f"line {line(i)}: the key {text[i:close]}")
+            elif is_key and inner_map:
+                unsupported.append(
+                    f"line {line(i)}: a nested map literal (key {text[i:close]})"
+                )
+            i = close
             continue
         i += 1
-    return keys
+    return keys, unsupported
 
 
-def entity_keys(text: str) -> dict[str, list[str]]:
-    """Each top-level `archive*ToJson` function in [text] mapped to its keys."""
+def entity_keys(text: str) -> tuple[dict[str, list[str]], list[str]]:
+    """Each top-level `archive*ToJson` function in [text] mapped to its keys,
+    and every shape that hides keys from this reader."""
     masked = mask_source(text)
     found: dict[str, list[str]] = {}
+    problems: list[str] = []
     for m in _FUNCTION_RE.finditer(masked):
         name = m.group(1)
         brace = _body_map_open(masked, m.end() - 1)
         if brace is None:
-            raise ValueError(f"{name}: could not find the map literal it returns")
-        found[name] = [key for key, _ in map_keys(text, masked, brace)]
-    return found
+            problems.append(f"{name}: could not find the map literal it returns")
+            continue
+        keys, unsupported = map_keys(text, masked, brace)
+        found[name] = [key for key, _ in keys]
+        problems += [
+            f"{name}, {u}: this reader cannot see the keys it writes. Write "
+            "each key as a plain 'word' literal in the returned map." for u in unsupported
+        ]
+    for m in _ANY_TO_JSON_RE.finditer(masked):
+        if m.group(1) not in found and not any(m.group(1) in p for p in problems):
+            problems.append(
+                f"{m.group(1)}: declared with a shape this reader does not "
+                "check. Declare it as `Map<String, Object?> "
+                f"{m.group(1)}(...)` returning a map literal."
+            )
+    return found, problems
 
 
 def stamper_constants(text: str, function: str) -> set[str]:
@@ -249,6 +328,13 @@ def check(
         for key, case in entries.items():
             if case == BASELINE:
                 continue
+            if case.endswith("Base"):
+                problems.append(
+                    f"{function} '{key}' names {case}, the version every file "
+                    "gets: nothing about the key raises it. Name the constant "
+                    "of the case that stamps the key."
+                )
+                continue
             if case not in declared:
                 problems.append(
                     f"{function} '{key}' names {case}, which is not a "
@@ -273,14 +359,14 @@ def main() -> int:
             source = (REPO_ROOT / path).read_text(encoding="utf-8")
             stamped[function] = stamper_constants(source, function)
             declared |= declared_constants(source)
-        keys = entity_keys(codec)
+        keys, shape_problems = entity_keys(codec)
     except (OSError, ValueError) as error:
         print(f"::error::{error}")
         return 2
     if not keys:
         print(f"::error::no archive*ToJson functions found in {CODEC}")
         return 2
-    problems = check(keys, manifest, stamped, declared)
+    problems = shape_problems + check(keys, manifest, stamped, declared)
     if problems:
         for problem in problems:
             print(f"::error::{problem}")

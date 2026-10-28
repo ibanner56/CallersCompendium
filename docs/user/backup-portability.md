@@ -145,9 +145,10 @@ backup is refused the same way, with its size and the limit.
 > **Restoring on an older version of the app.** A backup that holds your own
 > Glossary figures or notes, or pay or a Perform dialect on any program, needs
 > version 0.8.0 or later. Versions 0.5.2 to 0.7.0 refuse it as coming from a
-> newer version, rather than restoring it without those details. Versions
-> before 0.5.2 don't check, and may restore it without them. Install the
-> current version before you restore.
+> newer version. That includes 0.6.0 and 0.7.0, which could read pay and Perform
+> dialects: a backup can't tell them apart from 0.5.2 to 0.5.4, which would
+> restore it without them. Versions before 0.5.2 don't check, and may restore it
+> without those details. Install the current version before you restore.
 
 If you use [Device Sync](./settings.md#device-sync) with another device that
 runs a newer version of the app, a restore keeps the details that version added

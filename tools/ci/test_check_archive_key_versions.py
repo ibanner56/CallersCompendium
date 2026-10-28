@@ -53,11 +53,11 @@ def test_key_extraction() -> None:
         "  if (includeOptionalFields || t.a != null) 'a': t.a,\n"
         "  if (t.b case Some(:final v)) 'b': v else 'c': null,\n"
         "  'nested': switch (t.kind) {\n"
-        "    Kind.x => {'inner': 1},\n"
+        "    Kind.x => t.flag ? 'p' : 'q',\n"
         "    Kind.y => const <Object?>[],\n"
         "  },\n"
         "  'ternary': t.flag ? 'yes' : 'no',\n"
-        "  'call': helper(t, {'arg': 1}),\n"
+        "  'call': archiveOtherToJson(t.other),\n"
         "  'text': 'not: a key',\n"
         "};\n"
         "\n"
@@ -68,7 +68,8 @@ def test_key_extraction() -> None:
         "\n"
         "String archiveIso(DateTime dt) => 'x';\n"
     )
-    keys = entity_keys(src)
+    keys, problems = entity_keys(src)
+    expect("supported shapes raise nothing", problems == [], str(problems))
     expect(
         "expression body: own keys only, in order",
         keys.get("archiveThingToJson")
@@ -81,6 +82,47 @@ def test_key_extraction() -> None:
         str(keys.get("archiveBlockToJson")),
     )
     expect("non-map function ignored", "archiveIso" not in keys, str(keys))
+
+
+def test_unreadable_shapes_fail() -> None:
+    print("shapes that would hide a key fail instead")
+
+    def problems_for(entry: str) -> list[str]:
+        src = (
+            "Map<String, Object?> archiveXToJson(X x) => {\n"
+            "  'id': x.id,\n"
+            f"  {entry}\n"
+            "};\n"
+        )
+        return entity_keys(src)[1]
+
+    for name, entry in (
+        ("spread literal", "if (x.c) ...{'hidden': x.h},"),
+        ("spread helper", "..._extra(x),"),
+        ("collection for", "for (final e in x.es) e.k: e.v,"),
+        ("raw-string key", "r'hidden': x.h,"),
+        ("hyphenated key", "'hid-den': x.h,"),
+        ("interpolated key", "'${x.p}hidden': x.h,"),
+        ("identifier key", "kHidden: x.h,"),
+        ("nested map value", "'meta': {'hidden': x.h},"),
+        ("map passed to a call", "'meta': wrap({'hidden': x.h}),"),
+    ):
+        problems = problems_for(entry)
+        expect(f"{name} is reported", len(problems) >= 1, str(problems))
+
+    for name, decl in (
+        ("dynamic map", "Map<String, dynamic> archiveYToJson(Y y) => {'id': y.id};\n"),
+        ("generic", "Map<String, Object?> archiveYToJson<T>(T y) => {'id': 1};\n"),
+        ("typedef", "JsonMap archiveYToJson(Y y) => {'id': y.id};\n"),
+    ):
+        keys, problems = entity_keys(decl)
+        expect(
+            f"{name} signature is reported, not skipped",
+            "archiveYToJson" not in keys
+            and len(problems) == 1
+            and "archiveYToJson" in problems[0],
+            str(problems),
+        )
 
 
 def test_check_rules() -> None:
@@ -128,6 +170,21 @@ def test_check_rules() -> None:
     expect(
         "undeclared constant flagged",
         len(problems) == 1 and "not a declared" in problems[0],
+        str(problems),
+    )
+
+    base = {"archiveFooToJson": {
+        **ok["archiveFooToJson"], "newKey": "archiveSchemaVersionBase",
+    }}
+    problems = check(
+        keys, base,
+        {"requiredSchemaVersion": stamped["requiredSchemaVersion"]
+         | {"archiveSchemaVersionBase"}},
+        declared | {"archiveSchemaVersionBase"},
+    )
+    expect(
+        "a base version is refused even though the stamper uses it",
+        len(problems) == 1 and "the version every file gets" in problems[0],
         str(problems),
     )
 
@@ -180,7 +237,8 @@ def _real_inputs() -> tuple[str, dict, dict, set]:
 def test_real_tree() -> None:
     print("the real tree")
     codec, manifest, stamped, declared = _real_inputs()
-    keys = entity_keys(codec)
+    keys, shape_problems = entity_keys(codec)
+    expect("the real codec has no unreadable shape", shape_problems == [], str(shape_problems))
     expect(
         "dance and program are both covered",
         {"archiveDanceToJson", "archiveProgramToJson"} <= keys.keys(),
@@ -201,7 +259,7 @@ def test_real_tree() -> None:
     mutated = codec.replace(
         anchor, anchor + "  if (p.newThing != null) 'newThing': p.newThing,\n"
     )
-    problems = check(entity_keys(mutated), manifest, stamped, declared)
+    problems = check(entity_keys(mutated)[0], manifest, stamped, declared)
     expect(
         "a new unversioned program key fails",
         len(problems) == 1 and "'newThing'" in problems[0],
@@ -210,7 +268,7 @@ def test_real_tree() -> None:
 
     # Dropping the backup case leaves pay naming a constant nothing stamps.
     unstamped = {k: v - {"backupSchemaVersionProgramPay"} for k, v in stamped.items()}
-    problems = check(entity_keys(codec), manifest, unstamped, declared)
+    problems = check(entity_keys(codec)[0], manifest, unstamped, declared)
     expect(
         "pay without its stamping case fails",
         len(problems) == 3 and all("nothing stamps it" in p for p in problems),
@@ -220,6 +278,7 @@ def test_real_tree() -> None:
 
 def run() -> int:
     test_key_extraction()
+    test_unreadable_shapes_fail()
     test_check_rules()
     test_stamper_parsing()
     test_real_tree()
