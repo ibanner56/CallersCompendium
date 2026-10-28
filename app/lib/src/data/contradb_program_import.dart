@@ -1,7 +1,9 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import 'online_search.dart';
+import 'online_title_lookup.dart' show isConnectionFailure;
 import 'program_import_online_resolver.dart';
+import 'program_import_rollback.dart';
 
 /// How one ContraDB program activity resolved into a program slot (epic #291,
 /// sub-issue #314). Drives the preview's per-slot label and the commit summary.
@@ -97,19 +99,39 @@ class ResolvedContraDbActivity {
 /// resolution with seam-backed fetchers and never touch the network. One fetch
 /// per dance for the ContraDB identity import (+ one search/import for a Caller's
 /// Box fallback); no crawling.
+///
+/// **Stopping.** A source that cannot be reached (`isConnectionFailure`) throws
+/// [ProgramImportConnectionFailed] at once instead of degrading that dance — and
+/// every dance after it — to a note: a program of notes built while offline
+/// would claim the archives had nothing. A ContraDB dance page that answers
+/// with an HTTP error is about that dance (unpublished or removed), so it still
+/// falls back to The Caller's Box. [isCancelled] is checked before each dance;
+/// once it returns true this throws [ProgramImportCancelled]. [onProgress]
+/// reports `(done, total)` over the dance activities.
+///
+/// **Undo.** Every dance written is recorded in [rollback] when one is
+/// supplied. Nothing here reverts them on a throw: the caller owns the ledger
+/// and decides (see [ProgramImportRollback]).
 Future<List<ResolvedContraDbActivity>> resolveContraDbProgram(
   ContraDbProgram program, {
   required OnlineSearchService contraDb,
   required OnlineSearchService callersBox,
   required CompendiumRepositories repos,
   DateTime? now,
+  ProgramImportRollback? rollback,
+  void Function(int done, int total)? onProgress,
+  bool Function()? isCancelled,
 }) async {
+  final total = program.activities.where((a) => a.isDance).length;
+  var done = 0;
+  if (total > 0) onProgress?.call(done, total);
   final resolved = <ResolvedContraDbActivity>[];
   for (final activity in program.activities) {
     if (!activity.isDance) {
       resolved.add(ResolvedContraDbActivity.note(activity.text ?? ''));
       continue;
     }
+    if (isCancelled?.call() ?? false) throw const ProgramImportCancelled();
     resolved.add(
       await _resolveDance(
         activity,
@@ -117,8 +139,11 @@ Future<List<ResolvedContraDbActivity>> resolveContraDbProgram(
         callersBox: callersBox,
         repos: repos,
         now: now,
+        rollback: rollback,
       ),
     );
+    done++;
+    onProgress?.call(done, total);
   }
   return resolved;
 }
@@ -129,6 +154,7 @@ Future<ResolvedContraDbActivity> _resolveDance(
   required OnlineSearchService callersBox,
   required CompendiumRepositories repos,
   DateTime? now,
+  ProgramImportRollback? rollback,
 }) async {
   final title = activity.title ?? '';
   final attachedNote = activity.text;
@@ -154,6 +180,8 @@ Future<ResolvedContraDbActivity> _resolveDance(
       // construction rather than by assumption.
       ambiguousResolution: DedupeResolution.duplicate(),
     );
+    final session = result.session;
+    if (session != null) await rollback?.record(session);
     final danceId = result.danceId;
     if (danceId != null) {
       return ResolvedContraDbActivity.linked(
@@ -163,7 +191,10 @@ Future<ResolvedContraDbActivity> _resolveDance(
         text: attachedNote,
       );
     }
-  } on Exception catch (_) {
+  } on Exception catch (e) {
+    // Without HTTP-status reasons: a dance page answering 404 is that dance
+    // missing, which is exactly what the fallback below is for.
+    if (isConnectionFailure(e)) throw const ProgramImportConnectionFailed();
     // diagnostics: silent — scrape/import failure (e.g. an unpublished dance)
     // degrades to the Caller's Box fallback and ultimately a note slot;
     // surfaced via ResolvedContraDbActivity to the program import screen.
@@ -176,6 +207,7 @@ Future<ResolvedContraDbActivity> _resolveDance(
       service: callersBox,
       repos: repos,
       now: now,
+      rollback: rollback,
     );
     if (tcbId != null) {
       return ResolvedContraDbActivity.linked(

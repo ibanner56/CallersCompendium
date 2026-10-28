@@ -122,13 +122,11 @@ class OnlineSearchQuery {
   /// least of all to a by-phrase one. Sources without a permission model
   /// (ContraDB) always serve figures, so this filters nothing for them.
   ///
-  /// Set it to `false` where *changing* which dances are found would change
-  /// something more consequential than what is displayed. The unattended
-  /// program-line resolver does exactly that: it commits without a user
-  /// present, and narrowing its result set can turn an ambiguous
-  /// multiple-exact-match — which is a deliberate no-op — into a single
-  /// confident hit that it then imports on its own. Preserving the wider set
-  /// there keeps that path's auto-commit behaviour unchanged.
+  /// No app caller sets it to `false` today. The unattended program-line
+  /// resolver once did, to keep its pre-#845 result set; it now keeps the
+  /// default, as the Collection title-list import does, so a program cannot
+  /// import a dance with no figures (INTAKE-13, 2026-10 behaviour audit).
+  /// `false` remains for a caller that genuinely wants figure-hidden rows.
   final bool requireFigures;
 }
 
@@ -178,6 +176,7 @@ class OnlineImportResult {
     this.danceId,
     this.danceCount = 1,
     this.possibleMatchIds = const [],
+    this.session,
   });
 
   final OnlineImportKind kind;
@@ -202,6 +201,12 @@ class OnlineImportResult {
   /// single-dance online-preview flow; the UI auto-opens the imported dance
   /// ONLY when this is exactly `1`.
   final int danceCount;
+
+  /// The committed batch behind an [OnlineImportKind.created] result, so a
+  /// caller that imports on the user's behalf can take the dance back out
+  /// with [ImportPipeline.undo] — a program import does, on Undo or when the
+  /// user backs out. Null for every kind that wrote nothing.
+  final ImportSession? session;
 }
 
 /// An online dance loaded for preview in the detail pane, plus the planned
@@ -472,5 +477,6 @@ Future<OnlineImportResult> commitPreviewedOnlinePlan(
     danceId: record.danceId,
     // Committed exactly this one previewed dance (single-record batch).
     danceCount: session.committedCount,
+    session: session,
   );
 }

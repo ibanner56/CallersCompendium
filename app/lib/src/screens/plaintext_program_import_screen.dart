@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +12,7 @@ import '../data/online_search.dart';
 import '../data/program_ambiguous_review.dart';
 import '../data/plaintext_program_import.dart';
 import '../data/program_import_online_resolver.dart';
+import '../data/program_import_rollback.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../utils/undo_snack_bar.dart';
@@ -34,9 +37,16 @@ import '../widgets/app_bar_text_action.dart';
 /// title that is ambiguous on Caller's Box and simply misses on ContraDB
 /// still gets offered.
 ///
+/// The online pass shows its progress and can be cancelled; it stops at the
+/// first connection failure and says so, rather than reporting every title as
+/// unmatched. Leaving the screen stops it too.
+///
 /// Pushed as a route; pops with the created program's id on success (null if the
 /// user backs out), mirroring [ProgramEditorScreen]. Commit shows an undo
-/// SnackBar that hard-deletes the just-created program.
+/// SnackBar that hard-deletes the just-created program. Dances the online pass
+/// imported are tracked in a [ProgramImportRollback]: Undo removes them along
+/// with the program, and backing out without creating the program removes them
+/// at once (docs/user/programs.md).
 class PlaintextProgramImportScreen extends StatefulWidget {
   const PlaintextProgramImportScreen({
     super.key,
@@ -65,7 +75,12 @@ class _PlaintextProgramImportScreenState
   late final CompendiumRepositories _repos;
   late final CallersBoxOnline _online;
   late final ContraDbOnline _contraDb;
+  late final ProgramImportRollback _imported;
   bool _started = false;
+
+  /// Set once the program has been written. From then on the imported dances
+  /// belong to the program's Undo, not to backing out.
+  bool _committed = false;
 
   final _titleController = TextEditingController();
   final _pasteController = TextEditingController();
@@ -85,6 +100,13 @@ class _PlaintextProgramImportScreenState
   /// Whether an online resolution pass is currently running.
   bool _resolving = false;
 
+  /// The running pass's `(done, total)` over the unmatched lines, or null
+  /// before its first report.
+  (int, int)? _resolveProgress;
+
+  /// Whether the user asked the running pass to stop.
+  bool _resolveCancelRequested = false;
+
   /// Memoized parse of the current paste text, so a single build (which reads
   /// [_parsedLines] from both [_canCommit] and the preview) reparses at most
   /// once. Invalidated when the paste text or the resolved [_collection]
@@ -101,6 +123,7 @@ class _PlaintextProgramImportScreenState
       _repos = RepositoriesScope.of(context);
       _online = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
+      _imported = ProgramImportRollback(_repos);
       _titleController.addListener(_onTitleChanged);
       _pasteController.addListener(_onPasteChanged);
       _load();
@@ -133,9 +156,29 @@ class _PlaintextProgramImportScreenState
 
   @override
   void dispose() {
+    // Backing out without creating the program takes back the dances the
+    // online pass imported. A pass or a save still in flight does this itself
+    // once it returns and finds the screen gone, so it is not raced here.
+    if (_started && !_committed && !_resolving && !_committing) {
+      unawaited(_discardImported());
+    }
     _titleController.dispose();
     _pasteController.dispose();
     super.dispose();
+  }
+
+  /// Removes every dance the online pass imported, for a back-out. Never
+  /// throws: the screen is gone, so a failure can only be logged.
+  Future<void> _discardImported() async {
+    try {
+      await _imported.rollBack();
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'plaintext_program_import_screen._discardImported',
+      );
+    }
   }
 
   List<ParsedProgramLine> get _parsedLines {
@@ -180,17 +223,29 @@ class _PlaintextProgramImportScreenState
     if (!before.any((l) => l.resolution == PlaintextLineResolution.unmatched)) {
       return;
     }
-    setState(() => _resolving = true);
-    List<ParsedProgramLine> resolved;
+    setState(() {
+      _resolving = true;
+      _resolveProgress = null;
+      _resolveCancelRequested = false;
+    });
+    final ProgramOnlineResolution resolution;
     try {
-      resolved = await resolveUnmatchedOnline(
+      resolution = await resolveUnmatchedOnline(
         before,
         service: _online,
         fallbacks: [_contraDb],
         repos: _repos,
+        rollback: _imported,
+        onProgress: (done, total) {
+          if (mounted) setState(() => _resolveProgress = (done, total));
+        },
+        isCancelled: () => _resolveCancelRequested || !mounted,
       );
     } catch (error, stackTrace) {
-      if (!mounted) return;
+      if (!mounted) {
+        await _discardImported();
+        return;
+      }
       if (kDebugMode) {
         debugPrint(
           'Plaintext title-list online resolve failed: $error\n$stackTrace',
@@ -201,7 +256,10 @@ class _PlaintextProgramImportScreenState
         stackTrace,
         source: 'plaintext_program_import_screen._resolveOnline',
       );
-      setState(() => _resolving = false);
+      setState(() {
+        _resolving = false;
+        _resolveProgress = null;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('plaintext-import-resolve-error-snackbar'),
@@ -212,16 +270,40 @@ class _PlaintextProgramImportScreenState
       );
       return;
     }
-    if (!mounted) return;
+    if (!mounted) {
+      // Left mid-pass: the loop stopped at its next check (`isCancelled`), and
+      // nothing it imported may outlive the screen.
+      await _discardImported();
+      return;
+    }
+    var resolved = resolution.lines;
+    var stoppedOffline = resolution.stoppedAfterConnectionFailure;
+    var cancelled = resolution.cancelled;
 
     // Issue #943: a title neither source resolved confidently, but at least
     // one found several exact-title hits, is offered to the user via
     // ImportReviewScreen rather than silently degrading straight to a note —
     // mirroring #823's batch-review ruling. Runs before the summary snackbar
-    // so its counts reflect whatever the user actually resolved here.
-    if (resolved.any((l) => l.onlineCandidates.isNotEmpty)) {
-      resolved = await _reviewAmbiguousLines(resolved);
-      if (!mounted) return;
+    // so its counts reflect whatever the user actually resolved here. Not
+    // after a stopped pass: the review previews each candidate online, which
+    // would only fail again offline, and a cancel means stop. The previews
+    // themselves stop the same way.
+    if (!stoppedOffline &&
+        !cancelled &&
+        resolved.any((l) => l.onlineCandidates.isNotEmpty)) {
+      try {
+        resolved = await _reviewAmbiguousLines(resolved);
+      } on ProgramImportConnectionFailed {
+        // diagnostics: silent — an expected offline condition, said in the UI
+        stoppedOffline = true;
+      } on ProgramImportCancelled {
+        // diagnostics: silent — user-initiated (or the screen was left)
+        cancelled = true;
+      }
+      if (!mounted) {
+        await _discardImported();
+        return;
+      }
     }
 
     final l10n = AppLocalizations.of(context);
@@ -236,7 +318,10 @@ class _PlaintextProgramImportScreenState
     if (linked > 0) {
       try {
         final collection = await _repos.dances.listIdsAndTitles();
-        if (!mounted) return;
+        if (!mounted) {
+          await _discardImported();
+          return;
+        }
         _collection = collection;
       } on Exception {
         // diagnostics: silent — a refresh failure is non-fatal: the resolved
@@ -246,15 +331,21 @@ class _PlaintextProgramImportScreenState
     setState(() {
       _resolvedOverride = resolved;
       _resolving = false;
+      _resolveProgress = null;
     });
+    // A stopped pass did not look every title up, so "no matches found" would
+    // be a claim about the archives that was never tested.
+    final message = stoppedOffline
+        ? l10n.importPlaintextResolveConnectionFailed(linked)
+        : cancelled
+        ? l10n.importPlaintextResolveCancelled(linked)
+        : linked == 0
+        ? l10n.importPlaintextResolvedNone(remaining)
+        : l10n.importPlaintextResolvedLinked(linked, remaining);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('plaintext-import-resolved-snackbar'),
-        content: Text(
-          linked == 0
-              ? l10n.importPlaintextResolvedNone(remaining)
-              : l10n.importPlaintextResolvedLinked(linked, remaining),
-        ),
+        content: Text(message),
       ),
     );
   }
@@ -265,9 +356,14 @@ class _PlaintextProgramImportScreenState
   /// for replaced by a fresh `matched` line linking that dance; every other
   /// line (including one whose candidates all failed to preview, or that the
   /// user left at skip) is returned unchanged, still `unmatched`.
+  ///
+  /// Throws [ProgramImportConnectionFailed] when a preview cannot reach its
+  /// source, and [ProgramImportCancelled] when the user cancels (or leaves)
+  /// before the review opens.
   Future<List<ParsedProgramLine>> _reviewAmbiguousLines(
     List<ParsedProgramLine> lines,
   ) async {
+    bool cancelRequested() => _resolveCancelRequested || !mounted;
     final seed = await buildProgramAmbiguousImport(
       lines,
       servicesBySource: {
@@ -275,18 +371,30 @@ class _PlaintextProgramImportScreenState
         OnlineSource.contraDb: _contraDb,
       },
       repos: _repos,
+      isCancelled: cancelRequested,
     );
-    if (seed == null || !mounted) return lines;
+    if (!mounted || _resolveCancelRequested) {
+      throw const ProgramImportCancelled();
+    }
+    if (seed == null) return lines;
     Map<int, String>? programResults;
+    ImportSession? committed;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ImportReviewScreen(
           sources: defaultImportSources(),
           programAmbiguousImport: seed,
-          onProgramCommitted: (results) => programResults = results,
+          onProgramCommitted: (results, session) {
+            programResults = results;
+            committed = session;
+          },
         ),
       ),
     );
+    // The review's own commit joins this program's Undo and back-out, like
+    // every dance the online pass imported.
+    final session = committed;
+    if (session != null) await _imported.record(session);
     final results = programResults;
     if (results == null || results.isEmpty) return lines;
     return [
@@ -321,7 +429,10 @@ class _PlaintextProgramImportScreenState
     try {
       await _repos.programs.create(program);
     } catch (error, stackTrace) {
-      if (!mounted) return;
+      if (!mounted) {
+        await _discardImported();
+        return;
+      }
       if (kDebugMode) {
         debugPrint(
           'Plaintext program import write failed: $error\n$stackTrace',
@@ -342,7 +453,14 @@ class _PlaintextProgramImportScreenState
       return;
     }
 
-    if (!mounted) return;
+    if (!mounted) {
+      // Left while the program was being written: nobody was told it exists
+      // and there is no Undo to offer, so it goes, with its imported dances.
+      await _discardProgram(id);
+      return;
+    }
+    _committed = true;
+    final imported = _imported;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -350,10 +468,12 @@ class _PlaintextProgramImportScreenState
         .where((l) => l.resolution == PlaintextLineResolution.matched)
         .length;
     final notes = lines.length - matched;
-    // The program itself is new, and Undo hard-deletes it again. Neither needs
-    // a broadcast: every program view watches `programs` directly (issue #768),
-    // which is also what finally gave the phone Programs list a refresh path —
-    // it had no channel at all before.
+    // The program itself is new, and Undo hard-deletes it again, then takes
+    // back the dances the online pass imported for it (program first, so no
+    // slot is left pointing at a removed dance). Neither needs a broadcast:
+    // every program view watches `programs` directly (issue #768), which is
+    // also what finally gave the phone Programs list a refresh path — it had
+    // no channel at all before.
     showUndoSnackBar(
       messenger,
       key: const ValueKey('plaintext-import-committed-snackbar'),
@@ -367,9 +487,27 @@ class _PlaintextProgramImportScreenState
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.hardDelete([id]);
+        await imported.rollBack();
       },
     );
     navigator.pop(id);
+  }
+
+  /// Removes a program written after the screen was left, then the dances
+  /// imported for it. Never throws, as for [_discardImported].
+  Future<void> _discardProgram(String id) async {
+    try {
+      await _repos.programs.hardDelete([id]);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'plaintext_program_import_screen._discardProgram',
+      );
+      // The program may still link these dances, so they stay with it.
+      return;
+    }
+    await _discardImported();
   }
 
   @override
@@ -485,21 +623,41 @@ class _PlaintextProgramImportScreenState
                 ),
               ),
               if (_hasUnresolved)
-                TextButton.icon(
-                  key: const ValueKey('plaintext-import-resolve-online'),
-                  onPressed: _resolving ? null : _resolveOnline,
-                  icon: _resolving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.travel_explore, size: 18),
-                  label: Text(
-                    _resolving
-                        ? l10n.importResolving
-                        : l10n.importResolveOnline,
+                // Flexible so a long progress label wraps instead of pushing
+                // Cancel off a narrow screen.
+                Flexible(
+                  flex: 2,
+                  child: TextButton.icon(
+                    key: const ValueKey('plaintext-import-resolve-online'),
+                    onPressed: _resolving ? null : _resolveOnline,
+                    icon: _resolving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.travel_explore, size: 18),
+                    label: Semantics(
+                      liveRegion: _resolving,
+                      child: Text(
+                        key: const ValueKey('plaintext-import-resolve-label'),
+                        switch ((_resolving, _resolveProgress)) {
+                          (true, (final done, final total)?) =>
+                            l10n.importReviewTitleListProgress(done, total),
+                          (true, null) => l10n.importResolving,
+                          (false, _) => l10n.importResolveOnline,
+                        },
+                      ),
+                    ),
                   ),
+                ),
+              if (_resolving)
+                TextButton(
+                  key: const ValueKey('plaintext-import-resolve-cancel'),
+                  onPressed: _resolveCancelRequested
+                      ? null
+                      : () => setState(() => _resolveCancelRequested = true),
+                  child: Text(l10n.commonCancel),
                 ),
             ],
           ),

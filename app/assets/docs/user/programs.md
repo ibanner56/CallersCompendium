@@ -71,7 +71,9 @@ preview before anything is saved:
 - **Blank lines are skipped**, so you can space your list out however you like.
 
 Press **Import** to create the program; an **Undo** option appears in case you
-change your mind. You can then open the program and tidy up any notes — for
+change your mind. Undo removes the program and any dances the app imported
+online for it (see below); dances that were already in your collection stay,
+and so does an imported dance you have since added to another program. You can then open the program and tidy up any notes — for
 example, searching your collection to link a dance the paste couldn't find, or
 using a note slot's **…** menu to create a new dance from it directly (see
 "Kinds of slots" below).
@@ -83,9 +85,20 @@ then tries [ContraDB](./glossary.md#contradb) for any title the Box couldn't
 settle. Where a source has exactly one dance with that title, the app imports it
 and links the slot to it — so a paste can pull in dances you don't own yet, not
 just the ones you already have. When several dances share the exact title, a
-review screen lets you pick the one you meant instead of guessing. It needs an
-internet connection, and anything it still can't place stays a note for you to
-sort out by hand.
+review screen lets you pick the one you meant instead of guessing. Like
+[bringing in a list of titles](./imports.md#bring-in-a-list-of-dance-titles), it
+only takes a dance whose figures the archive will share. Anything it still
+can't place stays a note for you to sort out by hand.
+
+It needs an internet connection. While it works it shows how far it has got,
+and you can **Cancel** at any point; titles it has already linked stay linked.
+If it can't reach the archives (you're offline, or the connection hangs), it
+**stops after the first failure** and says so, rather than reporting every
+title as not found; try again once you're online.
+
+The dances it imports are added to your collection straight away, so the
+preview can link them. If you leave the screen without pressing **Import**, they
+are removed again, and so is anything it was still looking up.
 
 ### Import a program from ContraDB
 
@@ -116,7 +129,15 @@ Either way, the app reads the event's running order and lays it out as a program
 each dance ContraDB lists is matched to your collection or imported for you, and
 anything it can't place is kept as a note, in the exact order of the event.
 Review the preview, then choose **Import** — with the same **Undo** safety net as
-every other import. This needs an internet connection.
+every other import: Undo removes the program and the dances it imported, and
+leaves the ones you already had, as well as any you have since added to another
+program.
+
+This needs an internet connection. Importing shows how far it has got, one
+dance at a time, and you can **Cancel** it. If the app can't reach the archives,
+or you cancel or leave the screen before it finishes, no program is created and
+any dances it had already brought in are removed again, so you can simply try
+again later.
 
 ## Build a program
 

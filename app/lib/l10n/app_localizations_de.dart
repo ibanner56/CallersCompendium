@@ -6264,6 +6264,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das ContraDB-Programm konnte nicht importiert werden.';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return 'Tanz $done von $total wird importiert…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'Die Online-Archive konnten nicht erreicht werden, daher wurde nichts importiert. Versuchen Sie es erneut, sobald Sie online sind.';
+
+  @override
+  String get importContraDbProgramCancelled =>
+      'Import abgebrochen – es wurde nichts hinzugefügt.';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6384,6 +6397,30 @@ class AppLocalizationsDe extends AppLocalizations {
       zero: '.',
     );
     return '$_temp0 online verknüpft$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked Titel online verknüpft.',
+      one: ' – $linked Titel online verknüpft.',
+      zero: '.',
+    );
+    return 'Die Suche nach Titeln wurde nach einem Verbindungsfehler abgebrochen$_temp0 Versuchen Sie es mit dem Rest erneut, sobald Sie online sind.';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked Titel online verknüpft.',
+      one: ' – $linked Titel online verknüpft.',
+      zero: '.',
+    );
+    return 'Die Suche nach Titeln wurde abgebrochen$_temp0';
   }
 
   @override

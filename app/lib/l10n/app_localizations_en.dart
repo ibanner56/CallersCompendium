@@ -6165,6 +6165,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t import the ContraDB program.';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return 'Importing dance $done of $total…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'Couldn\'t reach the online archives, so nothing was imported. Try again once you\'re online.';
+
+  @override
+  String get importContraDbProgramCancelled =>
+      'Import cancelled — nothing was added.';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6282,6 +6295,30 @@ class AppLocalizationsEn extends AppLocalizations {
       zero: '.',
     );
     return 'Linked $_temp0 online$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' — $linked titles linked online.',
+      one: ' — $linked title linked online.',
+      zero: '.',
+    );
+    return 'Stopped looking up titles after a connection failure$_temp0 Try the rest again once you\'re online.';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' — $linked titles linked online.',
+      one: ' — $linked title linked online.',
+      zero: '.',
+    );
+    return 'Stopped looking up titles$_temp0';
   }
 
   @override

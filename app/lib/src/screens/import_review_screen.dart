@@ -217,9 +217,15 @@ class ImportReviewScreen extends StatefulWidget {
   /// (non-undone) commit of a [programAmbiguousImport] seed. Keys are
   /// [ProgramAmbiguousLine.originalLineIndex]; a line absent from the map had
   /// no candidate committed (every candidate was left at skip, or none
-  /// previewed) and stays a note. Never invoked when [programAmbiguousImport]
-  /// is null.
-  final void Function(Map<int, String> danceIdsByLineIndex)? onProgramCommitted;
+  /// previewed) and stays a note. [session] is the commit itself, so the
+  /// program import can undo these dances with the program (programs.md:
+  /// "the same Undo safety net as every other import"). Never invoked when
+  /// [programAmbiguousImport] is null.
+  final void Function(
+    Map<int, String> danceIdsByLineIndex,
+    ImportSession session,
+  )?
+  onProgramCommitted;
 
   @override
   State<ImportReviewScreen> createState() => _ImportReviewScreenState();
@@ -1633,9 +1639,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           newId: uuidV4,
           resolutions: resolutions,
           // Only this generic dance path and the two importers above tag.
-          // The shared-bundle branch restores the sender's own tags, and no
-          // program path reaches here.
-          defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          // The shared-bundle branch restores the sender's own tags. A program
+          // title list's ambiguous lines do reach here, and their dances are
+          // created for program slots, which keep no default tags
+          // (settings.md, "Import defaults"; #1476).
+          defaultTagIds: widget.programAmbiguousImport != null
+              ? const []
+              : await resolveDefaultImportTagIds(_repos),
           onProgress: _onCommitProgress,
         );
         if (!mounted) return;
@@ -2307,7 +2317,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // resolved before dismissing, so the caller can link those dances into
       // program slots. Never fired on an undone commit — nothing was kept.
       if (programResults != null) {
-        widget.onProgramCommitted?.call(programResults);
+        widget.onProgramCommitted?.call(programResults, session);
       }
       // Embedded (onClose provided): dismiss via the shell — it has no route to
       // pop. Pushed (onClose null): pop this screen's route as before.

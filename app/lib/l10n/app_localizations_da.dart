@@ -6197,6 +6197,19 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke importere ContraDB-programmet.';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return 'Importerer dans $done af $total…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'Kunne ikke nå onlinearkiverne, så intet blev importeret. Prøv igen, når du er online.';
+
+  @override
+  String get importContraDbProgramCancelled =>
+      'Import annulleret – intet blev tilføjet.';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6314,6 +6327,30 @@ class AppLocalizationsDa extends AppLocalizations {
       zero: '.',
     );
     return 'Koblede $_temp0 online$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titler koblet online.',
+      one: ' – $linked titel koblet online.',
+      zero: '.',
+    );
+    return 'Opslaget af titler blev stoppet efter en forbindelsesfejl$_temp0 Prøv resten igen, når du er online.';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' – $linked titler koblet online.',
+      one: ' – $linked titel koblet online.',
+      zero: '.',
+    );
+    return 'Opslaget af titler blev stoppet$_temp0';
   }
 
   @override

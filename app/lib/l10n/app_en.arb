@@ -8052,6 +8052,26 @@
   "@importContraDbResolveError": {
     "description": "Snackbar shown when resolving a ContraDB program's activities before commit fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209)."
   },
+  "importContraDbProgramProgress": "Importing dance {done} of {total}…",
+  "@importContraDbProgramProgress": {
+    "description": "Progress line while a ContraDB program's dances are imported one at a time, beside a Cancel button.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "importContraDbProgramConnectionFailed": "Couldn't reach the online archives, so nothing was imported. Try again once you're online.",
+  "@importContraDbProgramConnectionFailed": {
+    "description": "Snackbar shown when importing a ContraDB program stops because ContraDB or The Caller's Box could not be reached. No program is created and any dances already imported are removed again."
+  },
+  "importContraDbProgramCancelled": "Import cancelled — nothing was added.",
+  "@importContraDbProgramCancelled": {
+    "description": "Snackbar shown when the user cancels a ContraDB program import part-way through. No program is created and any dances already imported are removed again."
+  },
   "importContraDbActivityCount": "{activities, plural, =1{1 activity} other{{activities} activities}} ({dances, plural, =1{1 dance} other{{dances} dances}}, {notes, plural, =1{1 note} other{{notes} notes}})",
   "@importContraDbActivityCount": {
     "description": "Summary of a fetched ContraDB program's activities shown above the preview list.",
@@ -8165,6 +8185,24 @@
         "type": "int"
       },
       "remaining": {
+        "type": "int"
+      }
+    }
+  },
+  "importPlaintextResolveConnectionFailed": "Stopped looking up titles after a connection failure{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}} Try the rest again once you're online.",
+  "@importPlaintextResolveConnectionFailed": {
+    "description": "Snackbar shown when the program title list's online lookup stopped because an online source could not be reached. Says that the rest were not checked, rather than that no matches exist. Does not name a source (it tries The Caller's Box then ContraDB).",
+    "placeholders": {
+      "linked": {
+        "type": "int"
+      }
+    }
+  },
+  "importPlaintextResolveCancelled": "Stopped looking up titles{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}}",
+  "@importPlaintextResolveCancelled": {
+    "description": "Snackbar shown when the user cancels the program title list's online lookup part-way through.",
+    "placeholders": {
+      "linked": {
         "type": "int"
       }
     }
