@@ -458,6 +458,30 @@ void main() {
       expect(issues.single.code, 'atypical_beats');
     });
 
+    test('square_through accepts both its 8-beat default and 16 beats', () {
+      // The default is 2 places / 8 beats; four-place figures run 16 beats.
+      // Neither may raise `atypical_beats`.
+      for (final beats in [8, 16]) {
+        final issues = tax.validateFigure(
+          testFigure(move: 'square_through', params: {'beats': beats}),
+        );
+        expect(
+          issues.where((i) => i.code == 'atypical_beats'),
+          isEmpty,
+          reason: '$beats beats is typical for square_through',
+        );
+      }
+      expect(
+        tax
+            .validateFigure(
+              Figure(move: 'square_through', params: {'beats': 4}),
+            )
+            .single
+            .code,
+        'atypical_beats',
+      );
+    });
+
     test('square_through accepts an atypical place count without error', () {
       // square_through's 2-4 restriction is typical-only, not enforced.
       final issues = tax.validateFigure(

@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "New circle figures now start at 3 places, new allemande figures start at 1½ turns, new star figures start with the left hand, new poussette figures start with the larks (first roles), and new square through figures start at 2 places and 8 beats. Figures you have already saved are not rebuilt."
+      "New circle figures now start at 3 places, new allemande figures start at 1½ turns, new star figures start with the left hand, new poussette figures start with the larks (first roles), and new square through figures start at 2 places and 8 beats. Saved figures that never stated one of these values now show the new default; figures that stated a value keep it."
     ]
   },
   "core": {

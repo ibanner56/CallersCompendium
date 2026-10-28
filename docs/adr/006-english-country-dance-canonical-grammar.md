@@ -703,18 +703,18 @@ its notes in §7 say so.
 | --- | --- | --- |
 | `balance` | `who` (neighbors), `hand` (unspecified) | `{who} balance` |
 | `balance_the_ring` | none | `balance the ring` |
-| `allemande` (model for ECD `hand_turn`) | `who` (neighbors), `hand` (right), `travel` (1) | `{who} allemande {hand} {travel}` |
+| `allemande` (model for ECD `hand_turn`) | `who` (neighbors), `hand` (right), `travel` (1.5) | `{who} allemande {hand} {travel}` |
 | `two_hand_turn` | `who` (partners), `travel` (1) | `{who} two hand turn {travel}` |
 | `shoulder_round` | `who` (neighbors), `shoulder` (right), `travel` (1) | `{who} shoulder round {travel}` |
 | `swing` | `who` (partners), `endFacing` (in) | `{who} swing` |
 | `turn_alone` | `who` (everyone), `custom` (free text) | `{who} turn alone` |
 | `box_the_gnat` | `who` (partners), `hand` (right), `balance` (no) | `{who} box the gnat` |
 | `swat_the_flea` | stored as `box_the_gnat` with `hand` fixed to left | `{who} swat the flea` |
-| `circle` | `direction` (left), `places` (4), `singleFile` (no) | `circle {direction} {places}` |
-| `star` | `hand` (right), `places` (4), `grip` (none) | `star {hand} {places}` plus a "hands across" / "wrist grip" clause when grip is set |
+| `circle` | `direction` (left), `places` (3), `singleFile` (no) | `circle {direction} {places}` |
+| `star` | `hand` (left), `places` (4), `grip` (none) | `star {hand} {places}` plus a "hands across" / "wrist grip" clause when grip is set |
 | `circular_hey` (**not** the ECD §7.4 entry) | `who` (neighbors, passes first), `changes` (4; any whole number 1-10), `shoulder` (right), `who2` (unspecified; v37, passed second by the other shoulder), `where` (across) | `{fraction} circular hey, {who} pass {shoulder} {where}[, {who2} pass {other shoulder}]`; fraction (`changes`/4) shown unless `changes` is 4 |
 | `figure_8` | `who` (ones), `where` (none / above / below / across), `lead` (a single dancer, ones' role2), `fraction` (half) | `{who} {fraction} figure 8` |
-| `poussette` | `who` (ones), `whom` (neighbors), `fraction` (half), `direction` (clockwise) | `{who} poussette {whom} {fraction} {direction}` |
+| `poussette` | `who` (role1s), `whom` (neighbors), `fraction` (half), `direction` (clockwise) | `{who} poussette {whom} {fraction} {direction}` |
 | `gate` | `who`, `pair`, `whom`, `direction`, `travel`, `endFacing` (all unspecified) | `{who} {pair} gate {whom} {direction} {travel} {endFacing}` |
 | `roll_away` | `who` (neighbors), `whom` (partners), `halfSashay` (no) | `{who} roll away {whom}` |
 | `mad_robin` | `who` (role2s), `travel` (1), `direction`, `whom` | `{who} mad robin {travel} {direction} {whom}` |
