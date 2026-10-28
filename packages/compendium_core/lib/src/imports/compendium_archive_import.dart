@@ -393,8 +393,9 @@ class CompendiumArchiveImporter {
   ///
   /// The dances commit first (real pipeline path), yielding the
   /// original-dance-id → committed-dance-id map used to FK-resolve each program
-  /// slot. Programs whose slots reference a dance that was not committed degrade
-  /// to text placeholders + issues (never a throw — see [buildArchivePrograms]).
+  /// slot. Programs whose slots reference a dance that was neither committed
+  /// nor named in [existingDanceIdByExternalId] degrade to text placeholders +
+  /// issues (never a throw — see [buildArchivePrograms]).
   ///
   /// [existingDanceIdByExternalId] maps a dance's import key
   /// ([GenericJsonAdapter.externalIdFor], the planned record's
