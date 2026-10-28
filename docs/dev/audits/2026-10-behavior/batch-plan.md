@@ -13,7 +13,7 @@ Planning only. Nothing in the repo was changed, built or tested. Basis: the nine
 | Won't fix | none | 0 |
 | **Total** | **21** | **125** |
 
-F5 and F5b carry the maintainer's refined alternates rule. F6 carries the maintainer's option (d): duplicates drop their event date, and a new "Require an event date" setting decides whether undated programs count. Received programs await one confirmation (see F6).
+F5 and F5b carry the maintainer's refined alternates rule. F6 carries the maintainer's option (d): duplicates drop their event date, and a new "Require an event date" setting decides whether undated programs count. Received programs are imported the same way as duplicates (maintainer decision, 2026-10-28).
 
 **Waves** (details under "Sequencing"):
 
@@ -37,7 +37,7 @@ F5 and F5b carry the maintainer's refined alternates rule. F6 carries the mainta
   - An alternate slot counts only when that slot is marked performed. A primary slot keeps the documented default (#583).
   - Predicate: `NOT is_alt OR performed_at IS NOT NULL`.
   - Alternates stamped by the old bulk paths look the same as hand marks, so they keep counting. Nothing in the data can tell them apart, so the plan includes no clean-up migration. That is my call; if the maintainer wants a clean-up, it is a separate question.
-- **G2 (F6): answered 2026-10-28 with option (d).** Duplicate clears the event date but still counts by default. A new "Require an event date" setting (default off) lets the caller exclude undated programs, mirroring "Require mark performed". No schema change for duplicates. Received programs await one confirmation (see F6).
+- **G2 (F6): answered 2026-10-28 with option (d).** Duplicate clears the event date but still counts by default. A new "Require an event date" setting (default off) lets the caller exclude undated programs, mirroring "Require mark performed". No schema change for duplicates. Received programs are imported the same way as duplicates (maintainer decision, 2026-10-28).
 - **F5b setting: decided 2026-10-28.** A "Show mark-performed toggles" setting under Calling history, default on.
 
 ---
@@ -181,11 +181,11 @@ The maintainer chose option (d) for G2, replacing the earlier "received and dupl
 - A duplicated program **still counts** toward calling history by default, consistent with "any program counts" (#583).
 - **New setting "Require an event date"** under Settings › Programs › Calling history, **default off**, next to "Require mark performed" and working the same way. When on, a program with no event date does not count anywhere history is read: Called ×N, the Called filter, detail history rows, last-called, venue counts and half stats. Add the clause in the same caller/performed query helpers F5 edits in `program_repository.dart`, so every surface stays in lockstep. Classify the new key in the privacy registry on all three axes in this PR (follow `require_performed_for_history`), regenerate `docs/dev/data-classification.md` with its tool, add a live scope, and document it in `docs/user/settings.md` and `programs.md`.
 - **No schema change.** No origin column is needed for duplicates. The earlier origin-column design is dropped.
-- **Received programs (OUT-2's history part): awaiting one confirmation.** Option 1: import them like a duplicate (Draft, marks cleared, event date cleared), so the same setting governs them, with no schema change. Option 2: never count them, which needs the origin column and a schema bump. Until the maintainer answers, scope F6 to duplicates and the setting, and leave received programs to a follow-up.
+- **Received programs (OUT-2's history part): treated like duplicates (maintainer decision, 2026-10-28).** A program imported from a share file arrives as Draft, with its performed marks and event date cleared, so the same rule and setting govern it: it counts by default, and "Require an event date" excludes it until the caller dates it. The importer applies this on import (`compendium_archive_import.dart`, `buildArchivePrograms`), and no schema change is needed. The sender's slots that were stamped only because their program had status Performed (the intake's "New" note under OUT-2) are cleared by the same step.
 - GIG-13: covered by the above. Its "a future draft counts" bullet is the documented default (#583), and the new setting is the opt-out.
-- **Main files:** `model/program.dart` (`duplicate`), `program_repository.dart` (history queries), `data/settings_keys.dart`, a new `require_event_date_for_history_scope.dart`, `screens/settings/program_section.dart`, `privacy/field_registry.dart`, ARB files (label and help text), `docs/user/settings.md`, `programs.md`, a `changelog.d` fragment. If option 1 is chosen for received programs: `imports/compendium_archive_import.dart` too.
+- **Main files:** `model/program.dart` (`duplicate`), `program_repository.dart` (history queries), `data/settings_keys.dart`, a new `require_event_date_for_history_scope.dart`, `screens/settings/program_section.dart`, `privacy/field_registry.dart`, ARB files (label and help text), `docs/user/settings.md`, `programs.md`, a `changelog.d` fragment. `imports/compendium_archive_import.dart` (received programs).
 - **Size:** M (~300). **Model:** Opus, because it touches every history query.
-- **Depends on:** F5 (same queries). If option 1 is chosen, it also depends on INTAKE-1 and OUT-1 being merged (both in flight, both in `compendium_archive_import.dart`). It no longer depends on F9.
+- **Depends on:** F5 (same queries), and INTAKE-1 and OUT-1 being merged (both in flight, both in `compendium_archive_import.dart`). It no longer depends on F9.
 - **Left open:** whether pay, star rating and Perform dialect should travel in share files (the rest of OUT-2). See "Residual decisions". D1 meanwhile corrects the pay note in the registry.
 
 ### F7 `fix/event-dates`: one date formatter, with a year
@@ -511,7 +511,7 @@ The decision-free part of each finding below is planned. These parts are not.
 | `program_editor_screen.dart` (4,213 lines) | GIG-3+GIG-4 | F7 (1 line, W1) → F5 → F8 → F10 → F11 |
 | `program_summary_screen.dart` | GIG-3+GIG-4 (possibly) | F5 → F5b → F10 → F11 |
 | `import_review_screen.dart` (4,001 lines) | OUT-1 (shared-result snackbar), INTAKE-1 (.USR Import and edit) | F13 → F14 (if it touches `:2096`) |
-| `compendium_archive_import.dart` | INTAKE-1, OUT-1 | F6 |
+| `compendium_archive_import.dart` | INTAKE-1, OUT-1 | F6 (received programs) |
 | `backup_io.dart`, `backup-portability.md` | FAIL-1+PLAT-1 | F9, D1 (one sentence), F8 (`backup_service.dart`) |
 | `recently_deleted_screen.dart`, repo purges | LIFE-1+LIFE-3 | none planned; LIFE-2 (blocked) must follow them |
 | `main.dart` | LIFE-3 (startup sweep, possibly) | F18 (MaterialApp), F13 (incoming file), F5 (`_preferences`), F16 (sweep, shutdown, lifecycle) |
@@ -536,7 +536,7 @@ The decision-free part of each finding below is planned. These parts are not.
 3. **W3 (4):**
    - F3 after F2.
    - F5b right after F5.
-   - F6 after F5 (and after INTAKE-1 and OUT-1, if received programs are included).
+   - F6 after F5, INTAKE-1 and OUT-1.
    - F8 after F7 and FAIL-1.
 4. **W4 (1):** F10 after F5b.
 5. **W5 (2):** F11 after F10; D2 last.
