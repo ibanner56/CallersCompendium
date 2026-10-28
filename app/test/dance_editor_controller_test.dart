@@ -454,6 +454,38 @@ void main() {
     },
   );
 
+  test('a pending-autosave flush writes the edit now and leaves autosave '
+      'running (PLAT-19)', () async {
+    final repos = openTestRepositories();
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    await controller.flushPendingAutosave();
+    expect(
+      await repos.settings.contains('editor_draft:new'),
+      isFalse,
+      reason: 'nothing was waiting on the debounce, so nothing is written',
+    );
+
+    controller.titleController.text = 'Backgrounded title';
+    controller.onTextEdited();
+    // Awaited directly, with no time for the debounce to fire.
+    await controller.flushPendingAutosave();
+    expect(
+      decodeDraft(await repos.settings.get('editor_draft:new')).title,
+      'Backgrounded title',
+    );
+
+    // Not a final flush: an edit after resuming still autosaves.
+    controller.titleController.text = 'Resumed title';
+    controller.onTextEdited();
+    await settleDebounce();
+    expect(
+      decodeDraft(await repos.settings.get('editor_draft:new')).title,
+      'Resumed title',
+    );
+  });
+
   test('clearDraft awaits an in-flight autosave so it cannot resurrect the '
       'draft afterwards (issue #616)', () async {
     final delayed = openTestRepositoriesWithDelayedSettings();

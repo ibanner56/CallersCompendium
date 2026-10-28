@@ -577,7 +577,11 @@ that dance the app offers you the draft back:
 > restore it?
 
 Choose **Restore** to pick up where you left off, or **Discard** to start from the
-last saved version. Drafts stay on your device; they are never uploaded, shared,
+last saved version.
+
+The draft is written about half a second after you stop typing, and at once
+when you switch away from the app on a phone or tablet, or close it on a
+computer, so even the last few keystrokes are kept. Drafts stay on your device; they are never uploaded, shared,
 or included in exports.
 
 ### Leaving without saving

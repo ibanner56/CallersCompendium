@@ -165,7 +165,7 @@ void main() {
           at: DateTime.utc(2026, 6, 1),
         );
 
-        expect(converted, 1);
+        expect(converted.count, 1);
         final updated = await repos.dances.getById('d1');
         expect(updated!.form, DanceForm.ecd);
         expect(updated.tagIds, ['tag-keep']);
@@ -179,7 +179,7 @@ void main() {
     test('does nothing when nothing currently matches', () async {
       final repos = openTestRepositories();
 
-      expect(await convertDancesToEcd(repos), 0);
+      expect((await convertDancesToEcd(repos)).count, 0);
     });
 
     test('re-resolves the candidate set at write time: a dance whose "ECD" tag '
@@ -205,8 +205,93 @@ void main() {
 
       final converted = await convertDancesToEcd(repos);
 
-      expect(converted, 0);
+      expect(converted.count, 0);
       expect((await repos.dances.getById('d1'))!.form, DanceForm.contra);
     });
+  });
+  group('undoEcdConversion', () {
+    test('gives each converted dance back its form and tags, in their old '
+        'order, and leaves the already-ECD dance alone', () async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 'tag-ecd', name: 'ECD'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 'tag-keep', name: 'Waltz'));
+      await repos.dances.create(
+        _dance(id: 'd1', tagIds: const ['tag-keep', 'tag-ecd']),
+      );
+      await repos.dances.create(
+        _dance(id: 'd2', form: DanceForm.ecd, tagIds: const ['tag-ecd']),
+      );
+      final conversion = await convertDancesToEcd(
+        repos,
+        at: DateTime.utc(2026, 6, 1),
+      );
+
+      final restored = await undoEcdConversion(
+        repos,
+        conversion,
+        at: DateTime.utc(2026, 6, 2),
+      );
+
+      expect(restored, 1);
+      final undone = await repos.dances.getById('d1');
+      expect(undone!.form, DanceForm.contra);
+      expect(undone.tagIds, ['tag-keep', 'tag-ecd']);
+      expect(undone.updatedAt, DateTime.utc(2026, 6, 2));
+      final untouched = await repos.dances.getById('d2');
+      expect(untouched!.tagIds, ['tag-ecd']);
+      expect(untouched.updatedAt, DateTime.utc(2026, 1, 1));
+    });
+
+    test('skips a dance edited since the conversion, so Undo never '
+        'overwrites a later change', () async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 'tag-ecd', name: 'ECD'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 'tag-new', name: 'Favourite'));
+      await repos.dances.create(_dance(id: 'd1', tagIds: const ['tag-ecd']));
+      await repos.dances.create(_dance(id: 'd2', tagIds: const ['tag-ecd']));
+      final conversion = await convertDancesToEcd(repos);
+      // d1 is retagged and d2 has its form changed after the conversion.
+      final d1 = (await repos.dances.getById('d1'))!;
+      await repos.dances.update(
+        d1.copyWith(tagIds: const ['tag-new']),
+        localUserEdit: true,
+      );
+      final d2 = (await repos.dances.getById('d2'))!;
+      await repos.dances.update(
+        d2.copyWith(form: DanceForm.contra),
+        localUserEdit: true,
+      );
+
+      expect(await undoEcdConversion(repos, conversion), 0);
+      final kept1 = (await repos.dances.getById('d1'))!;
+      expect(kept1.form, DanceForm.ecd);
+      expect(kept1.tagIds, ['tag-new']);
+      expect((await repos.dances.getById('d2'))!.tagIds, isEmpty);
+    });
+
+    test(
+      'does not put back a stripped tag that has been deleted since',
+      () async {
+        final repos = openTestRepositories();
+        // ignore: unused_result
+        await repos.tags.upsert(Tag(id: 'tag-ecd', name: 'ECD'));
+        await repos.dances.create(_dance(id: 'd1', tagIds: const ['tag-ecd']));
+        final conversion = await convertDancesToEcd(repos);
+        await repos.tags.delete('tag-ecd');
+
+        expect(await undoEcdConversion(repos, conversion), 1);
+        final undone = (await repos.dances.getById('d1'))!;
+        expect(undone.form, DanceForm.contra);
+        expect(undone.tagIds, isEmpty);
+        // The read above hides a tombstoned tag, so look at the join table:
+        // no row may tie the dance to the deleted tag again.
+        final joins = await repos.db.select(repos.db.danceTags).get();
+        expect(joins.where((row) => row.tagId == 'tag-ecd'), isEmpty);
+      },
+    );
   });
 }

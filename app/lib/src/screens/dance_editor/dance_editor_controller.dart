@@ -951,6 +951,17 @@ class DanceEditorController extends ChangeNotifier {
     _autosaveTimer = Timer(_debounce, _saveDraft);
   }
 
+  /// Writes the draft the autosave debounce is waiting to write, now, for the
+  /// app being paused or hidden (PLAT-19). Unlike [prepareShutdownFlush] this
+  /// is not final: later edits schedule autosave as usual. A no-op when no
+  /// autosave is pending.
+  Future<void> flushPendingAutosave() {
+    final timer = _autosaveTimer;
+    if (timer == null || !timer.isActive) return Future<void>.value();
+    timer.cancel();
+    return _saveDraft();
+  }
+
   /// Cancels the pending debounce and queues one immutable final snapshot
   /// synchronously, before shutdown begins awaiting any editor operation.
   EditorDraftShutdownOperation prepareShutdownFlush() {

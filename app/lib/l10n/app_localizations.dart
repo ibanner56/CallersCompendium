@@ -12608,6 +12608,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{Converted 1 dance to English (ECD).} other{Converted {count} dances to English (ECD).}}'**
   String startupEcdConvertSnackbar(int count);
 
+  /// Snackbar after Undo on the ECD-convert snackbar: how many converted dances got their form and "ECD" tag back. A dance whose type or tags changed since the conversion is left alone, so this can be fewer than were converted, or none.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No dances were changed back: each one\'s type or tags have changed since.} one{Changed 1 dance back.} other{Changed {count} dances back.}}'**
+  String startupEcdConvertUndoneSnackbar(int count);
+
+  /// Shown over the app while it closes: open editors' drafts are being saved and a running sync is given a few seconds to finish.
+  ///
+  /// In en, this message translates to:
+  /// **'Closing…'**
+  String get appClosingMessage;
+
   /// Update banner message when a newer version is available (idle/cancelled state).
   ///
   /// In en, this message translates to:

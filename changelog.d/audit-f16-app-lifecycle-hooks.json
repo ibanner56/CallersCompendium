@@ -1,0 +1,14 @@
+{
+  "id": "audit-f16-app-lifecycle-hooks",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "After you convert your \"ECD\"-tagged dances to English (ECD) at startup, you can Undo it. Undo gives each dance back its type and tag, and leaves alone any dance whose type or tags you have changed since."
+    ],
+    "fixed": [
+      "The app now opens even when its startup clean-up of deleted items past their keep period fails, for example on a nearly full disk. The clean-up is tried again the next time you open the app.",
+      "Closing the app while a sync is running now says \"Closing…\", saves open editors' drafts first, and waits at most ten seconds for the sync instead of until it finishes.",
+      "On a phone or tablet, a dance or program you are editing has its draft saved as soon as you switch away from the app, so your last few keystrokes are kept even if the phone closes the app in the background."
+    ]
+  }
+}
