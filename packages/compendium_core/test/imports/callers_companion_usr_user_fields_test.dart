@@ -468,6 +468,58 @@ void main() {
     });
   });
 
+  // The review's per-row Edit commits one dance on its own, before the rest of
+  // the file. A bare pipeline commit of a dance with a user-field value fails
+  // (the repository refuses a value for a field that does not exist), which a
+  // beta tester saw as "Couldn't import that dance to edit."
+  group('commitDances (per-row Edit)', () {
+    test('commits a dance with a user-field value', () async {
+      final batch = await importer.plan(
+        _usrBytes([
+          row('4', 'A', [('blue', 'Card colour'), ('loud', null)]),
+        ]),
+      );
+
+      final session = await importer.commitDances(
+        batch,
+        now: now,
+        newId: nextId,
+      );
+
+      final record = session.records.single;
+      expect(record.error, isNull);
+      expect(record.externalId, '4');
+      final dance = (await dances.getById(record.danceId!))!;
+      expect(await valuesByKey(dance), {
+        'card_colour': 'blue',
+        'user_field_2': 'loud',
+      });
+    });
+
+    test('drops the definitions when the dance is not committed', () async {
+      // An untracked dance of the same title makes the row ambiguous, and an
+      // ambiguous row with no resolution is skipped.
+      await dances.create(
+        Dance(id: 'native', title: 'A', createdAt: now, updatedAt: now),
+      );
+      final batch = await importer.plan(
+        _usrBytes([
+          row('4', 'A', [('blue', 'Card colour')]),
+        ]),
+      );
+
+      final session = await importer.commitDances(
+        batch,
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.insertedDanceIds, isEmpty);
+      expect([for (final d in await dances.listAll()) d.id], ['native']);
+      expect(await defs.listAllWithDeleted(), isEmpty);
+    });
+  });
+
   group('commit compensation', () {
     test('a failed program write leaves no definitions behind', () async {
       final failing = importerWith(programs: _FailingProgramRepository(db));

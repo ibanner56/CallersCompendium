@@ -74,7 +74,7 @@ void main() {
 
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
-      'ones orbit clockwise ½': Figure(move: 'orbit'),
+      'role1s orbit clockwise ½': Figure(move: 'orbit'),
       'role1s orbit counterclockwise ¾': Figure(
         move: 'orbit',
         params: {

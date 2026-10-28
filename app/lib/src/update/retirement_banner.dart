@@ -23,9 +23,9 @@ String retirementNoticeMessage(
 ) {
   final l10n = AppLocalizations.of(context);
   // The user's date-format preference when it names a fixed pattern. The
-  // system default falls back to the *full* date rather than the medium one
-  // event dates use: the medium form omits the year, and a deadline without
-  // its year is ambiguous.
+  // system default falls back to the *full* date (weekday and full month)
+  // rather than the shorter year-bearing `formatShortDate` event dates use,
+  // because a deadline reads better spelled out.
   final date =
       formatDatePattern(
         notice.endOfLife,

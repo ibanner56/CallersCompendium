@@ -283,7 +283,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         builder: (dialogContext) => AlertDialog(
           key: const ValueKey('perform-exit-dialog'),
           title: Text(l10n.performExitTitle),
-          content: Text(l10n.performExitBody),
+          content: Text(l10n.performDanceExitBody),
           actions: [
             TextButton(
               key: const ValueKey('perform-exit-cancel'),

@@ -237,6 +237,50 @@ void main() {
     expect(controller.titleController.text, isEmpty);
   });
 
+  test('undo during the typing debounce undoes the typing, not the step '
+      'before it (AUTH-6)', () async {
+    final repos = openTestRepositories();
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    controller.setStatus(DanceStatus.deprecated);
+    controller.titleController.text = 'Petronella Mixer';
+    controller.onTextEdited();
+
+    // Before the debounce has pushed the typing.
+    controller.undo();
+    expect(controller.titleController.text, isEmpty);
+    expect(controller.status, DanceStatus.deprecated);
+
+    controller.redo();
+    expect(controller.titleController.text, 'Petronella Mixer');
+  });
+
+  test('redo during the typing debounce keeps the typing (AUTH-6)', () async {
+    final repos = openTestRepositories();
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    controller.setStatus(DanceStatus.deprecated);
+    controller.undo();
+    expect(controller.canRedo, isTrue);
+    controller.titleController.text = 'Typed after undo';
+    controller.onTextEdited();
+
+    var notified = 0;
+    controller.addListener(() => notified++);
+
+    // The typing is newer than the redo entry, so redo has nothing to do.
+    controller.redo();
+    expect(controller.titleController.text, 'Typed after undo');
+    expect(controller.status, DanceStatus.active);
+    // The Undo and Redo buttons hear that the typing is now undoable and
+    // there is nothing left to redo.
+    expect(controller.canUndo, isTrue);
+    expect(controller.canRedo, isFalse);
+    expect(notified, greaterThan(0));
+  });
+
   test('the injected debounce governs the autosave timer', () async {
     final repos = openTestRepositories();
     final controller = DanceEditorController(

@@ -2305,7 +2305,7 @@ _Match? _starPromenade(List<String> w) {
 /// Tier A: TCB writes "Square through 3" / "Square through 4" (dance id 322
 /// "Whim's Gym"). Only a digit count is consumed (TCB never spells the count
 /// out); the word form "square through four" stays custom. A bare "square
-/// through" uses the taxonomy default (4 places).
+/// through" uses the taxonomy default (2 places).
 _Match? _squareThrough(List<String> w) {
   if (!_consumePhrase(w, ['square', 'through'])) return null;
   int? places;

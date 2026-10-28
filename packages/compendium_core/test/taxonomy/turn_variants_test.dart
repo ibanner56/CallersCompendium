@@ -7,8 +7,8 @@ void main() {
   final renderer = FigureRenderer(tax);
 
   test('taxonomy v35 registers both turn variants', () {
-    expect(contraTaxonomyVersion, 37);
-    expect(tax.version, 37);
+    expect(contraTaxonomyVersion, 38);
+    expect(tax.version, 38);
     expect(tax.resolve('turn_as_couples')?.id, 'turn_as_couples');
     expect(tax.resolve('two_hand_turn')?.id, 'two_hand_turn');
   });

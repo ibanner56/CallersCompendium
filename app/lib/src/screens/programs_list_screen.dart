@@ -12,6 +12,7 @@ import '../search/program_sort.dart';
 import '../search/program_sort_labels.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
@@ -486,7 +487,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           if (openSearch != null)
             IconButton(
               key: const ValueKey('programs-search'),
-              tooltip: l10n.collectionSearchTooltip,
+              tooltip: l10n.collectionSearchTooltip(shortcutPlatform(context)),
               icon: const Icon(Icons.search),
               onPressed: openSearch,
             ),

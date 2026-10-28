@@ -37,9 +37,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy', () {
-    test('contraTaxonomyVersion is 37', () {
-      expect(contraTaxonomyVersion, 37);
-      expect(tax.version, 37);
+    test('contraTaxonomyVersion is 38', () {
+      expect(contraTaxonomyVersion, 38);
+      expect(tax.version, 38);
     });
 
     test('mad_robin gains direction + whom, keeping who/travel/beats', () {

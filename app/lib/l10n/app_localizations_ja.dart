@@ -2224,7 +2224,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      '現在のテーマをコピーして色を調整できます。カスタムテーマはこのデバイスに保存されます。';
+      '現在のテーマをコピーして色を調整できます。カスタムテーマは、同期がオンのとき、他のデバイスと同期されます。';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'テーマを削除しますか？';
@@ -2864,11 +2864,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralDeletedItemsHeader => '削除済みアイテム';
 
   @override
-  String get settingsGeneralSoftDeleteRetentionTitle => '削除したダンスを保持する期間';
+  String get settingsGeneralSoftDeleteRetentionTitle => '削除した項目を保持する期間';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      '削除したダンスは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。';
+      '削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3277,7 +3277,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'アプリのこの部分で予期しないエラーが発生し、復旧しました。詳細はデバイスを離れないローカル診断ログ（設定 ▸ 診断）に保存されました。';
+      'アプリのこの部分で予期しないエラーが発生し、表示できませんでした。詳細はデバイスを離れないローカル診断ログ（設定 ▸ 診断）に保存されました。';
 
   @override
   String get crashFallbackCopied => 'コピーしました';
@@ -3466,7 +3466,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionNewDance => '新しいダンス';
 
   @override
-  String get collectionSearchTooltip => '検索 (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': '検索 (⌘K)',
+      'other': '検索 (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'ダンスを選択';
@@ -5090,6 +5096,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'パフォームビューを終了しますか？位置と実行中のタイマーは保持されるため、中断した場所から再開できます。';
 
   @override
+  String get performDanceExitBody =>
+      'パフォームビューを終了しますか？単一のダンスのパフォームでは位置は保持されないため、次回は最初から始まります。';
+
+  @override
   String get performExitCancel => 'パフォームを続ける';
 
   @override
@@ -5946,6 +5956,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importContraDbResolveError => 'ContraDBプログラムをインポートできませんでした。';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return '$total件中$done件目のダンスをインポート中…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'オンラインアーカイブに接続できなかったため、何もインポートされませんでした。オンラインになってからもう一度お試しください。';
+
+  @override
+  String get importContraDbProgramCancelled => 'インポートをキャンセルしました。何も追加されていません。';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6055,6 +6077,28 @@ class AppLocalizationsJa extends AppLocalizations {
       zero: '。',
     );
     return 'オンラインで$_temp0のタイトルをリンクしました$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: '（$linked件のタイトルをオンラインでリンク済み）。',
+      zero: '。',
+    );
+    return '接続エラーのため、タイトルの検索を中止しました$_temp0残りはオンラインになってからもう一度お試しください。';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: '（$linked件のタイトルをオンラインでリンク済み）。',
+      zero: '。',
+    );
+    return 'タイトルの検索を中止しました$_temp0';
   }
 
   @override
@@ -6855,6 +6899,22 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String sharedImportCompleteWithFailures(int count, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のアイテムをインポートしました。',
+      zero: '何もインポートされませんでした。',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '$failed件のダンスをインポートできませんでした。',
+    );
+    return '$_temp0$_temp1';
+  }
+
+  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7476,10 +7536,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorRedoLabel => 'やり直し';
 
   @override
-  String get danceEditorUndoShortcutTooltip => '元に戻す (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': '元に戻す (⌘Z)',
+      'other': '元に戻す (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip => 'やり直し (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'やり直し (⇧⌘Z)',
+      'other': 'やり直し (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'ダンスを削除';
@@ -7575,7 +7647,20 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count件のフィギュアを追加しました。さらに入力するか、「完了」を選んで終了してください。',
+      other: '$count件のフィギュアを追加しました。さらに入力するか、終わったら「追加を終了」を選んでください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => '追加を終了';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のフィギュアを追加しました。',
     );
     return '$_temp0';
   }
@@ -8003,6 +8088,18 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get updateDownloadFailureUnreachable =>
       'アップデートをダウンロードできませんでした。接続を確認してもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+
+  @override
+  String get updateDownloadFailureServerError =>
+      'アップデートサーバーからファイルを取得できませんでした。しばらくしてからもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'アップデートを保存するためのディスクの空き容量が足りません。空き容量を確保してもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'ダウンロード先に書き込めないため、アップデートを保存できませんでした。アクセス権を確認してもう一度お試しいただくか、「リリースを見る」をご利用ください。';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -8922,6 +9019,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'ゴミ箱は空です。削除したプログラムは手動で削除するまでここに保持されます。';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'ゴミ箱は空です。削除したプログラムは削除されるまで$days日間ここに表示されます。';
   }
@@ -9148,6 +9249,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get publishedCollectionsUnavailable => '公開コレクションは一時的に利用できません。';
+
+  @override
+  String get publishedCollectionsOffline =>
+      '公開コレクションに接続できませんでした。接続を確認してもう一度お試しください。';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'これらの公開コレクションには、より新しいバージョンのアプリが必要です。アプリを更新してご覧ください。';
 
   @override
   String get publishedCollectionImport => 'コレクションをインポート';

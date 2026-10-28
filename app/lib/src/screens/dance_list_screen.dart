@@ -34,6 +34,7 @@ import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
@@ -1053,25 +1054,73 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     final sourceLabel = _onlineSource.label;
-    // A blocking loader while the tapped dance's JSON is fetched + parsed.
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(
-          key: ValueKey('online-preview-loading'),
+    // A loader while the tapped dance's JSON is fetched + parsed. It can be
+    // dismissed (Cancel, Back, or a tap outside), which abandons the fetch.
+    final cancelled = Completer<void>();
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => PopScope(
+          // Fires the moment the loader is popped (Cancel, Back, barrier), not
+          // after its exit animation, so the code below never pops it twice.
+          onPopInvokedWithResult: (_, _) {
+            if (!cancelled.isCompleted) cancelled.complete();
+          },
+          child: Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      key: ValueKey('online-preview-loading'),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextButton(
+                      key: const ValueKey('online-preview-cancel'),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: Text(l10n.commonCancel),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
+      ),
+    );
+    final fetch = _online.loadPreview(_repos, result);
+    // `Future.any` leaves the fetch running after a cancel; it cannot be
+    // aborted, so its eventual outcome is dropped (type-only log on failure).
+    unawaited(
+      fetch.then<void>(
+        (_) {},
+        onError: (Object error, StackTrace stackTrace) {
+          if (!cancelled.isCompleted) return;
+          logCaughtErrorTypeOnly(
+            error,
+            stackTrace,
+            source: 'dance_list_screen._pushOnlinePreview.abandoned',
+          );
+        },
       ),
     );
     OnlinePreview preview;
     try {
-      preview = await _online.loadPreview(_repos, result);
+      final raced = await Future.any<OnlinePreview?>([
+        fetch,
+        cancelled.future.then((_) => null),
+      ]);
+      if (raced == null || cancelled.isCompleted) return;
+      preview = raced;
     } on UrlFetchException catch (error, stackTrace) {
       logCaughtError(
         error,
         stackTrace,
         source: 'dance_list_screen._pushOnlinePreview',
       );
+      if (cancelled.isCompleted) return;
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(importErrorMessage(l10n, error))),
@@ -1085,6 +1134,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         stackTrace,
         source: 'dance_list_screen._pushOnlinePreview',
       );
+      if (cancelled.isCompleted) return;
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.onlineLoadError(sourceLabel))),
@@ -1912,7 +1962,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         if (openSearch != null)
           IconButton(
             key: const ValueKey('collection-search'),
-            tooltip: l10n.collectionSearchTooltip,
+            tooltip: l10n.collectionSearchTooltip(shortcutPlatform(context)),
             icon: const Icon(Icons.search),
             onPressed: openSearch,
           ),

@@ -94,7 +94,8 @@ enum AssistedDownloadStatus {
 /// the reason and the presentation layer localizes it
 /// (`update_failure_labels.dart`), like `UrlFetchFailureReason` for imports.
 enum UpdateDownloadFailure {
-  /// No folder could be prepared to receive the file.
+  /// No folder could be prepared to receive the file, or (off macOS) something
+  /// already sat at the app-chosen download path.
   destinationUnavailable,
 
   /// macOS only: the path chosen in the Save panel holds something the app
@@ -110,6 +111,15 @@ enum UpdateDownloadFailure {
 
   /// The transfer failed (network or another transport error).
   unreachable,
+
+  /// The server answered with an error status (404, 5xx, ...).
+  serverError,
+
+  /// The disk filled up while the file was being written.
+  diskFull,
+
+  /// The file could not be created or written: the location is not writable.
+  unwritable,
 
   /// The sha256 check failed; the file was deleted.
   checksumMismatch,
@@ -404,7 +414,9 @@ class UpdateController extends ChangeNotifier {
         return;
       }
       if (!outcome.isSuccess || outcome.file == null) {
-        _failDownload(_downloadFailureFor(outcome.kind));
+        final failure = _downloadFailureFor(outcome.kind);
+        _logDownloadFailure(failure, outcome);
+        _failDownload(failure);
         if (usesTemporaryDirectory) {
           await _deleteDownloadDir(downloadDir!, outcome);
         }
@@ -608,12 +620,42 @@ class UpdateController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Records a failed download in the diagnostics log. Only the typed failure,
+  /// the outcome kind and an HTTP status are written: [DownloadOutcome.message]
+  /// can embed the OS error text, which names the destination path.
+  void _logDownloadFailure(
+    UpdateDownloadFailure failure,
+    DownloadOutcome outcome,
+  ) {
+    final status = outcome.httpStatus;
+    logCaughtError(
+      _UpdateDownloadError(
+        '${failure.name} (${outcome.kind.name}'
+        '${status == null ? '' : ', HTTP $status'})',
+      ),
+      null,
+      source: 'update_controller.startAssistedDownload',
+    );
+  }
+
   UpdateDownloadFailure _downloadFailureFor(DownloadResultKind kind) {
     switch (kind) {
       case DownloadResultKind.sizeMismatch:
         return UpdateDownloadFailure.incomplete;
       case DownloadResultKind.refusedHost:
         return UpdateDownloadFailure.refusedHost;
+      case DownloadResultKind.httpError:
+        return UpdateDownloadFailure.serverError;
+      case DownloadResultKind.diskFull:
+        return UpdateDownloadFailure.diskFull;
+      case DownloadResultKind.permissionDenied:
+        return UpdateDownloadFailure.unwritable;
+      case DownloadResultKind.destinationOccupied:
+        // Only macOS lets the user choose another name or folder; elsewhere the
+        // app picked the temp path itself, so that advice would be unusable.
+        return _platform == UpdatePlatform.macos
+            ? UpdateDownloadFailure.destinationOccupied
+            : UpdateDownloadFailure.destinationUnavailable;
       case DownloadResultKind.networkError:
       case DownloadResultKind.success:
       case DownloadResultKind.cancelled:
@@ -868,4 +910,15 @@ class UpdateController extends ChangeNotifier {
     notifyListeners();
     await _settings.set(kUpdateDismissedVersionKey, version.toString());
   }
+}
+
+/// A download failure reduced to its typed cause, safe to persist in the
+/// diagnostics log (no path, URL or OS message).
+class _UpdateDownloadError implements Exception {
+  const _UpdateDownloadError(this.summary);
+
+  final String summary;
+
+  @override
+  String toString() => 'UpdateDownloadError: $summary';
 }

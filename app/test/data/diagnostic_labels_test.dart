@@ -97,6 +97,7 @@ void main() {
       'archive_program_unresolved_venue',
       'archive_read_error',
       'archive_read_warning',
+      'archive_related_dance_unresolved',
       'callersbox_direction_unmapped',
       'callersbox_formation_unclassified',
       'callersbox_phrase_structure_unreadable',

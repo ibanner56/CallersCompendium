@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
+
 import '../support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
@@ -55,29 +56,29 @@ void main() {
     expect(find.textContaining('07.15.26'), findsOneWidget);
   });
 
-  testWidgets('an invalid custom pattern falls back to the platform medium '
+  testWidgets('an invalid custom pattern falls back to the platform short '
       'date', (tester) async {
     await _pumpTile(
       tester,
       DateFormatSetting(DateFormatPref.custom, customPattern: 'bogus'),
     );
-    final expected = const DefaultMaterialLocalizations().formatMediumDate(
+    final expected = const DefaultMaterialLocalizations().formatShortDate(
       _eventDate,
     );
     expect(find.textContaining(expected), findsOneWidget);
     expect(find.textContaining('bogus'), findsNothing);
   });
 
-  testWidgets('the same tile renders the platform medium date under system', (
+  testWidgets('the same tile renders the platform short date under system', (
     tester,
   ) async {
     await _pumpTile(tester, DateFormatSetting(DateFormatPref.system));
-    final expected = const DefaultMaterialLocalizations().formatMediumDate(
+    final expected = const DefaultMaterialLocalizations().formatShortDate(
       _eventDate,
     );
     expect(find.textContaining(expected), findsOneWidget);
     // The fixed ymd pattern must NOT appear under the system default, and the
-    // medium date must genuinely differ from it for this locale.
+    // short date must genuinely differ from it for this locale.
     expect(find.textContaining('2026-07-15'), findsNothing);
     expect(expected, isNot('2026-07-15'));
   });

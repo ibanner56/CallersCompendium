@@ -302,8 +302,9 @@ App call sites resolve the localized labels from `AppLocalizations` through
 `programMatrixExportLabels(l10n)`) and pass them into the builder. Content
 **values** (formation / status / level names) route through the existing
 localized helpers in `search/facet_labels.dart` (`formationLabel`,
-`danceStatusLabel`, `danceLevelLabel`); dates already use
-`MaterialLocalizations.formatMediumDate`. Never call `AppLocalizations` from a
+`danceStatusLabel`, `danceLevelLabel`); dates go through
+`formatEventDate` under the user's Date format setting (System falls back to
+`MaterialLocalizations.formatShortDate`). Never call `AppLocalizations` from a
 core renderer, and never add a Flutter dependency to `compendium_core` — inject a
 label object instead.
 
@@ -407,19 +408,30 @@ You do **not** need to write code to translate the app.
    It flags stale English-source markers, missing/renamed placeholders,
    mismatched plural arguments, a wrong `@@locale`, and unsafe content before
    the change ever reaches a build.
-5. **iOS only:** add your locale to `app/ios/Runner/Info.plist` under a
-   `CFBundleLocalizations` array, using the **hyphenated BCP-47 tag** (e.g.
-   `<string>fr</string>`, `<string>pt-BR</string>`, `<string>zh-Hant</string>`) —
-   not the underscore filename form. iOS advertises the languages an app supports
-   from this list, so without it a contributed language isn't offered by the
-   system. The Dart side needs nothing further: `resolveSystemLocale`
+5. **Platform manifests:** the OS advertises the languages an app supports from
+   each platform's own list, so without an entry a contributed language isn't
+   offered by the system. Add the locale to every one:
+   - iOS: a `CFBundleLocalizations` array in `app/ios/Runner/Info.plist`
+     (`<string>fr</string>`, `<string>pt-BR</string>`, …), using the
+     **hyphenated BCP-47 tag** (e.g. `fr`, `pt-BR`, `zh-Hant`), not the
+     underscore filename form.
+   - macOS: `CFBundleLocalizations` in `app/macos/Runner/Info.plist`, with the
+     same tag form. macOS `knownRegions` in
+     `app/macos/Runner.xcodeproj/project.pbxproj` still lists only `en, Base`;
+     the plist entry has not been confirmed on a Mac to be enough on its own.
+   - Android 13+: a `<locale android:name="…"/>` line in
+     `app/android/app/src/main/res/xml/locales_config.xml`, with the same tag
+     form.
+   - Windows installer: the Inno `[Languages]` section of
+     `packaging/windows/CallersCompendium.iss` is keyed by Inno's English
+     language name, not a tag. Add a line matching the existing entries, e.g.
+     `Name: "brazilianportuguese"; MessagesFile:
+     "compiler:Languages\BrazilianPortuguese.isl"` (one line in the file).
+
+   The Dart side needs nothing further: `resolveSystemLocale`
    (`locale_scope.dart`) matches the device's language list against the
    supported locales and falls back to **English** — not `supportedLocales.first`,
-   which is alphabetical (`da`) — when none match. The OS per-app language
-   pickers do depend on platform manifests, though: macOS `knownRegions` in
-   `app/macos/Runner.xcodeproj/project.pbxproj` lists only `en, Base`, and
-   Android declares no `localeConfig`, so those pickers do not yet offer every
-   bundled language.
+   which is alphabetical (`da`) — when none match.
 6. That's it — your language automatically appears in **Settings ▸ Language &
    region ▸ App language**, shown by its native name, with no code change. If the
    endonym doesn't yet have an entry in `nativeLanguageName` it falls back to the

@@ -85,6 +85,7 @@ void main() {
       kModifierContainerCanonicalRebuildDoneKey,
       taxonomyV35FigureNormalizationDoneKey,
       taxonomyV37CanonicalRebuildDoneKey,
+      taxonomyV38CanonicalRebuildDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
       normalisationDerivedIndexRepairDoneKey,
       'sync_last_used_fingerprint',
@@ -125,6 +126,10 @@ void main() {
     );
     expect(
       isBackupEligibleSettingKey(taxonomyV37CanonicalRebuildDoneKey),
+      isFalse,
+    );
+    expect(
+      isBackupEligibleSettingKey(taxonomyV38CanonicalRebuildDoneKey),
       isFalse,
     );
     expect(

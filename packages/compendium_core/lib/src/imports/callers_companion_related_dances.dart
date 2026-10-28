@@ -37,9 +37,11 @@ class CcRelatedDanceLinksResult {
 /// - [danceIdByCcRowId]: the same CC-`zk_Dance_ID` → new-Compendium-dance-id
 ///   map `buildCcPrograms` uses, built from the just-committed
 ///   [ImportSession](`callers_companion_usr_import.dart`'s
-///   `_danceIdByCcRowId`) — so a pair can only resolve to a dance this
-///   session actually committed, never an arbitrary/stale id (OWASP: the CC
-///   `Dance_Related` ids are untrusted external data).
+///   `_danceIdByCcRowId`) plus the dances the caller passed as
+///   `earlierDanceIds` (written by the review's per-row Edit, and checked to
+///   still exist) — so a pair can only resolve to a dance this review
+///   committed, never an arbitrary/stale id (OWASP: the CC `Dance_Related` ids
+///   are untrusted external data).
 /// - [existingLinksByDanceId]: each candidate source dance's **current**
 ///   `relatedDance` links (fetched by the caller before this call), used to
 ///   dedupe against links a prior import of the same archive already added.
@@ -52,15 +54,13 @@ class CcRelatedDanceLinksResult {
 ///   merge" philosophy for every other field). So by the time this builder's
 ///   caller fetches a candidate source dance, its links have *already* been
 ///   reset to empty by that same commit — [existingLinksByDanceId] is
-///   therefore, in the current wiring, always empty for every dance this
-///   builder can be asked about (a dance only becomes a candidate at all by
-///   resolving through [danceIdByCcRowId], which only ever names dances this
-///   very commit just rebuilt). Re-import duplication is thus already
-///   prevented structurally by that full-overwrite step, not by this dedupe
-///   check. The parameter and check are kept anyway — they are correct,
-///   cheap, independently unit-tested, and a safety net if the importer's
-///   commit path ever stops fully rebuilding a dance's links (e.g. a future
-///   change that merges rather than replaces).
+///   therefore empty for every dance this commit rebuilt. The exception is a
+///   dance from `earlierDanceIds`: this commit did not rebuild it, and the
+///   person may have added a related link to it in the editor since, so for
+///   it the dedupe is what stops a second copy of the same link. For the
+///   rest, re-import duplication is prevented structurally by the
+///   full-overwrite step, and the check is a safety net if the importer's
+///   commit path ever stops fully rebuilding a dance's links.
 ///
 /// **Directional only** (issue #688 decision): each `Dance_Related` row
 /// produces exactly one directed link, on the SOURCE dance, pointing at the

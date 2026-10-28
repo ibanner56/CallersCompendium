@@ -223,6 +223,84 @@ void main() {
 
     tearDown(() => db.close());
 
+    test('links a related dance to the collection dance it names', () async {
+      final batch = await importer.plan(
+        _payload(
+          dances: [
+            _dance('d1').copyWith(
+              links: [
+                DanceLink(
+                  id: 'link-1',
+                  kind: LinkKind.relatedDance,
+                  targetDanceId: 'd2',
+                ),
+              ],
+            ),
+            _dance('d2'),
+          ],
+        ),
+        metadata,
+      );
+
+      final result = await importer.commit(
+        batch,
+        metadata: metadata,
+        now: DateTime.utc(2026, 8, 20),
+        newId: uuidV4,
+      );
+
+      final all = await dances.listAll();
+      final d1 = all.singleWhere((d) => d.title == 'Dance d1');
+      final d2 = all.singleWhere((d) => d.title == 'Dance d2');
+      expect([for (final l in d1.links) l.targetDanceId], [d2.id]);
+      expect(result.session.issues, isEmpty);
+    });
+
+    test(
+      'links a related dance received from the collection earlier',
+      () async {
+        // Titles far apart, so d1 is new rather than a possible match of d2.
+        Dance d1() => _dance('d1').copyWith(
+          title: 'Petronella',
+          links: [
+            DanceLink(
+              id: 'link-1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'd2',
+            ),
+          ],
+        );
+        await importer.commit(
+          await importer.plan(_payload(dances: [_dance('d2')]), metadata),
+          metadata: metadata,
+          now: DateTime.utc(2026, 8, 20),
+          newId: uuidV4,
+        );
+        final d2 = (await dances.listAll()).single;
+
+        final planned = await importer.plan(
+          _payload(dances: [d1(), _dance('d2')]),
+          metadata,
+        );
+        await importer.commit(
+          ImportBatchResult(
+            records: [
+              for (final r in planned.records)
+                if (r.draft.dance.id == 'd1') r,
+            ],
+          ),
+          metadata: metadata,
+          now: DateTime.utc(2026, 8, 21),
+          newId: uuidV4,
+        );
+
+        final imported = (await dances.listAll()).singleWhere(
+          (d) => d.title == 'Petronella',
+        );
+        expect([for (final l in imported.links) l.targetDanceId], [d2.id]);
+      },
+    );
+
     test('stamps manifest metadata and exposes an idempotent event', () async {
       final now = DateTime.utc(2026, 8, 20);
       final batch = await importer.plan(

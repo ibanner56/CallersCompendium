@@ -1,7 +1,9 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import 'online_search.dart';
+import 'online_title_lookup.dart' show isConnectionFailure;
 import 'plaintext_program_import.dart';
+import 'program_import_rollback.dart';
 
 /// Hard cap on how many of one program line's [ParsedProgramLine.onlineCandidates]
 /// are ever previewed (issue #943).
@@ -153,22 +155,36 @@ Future<List<ImportRecordPlan>> previewAmbiguousCandidates(
 /// [service] plus its `fallbacks`) — to the same service instance used to
 /// resolve it, since [OnlineSearchService.loadPreview] and its dedupe planning
 /// are source-specific.
+///
+/// Like the lookup before it, this stops rather than degrading: a candidate
+/// preview that cannot reach its source throws [ProgramImportConnectionFailed]
+/// (so the screen says "couldn't reach", not "no matches"), and [isCancelled]
+/// is checked before each line, throwing [ProgramImportCancelled].
 Future<ProgramAmbiguousImport?> buildProgramAmbiguousImport(
   List<ParsedProgramLine> lines, {
   required Map<OnlineSource, OnlineSearchService> servicesBySource,
   required CompendiumRepositories repos,
   DateTime? now,
+  bool Function()? isCancelled,
 }) async {
+  final watched = {
+    for (final MapEntry(:key, :value) in servicesBySource.entries)
+      key: ConnectionWatchingService(value),
+  };
   final groups = <ProgramAmbiguousLine>[];
   for (var i = 0; i < lines.length; i++) {
     final line = lines[i];
     if (line.onlineCandidates.isEmpty) continue;
+    if (isCancelled?.call() ?? false) throw const ProgramImportCancelled();
     final plans = await previewAmbiguousCandidates(
       line.onlineCandidates,
-      servicesBySource: servicesBySource,
+      servicesBySource: watched,
       repos: repos,
       now: now,
     );
+    if (watched.values.any((s) => s.connectionFailure != null)) {
+      throw const ProgramImportConnectionFailed();
+    }
     if (plans.isEmpty) continue;
     groups.add(
       ProgramAmbiguousLine(
@@ -179,4 +195,59 @@ Future<ProgramAmbiguousImport?> buildProgramAmbiguousImport(
     );
   }
   return groups.isEmpty ? null : ProgramAmbiguousImport(lines: groups);
+}
+
+/// Wraps [_inner] for ambiguous-candidate previews: remembers the first
+/// connection-class failure ([isConnectionFailure]) from `loadPreview`, and
+/// from then on rethrows it without calling [_inner], so
+/// [previewAmbiguousCandidates], which swallows per-candidate failures, cannot
+/// keep requesting — and its caller can tell "offline" from "nothing
+/// previewed". Used by both title-list imports.
+class ConnectionWatchingService implements OnlineSearchService {
+  ConnectionWatchingService(this._inner);
+
+  final OnlineSearchService _inner;
+
+  /// The first connection-class failure seen, or null.
+  Object? connectionFailure;
+
+  @override
+  OnlineSource get source => _inner.source;
+
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) =>
+      _inner.search(query);
+
+  @override
+  Future<OnlinePreview> loadPreview(
+    CompendiumRepositories repos,
+    OnlineSearchResultRow result, {
+    DateTime? now,
+    DedupeIndex? index,
+  }) async {
+    final failure = connectionFailure;
+    if (failure != null) throw failure;
+    try {
+      return await _inner.loadPreview(repos, result, now: now, index: index);
+    } on Exception catch (e) {
+      // diagnostics: silent — recorded and rethrown; the caller reports it as a connection failure
+      if (isConnectionFailure(e)) connectionFailure = e;
+      rethrow;
+    }
+  }
+
+  @override
+  Future<OnlineImportResult> import(
+    CompendiumRepositories repos,
+    ImportRecordPlan plan, {
+    DateTime? now,
+    DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
+  }) => _inner.import(
+    repos,
+    plan,
+    now: now,
+    ambiguousResolution: ambiguousResolution,
+    defaultTagIds: defaultTagIds,
+  );
 }
