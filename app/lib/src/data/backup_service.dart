@@ -812,9 +812,10 @@ String backupFileName(DateTime when) {
 /// time on success. Shared by Settings › General and the overdue-backup
 /// reminder banner so both run the identical export.
 ///
-/// Returns `false` (nothing stamped) when the user cancelled the save/share
-/// dialog. Throws on failure ([BackupExportTooLargeException] included); each
-/// caller owns its progress UI, error logging and snackbar.
+/// Returns `false` (nothing stamped) when the user cancelled the save dialog or
+/// dismissed the share sheet. Throws on failure
+/// ([BackupExportTooLargeException] included); each caller owns its progress
+/// UI, error logging and snackbar.
 Future<bool> exportBackupNow(
   CompendiumRepositories repos,
   BackupSaver saver,
