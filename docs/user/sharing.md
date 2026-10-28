@@ -75,8 +75,12 @@ Opening either file in Caller's Compendium goes through import review before
 anything is added. Tags, sources, and custom fields the recipient already has are
 reused, and their own edits are never overwritten. If the file has a custom field
 with the same key as one of theirs but set up differently, the import is refused
-rather than changing what their field means. After a successful import, the
-confirmation message offers **Undo**.
+rather than changing what their field means. A link to a video or web page
+comes along as it is. A link to a related dance comes along when that dance is
+in the same file, or the recipient already has it: received earlier, or theirs
+to begin with. Otherwise that one link is left out, and the rest of the dance
+still imports. After the import, the confirmation message offers **Undo**. If
+any dance could not be imported, the message says how many.
 
 ## Share a program
 
