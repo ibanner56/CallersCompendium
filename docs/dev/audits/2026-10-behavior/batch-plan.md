@@ -287,6 +287,7 @@ This is the intake's "stale copies overwrite newer data" pattern, applied to wha
 
 ### F13 `fix/import-review-followups`: one review screen, honest outcomes
 
+- **Added from the OUT-1 PR (#1979):** import notes recorded in `ImportSession.issues` (for example `archive_related_dance_unresolved`, a related link dropped because its target isn't in the file or the library) and the existing `programIssues` are not shown anywhere in the UI. Surface them in the import result, consistent with this batch's "honest outcomes" goal.
 - **Moved out (maintainer decision, 2026-10-28):** the all-Skip `.USR` re-import that can't be committed is fixed by the INTAKE-1 session as a follow-up PR (`claude/fix-usr-all-skip-commit`), not here.
 - **Findings:**
   - **INTAKE-6:**
