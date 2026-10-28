@@ -1,0 +1,14 @@
+{
+  "id": "intake-1-reimport-skipped-slot-links",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing a Caller's Companion .USR file again, or opening a shared program that uses a dance you already have, no longer turns that dance's places in your programs into \"Dance not imported\" notes. A dance left at Skip, or brought in with Import and edit, stays linked in every program that uses it."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "CallersCompanionUsrImporter.commit and CompendiumArchiveImporter.commit take existingDanceIdByExternalId, so program slots link to dances resolved outside the commit (a skipped re-import row's target, or a row committed on its own) instead of becoming unresolved-dance placeholders. ImportPipeline.withLiveExistingDances merges such a map with the committed one, dropping dances deleted since planning."
+    ]
+  }
+}

@@ -284,6 +284,32 @@ class ImportPipeline {
     );
   }
 
+  /// Returns [committed] (`externalId → danceId` for the records a commit
+  /// wrote) extended with each entry of [existing] whose dance is still live,
+  /// for linking program slots after a commit (INTAKE-1).
+  ///
+  /// [existing] names dances a caller resolved *outside* the commit: a
+  /// re-import row the review left at Skip (its verdict's target), or a row
+  /// already committed on its own through "Import and edit". Without them a
+  /// program slot for such a dance would become a "not imported" placeholder,
+  /// although the dance is in the collection. An entry in [committed] wins over
+  /// one in [existing] for the same key. An [existing] dance deleted since it
+  /// was planned is dropped, so the slot keeps its placeholder rather than
+  /// naming a dance that is gone.
+  Future<Map<String, String>> withLiveExistingDances(
+    Map<String, String> committed,
+    Map<String, String> existing,
+  ) async {
+    final merged = Map<String, String>.of(committed);
+    for (final MapEntry(:key, :value) in existing.entries) {
+      if (key.isEmpty || merged.containsKey(key)) continue;
+      // A single-column read, not a full hydrate: a re-import of a whole
+      // `.USR` can name every dance in the collection here.
+      if (await _dances.isDeletedById(value) == false) merged[key] = value;
+    }
+    return merged;
+  }
+
   /// Runs discover → fetch → parse → dedupe over [request], producing a
   /// non-destructive [ImportBatchResult]. Per-record fetch/parse failures are
   /// collected as structured [ImportError]s; the rest of the batch proceeds.

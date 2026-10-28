@@ -248,6 +248,17 @@ class CallersCompanionUsrImporter {
   /// [CcUsrImportResult.relatedDanceLinkIssues] — never a dangling
   /// `targetDanceId`.
   ///
+  /// **Dances resolved outside this commit (INTAKE-1):**
+  /// [existingDanceIdByExternalId] maps a CC `zk_Dance_ID` to a local dance
+  /// id for rows left out of [batch] that still have a dance in the
+  /// collection — a re-import row the review left at Skip (its verdict's
+  /// target), or a row already committed through "Import and edit". Program
+  /// slots for those dances link to that dance instead of becoming "not
+  /// imported" placeholders. The map is used for slots only: the dances it
+  /// names are not written, so `Dance_Related` links are never added to a
+  /// dance the user chose to leave as it is (and [undo] has no prior state to
+  /// restore one from).
+  ///
   /// Everything is recorded on the returned [CcUsrImportResult] so [undo]
   /// reverts dances, programs **and** venues.
   Future<CcUsrImportResult> commit(
@@ -258,6 +269,7 @@ class CallersCompanionUsrImporter {
     String Function()? newId,
     String Function()? newSlotId,
     Map<int, DedupeResolution> resolutions = const {},
+    Map<String, String> existingDanceIdByExternalId = const {},
     List<String> defaultTagIds = const [],
     void Function(int done, int total)? onProgress,
   }) async {
@@ -313,9 +325,23 @@ class CallersCompanionUsrImporter {
     }
 
     final danceIdByCcRowId = _danceIdByCcRowId(danceSession);
+    // Slots also link to dances resolved outside this commit (see the doc
+    // above). A read, but the dances are committed by now, so it gets the
+    // same compensation as the definitions step.
+    final Map<String, String> slotDanceIdByCcRowId;
+    try {
+      slotDanceIdByCcRowId = await _pipeline.withLiveExistingDances(
+        danceIdByCcRowId,
+        existingDanceIdByExternalId,
+      );
+    } catch (_) {
+      await _pipeline.undo(danceSession);
+      await _revertUserFieldDefinitions(keptInserted, keptRestored);
+      rethrow;
+    }
     final built = buildCcPrograms(
       archive,
-      danceIdByCcRowId: danceIdByCcRowId,
+      danceIdByCcRowId: slotDanceIdByCcRowId,
       newId: mintId,
       newSlotId: newSlotId ?? uuidV4,
       now: now,

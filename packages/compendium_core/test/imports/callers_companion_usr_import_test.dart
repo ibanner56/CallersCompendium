@@ -678,6 +678,126 @@ void main() {
       expect(await dances.listAll(), hasLength(2));
     });
 
+    // INTAKE-1: the review defaults a re-import row to Skip (#446) and leaves
+    // it out of the commit batch, then passes its verdict's target in
+    // `existingDanceIdByExternalId`. The program's slot must keep linking to
+    // that dance, not become a "Dance not imported" placeholder.
+    group('a dance left out of the commit', () {
+      Future<CcUsrImportResult> reimportSkippingFirst(
+        Uint8List bytes, {
+        ImportBatchResult? planned,
+      }) async {
+        final batch = planned ?? await importer.plan(bytes);
+        expect(batch.records.map((r) => r.verdict.kind), [
+          DedupeKind.reimport,
+          DedupeKind.reimport,
+        ]);
+        final result = await importer.commit(
+          // Row 0 (CC dance 4) skipped, as the review's default leaves it.
+          ImportBatchResult(records: [batch.records[1]]),
+          readCcUsrArchive(bytes),
+          now: DateTime.utc(2026, 8, 1),
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+          existingDanceIdByExternalId: {
+            for (final r in batch.records)
+              r.draft.raw.externalId!: r.verdict.targetDanceId!,
+          },
+        );
+        return result;
+      }
+
+      test('still links its program slot to the existing dance, and is not '
+          'written', () async {
+        final first = await importer.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        final slotDanceIds = first.programs.single.slots
+            .map((s) => s.danceId)
+            .toList();
+        final swingId = slotDanceIds[0]!;
+        final swing = await dances.getById(swingId);
+        await dances.update(swing!.copyWith(title: 'My Simplicity Swing'));
+
+        final second = await reimportSkippingFirst(_ccUsrBytes());
+
+        final program = (await programs.getById(first.programs.single.id))!;
+        expect(
+          program.slots.map((s) => s.danceId).toList(),
+          slotDanceIds,
+          reason: 'the skipped dance keeps its slot link',
+        );
+        expect(
+          program.slots[0].text,
+          isNull,
+          reason: 'no "Dance not imported" placeholder for a dance we have',
+        );
+        // Only the dance that truly is not in the collection (#99) is a note.
+        expect(
+          second.programIssues
+              .where((i) => i.code == 'cc_program_unresolved_dance')
+              .length,
+          1,
+        );
+        expect(
+          (await dances.getById(swingId))!.title,
+          'My Simplicity Swing',
+          reason: 'Skip still means "keep the local dance as it is"',
+        );
+        expect(second.danceSession.updatedDancePriorStates, hasLength(1));
+      });
+
+      test('a dance deleted since planning keeps the placeholder', () async {
+        final first = await importer.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        final swingId = first.programs.single.slots[0].danceId!;
+        final batch = await importer.plan(_ccUsrBytes());
+        await dances.softDelete(swingId, at: now);
+
+        final second = await reimportSkippingFirst(
+          _ccUsrBytes(),
+          planned: batch,
+        );
+
+        final slot = second.programs.single.slots[0];
+        expect(slot.danceId, isNull);
+        expect(slot.text, contains(kUnresolvedDanceMarkerPrefix));
+      });
+
+      test('gets no related-dance link: it was not written, and undo could '
+          'not revert one', () async {
+        final bytes = _ccUsrBytesWithRelated([('4', '7')]);
+        await importer.import(
+          bytes,
+          now: now,
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        final batch = await importer.plan(bytes);
+        final swingId = batch.records[0].verdict.targetDanceId!;
+        // Clear the link the first import added, as a user might.
+        final swing = await dances.getById(swingId);
+        await dances.update(swing!.copyWith(links: const []));
+
+        final second = await reimportSkippingFirst(bytes);
+
+        expect((await dances.getById(swingId))!.links, isEmpty);
+        await importer.undo(second);
+        expect((await dances.getById(swingId))!.links, isEmpty);
+      });
+    });
+
     test('re-importing a deleted program restores existence ordering and undo '
         're-tombstones it', () async {
       final first = await importer.import(

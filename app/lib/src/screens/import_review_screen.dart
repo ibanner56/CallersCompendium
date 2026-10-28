@@ -499,6 +499,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// never imported twice) and render as "Imported" instead of offering actions.
   final Set<int> _committed = <int>{};
 
+  /// The dance each [_committed] row wrote, so the batch [_commit] can still
+  /// link that dance's program slots to it ([_slotDanceIdsOutsideCommit]).
+  final Map<int, String> _committedDanceIds = <int, String>{};
+
   /// Existing dance id → title, for showing candidate/reimport target names.
   Map<String, String> _titlesById = const {};
 
@@ -1004,6 +1008,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         }
       }
       _committed.clear();
+      _committedDanceIds.clear();
       _titleListProgress = null;
       _phase = _Phase.review;
     });
@@ -1373,6 +1378,31 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// `externalId → danceId` for rows whose dance is in the collection
+  /// whatever the batch commit does with them (INTAKE-1): a row already
+  /// committed through Edit (the dance it wrote), and a re-import row (its
+  /// verdict's target, which Skip leaves as it is). The program-carrying
+  /// importers link a slot through this map when the batch commit did not
+  /// write that slot's dance, so a skipped re-import no longer turns the
+  /// dance's slots into "not imported" placeholders. A row the commit did
+  /// write wins over this map in the importer.
+  Map<String, String> _slotDanceIdsOutsideCommit() {
+    final batch = _batch!;
+    final out = <String, String>{};
+    for (var i = 0; i < batch.records.length; i++) {
+      final record = batch.records[i];
+      final externalId = record.draft.raw.externalId;
+      if (externalId == null || externalId.isEmpty) continue;
+      final danceId =
+          _committedDanceIds[i] ??
+          (record.verdict.kind == DedupeKind.reimport
+              ? record.verdict.targetDanceId
+              : null);
+      if (danceId != null) out[externalId] = danceId;
+    }
+    return out;
+  }
+
   Future<bool?> _confirmEditOverwrite(String matchedTitle) {
     final l10n = AppLocalizations.of(context);
     return showDialog<bool>(
@@ -1462,6 +1492,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       setState(() {
         _phase = _Phase.review;
         _committed.add(i);
+        _committedDanceIds[i] = danceId;
       });
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -1564,6 +1595,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           newId: uuidV4,
           newSlotId: uuidV4,
           resolutions: resolutions,
+          existingDanceIdByExternalId: _slotDanceIdsOutsideCommit(),
           defaultTagIds: await resolveDefaultImportTagIds(_repos),
           onProgress: _onCommitProgress,
         );
@@ -1949,6 +1981,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         newId: uuidV4,
         newSlotId: uuidV4,
         resolutions: resolutions,
+        existingDanceIdByExternalId: _slotDanceIdsOutsideCommit(),
       ),
     );
     if (!mounted) return;
