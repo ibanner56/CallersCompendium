@@ -7145,6 +7145,24 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String sharedImportCompleteWithFailures(int count, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Importerede $count elementer.',
+      one: 'Importerede 1 element.',
+      zero: 'Intet blev importeret.',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '$failed danse kunne ikke importeres.',
+      one: '1 dans kunne ikke importeres.',
+    );
+    return '$_temp0 $_temp1';
+  }
+
+  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

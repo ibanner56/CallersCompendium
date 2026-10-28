@@ -7074,6 +7074,10 @@
   "@sharedImportComplete": {
     "x-sourceSha256": "8e3c26a3b8d4edd5107078763ce244601af4951039f94ef831d74067d6851880"
   },
+  "sharedImportCompleteWithFailures": "{count, plural, =0{何もインポートされませんでした。} other{{count}件のアイテムをインポートしました。}}{failed, plural, other{{failed}件のダンスをインポートできませんでした。}}",
+  "@sharedImportCompleteWithFailures": {
+    "x-sourceSha256": "f51ff55e57fc1acbb9e22aa82a03ccf59f17c32898446283e422343d9e7c19de"
+  },
   "sharedImportProgramsOnly": "{count, plural, other{この共有には{count}件のプログラムが含まれており、ダンスはありません。}}",
   "@sharedImportProgramsOnly": {
     "x-sourceSha256": "15aefeb2289ff8575bb68e5527da094f93c18c28f4091aa9ed8884892f3b9253"
