@@ -11,7 +11,7 @@ void main() {
 
   // The audit's probe line, built as the parser used to save it: the turn
   // amount the caller typed sits in the side's note.
-  const allemandeParams = {'who': 'role2s', 'hand': 'right'};
+  const allemandeParams = {'who': 'role2s', 'hand': 'right', 'travel': 1};
   final allemande = testFigure(
     move: 'allemande',
     params: allemandeParams,
