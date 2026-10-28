@@ -360,8 +360,9 @@ modifier or sequence group.
 
 A new figure you pick stays one figure, in the dance and once it is saved. It
 starts with its defaults and its default beats. Opening it lets you choose the
-value of each of its parameters and its beats (inside a group, the group's
-beats count), mark the progression, and add a note. It reads in the dance with
+value of each of its parameters and its beats (inside a meanwhile or modifier
+group, the group's beats count; inside a sequence, its own do), mark the
+progression, and add a note. It reads in the dance with
 its own wording, filled in with your values.
 
 The dance keeps following your figure: when you change its wording in the
@@ -452,9 +453,10 @@ and so on, and keeps its own **Beats**: the group's beats are their total, shown
 at the top. A sequence must fit in one phrase of the dance (16 beats in the
 usual structure), so **Group with next as sequence** is only offered when the
 two figures fit, and **Add next figure** goes away once the figures fill a
-phrase or there are four of them. If a sequence ends up longer than a phrase,
-for example after you change the phrase structure, the group and the dance's
-warnings say so.
+phrase or there are four of them. Changing a figure already in the sequence,
+its move or its beats, is not stopped, and neither is a change to the phrase
+structure: if the sequence ends up longer than a phrase, the group and the
+dance's warnings say so, and you can still save it.
 
 **Convert to sequence**, **Convert to meanwhile** and **Convert to modifier**
 change a group from one kind to another when its figures fit the new kind.

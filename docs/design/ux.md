@@ -97,11 +97,12 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   Both lists, compounds and new figures, offer only entries tagged with the
   dance's form (untagged ones count as contra).
 - **The user's own new figures** (#1023), while Custom Figures is on: offered
-  the same way, and inside meanwhile, modifier and sequence children too. Picking one makes
+  the same way, and inside meanwhile, modifier and sequence children too.
+  Picking one makes
   the row a free-text figure carrying a soft reference to it, seeded with its
   defaults and default beats; the row edits one value per declared parameter
-  (choices by their labels) and its beats (not inside a side, whose group owns
-  them), with progression and note but no line of its own, walkthrough or
+  (choices by their labels) and its beats (not inside a meanwhile side or
+  modifier child, whose group owns them; a sequence step keeps its own), with progression and note but no line of its own, walkthrough or
   wording override. The row reads with the figure's current wording, and a save
   stores that line beside it. A row whose figure is gone says so and keeps its
   line.

@@ -160,7 +160,7 @@ class ShorthandMappings {
   /// - `figures` must be a non-empty `List` no longer than
   ///   [maxShorthandTargetFigures], and EVERY figure must decode structurally
   ///   AND pass taxonomy validation with no error-severity issues. Structural
-  ///   containers are validated against their bounded alternating-child model,
+  ///   containers are validated against their bounded nesting model,
   ///   while their ordinary descendants use [Taxonomy.validateFigure]
   ///   (unknown move, unknown/extra param key, out-of-range or non-conforming
   ///   value all reject);

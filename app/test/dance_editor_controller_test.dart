@@ -1036,6 +1036,58 @@ void main() {
     },
   );
 
+  test(
+    'a sequence step note renders and canonicalizes, nested too (#715)',
+    () async {
+      final repos = openTestRepositories();
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(controller.dispose);
+
+      Figure noted(String move, String note) =>
+          Figure(move: move, params: const {'beats': 8}, note: note);
+      final stored = sampleDance(id: 'd1').copyWith(
+        figures: [
+          Figure.sequence(
+            beats: 16,
+            figures: [
+              noted('balance', 'role2s lead'),
+              Figure(move: 'swing', params: const {'beats': 8}),
+            ],
+          ),
+          Figure.meanwhile(
+            beats: 16,
+            figures: [
+              Figure.sequence(
+                beats: 16,
+                figures: [
+                  noted('balance', 'role1s wait'),
+                  Figure(move: 'swing', params: const {'beats': 8}),
+                ],
+              ),
+              Figure(move: 'orbit', params: const {'beats': 16}),
+            ],
+          ),
+        ],
+      );
+      await controller.load(dance: stored, fieldDefs: const []);
+
+      final [sequence, meanwhile] = controller.figureDrafts;
+      expect(sequence.sequenceFigures!.first.note, 'robins lead');
+      expect(
+        meanwhile.meanwhileSides!.first.sequenceFigures!.first.note,
+        'larks wait',
+      );
+
+      final [top, nested] = figuresOf(controller.buildDance());
+      expect(top.subFigures.first.note, 'role2s lead');
+      expect(nested.subFigures.first.subFigures.first.note, 'role1s wait');
+    },
+  );
+
   test('insertFreeTextFigures renders an imported canonical note into the '
       'active dialect (#715)', () async {
     final repos = openTestRepositories();

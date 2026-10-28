@@ -485,7 +485,8 @@ typedef _ClauseExpansion = ({List<Figure> figures, bool refused});
 /// [_ClauseExpansion.refused] otherwise (`pbs (100)`, as `circle left (100)` is
 /// kept custom); five or more digits are not beats, so the figure keeps its
 /// beats and the count rides on its note (#1863). A shorthand of several
-/// figures drops any count, as ever: it has no one figure to hold it.
+/// figures drops any count, as ever: it has no one figure to hold it. So does
+/// one that expands to a sequence, whose count is its steps' own.
 _ClauseExpansion? _resolveClause(
   String clause,
   ShorthandMappings shorthands,
@@ -498,7 +499,9 @@ _ClauseExpansion? _resolveClause(
   if (split.beats == 0 && unread == null) return null;
   final expanded = shorthands.resolve(split.text);
   if (expanded == null) return null;
-  if (expanded.length != 1) return (figures: expanded, refused: false);
+  if (expanded.length != 1 || expanded.single.isSequence) {
+    return (figures: expanded, refused: false);
+  }
   final only = expanded.single;
   if (unread != null) {
     return (figures: [_withUnreadCount(only, unread)], refused: false);

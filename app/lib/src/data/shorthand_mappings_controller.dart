@@ -27,7 +27,7 @@ const String kUserFigureShorthandsKey = userFigureShorthandsSettingKey;
 /// [ShorthandMappings.decode] (bounded, never-throw, taxonomy-validated) so a
 /// corrupt or hostile payload degrades to "no mappings" rather than crashing;
 /// structural `meanwhile` and `modifier` targets are validated against their
-/// bounded alternating-child model.
+/// bounded nesting model.
 ///
 /// It also owns the compound shorthands (#709) and the shorthands for the
 /// user's new figures (#1023), each stored under its own key, so that one

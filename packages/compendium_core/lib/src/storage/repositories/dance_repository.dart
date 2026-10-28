@@ -1076,15 +1076,28 @@ class DanceRepository {
       if (figure.isContainer && subFigures.isNotEmpty) {
         canonicalTexts.add(renderer.renderCanonical(figure));
       }
-      final groups = figure.isSequence && subFigures.isNotEmpty
-          ? [for (final child in subFigures) _leafFigures(child)]
-          : [
-              figure.isContainer && subFigures.isNotEmpty
-                  ? _leafFigures(figure)
-                  : <Figure>[figure],
-            ];
-      for (final constituents in groups) {
-        for (final part in constituents) {
+      // A top-level sequence's steps also take the section they start in, as
+      // the same figures in separate rows would.
+      final groups = <({List<Figure> leaves, String section})>[];
+      if (figure.isSequence && subFigures.isNotEmpty) {
+        var beat = sectioned[i].startBeat;
+        for (final child in subFigures) {
+          groups.add((
+            leaves: _leafFigures(child),
+            section: labelForFigure(beat, child.beats, dance.phraseStructure),
+          ));
+          beat += child.beats;
+        }
+      } else {
+        groups.add((
+          leaves: figure.isContainer && subFigures.isNotEmpty
+              ? _leafFigures(figure)
+              : <Figure>[figure],
+          section: section,
+        ));
+      }
+      for (final (:leaves, :section) in groups) {
+        for (final part in leaves) {
           final canonicalText = renderer.renderCanonical(part);
           canonicalTexts.add(canonicalText);
           await _db

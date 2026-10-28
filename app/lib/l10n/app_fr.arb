@@ -7606,9 +7606,9 @@
   "@validationPhraseBeatMismatch": {
     "x-sourceSha256": "cbcfd5cfa1932d621756cac5a7dd64ad714b041a96c3a293ac1a3833dc29002a"
   },
-  "validationSequenceExceedsPhrase": "La figure {position} est une séquence de {actual} temps, plus longue qu’une phrase ({limit} temps).",
+  "validationSequenceExceedsPhrase": "Une séquence de la figure {position} dure {actual} temps, plus qu’une phrase ({limit} temps).",
   "@validationSequenceExceedsPhrase": {
-    "x-sourceSha256": "12c4c74419122bdd027c131c33a9b1e9f5237ea464bc566d933a44d502cc8eff"
+    "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
   },
   "validationPhraseInvalid": "Cette structure de phrase n'est pas valide.",
   "@validationPhraseInvalid": {

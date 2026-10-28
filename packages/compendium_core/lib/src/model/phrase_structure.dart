@@ -316,8 +316,9 @@ class SectionedFigure {
 ///
 /// Each `sequence` container, top-level or nested, whose count is longer than
 /// one phrase ([sequenceExceedsPhrase]) also adds a `sequence_exceeds_phrase`
-/// warning. The editor stops a sequence growing past a phrase; this catches
-/// one that a later phrase-structure edit, or another device, left too long.
+/// warning. The editor will not add a step or form a sequence past a phrase,
+/// but it does not block editing a step's move or beats, or the phrase
+/// structure, so this is what flags a sequence left too long.
 List<SectionedFigure> deriveSections(
   List<Figure> figures,
   PhraseStructure structure, {
@@ -374,7 +375,7 @@ void _flagLongSequences(
         severity: ValidationSeverity.warning,
         code: 'sequence_exceeds_phrase',
         message:
-            'figure ${index + 1} is a sequence of ${figure.beats} beats; '
+            'a sequence in figure ${index + 1} is ${figure.beats} beats; '
             'one phrase is ${structure.longestPhraseBeats}',
         data: {
           'position': index + 1,

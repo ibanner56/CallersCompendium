@@ -282,7 +282,8 @@ The exception is a **top-level `sequence`**, whose steps are danced in order:
 each step takes the next group (leaves below a step's own nested container
 share that step's group), so a "balance and swing" kept as one sequence
 matches `ThenFilter(balance, swing)` exactly as two adjacent figures would, and
-not `ThenFilter(swing, balance)`. A sequence **nested** in a meanwhile or
+not `ThenFilter(swing, balance)`. Each step also takes the section it starts
+in, so a step that begins the next phrase is found in that phrase. A sequence **nested** in a meanwhile or
 modifier keeps its parent's single group: its steps are concurrent with the
 other side, and one integer cannot order them against both, so `Then` does not
 see inside it. For dances without a top-level sequence the groups are exactly

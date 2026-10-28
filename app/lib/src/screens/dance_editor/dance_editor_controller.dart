@@ -119,10 +119,7 @@ class DanceEditorController extends ChangeNotifier {
           !isUserFigureDraft(draft)) {
         draft.params['text'] = _renderNote(text);
       }
-      if (draft.meanwhileSides case final sides?) {
-        _renderDraftTextRecursively(sides);
-      }
-      if (draft.modifierFigures case final children?) {
+      if (draft.containerChildren case final children?) {
         _renderDraftTextRecursively(children);
       }
     }
@@ -368,7 +365,7 @@ class DanceEditorController extends ChangeNotifier {
   static bool _anyUserFigureUse(Iterable<FigureDraft> drafts) => drafts.any(
     (d) =>
         isUserFigureDraft(d) ||
-        _anyUserFigureUse(d.meanwhileSides ?? d.modifierFigures ?? const []),
+        _anyUserFigureUse(d.containerChildren ?? const []),
   );
 
   void _watchCompounds() {

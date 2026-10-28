@@ -63,7 +63,7 @@ FigureReparseOutcome reparseImportGapFigures(
   );
 }
 
-/// Recurses into either structural container, calling [_tryUpgrade] on each
+/// Recurses into any structural container, calling [_tryUpgrade] on each
 /// leaf and itself on each legal other-kind child. If any descendant
 /// upgrades, rebuilds the container preserving the container's [Figure.beats] —
 /// the group total is the authoritative section-math count and must not be

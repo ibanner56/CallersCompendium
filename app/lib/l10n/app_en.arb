@@ -9900,9 +9900,9 @@
       }
     }
   },
-  "validationSequenceExceedsPhrase": "Figure {position} is a sequence of {actual} beats, longer than one phrase ({limit} beats).",
+  "validationSequenceExceedsPhrase": "A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).",
   "@validationSequenceExceedsPhrase": {
-    "description": "Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance, for example after the phrase structure was changed.",
+    "description": "Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.",
     "placeholders": {
       "position": {
         "type": "int",

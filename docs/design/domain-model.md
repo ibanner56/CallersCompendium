@@ -129,10 +129,12 @@ whose host caller is unset (#850). Both consumers share the predicate in
   steps' own counts: a step shows its own Beats field and the container shows
   only the total. That total must fit **one phrase** of the dance
   (`PhraseStructure.longestPhraseBeats`, 16 for the standard structure): the
-  editor will not group, convert, or add a step past it, and `deriveSections`
-  adds a `sequence_exceeds_phrase` warning for any sequence, top-level or
-  nested, that is longer (a later phrase-structure change, or another device,
-  can still leave one too long). No importer builds a sequence. ADR-006 §5.4
+  editor will not group, convert, ungroup into, or add a step past it. Editing
+  a step already in the sequence (its move or beats) or the phrase structure
+  is not blocked, so `deriveSections` adds a `sequence_exceeds_phrase` warning
+  for any sequence, top-level or nested, that is longer, and the dance can
+  still be saved. A shorthand that expands to a sequence drops an inline count
+  (`bs (20)`), as one expanding to several figures does. No importer builds a sequence. ADR-006 §5.4
   originally proposed no sequence container; it was added for contra on the
   maintainer's request in the PR that introduced it.
 - Containers accept 2–6 children (2–4 for a `sequence`) and may nest a

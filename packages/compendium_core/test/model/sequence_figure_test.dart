@@ -242,6 +242,7 @@ void main() {
         (i) => i.code == 'sequence_exceeds_phrase',
       );
       expect(warning.data, {'position': 1, 'actual': 20, 'limit': 16});
+      expect(warning.message, startsWith('a sequence in figure 1 is 20 beats'));
     });
 
     test('warns for a long sequence nested in a meanwhile', () {
@@ -282,6 +283,16 @@ void main() {
     });
   });
 
+  test('a shorthand count is not put on a sequence', () {
+    final shorthands = ShorthandMappings([
+      ShorthandMapping(token: 'bs', figures: [balanceAndSwing]),
+    ]);
+    for (final line in ['bs (20)', '20 bs']) {
+      final figures = parseFreeTextFigureEntry(line, shorthands: shorthands);
+      expect(figures, [balanceAndSwing], reason: line);
+    }
+  });
+
   group('search rows', () {
     late CompendiumDatabase db;
     late DanceRepository dances;
@@ -317,6 +328,21 @@ void main() {
       expect(rows.map((r) => r.groupIdx), [0, 1, 2, 3]);
       // Each step's section is the sequence's.
       expect(rows.map((r) => r.section), ['A1', 'A2', 'A2', 'B1']);
+    });
+
+    test('a step takes the section it starts in', () async {
+      final dance = sampleDance(
+        id: 'cross',
+        figures: [
+          swing(beats: 12),
+          Figure.sequence(figures: [balance(), swing(beats: 8)], beats: 12),
+        ],
+      );
+      await dances.create(dance);
+      expect((await rowsOf('cross')).map((r) => r.section), ['A1', 'A1', 'A2']);
+      expect(await dances.search(FigureFilter.leaf('swing', section: 'A2')), [
+        'cross',
+      ]);
     });
 
     test('Then matches the steps of a sequence in order only', () async {
