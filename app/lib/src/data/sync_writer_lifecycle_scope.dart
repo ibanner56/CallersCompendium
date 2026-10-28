@@ -48,11 +48,13 @@ class SyncWriterLifecycleScope extends InheritedWidget {
   /// Deletes the local database and restarts the app on a fresh, empty one
   /// (Settings ▸ Experimental ▸ Developer Options). Waits for any in-flight
   /// writer, disposes the sync coordinator and closes the database first.
+  /// Completes with whether the database was deleted; `false` leaves it as it
+  /// was.
   ///
   /// It does **not** leave a sync store: a caller attached to one must do that
   /// first (`SyncController.leaveStoreForReset`), because once this runs the
   /// credentials needed to remove the device from the server are gone.
-  final Future<void> Function()? resetToCleanInstall;
+  final Future<bool> Function()? resetToCleanInstall;
 
   static SyncWriterLifecycleScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<SyncWriterLifecycleScope>();

@@ -1694,7 +1694,7 @@ class SyncController extends ChangeNotifier {
     _dirty = false;
     var ran = false;
     var attached = false;
-    var removed = false;
+    var cleared = false;
     try {
       await _runExclusive(() async {
         ran = true;
@@ -1708,7 +1708,7 @@ class SyncController extends ChangeNotifier {
           final selfId = await _selfDeviceId();
           if (selfId != null) {
             final response = await admin.deleteManifest(selfId);
-            removed =
+            final removed =
                 response.kind == SyncResponseKind.success ||
                 response.kind == SyncResponseKind.notFound;
             if (!removed) {
@@ -1717,8 +1717,8 @@ class SyncController extends ChangeNotifier {
             }
           }
           await _clearAttachment();
+          cleared = true;
           _forgetAttachment();
-          removed = true;
         } finally {
           admin.close?.call();
         }
@@ -1730,16 +1730,16 @@ class SyncController extends ChangeNotifier {
         source: 'sync_controller.leaveStoreForReset',
       );
       _lastAdminFailure = SyncFailure.fromError(error);
-      // The manifest may be gone while the local clear failed; the reset is
-      // refused either way, and retrying is safe because the server answers
-      // 204 or 404 for a manifest that is already removed.
-      removed = false;
+      // A throw before the local clear committed refuses the reset, even if the
+      // manifest is already gone; retrying is safe, since the server answers
+      // 204 or 404 for a manifest that is removed. A throw after it (the
+      // boundary's own reconfigure) is not a failure: the device has left.
     } finally {
       _detaching = false;
     }
     if (!ran) return SyncAdminOutcome.failed;
     if (!attached) return SyncAdminOutcome.notPaired;
-    return removed ? SyncAdminOutcome.done : SyncAdminOutcome.failed;
+    return cleared ? SyncAdminOutcome.done : SyncAdminOutcome.failed;
   }
 
   /// The `devices` array from a `GET /v1/store` body, or null when the body is

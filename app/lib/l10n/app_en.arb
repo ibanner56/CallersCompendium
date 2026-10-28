@@ -377,9 +377,9 @@
   "@settingsDeveloperResetLeaveFailed": {
     "description": "Snackbar shown when leaving the sync store before a reset fails; the database is untouched and the device stays connected."
   },
-  "settingsDeveloperResetFailed": "Couldn't reset the database. Try again.",
+  "settingsDeveloperResetFailed": "Couldn't reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.",
   "@settingsDeveloperResetFailed": {
-    "description": "Snackbar shown when the reset throws unexpectedly."
+    "description": "Snackbar shown when the reset did not delete the database (it threw, or the wipe failed). A connected device has already left its sync store by then."
   },
   "settingsExperimentalPlaceholder": "New features may appear here while they are still in development.",
   "@settingsExperimentalPlaceholder": {

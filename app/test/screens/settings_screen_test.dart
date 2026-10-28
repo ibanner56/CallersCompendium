@@ -138,7 +138,7 @@ _pumpSettings(
   ValueNotifier<bool>? showCustomFigures,
 
   /// Provides a [SyncWriterLifecycleScope] with this reset hook when given.
-  Future<void> Function()? resetToCleanInstall,
+  Future<bool> Function()? resetToCleanInstall,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -3318,6 +3318,7 @@ void main() {
         late SyncResponseKind removeKind;
         late bool pairedAtReset;
         late bool sawSyncRowAtReset;
+        late bool resetResult;
         late CompendiumRepositories repos;
 
         const resetTile = ValueKey('developer-reset-database');
@@ -3329,6 +3330,7 @@ void main() {
           removeKind = SyncResponseKind.success;
           pairedAtReset = false;
           sawSyncRowAtReset = false;
+          resetResult = true;
           _syncNetwork.kind = SyncNetworkKind.unmetered;
           _syncCoordinator = null;
           _pairingProbeFactory = null;
@@ -3365,6 +3367,7 @@ void main() {
               );
               pairedAtReset = controller.paired;
               sawSyncRowAtReset = await repos.settings.contains('sync_id');
+              return resetResult;
             },
           );
           repos = harness.repos;
@@ -3482,6 +3485,24 @@ void main() {
             sawSyncRowAtReset,
             isFalse,
             reason: 'the attachment is forgotten, not left to be wiped blind',
+          );
+        });
+
+        testWidgets('a reset that does not delete the database says so', (
+          tester,
+        ) async {
+          resetResult = false;
+          await pump(tester);
+          await openDialog(tester);
+          await tester.tap(find.byKey(checkbox));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(confirmButton));
+          await tester.pumpAndSettle();
+
+          expect(events, ['reset']);
+          expect(
+            find.textContaining("Couldn't reset the database"),
+            findsOneWidget,
           );
         });
 

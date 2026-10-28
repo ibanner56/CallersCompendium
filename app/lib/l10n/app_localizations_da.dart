@@ -296,7 +296,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDeveloperResetFailed =>
-      'Couldn\'t reset the database. Try again.';
+      'Couldn\'t reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.';
 
   @override
   String get settingsExperimentalPlaceholder =>

@@ -56,7 +56,11 @@ class _DeveloperOptionsSectionState extends State<DeveloperOptionsSection> {
           return;
         }
       }
-      await reset();
+      if (!await reset()) {
+        messenger?.showSnackBar(
+          SnackBar(content: Text(l10n.settingsDeveloperResetFailed)),
+        );
+      }
     } on Object catch (e, st) {
       logCaughtErrorTypeOnly(e, st, source: 'developer_options.reset');
       messenger?.showSnackBar(

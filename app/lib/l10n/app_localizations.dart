@@ -572,10 +572,10 @@ abstract class AppLocalizations {
   /// **'Couldn\'t remove this device from the sync store, so nothing was reset. Check your connection and try again.'**
   String get settingsDeveloperResetLeaveFailed;
 
-  /// Snackbar shown when the reset throws unexpectedly.
+  /// Snackbar shown when the reset did not delete the database (it threw, or the wipe failed). A connected device has already left its sync store by then.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t reset the database. Try again.'**
+  /// **'Couldn\'t reset the database, so your data is unchanged. If this device was connected to a sync store, it has already left it.'**
   String get settingsDeveloperResetFailed;
 
   /// Placeholder text explaining that the Experimental settings section will contain features still in development.

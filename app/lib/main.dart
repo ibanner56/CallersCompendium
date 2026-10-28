@@ -2070,26 +2070,41 @@ class _CompendiumAppState extends State<CompendiumApp>
   }
 
   /// Settings ▸ Experimental ▸ Developer Options ▸ reset: deletes the database
-  /// and restarts on an empty one, as a first launch would.
+  /// and restarts on an empty one, as a first launch would. Returns whether the
+  /// database was actually deleted.
   ///
   /// The user has already confirmed in the Settings dialog, so unlike the
-  /// below-floor recovery actions this asks nothing. It runs behind the writer
-  /// queue so a restore, import or review resolve already in flight finishes
-  /// against the database before it goes, and it pops back to the first route
-  /// so no pushed screen outlives the services it was built on.
-  Future<void> _resetToCleanInstall() async {
+  /// below-floor recovery actions this asks nothing. It takes its own place in
+  /// the writer queue and holds [_syncWriterExclusive], so a restore, import or
+  /// review resolve already queued finishes first and nothing queued later, nor
+  /// a reconfigure, can touch the database while it is closed and deleted. It
+  /// skips the boundary's usual rebuild of the coordinator: [_doReset] replaces
+  /// the whole database-backed runtime. Pushed routes are popped first so none
+  /// outlives the services it was built on.
+  Future<bool> _resetToCleanInstall() async {
     final context = _navigatorKey.currentContext;
-    if (context == null || !context.mounted || _shutdownRequested) return;
+    if (context == null || !context.mounted || _shutdownRequested) return false;
     final l10n = AppLocalizations.of(context);
     final prior = _syncWriterTail;
-    if (prior != null) await prior;
-    if (!mounted) return;
-    // Open editors persist their draft into the database on the way out; do it
-    // while the connection is still open rather than racing the close.
-    await _editorDraftShutdownController.flushAll();
-    final dbFile = await widget.databaseFileResolver();
-    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
-    await _doReset(dbFile, l10n);
+    final release = Completer<void>();
+    final tail = release.future;
+    _syncWriterTail = tail;
+    try {
+      if (prior != null) await prior;
+      if (!mounted || _shutdownRequested) return false;
+      _syncWriterExclusive = true;
+      _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      await WidgetsBinding.instance.endOfFrame;
+      // Open editors persist their draft into the database on the way out; do
+      // it while the connection is still open rather than racing the close.
+      await _editorDraftShutdownController.flushAll();
+      final dbFile = await widget.databaseFileResolver();
+      return await _doReset(dbFile, l10n);
+    } finally {
+      _syncWriterExclusive = false;
+      if (!release.isCompleted) release.complete();
+      if (identical(_syncWriterTail, tail)) _syncWriterTail = null;
+    }
   }
 
   /// Wipes the database file and reopens a fresh one, restarting the bootstrap
@@ -2099,7 +2114,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// testable deletion seam. On [ResetFailed], the database file is still
   /// present: reopen it and restart bootstrap so the user lands back on the
   /// recovery screen rather than a blank one.
-  Future<void> _doReset(File dbFile, AppLocalizations l10n) async {
+  Future<bool> _doReset(File dbFile, AppLocalizations l10n) async {
     // Close the database before deleting its file so the OS (particularly
     // Windows) does not hold a lock that prevents deletion.
     await _disposeSyncCoordinator();
@@ -2132,15 +2147,16 @@ class _CompendiumAppState extends State<CompendiumApp>
           );
         }
       }
-      return;
+      return false;
     }
-    if (!mounted) return;
+    if (!mounted) return false;
     // Deletion succeeded — reopen a fresh database-backed runtime and restart
     // bootstrap.
     setState(() {
       _replaceDatabaseBackedServices();
       _startBootstrap();
     });
+    return true;
   }
 
   /// Content shown once the bootstrap future succeeds. When the integrity probe

@@ -1195,7 +1195,9 @@ comes back. This removal is not the careful one **Disconnect this device** does,
 which only goes ahead when your other devices already have everything: anything
 this device had not yet synced is lost. If the store can't be reached (for
 example, you're offline), nothing is reset and the device stays connected;
-connect and try again. Your other devices and the store itself are not touched.
+connect and try again. If the store is gone for good, choose **Disconnect this
+device** first, then reset. If the removal succeeds but the wipe itself then
+fails, your data is unchanged but the device has already left the store. Your other devices and the store itself are not touched.
 
 ## About
 
