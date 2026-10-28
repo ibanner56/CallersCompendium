@@ -297,7 +297,9 @@ The **Language & region** section handles formats and localization.
 
 - **Date format** — choose **System default**, **Year-month-day**,
   **Day/month/year**, **Month/day/year**, or **Custom…**. A live example shows the
-  result, and your choice controls how program event dates appear.
+  result, and your choice controls how program event dates appear: in the
+  Programs list and editor, in a dance's calling history, and in printed and
+  emailed set lists and PDFs. **System default** always includes the year.
 
   A custom pattern is built from these tokens:
 

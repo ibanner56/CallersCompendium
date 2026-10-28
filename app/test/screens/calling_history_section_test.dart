@@ -1,4 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/data/date_format_scope.dart';
+import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/screens/dance_detail/calling_history_section.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -566,6 +568,118 @@ void main() {
   // next day. The test host usually runs in UTC, where the two agree, so the
   // conversion is swapped for New York's (UTC-4 in October) to make the row
   // discriminate on any host.
+  // Status -> Performed stamps each slot with the program's event date, a
+  // calendar date at UTC midnight (#356). It must render as that date, not
+  // converted to the previous evening west of UTC (GIG-2). The conversion is
+  // swapped for New York's so the test discriminates on a UTC host; run with
+  // `TZ=America/New_York` it also exercises the real `toLocal`.
+  testWidgets('a stamp copied from the event date shows that calendar date', (
+    tester,
+  ) async {
+    final previous = callingHistoryToLocal;
+    callingHistoryToLocal = (instant) {
+      final ny = instant.subtract(const Duration(hours: 4));
+      return DateTime(ny.year, ny.month, ny.day, ny.hour, ny.minute);
+    };
+    addTearDown(() => callingHistoryToLocal = previous);
+    final eventDate = DateTime.utc(2026, 10, 24);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: CallingHistoryRow(
+            record: DanceCallingRecord(
+              slotId: 's1',
+              programId: 'p1',
+              programTitle: 'Autumn Ball',
+              programUpdatedAt: DateTime.utc(2026, 10, 25, 14),
+              eventDate: eventDate,
+              performedAt: eventDate,
+            ),
+          ),
+        ),
+      ),
+    );
+    final localizations = MaterialLocalizations.of(
+      tester.element(find.byType(CallingHistoryRow)),
+    );
+    expect(
+      find.textContaining(
+        localizations.formatShortDate(DateTime(2026, 10, 24)),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        localizations.formatShortDate(DateTime(2026, 10, 23)),
+      ),
+      findsNothing,
+    );
+  });
+
+  test('callingHistoryDisplayDate keeps the event date for a stamp copied '
+      'from it, and still converts a real instant', () {
+    final eventDate = DateTime.utc(2026, 10, 24);
+    expect(
+      callingHistoryDisplayDate(
+        DanceCallingRecord(
+          slotId: 's1',
+          programId: 'p1',
+          programTitle: 'T',
+          programUpdatedAt: DateTime.utc(2026, 10, 25),
+          eventDate: eventDate,
+          performedAt: eventDate,
+        ),
+      ),
+      eventDate,
+    );
+    final tapped = DateTime.utc(2026, 10, 26, 2, 30);
+    expect(
+      callingHistoryDisplayDate(
+        DanceCallingRecord(
+          slotId: 's1',
+          programId: 'p1',
+          programTitle: 'T',
+          programUpdatedAt: tapped,
+          eventDate: eventDate,
+          performedAt: tapped,
+        ),
+      ),
+      tapped.toLocal(),
+    );
+  });
+
+  testWidgets('a row renders its date per the Date format setting', (
+    tester,
+  ) async {
+    final notifier = ValueNotifier<DateFormatSetting>(
+      DateFormatSetting(DateFormatPref.dmy),
+    );
+    addTearDown(notifier.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DateFormatScope(
+          notifier: notifier,
+          child: Scaffold(
+            body: CallingHistoryRow(
+              record: DanceCallingRecord(
+                slotId: 's1',
+                programId: 'p1',
+                programTitle: 'Autumn Ball',
+                programUpdatedAt: DateTime.utc(2026, 10, 25),
+                eventDate: DateTime.utc(2026, 10, 24),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.textContaining('24/10/2026'), findsOneWidget);
+  });
+
   testWidgets('a row shows the local day it was performed, not the UTC day', (
     tester,
   ) async {
@@ -597,15 +711,11 @@ void main() {
       tester.element(find.byType(CallingHistoryRow)),
     );
     expect(
-      find.textContaining(
-        localizations.formatMediumDate(DateTime(2026, 10, 3)),
-      ),
+      find.textContaining(localizations.formatShortDate(DateTime(2026, 10, 3))),
       findsOneWidget,
     );
     expect(
-      find.textContaining(
-        localizations.formatMediumDate(DateTime(2026, 10, 4)),
-      ),
+      find.textContaining(localizations.formatShortDate(DateTime(2026, 10, 4))),
       findsNothing,
     );
   });

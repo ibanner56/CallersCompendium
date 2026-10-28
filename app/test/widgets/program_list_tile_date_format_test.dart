@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
+
 import '../support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
@@ -61,7 +62,7 @@ void main() {
       tester,
       DateFormatSetting(DateFormatPref.custom, customPattern: 'bogus'),
     );
-    final expected = const DefaultMaterialLocalizations().formatMediumDate(
+    final expected = const DefaultMaterialLocalizations().formatShortDate(
       _eventDate,
     );
     expect(find.textContaining(expected), findsOneWidget);
@@ -72,7 +73,7 @@ void main() {
     tester,
   ) async {
     await _pumpTile(tester, DateFormatSetting(DateFormatPref.system));
-    final expected = const DefaultMaterialLocalizations().formatMediumDate(
+    final expected = const DefaultMaterialLocalizations().formatShortDate(
       _eventDate,
     );
     expect(find.textContaining(expected), findsOneWidget);
