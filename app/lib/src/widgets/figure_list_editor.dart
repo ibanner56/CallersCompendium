@@ -10,6 +10,7 @@ import '../data/reduce_motion_scope.dart';
 import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
+import '../editor/free_text_composer_controller.dart';
 import '../editor/user_figure_draft.dart';
 import '../glossary/custom_figures.dart';
 import '../search/facet_labels.dart';
@@ -66,6 +67,7 @@ class FigureListEditor extends StatefulWidget {
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
+    this.freeTextComposerController,
     this.onReplaceWithFreeText,
     this.onSubmitCompoundShorthand,
     this.onReplaceWithShorthand,
@@ -163,6 +165,11 @@ class FigureListEditor extends StatefulWidget {
   /// list. Only used when [freeTextEntry] is true. A single typed line may yield
   /// more than one figure when it is a `;`-compound.
   final int Function(List<Figure> figures)? onAddFreeText;
+
+  /// Told whether the free-text composer holds a line not yet added, and able
+  /// to add it, so the screen can count that line as unsaved and add it on
+  /// Save. Null (the default) leaves the composer to itself.
+  final FreeTextComposerController? freeTextComposerController;
 
   /// Replaces the row [draft] with the figure(s) parsed from a line typed into
   /// its Move box (#1177), in its place. Only used when free-text entry is
@@ -300,7 +307,8 @@ class FigureListEditor extends StatefulWidget {
   State<FigureListEditor> createState() => _FigureListEditorState();
 }
 
-class _FigureListEditorState extends State<FigureListEditor> {
+class _FigureListEditorState extends State<FigureListEditor>
+    with AutomaticKeepAliveClientMixin<FigureListEditor> {
   /// The id of the draft currently "cut" (awaiting a paste destination), or
   /// `null` when no cut is in progress.
   String? _cutDraftId;
@@ -331,8 +339,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
   );
 
   /// Whether the opt-in free-text entry composer is currently open (issue
-  /// #419). Only ever set when [_freeTextEnabled]; the Add flow opens it and a
-  /// blank submit / Escape / Done closes it.
+  /// #419). Only ever set when [_freeTextEnabled]; the Add flow opens it, and
+  /// a blank submit, Escape or Finish adding closes it.
   bool _freeTextComposing = false;
   final TextEditingController _freeTextController = TextEditingController();
 
@@ -363,8 +371,22 @@ class _FigureListEditorState extends State<FigureListEditor> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    _freeTextController.addListener(_reportPendingLine);
+    widget.freeTextComposerController?.attach(_submitPendingLine);
+    // A fresh editor has no line; this clears a flag left by one it replaced.
+    _reportPendingLine();
+  }
+
+  @override
   void didUpdateWidget(FigureListEditor old) {
     super.didUpdateWidget(old);
+    if (old.freeTextComposerController != widget.freeTextComposerController) {
+      old.freeTextComposerController?.detach(_submitPendingLine);
+      widget.freeTextComposerController?.attach(_submitPendingLine);
+      _reportPendingLine();
+    }
     final ids = widget.drafts.map((d) => d.id).toSet();
 
     // Auto-open + focus the figure the Add flow just appended.
@@ -407,6 +429,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     }
     _addButtonFocusNode.dispose();
     _addMenuFirstItemFocusNode.dispose();
+    widget.freeTextComposerController?.detach(_submitPendingLine);
     _freeTextController.dispose();
     _freeTextFocusNode.dispose();
     super.dispose();
@@ -662,31 +685,76 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// Parses the free-text field's current line through the shared core parser
   /// and inserts the resulting row(s). Keeps the composer open (cleared and
   /// refocused) for rapid entry of the next figure; a blank submit closes it.
+  /// This is the keyboard's Enter, the Add button, and a Save with a line
+  /// still in the box ([_submitPendingLine]).
   void _submitFreeText() {
+    final acceptedCount = _insertFreeTextLine();
+    if (acceptedCount == null) return;
+    if (acceptedCount == 0) {
+      // Nothing to insert (blank, or scrubbed to empty) — close the composer.
+      _dismissFreeText();
+      return;
+    }
+    _freeTextAccepted(acceptedCount);
+  }
+
+  /// Finish adding: adds a line still in the box, as Enter would, then closes
+  /// the composer. It never discards typed text; a line that could not be
+  /// added stays in the box.
+  void _finishFreeText() {
+    final acceptedCount = _insertFreeTextLine();
+    if (acceptedCount == null) return;
+    _dismissFreeText();
+    if (acceptedCount > 0) {
+      _announce(_l10n.danceEditorFreeTextFinishedAnnouncement(acceptedCount));
+    }
+  }
+
+  /// Inserts the row(s) for the composer's line and returns how many were
+  /// inserted: 0 when the line yields nothing to insert (blank, or scrubbed to
+  /// empty), null when the host declined the rows, leaving the line as it is.
+  int? _insertFreeTextLine() {
     final onAddFreeText = widget.onAddFreeText;
-    if (onAddFreeText == null) return;
+    if (onAddFreeText == null) return null;
     // A compound shorthand inserts a placeholder row, which is not a [Figure]
     // the parser could return, so it is offered the line first.
     final shorthandRows =
         widget.onSubmitCompoundShorthand?.call(_freeTextController.text) ?? 0;
-    if (shorthandRows > 0) {
-      _freeTextAccepted(shorthandRows);
-      return;
-    }
+    if (shorthandRows > 0) return shorthandRows;
     final figures = parseFreeTextFigureEntry(
       _freeTextController.text,
       taxonomy: widget.taxonomy,
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
     );
-    if (figures.isEmpty) {
-      // Nothing to insert (blank, or scrubbed to empty) — close the composer.
-      _dismissFreeText();
-      return;
-    }
+    if (figures.isEmpty) return 0;
     final acceptedCount = onAddFreeText(figures);
-    if (acceptedCount <= 0) return;
-    _freeTextAccepted(acceptedCount);
+    return acceptedCount > 0 ? acceptedCount : null;
+  }
+
+  /// [FreeTextComposerController.submitPendingLine]: Enter on the composer's
+  /// line, for a Save made with the line still in the box. Returns whether no
+  /// line is left pending.
+  bool _submitPendingLine() {
+    if (!_freeTextComposing) return true;
+    _submitFreeText();
+    return _freeTextController.text.trim().isEmpty;
+  }
+
+  bool get _hasPendingLine =>
+      _freeTextComposing && _freeTextController.text.trim().isNotEmpty;
+
+  /// A lazy list around the editor (the dance editor's form) would otherwise
+  /// dispose it, and the line with it, once it scrolls out of view while the
+  /// box is not focused.
+  @override
+  bool get wantKeepAlive => _hasPendingLine;
+
+  /// Tells [FigureListEditor.freeTextComposerController] whether a line is
+  /// waiting in the composer, and keeps the editor alive while one is.
+  void _reportPendingLine() {
+    widget.freeTextComposerController?.updatePendingLine(_hasPendingLine);
+    updateKeepAlive();
   }
 
   /// Clears the composer after [acceptedCount] rows were inserted, announces
@@ -751,11 +819,12 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   /// Closes the free-text composer and returns focus to Add or the last row.
   void _dismissFreeText({bool focusAddButton = true}) {
-    _freeTextController.clear();
     setState(() {
       _freeTextComposing = false;
       _freeTextConfirmation = null;
     });
+    // After the flag is down, so the listener reports no pending line.
+    _freeTextController.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (focusAddButton) {
@@ -800,6 +869,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final drafts = widget.drafts;
@@ -850,9 +920,11 @@ class _FigureListEditorState extends State<FigureListEditor> {
     String? lastLabel;
     if (widget.showPhraseStructure) {
       for (final draft in drafts) {
-        if (draft.move == null &&
-            !draft.isContainerDraft &&
-            !draft.isCompoundPlaceholder) {
+        // Only rows Save writes count: a row with no move and no note, a group
+        // short of two sides, or a modifier group with a blank core builds no
+        // figure, and counting its beats would put a figure the saved dance
+        // lacks into the Total.
+        if (draft.toFigure() == null && !draft.keepsNoteWithoutMove) {
           labels[draft.id] = null;
           sectionStart[draft.id] = false;
           continue;
@@ -1091,9 +1163,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   // --- Free-text composer (issue #419) --------------------------------------
   /// The single-line free-text entry field shown in place of the Add button
-  /// while composing. Enter submits (parse + insert), Escape cancels; a Done
-  /// button offers the same dismissal for pointer/AT users. Kept deliberately
-  /// simple: one line at a time, matching the ruling (no multi-line paste).
+  /// while composing. Enter submits (parse + insert), Escape cancels; Finish
+  /// adding adds any line still in the box and then closes it, so the button
+  /// never discards typed text. Kept deliberately simple: one line at a time,
+  /// matching the ruling (no multi-line paste).
   Widget _buildFreeTextComposer(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
@@ -1168,9 +1241,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
                   ),
                 ),
               ),
-              // Add and Done sit beneath the field, not beside it: beside it
-              // they left the field too narrow for its help at phone width,
-              // where the help was cut off mid-word (#1830).
+              // Add and Finish adding sit beneath the field, not beside it:
+              // beside it they left the field too narrow for its help at phone
+              // width, where the help was cut off mid-word (#1830).
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
@@ -1184,9 +1257,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
                     const SizedBox(width: 4),
                     TextButton(
                       key: _key('free-text-done'),
-                      onPressed: _dismissFreeText,
+                      onPressed: _finishFreeText,
                       child: Text(
-                        l10n.commonDone,
+                        l10n.danceEditorFreeTextFinish,
                         style: TextStyle(color: theme.colorScheme.primary),
                       ),
                     ),

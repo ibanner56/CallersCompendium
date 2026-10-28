@@ -2622,7 +2622,10 @@ void main() {
 
       await typeAndSubmit(tester, 'neighbors balance & swing');
       expect(
-        find.text('Added 1 figure. Type another, or choose Done to finish.'),
+        find.text(
+          "Added 1 figure. Type another, or choose Finish adding when you're "
+          'done.',
+        ),
         findsOneWidget,
       );
       // Touch users have no Escape key; the visible line must not name it.
@@ -2631,6 +2634,127 @@ void main() {
       await tester.enterText(find.byKey(fieldKey), 'c');
       await tester.pumpAndSettle();
       expect(find.textContaining('Added 1 figure'), findsNothing);
+    });
+
+    testWidgets('Save adds a line still in the box, as Enter would (AUTH-1)', (
+      tester,
+    ) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await openComposer(tester);
+
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = figuresOf((await repos.dances.getById('d1'))!);
+      expect(saved, hasLength(7));
+      expect(saved.last.move, 'swing');
+      expect(saved.last.params['who'], 'neighbors');
+    });
+
+    testWidgets('Back with a line still in the box asks before discarding it '
+        '(AUTH-1)', (tester) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await openComposer(tester);
+
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard changes?'), findsOneWidget);
+      expect(find.byKey(fieldKey), findsOneWidget);
+    });
+
+    testWidgets('a line in the box survives the figure list scrolling out of '
+        'the form', (tester) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      // A phone-sized window, so the form's lazy list would drop the figure
+      // list once it is scrolled well past it.
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        surfaceSize: const Size(600, 400),
+      );
+      final form = find
+          .descendant(
+            of: find.byType(ListView).first,
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('figure-add')),
+        200,
+        scrollable: form,
+      );
+      await openComposer(tester);
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+      // Unfocused, the field no longer keeps its list child alive.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+
+      await tester.drag(form, const Offset(0, -20000));
+      await tester.pumpAndSettle();
+      expect(find.byKey(fieldKey, skipOffstage: false), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = figuresOf((await repos.dances.getById('d1'))!);
+      expect(saved, hasLength(7));
+      expect(saved.last.move, 'swing');
+    });
+
+    testWidgets('a line in the box survives the custom-number banner '
+        'appearing above the figures', (tester) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f-num',
+          key: 'number',
+          label: 'Number',
+          type: CustomFieldType.number,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await openComposer(tester);
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+
+      // An invalid number shows the banner as the form's first child, which
+      // shifts every child below it.
+      await _expandMoreDetails(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('custom-f-num')),
+        '1e400',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('custom-field-validation-error')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(fieldKey, skipOffstage: false))
+            .controller!
+            .text,
+        'neighbors balance & swing',
+      );
+
+      await tester.enterText(find.byKey(const ValueKey('custom-f-num')), '5');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = figuresOf((await repos.dances.getById('d1'))!);
+      expect(saved, hasLength(7));
+      expect(saved.last.move, 'swing');
     });
 
     testWidgets('the visible confirmation reports the count and goes away '

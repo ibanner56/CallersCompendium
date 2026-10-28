@@ -7872,8 +7872,24 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Added $count figures. Type another, or choose Done to finish.',
-      one: 'Added 1 figure. Type another, or choose Done to finish.',
+      other:
+          'Added $count figures. Type another, or choose Finish adding when you\'re done.',
+      one:
+          'Added 1 figure. Type another, or choose Finish adding when you\'re done.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Finish adding';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count figures.',
+      one: 'Added 1 figure.',
     );
     return '$_temp0';
   }

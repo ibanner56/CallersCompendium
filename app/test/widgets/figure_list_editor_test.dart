@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
+import 'package:compendium_app/src/editor/free_text_composer_controller.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/figure_param_editors.dart';
@@ -1541,6 +1542,31 @@ void main() {
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
       'A2',
+    );
+  });
+
+  testWidgets('a group that will not be saved is left out of the Total', (
+    tester,
+  ) async {
+    // One side filled: the group builds no figure, so Save drops it, and its
+    // beats must not appear in the Total either (AUTH-2).
+    final halfFilled = FigureDraft(
+      meanwhileSides: [
+        FigureDraft(move: 'swing'),
+        FigureDraft(),
+      ],
+    )..params['beats'] = 8;
+    final drafts = <FigureDraft>[
+      halfFilled,
+      FigureDraft(move: 'swing', params: {'beats': 16}),
+    ];
+
+    await _pump(tester, drafts);
+
+    expect(find.text('Total: 16 / 64 beats'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
+      'A1',
     );
   });
 
@@ -3876,6 +3902,74 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(fieldKey), findsNothing);
       expect(drafts, hasLength(1));
+    });
+
+    testWidgets('Finish adding adds a line still in the box, then closes it '
+        '(AUTH-1)', (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Text>(
+              find.descendant(
+                of: find.byKey(doneKey),
+                matching: find.byType(Text),
+              ),
+            )
+            .data,
+        'Finish adding',
+      );
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing');
+      await tester.tap(find.byKey(doneKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(drafts, hasLength(1));
+      expect(drafts.single.toFigure()!.move, 'swing');
+    });
+
+    testWidgets('a replacement editor clears the pending flag the one it '
+        'replaced left behind', (tester) async {
+      final composer = FreeTextComposerController();
+      addTearDown(composer.dispose);
+      final drafts = <FigureDraft>[];
+      Widget host(Key key) => MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: FigureListEditor(
+              key: key,
+              drafts: drafts,
+              taxonomy: contraTaxonomy,
+              phraseStructure: PhraseStructure.standard,
+              onChanged: () {},
+              onAdd: () {},
+              onDelete: (_) {},
+              freeTextEntry: true,
+              onAddFreeText: (figures) => figures.length,
+              freeTextComposerController: composer,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(host(const ValueKey('first')));
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing');
+      await tester.pumpAndSettle();
+      expect(composer.hasPendingLine, isTrue);
+
+      // A new key: the replacement attaches before the first is disposed,
+      // and the first's detach no longer clears the flag.
+      await tester.pumpWidget(host(const ValueKey('second')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(composer.hasPendingLine, isFalse);
     });
 
     testWidgets('a blank submit closes the composer without inserting', (

@@ -7591,7 +7591,20 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count件のフィギュアを追加しました。さらに入力するか、「完了」を選んで終了してください。',
+      other: '$count件のフィギュアを追加しました。さらに入力するか、終わったら「追加を終了」を選んでください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => '追加を終了';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のフィギュアを追加しました。',
     );
     return '$_temp0';
   }

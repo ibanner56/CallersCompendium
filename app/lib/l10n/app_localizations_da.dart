@@ -7907,9 +7907,23 @@ class AppLocalizationsDa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Tilføjede $count figurer. Skriv en anden, eller vælg Færdig for at afslutte.',
+          'Tilføjede $count figurer. Skriv en anden, eller vælg Afslut tilføjelse, når du er færdig.',
       one:
-          'Tilføjede 1 figur. Skriv en anden, eller vælg Færdig for at afslutte.',
+          'Tilføjede 1 figur. Skriv en anden, eller vælg Afslut tilføjelse, når du er færdig.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Afslut tilføjelse';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tilføjede $count figurer.',
+      one: 'Tilføjede 1 figur.',
     );
     return '$_temp0';
   }
