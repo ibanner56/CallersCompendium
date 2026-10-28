@@ -266,6 +266,44 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsExperimentalTitle => 'Expérimental';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Options pour les développeurs';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Réinitialiser la base de données';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Supprimer tout ce qui se trouve sur cet appareil et repartir de zéro, comme après une nouvelle installation.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle =>
+      'Réinitialiser la base de données ?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'Cela supprime définitivement toutes les danses, tous les programmes, collections, réglages et notes de cet appareil, puis relance l’application comme si elle venait d’être installée. Cette action est irréversible.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'Cet appareil est connecté à un espace de synchronisation. Il commencera par s’en retirer lui-même, pour ne pas y rester comme appareil orphelin. Tout ce qu’il n’a pas encore synchronisé vers vos autres appareils sera perdu.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'Je comprends que cette action est irréversible et j’ai déjà fait une sauvegarde si je le souhaitais.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction =>
+      'Réinitialiser la base de données';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Impossible de retirer cet appareil de l’espace de synchronisation ; rien n’a été réinitialisé. Vérifiez votre connexion et réessayez.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'Impossible de réinitialiser la base de données ; vos données sont inchangées. Si cet appareil était connecté à un espace de synchronisation, il l’a déjà quitté.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'De nouvelles fonctionnalités peuvent apparaître ici pendant qu’elles sont encore en développement.';
 

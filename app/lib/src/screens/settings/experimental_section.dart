@@ -11,6 +11,7 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
 import '../glossary/custom_figures_screen.dart';
+import 'developer_options_section.dart';
 import 'device_sync_section.dart';
 
 /// The Experimental settings section for features still in development.
@@ -34,6 +35,7 @@ class ExperimentalSection extends StatelessWidget {
         ),
         const _GlossarySection(),
         DeviceSyncSection(backupSaver: backupSaver),
+        const DeveloperOptionsSection(),
       ],
     );
   }

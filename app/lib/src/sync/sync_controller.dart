@@ -1666,6 +1666,87 @@ class SyncController extends ChangeNotifier {
     return SyncAdminOutcome.done;
   }
 
+  /// Leaves the store for good ahead of a local database reset: removes this
+  /// device's own manifest from the server, then forgets the attachment as
+  /// [detach] does, so wiping the database does not leave an orphaned device
+  /// listed under every peer's *Other devices*.
+  ///
+  /// Unlike [detach]'s best-effort clean-up this removal is unconditional and
+  /// awaited. The caller is about to destroy everything the manifest describes,
+  /// so [detach]'s "only when a peer already carries every entry" test would
+  /// only make the common case skip; the cost is that anything this device
+  /// published and no peer has pulled yet is lost with it, which the reset
+  /// confirmation already says.
+  ///
+  /// Fail-closed: if the manifest cannot be removed the device stays attached
+  /// and the outcome is [SyncAdminOutcome.failed], so the caller must not wipe.
+  /// `204` (sent whether or not the manifest existed) and `404` (the store
+  /// itself is gone) both count as removed. [SyncAdminOutcome.notPaired] means
+  /// there was nothing to leave and the caller may proceed; a detach or wipe
+  /// already in flight is [SyncAdminOutcome.failed], not `notPaired`. Not gated on the §6.12 connection policy, for the
+  /// reason [removeDevice] gives; offline simply fails.
+  Future<SyncAdminOutcome> leaveStoreForReset() async {
+    _lastAdminFailure = null;
+    if (!paired) return SyncAdminOutcome.notPaired;
+    // A detach or wipe is already in flight. It may yet fail and leave this
+    // device attached, so "nothing to leave" would be untrue and the caller
+    // would go on to delete a database whose manifest nobody can then remove.
+    if (_detaching) return SyncAdminOutcome.failed;
+    // Held for the reason [detach] and [wipeStore] hold it.
+    _detaching = true;
+    _debounceTimer?.cancel();
+    _cancelRetry(reset: true);
+    _dirty = false;
+    var ran = false;
+    var attached = false;
+    var cleared = false;
+    try {
+      await _runExclusive(() async {
+        ran = true;
+        // Built inside the boundary, for the reason [removeDevice] gives.
+        final admin = _deviceAdmin();
+        if (admin == null) return;
+        attached = true;
+        try {
+          // A null id means this attachment never published a manifest, so
+          // there is nothing on the server to remove.
+          final selfId = await _selfDeviceId();
+          if (selfId != null) {
+            final response = await admin.deleteManifest(selfId);
+            final removed =
+                response.kind == SyncResponseKind.success ||
+                response.kind == SyncResponseKind.notFound;
+            if (!removed) {
+              _lastAdminFailure = SyncFailure.fromResponse(response);
+              return;
+            }
+          }
+          await _clearAttachment();
+          cleared = true;
+          _forgetAttachment();
+        } finally {
+          admin.close?.call();
+        }
+      });
+    } on Object catch (error, stack) {
+      logCaughtErrorTypeOnly(
+        error,
+        stack,
+        source: 'sync_controller.leaveStoreForReset',
+      );
+      _lastAdminFailure = SyncFailure.fromError(error);
+      // A throw before the local clear committed refuses the reset, even if the
+      // manifest is already gone; retrying is safe, since the server answers
+      // 204 for a manifest that is already removed. A throw after it (the
+      // boundary's own reconfigure) is not a failure: the device has left.
+    } finally {
+      _detaching = false;
+    }
+    if (!ran) return SyncAdminOutcome.failed;
+    if (!attached) return SyncAdminOutcome.notPaired;
+    return cleared ? SyncAdminOutcome.done : SyncAdminOutcome.failed;
+  }
+
   /// The `devices` array from a `GET /v1/store` body, or null when the body is
   /// not the documented shape. Validated exactly as the coordinator validates
   /// the same field, so a malformed store answer cannot reach the surface as a

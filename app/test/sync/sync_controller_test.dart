@@ -2325,6 +2325,94 @@ void main() {
       expect(await hasRow(kSyncIdKey), isFalse);
     });
 
+    test("leaving for a reset removes this device's own manifest, then "
+        'forgets the attachment', () async {
+      final fake = _Admin();
+      var exclusiveRuns = 0;
+      final controller = await paired(
+        fake,
+        runExclusive: (operation) async {
+          exclusiveRuns++;
+          await operation();
+        },
+      );
+
+      expect(await controller.leaveStoreForReset(), SyncAdminOutcome.done);
+
+      expect(
+        fake.requests,
+        ['DELETE manifests/device_1'],
+        reason:
+            'unconditional: no GET of the peers, and nothing but the one '
+            'DELETE, so no orphan is left once the database is gone',
+      );
+      expect(fake.wipes, 0, reason: 'other devices keep their store');
+      expect(exclusiveRuns, 1);
+      expect(controller.paired, isFalse);
+      expect(await hasRow(kSyncIdKey), isFalse);
+      expect(await hasRow(kSyncDeviceIdKey), isFalse);
+      expect(await hasRow(kSyncEndpointKey), isFalse);
+      expect(controller.enabled, isTrue, reason: 'leaving is not disabling');
+    });
+
+    test('a refused removal leaves the device attached, so the caller does '
+        'not wipe', () async {
+      final fake = _Admin()..manifestKind = SyncResponseKind.serverError;
+      final controller = await paired(fake);
+
+      expect(await controller.leaveStoreForReset(), SyncAdminOutcome.failed);
+
+      expect(fake.removed, ['device_1']);
+      expect(controller.paired, isTrue);
+      expect(
+        await repos.settings.get(kSyncIdKey),
+        'correct horse battery staple',
+      );
+      expect(await repos.settings.get(kSyncDeviceIdKey), 'device_1');
+      expect(controller.lastAdminFailure, isNotNull);
+    });
+
+    test('a 404 (the store is already gone) counts as removed', () async {
+      final fake = _Admin()..manifestKind = SyncResponseKind.notFound;
+      final controller = await paired(fake);
+
+      expect(await controller.leaveStoreForReset(), SyncAdminOutcome.done);
+      expect(controller.paired, isFalse);
+    });
+
+    test('leaving for a reset while a wipe is in flight is refused, not '
+        'waved through', () async {
+      final gate = Completer<void>();
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        runExclusive: (operation) async {
+          await gate.future;
+          await operation();
+        },
+      );
+
+      final wipe = controller.wipeStore();
+      expect(await controller.leaveStoreForReset(), SyncAdminOutcome.failed);
+      expect(fake.removed, isEmpty);
+      expect(controller.paired, isTrue);
+
+      gate.complete();
+      expect(await wipe, SyncAdminOutcome.done);
+    });
+
+    test('leaving for a reset while not paired sends nothing', () async {
+      final fake = _Admin();
+      final controller = await paired(fake);
+      await controller.detach();
+
+      expect(await controller.leaveStoreForReset(), SyncAdminOutcome.notPaired);
+      // `detach` starts its own background clean-up, which reads the store;
+      // what must not happen is any removal.
+      expect(fake.removed, isEmpty);
+      expect(fake.wipes, 0);
+    });
+
     test('a pass finishing during a wipe does not restore its last-success '
         'time', () async {
       final gate = Completer<void>();
