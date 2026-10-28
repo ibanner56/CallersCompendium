@@ -1621,9 +1621,10 @@ class CallersBoxAdapter implements SourceAdapter {
     if (flag == 'yes') return true;
     // NOTE (issue #732): this inference is intentionally scoped to The Caller's
     // Box and is NOT applied by the ContraDB adapter, which has no first-class
-    // mixer category to read. Caller's Companion reads its own stated mixer
-    // types instead (#1972: `Type` "Circle Mixer"/"Scatter Mixer", a square's
-    // `SubType` "Mixer, …"), not an inference from the shape.
+    // mixer category to read. A Caller's Companion `.USR` reads its own stated
+    // mixer types instead (#1972: `Type` "Circle Mixer"/"Scatter Mixer", a
+    // square's `SubType` "Mixer, …"), not an inference from the shape; the CC
+    // text export does not carry them apart and leaves `mixer` false.
     return formation.shape == FormationShape.circleMixer ||
         formation.shape == FormationShape.scatterMixer;
   }

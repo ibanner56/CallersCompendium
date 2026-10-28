@@ -9,8 +9,11 @@
     ]
   },
   "core": {
+    "added": [
+      "CcDanceRecord carries the .USR formation columns separately (subType, formationFamily, contraForm, direction, formationOther) and fromUsrColumns, set by ccDanceRecordFromColumns."
+    ],
     "changed": [
-      "CcDanceRecord carries the .USR formation columns separately (formationFamily, contraForm, direction, formationOther, subType), and mapCallersCompanionDance maps them together, setting mixer for CC mixer types."
+      "mapCallersCompanionDance maps a .USR record's formation columns together and sets mixer for CC's Circle Mixer and Scatter Mixer types and mixer SubTypes; a text-export record keeps its single formation string. A .USR SetItem whose AlternateDance is \"ALT\" is an alternate."
     ]
   }
 }
