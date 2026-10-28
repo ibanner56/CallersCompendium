@@ -481,7 +481,9 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     throw const FormatException('figureDraft container depth is too deep');
   }
   if (containerKind != null && containerKind == parentContainerKind) {
-    throw const FormatException('figureDraft containers must alternate kinds');
+    throw const FormatException(
+      'figureDraft containers may not nest their own kind',
+    );
   }
   if (containerKind is String &&
       children is List &&

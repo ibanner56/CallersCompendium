@@ -1107,7 +1107,7 @@ still governs what is reachable.
   whole-custom fallback rather than throwing or silently truncating sides.
   Sides are never themselves containers: this importer-specific path emits
   ordinary figures, so its direct `meanwhile` construction cannot create a
-  nested container. The model's bounded opposite-kind nesting remains
+  nested container. The model's bounded other-kind nesting remains
   available to authored and deserialized figures. Each side is scrubbed via
   the same `scrubFigureText` pass as any other figure line, so
   bidi/zero-width sanitization parity (#444/#611) holds per-side by

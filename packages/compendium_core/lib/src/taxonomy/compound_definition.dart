@@ -87,7 +87,7 @@ final class CompoundSlotBinding {
 /// plain figures: no compound inside a compound (#709 consolidated spec,
 /// decision 3), and — the implementer's choice, so that every template has
 /// slots to bind and a figure to validate — no `custom` figure and no
-/// meanwhile or modifier container.
+/// structural container.
 final class CompoundDefinition {
   CompoundDefinition({
     required List<CompoundParam> params,
@@ -343,8 +343,8 @@ abstract final class CompoundIssueCodes {
   /// A declared parameter's key is empty, too long, or declared twice.
   static const badParamKey = 'compound_bad_param_key';
 
-  /// A template is `custom`, a meanwhile or modifier container, or not a
-  /// taxonomy move.
+  /// A template is `custom`, a structural container, or not a taxonomy
+  /// move.
   static const badTemplate = 'compound_bad_template';
 
   /// A template figure the taxonomy reports an error for.

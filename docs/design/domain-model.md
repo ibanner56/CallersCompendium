@@ -95,7 +95,7 @@ whose host caller is unset (#850). Both consumers share the predicate in
   orbit]` container (with `orbit` promoted to a first-class move), so the
   simultaneity is recorded structurally rather than as one synthesized move.
   Structural caps: at most `kMaxMeanwhileSides` (**6**) children; a container
-  may contain only one legal opposite-kind container level. Same-kind and
+  may contain containers of the other kinds, one level deep. Same-kind and
   deeper nesting is rejected. Rides
   `figures_json` **additively** (like `customOrigin` / `assumedSubject` /
   `walkthroughOverride`) — **no `figureSchemaVersion` bump**. Because it is one
@@ -103,7 +103,7 @@ whose host caller is unset (#850). Both consumers share the predicate in
   and the search indexer **flattens** it so each concurrent side stays
   individually matchable (`filterByMove` + FTS). Untrusted on the import path:
   the archive/.ccshare sanitizer recurses into every nested side (scrubbing
-  free text) and enforces the alternating-container depth + child-count caps
+  free text) and enforces the container depth + child-count caps
   defensively (drop invalid nesting, never throw).
 - `modifier` container (#1198): `{move: "modifier", params: {beats: n,
   figures: [<core>, <modifier>, …]}}` — an ordered **composition** figure. The
@@ -118,20 +118,41 @@ whose host caller is unset (#850). Both consumers share the predicate in
   reading stands: a ContraDB `while` line splits into a `meanwhile`, a
   Caller's Box `while` line stays custom, and a degenerate split
   (`while B`, `A while`) is left unchanged.
-- Containers accept 2–6 children and may alternate exactly once:
-  `meanwhile → modifier` or `modifier → meanwhile`. Same-kind nesting and
-  deeper container nesting are rejected by the model and dropped by tolerant
-  decoders; ordinary leaf figures may appear at either level. This bounded
-  rule applies consistently to persistence, archive sanitization, editing, and
-  derived indexing.
+- `sequence` container: `{move: "sequence", params: {beats: n, figures:
+  [<step>, …]}}` — an ordered run of **2–4** figures (`kMaxSequenceFigures`)
+  danced one after another and shown on one line. Ordinary sequence is still
+  the order of the dance's figure list; this container exists so a run can
+  stand where one figure must, most often one side of a `meanwhile` ("ones
+  balance and swing while twos box the gnat, pull by right, and orbit
+  clockwise ½"). As for the other kinds, `params['beats']` is the count
+  section math reads, but the editor keeps it equal to the **sum** of the
+  steps' own counts: a step shows its own Beats field and the container shows
+  only the total. That total must fit **one phrase** of the dance
+  (`PhraseStructure.longestPhraseBeats`, 16 for the standard structure): the
+  editor will not group, convert, or add a step past it, and `deriveSections`
+  adds a `sequence_exceeds_phrase` warning for any sequence, top-level or
+  nested, that is longer (a later phrase-structure change, or another device,
+  can still leave one too long). No importer builds a sequence. ADR-006 §5.4
+  originally proposed no sequence container; it was added for contra on the
+  maintainer's request in the PR that introduced it.
+- Containers accept 2–6 children (2–4 for a `sequence`) and may nest a
+  container of **another** kind exactly once — for example `meanwhile →
+  sequence`, `sequence → modifier` or `modifier → meanwhile`. Same-kind
+  nesting and deeper container nesting are rejected by the model and dropped
+  by tolerant decoders; ordinary leaf figures may appear at either level. This
+  bounded rule applies consistently to persistence, archive sanitization,
+  editing, and derived indexing.
 - **Display convention** (#594): every human-facing render
   (`FigureRenderer.render`/`renderVerbose`/`renderSummary` — the dance detail
   table, Perform, plain-text export, and PDF export all use these) joins a
   `meanwhile` container's sides with the caller-facing word **"while"**
   ("Larks allemande left 1 while Robins orbit clockwise ½"; 3+ sides chain the
-  same separator). `renderCanonical` is **untouched** — it still joins sides
-  with the structural `meanwhile` move id, so the dedupe/FTS key stays
-  byte-stable. Every surface reads the shared beat count once from
+  same separator). A `sequence` joins its steps as an English list — "A and
+  B", "A, B, and C" — and a step whose stated subject (`who`) repeats the
+  previous step's drops it, so the line reads "ones balance and swing".
+  `renderCanonical` is **untouched** — it still joins sides
+  with the structural `meanwhile` move id (`sequence` for a sequence, every
+  step in full), so the dedupe/FTS key stays byte-stable. Every surface reads the shared beat count once from
   `deriveSections`, so the pair never double-counts on screen or in export.
 - Section labels (A1/B2…) are **derived** from cumulative beats +
   phraseStructure, not stored — keeps reordering/beat edits consistent.

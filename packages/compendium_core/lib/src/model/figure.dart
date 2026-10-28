@@ -52,7 +52,8 @@ const Set<String> containerMoves = {meanwhileMove, modifierMove, sequenceMove};
 /// Whether [move] is one of the [containerMoves].
 bool isContainerMove(Object? move) => containerMoves.contains(move);
 
-/// Maximum number of children either structural container may hold.
+/// Maximum number of children a meanwhile or modifier container may hold (a
+/// sequence holds fewer: [kMaxSequenceFigures]).
 ///
 /// Real choreography never stacks more than a handful of simultaneous actions,
 /// so this is both a UX bound and a **security bound** on the untrusted archive

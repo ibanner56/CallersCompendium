@@ -268,15 +268,26 @@ order; the top-level container supplies shared section/beat placement.
 
 The outer container's structural canonical render is also appended once to
 `dance_fts.figures_text` and `dance_substring_fts.figures_text`. This preserves
-searchability of structural tokens such as `meanwhile` and `modifier` without
-trying to JSON-encode in-memory nested `Figure` values. A second column,
-`group_idx`, is **shared** by every leaf flattened from one top-level figure
-(including leaves below an opposite nested container) and is monotonic across
-top-level figures; it is what the `ThenFilter` operator correlates on (see
-below), so simultaneous leaves — which share a group — are never read as
+searchability of structural tokens such as `meanwhile`, `modifier` and
+`sequence` without trying to JSON-encode in-memory nested `Figure` values. A
+second column, `group_idx`, is **shared** by every leaf flattened from one
+top-level figure (including leaves below a nested container) and is monotonic
+across top-level figures; it is what the `ThenFilter` operator correlates on
+(see below), so simultaneous leaves — which share a group — are never read as
 sequential. Ordered modifier children likewise remain one group for `Then`
 purposes; their order is represented by child order within the structural
 canonical text, not by sequential top-level groups.
+
+The exception is a **top-level `sequence`**, whose steps are danced in order:
+each step takes the next group (leaves below a step's own nested container
+share that step's group), so a "balance and swing" kept as one sequence
+matches `ThenFilter(balance, swing)` exactly as two adjacent figures would, and
+not `ThenFilter(swing, balance)`. A sequence **nested** in a meanwhile or
+modifier keeps its parent's single group: its steps are concurrent with the
+other side, and one integer cannot order them against both, so `Then` does not
+see inside it. For dances without a top-level sequence the groups are exactly
+the top-level indices they always were, so no derived-index rebuild was
+needed.
 
 **Concurrency vs. sequence in `ThenFilter` (#748, was a #590 limitation).** Because a
 container's concurrent sides get consecutive `idx` values, a positional

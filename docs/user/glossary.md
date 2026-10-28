@@ -204,6 +204,14 @@ an [alt](#alt).
 How dancers move on to the next couple as a dance repeats. Like
 [formation](#formation), it's a plain contra term used here in the usual way.
 
+## Sequence
+
+Two to four [figures](#figure) danced one after another and written as one line,
+such as *ones balance and swing*. Its beats are the total of its figures', and
+must fit in one phrase. A sequence is most useful as one side of a
+[meanwhile](#meanwhile). See
+[Write & edit dances](./authoring.md#sequence-figures).
+
 ## Shorthand
 
 A short token you type during free-text figure entry that expands into one or more

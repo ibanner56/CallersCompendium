@@ -91,13 +91,13 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   user's own in words. Picking one makes the row an editor-only placeholder —
   the figure's name and one editor per parameter, narrowed to the values it
   accepts, with progression and note but no walkthrough or wording override —
-  which is never grouped into a meanwhile or modifier and is expanded into
+  which is never grouped into a container and is expanded into
   ordinary figures when the dance is saved, or kept as a custom figure bearing
   its name when it no longer expands.
   Both lists, compounds and new figures, offer only entries tagged with the
   dance's form (untagged ones count as contra).
 - **The user's own new figures** (#1023), while Custom Figures is on: offered
-  the same way, and inside meanwhile and modifier sides too. Picking one makes
+  the same way, and inside meanwhile, modifier and sequence children too. Picking one makes
   the row a free-text figure carrying a soft reference to it, seeded with its
   defaults and default beats; the row edits one value per declared parameter
   (choices by their labels) and its beats (not inside a side, whose group owns

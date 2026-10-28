@@ -160,7 +160,7 @@ class FigureDraft {
   /// draft). `null` (the default) means an ordinary, non-grouped figure —
   /// today's ubiquitous case.
   ///
-  /// A child may itself carry the one legal opposite container kind.
+  /// A child may itself be a container of another kind.
   List<FigureDraft>? meanwhileSides;
 
   /// Non-null when this draft is a modifier container. The first child is the
