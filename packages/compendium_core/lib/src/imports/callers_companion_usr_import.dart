@@ -541,9 +541,9 @@ class CallersCompanionUsrImporter {
       }
       await _venues.hardDelete(insertedVenueIds);
       await _pipeline.undo(danceSession);
+      await _revertUserFieldDefinitions(keptInserted, keptRestored);
       // Last, so the older steps above run even if this one throws.
       await _removeLinks(linksAddedToEarlier);
-      await _revertUserFieldDefinitions(keptInserted, keptRestored);
       rethrow;
     }
 
@@ -1019,7 +1019,6 @@ class CallersCompanionUsrImporter {
     // untouched rather than orphaning that reference.
     await _venues.hardDelete(result.insertedVenueIds);
     await _pipeline.undo(result.danceSession);
-    await _removeLinks(result.linksAddedToEarlierDances);
     // After the dances: the guard refuses to remove a definition a live dance
     // still holds a value for, so the definitions can only go once this
     // import's dances have.
@@ -1027,6 +1026,8 @@ class CallersCompanionUsrImporter {
       result.insertedCustomFieldIds,
       result.restoredCustomFieldIds,
     );
+    // Last, so the older steps above run even if this one throws.
+    await _removeLinks(result.linksAddedToEarlierDances);
     result._undone = true;
   }
 
