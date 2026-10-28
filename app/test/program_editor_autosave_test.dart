@@ -825,7 +825,7 @@ void main() {
           await delayed.repos.settings.get('program_editor_draft:p1'),
         );
         expect(
-          recovered!.slots.single.performedAt,
+          recovered.slots.single.performedAt,
           persisted?.slots.single.performedAt,
           reason:
               "restoring the draft and saving must not erase Perform's mark",
