@@ -294,16 +294,22 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'box_the_gnat',
       displayName: 'box the gnat',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         // v10: a preceding balance line folds in here via the CallersBox
         // cross-line merge (swat_the_flea inherits this through its target).
         // No paramBeats: box_the_gnat's beats stay on the deferral list.
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+        // Entry seeds a balanced, 8-beat box (v38): authors usually balance. A
+        // figure that omits `balance` is still unbalanced.
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4, entryDefault: 8),
       },
       renderTemplate: '{who} {move}',
-      goodBeats: [4],
+      goodBeats: [4, 8],
     ),
     // ContraDB `box circulate` (figure.js): params who / balance / hand (right
     // hand spin) / beats, boxCirculateGoodBeats `beats === (bal ? 8 : 4)`.
@@ -319,11 +325,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+        // Entry seeds a balanced, 8-beat box circulate (v38); see box_the_gnat.
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4, entryDefault: 8),
       },
       renderTemplate: '{who} {move}',
-      goodBeats: [4],
+      goodBeats: [4, 8],
     ),
     const MoveDef(
       id: 'shoulder_round',
@@ -657,7 +668,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'roll_away',
       displayName: 'roll away',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
         // ContraDB roll_away's `whom` (chooser_pairs_or_ones_or_twos): the
         // relationship being rolled away.
         'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
@@ -705,7 +716,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'arch_and_dive',
       displayName: 'arch and dive',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'twos'),
         'beats': _beats4,
       },
       renderTemplate: '{who} {move}',
@@ -857,7 +868,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'orbit',
       displayName: 'orbit',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
         'direction': ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'clockwise',
@@ -1215,10 +1226,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'figure 8',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
-        // Default "none": structured, not a render token.
+        // Default "above" (v38): the mode in both ContraDB and The Caller's Box.
+        // "none" stays a valid stored value ("no direction stated").
         'where': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'none',
+          defaultValue: 'above',
           choices: ['none', 'above', 'below', 'across'],
         ),
         // Single-dancer lead (ContraDB "first ladle" = ones' role2).
@@ -1588,9 +1600,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // the flag set (either by folding a trailing balance into a preceding
         // form line, or by promoting the standalone balance line). Default
         // false, so no existing figure's output changes.
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        // Entry seeds a balanced long wave, 4 beats (v38): the 0-beat formation
+        // label plus the balance's own 4. A figure that omits `balance` is still
+        // the bare, unbalanced formation.
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
         // A formation label: 0 beats is valid and typical.
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 0),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 0, entryDefault: 4),
       },
       renderTemplate: '{who} {move}',
       searchKeywords: ['long waves'],
@@ -1661,11 +1680,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // Same sourced param set as form_an_ocean_wave minus `passThru`, which
         // is intrinsic to this figure (dancers pass through to the wave).
         'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        // Entry seeds a balanced, 8-beat pass the ocean (v38).
+        'balance': ParamSpec(
+          ParamKind.flag,
+          defaultValue: false,
+          entryDefault: true,
+        ),
         'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
         'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4, entryDefault: 8),
       },
       renderTemplate: '{move}',
       searchKeywords: [

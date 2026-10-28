@@ -592,6 +592,21 @@ void main() {
       expect(renderer.renderCanonical(figure), 'ones half figure 8');
     });
 
+    test('figure eight with no stated direction defaults to above', () {
+      expect(
+        renderer.render(Figure(move: 'figure_8'), Dialect.canonical),
+        'ones half figure 8 up between twos',
+      );
+      // `none` stays a valid stored value: no direction clause.
+      expect(
+        renderer.render(
+          Figure(move: 'figure_8', params: {'where': 'none'}),
+          Dialect.canonical,
+        ),
+        'ones half figure 8',
+      );
+    });
+
     test('figure eight direction uses the effective default subject', () {
       expect(
         renderer.render(
@@ -693,14 +708,20 @@ void main() {
     test('spells out fraction params without camelCase', () {
       expect(
         renderer.renderVerbose(
-          Figure(move: 'figure_8', params: {'fraction': 'threeQuarter'}),
+          Figure(
+            move: 'figure_8',
+            params: {'fraction': 'threeQuarter', 'where': 'none'},
+          ),
           larks,
         ),
         'ones three quarters figure 8',
       );
       expect(
         renderer.renderVerbose(
-          Figure(move: 'figure_8', params: {'fraction': 'full'}),
+          Figure(
+            move: 'figure_8',
+            params: {'fraction': 'full', 'where': 'none'},
+          ),
           larks,
         ),
         'ones the whole way figure 8',
@@ -948,7 +969,7 @@ void main() {
       // `_renderValue` (template path): figure_8 renders `{who} {half} {move}`.
       final templateFigure = Figure(
         move: 'figure_8',
-        params: {'who': 'twosRole2'},
+        params: {'who': 'twosRole2', 'where': 'none'},
       );
       // `_displayDancer` (display base-line path): swing has a base renderer.
       final baseLineFigure = Figure(
@@ -1159,11 +1180,11 @@ void main() {
           move: 'box_circulate',
           params: {'balance': true},
         ),
-        'partners box the gnat': Figure(
+        'neighbors box the gnat': Figure(
           move: 'box_the_gnat',
           params: {'balance': true},
         ),
-        'partners swat the flea': Figure(
+        'neighbors swat the flea': Figure(
           move: 'swat_the_flea',
           params: {'balance': true},
         ),
@@ -1369,7 +1390,7 @@ void main() {
         expect(renderer.renderSummary(figure, larks), 'LARKS call together');
         expect(
           renderer.renderCanonical(figure),
-          'partners swing modifier neighbors roll away partners',
+          'partners swing modifier role1s roll away partners',
         );
       });
 
@@ -1469,8 +1490,8 @@ void main() {
 
         expect(
           renderer.renderSummary(figure, Dialect.canonical),
-          'partner swing, partner boxing the gnat, balancing the ring, and '
-          'ones arching and diving',
+          'partner swing, neighbor boxing the gnat, balancing the ring, and '
+          'twos arching and diving',
         );
       });
 
@@ -1822,10 +1843,10 @@ void main() {
         // balance, so adding "balance &" is a strict improvement, not a new
         // divergence (the hand omission is pre-existing base behavior).
         final f = Figure(move: 'box_the_gnat', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partner balance & box the gnat');
+        expect(renderer.renderSummary(f, d), 'neighbor balance & box the gnat');
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'partner balance and box the gnat',
+          'neighbor balance and box the gnat',
         );
         final g = Figure(move: 'box_the_gnat', params: {'balance': false});
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -1834,10 +1855,13 @@ void main() {
         // The alias renders under its own name, so the connective must splice
         // before the RENDERED alias name ("swat the flea"), not the target's.
         final f = Figure(move: 'swat_the_flea', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partner balance & swat the flea');
+        expect(
+          renderer.renderSummary(f, d),
+          'neighbor balance & swat the flea',
+        );
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'partner balance and swat the flea',
+          'neighbor balance and swat the flea',
         );
         final g = Figure(move: 'swat_the_flea', params: {'balance': false});
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -2878,7 +2902,7 @@ void main() {
       test('default renders who + direction + amount', () {
         expect(
           renderer.render(Figure(move: 'orbit'), d),
-          'ones orbit clockwise ½',
+          'role1s orbit clockwise ½',
         );
       });
       test('counterclockwise direction', () {
@@ -2887,13 +2911,13 @@ void main() {
             Figure(move: 'orbit', params: {'direction': 'counterclockwise'}),
             d,
           ),
-          'ones orbit counterclockwise ½',
+          'role1s orbit counterclockwise ½',
         );
       });
       test('verbose spells the amount out', () {
         expect(
           renderer.renderVerbose(Figure(move: 'orbit'), d),
-          'ones orbit clockwise halfway',
+          'role1s orbit clockwise halfway',
         );
       });
     });
@@ -3337,7 +3361,7 @@ void main() {
           Dialect.canonical,
           decimals: true,
         ),
-        'ones orbit clockwise 0.5',
+        'role1s orbit clockwise 0.5',
       );
     });
 

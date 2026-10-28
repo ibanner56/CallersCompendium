@@ -798,17 +798,15 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   }
 
   /// Records a per-move param override (ROADMAP DD.3). Diff-based: if [value]
-  /// equals the taxonomy default for that param, the key is dropped (falling
-  /// back to the taxonomy default); otherwise it is recorded. Persists on
+  /// equals the value the editor offers for that param on entry, the key is
+  /// dropped (falling back to it); otherwise it is recorded. Persists on
   /// change. The move stays shown even when its last diff is dropped.
   void _onMoveParamOverrideChanged(
     String moveId,
     String paramKey,
     Object? value,
   ) {
-    final taxonomyDefault = contraTaxonomy.effectiveParams(
-      Figure(move: moveId),
-    )[paramKey];
+    final taxonomyDefault = contraTaxonomy.entryParams(moveId)[paramKey];
     setState(() {
       final inner = _defaultMoveParamOverrides.putIfAbsent(
         moveId,
@@ -2690,11 +2688,12 @@ class _MoveDefaultsEditor extends StatelessWidget {
     final displayName = def == null
         ? moveId
         : renderer.displayMoveName(moveId, dialect);
-    // Effective params include the taxonomy defaults; overlay any saved
-    // override so the editor shows the value the user will actually get.
+    // Entry params are what the editor seeds on picking the move (taxonomy
+    // defaults, plus any entry-only default); overlay any saved override so the
+    // editor shows the value the user will actually get.
     final effective = def == null
         ? const <String, Object?>{}
-        : contraTaxonomy.effectiveParams(Figure(move: moveId));
+        : contraTaxonomy.entryParams(moveId);
     final moveOverrides = overrides[moveId] ?? const <String, Object?>{};
     return Card(
       key: ValueKey('move-default-card-$moveId'),

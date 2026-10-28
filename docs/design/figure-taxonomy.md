@@ -1675,19 +1675,40 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     every courtesy turn without a stated direction changes, so v37 owes a
     one-time canonical/FTS rebuild, guarded by
     `taxonomyV37CanonicalRebuildDoneKey`.
-- v38: changes five seeded defaults, the ones the figure editor offers on entry:
+- v38: changes ten seeded defaults, chosen as the values both ContraDB (all
+    2,439 dances its listing API returned) and a random 2,000-dance sample of
+    The Caller's Box use most (maintainer, decided on #1969). Stored-figure
+    defaults, which change what a figure that omits the param means:
     `circle.places` 4 -> 3, `allemande.travel` 1 -> 1.5, `star.hand` right ->
-    left, `poussette.who` `ones` -> `role1s`, and `square_through`
-    `places`/`beats` 4/16 -> 2/8 (maintainer, decided on #1969).
-    `square_through.goodBeats` becomes `[8, 16]` so existing four-place,
-    16-beat figures keep raising no `atypical_beats` warning. Source JSON is
-    unchanged: a stored figure that never stated one of these now means the new
-    default, and one that stated a value keeps it. The canonical text of every
-    figure that leaves one of them unstated changes, so v38 owes a one-time
-    canonical/FTS rebuild, guarded by `taxonomyV38CanonicalRebuildDoneKey`.
-    No backfill pins the old values into stored figures (maintainer's call
-    on #1969: the editor should offer the new defaults), so a device
-    still on v37 renders such a figure with the old default until it updates.
+    left, `poussette.who` `ones` -> `role1s`, `square_through`
+    `places`/`beats` 4/16 -> 2/8, `roll_away.who` `neighbors` -> `role1s`,
+    `orbit.who` `ones` -> `role1s`, `arch_and_dive.who` `ones` -> `twos`,
+    `box_the_gnat.who` `partners` -> `neighbors` (so `swat_the_flea`, its
+    alias, follows), and `figure_8.where` `none` -> `above`. `none` stays a
+    valid stored `figure_8.where`. `square_through.goodBeats` becomes `[8, 16]`
+    so existing four-place, 16-beat figures keep raising no `atypical_beats`
+    warning. Source JSON is unchanged: a stored figure that never stated one of
+    these now means the new default, and one that stated a value keeps it. The
+    canonical text of every figure that leaves one of them unstated changes, so
+    v38 owes a one-time canonical/FTS rebuild, guarded by
+    `taxonomyV38CanonicalRebuildDoneKey`. No backfill pins the old values into
+    stored figures (maintainer's call on #1969: the editor should offer the new
+    defaults), so a device still on v37 renders such a figure with the old
+    default until it updates.
+  v38 also adds `ParamSpec.entryDefault`, a value the figure editor seeds on
+    picking a move when it should differ from `defaultValue`
+    (`Taxonomy.entryParams`). It is never read for a figure that omits the
+    param, so it changes no stored meaning and owes no rebuild. It is used for
+    the balance flag, which authors usually set but which a source that does not
+    state it leaves unbalanced: `box_the_gnat`, `box_circulate` and
+    `pass_the_ocean` seed `balance` true with 8 beats, and `form_long_waves`
+    seeds `balance` true with 4 (its 0-beat formation label plus the balance's
+    4). Each is the state the editor's own "+4 beats when balance turns on"
+    rule reaches by ticking balance, so unticking returns the plain default.
+    `box_the_gnat.goodBeats` and `box_circulate.goodBeats` become `[4, 8]` so
+    the seeded 8 raises no `atypical_beats` warning. The Settings per-move
+    defaults diff against `entryParams`, so a saved override is a diff from
+    what the editor actually offers.
 
 ## Open questions (to resolve during implementation, with user input)
 

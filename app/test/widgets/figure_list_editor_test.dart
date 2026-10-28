@@ -882,16 +882,13 @@ void main() {
     expect(drafts.single.beats, 16);
   });
 
-  testWidgets('toggling balance on a flag move adds then removes 4 beats', (
+  testWidgets('toggling balance on a flag move removes then adds 4 beats', (
     tester,
   ) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
     await _selectMove(tester, 0, 'box the', 'box_the_gnat');
-    expect(drafts.single.beats, 4);
-
-    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
-    await tester.pumpAndSettle();
+    // Entry is the balanced, 8-beat box (taxonomy v38).
     expect(drafts.single.params['balance'], true);
     expect(drafts.single.beats, 8);
 
@@ -899,6 +896,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(drafts.single.params['balance'], false);
     expect(drafts.single.beats, 4);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.params['balance'], true);
+    expect(drafts.single.beats, 8);
   });
 
   testWidgets('balance toggle shifts a manually-set beats value by 4', (
@@ -907,6 +909,9 @@ void main() {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
     await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    // Entry is balanced; untick it so the toggle under test turns balance on.
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '6');
@@ -923,6 +928,9 @@ void main() {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
     await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    // Entry is balanced; untick it so the first toggle below turns balance on.
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '64');
@@ -1240,6 +1248,47 @@ void main() {
 
       expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.params['places'], 3);
+    });
+
+    testWidgets(
+      'a balanceable move is seeded balanced, with the balanced beats',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts);
+        await _selectMove(tester, 0, 'gnat', 'box_the_gnat');
+
+        // Entry offers the balanced, 8-beat box; the taxonomy default (what a
+        // figure that omits the param means) is unbalanced and 4 beats.
+        expect(drafts.single.params['balance'], isTrue);
+        expect(drafts.single.params['beats'], 8);
+        expect(drafts.single.params['who'], 'neighbors');
+      },
+    );
+
+    testWidgets('long waves are seeded balanced at 4 beats', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'long waves', 'form_long_waves');
+
+      expect(drafts.single.params['balance'], isTrue);
+      expect(drafts.single.params['beats'], 4);
+    });
+
+    testWidgets('a saved per-move default still wins over the entry default', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'box_the_gnat': {'balance': false, 'beats': 4},
+        },
+      );
+      await _selectMove(tester, 0, 'gnat', 'box_the_gnat');
+
+      expect(drafts.single.params['balance'], isFalse);
+      expect(drafts.single.params['beats'], 4);
     });
   });
 

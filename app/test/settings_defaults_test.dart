@@ -1907,6 +1907,37 @@ void main() {
       );
     });
 
+    testWidgets(
+      'a move override is a diff from what the editor offers on entry',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultMoveParamOverridesKey,
+          encodeMoveParamOverrides({
+            'box_the_gnat': {'beats': 12},
+          }),
+        );
+        await _pumpDefaults(tester, repos);
+        await tester.binding.setSurfaceSize(const Size(1200, 4800));
+        await tester.pumpAndSettle();
+
+        // box_the_gnat's entry beats are 8 (balanced), not its plain default of
+        // 4, so setting beats back to 8 is "no override".
+        await tester.enterText(
+          find.byKey(const ValueKey('move-default-box_the_gnat-beats')),
+          '8',
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          moveParamOverridesFromStored(
+            await repos.settings.get(kDefaultMoveParamOverridesKey),
+          ),
+          isEmpty,
+        );
+      },
+    );
+
     testWidgets('removing a move override persists and hides its card', (
       tester,
     ) async {

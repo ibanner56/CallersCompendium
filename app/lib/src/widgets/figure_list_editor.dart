@@ -1563,7 +1563,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.draft.compound = null;
     widget.draft.params
       ..clear()
-      ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
+      ..addAll(widget.taxonomy.entryParams(moveId));
     // Picking a move is an explicit authorship action: any inherited
     // parser-assumed-subject marker (#460) no longer applies.
     widget.draft.assumedSubject = false;
@@ -3495,7 +3495,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     draft.move = moveId;
     draft.params
       ..clear()
-      ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
+      ..addAll(widget.taxonomy.entryParams(moveId));
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
     draft.wordingOverride = null;
