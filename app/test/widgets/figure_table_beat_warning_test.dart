@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -30,7 +31,7 @@ Future<void> _pump(WidgetTester tester, List<Figure> figures) async {
 }
 
 Figure _swing(int beats) =>
-    Figure(move: 'swing', params: {'who': 'partners', 'beats': beats});
+    testFigure(move: 'swing', params: {'who': 'partners', 'beats': beats});
 
 void main() {
   testWidgets('a dance whose beats fall short shows the warning', (

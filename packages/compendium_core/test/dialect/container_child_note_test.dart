@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// A note on a meanwhile side or a modifier part has no row of its own on any
@@ -11,7 +12,7 @@ void main() {
   // The audit's probe line, built as the parser used to save it: the turn
   // amount the caller typed sits in the side's note.
   const allemandeParams = {'who': 'role2s', 'hand': 'right'};
-  final allemande = Figure(
+  final allemande = testFigure(
     move: 'allemande',
     params: allemandeParams,
     note: '1 1/2',
@@ -72,7 +73,7 @@ void main() {
   test('a side with no note renders as before', () {
     final plain = Figure.meanwhile(
       figures: [
-        Figure(move: 'allemande', params: allemandeParams),
+        testFigure(move: 'allemande', params: allemandeParams),
         orbit,
       ],
       beats: 8,
