@@ -2146,9 +2146,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       },
     );
     void putBack() {
-      if (keepDirty && mounted && identical(_slots, workingSlots)) {
+      if (!keepDirty || !mounted) return;
+      if (identical(_slots, workingSlots)) {
         setState(() => _slots = previousSlots);
+        return;
       }
+      // Edited during the write: the edit is built on the undone copy, so
+      // apply the adjustment to it again, and save that as the draft.
+      setState(() {
+        _slots = _renumber(
+          rebaseSlotEdits(
+            before: previous.slots,
+            after: adjusted.slots,
+            onto: _slots,
+          ),
+        );
+      });
+      _scheduleAutosave();
     }
 
     final bool restored;
@@ -2163,7 +2177,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!restored || !mounted) return restored;
     final live = await _repos.programs.getById(existing.id);
     // An edit made while the restore was in flight keeps its working copy;
-    // saving it will write that edit (and the adjusted slots) over the restore.
+    // saving it will write that edit over the restore, with the adjusted slots
+    // only when the builder had no other unsaved edits (otherwise the working
+    // copy took the Undo before the write).
     if (!mounted || live == null || _editGeneration != generation) {
       return restored;
     }
