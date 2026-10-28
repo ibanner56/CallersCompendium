@@ -2012,9 +2012,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 return stored;
               });
               // Keep later commits usable if this live-gig write fails, while
-              // still surfacing the failure to this callback.
+              // still surfacing the failure to this callback. With other edits
+              // still unsaved the write is not a clean commit: a shutdown flush
+              // must still write its draft, which holds Perform's change too
+              // (the `_saveDraft` above is suppressed during that flush).
               _commitQueueTail = operation.then<_AutoCommitOutcome>(
-                (_) => _AutoCommitOutcome.committed(generation),
+                (_) => keepDirty
+                    ? _AutoCommitOutcome.notCommitted(generation)
+                    : _AutoCommitOutcome.committed(generation),
                 onError: (Object error, StackTrace stackTrace) {
                   logCaughtError(
                     error,
@@ -2115,8 +2120,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         updatedAt: DateTime.now().toUtc(),
       ),
     );
+    // As for the Perform write: with other edits unsaved, not a clean commit.
     _commitQueueTail = operation.then<_AutoCommitOutcome>(
-      (_) => _AutoCommitOutcome.committed(generation),
+      (_) => keepDirty
+          ? _AutoCommitOutcome.notCommitted(generation)
+          : _AutoCommitOutcome.committed(generation),
       onError: (Object error, StackTrace stackTrace) {
         logCaughtError(
           error,

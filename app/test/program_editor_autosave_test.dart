@@ -821,6 +821,15 @@ void main() {
           contains('Pending metadata'),
           reason: 'the unsaved title is still unsaved work to recover',
         );
+        final recovered = decodeProgramDraft(
+          await delayed.repos.settings.get('program_editor_draft:p1'),
+        );
+        expect(
+          recovered!.slots.single.performedAt,
+          persisted?.slots.single.performedAt,
+          reason:
+              "restoring the draft and saving must not erase Perform's mark",
+        );
       },
     );
 
