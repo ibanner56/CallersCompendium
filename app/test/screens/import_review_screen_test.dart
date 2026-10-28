@@ -2336,7 +2336,7 @@ void main() {
                 1: '4',
                 2: 'Simplicity Swing',
                 3: 'Becky Hill',
-                if (userField != null) 4: userField,
+                4: ?userField,
               }),
               MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
               if (thirdDance)
