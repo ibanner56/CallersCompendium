@@ -9,14 +9,19 @@ import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
 
-Dance _dance(String id, String title, {List<DanceLink> links = const []}) =>
-    Dance(
-      id: id,
-      title: title,
-      links: links,
-      createdAt: DateTime.utc(2026, 1, 1),
-      updatedAt: DateTime.utc(2026, 1, 1),
-    );
+Dance _dance(
+  String id,
+  String title, {
+  List<DanceLink> links = const [],
+  Provenance? provenance,
+}) => Dance(
+  id: id,
+  title: title,
+  links: links,
+  provenance: provenance,
+  createdAt: DateTime.utc(2026, 1, 1),
+  updatedAt: DateTime.utc(2026, 1, 1),
+);
 
 DanceLink _related(String id, String targetDanceId) => DanceLink(
   id: id,
@@ -100,7 +105,19 @@ void main() {
     final json = _share(
       [
         _dance('sender-a', 'Alpha', links: [_related('link-1', 'sender-b')]),
-        _dance('sender-b', 'Beta', links: [_related('link-2', 'sender-a')]),
+        _dance(
+          'sender-b',
+          'Beta',
+          links: [
+            DanceLink(
+              id: 'link-2',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'sender-a',
+              label: 'mirror',
+              transitive: true,
+            ),
+          ],
+        ),
       ],
       programs: [
         Program(
@@ -126,6 +143,8 @@ void main() {
     expect(beta.id, isNot('sender-b'));
     expect([for (final l in alpha.links) l.targetDanceId], [beta.id]);
     expect([for (final l in beta.links) l.targetDanceId], [alpha.id]);
+    expect(beta.links.single.label, 'mirror');
+    expect(beta.links.single.transitive, isTrue);
     expect({
       for (final l in [...alpha.links, ...beta.links]) l.id,
     }, isNot(anyElement(anyOf('link-1', 'link-2'))));
@@ -154,26 +173,94 @@ void main() {
     expect(back.links.single.id, isNot('L1'));
   });
 
-  test('a related link resolves to a dance received earlier, or to the '
-      "receiver's own dance coming back", () async {
-    await dances.create(_dance('mine-c', 'Gamma'));
-    await _receive(db, _share([_dance('sender-b', 'Beta')]));
-    final beta = _titled(await dances.listAll(), 'Beta');
-
-    final result = await _receive(
-      db,
-      _share([
-        _dance(
-          'sender-a',
-          'Alpha',
-          links: [_related('link-1', 'sender-b'), _related('link-2', 'mine-c')],
+  group('a related link resolves to a dance received earlier', () {
+    // The review screen commits only the rows the user acts on, rebuilt
+    // without the plan's dedupe snapshot; this commits the same way.
+    Future<ImportSession> commitActedRows(
+      String json,
+      bool Function(Dance draft) acted,
+    ) async {
+      final pipeline = ImportPipeline(
+        dances,
+        ChoreographerRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
+      );
+      final planned = await pipeline.plan(
+        GenericJsonAdapter(),
+        ImportRequest(payload: json),
+      );
+      return pipeline.commit(
+        ImportBatchResult(
+          records: [
+            for (final record in planned.records)
+              if (acted(record.draft.dance)) record,
+          ],
         ),
-      ]),
-    );
+        now: DateTime.utc(2026, 10, 27),
+        newId: uuidV4,
+      );
+    }
 
-    final alpha = _titled(await dances.listAll(), 'Alpha');
-    expect([for (final l in alpha.links) l.targetDanceId], [beta.id, 'mine-c']);
-    expect(result.danceSession.issues, isEmpty);
+    test('when the file does not carry it', () async {
+      await _receive(db, _share([_dance('sender-b', 'Beta')]));
+      final beta = _titled(await dances.listAll(), 'Beta');
+
+      final session = await commitActedRows(
+        _share([
+          _dance('sender-a', 'Alpha', links: [_related('link-1', 'sender-b')]),
+        ]),
+        (_) => true,
+      );
+
+      final alpha = _titled(await dances.listAll(), 'Alpha');
+      expect([for (final l in alpha.links) l.targetDanceId], [beta.id]);
+      expect(session.issues, isEmpty);
+    });
+
+    test('when the file carries it from an online source and its row is '
+        'skipped', () async {
+      // Under its upstream key, not the sender's id for it.
+      final upstream = Provenance(
+        source: ProvenanceSource.contradb,
+        externalId: '457',
+        importedAt: DateTime.utc(2026),
+      );
+      final betaFromSender = _dance('sender-b', 'Beta', provenance: upstream);
+      await _receive(db, _share([betaFromSender]));
+      final beta = _titled(await dances.listAll(), 'Beta');
+
+      final session = await commitActedRows(
+        _share([
+          _dance('sender-a', 'Alpha', links: [_related('link-1', 'sender-b')]),
+          betaFromSender,
+        ]),
+        (draft) => draft.title == 'Alpha',
+      );
+
+      final alpha = _titled(await dances.listAll(), 'Alpha');
+      expect([for (final l in alpha.links) l.targetDanceId], [beta.id]);
+      expect(session.issues, isEmpty);
+    });
+  });
+
+  test('Undo of a re-import puts back the links the dance had', () async {
+    final json = _share([
+      _dance('sender-a', 'Alpha', links: [_related('link-1', 'sender-b')]),
+      _dance('sender-b', 'Beta'),
+    ]);
+    await _receive(db, json);
+    Future<List<String?>> alphaTargets() async => [
+      for (final l in _titled(await dances.listAll(), 'Alpha').links)
+        l.targetDanceId,
+    ];
+    final before = await alphaTargets();
+
+    final again = await _receive(db, json);
+    expect(again.danceSession.updatedDancePriorStates, hasLength(2));
+    await _importer(db).undo(again);
+
+    expect(await alphaTargets(), before);
+    expect(await dances.listAll(), hasLength(2));
   });
 
   test('Undo removes the links it added along with the dances', () async {

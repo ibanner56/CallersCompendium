@@ -621,14 +621,14 @@ class ImportPipeline {
   /// loop ends.
   ///
   /// A draft's links come from the source's id space (a shared file carries the
-  /// sender's link ids and the sender's dance ids), so they are never written as
-  /// given. Every link gets a fresh id from [newId]. A `relatedDance` link is
-  /// held back until every record has been written, then added to its dance
-  /// with its target resolved, in order: to the dance a record of this batch
-  /// whose draft carried that id was written as; to a dance received earlier
-  /// under that id (its `json` provenance key); or to a live local dance with
-  /// that id, which is the sender's own dance coming back. A link whose target
-  /// resolves to none of these is left out with an
+  /// sender's link ids), so they are never written as given. Every link gets a
+  /// fresh id from [newId]. A `relatedDance` link names its target by the
+  /// target's external id in this source ([GenericJsonAdapter] rewrites the
+  /// sender's dance id to it), and is held back until every record has been
+  /// written. It is then added to its dance with its target resolved: to the
+  /// dance the record of this batch with that external id was written as, or
+  /// else to a live dance already received under that external id. A link
+  /// whose target resolves to neither is left out with an
   /// `archive_related_dance_unresolved` note in [ImportSession.issues]. The
   /// link is written by a second update of a dance this batch already wrote,
   /// so [undo] reverts it with that dance.
@@ -673,10 +673,10 @@ class ImportPipeline {
     }
     final createdChoreographerIds = <String>[];
     final revivedChoreographerIds = <String>[];
-    // Each written dance's held-back related links, and the source-side id its
-    // draft carried → the id it was written as (see the doc above).
+    // Each written dance's held-back related links, and each written record's
+    // external id → the id it was written as (see the doc above).
     final heldRelatedLinks = <String, List<DanceLink>>{};
-    final writtenIdByDraftId = <String, String>{};
+    final writtenIdByExternalId = <String, String>{};
 
     final total = batch.records.length;
     for (var i = 0; i < total; i++) {
@@ -837,7 +837,9 @@ class ImportPipeline {
               );
             }
           }
-          writtenIdByDraftId[plan.draft.dance.id] = id;
+          if (plan.draft.raw.externalId case final externalId?) {
+            writtenIdByExternalId[externalId] = id;
+          }
           if (relatedLinks.isNotEmpty) heldRelatedLinks[id] = relatedLinks;
           committed.add(
             CommittedRecord(
@@ -867,7 +869,9 @@ class ImportPipeline {
             keepCustomFieldsFrom: existing,
           );
           await _dances.update(dance);
-          writtenIdByDraftId[plan.draft.dance.id] = id;
+          if (plan.draft.raw.externalId case final externalId?) {
+            writtenIdByExternalId[externalId] = id;
+          }
           if (relatedLinks.isNotEmpty) heldRelatedLinks[id] = relatedLinks;
           committed.add(
             CommittedRecord(
@@ -912,8 +916,7 @@ class ImportPipeline {
     }
     final issues = await _addHeldRelatedLinks(
       heldRelatedLinks,
-      writtenIdByDraftId: writtenIdByDraftId,
-      dedupeIndex: batch.dedupeIndex,
+      writtenIdByExternalId: writtenIdByExternalId,
       newId: newId,
       now: now,
     );
@@ -968,12 +971,15 @@ class ImportPipeline {
   /// record itself did import.
   Future<List<ImportIssue>> _addHeldRelatedLinks(
     Map<String, List<DanceLink>> held, {
-    required Map<String, String> writtenIdByDraftId,
-    required DedupeIndex? dedupeIndex,
+    required Map<String, String> writtenIdByExternalId,
     required String Function() newId,
     required DateTime now,
   }) async {
     final issues = <ImportIssue>[];
+    if (held.isEmpty) return issues;
+    // Read after the batch's writes, so it is current whatever snapshot the
+    // caller planned with (a review screen rebuilds its batch without one).
+    final index = await buildDedupeIndex();
     ImportIssue unresolved(String danceId) => ImportIssue(
       severity: ImportIssueSeverity.warning,
       code: 'archive_related_dance_unresolved',
@@ -993,21 +999,10 @@ class ImportPipeline {
       };
       final added = <DanceLink>[];
       for (final link in links) {
-        final sourceTarget = link.targetDanceId!;
-        var target = writtenIdByDraftId[sourceTarget];
-        if (target == null) {
-          // Neither is this batch's own write, so confirm it is live: the
-          // dedupe snapshot predates the commit, and the id is untrusted.
-          for (final candidate in [
-            ?dedupeIndex?.findByExternalId(ProvenanceSource.json, sourceTarget),
-            sourceTarget,
-          ]) {
-            if (await _dances.getById(candidate) != null) {
-              target = candidate;
-              break;
-            }
-          }
-        }
+        final targetKey = link.targetDanceId!;
+        final target =
+            writtenIdByExternalId[targetKey] ??
+            index.findByExternalId(ProvenanceSource.json, targetKey);
         if (target == null) {
           issues.add(unresolved(danceId));
           continue;
