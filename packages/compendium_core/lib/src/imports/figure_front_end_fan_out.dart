@@ -167,10 +167,13 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
 /// of what was typed sits in the note (#1612). A note is a leftover when it is
 /// `and back` (`over & back` too), a bare number (`16`) or exactly a move's
 /// name (`petronella`), as before; or when
-/// - a clause of it is another figure: it starts with a move's name and reads,
-///   on its own, as a whole figure with no note of its own. The note is cut at
-///   `,`, `;`, `:`, `and` and `then` (`and swing, end facing down`,
-///   `four in line, turn alone`); or
+/// - a clause of it is another figure. The note is cut at `,`, `;`, `:`,
+///   `and` and `then`, and a clause is a figure when it starts with a move's
+///   name (`and swing, end facing down`, `four in line, turn alone`,
+///   `and swing with partner`), unless the name is followed by a word that
+///   makes it a hold, a place or an aside (`promenade hold`,
+///   `long wave in center`, `wave of four (NR,WL)`) and the clause does not
+///   read, on its own, as a whole figure with no note; or
 /// - it holds a turn amount: a fraction (`3/4`, `½`), a decimal (`1.5`),
 ///   `twice`, `x2` or `2x`, or `N times` (`petronella twice`), for N of 2
 ///   or more.
@@ -179,9 +182,8 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
 /// that is the designed behaviour. So do plain words (`slowly`,
 /// `to new neighbors`, `in lines of 4`); a move named mid-clause, where it is
 /// usually where the figure happens (`in the circle`,
-/// `to partner (optional courtesy turn)`); a clause that opens with a move's
-/// name but is a hold, a place or a formation rather than a figure
-/// (`promenade hold`, `long wave in center`); and `once`, which is what a
+/// `to partner (optional courtesy turn)`); a hold, a place or an aside as
+/// above; and `once`, which is what a
 /// figure does by default (`once around`). A count with a unit (`8 beats`,
 /// `4 bars`) is not one either: free-text entry peels those off before the
 /// parse, and the re-parse upgrade keeps a unit count it does not read as
@@ -213,6 +215,13 @@ final RegExp _whitespace = RegExp(r'\s+');
 final RegExp _edgePunctuation = RegExp(r'^[\s,.;:!?-]+|[\s,.;:!?-]+$');
 final RegExp _leadingConnective = RegExp(r'^(and|then) ');
 final RegExp _bareNumber = RegExp(r'^\d+$');
+
+/// What, right after a move's name at the start of a note's clause, makes the
+/// clause a hold, a place or an aside rather than a figure: see
+/// [_noteIsLeftover].
+final RegExp _qualifierAfterName = RegExp(
+  r'^\s*(?:[(\[]|(?:hold|position|grip|optional|in|at|on|facing)\b)',
+);
 
 /// Where a note's clauses break: see [_noteIsLeftover].
 final RegExp _clauseBreak = RegExp(r'[,;:]|\b(?:and|then)\b');
@@ -271,12 +280,13 @@ class _LeftoverVocabulary {
   final RegExp leadingMoveName;
   final Taxonomy taxonomy;
 
-  /// Whether [clause] is a figure of its own: it starts with a move's name,
-  /// and some front-end reads the whole of it as a structured figure with no
-  /// note. The name check comes first, so the parser only runs for a clause
-  /// that could be one.
+  /// Whether [clause] is a figure of its own: see [_noteIsLeftover]. The
+  /// parser runs only for a clause whose name is followed by a
+  /// [_qualifierAfterName].
   bool isFigure(String clause) {
-    if (!leadingMoveName.hasMatch(clause)) return false;
+    final name = leadingMoveName.firstMatch(clause);
+    if (name == null) return false;
+    if (!_qualifierAfterName.hasMatch(clause.substring(name.end))) return true;
     for (final fe in figureFanOutFrontEnds) {
       final f = parseFigureLine(clause, taxonomy: taxonomy, frontEnd: fe);
       if (f != null && !f.isCustom && f.note == null) return true;

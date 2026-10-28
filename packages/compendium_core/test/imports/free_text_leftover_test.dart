@@ -26,6 +26,7 @@ void main() {
       'Ladies chain over & back',
       // A note that is exactly a move's name, as #1612 already ruled.
       'balance and swing petronella',
+      'balance and swing with partner',
       '(4) Balance long wave',
     ]) {
       test(line, () {
