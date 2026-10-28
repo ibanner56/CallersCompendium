@@ -14168,7 +14168,7 @@ abstract class AppLocalizations {
   /// **'Loading published collections…'**
   String get publishedCollectionsLoading;
 
-  /// Non-leaking error shown when the signed catalog cannot be fetched or verified.
+  /// Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check.
   ///
   /// In en, this message translates to:
   /// **'Published collections are temporarily unavailable.'**

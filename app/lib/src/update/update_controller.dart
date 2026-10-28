@@ -94,7 +94,8 @@ enum AssistedDownloadStatus {
 /// the reason and the presentation layer localizes it
 /// (`update_failure_labels.dart`), like `UrlFetchFailureReason` for imports.
 enum UpdateDownloadFailure {
-  /// No folder could be prepared to receive the file.
+  /// No folder could be prepared to receive the file, or (off macOS) something
+  /// already sat at the app-chosen download path.
   destinationUnavailable,
 
   /// macOS only: the path chosen in the Save panel holds something the app
@@ -650,7 +651,11 @@ class UpdateController extends ChangeNotifier {
       case DownloadResultKind.permissionDenied:
         return UpdateDownloadFailure.unwritable;
       case DownloadResultKind.destinationOccupied:
-        return UpdateDownloadFailure.destinationOccupied;
+        // Only macOS lets the user choose another name or folder; elsewhere the
+        // app picked the temp path itself, so that advice would be unusable.
+        return _platform == UpdatePlatform.macos
+            ? UpdateDownloadFailure.destinationOccupied
+            : UpdateDownloadFailure.destinationUnavailable;
       case DownloadResultKind.networkError:
       case DownloadResultKind.success:
       case DownloadResultKind.cancelled:

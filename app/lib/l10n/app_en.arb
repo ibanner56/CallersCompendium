@@ -12350,7 +12350,7 @@
   },
   "publishedCollectionsUnavailable": "Published collections are temporarily unavailable.",
   "@publishedCollectionsUnavailable": {
-    "description": "Non-leaking error shown when the signed catalog cannot be fetched or verified."
+    "description": "Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check."
   },
   "publishedCollectionsOffline": "Published collections could not be reached. Check your connection and try again.",
   "@publishedCollectionsOffline": {

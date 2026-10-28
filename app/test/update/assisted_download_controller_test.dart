@@ -970,7 +970,7 @@ void main() {
       expect(seen?.kind, DownloadResultKind.destinationOccupied);
       expect(seen?.message, contains('already exists'));
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
-      expect(c.downloadFailure, UpdateDownloadFailure.destinationOccupied);
+      expect(c.downloadFailure, UpdateDownloadFailure.destinationUnavailable);
     });
   });
 }

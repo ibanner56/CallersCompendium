@@ -505,7 +505,7 @@ platform.
 
 If the download fails, the message says why: your connection, an error from the
 update server, a full disk, or a folder the app cannot write to. Free some space
-or choose another location, then try again. **View release** is always there as
+(on macOS, you can also choose another location), then try again. **View release** is always there as
 a manual fallback. A failure during the transfer or while saving the file is also recorded in
 **Settings** → **Diagnostics**, without file paths.
 
