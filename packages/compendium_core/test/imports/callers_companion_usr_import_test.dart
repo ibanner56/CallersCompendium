@@ -1309,6 +1309,43 @@ void main() {
       expect(kept.links, isEmpty, reason: 'no link to the removed dance');
       expect(await programs.listAll(), isEmpty);
     });
+
+    test('undo removes the link it added to the earlier dance even when its '
+        'target survives the undo', () async {
+      // A re-import: undo restores dance 7 rather than deleting it, so the
+      // repository's own clean-up of links to a deleted dance does not apply.
+      await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final adapter = CallersCompanionUsrAdapter();
+      final reimporter = importerWith(adapter);
+      final (rest, editedId) = await editFirst(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        '4',
+        reimporter,
+      );
+
+      final result = await reimporter.commit(
+        rest,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': editedId},
+      );
+      final targetId = (await dances.getById(
+        editedId,
+      ))!.links.single.targetDanceId!;
+      expect(result.danceSession.insertedDanceIds, isEmpty);
+
+      await reimporter.undo(result);
+
+      expect(await dances.getById(targetId), isNotNull);
+      expect((await dances.getById(editedId))!.links, isEmpty);
+    });
   });
 
   group('related-dance links (issue #688)', () {
