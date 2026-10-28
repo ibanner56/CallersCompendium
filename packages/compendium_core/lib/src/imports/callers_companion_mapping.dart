@@ -755,6 +755,10 @@ Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
       );
     case 'other':
       return Formation(FormationShape.other, detail: detail ?? 'Other');
+    case '' when contraForm.isEmpty && detail != null:
+      // Only the caller's own description: read it as the text export reads
+      // its single string, as before #1972.
+      return _mapFormation(r.formationOther, issues);
     case '' || 'duple minor':
       break;
     default:

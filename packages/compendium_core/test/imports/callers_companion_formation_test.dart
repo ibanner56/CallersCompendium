@@ -189,9 +189,16 @@ void main() {
     },
   );
 
-  test('a recognised type adds no "Type:" line to the calling notes', () {
-    final d = map({'Type': 'Circle Mixer', 'Formation': 'Duple Minor'});
-    expect(d.callingNotes, isNot(contains('Type:')));
+  test('a formation type adds no "Type:" line to the calling notes', () {
+    for (final type in ['Circle Mixer', 'Scatter Mixer', 'Longways']) {
+      final draft = parse({'Type': type, 'Formation': 'Other'});
+      expect(draft.dance.callingNotes, isNot(contains('Type:')), reason: type);
+      expect(
+        draft.issues.map((i) => i.code),
+        isNot(contains('cc_unmapped_type')),
+        reason: type,
+      );
+    }
   });
 
   test('the type and SubType count without any formation column', () {
@@ -201,12 +208,20 @@ void main() {
       FormationShape.circleMixer,
       mixer: true,
     );
-    expectFormation(
-      {'Type': 'Square', 'SubType': 'Mixer, H H S S'},
-      FormationShape.dupleImproper,
-      mixer: true,
-      form: DanceForm.square,
-    );
+    final square = map({'Type': 'Square', 'SubType': 'Mixer, H H S S'});
+    expect(square.mixer, isTrue);
+    expect(square.form, DanceForm.square);
+  });
+
+  test('a description alone is read as the text export reads it', () {
+    expectFormation({
+      'FormationOther': 'Sicilian Circle',
+    }, FormationShape.sicilianCircle);
+    expectFormation({'FormationOther': 'Becket'}, FormationShape.becketCw);
+    final draft = parse({'FormationOther': 'Five couple horseshoe'});
+    expect(draft.dance.formation.shape, FormationShape.other);
+    expect(draft.dance.formation.detail, 'Five couple horseshoe');
+    expect(draft.issues.map((i) => i.code), contains('cc_unmapped_formation'));
   });
 
   test('a start CC does not offer is read as the text export reads it', () {

@@ -397,7 +397,9 @@ declines the collapse.
   two mixers with `mixer: true`). Otherwise the `Formation` family decides:
   Four Facing Four, Triplet, Triple Minor (its `ContraForm` start as the
   detail), Square (`other`, detail "Square"; the dance form comes from `Type`),
-  Other (`other`). A Duple Minor, or a blank family, is refined by `ContraForm`
+  Other (`other`). A blank family and start with only `FormationOther` is read
+  as the text export's single string would be. A Duple Minor, or a blank
+  family, is refined by `ContraForm`
   and `Direction`: Becket with `CCW` is `becketCcw` (else `becketCw`), Indecent,
   Proper, and Improper (or no start) with `Rev` is
   `reverseProgressionImproper`; other `Direction` values are ignored. A family
@@ -405,7 +407,7 @@ declines the collapse.
   would be, so "Sicilian Circle" keeps its shape and unrecognised text is the
   `other` detail with a `cc_unmapped_formation` warning. `FormationOther`, the
   caller's own description of the start, is the detail. A square whose
-  `SubType` starts "Mixer" is a mixer. A formation type read this way adds no
+  `SubType` starts "Mixer" is a mixer (in a real file only squares have one). A formation type read this way adds no
   "Type:" line to the calling notes. The CC text export, which gives one
   formation string, keeps the single-string mapping, its "Type:" note for
   these types, and `mixer: false`. `SetItem.AlternateDance` marks an alternate
