@@ -1,0 +1,14 @@
+{
+  "id": "1968-hall-ender-inline",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When you edit a down the hall or up the hall figure, the ender now shows without opening More options, and the moving option is now under More options."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Reorder the down the hall and up the hall params so the ender precedes moving."
+    ]
+  }
+}

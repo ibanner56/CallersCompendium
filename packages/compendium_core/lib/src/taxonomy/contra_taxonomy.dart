@@ -1086,21 +1086,21 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'down the hall',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'everyone'),
-        // Who moves; ContraDB couples this to `who` (everyone <-> all).
-        'moving': ParamSpec(
+        'ender': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'all',
-          choices: ['all', 'center', 'outsides'],
+          defaultValue: 'turnCouple',
+          choices: _downTheHallEnders,
         ),
         'facing': ParamSpec(
           ParamKind.choice,
           defaultValue: 'forward',
           choices: ['forward', 'forwardThenBackward', 'backward'],
         ),
-        'ender': ParamSpec(
+        // Who moves; ContraDB couples this to `who` (everyone <-> all).
+        'moving': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'turnCouple',
-          choices: _downTheHallEnders,
+          defaultValue: 'all',
+          choices: ['all', 'center', 'outsides'],
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1112,20 +1112,20 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'up the hall',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'everyone'),
-        'moving': ParamSpec(
+        'ender': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'all',
-          choices: ['all', 'center', 'outsides'],
+          defaultValue: 'circle',
+          choices: _downTheHallEnders,
         ),
         'facing': ParamSpec(
           ParamKind.choice,
           defaultValue: 'forward',
           choices: ['forward', 'forwardThenBackward', 'backward'],
         ),
-        'ender': ParamSpec(
+        'moving': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'circle',
-          choices: _downTheHallEnders,
+          defaultValue: 'all',
+          choices: ['all', 'center', 'outsides'],
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
