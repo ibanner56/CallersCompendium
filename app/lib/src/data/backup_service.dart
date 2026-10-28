@@ -813,8 +813,9 @@ String backupFileName(DateTime when) {
 /// reminder banner so both run the identical export.
 ///
 /// Returns `false` (nothing stamped) when the user cancelled the save dialog or
-/// dismissed the share sheet. Throws on failure ([BackupExportTooLargeException] included); each
-/// caller owns its progress UI, error logging and snackbar.
+/// dismissed the share sheet. Throws on failure
+/// ([BackupExportTooLargeException] included); each caller owns its progress
+/// UI, error logging and snackbar.
 Future<bool> exportBackupNow(
   CompendiumRepositories repos,
   BackupSaver saver,

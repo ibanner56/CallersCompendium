@@ -44,8 +44,9 @@ String diagnosticsLogFileName([DateTime? now]) {
 ///
 /// On desktop this is a "save a file" action (native Save As via
 /// `file_selector`); on mobile it is a "share to another app" action (temp file
-/// + OS share sheet via `share_plus`; `false` if the sheet is dismissed). Mirrors `saveBackupToFile`, including the
-/// defensive `create(recursive: true)` before the mobile temp-file write.
+/// + OS share sheet via `share_plus`, `false` if the sheet is dismissed).
+/// Mirrors `saveBackupToFile`, including the defensive `create(recursive: true)`
+/// before the mobile temp-file write.
 Future<bool> saveDiagnosticsLog(
   String contents,
   String suggestedFileName,
