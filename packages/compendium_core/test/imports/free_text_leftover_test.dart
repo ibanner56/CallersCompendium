@@ -33,6 +33,12 @@ void main() {
       });
     }
 
+    test('one leftover note in a `;` line is enough', () {
+      // The swing's note is plain words; the petronella's hides a turn.
+      final f = parse('neighbors swing slowly; petronella twice').single;
+      expect(f.isCustom, isTrue);
+    });
+
     test('the audit\'s meanwhile line keeps its 1 1/2', () {
       // Before, the side read "allemande right" (once) with "1 1/2" in the
       // side's note, which no surface showed (AUTH-3).
@@ -49,6 +55,10 @@ void main() {
       ('down the hall in lines of 4', 'down_the_hall', 'in lines of 4'),
       // `back` alone is the return chain, not "over and back".
       ('ladies chain back', 'chain', 'back'),
+      // A move named mid-clause is usually where the figure happens.
+      ('neighbors swing in the circle', 'swing', 'in the circle'),
+      // `once` is what a figure does by default, not a turn it ignores.
+      ('Circle left once around', 'circle', 'once around'),
     ]) {
       test(line, () {
         final f = parse(line).single;
