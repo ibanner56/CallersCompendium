@@ -634,6 +634,21 @@ void main() {
       ),
       eventDate,
     );
+    // A re-stamp is bumped a second past the event date per used second.
+    final bumped = eventDate.add(const Duration(seconds: 2));
+    expect(
+      callingHistoryDisplayDate(
+        DanceCallingRecord(
+          slotId: 's1',
+          programId: 'p1',
+          programTitle: 'T',
+          programUpdatedAt: DateTime.utc(2026, 10, 25),
+          eventDate: eventDate,
+          performedAt: bumped,
+        ),
+      ),
+      eventDate,
+    );
     final tapped = DateTime.utc(2026, 10, 26, 2, 30);
     expect(
       callingHistoryDisplayDate(

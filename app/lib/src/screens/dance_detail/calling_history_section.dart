@@ -375,6 +375,10 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   }
 }
 
+/// How far past `eventDate` a `performedAt` can sit and still count as a stamp
+/// copied from it: one second per slot that already held a stamp.
+const Duration _eventDateStampWindow = Duration(minutes: 5);
+
 /// The calendar day a calling-history row shows for [record].
 ///
 /// Programs appear as soon as they include the dance, so `performedAt` is often
@@ -385,7 +389,8 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
 /// the next day. `eventDate` is a calendar date stored as UTC midnight, so it
 /// is shown as stored (converting it would move it back a day west of UTC); a
 /// `performedAt` equal to it is that same calendar date copied by Status →
-/// Performed, and is shown as stored too.
+/// Performed (allowing for the one-second bumps re-stamping adds), and is shown
+/// as stored too.
 /// Ordering still uses the UTC `effectiveDate`.
 @visibleForTesting
 DateTime callingHistoryDisplayDate(DanceCallingRecord record) {
@@ -393,8 +398,11 @@ DateTime callingHistoryDisplayDate(DanceCallingRecord record) {
   final eventDate = record.eventDate;
   // A stamp copied from the event date (Status -> Performed) is a calendar
   // date at UTC midnight, not an instant: show it as stored.
+  // Re-stamping bumps a second per already-used second
+  // (`nextStoredTimestamp`), so accept a short window after the event date.
   if (performedAt != null && eventDate != null) {
-    if (performedAt.isAtSameMomentAs(eventDate)) return eventDate;
+    final after = performedAt.difference(eventDate);
+    if (!after.isNegative && after < _eventDateStampWindow) return eventDate;
   }
   if (performedAt != null) return callingHistoryToLocal(performedAt);
   return record.eventDate ?? callingHistoryToLocal(record.programUpdatedAt);
