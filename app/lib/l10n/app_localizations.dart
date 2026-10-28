@@ -12464,7 +12464,7 @@ abstract class AppLocalizations {
   /// **'The update could not be downloaded.'**
   String get updateBannerDownloadFailed;
 
-  /// Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file.
+  /// Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file, or (on Windows and Linux) when something already occupied the app-chosen download path.
   ///
   /// In en, this message translates to:
   /// **'Could not choose a place to download the update.'**
@@ -12493,6 +12493,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The update could not be downloaded. Check your connection and try again, or use \"View release\".'**
   String get updateDownloadFailureUnreachable;
+
+  /// Update download error shown when the server answered with an error status (for example 404 or 5xx).
+  ///
+  /// In en, this message translates to:
+  /// **'The update server could not provide the file. Try again later, or use \"View release\".'**
+  String get updateDownloadFailureServerError;
+
+  /// Update download error shown when writing the downloaded file failed because the disk is full.
+  ///
+  /// In en, this message translates to:
+  /// **'There is not enough free disk space to save the update. Free up some space and try again, or use \"View release\".'**
+  String get updateDownloadFailureDiskFull;
+
+  /// Update download error shown when the downloaded file could not be created or written because of permissions.
+  ///
+  /// In en, this message translates to:
+  /// **'The update could not be saved because the download location is not writable. Check its permissions and try again, or use \"View release\".'**
+  String get updateDownloadFailureUnwritable;
 
   /// Assisted-download error shown when the downloaded file's sha256 did not match the manifest, so the file was deleted. "sha256" is the literal checksum name and stays as-is. "View release" must match the translation of updateBannerViewRelease.
   ///
@@ -14240,11 +14258,23 @@ abstract class AppLocalizations {
   /// **'Loading published collections…'**
   String get publishedCollectionsLoading;
 
-  /// Non-leaking error shown when the signed catalog cannot be fetched or verified.
+  /// Non-leaking error shown when the signed catalog or an archive was fetched but failed an integrity or trust check.
   ///
   /// In en, this message translates to:
   /// **'Published collections are temporarily unavailable.'**
   String get publishedCollectionsUnavailable;
+
+  /// Error shown when the signed published-collection catalog or an archive could not be fetched because the network is unreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Published collections could not be reached. Check your connection and try again.'**
+  String get publishedCollectionsOffline;
+
+  /// Error shown when the published-collection catalog uses a format newer than this app can read.
+  ///
+  /// In en, this message translates to:
+  /// **'These published collections need a newer app version. Update the app to see them.'**
+  String get publishedCollectionsNeedsNewerApp;
 
   /// Action that begins importing one signed published collection.
   ///

@@ -1,0 +1,11 @@
+{
+  "id": "1971-network-failure-classes",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A failed update download now says why: a server error, a full disk, or a folder the app cannot write to, instead of always blaming your connection. A failure during the transfer or while saving the file is also recorded in Diagnostics.",
+      "Published collections now tell you whether you are offline, need a newer app version, or the catalog is unavailable, and offer Retry. Failures are recorded in Diagnostics.",
+      "The loader shown while an online dance preview is fetched can now be cancelled."
+    ]
+  }
+}

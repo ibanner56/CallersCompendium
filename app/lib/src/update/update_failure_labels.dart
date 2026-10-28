@@ -25,6 +25,9 @@ String updateDownloadFailureMessage(
     UpdateDownloadFailure.incomplete => l10n.updateDownloadFailureIncomplete,
     UpdateDownloadFailure.refusedHost => l10n.updateDownloadFailureRefusedHost,
     UpdateDownloadFailure.unreachable => l10n.updateDownloadFailureUnreachable,
+    UpdateDownloadFailure.serverError => l10n.updateDownloadFailureServerError,
+    UpdateDownloadFailure.diskFull => l10n.updateDownloadFailureDiskFull,
+    UpdateDownloadFailure.unwritable => l10n.updateDownloadFailureUnwritable,
     UpdateDownloadFailure.checksumMismatch =>
       l10n.updateDownloadFailureChecksumMismatch,
     UpdateDownloadFailure.handoffFailed =>

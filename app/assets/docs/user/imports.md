@@ -74,7 +74,9 @@ keep.
    type them however your keyboard does. Accented letters must still be typed
    with their accents (`Déjà vu`, not `Deja vu`), but upper or lower case
    doesn't matter.
-5. Select a result to open a **preview** of that dance.
+5. Select a result to open a **preview** of that dance. While the dance is
+   loading you can choose **Cancel** (or press Back) to stop waiting and return
+   to your results.
 6. If it is the one you want, choose **Import** to add it to your collection.
 
 **Caller's Box results only include dances whose figures it will share.** Not
@@ -167,6 +169,14 @@ see where the dances came from.
 3. Select **Import collection** and review what it contains.
 4. Confirm the import when you are ready. Nothing is added until you commit it,
    and the same review flow lets you skip items you do not want.
+
+If the catalog or a collection cannot be loaded, the message tells you which of
+three things happened: the catalog **could not be reached** (check your
+connection), it **needs a newer app version** (update the app), or it is
+**temporarily unavailable** (it failed a safety check, so nothing was imported).
+Choose **Retry** to try again without leaving the screen (it is not offered when
+the fix is to update the app). Failures are recorded in **Settings** →
+**Diagnostics**.
 
 ## Bring in a list of dance titles
 

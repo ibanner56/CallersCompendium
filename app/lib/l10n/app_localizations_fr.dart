@@ -8503,6 +8503,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de télécharger la mise à jour. Vérifiez votre connexion et réessayez, ou utilisez « Voir la version ».';
 
   @override
+  String get updateDownloadFailureServerError =>
+      'Le serveur de mises à jour n’a pas pu fournir le fichier. Réessayez plus tard, ou utilisez « Voir la version ».';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'L’espace disque libre est insuffisant pour enregistrer la mise à jour. Libérez de l’espace et réessayez, ou utilisez « Voir la version ».';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'La mise à jour n’a pas pu être enregistrée, car l’emplacement de téléchargement n’est pas accessible en écriture. Vérifiez ses autorisations et réessayez, ou utilisez « Voir la version ».';
+
+  @override
   String get updateDownloadFailureChecksumMismatch =>
       'La mise à jour téléchargée a échoué à la vérification de sécurité (sha256) et a été supprimée. Réessayez ou utilisez « Voir la version » pour la télécharger manuellement.';
 
@@ -9709,6 +9721,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Les collections publiées sont temporairement indisponibles.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Impossible d’accéder aux collections publiées. Vérifiez votre connexion et réessayez.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'Ces collections publiées nécessitent une version plus récente de l’app. Mettez l’app à jour pour les voir.';
 
   @override
   String get publishedCollectionImport => 'Importer la collection';

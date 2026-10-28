@@ -17,6 +17,8 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../data/migration_guard.dart'
+    show SnapshotFailureCause, classifySnapshotFailure;
 import 'update_config.dart';
 import 'update_manifest.dart';
 
@@ -64,8 +66,21 @@ enum DownloadResultKind {
   /// The caller cancelled via a [DownloadCancelToken].
   cancelled,
 
-  /// A transport failure or stall (offline, DNS/TLS, non-2xx, idle timeout).
+  /// A transport failure or stall (offline, DNS/TLS, idle timeout).
   networkError,
+
+  /// The server answered with a non-2xx status; [DownloadOutcome.httpStatus]
+  /// carries it.
+  httpError,
+
+  /// Writing the file failed because the disk is full.
+  diskFull,
+
+  /// Creating or writing the file failed because the location is not writable.
+  permissionDenied,
+
+  /// Something already sits at the destination path; nothing was written.
+  destinationOccupied,
 
   /// The download completed but its byte count disagreed with the manifest
   /// `size` — treated as an integrity failure, not a success.
@@ -83,7 +98,13 @@ enum DownloadResultKind {
 /// file has been deleted) and [message] carries a short, non-user-facing reason
 /// for tests/logging.
 class DownloadOutcome {
-  const DownloadOutcome._(this.kind, {this.file, this.message, this.released});
+  const DownloadOutcome._(
+    this.kind, {
+    this.file,
+    this.message,
+    this.released,
+    this.httpStatus,
+  });
 
   factory DownloadOutcome.success(File file) =>
       DownloadOutcome._(DownloadResultKind.success, file: file);
@@ -94,6 +115,32 @@ class DownloadOutcome {
   factory DownloadOutcome.networkError(String message) =>
       DownloadOutcome._(DownloadResultKind.networkError, message: message);
 
+  factory DownloadOutcome.httpError(int status) => DownloadOutcome._(
+    DownloadResultKind.httpError,
+    message: 'HTTP $status', // i18n-ignore: internal diagnostic, never shown
+    httpStatus: status,
+  );
+
+  factory DownloadOutcome.destinationOccupied(String message) =>
+      DownloadOutcome._(
+        DownloadResultKind.destinationOccupied,
+        message: message,
+      );
+
+  /// A failure to create or write the destination file. Classified by the OS
+  /// error code (via [classifySnapshotFailure], the same table the migration
+  /// snapshot uses) so a full disk or an unwritable folder is not reported as
+  /// a network problem; anything else stays a [networkError].
+  factory DownloadOutcome.fileFailure(String message, Object error) {
+    final kind = switch (classifySnapshotFailure(error)) {
+      SnapshotFailureCause.diskFull => DownloadResultKind.diskFull,
+      SnapshotFailureCause.unwritableBackupsDir =>
+        DownloadResultKind.permissionDenied,
+      _ => DownloadResultKind.networkError,
+    };
+    return DownloadOutcome._(kind, message: message);
+  }
+
   factory DownloadOutcome.sizeMismatch(String message) =>
       DownloadOutcome._(DownloadResultKind.sizeMismatch, message: message);
 
@@ -103,6 +150,9 @@ class DownloadOutcome {
   final DownloadResultKind kind;
   final File? file;
   final String? message;
+
+  /// The HTTP status of a [DownloadResultKind.httpError]; otherwise `null`.
+  final int? httpStatus;
 
   /// Non-null only when a failed download returned while its partial file was
   /// still open: a cancel or write watchdog gave up on a flush that had not
@@ -117,8 +167,13 @@ class DownloadOutcome {
 
   /// This outcome with [released] set; used by [downloadArtifact] and by test
   /// fakes of [ArtifactDownloader].
-  DownloadOutcome withReleased(Future<void> released) =>
-      DownloadOutcome._(kind, file: file, message: message, released: released);
+  DownloadOutcome withReleased(Future<void> released) => DownloadOutcome._(
+    kind,
+    file: file,
+    message: message,
+    released: released,
+    httpStatus: httpStatus,
+  );
 }
 
 /// The injectable download seam. The [UpdateController] depends on this typedef
@@ -230,7 +285,7 @@ Future<DownloadOutcome> downloadArtifact(
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      return DownloadOutcome.networkError('HTTP ${response.statusCode}');
+      return DownloadOutcome.httpError(response.statusCode);
     }
 
     final total = response.contentLength ?? artifact.size;
@@ -257,7 +312,7 @@ Future<DownloadOutcome> downloadArtifact(
       followLinks: false,
     );
     if (existingType != FileSystemEntityType.notFound) {
-      return DownloadOutcome.networkError(
+      return DownloadOutcome.destinationOccupied(
         'refusing to write: something already exists at the destination path',
       );
     }
@@ -279,8 +334,9 @@ Future<DownloadOutcome> downloadArtifact(
       createdDestination = true;
     } on Object catch (e) {
       // diagnostics: silent — destination file creation failed; returns DownloadOutcome to update-layer caller, not UI.
-      return DownloadOutcome.networkError(
+      return DownloadOutcome.fileFailure(
         'could not create destination file securely: $e',
+        e,
       );
     }
     sink = destination.openWrite();
@@ -384,7 +440,7 @@ Future<DownloadOutcome> downloadArtifact(
               // update-layer caller, not UI.
               if (!done.isCompleted) {
                 done.complete(
-                  DownloadOutcome.networkError('could not write file: $e'),
+                  DownloadOutcome.fileFailure('could not write file: $e', e),
                 );
               }
             },
@@ -506,8 +562,9 @@ Future<DownloadOutcome> downloadArtifact(
         // outcome; never mask it with a second close error.
       }
       if (outcome.isSuccess) {
-        return DownloadOutcome.networkError(
+        return DownloadOutcome.fileFailure(
           'could not finish writing file: $e',
+          e,
         );
       }
       return outcome;

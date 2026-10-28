@@ -8056,6 +8056,18 @@ class AppLocalizationsJa extends AppLocalizations {
       'アップデートをダウンロードできませんでした。接続を確認してもう一度お試しいただくか、「リリースを見る」をご利用ください。';
 
   @override
+  String get updateDownloadFailureServerError =>
+      'アップデートサーバーからファイルを取得できませんでした。しばらくしてからもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'アップデートを保存するためのディスクの空き容量が足りません。空き容量を確保してもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'ダウンロード先に書き込めないため、アップデートを保存できませんでした。アクセス権を確認してもう一度お試しいただくか、「リリースを見る」をご利用ください。';
+
+  @override
   String get updateDownloadFailureChecksumMismatch =>
       'ダウンロードしたアップデートがセキュリティ (sha256) チェックに失敗したため、削除されました。もう一度お試しいただくか、「リリースを見る」から手動でダウンロードしてください。';
 
@@ -9203,6 +9215,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get publishedCollectionsUnavailable => '公開コレクションは一時的に利用できません。';
+
+  @override
+  String get publishedCollectionsOffline =>
+      '公開コレクションに接続できませんでした。接続を確認してもう一度お試しください。';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'これらの公開コレクションには、より新しいバージョンのアプリが必要です。アプリを更新してご覧ください。';
 
   @override
   String get publishedCollectionImport => 'コレクションをインポート';

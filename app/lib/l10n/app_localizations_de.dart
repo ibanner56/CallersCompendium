@@ -8483,6 +8483,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das Update konnte nicht heruntergeladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
 
   @override
+  String get updateDownloadFailureServerError =>
+      'Der Update-Server konnte die Datei nicht bereitstellen. Versuchen Sie es später erneut oder verwenden Sie „Release ansehen“.';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'Es ist nicht genug freier Speicherplatz vorhanden, um das Update zu speichern. Schaffen Sie Platz und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'Das Update konnte nicht gespeichert werden, weil der Download-Ort nicht beschreibbar ist. Prüfen Sie die Berechtigungen und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
+
+  @override
   String get updateDownloadFailureChecksumMismatch =>
       'Das heruntergeladene Update hat die Sicherheitsprüfung (sha256) nicht bestanden und wurde gelöscht. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.';
 
@@ -9693,6 +9705,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Veröffentlichte Sammlungen sind vorübergehend nicht verfügbar.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Veröffentlichte Sammlungen konnten nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'Diese veröffentlichten Sammlungen benötigen eine neuere App-Version. Aktualisieren Sie die App, um sie zu sehen.';
 
   @override
   String get publishedCollectionImport => 'Sammlung importieren';

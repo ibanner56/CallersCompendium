@@ -8222,6 +8222,18 @@
   "@updateDownloadFailureUnreachable": {
     "x-sourceSha256": "1c201c02be93aad9d8d0ed525a227d4c119bb8e54e3bd4aa9667cbe9f91398ac"
   },
+  "updateDownloadFailureServerError": "De updateserver kon het bestand niet leveren. Probeer het later opnieuw, of gebruik „Release bekijken”.",
+  "@updateDownloadFailureServerError": {
+    "x-sourceSha256": "4338a8e9d36a12cf4d4ae938595585ad4c51a44c0fae849c83d24cb455b553e3"
+  },
+  "updateDownloadFailureDiskFull": "Er is niet genoeg vrije schijfruimte om de update op te slaan. Maak ruimte vrij en probeer het opnieuw, of gebruik „Release bekijken”.",
+  "@updateDownloadFailureDiskFull": {
+    "x-sourceSha256": "5d4f7d6e3ab2a579945c55b6926d2f050473c47771901c487de5d3267ed87332"
+  },
+  "updateDownloadFailureUnwritable": "De update kon niet worden opgeslagen omdat de downloadlocatie niet beschrijfbaar is. Controleer de rechten en probeer het opnieuw, of gebruik „Release bekijken”.",
+  "@updateDownloadFailureUnwritable": {
+    "x-sourceSha256": "69d9b3ec764ae6d45e0a00b084db3375138a8f12a58130d9903fdc98f8f32289"
+  },
   "updateDownloadFailureChecksumMismatch": "De gedownloade update is niet door de beveiligingscontrole (sha256) gekomen en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.",
   "@updateDownloadFailureChecksumMismatch": {
     "x-sourceSha256": "9b45db38ce784fbb8fe3c676b1a9f3f344ef746368f97db1c8ac5f1201b43ea7"
@@ -9389,6 +9401,14 @@
   "publishedCollectionsUnavailable": "Gepubliceerde collecties zijn tijdelijk niet beschikbaar.",
   "@publishedCollectionsUnavailable": {
     "x-sourceSha256": "286ca7d1f2dfaf05d973b18f9d8167ca700dd94c02afc27cd91e74f85abbd35f"
+  },
+  "publishedCollectionsOffline": "Gepubliceerde collecties konden niet worden bereikt. Controleer je verbinding en probeer het opnieuw.",
+  "@publishedCollectionsOffline": {
+    "x-sourceSha256": "9d5685db1bd84a665edf1099bdca7fbbe48285bd68a1426598c99ee55c348fa5"
+  },
+  "publishedCollectionsNeedsNewerApp": "Deze gepubliceerde collecties hebben een nieuwere appversie nodig. Werk de app bij om ze te zien.",
+  "@publishedCollectionsNeedsNewerApp": {
+    "x-sourceSha256": "0cad4410562e2480c61c29e63be41b3101e5d9562c150eeb28db9e393e98f213"
   },
   "publishedCollectionImport": "Collectie importeren",
   "@publishedCollectionImport": {

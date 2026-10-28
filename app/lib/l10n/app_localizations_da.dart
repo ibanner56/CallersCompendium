@@ -8386,6 +8386,18 @@ class AppLocalizationsDa extends AppLocalizations {
       'Opdateringen kunne ikke hentes. Tjek din forbindelse, og prøv igen, eller brug „Se udgivelse“.';
 
   @override
+  String get updateDownloadFailureServerError =>
+      'Opdateringsserveren kunne ikke levere filen. Prøv igen senere, eller brug „Se udgivelse“.';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'Der er ikke nok ledig diskplads til at gemme opdateringen. Frigør plads, og prøv igen, eller brug „Se udgivelse“.';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'Opdateringen kunne ikke gemmes, fordi der ikke kan skrives til overførselsplaceringen. Tjek dens tilladelser, og prøv igen, eller brug „Se udgivelse“.';
+
+  @override
   String get updateDownloadFailureChecksumMismatch =>
       'Den hentede opdatering bestod ikke sikkerhedstjekket (sha256) og blev slettet. Prøv igen, eller brug „Se udgivelse“ for at hente den manuelt.';
 
@@ -9579,6 +9591,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Udgivne samlinger er midlertidigt utilgængelige.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Udgivne samlinger kunne ikke nås. Tjek din forbindelse, og prøv igen.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'Disse udgivne samlinger kræver en nyere appversion. Opdater appen for at se dem.';
 
   @override
   String get publishedCollectionImport => 'Importér samling';
