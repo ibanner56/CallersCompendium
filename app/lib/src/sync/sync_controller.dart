@@ -1666,6 +1666,82 @@ class SyncController extends ChangeNotifier {
     return SyncAdminOutcome.done;
   }
 
+  /// Leaves the store for good ahead of a local database reset: removes this
+  /// device's own manifest from the server, then forgets the attachment as
+  /// [detach] does, so wiping the database does not leave an orphaned device
+  /// listed under every peer's *Other devices*.
+  ///
+  /// Unlike [detach]'s best-effort clean-up this removal is unconditional and
+  /// awaited. The caller is about to destroy everything the manifest describes,
+  /// so [detach]'s "only when a peer already carries every entry" test would
+  /// only make the common case skip; the cost is that anything this device
+  /// published and no peer has pulled yet is lost with it, which the reset
+  /// confirmation already says.
+  ///
+  /// Fail-closed: if the manifest cannot be removed the device stays attached
+  /// and the outcome is [SyncAdminOutcome.failed], so the caller must not wipe.
+  /// A `404` (the store, or this device's manifest, is already gone) counts as
+  /// removed. [SyncAdminOutcome.notPaired] means there was nothing to leave and
+  /// the caller may proceed. Not gated on the §6.12 connection policy, for the
+  /// reason [removeDevice] gives; offline simply fails.
+  Future<SyncAdminOutcome> leaveStoreForReset() async {
+    _lastAdminFailure = null;
+    if (!paired || _detaching) return SyncAdminOutcome.notPaired;
+    // Held for the reason [detach] and [wipeStore] hold it.
+    _detaching = true;
+    _debounceTimer?.cancel();
+    _cancelRetry(reset: true);
+    _dirty = false;
+    var ran = false;
+    var attached = false;
+    var removed = false;
+    try {
+      await _runExclusive(() async {
+        ran = true;
+        // Built inside the boundary, for the reason [removeDevice] gives.
+        final admin = _deviceAdmin();
+        if (admin == null) return;
+        attached = true;
+        try {
+          // A null id means this attachment never published a manifest, so
+          // there is nothing on the server to remove.
+          final selfId = await _selfDeviceId();
+          if (selfId != null) {
+            final response = await admin.deleteManifest(selfId);
+            removed =
+                response.kind == SyncResponseKind.success ||
+                response.kind == SyncResponseKind.notFound;
+            if (!removed) {
+              _lastAdminFailure = SyncFailure.fromResponse(response);
+              return;
+            }
+          }
+          await _clearAttachment();
+          _forgetAttachment();
+          removed = true;
+        } finally {
+          admin.close?.call();
+        }
+      });
+    } on Object catch (error, stack) {
+      logCaughtErrorTypeOnly(
+        error,
+        stack,
+        source: 'sync_controller.leaveStoreForReset',
+      );
+      _lastAdminFailure = SyncFailure.fromError(error);
+      // The manifest may be gone while the local clear failed; the reset is
+      // refused either way, and retrying is safe because the server answers
+      // 204 or 404 for a manifest that is already removed.
+      removed = false;
+    } finally {
+      _detaching = false;
+    }
+    if (!ran) return SyncAdminOutcome.failed;
+    if (!attached) return SyncAdminOutcome.notPaired;
+    return removed ? SyncAdminOutcome.done : SyncAdminOutcome.failed;
+  }
+
   /// The `devices` array from a `GET /v1/store` body, or null when the body is
   /// not the documented shape. Validated exactly as the coordinator validates
   /// the same field, so a malformed store answer cannot reach the surface as a

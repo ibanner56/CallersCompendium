@@ -262,6 +262,42 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsExperimentalTitle => 'Experimentell';
 
   @override
+  String get settingsDeveloperOptionsHeader => 'Developer Options';
+
+  @override
+  String get settingsDeveloperResetTitle => 'Reset database';
+
+  @override
+  String get settingsDeveloperResetSubtitle =>
+      'Delete everything on this device and start over, as on a fresh install.';
+
+  @override
+  String get settingsDeveloperResetConfirmTitle => 'Reset the database?';
+
+  @override
+  String get settingsDeveloperResetConfirmBody =>
+      'This permanently deletes every dance, program, collection, setting and note on this device and restarts the app as if it had just been installed. It cannot be undone.';
+
+  @override
+  String get settingsDeveloperResetConfirmSyncNote =>
+      'This device is connected to a Device Sync store. It will first remove itself from the store so it isn\'t left behind as an orphaned device. Anything it has not yet synced to your other devices is lost.';
+
+  @override
+  String get settingsDeveloperResetConfirmCheckbox =>
+      'I understand this can\'t be undone, and I\'ve already taken a backup if I want one.';
+
+  @override
+  String get settingsDeveloperResetConfirmAction => 'Reset database';
+
+  @override
+  String get settingsDeveloperResetLeaveFailed =>
+      'Couldn\'t remove this device from the sync store, so nothing was reset. Check your connection and try again.';
+
+  @override
+  String get settingsDeveloperResetFailed =>
+      'Couldn\'t reset the database. Try again.';
+
+  @override
   String get settingsExperimentalPlaceholder =>
       'Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.';
 

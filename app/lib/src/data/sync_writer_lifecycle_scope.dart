@@ -25,6 +25,7 @@ class SyncWriterLifecycleScope extends InheritedWidget {
     this.onRestored,
     this.runWrite,
     this.runRecordWrite,
+    this.resetToCleanInstall,
     required super.child,
   });
 
@@ -44,6 +45,15 @@ class SyncWriterLifecycleScope extends InheritedWidget {
   /// (freshly restored) `settings` table so the live UI updates immediately.
   final Future<void> Function()? onRestored;
 
+  /// Deletes the local database and restarts the app on a fresh, empty one
+  /// (Settings ▸ Experimental ▸ Developer Options). Waits for any in-flight
+  /// writer, disposes the sync coordinator and closes the database first.
+  ///
+  /// It does **not** leave a sync store: a caller attached to one must do that
+  /// first (`SyncController.leaveStoreForReset`), because once this runs the
+  /// credentials needed to remove the device from the server are gone.
+  final Future<void> Function()? resetToCleanInstall;
+
   static SyncWriterLifecycleScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<SyncWriterLifecycleScope>();
 
@@ -51,5 +61,6 @@ class SyncWriterLifecycleScope extends InheritedWidget {
   bool updateShouldNotify(SyncWriterLifecycleScope oldWidget) =>
       oldWidget.onRestored != onRestored ||
       oldWidget.runWrite != runWrite ||
-      oldWidget.runRecordWrite != runRecordWrite;
+      oldWidget.runRecordWrite != runRecordWrite ||
+      oldWidget.resetToCleanInstall != resetToCleanInstall;
 }

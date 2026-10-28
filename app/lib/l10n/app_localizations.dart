@@ -518,6 +518,66 @@ abstract class AppLocalizations {
   /// **'Experimental'**
   String get settingsExperimentalTitle;
 
+  /// Header of the expandable Developer Options section in Experimental settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Options'**
+  String get settingsDeveloperOptionsHeader;
+
+  /// Title of the row that resets the database to a clean install.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset database'**
+  String get settingsDeveloperResetTitle;
+
+  /// Subtitle of the reset database row.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everything on this device and start over, as on a fresh install.'**
+  String get settingsDeveloperResetSubtitle;
+
+  /// Title of the confirmation dialog for resetting the database.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the database?'**
+  String get settingsDeveloperResetConfirmTitle;
+
+  /// Body of the reset database confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes every dance, program, collection, setting and note on this device and restarts the app as if it had just been installed. It cannot be undone.'**
+  String get settingsDeveloperResetConfirmBody;
+
+  /// Extra paragraph in the reset confirmation shown only while the device is connected to a sync store.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is connected to a Device Sync store. It will first remove itself from the store so it isn\'t left behind as an orphaned device. Anything it has not yet synced to your other devices is lost.'**
+  String get settingsDeveloperResetConfirmSyncNote;
+
+  /// Checkbox label that must be ticked before the reset can be confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand this can\'t be undone, and I\'ve already taken a backup if I want one.'**
+  String get settingsDeveloperResetConfirmCheckbox;
+
+  /// Label of the destructive confirm button of the reset dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset database'**
+  String get settingsDeveloperResetConfirmAction;
+
+  /// Snackbar shown when leaving the sync store before a reset fails; the database is untouched and the device stays connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove this device from the sync store, so nothing was reset. Check your connection and try again.'**
+  String get settingsDeveloperResetLeaveFailed;
+
+  /// Snackbar shown when the reset throws unexpectedly.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reset the database. Try again.'**
+  String get settingsDeveloperResetFailed;
+
   /// Placeholder text explaining that the Experimental settings section will contain features still in development.
   ///
   /// In en, this message translates to:

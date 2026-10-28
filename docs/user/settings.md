@@ -558,7 +558,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary** and **Device Sync**. Anything here can change
+today, that's the **Glossary**, **Device Sync** and **Developer Options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -1175,6 +1175,27 @@ are.
   choose. When the same item was simply changed differently on two devices,
   you choose between the versions instead — see
   [Choosing which version to keep](#choosing-which-version-to-keep).
+
+### Developer Options
+
+This section is closed until you open it. Today it holds one action.
+
+**Reset database** deletes everything on this device and restarts the app as if
+it had just been installed: every dance, program, collection, note and setting
+is gone. It cannot be undone. Take a [backup](#backup--restore) first if you
+want to keep anything.
+
+Choosing it opens a confirmation. **Reset database** in the dialog stays
+disabled until you tick the box saying you understand this can't be undone and
+that you've already taken a backup if you wanted one.
+
+If this device is [connected to a Device Sync store](#device-sync), it first
+removes itself from the store, so it isn't left behind as a device that never
+comes back. This removal is not the careful one **Disconnect this device** does,
+which only goes ahead when your other devices already have everything: anything
+this device had not yet synced is lost. If the store can't be reached (for
+example, you're offline), nothing is reset and the device stays connected;
+connect and try again. Your other devices and the store itself are not touched.
 
 ## About
 

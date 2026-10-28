@@ -29,6 +29,7 @@ import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
+import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
@@ -135,6 +136,9 @@ _pumpSettings(
 
   /// Wires a [ShowCustomFiguresScope] around the screen when given.
   ValueNotifier<bool>? showCustomFigures,
+
+  /// Provides a [SyncWriterLifecycleScope] with this reset hook when given.
+  Future<void> Function()? resetToCleanInstall,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -216,43 +220,51 @@ _pumpSettings(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: themeNotifier,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: DialectLibraryScope(
-              controller: dialectLibrary,
-              child: ActiveDialectScope(
-                notifier: notifier,
-                child: RequirePerformedForHistoryScope(
-                  notifier: requirePerformedNotifier,
-                  child: TrackHistoryForAllCallersScope(
-                    notifier: trackHistoryForAllCallersNotifier,
-                    child: CanonicalDiscouragedTermsScope(
-                      notifier: canonicalDiscouragedTermsNotifier,
-                      child: SortIgnoreArticlesScope(
-                        notifier: sortIgnoreArticlesNotifier,
-                        child: UpdateScope(
-                          controller: updateController,
-                          child: SyncScope(
-                            controller: syncController,
-                            child: ShorthandMappingsScope(
-                              controller: shorthandMappings,
-                              child: WalkthroughSnippetLibraryScope(
-                                controller: walkthroughSnippets,
-                                child: showGlossary == null
-                                    ? child!
-                                    : ShowGlossaryScope(
-                                        notifier: showGlossary,
-                                        child: showCustomFigures == null
-                                            ? child!
-                                            : ShowCustomFiguresScope(
-                                                notifier: showCustomFigures,
-                                                child: child!,
-                                              ),
-                                      ),
+      builder: (context, innerChild) {
+        final child = resetToCleanInstall == null
+            ? innerChild
+            : SyncWriterLifecycleScope(
+                resetToCleanInstall: resetToCleanInstall,
+                child: innerChild!,
+              );
+        return RepositoriesScope(
+          repositories: repos,
+          child: AppThemeScope(
+            notifier: themeNotifier,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: DialectLibraryScope(
+                controller: dialectLibrary,
+                child: ActiveDialectScope(
+                  notifier: notifier,
+                  child: RequirePerformedForHistoryScope(
+                    notifier: requirePerformedNotifier,
+                    child: TrackHistoryForAllCallersScope(
+                      notifier: trackHistoryForAllCallersNotifier,
+                      child: CanonicalDiscouragedTermsScope(
+                        notifier: canonicalDiscouragedTermsNotifier,
+                        child: SortIgnoreArticlesScope(
+                          notifier: sortIgnoreArticlesNotifier,
+                          child: UpdateScope(
+                            controller: updateController,
+                            child: SyncScope(
+                              controller: syncController,
+                              child: ShorthandMappingsScope(
+                                controller: shorthandMappings,
+                                child: WalkthroughSnippetLibraryScope(
+                                  controller: walkthroughSnippets,
+                                  child: showGlossary == null
+                                      ? child!
+                                      : ShowGlossaryScope(
+                                          notifier: showGlossary,
+                                          child: showCustomFigures == null
+                                              ? child!
+                                              : ShowCustomFiguresScope(
+                                                  notifier: showCustomFigures,
+                                                  child: child!,
+                                                ),
+                                        ),
+                                ),
                               ),
                             ),
                           ),
@@ -264,8 +276,8 @@ _pumpSettings(
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
       home: SettingsScreen(backupSaver: backupSaver),
     ),
   );
@@ -3298,6 +3310,205 @@ void main() {
             'GET peer_a',
             'DELETE this_device',
           ]);
+        });
+      });
+
+      group('Developer Options (reset database)', () {
+        late List<String> events;
+        late SyncResponseKind removeKind;
+        late bool pairedAtReset;
+        late bool sawSyncRowAtReset;
+        late CompendiumRepositories repos;
+
+        const resetTile = ValueKey('developer-reset-database');
+        const confirmButton = ValueKey('developer-reset-confirm');
+        const checkbox = ValueKey('developer-reset-understood');
+
+        setUp(() {
+          events = [];
+          removeKind = SyncResponseKind.success;
+          pairedAtReset = false;
+          sawSyncRowAtReset = false;
+          _syncNetwork.kind = SyncNetworkKind.unmetered;
+          _syncCoordinator = null;
+          _pairingProbeFactory = null;
+          _deviceAdminFactory = (syncId, endpoint, {requestTimeout}) =>
+              SyncDeviceAdmin(
+                getStore: ({required previouslyUsed}) async =>
+                    throw StateError('only this device is removed'),
+                getManifest: (deviceId) async =>
+                    throw StateError('only this device is removed'),
+                deleteManifest: (deviceId) async {
+                  events.add('DELETE $deviceId');
+                  return SyncHttpResponse(
+                    statusCode: removeKind == SyncResponseKind.success
+                        ? 204
+                        : 500,
+                    kind: removeKind,
+                    headers: const {},
+                    body: const [],
+                  );
+                },
+                deleteStore: () async => throw StateError('not a wipe'),
+              );
+        });
+
+        tearDown(() => _deviceAdminFactory = null);
+
+        Future<void> pump(WidgetTester tester, {bool paired = false}) async {
+          final harness = await _pumpSettings(
+            tester,
+            resetToCleanInstall: () async {
+              events.add('reset');
+              final controller = SyncScope.of(
+                tester.element(find.byType(SettingsScreen)),
+              );
+              pairedAtReset = controller.paired;
+              sawSyncRowAtReset = await repos.settings.contains('sync_id');
+            },
+          );
+          repos = harness.repos;
+          if (paired) {
+            await repos.settings.set('sync_id', 'alpha-bravo-charlie-delta');
+            await repos.settings.set(
+              'sync_endpoint',
+              'https://sync.example.test/',
+            );
+            await repos.settings.set('sync_device_id', 'this_device');
+            final controller = SyncScope.of(
+              tester.element(find.byType(SettingsScreen)),
+            );
+            await controller.setEnabled(true);
+            await controller.load();
+          }
+          await tester.tap(
+            find.byKey(const ValueKey('settings-nav-experimental')),
+          );
+          await tester.pumpAndSettle();
+        }
+
+        Future<void> openDialog(WidgetTester tester) async {
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('developer-options-section')),
+          );
+          await tester.tap(
+            find.byKey(const ValueKey('developer-options-section')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(resetTile));
+          await tester.pumpAndSettle();
+        }
+
+        testWidgets('is a collapsed section, closed until opened', (
+          tester,
+        ) async {
+          await pump(tester);
+
+          expect(find.text('DEVELOPER OPTIONS'), findsOneWidget);
+          expect(find.byKey(resetTile), findsNothing);
+
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('developer-options-section')),
+          );
+          await tester.tap(
+            find.byKey(const ValueKey('developer-options-section')),
+          );
+          await tester.pumpAndSettle();
+          expect(find.byKey(resetTile), findsOneWidget);
+        });
+
+        testWidgets('confirm stays disabled until the checkbox is ticked, and '
+            'cancelling resets nothing', (tester) async {
+          await pump(tester);
+          await openDialog(tester);
+
+          FilledButton confirm() =>
+              tester.widget<FilledButton>(find.byKey(confirmButton));
+          expect(confirm().onPressed, isNull);
+
+          await tester.tap(find.byKey(checkbox));
+          await tester.pumpAndSettle();
+          expect(confirm().onPressed, isNotNull);
+
+          await tester.tap(find.byKey(checkbox));
+          await tester.pumpAndSettle();
+          expect(confirm().onPressed, isNull, reason: 'unticking re-disables');
+
+          await tester.tap(
+            find.byKey(const ValueKey('developer-reset-cancel')),
+          );
+          await tester.pumpAndSettle();
+          expect(events, isEmpty);
+          expect(
+            find.byKey(const ValueKey('developer-reset-dialog')),
+            findsNothing,
+          );
+        });
+
+        testWidgets('not connected to a store: resets without any request', (
+          tester,
+        ) async {
+          await pump(tester);
+          await openDialog(tester);
+          expect(
+            find.textContaining('connected to a Device Sync store'),
+            findsNothing,
+            reason: 'the sync note is only for a connected device',
+          );
+          await tester.tap(find.byKey(checkbox));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(confirmButton));
+          await tester.pumpAndSettle();
+
+          expect(events, ['reset']);
+        });
+
+        testWidgets('connected: removes itself from the store before the '
+            'wipe, while it still holds the credentials', (tester) async {
+          await pump(tester, paired: true);
+          await openDialog(tester);
+          expect(
+            find.textContaining('connected to a Device Sync store'),
+            findsOneWidget,
+          );
+          await tester.tap(find.byKey(checkbox));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(confirmButton));
+          await tester.pumpAndSettle();
+
+          expect(events, ['DELETE this_device', 'reset']);
+          expect(pairedAtReset, isFalse);
+          expect(
+            sawSyncRowAtReset,
+            isFalse,
+            reason: 'the attachment is forgotten, not left to be wiped blind',
+          );
+        });
+
+        testWidgets('connected but the store cannot be reached: nothing is '
+            'reset and the device stays connected', (tester) async {
+          removeKind = SyncResponseKind.serverError;
+          await pump(tester, paired: true);
+          await openDialog(tester);
+          await tester.tap(find.byKey(checkbox));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(confirmButton));
+          await tester.pumpAndSettle();
+
+          expect(events, ['DELETE this_device'], reason: 'no reset');
+          expect(
+            find.textContaining("Couldn't remove this device"),
+            findsOneWidget,
+          );
+          expect(
+            await repos.settings.get('sync_id'),
+            'alpha-bravo-charlie-delta',
+          );
+          expect(
+            tester.widget<ListTile>(find.byKey(resetTile)).enabled,
+            isTrue,
+            reason: 'the user can try again',
+          );
         });
       });
 

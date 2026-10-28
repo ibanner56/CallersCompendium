@@ -2069,6 +2069,29 @@ class _CompendiumAppState extends State<CompendiumApp>
     await _doReset(dbFile, l10n);
   }
 
+  /// Settings ▸ Experimental ▸ Developer Options ▸ reset: deletes the database
+  /// and restarts on an empty one, as a first launch would.
+  ///
+  /// The user has already confirmed in the Settings dialog, so unlike the
+  /// below-floor recovery actions this asks nothing. It runs behind the writer
+  /// queue so a restore, import or review resolve already in flight finishes
+  /// against the database before it goes, and it pops back to the first route
+  /// so no pushed screen outlives the services it was built on.
+  Future<void> _resetToCleanInstall() async {
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted || _shutdownRequested) return;
+    final l10n = AppLocalizations.of(context);
+    final prior = _syncWriterTail;
+    if (prior != null) await prior;
+    if (!mounted) return;
+    // Open editors persist their draft into the database on the way out; do it
+    // while the connection is still open rather than racing the close.
+    await _editorDraftShutdownController.flushAll();
+    final dbFile = await widget.databaseFileResolver();
+    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    await _doReset(dbFile, l10n);
+  }
+
   /// Wipes the database file and reopens a fresh one, restarting the bootstrap
   /// sequence so the app opens to a clean state.
   ///
@@ -2459,6 +2482,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     (child) => SyncWriterLifecycleScope(
       runWrite: _runSyncWriter,
       runRecordWrite: _runSyncRecordWriter,
+      resetToCleanInstall: _resetToCleanInstall,
       onRestored: reloadFromSettings,
       child: child,
     ),
