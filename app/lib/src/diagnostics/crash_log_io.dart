@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../data/backup_io.dart' show shareFilesViaSheet;
 import '../data/picker_extensions.dart';
 
 /// Delivers the exported diagnostics [contents] to the user as a file named
@@ -43,7 +44,7 @@ String diagnosticsLogFileName([DateTime? now]) {
 ///
 /// On desktop this is a "save a file" action (native Save As via
 /// `file_selector`); on mobile it is a "share to another app" action (temp file
-/// + OS share sheet via `share_plus`). Mirrors `saveBackupToFile`, including the
+/// + OS share sheet via `share_plus`; `false` if the sheet is dismissed). Mirrors `saveBackupToFile`, including the
 /// defensive `create(recursive: true)` before the mobile temp-file write.
 Future<bool> saveDiagnosticsLog(
   String contents,
@@ -63,12 +64,13 @@ Future<bool> saveDiagnosticsLog(
   await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
   await file.writeAsString(contents);
-  await SharePlus.instance.share(
+  final result = await shareFilesViaSheet(
     ShareParams(
       files: [XFile(file.path, mimeType: 'text/plain')],
       fileNameOverrides: [suggestedFileName],
       subject: suggestedFileName,
     ),
   );
-  return true;
+  // Same rule as `saveBackupToFile`: only a dismissed sheet is "not exported".
+  return result.status != ShareResultStatus.dismissed;
 }
