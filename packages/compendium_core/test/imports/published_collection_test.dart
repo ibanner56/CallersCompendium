@@ -259,7 +259,9 @@ void main() {
     test(
       'links a related dance received from the collection earlier',
       () async {
+        // Titles far apart, so d1 is new rather than a possible match of d2.
         Dance d1() => _dance('d1').copyWith(
+          title: 'Petronella',
           links: [
             DanceLink(
               id: 'link-1',
@@ -293,7 +295,7 @@ void main() {
         );
 
         final imported = (await dances.listAll()).singleWhere(
-          (d) => d.title == 'Dance d1',
+          (d) => d.title == 'Petronella',
         );
         expect([for (final l in imported.links) l.targetDanceId], [d2.id]);
       },
