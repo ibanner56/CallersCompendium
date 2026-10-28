@@ -10,7 +10,7 @@
   },
   "core": {
     "fixed": [
-      "ImportPipeline.commit gives every imported link a fresh id and adds related-dance links after the batch is written, resolving each target by external id through the batch's writes and then a dedupe index read after them; GenericJsonAdapter names a related target by its externalIdFor key when the file carries it. An unresolved link is dropped with an archive_related_dance_unresolved issue on the new ImportSession.issues."
+      "ImportPipeline.commit gives every imported link a fresh id and adds related-dance links after the batch is written, resolving each target by external id through the batch's writes and then a dedupe index read after them, under the record's source; GenericJsonAdapter and the published-collection adapter name a related target by its record key when the file carries it. An unresolved link is dropped with an archive_related_dance_unresolved issue on the new ImportSession.issues."
     ]
   }
 }
