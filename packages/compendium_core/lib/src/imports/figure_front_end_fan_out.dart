@@ -165,8 +165,7 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
 /// unconsumed tail of a line a recognizer matched only as a PREFIX, so the
 /// structured figure would carry the wrong beats, turn or moves while the rest
 /// of what was typed sits in the note (#1612). A note is a leftover when it is
-/// `and back` (`over & back` too) or a bare number (`16`), or when, outside
-/// brackets,
+/// `and back` (`over & back` too) or a bare number (`16`), or when
 /// - a clause of it starts with another move's name: the note is cut at `,`,
 ///   `;`, `:`, `and` and `then` (`and swing, end facing down`,
 ///   `four in line, turn alone`); or
@@ -177,12 +176,12 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
 /// Anything else keeps the structured reading with the words as its note:
 /// that is the designed behaviour. So do plain words (`slowly`,
 /// `to new neighbors`, `in lines of 4`); a move named mid-clause, where it is
-/// usually where the figure happens (`in long waves`); a bracketed aside,
-/// which the caller set apart on purpose (`(optional courtesy turn)`); and
-/// `once`, which is what a figure does by default (`once around`). A count
-/// with a unit (`8 beats`, `4 bars`) is not one either: free-text entry
-/// peels those off before the parse, and the re-parse upgrade keeps a unit
-/// count it does not read as the note (#1826).
+/// usually where the figure happens (`in the circle`,
+/// `to partner (optional courtesy turn)`); and `once`, which is what a
+/// figure does by default (`once around`). A count with a unit (`8 beats`,
+/// `4 bars`) is not one either: free-text entry peels those off before the
+/// parse, and the re-parse upgrade keeps a unit count it does not read as
+/// the note (#1826).
 ///
 /// [vocabulary] is derived from the active taxonomy ([_LeftoverVocabulary]);
 /// nothing here is a hard-coded move list.
@@ -201,17 +200,13 @@ bool _noteIsLeftover(String note, _LeftoverVocabulary vocabulary) {
   n = n.replaceFirst(RegExp(r'^(and|then) '), '');
   if (n.isEmpty) return false;
   if (RegExp(r'^\d+$').hasMatch(n)) return true;
-  final unbracketed = n.replaceAll(_bracketed, ' ');
-  if (_turnToken.hasMatch(unbracketed)) return true;
-  return unbracketed
+  if (_turnToken.hasMatch(n)) return true;
+  return n
       .split(_clauseBreak)
       .any((clause) => vocabulary.leadingMoveName.hasMatch(clause.trim()));
 }
 
 final RegExp _andBackNote = RegExp(r'^((and|then) )?(over )?and back$');
-
-/// A bracketed aside in a note, unclosed at the end included.
-final RegExp _bracketed = RegExp(r'\([^)]*(\)|$)|\[[^\]]*(\]|$)');
 
 /// Where a note's clauses break: see [_noteIsLeftover].
 final RegExp _clauseBreak = RegExp(r'[,;:]|\b(?:and|then)\b');

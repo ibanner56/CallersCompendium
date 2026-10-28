@@ -33,9 +33,11 @@ void main() {
       });
     }
 
-    test('one leftover note in a `;` line is enough', () {
-      // The swing's note is plain words; the petronella's hides a turn.
-      final f = parse('neighbors swing slowly; petronella twice').single;
+    test('one leftover note among several is enough', () {
+      // The swing's note is plain words; the balance's hides a turn.
+      final f = parse(
+        'neighbors swing slowly while partners balance twice',
+      ).single;
       expect(f.isCustom, isTrue);
     });
 
@@ -67,7 +69,7 @@ void main() {
       });
     }
 
-    test('a move named only inside brackets is an aside, not a leftover', () {
+    test('a move named mid-clause, in brackets too, is not a leftover', () {
       final f = parse(
         'Ladies chain to partner (optional courtesy turn)',
       ).single;
