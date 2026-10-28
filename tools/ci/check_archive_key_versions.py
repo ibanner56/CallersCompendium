@@ -99,16 +99,61 @@ def _body_map_open(masked: str, paren: int) -> int | None:
     return ret.end() - 1 if ret else None
 
 
+def _string_end(text: str, start: int) -> int:
+    """Offset just past the string literal whose opening quote is at [start]."""
+    quote = text[start]
+    if text.startswith(quote * 3, start):
+        end = text.find(quote * 3, start + 3)
+        return len(text) if end == -1 else end + 3
+    i = start + 1
+    while i < len(text) and text[i] not in (quote, "\n"):
+        i += 2 if text[i] == "\\" else 1
+    return i + 1
+
+
+def _comment_ends(text: str, masked: str) -> dict[int, int]:
+    """Start offset of every real comment in [text] mapped to its end.
+
+    The masker blanks comments and string literals alike; a blanked run that
+    starts with `//` or `/*` in the original is a comment, so a quote inside
+    it (an apostrophe in prose) never starts a string.
+    """
+    ends: dict[int, int] = {}
+    i = 0
+    n = len(text)
+    while i < n:
+        if masked[i] == " " and text.startswith(("//", "/*"), i):
+            if text.startswith("//", i):
+                end = text.find("\n", i)
+                end = n if end == -1 else end
+            else:
+                end = text.find("*/", i + 2)
+                end = n if end == -1 else end + 2
+            ends[i] = end
+            i = end
+            continue
+        if masked[i] == " " and text[i] in "'\"":
+            # Skip a string literal whole, so `//` inside one is not a comment.
+            i = _string_end(text, i)
+            continue
+        i += 1
+    return ends
+
+
 def map_keys(text: str, masked: str, brace: int) -> list[tuple[str, int]]:
     """`(key, offset)` of each string-literal key directly inside the map
     literal opened at [brace], in source order."""
     end = _match_brace(masked, brace)
     if end is None:
         return []
+    comments = _comment_ends(text, masked)
     keys: list[tuple[str, int]] = []
     depth = 0
     i = brace + 1
     while i < end:
+        if i in comments:
+            i = comments[i]
+            continue
         ch = masked[i]
         if ch in _OPENERS:
             depth += 1

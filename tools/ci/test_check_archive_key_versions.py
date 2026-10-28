@@ -47,6 +47,8 @@ def test_key_extraction() -> None:
         "}) => {\n"
         "  'id': t.id,\n"
         "  // 'commented': out,\n"
+        "  // the app's own note: no key here,\n"
+        "  'url': 'https://example.com//not-a-comment',\n"
         "  /* 'blocked': out, */\n"
         "  if (includeOptionalFields || t.a != null) 'a': t.a,\n"
         "  if (t.b case Some(:final v)) 'b': v else 'c': null,\n"
@@ -70,7 +72,7 @@ def test_key_extraction() -> None:
     expect(
         "expression body: own keys only, in order",
         keys.get("archiveThingToJson")
-        == ["id", "a", "b", "c", "nested", "ternary", "call", "text"],
+        == ["id", "url", "a", "b", "c", "nested", "ternary", "call", "text"],
         str(keys.get("archiveThingToJson")),
     )
     expect(
