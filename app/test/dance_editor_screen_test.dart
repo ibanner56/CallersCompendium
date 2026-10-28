@@ -2669,6 +2669,46 @@ void main() {
       expect(find.byKey(fieldKey), findsOneWidget);
     });
 
+    testWidgets('a line in the box survives the figure list scrolling out of '
+        'the form', (tester) async {
+      final repos = await reposWith(freeText: true, seeded: true);
+      // A phone-sized window, so the form's lazy list would drop the figure
+      // list once it is scrolled well past it.
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        surfaceSize: const Size(600, 400),
+      );
+      final form = find
+          .descendant(
+            of: find.byType(ListView).first,
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('figure-add')),
+        200,
+        scrollable: form,
+      );
+      await openComposer(tester);
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.pumpAndSettle();
+      // Unfocused, the field no longer keeps its list child alive.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+
+      await tester.drag(form, const Offset(0, -20000));
+      await tester.pumpAndSettle();
+      expect(find.byKey(fieldKey, skipOffstage: false), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = figuresOf((await repos.dances.getById('d1'))!);
+      expect(saved, hasLength(7));
+      expect(saved.last.move, 'swing');
+    });
+
     testWidgets('the visible confirmation reports the count and goes away '
         'with the box', (tester) async {
       final repos = await reposWith(freeText: true);

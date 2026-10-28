@@ -307,7 +307,8 @@ class FigureListEditor extends StatefulWidget {
   State<FigureListEditor> createState() => _FigureListEditorState();
 }
 
-class _FigureListEditorState extends State<FigureListEditor> {
+class _FigureListEditorState extends State<FigureListEditor>
+    with AutomaticKeepAliveClientMixin<FigureListEditor> {
   /// The id of the draft currently "cut" (awaiting a paste destination), or
   /// `null` when no cut is in progress.
   String? _cutDraftId;
@@ -738,12 +739,20 @@ class _FigureListEditorState extends State<FigureListEditor> {
     return _freeTextController.text.trim().isEmpty;
   }
 
+  bool get _hasPendingLine =>
+      _freeTextComposing && _freeTextController.text.trim().isNotEmpty;
+
+  /// A lazy list around the editor (the dance editor's form) would otherwise
+  /// dispose it, and the line with it, once it scrolls out of view while the
+  /// box is not focused.
+  @override
+  bool get wantKeepAlive => _hasPendingLine;
+
   /// Tells [FigureListEditor.freeTextComposerController] whether a line is
-  /// waiting in the composer.
+  /// waiting in the composer, and keeps the editor alive while one is.
   void _reportPendingLine() {
-    widget.freeTextComposerController?.updatePendingLine(
-      _freeTextComposing && _freeTextController.text.trim().isNotEmpty,
-    );
+    widget.freeTextComposerController?.updatePendingLine(_hasPendingLine);
+    updateKeepAlive();
   }
 
   /// Clears the composer after [acceptedCount] rows were inserted, announces
@@ -858,6 +867,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final drafts = widget.drafts;
