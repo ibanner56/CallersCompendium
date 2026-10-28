@@ -13,7 +13,7 @@ Planning only. Nothing in the repo was changed, built or tested. Basis: the nine
 | Won't fix | none | 0 |
 | **Total** | **21** | **125** |
 
-F5 and F5b carry the maintainer's refined alternates rule. F6 carries today's decision on received and duplicated programs, and has **one confirmation to get before dispatch** (G2). Without it, an implementer would have to guess (see "Gate questions").
+F5 and F5b carry the maintainer's refined alternates rule. F6 carries the maintainer's option (d): duplicates drop their event date, and a new "Require an event date" setting decides whether undated programs count. Received programs await one confirmation (see F6).
 
 **Waves** (details under "Sequencing"):
 
@@ -37,10 +37,8 @@ F5 and F5b carry the maintainer's refined alternates rule. F6 carries today's de
   - An alternate slot counts only when that slot is marked performed. A primary slot keeps the documented default (#583).
   - Predicate: `NOT is_alt OR performed_at IS NOT NULL`.
   - Alternates stamped by the old bulk paths look the same as hand marks, so they keep counting. Nothing in the data can tell them apart, so the plan includes no clean-up migration. That is my call; if the maintainer wants a clean-up, it is a separate question.
-- **G2 (F6, received and duplicated programs).** This is not a new decision: it is a gap in how today's decision applies, and the branch cannot be written correctly without the answer. When, if ever, does a received or duplicated program start counting as the caller's history?
-  - Under "never", a default-mode caller who builds every gig by duplicating last month's program would stop collecting history at all.
-  - Options: (a) never; (b) once the caller marks a slot performed or sets status Performed; (c) once the caller sets or changes its event date.
-  - **F6 must not be dispatched until this is answered.**
+- **G2 (F6): answered 2026-10-28 with option (d).** Duplicate clears the event date but still counts by default. A new "Require an event date" setting (default off) lets the caller exclude undated programs, mirroring "Require mark performed". No schema change for duplicates. Received programs await one confirmation (see F6).
+- **F5b setting: decided 2026-10-28.** A "Show mark-performed toggles" setting under Calling history, default on.
 
 ---
 
@@ -56,7 +54,7 @@ F5 and F5b carry the maintainer's refined alternates rule. F6 carries today's de
 | F4 | `fix/group-notes-and-parser` | AUTH-3, AUTH-4, AUTH-12, AUTH-14, AUTH-16 | L | Opus | W1 | 3 M, 2 L |
 | F5 | `fix/called-alternates-and-sort` | GIG-1, GIG-9, FIND-2 (GIG-5), PRES-4, + Missing: unused alternates | L | Opus | W2 | 2 M, 2 L |
 | F5b | `feat/summary-performed-toggles` | none (maintainer-requested feature) | M | Sonnet | W3 | n/a |
-| F6 | `fix/program-origin-history` | OUT-2, GIG-13, LIFE-7 | L | Opus | W3 (gated G2) | 3 M |
+| F6 | `fix/program-dates-in-history` | OUT-2, GIG-13, LIFE-7 | M | Opus | W3 | 3 M |
 | F7 | `fix/event-dates` | GIG-2, PRES-3 (GIG-18, OUT-3), PLAT-12 | S | Sonnet | W1 | 3 M |
 | F8 | `fix/export-files-and-pdfs` | OUT-4, OUT-8, OUT-9, OUT-10 | M | Sonnet | W3 | 1 M, 3 L |
 | F9 | `fix/backup-version-safety` | OUT-5, FAIL-16 | M | Opus | W2 | 2 L |
@@ -169,37 +167,25 @@ This is a new feature the maintainer asked for, not an audit finding. It is a se
   - Accessibility: give the toggle a semantic label naming the dance and its state, and keep it reachable without swipe.
   - Write through `updateAndReadBack` / `replaceIfUnchanged` (the intake's "stale copies" pattern), not by writing back the summary's loaded copy.
 - **Main files:** `program_summary_screen.dart` (row rendering around `:733`, mark-all `:853-866`), possibly a small helper extracted from `program_slot_list_editor.dart`, ARB (toggle label and semantics, Undo text), `docs/user/programs.md`, a `changelog.d` fragment.
-- **Size:** M (~200 with widget tests). **Model:** Sonnet. It is contained and reuses an existing behaviour.
+- **Size:** M (~250 with the setting and widget tests). **Model:** Sonnet. It is contained and reuses an existing behaviour.
 - **Depends on:** F5 (same summary mark-all code and the counting rule), and so transitively on GIG-3+GIG-4 (in flight).
 - **Severity:** n/a. It carries no audit ID.
-- **Privacy:** it adds no persisted field, because `performed_at` already exists and is classified.
+- **Setting (maintainer decision, 2026-10-28):** "Show mark-performed toggles" under Settings › Programs › Calling history, **default on**. When it is off, the summary rows show performed state as today, with no toggle. It is a new settings key, so classify it in `packages/compendium_core/lib/src/privacy/field_registry.dart` on all three axes in this PR, following its sibling `require_performed_for_history`, and regenerate `docs/dev/data-classification.md` with its tool (never hand-edit it). Add a live scope like `require_performed_for_history_scope.dart` so the summary updates without a restart, and document the setting in `docs/user/settings.md`.
+- **Privacy:** the toggles themselves add no persisted field (`performed_at` already exists and is classified); the setting above does.
 
-### F6 `fix/program-origin-history`: received and duplicated programs are not the caller's history (decided today)
+### F6 `fix/program-dates-in-history`: duplicates drop the event date; an optional "require an event date" rule (maintainer decision, 2026-10-28)
 
-- **Findings:**
-  - **OUT-2, the calling-history part.** A program imported from another caller is marked as received. It arrives as Draft with its performed marks cleared, and is excluded from counts, history, last-called, venue counts and half stats.
-  - **LIFE-7:** **Duplicate** clears the event date (the same reasoning as pay, `program.dart:566-567`) and marks the copy.
-  - **GIG-13:** covered by the two above. Its third bullet, that a future or cancelled draft counts, is the documented default (#583) and is left alone.
-- **Mechanism (my call):** a new nullable `programs` column recording origin (received or duplicated).
-  - Alternatives rejected:
-    - Reusing `status` can't work, because default mode counts any status.
-    - Clearing the event date alone still adds +1 to "Called ×N".
-  - Consequences:
-    - a schema bump, so it can't ride a PATCH release;
-    - a migration;
-    - a privacy-registry entry on all three axes, in the same PR (subject: the caller; record the reason in `note`);
-    - a sync-spec entry;
-    - archive and backup support, which must satisfy F9's version ratchet.
-  - The importer sets the flag on import; it is not read from the file.
-  - Existing received programs cannot be identified after the fact, so the flag applies from this release on.
-- **Main files:** `storage/tables.dart`, `database.dart` (migration and the version-history gate), `model/program.dart` (`duplicate` `:548-584`), `imports/compendium_archive_import.dart` (`buildArchivePrograms` `:71-74`, `:140-171`), `program_repository.dart` (the same queries F5 edits), `serialization/archive_entity_codec.dart`, `privacy/field_registry.dart` (and regenerate `docs/dev/data-classification.md`; never hand-edit it), `docs/design/storage.md`, sync spec, `docs/user/programs.md`, `sharing.md`.
-- **Size:** L (~550). **Model:** Opus.
-- **Depends on:**
-  - G2 answered;
-  - F5 (same queries);
-  - F9 (version pattern and ratchet);
-  - INTAKE-1 and OUT-1, both in flight, because both edit `compendium_archive_import.dart`.
-- **Severity:** OUT-2 M, GIG-13 M, LIFE-7 M.
+The maintainer chose option (d) for G2, replacing the earlier "received and duplicated programs don't count":
+
+- **Duplicate clears the event date** (LIFE-7). `Program.duplicate` (`program.dart:548-584`) already resets status to Draft and drops performed marks; it still copies `eventDate`, so the copy immediately adds a history row on last month's date. Clearing it is one line, plus a test.
+- A duplicated program **still counts** toward calling history by default, consistent with "any program counts" (#583).
+- **New setting "Require an event date"** under Settings › Programs › Calling history, **default off**, next to "Require mark performed" and working the same way. When on, a program with no event date does not count anywhere history is read: Called ×N, the Called filter, detail history rows, last-called, venue counts and half stats. Add the clause in the same caller/performed query helpers F5 edits in `program_repository.dart`, so every surface stays in lockstep. Classify the new key in the privacy registry on all three axes in this PR (follow `require_performed_for_history`), regenerate `docs/dev/data-classification.md` with its tool, add a live scope, and document it in `docs/user/settings.md` and `programs.md`.
+- **No schema change.** No origin column is needed for duplicates. The earlier origin-column design is dropped.
+- **Received programs (OUT-2's history part): awaiting one confirmation.** Option 1: import them like a duplicate (Draft, marks cleared, event date cleared), so the same setting governs them, with no schema change. Option 2: never count them, which needs the origin column and a schema bump. Until the maintainer answers, scope F6 to duplicates and the setting, and leave received programs to a follow-up.
+- GIG-13: covered by the above. Its "a future draft counts" bullet is the documented default (#583), and the new setting is the opt-out.
+- **Main files:** `model/program.dart` (`duplicate`), `program_repository.dart` (history queries), `data/settings_keys.dart`, a new `require_event_date_for_history_scope.dart`, `screens/settings/program_section.dart`, `privacy/field_registry.dart`, ARB files (label and help text), `docs/user/settings.md`, `programs.md`, a `changelog.d` fragment. If option 1 is chosen for received programs: `imports/compendium_archive_import.dart` too.
+- **Size:** M (~300). **Model:** Opus, because it touches every history query.
+- **Depends on:** F5 (same queries). If option 1 is chosen, it also depends on INTAKE-1 and OUT-1 being merged (both in flight, both in `compendium_archive_import.dart`). It no longer depends on F9.
 - **Left open:** whether pay, star rating and Perform dialect should travel in share files (the rest of OUT-2). See "Residual decisions". D1 meanwhile corrects the pay note in the registry.
 
 ### F7 `fix/event-dates`: one date formatter, with a year
@@ -244,7 +230,7 @@ This is a new feature the maintainer asked for, not an audit finding. It is a se
     - Document the in-place write in `backup-portability.md`.
 - **Main files:** `data/backup_document.dart` (`:20-22`), `backup_service.dart`, `serialization/archive_entity_codec.dart` (`:234-241`), `compendium_archive.dart` (`requiredSchemaVersion` `:147-177`), `data/backup_io.dart` (`writeDesktopBackup` `:287-310`), a new `tools/ci/` check, `docs/user/backup-portability.md`.
 - **Size:** M (~220). **Model:** Opus (version-compatibility semantics).
-- **Depends on:** FAIL-1+PLAT-1 (in flight; same `backup_io.dart` and `backup-portability.md`). F6 builds on it.
+- **Depends on:** FAIL-1+PLAT-1 (in flight; same `backup_io.dart` and `backup-portability.md`). F6 no longer depends on it.
 - **Severity:** OUT-5 L, FAIL-16 L (unchecked).
 
 ### F10 `fix/program-slot-resolution`: every program surface resolves a slot the same way
@@ -550,7 +536,7 @@ The decision-free part of each finding below is planned. These parts are not.
 3. **W3 (4):**
    - F3 after F2.
    - F5b right after F5.
-   - F6 after F5, F9 and G2.
+   - F6 after F5 (and after INTAKE-1 and OUT-1, if received programs are included).
    - F8 after F7 and FAIL-1.
 4. **W4 (1):** F10 after F5b.
 5. **W5 (2):** F11 after F10; D2 last.
