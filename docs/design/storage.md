@@ -679,7 +679,11 @@ database already carries it. The steps that can still fire are v36 onward.
   pay recorded. Shareable, so it syncs and is exported in archives (program
   share files included, so it reaches other people), but it is
   not part of the shared program text or PDF and `Program.duplicate` does not
-  copy it. Additive `addColumn`s; no back-fill and no derived rebuild.
+  copy it. A backup holding pay or a v37 dialect name is written under backup
+  envelope v2 (`backupSchemaVersionProgramPay`), so 0.5.2 to 0.5.4 refuse it
+  instead of restoring it without them; the core archive version is unchanged,
+  so share files are not affected (#1885). Additive `addColumn`s; no back-fill
+  and no derived rebuild.
 - v39 (sync-spec §6.7): adds the `retained_sync_fields` table — `kind`,
   `record_id`, `whole_record` (bool) and `payload` (canonical JSON text), keyed
   by `(kind, record_id)`. It holds what this device keeps of a synced record
