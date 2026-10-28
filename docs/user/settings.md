@@ -46,7 +46,9 @@ The **General** section gathers everyday behavior into small groups.
 
 - **Ignore leading articles when sorting** (on by default) — alphabetizes titles
   by their first meaningful word. With this on, "The Nice Combination" files under
-  **N**, not **T**.
+  **N**, not **T**. It applies to the Collection, the program dance picker, the
+  Programs list, and the order of [quick search](./collection.md#jump-straight-to-a-dance-or-program)
+  results.
 - **Capitalize figures** (off by default) — starts each
   [figure](./glossary.md#figure) in the dance view, [Perform mode](./perform.md) and
   the figure editor with a capital letter. Off, figures are shown as written
@@ -57,7 +59,10 @@ The **General** section gathers everyday behavior into small groups.
 ### Accessibility
 
 - **Reduce motion** — trims animations and movement. Follows your device's system
-  *Reduce Motion* setting by default; flip this switch to override it either way.
+  *Reduce Motion* setting by default; flip this switch to override it either way
+  for the app's own animations and for the fade between themes. A few
+  animations built into the system's own controls may still follow the device
+  setting.
 - **Always show verbose figure text** — shows the full spoken-style
   [figure](./glossary.md#figure) wording on screen in the dance view, not only to
   screen readers. Turn it off for the terse notation. This affects the dance view;

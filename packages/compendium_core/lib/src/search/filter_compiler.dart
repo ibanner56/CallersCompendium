@@ -42,6 +42,32 @@ const _rawTextColumns = 'title authors sources custom_values hook notes';
 /// query, not only the first.
 String _rawColumnsMatch(String query) => '{$_rawTextColumns} : ($query)';
 
+/// The canonical role tokens stored in `figures_text` (`dialect.dart`), which a
+/// caller never types and must not find by accident.
+const _internalRoleTokens = ['role1', 'role2', 'role1s', 'role2s'];
+
+/// Whether any term of [canonicalText] is a *fragment* of an internal role
+/// token — `ro`, `rol`, `ole`, `role` — rather than a whole token (a role word
+/// canonicalises to a whole one, and that must still find figures). While a
+/// caller types "Rolling Off a Log" or "Roodman" such a fragment would
+/// otherwise match the `role1s` in nearly every dance's figure text.
+///
+/// [prefix] selects the matching the index will apply to the term: the
+/// prefix index (queries of one or two characters) only reaches a token's
+/// start, the trigram index reaches anywhere inside it.
+bool _hasInternalRoleTokenFragment(
+  String canonicalText, {
+  required bool prefix,
+}) {
+  for (final term in canonicalText.toLowerCase().split(RegExp(r'\s+'))) {
+    if (term.isEmpty || _internalRoleTokens.contains(term)) continue;
+    for (final token in _internalRoleTokens) {
+      if (prefix ? token.startsWith(term) : token.contains(term)) return true;
+    }
+  }
+  return false;
+}
+
 /// Compiles a [DanceFilter] tree into a single parameterized `SELECT id FROM
 /// dances …` (`docs/design/search.md` "SQL compilation").
 ///
@@ -120,15 +146,18 @@ class FilterCompiler {
   }
 
   CompiledFilter _compileRelevance(FullTextFilter filter, SortDirection dir) {
-    final canonicalQuery = toFtsPrefixMatchQuery(
-      canonicalizeText(
-        filter.query,
-        dialect,
-        extraRoleSynonyms: enrichment.roleSynonyms,
-      ),
+    final canonicalText = canonicalizeText(
+      filter.query,
+      dialect,
+      extraRoleSynonyms: enrichment.roleSynonyms,
     );
+    final canonicalQuery = toFtsPrefixMatchQuery(canonicalText);
     final rawTextQuery = toFtsPrefixMatchQuery(filter.query);
-    final query = '($canonicalQuery OR ${_rawColumnsMatch(rawTextQuery)})';
+    final canonicalMatch =
+        _hasInternalRoleTokenFragment(canonicalText, prefix: true)
+        ? _rawColumnsMatch(canonicalQuery)
+        : canonicalQuery;
+    final query = '($canonicalMatch OR ${_rawColumnsMatch(rawTextQuery)})';
     // bm25 returns lower (more negative) for better matches, so ascending
     // (the default) is best-match-first; descending flips to worst-match-first.
     final order = dir == SortDirection.descending
@@ -364,7 +393,14 @@ class FilterCompiler {
         // canonical-only (it is stored canonicalised). Both branches use the
         // active prefix/substr index, so long queries remain literal
         // substrings rather than falling back to unicode61 token semantics.
-        binds.add(canonicalQuery);
+        // `figures_text` is left out of the canonical branch while a term is
+        // only a fragment of an internal role token (see
+        // [_hasInternalRoleTokenFragment]); the verbatim columns still match.
+        binds.add(
+          _hasInternalRoleTokenFragment(canonicalText, prefix: isPrefix)
+              ? _rawColumnsMatch(canonicalQuery)
+              : canonicalQuery,
+        );
         binds.add(_rawColumnsMatch(rawTextQuery));
         final canonical =
             'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';

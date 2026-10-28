@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/reduce_motion_scope.dart';
 import '../search/facet_labels.dart' show formationIcon, formationLabel;
 
 /// Read-only **programming matrix** (moves × dances) for the Program builder's
@@ -625,7 +626,10 @@ class _HideableColumnHeaderState extends State<_HideableColumnHeader> {
               onFocusChange: (hasFocus) => setState(() => _focused = hasFocus),
               child: AnimatedOpacity(
                 opacity: revealed ? 1 : _restingOpacity,
-                duration: const Duration(milliseconds: 120),
+                // Reduce motion: snap between the resting and revealed opacity.
+                duration: ReduceMotionScope.of(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 120),
                 child: SizedBox(
                   width: _glyphSize,
                   height: _glyphSize,

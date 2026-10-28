@@ -24,6 +24,7 @@ import '../data/program_ambiguous_review.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../data/decimal_turns_scope.dart';
 import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../data/show_glossary_scope.dart';
@@ -1135,6 +1136,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (!hasConfidentMatch) return const {};
     final dialect = ActiveDialectScope.of(context);
     final renderer = UserFiguresScope.rendererOf(context);
+    final decimals = DecimalTurnsScope.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     final diffs = <int, FigureDiffResult>{};
     for (var i = 0; i < batch.records.length; i++) {
       if (!mounted) return diffs;
@@ -1161,6 +1166,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         taxonomy: contraTaxonomy,
         renderer: renderer,
         dialect: dialect,
+        decimals: decimals,
+        canonicalDiscouragedTerms: canonicalDiscouragedTerms,
       );
     }
     return diffs;

@@ -1520,6 +1520,66 @@ void main() {
       },
     );
 
+    group('omni search and the internal role tokens (FIND-16)', () {
+      Future<void> seed() async {
+        await dances.create(_dance(id: 'log', title: 'Rolling Off a Log'));
+        await dances.create(
+          _dance(
+            id: 'plain',
+            title: 'Plain Jane',
+            figures: [
+              Figure(
+                move: 'swing',
+                params: const {'who': 'role1s', 'beats': 8},
+              ),
+            ],
+          ),
+        );
+      }
+
+      test(
+        'a fragment of a role token finds only the verbatim-text match',
+        () async {
+          await seed();
+          // 1-2 characters use the prefix index; longer ones the trigram index.
+          const matchesTitle = {'r', 'ro', 'rol'}; // "Rolling": not "role"
+          for (final q in ['r', 'ro', 'rol', 'role', 'ole']) {
+            expect(
+              await dances.search(
+                FullTextFilter(q),
+                dialect: Dialect.larksRobins,
+              ),
+              matchesTitle.contains(q) ? ['log'] : isEmpty,
+              reason: 'omni "$q"',
+            );
+          }
+        },
+      );
+
+      test('the relevance sort leaves the token out too', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const FullTextFilter('ro'),
+            dialect: Dialect.larksRobins,
+            sort: SearchSort.relevance,
+          ),
+          ['log'],
+        );
+      });
+
+      test('a whole role word still finds the figure', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const FullTextFilter('larks'),
+            dialect: Dialect.larksRobins,
+          ),
+          ['plain'],
+        );
+      });
+    });
+
     group('omni raw branch (role words in verbatim columns)', () {
       Future<void> seedAuthored() async {
         // ignore: unused_result

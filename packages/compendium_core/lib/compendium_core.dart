@@ -96,6 +96,7 @@ export 'src/privacy/data_classification.dart';
 export 'src/privacy/field_registry.dart';
 export 'src/privacy/settings_registry.dart';
 export 'src/search/search_sort.dart';
+export 'src/search/title_match.dart';
 export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';
 export 'src/storage/calling_history_scope.dart'

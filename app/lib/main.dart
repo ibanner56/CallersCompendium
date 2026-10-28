@@ -2529,6 +2529,8 @@ class _CompendiumAppState extends State<CompendiumApp>
         _themeNotifier,
         _customThemes,
         _localeNotifier,
+        // `themeAnimationStyle` and the `MediaQuery` override below both read it.
+        _reduceMotionNotifier,
       ]),
       builder: (context, _) {
         final selection = _themeNotifier.value;
@@ -2590,8 +2592,30 @@ class _CompendiumAppState extends State<CompendiumApp>
           highContrastTheme: AppTheme.highContrast,
           highContrastDarkTheme: AppTheme.highContrast,
           themeMode: themeMode,
-          builder: (context, child) => _appScopeWrappers().reversed
-              .fold<Widget>(child!, (inner, wrap) => wrap(inner)),
+          // The in-app Reduce motion switch, when set, wins over the OS in both
+          // directions. Flutter's own `AnimationController`s read the OS flag
+          // from the platform, not from `MediaQuery`, so what this can reach is
+          // the theme cross-fade (an explicit "on" turns it off here; with the
+          // switch unset the framework already follows the OS) and everything
+          // that reads `MediaQuery.disableAnimations`, such as animated images.
+          themeAnimationStyle: _reduceMotionNotifier.value == true
+              ? AnimationStyle.noAnimation
+              : null,
+          builder: (context, child) {
+            final override = _reduceMotionNotifier.value;
+            final scoped = _appScopeWrappers().reversed.fold<Widget>(
+              child!,
+              (inner, wrap) => wrap(inner),
+            );
+            // Always present, so the tree keeps one shape whatever the switch says.
+            final media = MediaQuery.of(context);
+            return MediaQuery(
+              data: override == null
+                  ? media
+                  : media.copyWith(disableAnimations: override),
+              child: scoped,
+            );
+          },
           home: AppBootstrap(
             future: _bootstrap,
             onRetry: _retry,

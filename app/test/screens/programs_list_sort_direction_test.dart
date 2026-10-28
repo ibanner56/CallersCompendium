@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
 
@@ -131,5 +132,55 @@ void main() {
           .icon,
       isA<Icon>().having((i) => i.icon, 'icon', Icons.arrow_upward),
     );
+  });
+
+  group('title sort and "Ignore leading articles" (PRES-9)', () {
+    Future<void> pumpWithSetting(
+      WidgetTester tester, {
+      required bool ignoreArticles,
+    }) async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final when = DateTime.utc(2026, 3);
+      await repos.programs.create(program('a', 'Autumn Ball', when));
+      await repos.programs.create(program('b', 'The Spring Fling', when));
+      await repos.programs.create(program('c', 'Summer Social', when));
+      final notifier = ValueNotifier<bool>(ignoreArticles);
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        SortIgnoreArticlesScope(
+          notifier: notifier,
+          child: RepositoriesScope(
+            repositories: repos,
+            child: const MaterialApp(
+              localizationsDelegates: testLocalizationsDelegates,
+              supportedLocales: testSupportedLocales,
+              home: ProgramsListScreen(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('files "The Spring Fling" under S when the setting is on', (
+      tester,
+    ) async {
+      await pumpWithSetting(tester, ignoreArticles: true);
+      expect(tileTitles(tester), [
+        'Autumn Ball',
+        'The Spring Fling',
+        'Summer Social',
+      ]);
+    });
+
+    testWidgets('files it under T when the setting is off', (tester) async {
+      await pumpWithSetting(tester, ignoreArticles: false);
+      expect(tileTitles(tester), [
+        'Autumn Ball',
+        'Summer Social',
+        'The Spring Fling',
+      ]);
+    });
   });
 }

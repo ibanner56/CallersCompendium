@@ -403,7 +403,12 @@ whatever you are doing. Type, and matching **Dances** and **Programs** are liste
 in groups; choose one and you go straight there.
 
 It searches titles across your collection and your programs, so it is the fastest
-way to reach a dance you can name. For searching *inside* dances — by move, by
+way to reach a dance you can name. Accents are ignored (typing `ecole` finds
+"École"), and a title that is exactly what you typed, then one that starts with
+it, is listed ahead of titles that only contain it, so `hey` shows "Hey" before
+"Cheyenne". Within each, titles are alphabetical, and a leading "The", "A" or
+"An" is ignored when [Ignore leading articles when sorting](./settings.md)
+is on. For searching *inside* dances — by move, by
 level, by tag — use the Collection search and filters above.
 
 ## Where to go next
