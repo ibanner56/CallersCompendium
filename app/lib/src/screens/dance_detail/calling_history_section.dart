@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/calling_history_caller_filter.dart';
 import '../../data/venue_label.dart';
+import '../../data/date_format_scope.dart';
+import '../../data/regional_formats.dart';
 import '../../data/venue_call_count_scope.dart';
 import '../../theme/app_spacing.dart';
 
@@ -373,6 +375,10 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   }
 }
 
+/// How far past `eventDate` a `performedAt` can sit and still count as a stamp
+/// copied from it: one second per slot that already held a stamp.
+const Duration _eventDateStampWindow = Duration(minutes: 5);
+
 /// The calendar day a calling-history row shows for [record].
 ///
 /// Programs appear as soon as they include the dance, so `performedAt` is often
@@ -381,11 +387,23 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
 /// `performedAt` and `programUpdatedAt` are instants stored in UTC, so they are
 /// shown in local time: a dance called at 22:30 in New York is stored as 02:30Z
 /// the next day. `eventDate` is a calendar date stored as UTC midnight, so it
-/// is shown as stored (converting it would move it back a day west of UTC).
+/// is shown as stored (converting it would move it back a day west of UTC); a
+/// `performedAt` equal to it is that same calendar date copied by Status →
+/// Performed (allowing for the one-second bumps re-stamping adds), and is shown
+/// as stored too.
 /// Ordering still uses the UTC `effectiveDate`.
 @visibleForTesting
 DateTime callingHistoryDisplayDate(DanceCallingRecord record) {
   final performedAt = record.performedAt;
+  final eventDate = record.eventDate;
+  // A stamp copied from the event date (Status -> Performed) is a calendar
+  // date at UTC midnight, not an instant: show it as stored.
+  // Re-stamping bumps a second per already-used second
+  // (`nextStoredTimestamp`), so accept a short window after the event date.
+  if (performedAt != null && eventDate != null) {
+    final after = performedAt.difference(eventDate);
+    if (!after.isNegative && after < _eventDateStampWindow) return eventDate;
+  }
   if (performedAt != null) return callingHistoryToLocal(performedAt);
   return record.eventDate ?? callingHistoryToLocal(record.programUpdatedAt);
 }
@@ -423,8 +441,11 @@ class CallingHistoryRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
-    final date = localizations.formatMediumDate(
+    final date = formatEventDate(
       callingHistoryDisplayDate(record),
+      DateFormatScope.of(context),
+      localizations,
+      l10n,
     );
     final venue = (venueLabel ?? record.venue)?.trim();
     final subtitleParts = <String>[

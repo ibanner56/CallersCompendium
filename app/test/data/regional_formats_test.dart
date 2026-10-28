@@ -174,7 +174,7 @@ void main() {
       );
     });
 
-    test('defers to the localization medium date for system', () {
+    test('defers to the localization short (year-bearing) date for system', () {
       final date = DateTime(2026, 7, 15);
       expect(
         formatEventDate(
@@ -183,11 +183,11 @@ void main() {
           material,
           l10n,
         ),
-        material.formatMediumDate(date),
+        material.formatShortDate(date),
       );
     });
 
-    test('an invalid custom pattern defers to the medium date (system)', () {
+    test('an invalid custom pattern defers to the short date (system)', () {
       final date = DateTime(2026, 7, 15);
       expect(
         formatEventDate(
@@ -196,7 +196,7 @@ void main() {
           material,
           l10n,
         ),
-        material.formatMediumDate(date),
+        material.formatShortDate(date),
       );
     });
   });

@@ -7,6 +7,8 @@ import 'package:share_plus/share_plus.dart';
 export '../export/share_file.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/date_format_scope.dart';
+import '../data/regional_formats.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
@@ -130,8 +132,12 @@ class ProgramExportMenu extends StatelessWidget {
   /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
-  String _formatDate(BuildContext context, DateTime date) =>
-      MaterialLocalizations.of(context).formatMediumDate(date);
+  String _formatDate(BuildContext context, DateTime date) => formatEventDate(
+    date,
+    DateFormatScope.of(context),
+    MaterialLocalizations.of(context),
+    AppLocalizations.of(context),
+  );
 
   /// Resolves a linked venue's display label for the **text** exports.
   ///
@@ -485,6 +491,7 @@ class ProgramExportMenu extends StatelessWidget {
     final localizations = MaterialLocalizations.of(context);
     final l10n = AppLocalizations.of(context);
     final labels = programExportLabels(l10n);
+    final dateSetting = DateFormatScope.of(context);
 
     // Gate the venue's contact PII behind the same consent dialog the share
     // path uses. Contact fields are omit-by-default; a cancelled/dismissed
@@ -538,7 +545,7 @@ class ProgramExportMenu extends StatelessWidget {
         titleFor: titleFor,
         venuesById: venuesById,
         includeVenueContact: includeVenueContact,
-        formatDate: localizations.formatMediumDate,
+        formatDate: (d) => formatEventDate(d, dateSetting, localizations, l10n),
         labels: labels,
         appendDances: appendDances,
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,

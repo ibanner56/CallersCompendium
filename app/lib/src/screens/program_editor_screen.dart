@@ -3299,6 +3299,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final messenger = ScaffoldMessenger.of(context);
     final localizations = MaterialLocalizations.of(context);
     final l10n = AppLocalizations.of(context);
+    final dateSetting = DateFormatScope.of(context);
     final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -3327,7 +3328,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           eventDate: eventDate,
           venue: venue,
           omittedFreeTextCount: omittedFreeTextCount,
-          formatDate: localizations.formatMediumDate,
+          formatDate: (d) =>
+              formatEventDate(d, dateSetting, localizations, l10n),
           labels: programMatrixExportLabels(l10n),
           formatFormation: (formation) => formationDisplayLabel(
             l10n,
