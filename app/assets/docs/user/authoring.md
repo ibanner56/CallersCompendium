@@ -414,7 +414,9 @@ another side, up to six.
 A note you add to one side, or to one figure of a modifier group, is shown in
 brackets after that figure wherever the dance is shown: in the list, on the
 dance's page, in Perform and when printed. For example,
-`robins allemande right once (1 1/2) while larks orbit`.
+`robins allemande right once (1 1/2) while larks orbit`. If you choose
+**Customize wording for this dance** on the group itself, your wording replaces
+the whole line, its sides' notes included.
 
 ### Modifier figures
 
