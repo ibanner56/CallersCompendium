@@ -31,8 +31,9 @@ class CcProgramsResult {
 /// mirroring [mapCallersCompanionDance]'s philosophy — so it is trivially
 /// unit-testable and stays Flutter-free in the core. The app layer calls it
 /// *after* the dance import commits (so [danceIdByCcRowId] maps CC `Dance`
-/// record ids → the Compendium dance ids the commit wrote, plus the existing
-/// dance of each re-import row the review skipped), then persists the returned
+/// record ids → the Compendium dance ids the commit wrote, plus dances the
+/// review resolved outside the commit: a skipped re-import row's target, or a
+/// row already committed through Import and edit), then persists the returned
 /// programs via `ProgramRepository` and records them for undo. Wiring that
 /// persistence/undo is an app-layer follow-up because [ImportPipeline] is
 /// dance-only; keeping this a pure function avoids a large pipeline refactor in
