@@ -166,8 +166,9 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
 /// structured figure would carry the wrong beats, turn or moves while the rest
 /// of what was typed sits in the note (#1612). A note is a leftover when it is
 /// `and back` (`over & back` too) or a bare number (`16`), or when
-/// - a clause of it starts with another move's name: the note is cut at `,`,
-///   `;`, `:`, `and` and `then` (`and swing, end facing down`,
+/// - a clause of it is another figure: it starts with a move's name and reads,
+///   on its own, as a whole figure with no note of its own. The note is cut at
+///   `,`, `;`, `:`, `and` and `then` (`and swing, end facing down`,
 ///   `four in line, turn alone`); or
 /// - it holds a turn amount: a fraction (`3/4`, `½`), a decimal (`1.5`),
 ///   `twice`, `x2` or `2x`, or `N times` (`petronella twice`), for N of 2
@@ -177,7 +178,9 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
 /// that is the designed behaviour. So do plain words (`slowly`,
 /// `to new neighbors`, `in lines of 4`); a move named mid-clause, where it is
 /// usually where the figure happens (`in the circle`,
-/// `to partner (optional courtesy turn)`); and `once`, which is what a
+/// `to partner (optional courtesy turn)`); a clause that opens with a move's
+/// name but is a hold, a place or a formation rather than a figure
+/// (`promenade hold`, `long wave in center`); and `once`, which is what a
 /// figure does by default (`once around`). A count with a unit (`8 beats`,
 /// `4 bars`) is not one either: free-text entry peels those off before the
 /// parse, and the re-parse upgrade keeps a unit count it does not read as
@@ -201,9 +204,7 @@ bool _noteIsLeftover(String note, _LeftoverVocabulary vocabulary) {
   if (n.isEmpty) return false;
   if (_bareNumber.hasMatch(n)) return true;
   if (_turnToken.hasMatch(n)) return true;
-  return n
-      .split(_clauseBreak)
-      .any((clause) => vocabulary.leadingMoveName.hasMatch(clause.trim()));
+  return n.split(_clauseBreak).map((c) => c.trim()).any(vocabulary.isFigure);
 }
 
 final RegExp _andBackNote = RegExp(r'^((and|then) )?(over )?and back$');
@@ -225,11 +226,12 @@ final RegExp _turnToken = RegExp(
 const String _moreThanOne = r'(?:[2-9]|[1-9]\d+)';
 
 /// The active taxonomy's move and alias names, as a pattern that matches one
-/// at the start of a clause, as whole words: display names, ids spelled with
-/// spaces, and search keywords, lowercase. The custom
+/// at the start of a clause, as whole words (display names, ids spelled with
+/// spaces, and search keywords, lowercase), and the taxonomy a clause is read
+/// against ([isFigure]). The custom
 /// move is left out: "custom" is not a move a caller types.
 class _LeftoverVocabulary {
-  _LeftoverVocabulary._(this.leadingMoveName);
+  _LeftoverVocabulary._(this.leadingMoveName, this.taxonomy);
 
   factory _LeftoverVocabulary.of(Taxonomy taxonomy) =>
       _cache[taxonomy] ??= _build(taxonomy);
@@ -252,15 +254,31 @@ class _LeftoverVocabulary {
     }..removeWhere((n) => n.trim().isEmpty);
     return _LeftoverVocabulary._(
       RegExp('^(?:${names.map(RegExp.escape).join('|')})(?![a-z0-9])'),
+      taxonomy,
     );
   }
 
   /// Never matches: the vocabulary of a caller that does not demote.
   static final _LeftoverVocabulary none = _LeftoverVocabulary._(
     RegExp(r'(?!)'),
+    contraTaxonomy,
   );
 
   final RegExp leadingMoveName;
+  final Taxonomy taxonomy;
+
+  /// Whether [clause] is a figure of its own: it starts with a move's name,
+  /// and some front-end reads the whole of it as a structured figure with no
+  /// note. The name check comes first, so the parser only runs for a clause
+  /// that could be one.
+  bool isFigure(String clause) {
+    if (!leadingMoveName.hasMatch(clause)) return false;
+    for (final fe in figureFanOutFrontEnds) {
+      final f = parseFigureLine(clause, taxonomy: taxonomy, frontEnd: fe);
+      if (f != null && !f.isCustom && f.note == null) return true;
+    }
+    return false;
+  }
 }
 
 /// Whether a container [f] holds a custom child. A container is never itself

@@ -539,9 +539,10 @@ List<String>? splitShorthandClauses(String line) {
 /// shorthand gets above, for the callers that match a shorthand of their own
 /// kind (a compound, or one of the user's own figures) and so cannot go
 /// through [parseFreeTextFigureEntry]: the caller matches `text` against its
-/// tokens and decides what `beats` means for what it inserts. A count too long
-/// to be beats (five or more digits) is `unread`, with `beats` 0 (#1863): it is
-/// not a beat count, and the caller decides where the number goes.
+/// tokens and decides what `beats` means for what it inserts. A count that is
+/// not beats is `unread`, with `beats` 0: one too long to be (five or more
+/// digits, #1863) or a count in bars (`4 bars`). The caller decides where it
+/// goes.
 ({String text, int beats, String? unread})? splitShorthandCount(String line) {
   final split = _splitInlineBeats(line.trim());
   if (split.beats == 0 && split.unread == null) return null;

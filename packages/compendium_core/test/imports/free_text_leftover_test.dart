@@ -61,6 +61,15 @@ void main() {
       ('neighbors swing in the circle', 'swing', 'in the circle'),
       // `once` is what a figure does by default, not a turn it ignores.
       ('Circle left once around', 'circle', 'once around'),
+      // A clause that opens with a move's name but is a hold or a place, not
+      // a figure of its own.
+      ('partners swing, promenade hold', 'swing', 'promenade hold'),
+      ('neighbors allemande left, swing hold', 'allemande', 'swing hold'),
+      (
+        '(4) Women balance long wave in center',
+        'balance',
+        'long wave in center',
+      ),
     ]) {
       test(line, () {
         final f = parse(line).single;
