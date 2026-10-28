@@ -585,7 +585,7 @@ final Map<String, DataClassification> fieldClassifications = {
         'sent to other people (docs/user/sharing.md), where it becomes the '
         "recipient's copy of the sender's earnings. It is never part of the "
         'shared set-list text or PDF. Whether pay should travel in share '
-        'files is an open maintainer decision (audit OUT-2); the '
+        'files is a pending maintainer decision; the '
         'classification is unchanged until it is made.',
   ),
   'programs.pay_currency': const DataClassification(
