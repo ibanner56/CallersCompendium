@@ -166,7 +166,9 @@ screen, loaded with the program, its dances, and its venue. Nothing is added
 until the recipient confirms. Any of your own figures the file carries are
 offered to them afterwards, to add to their Glossary or not — see
 [Figures in a shared file](./imports.md#figures-in-a-shared-file). Bringing the same file in twice does not pile up
-duplicate *dances* — the importer matches what is already there.
+duplicate *dances* — the importer matches what is already there. A dance it
+recognises as one you already have defaults to **Skip**, and the program still
+points at your copy of it.
 
 Venues are matched more narrowly. Importing the same program again, or another
 program from the same sender that uses the same venue, reuses the venue the first
