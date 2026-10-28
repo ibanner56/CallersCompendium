@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/callersbox_online.dart';
+import 'package:compendium_app/src/data/contradb_online.dart';
+import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/plaintext_program_import_screen.dart';
 import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
@@ -34,8 +38,29 @@ const String _emptyResultsHtml = '''
 </body></html>
 ''';
 
-String _moneyMuskJson() =>
-    '{"ID":"10600","Name":"Money Musk","Authors":["Traditional"],'
+/// A results page with two dances both titled exactly "Money Musk".
+const String _twoMoneyMusksResultsHtml = '''
+<html><head><meta charset='windows-1252'></head><body>
+<p>Of 16874 dances in the database, your query matches 2.</p>
+<table>
+<tr>
+  <td>&#x24bb;</td><td></td><td></td>
+  <td><a href='dance.php?id=10600' target='_blank'>Money Musk</a></td>
+  <td>Traditional</td>
+  <td>Triple Minor - Proper</td>
+</tr>
+<tr>
+  <td>&#x24bb;</td><td></td><td></td>
+  <td><a href='dance.php?id=10601' target='_blank'>Money Musk</a></td>
+  <td>Someone Else</td>
+  <td>Duple Minor - Improper</td>
+</tr>
+</table>
+</body></html>
+''';
+
+String _moneyMuskJson({String id = '10600'}) =>
+    '{"ID":"$id","Name":"Money Musk","Authors":["Traditional"],'
     '"InterpretedBy":[],"Permission":"full",'
     '"FormationBase":"Triple Minor - Proper","FormationDetail":"",'
     '"Progression":"Single","PhraseStructure":"","CallingNotes":[],'
@@ -61,6 +86,7 @@ Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
   CallersBoxOnline? online,
+  ContraDbOnline? contraDb,
 }) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -76,8 +102,10 @@ Future<void> _pump(
             child: ElevatedButton(
               onPressed: () => Navigator.of(context).push<String>(
                 MaterialPageRoute<String>(
-                  builder: (_) =>
-                      PlaintextProgramImportScreen(callersBoxOnline: online),
+                  builder: (_) => PlaintextProgramImportScreen(
+                    callersBoxOnline: online,
+                    contraDbOnline: contraDb,
+                  ),
                 ),
               ),
               child: const Text('open'),
@@ -360,5 +388,351 @@ void main() {
     final program = (await repos.programs.listAll()).single;
     expect(program.slots.single.danceId, isNull);
     expect(program.slots.single.text, 'Totally Unknown Dance');
+  });
+
+  // ── 2026-10 audit, batch F12 (INTAKE-4, FAIL-2) ──────────────────────────
+
+  /// A ContraDB fallback that never finds anything, so these tests exercise
+  /// The Caller's Box alone and never reach the network.
+  ContraDbOnline emptyContraDb() => ContraDbOnline(
+    searchFetcher: (_) async => '{"dances":[]}',
+    htmlFetcher: (_) async => throw StateError('should not fetch a dance'),
+  );
+
+  Future<void> resolveMoneyMusk(WidgetTester tester) async {
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-title')),
+      'Friday Night',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Money Musk',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Imported online'), findsOneWidget);
+  }
+
+  testWidgets('offline, resolve says it stopped, not that nothing matched, '
+      'and asks each source once at most', (tester) async {
+    final repos = openTestRepositories();
+    var searches = 0;
+    var contraDbSearches = 0;
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async {
+        searches++;
+        throw const UrlFetchException(
+          UrlFetchFailureReason.callersBoxUnreachable,
+        );
+      },
+      jsonFetcher: (_) async => throw StateError('should not fetch json'),
+    );
+    final contraDb = ContraDbOnline(
+      searchFetcher: (_) async {
+        contraDbSearches++;
+        return '{"dances":[]}';
+      },
+    );
+    await _pump(tester, repos, online: online, contraDb: contraDb);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'First Unknown\nSecond Unknown\nThird Unknown',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pumpAndSettle();
+
+    // Stopped at the first connection failure: one search, no fallback.
+    expect(searches, 1);
+    expect(contraDbSearches, 0);
+    expect(find.textContaining('No confident online matches'), findsNothing);
+    expect(
+      find.text(
+        'Stopped looking up titles after a connection failure. Try the rest '
+        "again once you're online.",
+      ),
+      findsOneWidget,
+    );
+    // Nothing was looked up, so all three stay notes and can be retried.
+    expect(find.text('No match — added as note'), findsNWidgets(3));
+    expect(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('resolve shows progress and Cancel stops before the next title', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final searched = <String>[];
+    final gate = Completer<String>();
+    final online = CallersBoxOnline(
+      searchFetcher: (url) {
+        searched.add(url);
+        return gate.future;
+      },
+      jsonFetcher: (_) async => _moneyMuskJson(),
+    );
+    await _pump(tester, repos, online: online, contraDb: emptyContraDb());
+
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Money Musk\nSecond Unknown',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pump();
+
+    expect(find.text('Searching 0 of 2…'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-cancel')),
+    );
+    await tester.pump();
+    gate.complete(_moneyMuskResultsHtml);
+    await tester.pumpAndSettle();
+
+    // The title in flight finished; the second was never asked for.
+    expect(searched, hasLength(1));
+    expect(find.text('Imported online'), findsOneWidget);
+    expect(
+      find.text('Stopped looking up titles — 1 title linked online.'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('plaintext-import-resolve-cancel')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Undo removes the dances the online pass imported, not just '
+      'the program', (tester) async {
+    final repos = openTestRepositories();
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => _moneyMuskResultsHtml,
+      jsonFetcher: (_) async => _moneyMuskJson(),
+    );
+    await _pump(tester, repos, online: online, contraDb: emptyContraDb());
+    await resolveMoneyMusk(tester);
+    expect(await repos.dances.listAll(), hasLength(1));
+
+    await tester.tap(find.byKey(const ValueKey('plaintext-import-commit')));
+    await tester.pumpAndSettle();
+    expect(await repos.programs.listAll(), hasLength(1));
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(await repos.programs.listAll(), isEmpty);
+    expect(await repos.dances.listAll(), isEmpty);
+    // Its author came in with it, and goes with it.
+    expect(await repos.choreographers.listAll(), isEmpty);
+  });
+
+  testWidgets('Undo leaves a dance that was already in the collection', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Rockin\' Robin'));
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => _moneyMuskResultsHtml,
+      jsonFetcher: (_) async => _moneyMuskJson(),
+    );
+    await _pump(tester, repos, online: online, contraDb: emptyContraDb());
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-title')),
+      'Friday Night',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Rockin\' Robin\nMoney Musk',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('plaintext-import-commit')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect((await repos.dances.listAll()).map((d) => d.id), ['d1']);
+  });
+
+  testWidgets('backing out without creating the program removes the dances '
+      'the online pass imported', (tester) async {
+    final repos = openTestRepositories();
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => _moneyMuskResultsHtml,
+      jsonFetcher: (_) async => _moneyMuskJson(),
+    );
+    await _pump(tester, repos, online: online, contraDb: emptyContraDb());
+    await resolveMoneyMusk(tester);
+    expect(await repos.dances.listAll(), hasLength(1));
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.text('open'), findsOneWidget);
+    expect(await repos.programs.listAll(), isEmpty);
+    expect(await repos.dances.listAll(), isEmpty);
+  });
+
+  testWidgets('leaving mid-lookup stops it and keeps nothing it imported', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final searched = <String>[];
+    final gate = Completer<String>();
+    final online = CallersBoxOnline(
+      searchFetcher: (url) {
+        searched.add(url);
+        return searched.length == 1 ? gate.future : Future.value('');
+      },
+      jsonFetcher: (_) async => _moneyMuskJson(),
+    );
+    await _pump(tester, repos, online: online, contraDb: emptyContraDb());
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Money Musk\nSecond Unknown\nThird Unknown',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pump();
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('open'), findsOneWidget);
+
+    // The lookup in flight completes after the screen is gone: its dance is
+    // imported, then taken back out, and no further title is looked up.
+    gate.complete(_moneyMuskResultsHtml);
+    await tester.pumpAndSettle();
+
+    expect(searched, hasLength(1));
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(await repos.programs.listAll(), isEmpty);
+  });
+
+  testWidgets('Undo also removes a dance picked on the review screen for an '
+      'ambiguous title', (tester) async {
+    final repos = openTestRepositories();
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => _twoMoneyMusksResultsHtml,
+      jsonFetcher: (url) async => _moneyMuskJson(
+        id: RegExp(r'id=(\d+)').firstMatch(url)?.group(1) ?? '10600',
+      ),
+    );
+    await _pump(tester, repos, online: online, contraDb: emptyContraDb());
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-title')),
+      'Friday Night',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Money Musk',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pumpAndSettle();
+
+    // Two exact hits: the review screen asks which one was meant.
+    await tester.tap(find.byKey(const ValueKey('import-row-0-create')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('import-done-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Imported online'), findsOneWidget);
+    expect(await repos.dances.listAll(), hasLength(1));
+
+    await tester.tap(find.byKey(const ValueKey('plaintext-import-commit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(await repos.programs.listAll(), isEmpty);
+    expect(await repos.dances.listAll(), isEmpty);
+  });
+
+  testWidgets('offline while previewing an ambiguous title says so, rather '
+      'than "no matches", and opens no review', (tester) async {
+    final repos = openTestRepositories();
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => _twoMoneyMusksResultsHtml,
+      jsonFetcher: (_) async => throw const UrlFetchException(
+        UrlFetchFailureReason.callersBoxUnreachable,
+      ),
+    );
+    await _pump(tester, repos, online: online, contraDb: emptyContraDb());
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Money Musk',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('import-review-list')), findsNothing);
+    expect(find.textContaining('No confident online matches'), findsNothing);
+    expect(
+      find.text(
+        'Stopped looking up titles after a connection failure. Try the rest '
+        "again once you're online.",
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Cancel while previewing an ambiguous title opens no review', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final gate = Completer<String>();
+    var jsonFetches = 0;
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => _twoMoneyMusksResultsHtml,
+      jsonFetcher: (_) {
+        jsonFetches++;
+        return gate.future;
+      },
+    );
+    await _pump(tester, repos, online: online, contraDb: emptyContraDb());
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Money Musk',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(jsonFetches, 1);
+
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-cancel')),
+    );
+    await tester.pump();
+    gate.complete(_moneyMuskJson());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('import-review-list')), findsNothing);
+    expect(find.text('Stopped looking up titles.'), findsOneWidget);
+    expect(await repos.dances.listAll(), isEmpty);
   });
 }

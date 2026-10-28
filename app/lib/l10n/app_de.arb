@@ -6238,6 +6238,18 @@
   "@importContraDbResolveError": {
     "x-sourceSha256": "62c90ed70c6cec758aafc15d73c546f9ccdf6fc712b8b7067cb451004c81bd97"
   },
+  "importContraDbProgramProgress": "Tanz {done} von {total} wird importiert…",
+  "@importContraDbProgramProgress": {
+    "x-sourceSha256": "fbd8c6778031827ce8acc922cd76181fe6253462e1d474d5c914aeb69c1f37e0"
+  },
+  "importContraDbProgramConnectionFailed": "Die Online-Archive konnten nicht erreicht werden, daher wurde nichts importiert. Versuchen Sie es erneut, sobald Sie online sind.",
+  "@importContraDbProgramConnectionFailed": {
+    "x-sourceSha256": "f90475f594f9aed9601b28b34b6f6d2095c8803fd86711035ca6238ac629e0f9"
+  },
+  "importContraDbProgramCancelled": "Import abgebrochen – es wurde nichts hinzugefügt.",
+  "@importContraDbProgramCancelled": {
+    "x-sourceSha256": "95247a79235ff9b09cba7d8ef6f747e1139b18b75cd5a4c8c0528869918304fe"
+  },
   "importContraDbActivityCount": "{activities, plural, =1{1 Aktivität} other{{activities} Aktivitäten}} ({dances, plural, =1{1 Tanz} other{{dances} Tänze}}, {notes, plural, =1{1 Notiz} other{{notes} Notizen}})",
   "@importContraDbActivityCount": {
     "x-sourceSha256": "daa88207884e597a966a7016042d636ce053de951a712b16c3cb3d71b5167ffa"
@@ -6325,6 +6337,14 @@
   "importPlaintextResolvedLinked": "{linked, plural, =1{{linked} Titel} other{{linked} Titel}} online verknüpft{remaining, plural, =0{.} =1{; {remaining} weiterhin eine Notiz.} other{; {remaining} weiterhin Notizen.}}",
   "@importPlaintextResolvedLinked": {
     "x-sourceSha256": "1419cd7e44ccda1131261da7617c9e873071b64a1940d8efb5023cd96ff58d32"
+  },
+  "importPlaintextResolveConnectionFailed": "Die Suche nach Titeln wurde nach einem Verbindungsfehler abgebrochen{linked, plural, =0{.} =1{ – {linked} Titel online verknüpft.} other{ – {linked} Titel online verknüpft.}} Versuchen Sie es mit dem Rest erneut, sobald Sie online sind.",
+  "@importPlaintextResolveConnectionFailed": {
+    "x-sourceSha256": "08a1ca27be4823f896e736886923c6ca1f07a5b4d10fd58689932a6a14a43eee"
+  },
+  "importPlaintextResolveCancelled": "Die Suche nach Titeln wurde abgebrochen{linked, plural, =0{.} =1{ – {linked} Titel online verknüpft.} other{ – {linked} Titel online verknüpft.}}",
+  "@importPlaintextResolveCancelled": {
+    "x-sourceSha256": "fbddf933b61c43b49d4cd00117044d72be6476c0c66c16e81f544c46f148817f"
   },
   "importReviewClose": "Import schließen",
   "@importReviewClose": {

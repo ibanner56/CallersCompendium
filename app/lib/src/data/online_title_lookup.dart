@@ -9,15 +9,15 @@ import 'online_search.dart';
 /// Box was unreachable just now", because only one of those is worth retrying.
 ///
 /// Deliberately typed rather than prose: the data layer never bakes English in
-/// (the presentation layer localizes these at the render site), and the program
-/// path collapses every value to the same `null` without inspecting it.
+/// (the presentation layer localizes these at the render site). The program
+/// path tells [multipleExactMatches] (offered for review) and [unreachable]
+/// (stop the pass) apart from the rest, which all keep the line a note.
 ///
 /// Note that a source may exclude rows the user could not act on before this
 /// ever sees them — a Caller's Box search omits dances whose figures TCB will
 /// not serve (issue #845) — so [noResults] and [noExactMatch] mean "nothing
-/// usable was offered", not "the archive holds no such dance". A caller that
-/// needs the wider set passes `requireFigures: false` to
-/// [lookupUniqueExactTitle].
+/// usable was offered", not "the archive holds no such dance". Both title-list
+/// imports, the Collection's and the program's, keep that narrower set.
 enum OnlineTitleLookupFailure {
   /// The search returned nothing at all.
   noResults,
@@ -32,9 +32,8 @@ enum OnlineTitleLookupFailure {
   ///
   /// Source-side exclusions are applied first, so two same-titled Caller's Box
   /// dances of which only one will serve its figures resolve to a hit rather
-  /// than landing here — except where the caller opted out with
-  /// `requireFigures: false`, which is precisely why the unattended program
-  /// path does so.
+  /// than landing here — unless the caller opted out with
+  /// `requireFigures: false`.
   multipleExactMatches,
 
   /// The search could not be performed for a reason that is not a connection
@@ -145,9 +144,7 @@ final class OnlineTitleMiss extends OnlineTitleLookupResult {
 /// [requireFigures] is forwarded to the search (see
 /// [OnlineSearchQuery.requireFigures]). It defaults to `true` — a title that
 /// only resolves to a dance the source won't hand over with its figures is not
-/// a useful match — but the unattended program path passes `false`, because
-/// there a narrower result set can turn a deliberate no-op into an automatic
-/// commit.
+/// a useful match — and both title-list imports keep that default.
 Future<OnlineTitleLookupResult> lookupUniqueExactTitle(
   String title, {
   required OnlineSearchService service,

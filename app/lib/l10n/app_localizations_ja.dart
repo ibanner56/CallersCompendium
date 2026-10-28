@@ -5956,6 +5956,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importContraDbResolveError => 'ContraDBプログラムをインポートできませんでした。';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return '$total件中$done件目のダンスをインポート中…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'オンラインアーカイブに接続できなかったため、何もインポートされませんでした。オンラインになってからもう一度お試しください。';
+
+  @override
+  String get importContraDbProgramCancelled => 'インポートをキャンセルしました。何も追加されていません。';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6065,6 +6077,28 @@ class AppLocalizationsJa extends AppLocalizations {
       zero: '。',
     );
     return 'オンラインで$_temp0のタイトルをリンクしました$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: '（$linked件のタイトルをオンラインでリンク済み）。',
+      zero: '。',
+    );
+    return '接続エラーのため、タイトルの検索を中止しました$_temp0残りはオンラインになってからもう一度お試しください。';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: '（$linked件のタイトルをオンラインでリンク済み）。',
+      zero: '。',
+    );
+    return 'タイトルの検索を中止しました$_temp0';
   }
 
   @override

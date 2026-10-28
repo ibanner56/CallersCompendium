@@ -981,7 +981,10 @@ This is the load-bearing difference from the program path, and the reason
 `resolveUnmatchedOnline` is **not** reused wholesale. That function commits as it
 goes (`resolveConfidentOnlineDanceId` calls `OnlineSearchService.import` /
 `ImportPipeline.commit`), which is correct for a program line — no user is
-present to adjudicate it. A Collection import *does* have a user present, so
+present to adjudicate it. Each of those commits is recorded in a
+`ProgramImportRollback` (`app/lib/src/data/program_import_rollback.dart`), so
+the program's Undo, or backing out before the program exists, reverts them
+with `ImportPipeline.undo`. A Collection import *does* have a user present, so
 every resolved title becomes an `ImportRecordPlan` handed to `ImportReviewScreen`
 and written only on confirmation, where `_defaultChoice` already maps an
 `ambiguous` verdict to skip. Routing through the review is therefore what keeps

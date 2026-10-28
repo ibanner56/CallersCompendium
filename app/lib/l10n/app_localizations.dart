@@ -9503,6 +9503,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t import the ContraDB program.'**
   String get importContraDbResolveError;
 
+  /// Progress line while a ContraDB program's dances are imported one at a time, beside a Cancel button.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing dance {done} of {total}…'**
+  String importContraDbProgramProgress(int done, int total);
+
+  /// Snackbar shown when importing a ContraDB program stops because ContraDB or The Caller's Box could not be reached. No program is created and any dances already imported are removed again.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the online archives, so nothing was imported. Try again once you\'re online.'**
+  String get importContraDbProgramConnectionFailed;
+
+  /// Snackbar shown when the user cancels a ContraDB program import part-way through. No program is created and any dances already imported are removed again.
+  ///
+  /// In en, this message translates to:
+  /// **'Import cancelled — nothing was added.'**
+  String get importContraDbProgramCancelled;
+
   /// Summary of a fetched ContraDB program's activities shown above the preview list.
   ///
   /// In en, this message translates to:
@@ -9634,6 +9652,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Linked {linked, plural, =1{{linked} title} other{{linked} titles}} online{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}'**
   String importPlaintextResolvedLinked(int linked, int remaining);
+
+  /// Snackbar shown when the program title list's online lookup stopped because an online source could not be reached. Says that the rest were not checked, rather than that no matches exist. Does not name a source (it tries The Caller's Box then ContraDB).
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped looking up titles after a connection failure{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}} Try the rest again once you\'re online.'**
+  String importPlaintextResolveConnectionFailed(int linked);
+
+  /// Snackbar shown when the user cancels the program title list's online lookup part-way through.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped looking up titles{linked, plural, =0{.} =1{ — {linked} title linked online.} other{ — {linked} titles linked online.}}'**
+  String importPlaintextResolveCancelled(int linked);
 
   /// Tooltip on the close button of the embedded import review screen.
   ///
