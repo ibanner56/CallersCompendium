@@ -1186,6 +1186,131 @@ void main() {
     });
   });
 
+  // The review's per-row Edit commits one dance before the rest of the file;
+  // the batch Import then gets that dance's CC id as `earlierDanceIds`.
+  group('dances an earlier Edit committed', () {
+    /// Plans [bytes], commits the CC row [ccId] alone through
+    /// [CallersCompanionUsrImporter.commitDances], and returns the rest of the
+    /// batch with the id that dance was written under.
+    Future<(ImportBatchResult rest, String danceId)> editFirst(
+      Uint8List bytes,
+      String ccId,
+      CallersCompanionUsrImporter importer,
+    ) async {
+      final batch = await importer.plan(bytes);
+      final row = batch.records.indexWhere(
+        (r) => r.draft.raw.externalId == ccId,
+      );
+      final session = await importer.commitDances(
+        ImportBatchResult(records: [batch.records[row]]),
+        now: now,
+        newId: nextId,
+      );
+      return (
+        ImportBatchResult(
+          records: [
+            for (var i = 0; i < batch.records.length; i++)
+              if (i != row) batch.records[i],
+          ],
+        ),
+        session.records.single.danceId!,
+      );
+    }
+
+    CallersCompanionUsrImporter importerWith(
+      CallersCompanionUsrAdapter adapter,
+    ) => CallersCompanionUsrImporter(
+      pipeline,
+      programs,
+      venues,
+      customFieldDefs,
+      adapter: adapter,
+    );
+
+    test('their set slots name the dance, not a placeholder', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      final (rest, editedId) = await editFirst(_ccUsrBytes(), '4', importer);
+
+      final result = await importer.commit(
+        rest,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': editedId},
+      );
+
+      final slots = result.programs.single.slots;
+      expect(slots.first.danceId, editedId);
+      expect(slots.first.text, isNull);
+      expect(
+        result.programIssues.map((i) => i.message),
+        isNot(contains(contains('#4,'))),
+      );
+    });
+
+    test(
+      'a dance deleted since is ignored and its slot stays a placeholder',
+      () async {
+        final adapter = CallersCompanionUsrAdapter();
+        final importer = importerWith(adapter);
+        final (rest, editedId) = await editFirst(_ccUsrBytes(), '4', importer);
+        await dances.softDelete(editedId, at: now);
+
+        final result = await importer.commit(
+          rest,
+          adapter.discoveredArchive!,
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+          earlierDanceIds: {'4': editedId},
+        );
+
+        final slot = result.programs.single.slots.first;
+        expect(slot.danceId, isNull);
+        expect(slot.text, contains('#4'));
+      },
+    );
+
+    test('related dances link both ways, and undo removes only the link on '
+        'the earlier dance', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      final (rest, editedId) = await editFirst(
+        _ccUsrBytesWithRelated([('4', '7'), ('7', '4')]),
+        '4',
+        importer,
+      );
+
+      final result = await importer.commit(
+        rest,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': editedId},
+      );
+
+      expect(result.relatedDanceLinkIssues, isEmpty);
+      final otherId = result.danceSession.insertedDanceIds.single;
+      final edited = (await dances.getById(editedId))!;
+      final other = (await dances.getById(otherId))!;
+      expect(edited.links.single.targetDanceId, otherId);
+      expect(other.links.single.targetDanceId, editedId);
+      expect(result.linksAddedToEarlierDances, {
+        editedId: [edited.links.single.id],
+      });
+
+      await importer.undo(result);
+
+      expect(await dances.getById(otherId, includeDeleted: true), isNull);
+      final kept = (await dances.getById(editedId))!;
+      expect(kept.links, isEmpty, reason: 'no link to the removed dance');
+      expect(await programs.listAll(), isEmpty);
+    });
+  });
+
   group('related-dance links (issue #688)', () {
     test('both endpoints imported: adds a directed relatedDance link on the '
         'source dance, targeting the other new Compendium dance id', () async {
