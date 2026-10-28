@@ -1680,13 +1680,18 @@ class SyncController extends ChangeNotifier {
   ///
   /// Fail-closed: if the manifest cannot be removed the device stays attached
   /// and the outcome is [SyncAdminOutcome.failed], so the caller must not wipe.
-  /// A `404` (the store, or this device's manifest, is already gone) counts as
-  /// removed. [SyncAdminOutcome.notPaired] means there was nothing to leave and
-  /// the caller may proceed. Not gated on the §6.12 connection policy, for the
+  /// `204` (sent whether or not the manifest existed) and `404` (the store
+  /// itself is gone) both count as removed. [SyncAdminOutcome.notPaired] means
+  /// there was nothing to leave and the caller may proceed; a detach or wipe
+  /// already in flight is [SyncAdminOutcome.failed], not `notPaired`. Not gated on the §6.12 connection policy, for the
   /// reason [removeDevice] gives; offline simply fails.
   Future<SyncAdminOutcome> leaveStoreForReset() async {
     _lastAdminFailure = null;
-    if (!paired || _detaching) return SyncAdminOutcome.notPaired;
+    if (!paired) return SyncAdminOutcome.notPaired;
+    // A detach or wipe is already in flight. It may yet fail and leave this
+    // device attached, so "nothing to leave" would be untrue and the caller
+    // would go on to delete a database whose manifest nobody can then remove.
+    if (_detaching) return SyncAdminOutcome.failed;
     // Held for the reason [detach] and [wipeStore] hold it.
     _detaching = true;
     _debounceTimer?.cancel();
@@ -1732,7 +1737,7 @@ class SyncController extends ChangeNotifier {
       _lastAdminFailure = SyncFailure.fromError(error);
       // A throw before the local clear committed refuses the reset, even if the
       // manifest is already gone; retrying is safe, since the server answers
-      // 204 or 404 for a manifest that is removed. A throw after it (the
+      // 204 for a manifest that is already removed. A throw after it (the
       // boundary's own reconfigure) is not a failure: the device has left.
     } finally {
       _detaching = false;

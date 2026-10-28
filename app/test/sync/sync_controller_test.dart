@@ -2372,16 +2372,34 @@ void main() {
       expect(controller.lastAdminFailure, isNotNull);
     });
 
-    test(
-      'a manifest or store that is already gone counts as removed',
-      () async {
-        final fake = _Admin()..manifestKind = SyncResponseKind.notFound;
-        final controller = await paired(fake);
+    test('a 404 (the store is already gone) counts as removed', () async {
+      final fake = _Admin()..manifestKind = SyncResponseKind.notFound;
+      final controller = await paired(fake);
 
-        expect(await controller.leaveStoreForReset(), SyncAdminOutcome.done);
-        expect(controller.paired, isFalse);
-      },
-    );
+      expect(await controller.leaveStoreForReset(), SyncAdminOutcome.done);
+      expect(controller.paired, isFalse);
+    });
+
+    test('leaving for a reset while a wipe is in flight is refused, not '
+        'waved through', () async {
+      final gate = Completer<void>();
+      final fake = _Admin();
+      final controller = await paired(
+        fake,
+        runExclusive: (operation) async {
+          await gate.future;
+          await operation();
+        },
+      );
+
+      final wipe = controller.wipeStore();
+      expect(await controller.leaveStoreForReset(), SyncAdminOutcome.failed);
+      expect(fake.removed, isEmpty);
+      expect(controller.paired, isTrue);
+
+      gate.complete();
+      expect(await wipe, SyncAdminOutcome.done);
+    });
 
     test('leaving for a reset while not paired sends nothing', () async {
       final fake = _Admin();
