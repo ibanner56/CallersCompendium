@@ -1556,6 +1556,47 @@ void main() {
         },
       );
 
+      test(
+        'a fragment still finds a real move whose name starts with it',
+        () async {
+          await dances.create(
+            _dance(
+              id: 'roll',
+              title: 'Plain Two',
+              figures: [
+                Figure(
+                  move: 'custom',
+                  params: const {'text': 'roll away with a half sashay'},
+                ),
+              ],
+            ),
+          );
+          await seed();
+          for (final q in ['r', 'ro', 'rol', 'roll']) {
+            for (final sort in [SearchSort.title, SearchSort.relevance]) {
+              expect(
+                await dances.search(
+                  FullTextFilter(q),
+                  dialect: Dialect.larksRobins,
+                  sort: sort,
+                ),
+                contains('roll'),
+                reason: 'omni "$q" ($sort)',
+              );
+              expect(
+                await dances.search(
+                  FullTextFilter(q),
+                  dialect: Dialect.larksRobins,
+                  sort: sort,
+                ),
+                isNot(contains('plain')),
+                reason: 'omni "$q" ($sort) must not reach the role token',
+              );
+            }
+          }
+        },
+      );
+
       test('the relevance sort leaves the token out too', () async {
         await seed();
         expect(

@@ -6,7 +6,7 @@
       "Shorthand previews, your figures' shorthand rows, the shorthand seed list, the combination editor, the import-review figure comparison and sync-conflict shorthand values now show a figure's balance, hall direction and hey length, and follow Show turns as decimals and Auto-convert all discouraged terms, so two different figures no longer look identical.",
       "The Programs list now follows Ignore leading articles when sorting, so \"The Spring Fling\" files under S.",
       "Quick search (Ctrl-K / Cmd-K) ignores accents, lists an exact or starting-with title ahead of other matches, and orders titles without regard to case or a leading article.",
-      "Typing the first letters of a name such as \"Roodman\" or \"Rolling\" no longer matches nearly every dance through hidden role text in the figures.",
+      "Typing the first letters of a name such as \"Roodman\" or \"Rolling\" no longer matches nearly every dance through hidden role text in the figures, while real moves such as \"roll away\" are still found.",
       "The Reduce motion switch now also turns off the fade between themes, reaches the app's own animations and animated images, and the program matrix's column-hide button no longer fades when it is on."
     ]
   },

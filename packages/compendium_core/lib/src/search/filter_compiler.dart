@@ -55,6 +55,10 @@ const _internalRoleTokens = ['role1', 'role2', 'role1s', 'role2s'];
 /// [prefix] selects the matching the index will apply to the term: the
 /// prefix index (queries of one or two characters) only reaches a token's
 /// start, the trigram index reaches anywhere inside it.
+///
+/// Such a query still searches `figures_text`, but only after the role tokens
+/// are removed from it ([_figureMatchWithoutRoleTokens]), so `rol` finds
+/// "roll away" and not every dance that has a `role1s`.
 bool _hasInternalRoleTokenFragment(
   String canonicalText, {
   required bool prefix,
@@ -67,6 +71,28 @@ bool _hasInternalRoleTokenFragment(
   }
   return false;
 }
+
+/// `figures_text` with every internal role token removed (longest first, so
+/// `role1s` goes before `role1`).
+const _figuresTextWithoutRoleTokens =
+    "replace(replace(replace(replace(figures_text, 'role1s', ''), "
+    "'role2s', ''), 'role1', ''), 'role2', '')";
+
+/// The `LIKE` pattern (with `ESCAPE '\'`) that re-checks [text] against
+/// [_figuresTextWithoutRoleTokens] after an FTS match that a role token alone
+/// could have satisfied. A [prefix] query must start a word; the SQL pairs it
+/// with a leading space on the column. Otherwise it may sit anywhere.
+String _figureLikePattern(String text, {required bool prefix}) {
+  final escaped = escapeLikePattern(text.trim().toLowerCase());
+  return prefix ? '% $escaped%' : '%$escaped%';
+}
+
+/// The `figures_text` condition that matches [ftsBind] (bound first) and still
+/// holds with the role tokens removed (pattern bound second).
+String _figureMatchWithoutRoleTokens(String table, {required bool prefix}) =>
+    'id IN (SELECT dance_id FROM $table WHERE figures_text MATCH ? '
+    "AND (${prefix ? "' ' || " : ''}$_figuresTextWithoutRoleTokens) "
+    "LIKE ? ESCAPE '\\')";
 
 /// Compiles a [DanceFilter] tree into a single parameterized `SELECT id FROM
 /// dances …` (`docs/design/search.md` "SQL compilation").
@@ -153,16 +179,36 @@ class FilterCompiler {
     );
     final canonicalQuery = toFtsPrefixMatchQuery(canonicalText);
     final rawTextQuery = toFtsPrefixMatchQuery(filter.query);
-    final canonicalMatch =
-        _hasInternalRoleTokenFragment(canonicalText, prefix: true)
-        ? _rawColumnsMatch(canonicalQuery)
-        : canonicalQuery;
-    final query = '($canonicalMatch OR ${_rawColumnsMatch(rawTextQuery)})';
+    final fragment = _hasInternalRoleTokenFragment(canonicalText, prefix: true);
+    final query =
+        '(${fragment ? _rawColumnsMatch(canonicalQuery) : canonicalQuery} '
+        'OR ${_rawColumnsMatch(rawTextQuery)})';
     // bm25 returns lower (more negative) for better matches, so ascending
     // (the default) is best-match-first; descending flips to worst-match-first.
     final order = dir == SortDirection.descending
         ? 'bm25(dance_fts) DESC'
         : 'bm25(dance_fts)';
+    if (fragment) {
+      // The figure text arrives as a second, role-token-free branch. Each row
+      // is scored by its own MATCH, and a dance found by both keeps its best.
+      final pick = dir == SortDirection.descending ? 'MAX' : 'MIN';
+      final sql =
+          'SELECT dance_id FROM ('
+          'SELECT dance_fts.dance_id AS dance_id, bm25(dance_fts) AS score '
+          'FROM dance_fts JOIN dances ON dances.id = dance_fts.dance_id '
+          'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
+          'UNION ALL '
+          'SELECT dance_fts.dance_id, bm25(dance_fts) FROM dance_fts '
+          'JOIN dances ON dances.id = dance_fts.dance_id '
+          'WHERE figures_text MATCH ? AND dances.deleted_at IS NULL '
+          "AND (' ' || $_figuresTextWithoutRoleTokens) LIKE ? ESCAPE '\\'"
+          ') GROUP BY dance_id ORDER BY $pick(score)';
+      return CompiledFilter(sql, [
+        query,
+        canonicalQuery,
+        _figureLikePattern(canonicalText, prefix: true),
+      ]);
+    }
     final sql =
         'SELECT dance_fts.dance_id FROM dance_fts '
         'JOIN dances ON dances.id = dance_fts.dance_id '
@@ -366,11 +412,10 @@ class FilterCompiler {
       dialect,
       extraRoleSynonyms: enrichment.roleSynonyms,
     );
-    final canonicalQuery = queryBuilder(
-      taxonomy == null
-          ? canonicalText
-          : canonicalizeMoveSearchText(canonicalText, taxonomy!),
-    );
+    final canonicalSearchText = taxonomy == null
+        ? canonicalText
+        : canonicalizeMoveSearchText(canonicalText, taxonomy!);
+    final canonicalQuery = queryBuilder(canonicalSearchText);
     final rawTextQuery = queryBuilder(rawQuery);
 
     String columnMatch(String column, String query) {
@@ -393,19 +438,28 @@ class FilterCompiler {
         // canonical-only (it is stored canonicalised). Both branches use the
         // active prefix/substr index, so long queries remain literal
         // substrings rather than falling back to unicode61 token semantics.
-        // `figures_text` is left out of the canonical branch while a term is
-        // only a fragment of an internal role token (see
-        // [_hasInternalRoleTokenFragment]); the verbatim columns still match.
-        binds.add(
-          _hasInternalRoleTokenFragment(canonicalText, prefix: isPrefix)
-              ? _rawColumnsMatch(canonicalQuery)
-              : canonicalQuery,
-        );
-        binds.add(_rawColumnsMatch(rawTextQuery));
-        final canonical =
-            'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
         final raw = 'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
-        return '($canonical OR $raw)';
+        if (!_hasInternalRoleTokenFragment(
+          canonicalSearchText,
+          prefix: isPrefix,
+        )) {
+          binds.add(canonicalQuery);
+          binds.add(_rawColumnsMatch(rawTextQuery));
+          final canonical =
+              'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
+          return '($canonical OR $raw)';
+        }
+        // The query is only a fragment of an internal role token (see
+        // [_hasInternalRoleTokenFragment]), so `figures_text` is matched only
+        // where the text still holds with the role tokens removed.
+        binds.add(_rawColumnsMatch(canonicalQuery));
+        binds.add(_rawColumnsMatch(rawTextQuery));
+        binds.add(canonicalQuery);
+        binds.add(_figureLikePattern(canonicalSearchText, prefix: isPrefix));
+        final canonicalColumns =
+            'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
+        final figures = _figureMatchWithoutRoleTokens(table, prefix: isPrefix);
+        return '($canonicalColumns OR $raw OR $figures)';
     }
   }
 
