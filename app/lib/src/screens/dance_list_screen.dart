@@ -1059,32 +1059,35 @@ class _DanceListScreenState extends State<DanceListScreen> {
     unawaited(
       showDialog<void>(
         context: context,
-        builder: (dialogContext) => Center(
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(
-                    key: ValueKey('online-preview-loading'),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextButton(
-                    key: const ValueKey('online-preview-cancel'),
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: Text(l10n.commonCancel),
-                  ),
-                ],
+        builder: (dialogContext) => PopScope(
+          // Fires the moment the loader is popped (Cancel, Back, barrier), not
+          // after its exit animation, so the code below never pops it twice.
+          onPopInvokedWithResult: (_, _) {
+            if (!cancelled.isCompleted) cancelled.complete();
+          },
+          child: Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      key: ValueKey('online-preview-loading'),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextButton(
+                      key: const ValueKey('online-preview-cancel'),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: Text(l10n.commonCancel),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-        // Completes on any close; after the fetch settles, the code below
-        // closes it itself and the completed signal is simply ignored.
-      ).whenComplete(() {
-        if (!cancelled.isCompleted) cancelled.complete();
-      }),
+      ),
     );
     final fetch = _online.loadPreview(_repos, result);
     // `Future.any` leaves the fetch running after a cancel; it cannot be
@@ -1108,7 +1111,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         fetch,
         cancelled.future.then((_) => null),
       ]);
-      if (raced == null) return;
+      if (raced == null || cancelled.isCompleted) return;
       preview = raced;
     } on UrlFetchException catch (error, stackTrace) {
       logCaughtError(
@@ -1116,6 +1119,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         stackTrace,
         source: 'dance_list_screen._pushOnlinePreview',
       );
+      if (cancelled.isCompleted) return;
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(importErrorMessage(l10n, error))),
@@ -1129,6 +1133,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         stackTrace,
         source: 'dance_list_screen._pushOnlinePreview',
       );
+      if (cancelled.isCompleted) return;
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.onlineLoadError(sourceLabel))),

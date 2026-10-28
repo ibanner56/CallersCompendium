@@ -279,7 +279,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('need a newer app version'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Retry'), findsNothing);
       expect(sink.errors.single, contains('unsupported'));
     });
 

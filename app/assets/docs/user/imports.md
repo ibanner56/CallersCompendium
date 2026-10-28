@@ -174,8 +174,9 @@ If the catalog or a collection cannot be loaded, the message tells you which of
 three things happened: the catalog **could not be reached** (check your
 connection), it **needs a newer app version** (update the app), or it is
 **temporarily unavailable** (it failed a safety check, so nothing was imported).
-Choose **Retry** to try again without leaving the screen. Failures are recorded
-in **Settings** → **Diagnostics**.
+Choose **Retry** to try again without leaving the screen (it is not offered when
+the fix is to update the app). Failures are recorded in **Settings** →
+**Diagnostics**.
 
 ## Bring in a list of dance titles
 

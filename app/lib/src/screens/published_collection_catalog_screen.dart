@@ -187,11 +187,17 @@ class _PublishedCollectionCatalogState
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                TextButton(
-                  onPressed: _retryCatalog,
-                  child: Text(l10n.commonRetry),
-                ),
+                // Updating the app is the fix for a newer catalog; a retry
+                // would fail the same way.
+                if (error is! PublishedCollectionFetchException ||
+                    error.code !=
+                        PublishedCollectionFetchFailure.unsupported) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  TextButton(
+                    onPressed: _retryCatalog,
+                    child: Text(l10n.commonRetry),
+                  ),
+                ],
               ],
             ),
           );
