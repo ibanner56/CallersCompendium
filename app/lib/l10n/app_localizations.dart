@@ -4651,16 +4651,16 @@ abstract class AppLocalizations {
   /// **'Deleted items'**
   String get settingsGeneralDeletedItemsHeader;
 
-  /// Title of the General settings row that controls how long deleted dances are retained.
+  /// Title of the General settings row that controls how long deleted dances and programs are retained.
   ///
   /// In en, this message translates to:
-  /// **'Keep deleted dances for'**
+  /// **'Keep deleted items for'**
   String get settingsGeneralSoftDeleteRetentionTitle;
 
   /// Subtitle explaining the deleted-dance retention duration setting.
   ///
   /// In en, this message translates to:
-  /// **'Deleted dances are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.'**
+  /// **'Deleted dances and programs are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.'**
   String get settingsGeneralSoftDeleteRetentionSubtitle;
 
   /// Deleted-dance retention dropdown option showing a fixed number of days. Keep 'days' literal for every value to preserve the current English UI.

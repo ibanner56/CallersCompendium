@@ -2864,11 +2864,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralDeletedItemsHeader => '削除済みアイテム';
 
   @override
-  String get settingsGeneralSoftDeleteRetentionTitle => '削除したダンスを保持する期間';
+  String get settingsGeneralSoftDeleteRetentionTitle => '削除した項目を保持する期間';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      '削除したダンスは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。';
+      '削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

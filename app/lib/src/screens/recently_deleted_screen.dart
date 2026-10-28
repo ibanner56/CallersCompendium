@@ -362,8 +362,8 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
 /// Config for the programs "Recently Deleted" screen. Programs are purged by
 /// the same user-configurable window as dances (the startup sweep in
 /// `main.dart` passes one `retention` to both), so [loadRetention] reads the
-/// same setting. `kSoftDeleteRetentionKey` is labelled "Keep deleted dances
-/// for" in Settings; the name is historical.
+/// same setting (`kSoftDeleteRetentionKey`, labelled "Keep deleted items for" in
+/// Settings).
 final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
     RecentlyDeletedConfig<Program>(
       pluralNoun: 'programs',

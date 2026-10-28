@@ -3038,11 +3038,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Verwijderde dansen bewaren voor';
+      'Verwijderde items bewaren voor';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Verwijderde dansen worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Nooit bewaart ze totdat je ze handmatig opschoont.';
+      'Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Nooit bewaart ze totdat je ze handmatig opschoont.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

@@ -3013,11 +3013,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Behold slettede danse i';
+      'Behold slettede elementer i';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Slettede danse bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.';
+      'Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

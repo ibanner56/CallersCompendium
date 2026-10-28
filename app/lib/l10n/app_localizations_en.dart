@@ -2988,11 +2988,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Keep deleted dances for';
+      'Keep deleted items for';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Deleted dances are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.';
+      'Deleted dances and programs are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

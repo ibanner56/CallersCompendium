@@ -3049,11 +3049,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Gelöschte Tänze behalten für';
+      'Gelöschte Elemente behalten für';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Gelöschte Tänze werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.';
+      'Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

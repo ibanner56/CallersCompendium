@@ -3,8 +3,8 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Choosing Permanently delete in Recently deleted now removes only the item you picked. Previously it also erased every other dance or program that had been in the trash for more than 30 days, even if Keep deleted dances for was set to 90 days or Never.",
-      "The Recently deleted programs screen now follows the Keep deleted dances for setting, as the automatic cleanup already did, instead of always counting down from 30 days."
+      "Choosing Permanently delete in Recently deleted now removes only the item you picked. Previously it also erased every other dance or program that had been in the trash for more than 30 days, even if Keep deleted items for was set to 90 days or Never.",
+      "The Recently deleted programs screen now follows the retention setting, as the automatic cleanup already did, instead of always counting down from 30 days. The setting is now labelled Keep deleted items for."
     ]
   }
 }

@@ -3024,13 +3024,13 @@
   "@settingsGeneralDeletedItemsHeader": {
     "x-sourceSha256": "fbd1d68504a288998473058bd2ce29416791756fd8ced5e9b784cfc8ad31151b"
   },
-  "settingsGeneralSoftDeleteRetentionTitle": "Gelöschte Tänze behalten für",
+  "settingsGeneralSoftDeleteRetentionTitle": "Gelöschte Elemente behalten für",
   "@settingsGeneralSoftDeleteRetentionTitle": {
-    "x-sourceSha256": "762e99330c044f8a92fc3aa4fb7b74ef62041a7e3463a0b670162dab182e0e26"
+    "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "Gelöschte Tänze werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
-    "x-sourceSha256": "eaf52455114c21dcdd36703f277c37687ed08253bf1bdc49c7c84437b79e1f58"
+    "x-sourceSha256": "e9121427d1a14e56df8a472c097142bf74ac95a239c8ba1756f1ef77e8a1ea76"
   },
   "settingsGeneralSoftDeleteRetentionDays": "{days} Tage",
   "@settingsGeneralSoftDeleteRetentionDays": {
