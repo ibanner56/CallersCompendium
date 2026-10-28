@@ -676,7 +676,8 @@ database already carries it. The steps that can still fire are v36 onward.
   program, as integer minor units so no floating point is stored. The two are
   set together or not at all and the amount is never negative (enforced by
   `Program` and by archive decode); NULL in both (every existing row) means no
-  pay recorded. Shareable, so it syncs and is exported in archives, but it is
+  pay recorded. Shareable, so it syncs and is exported in archives (program
+  share files included, so it reaches other people), but it is
   not part of the shared program text or PDF and `Program.duplicate` does not
   copy it. Additive `addColumn`s; no back-fill and no derived rebuild.
 - v39 (sync-spec §6.7): adds the `retained_sync_fields` table — `kind`,
