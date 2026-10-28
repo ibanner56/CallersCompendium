@@ -623,11 +623,12 @@ class ImportPipeline {
   /// A draft's links come from the source's id space (a shared file carries the
   /// sender's link ids), so they are never written as given. Every link gets a
   /// fresh id from [newId]. A `relatedDance` link names its target by the
-  /// target's external id in this source ([GenericJsonAdapter] rewrites the
-  /// sender's dance id to it), and is held back until every record has been
-  /// written. It is then added to its dance with its target resolved: to the
-  /// dance the record of this batch with that external id was written as, or
-  /// else to a live dance already received under that external id. A link
+  /// target's external id in this source ([GenericJsonAdapter] and
+  /// [PublishedCollectionAdapter] rewrite the file's dance id to it), and is
+  /// held back until every record has been written. It is then added to its
+  /// dance with its target resolved: to the dance the record of this batch
+  /// with that external id was written as, or else to a live dance already
+  /// received from this source under that external id. A link
   /// whose target resolves to neither is left out with an
   /// `archive_related_dance_unresolved` note in [ImportSession.issues]. The
   /// link is written by a second update of a dance this batch already wrote,
@@ -675,7 +676,8 @@ class ImportPipeline {
     final revivedChoreographerIds = <String>[];
     // Each written dance's held-back related links, and each written record's
     // external id → the id it was written as (see the doc above).
-    final heldRelatedLinks = <String, List<DanceLink>>{};
+    final heldRelatedLinks =
+        <String, ({ProvenanceSource source, List<DanceLink> links})>{};
     final writtenIdByExternalId = <String, String>{};
 
     final total = batch.records.length;
@@ -840,7 +842,12 @@ class ImportPipeline {
           if (plan.draft.raw.externalId case final externalId?) {
             writtenIdByExternalId[externalId] = id;
           }
-          if (relatedLinks.isNotEmpty) heldRelatedLinks[id] = relatedLinks;
+          if (relatedLinks.isNotEmpty) {
+            heldRelatedLinks[id] = (
+              source: plan.draft.raw.source,
+              links: relatedLinks,
+            );
+          }
           committed.add(
             CommittedRecord(
               action: action,
@@ -872,7 +879,12 @@ class ImportPipeline {
           if (plan.draft.raw.externalId case final externalId?) {
             writtenIdByExternalId[externalId] = id;
           }
-          if (relatedLinks.isNotEmpty) heldRelatedLinks[id] = relatedLinks;
+          if (relatedLinks.isNotEmpty) {
+            heldRelatedLinks[id] = (
+              source: plan.draft.raw.source,
+              links: relatedLinks,
+            );
+          }
           committed.add(
             CommittedRecord(
               action: action,
@@ -970,7 +982,7 @@ class ImportPipeline {
   /// the dance as the batch wrote it and notes each link it lost, since the
   /// record itself did import.
   Future<List<ImportIssue>> _addHeldRelatedLinks(
-    Map<String, List<DanceLink>> held, {
+    Map<String, ({ProvenanceSource source, List<DanceLink> links})> held, {
     required Map<String, String> writtenIdByExternalId,
     required String Function() newId,
     required DateTime now,
@@ -987,7 +999,8 @@ class ImportPipeline {
           'Dance "$danceId" had a related-dance link to a dance that was not '
           'imported; the link was left out.',
     );
-    for (final MapEntry(key: danceId, value: links) in held.entries) {
+    for (final MapEntry(key: danceId, value: (:source, :links))
+        in held.entries) {
       final dance = await _dances.getById(danceId);
       if (dance == null) {
         issues.addAll([for (final _ in links) unresolved(danceId)]);
@@ -1002,7 +1015,7 @@ class ImportPipeline {
         final targetKey = link.targetDanceId!;
         final target =
             writtenIdByExternalId[targetKey] ??
-            index.findByExternalId(ProvenanceSource.json, targetKey);
+            index.findByExternalId(source, targetKey);
         if (target == null) {
           issues.add(unresolved(danceId));
           continue;

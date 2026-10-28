@@ -223,6 +223,39 @@ void main() {
 
     tearDown(() => db.close());
 
+    test('links a related dance to the collection dance it names', () async {
+      final batch = await importer.plan(
+        _payload(
+          dances: [
+            _dance('d1').copyWith(
+              links: [
+                DanceLink(
+                  id: 'link-1',
+                  kind: LinkKind.relatedDance,
+                  targetDanceId: 'd2',
+                ),
+              ],
+            ),
+            _dance('d2'),
+          ],
+        ),
+        metadata,
+      );
+
+      final result = await importer.commit(
+        batch,
+        metadata: metadata,
+        now: DateTime.utc(2026, 8, 20),
+        newId: uuidV4,
+      );
+
+      final all = await dances.listAll();
+      final d1 = all.singleWhere((d) => d.title == 'Dance d1');
+      final d2 = all.singleWhere((d) => d.title == 'Dance d2');
+      expect([for (final l in d1.links) l.targetDanceId], [d2.id]);
+      expect(result.session.issues, isEmpty);
+    });
+
     test('stamps manifest metadata and exposes an idempotent event', () async {
       final now = DateTime.utc(2026, 8, 20);
       final batch = await importer.plan(
