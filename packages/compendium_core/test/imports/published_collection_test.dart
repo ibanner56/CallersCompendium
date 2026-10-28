@@ -256,6 +256,49 @@ void main() {
       expect(result.session.issues, isEmpty);
     });
 
+    test(
+      'links a related dance received from the collection earlier',
+      () async {
+        Dance d1() => _dance('d1').copyWith(
+          links: [
+            DanceLink(
+              id: 'link-1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'd2',
+            ),
+          ],
+        );
+        await importer.commit(
+          await importer.plan(_payload(dances: [_dance('d2')]), metadata),
+          metadata: metadata,
+          now: DateTime.utc(2026, 8, 20),
+          newId: uuidV4,
+        );
+        final d2 = (await dances.listAll()).single;
+
+        final planned = await importer.plan(
+          _payload(dances: [d1(), _dance('d2')]),
+          metadata,
+        );
+        await importer.commit(
+          ImportBatchResult(
+            records: [
+              for (final r in planned.records)
+                if (r.draft.dance.id == 'd1') r,
+            ],
+          ),
+          metadata: metadata,
+          now: DateTime.utc(2026, 8, 21),
+          newId: uuidV4,
+        );
+
+        final imported = (await dances.listAll()).singleWhere(
+          (d) => d.title == 'Dance d1',
+        );
+        expect([for (final l in imported.links) l.targetDanceId], [d2.id]);
+      },
+    );
+
     test('stamps manifest metadata and exposes an idempotent event', () async {
       final now = DateTime.utc(2026, 8, 20);
       final batch = await importer.plan(
