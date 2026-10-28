@@ -117,7 +117,7 @@ class DownloadOutcome {
 
   factory DownloadOutcome.httpError(int status) => DownloadOutcome._(
     DownloadResultKind.httpError,
-    message: 'HTTP $status',
+    message: 'HTTP $status', // i18n-ignore: internal diagnostic, never shown
     httpStatus: status,
   );
 
