@@ -1,6 +1,7 @@
 import 'package:compendium_app/src/data/contradb_program_import.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/online_search.dart';
+import 'package:compendium_app/src/data/program_import_rollback.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,7 +20,15 @@ class _FakeService implements OnlineSearchService {
     this.failLoadIds = const {},
     this.rowsByTitle = const {},
     this.confidentTitles = const {},
+    this.loadErrors = const {},
+    this.searchError,
   });
+
+  /// ContraDB dance ids whose [loadPreview] throws the given (typed) failure.
+  final Map<String, Exception> loadErrors;
+
+  /// Thrown by every [search] when set.
+  final Exception? searchError;
 
   @override
   final OnlineSource source;
@@ -41,6 +50,8 @@ class _FakeService implements OnlineSearchService {
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     searchedTitles.add(query.title);
+    final error = searchError;
+    if (error != null) throw error;
     return rowsByTitle[query.title.trim().toLowerCase()] ?? const [];
   }
 
@@ -52,6 +63,8 @@ class _FakeService implements OnlineSearchService {
     DedupeIndex? index,
   }) async {
     loadedIds.add(result.id);
+    final error = loadErrors[result.id];
+    if (error != null) throw error;
     if (failLoadIds.contains(result.id)) {
       throw Exception('This dance is not published.');
     }
@@ -441,5 +454,86 @@ void main() {
       resolved.single.resolution,
       ContraDbActivityResolution.linkedContraDb,
     );
+  });
+
+  // ── 2026-10 audit, batch F12 (FAIL-2) ────────────────────────────────────
+  group('stopping', () {
+    final twoDances = _program([
+      ContraDbProgramActivity.dance(danceId: '185', title: 'Courageous Soul'),
+      ContraDbProgramActivity.note('Waltz'),
+      ContraDbProgramActivity.dance(danceId: '173', title: 'Boys From Urbana'),
+    ]);
+
+    test('the import stops at the first unreachable dance and never asks the '
+        'fallback', () async {
+      final repos = openTestRepositories();
+      final contraDb = _FakeService(
+        OnlineSource.contraDb,
+        loadErrors: {
+          '185': const UrlFetchException(
+            UrlFetchFailureReason.contraDbUnreachable,
+          ),
+        },
+      );
+      final callersBox = _FakeService(OnlineSource.callersBox);
+
+      await expectLater(
+        resolveContraDbProgram(
+          twoDances,
+          contraDb: contraDb,
+          callersBox: callersBox,
+          repos: repos,
+        ),
+        throwsA(isA<ProgramImportConnectionFailed>()),
+      );
+      expect(contraDb.loadedIds, ['185']);
+      expect(callersBox.searchedTitles, isEmpty);
+    });
+
+    test("The Caller's Box fallback being unreachable stops it too", () async {
+      final repos = openTestRepositories();
+      final contraDb = _FakeService(
+        OnlineSource.contraDb,
+        failLoadIds: {'185'},
+      );
+      final callersBox = _FakeService(
+        OnlineSource.callersBox,
+        searchError: const UrlFetchException(
+          UrlFetchFailureReason.callersBoxUnreachable,
+        ),
+      );
+
+      await expectLater(
+        resolveContraDbProgram(
+          twoDances,
+          contraDb: contraDb,
+          callersBox: callersBox,
+          repos: repos,
+        ),
+        throwsA(isA<ProgramImportConnectionFailed>()),
+      );
+      expect(contraDb.loadedIds, ['185']);
+    });
+
+    test('reports progress over the dances and stops when cancelled', () async {
+      final repos = openTestRepositories();
+      final contraDb = _FakeService(OnlineSource.contraDb);
+      final callersBox = _FakeService(OnlineSource.callersBox);
+      final progress = <(int, int)>[];
+
+      await expectLater(
+        resolveContraDbProgram(
+          twoDances,
+          contraDb: contraDb,
+          callersBox: callersBox,
+          repos: repos,
+          onProgress: (done, total) => progress.add((done, total)),
+          isCancelled: () => contraDb.loadedIds.isNotEmpty,
+        ),
+        throwsA(isA<ProgramImportCancelled>()),
+      );
+      expect(progress, [(0, 2), (1, 2)]);
+      expect(contraDb.loadedIds, ['185']);
+    });
   });
 }

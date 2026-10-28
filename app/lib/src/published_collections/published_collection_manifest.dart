@@ -6,9 +6,17 @@ import 'published_collection_config.dart';
 /// A manifest-format or trust-contract violation at the published-collection
 /// boundary. The UI maps this stable type to a non-leaking localized message.
 class PublishedCollectionFormatException implements Exception {
-  const PublishedCollectionFormatException(this.message);
+  const PublishedCollectionFormatException(
+    this.message, {
+    this.requiresNewerApp = false,
+  });
 
   final String message;
+
+  /// The manifest is well formed but newer than this app can read (a later
+  /// schema, or a `minReaderVersion` above the running version), so updating
+  /// the app is the fix. Distinct from a corrupt manifest.
+  final bool requiresNewerApp;
 
   @override
   String toString() => 'PublishedCollectionFormatException: $message';
@@ -140,11 +148,13 @@ class PublishedCollectionManifest {
     if (major != supportedSchemaMajor) {
       throw PublishedCollectionFormatException(
         'unsupported manifest major $major',
+        requiresNewerApp: major > supportedSchemaMajor,
       );
     }
     if (minor > supportedSchemaMinor) {
       throw PublishedCollectionFormatException(
         'unsupported manifest minor $minor',
+        requiresNewerApp: true,
       );
     }
     final minReaderText = _boundedString(root, 'minReaderVersion', 40);
@@ -157,6 +167,7 @@ class PublishedCollectionManifest {
     if (readerVersion.compareTo(minReader) < 0) {
       throw const PublishedCollectionFormatException(
         'reader version is below manifest minimum',
+        requiresNewerApp: true,
       );
     }
 

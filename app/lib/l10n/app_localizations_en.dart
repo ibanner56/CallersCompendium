@@ -2323,7 +2323,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAppearanceCustomThemesEmpty =>
-      'Copy the current theme and tune any color. Custom themes are saved on this device.';
+      'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.';
 
   @override
   String get settingsAppearanceDeleteThemeTitle => 'Delete theme?';
@@ -2988,11 +2988,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Keep deleted dances for';
+      'Keep deleted items for';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Deleted dances are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.';
+      'Deleted dances and programs are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3416,7 +3416,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.';
+      'This part of the app hit an unexpected error and couldn\'t be shown. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.';
 
   @override
   String get crashFallbackCopied => 'Copied';
@@ -3607,7 +3607,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionNewDance => 'New dance';
 
   @override
-  String get collectionSearchTooltip => 'Search (Ctrl/Cmd-K)';
+  String collectionSearchTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Search (⌘K)',
+      'other': 'Search (Ctrl+K)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get collectionSelectDancesTooltip => 'Select dances';
@@ -5275,6 +5281,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.';
 
   @override
+  String get performDanceExitBody =>
+      'Leave the performance view? Performing a single dance doesn\'t keep your place, so the next time starts fresh.';
+
+  @override
   String get performExitCancel => 'Keep performing';
 
   @override
@@ -6165,6 +6175,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t import the ContraDB program.';
 
   @override
+  String importContraDbProgramProgress(int done, int total) {
+    return 'Importing dance $done of $total…';
+  }
+
+  @override
+  String get importContraDbProgramConnectionFailed =>
+      'Couldn\'t reach the online archives, so nothing was imported. Try again once you\'re online.';
+
+  @override
+  String get importContraDbProgramCancelled =>
+      'Import cancelled — nothing was added.';
+
+  @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
     String _temp0 = intl.Intl.pluralLogic(
       activities,
@@ -6282,6 +6305,30 @@ class AppLocalizationsEn extends AppLocalizations {
       zero: '.',
     );
     return 'Linked $_temp0 online$_temp1';
+  }
+
+  @override
+  String importPlaintextResolveConnectionFailed(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' — $linked titles linked online.',
+      one: ' — $linked title linked online.',
+      zero: '.',
+    );
+    return 'Stopped looking up titles after a connection failure$_temp0 Try the rest again once you\'re online.';
+  }
+
+  @override
+  String importPlaintextResolveCancelled(int linked) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: ' — $linked titles linked online.',
+      one: ' — $linked title linked online.',
+      zero: '.',
+    );
+    return 'Stopped looking up titles$_temp0';
   }
 
   @override
@@ -7114,6 +7161,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String sharedImportCompleteWithFailures(int count, int failed) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Imported $count items.',
+      one: 'Imported 1 item.',
+      zero: 'Nothing was imported.',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      failed,
+      locale: localeName,
+      other: '$failed dances couldn\'t be imported.',
+      one: '1 dance couldn\'t be imported.',
+    );
+    return '$_temp0 $_temp1';
+  }
+
+  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7754,10 +7819,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorRedoLabel => 'Redo';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Undo (Ctrl+Z)';
+  String danceEditorUndoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Undo (⌘Z)',
+      'other': 'Undo (Ctrl+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get danceEditorRedoShortcutTooltip => 'Redo (Ctrl+Shift+Z)';
+  String danceEditorRedoShortcutTooltip(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'apple': 'Redo (⇧⌘Z)',
+      'other': 'Redo (Ctrl+Shift+Z)',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDeleteDanceTooltip => 'Delete dance';
@@ -7854,8 +7931,24 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Added $count figures. Type another, or choose Done to finish.',
-      one: 'Added 1 figure. Type another, or choose Done to finish.',
+      other:
+          'Added $count figures. Type another, or choose Finish adding when you\'re done.',
+      one:
+          'Added 1 figure. Type another, or choose Finish adding when you\'re done.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get danceEditorFreeTextFinish => 'Finish adding';
+
+  @override
+  String danceEditorFreeTextFinishedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count figures.',
+      one: 'Added 1 figure.',
     );
     return '$_temp0';
   }
@@ -8295,6 +8388,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get updateDownloadFailureUnreachable =>
       'The update could not be downloaded. Check your connection and try again, or use \"View release\".';
+
+  @override
+  String get updateDownloadFailureServerError =>
+      'The update server could not provide the file. Try again later, or use \"View release\".';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'There is not enough free disk space to save the update. Free up some space and try again, or use \"View release\".';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'The update could not be saved because the download location is not writable. Check its permissions and try again, or use \"View release\".';
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
@@ -9252,6 +9357,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Nothing in the trash. Deleted programs are kept here until you remove them.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'Nothing in the trash. Deleted programs appear here for $days days before being removed.';
   }
@@ -9482,6 +9591,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Published collections are temporarily unavailable.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Published collections could not be reached. Check your connection and try again.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'These published collections need a newer app version. Update the app to see them.';
 
   @override
   String get publishedCollectionImport => 'Import collection';

@@ -211,6 +211,39 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Permanently delete removes only the chosen dance, not other expired ones '
+    '(LIFE-1)',
+    (tester) async {
+      final repos = openTestRepositories();
+      // "Never" is the user's promise that nothing is auto-purged.
+      await repos.settings.set(
+        kSoftDeleteRetentionKey,
+        kSoftDeleteRetentionNever,
+      );
+      final now = DateTime.now().toUtc();
+      for (final (id, daysAgo) in [('a', 5), ('b', 60), ('c', 10)]) {
+        await repos.dances.create(_dance(id: id, title: 'Dance $id'));
+        await repos.dances.softDelete(
+          id,
+          at: now.subtract(Duration(days: daysAgo)),
+        );
+      }
+
+      await _pumpScreen(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('permanent-delete-a')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('confirm-permanent-delete')));
+      await tester.pumpAndSettle();
+
+      expect(await repos.dances.getById('a', includeDeleted: true), isNull);
+      expect(await repos.dances.getById('b', includeDeleted: true), isNotNull);
+      expect(await repos.dances.getById('c', includeDeleted: true), isNotNull);
+      expect(find.text('Dance b'), findsOneWidget);
+      expect(find.text('Dance c'), findsOneWidget);
+    },
+  );
+
   testWidgets('Permanently delete dialog cancel leaves the dance in place', (
     tester,
   ) async {

@@ -1,0 +1,18 @@
+{
+  "id": "audit-f4-group-notes-and-parser",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A note on one side of a meanwhile group, or on one figure of a modifier group, now shows in brackets after that figure in the list, on the dance's page, in Perform and when printed.",
+      "With Free-text entry, a line such as \"petronella twice\" or \"circle left 3/4 and pass through\" is now kept as a custom figure instead of becoming a figure with the wrong turn or beats and the rest hidden in its note. Re-check custom figures follows the same rule.",
+      "With Free-text entry, a count in bars (\"neighbor swing 2 bars\") is now kept as a note on the figure for every move, as the guide says.",
+      "A dance's page now warns, as the editor does, when its figures' beats don't add up to its phrase structure.",
+      "Rewriting the text of a custom figure the app couldn't read now removes its \"couldn't parse\" badge, and Re-check custom figures leaves it as you wrote it."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The free-text leftover rule (demoteNoteTails) also demotes a note that holds a turn amount or starts a clause with another move's name; free-text entry peels a count in bars into the figure's note; the display renders show the notes of meanwhile sides and modifier parts."
+    ]
+  }
+}

@@ -48,6 +48,7 @@ class CcUsrImportResult {
     List<String> insertedCustomFieldIds = const [],
     List<String> restoredCustomFieldIds = const [],
     List<ImportIssue> customFieldIssues = const [],
+    Map<String, List<String>> linksAddedToEarlierDances = const {},
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
@@ -57,7 +58,11 @@ class CcUsrImportResult {
        relatedDanceLinkIssues = List.unmodifiable(relatedDanceLinkIssues),
        insertedCustomFieldIds = List.unmodifiable(insertedCustomFieldIds),
        restoredCustomFieldIds = List.unmodifiable(restoredCustomFieldIds),
-       customFieldIssues = List.unmodifiable(customFieldIssues);
+       customFieldIssues = List.unmodifiable(customFieldIssues),
+       linksAddedToEarlierDances = Map.unmodifiable({
+         for (final e in linksAddedToEarlierDances.entries)
+           e.key: List<String>.unmodifiable(e.value),
+       });
 
   /// The dance-side session (inserted dance ids, updated-dance prior states,
   /// created choreographer ids) — reverted via [ImportPipeline.undo].
@@ -120,6 +125,12 @@ class CcUsrImportResult {
   /// (a column whose key was taken by a field of another type). The
   /// per-dance key notes (shared keys, unusable labels) are on the drafts.
   final List<ImportIssue> customFieldIssues;
+
+  /// Dance id → ids of the `relatedDance` links this import added to a dance
+  /// it did not commit itself: one an earlier per-row Edit wrote
+  /// (`earlierDanceIds` on [CallersCompanionUsrImporter.commit]). [undo]
+  /// removes just these links; the dances stay.
+  final Map<String, List<String>> linksAddedToEarlierDances;
 
   /// Ids of the programs updated in place (re-imported) by this import.
   List<String> get updatedProgramIds => [
@@ -240,13 +251,24 @@ class CallersCompanionUsrImporter {
   /// venue on every re-import.
   ///
   /// **Related dances (issue #688):** after the programs are persisted, each
-  /// archive `Dance_Related` pair is resolved via [_danceIdByCcRowId] and
-  /// turned into a directed `relatedDance` [DanceLink] on the source dance
+  /// archive `Dance_Related` pair is resolved via [_danceIdByCcRowId] (and
+  /// `earlierDanceIds`, below) and turned into a directed `relatedDance` [DanceLink] on the source dance
   /// (see [buildCcRelatedDanceLinks]'s doc for the full directionality,
   /// dedupe and OWASP-hardening rationale). A pair with an unresolved
   /// endpoint is skipped with a warning [ImportIssue] on
   /// [CcUsrImportResult.relatedDanceLinkIssues] — never a dangling
   /// `targetDanceId`.
+  ///
+  /// **Dances committed earlier (the review's per-row Edit):**
+  /// [earlierDanceIds] maps the CC `zk_Dance_ID` of each dance an earlier
+  /// [commitDances] in the same review wrote to the dance id it wrote. A set
+  /// slot or `Dance_Related` pair naming one of them resolves to that dance,
+  /// as it would had the dance been in [batch]; without the map its slots
+  /// became "not imported" placeholders. An entry whose dance no longer exists
+  /// is ignored, and [batch]'s own dance wins for a CC id it also commits.
+  /// Those dances are not this import's to revert: a related-dance link added
+  /// to one is recorded in [CcUsrImportResult.linksAddedToEarlierDances] and
+  /// [undo] removes just that link.
   ///
   /// Everything is recorded on the returned [CcUsrImportResult] so [undo]
   /// reverts dances, programs **and** venues.
@@ -260,59 +282,44 @@ class CallersCompanionUsrImporter {
     Map<int, DedupeResolution> resolutions = const {},
     List<String> defaultTagIds = const [],
     void Function(int done, int total)? onProgress,
+    Map<String, String> earlierDanceIds = const {},
   }) async {
     final mintId = newId ?? uuidV4;
-    // Definitions first: a dance cannot commit a value for a field that does
-    // not exist yet (`DanceRepository` refuses it), and they are reverted with
-    // the rest of the import.
-    final fields = await _resolveUserFieldDefinitions(
+    final (
+      session: danceSession,
+      insertedFieldIds: keptInserted,
+      restoredFieldIds: keptRestored,
+      fieldIssues: fieldIssues,
+    ) = await _commitDancesWithFields(
       batch,
       now: now,
       newId: mintId,
+      resolutions: resolutions,
+      defaultTagIds: defaultTagIds,
+      onProgress: onProgress,
     );
-    final ImportSession danceSession;
+
+    // This batch's own dances win over an earlier commit's for the same CC
+    // row. An earlier dance that no longer exists (deleted from the editor
+    // since) resolves to nothing, so its slots fall back to placeholders
+    // rather than naming a missing dance.
+    final committedEarlier = <String, String>{};
     try {
-      danceSession = await _pipeline.commit(
-        fields.batch,
-        now: now,
-        newId: mintId,
-        resolutions: resolutions,
-        // Dances only: programs carry no tags.
-        defaultTagIds: defaultTagIds,
-        onProgress: onProgress,
-      );
-    } catch (_) {
-      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
-      rethrow;
-    }
-    // A definition no committed dance ended up using (every dance that carried
-    // its key was skipped) is dropped now rather than left as an orphan. Inside
-    // its own compensation: the dances are committed by now, so a failure here
-    // must not leave them without an undo handle.
-    final keptInserted = <String>[];
-    final keptRestored = <String>[];
-    try {
-      for (final id in fields.inserted) {
-        if (await _customFields.isInUse(id)) {
-          keptInserted.add(id);
-        } else {
-          await _customFields.delete(id, permanent: true);
-        }
-      }
-      for (final id in fields.restored) {
-        if (await _customFields.isInUse(id)) {
-          keptRestored.add(id);
-        } else {
-          await _customFields.delete(id);
+      for (final entry in earlierDanceIds.entries) {
+        if (await _dances.getById(entry.value) != null) {
+          committedEarlier[entry.key] = entry.value;
         }
       }
     } catch (_) {
       await _pipeline.undo(danceSession);
-      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      await _revertUserFieldDefinitions(keptInserted, keptRestored);
       rethrow;
     }
 
-    final danceIdByCcRowId = _danceIdByCcRowId(danceSession);
+    final danceIdByCcRowId = {
+      ...committedEarlier,
+      ..._danceIdByCcRowId(danceSession),
+    };
     final built = buildCcPrograms(
       archive,
       danceIdByCcRowId: danceIdByCcRowId,
@@ -343,6 +350,9 @@ class CallersCompanionUsrImporter {
     final persisted = <Program>[];
     final insertedVenueIds = <String>[];
     final relatedDanceLinkIssues = <ImportIssue>[];
+    // Dance id → ids of the links appended to a dance an earlier commit wrote
+    // (see the related-dance step below); removed again on failure and undo.
+    final linksAddedToEarlier = <String, List<String>>{};
     // Lazily-seeded fingerprint index over the receiver's existing venues
     // (issue #687), built at most once per commit (memoized here) and only
     // when a candidate actually produces a non-null [venueFingerprint] — a
@@ -468,10 +478,9 @@ class CallersCompanionUsrImporter {
       // failure here is compensated identically to a program-write failure
       // (see the catch below).
       //
-      // No new undo bookkeeping is needed for the links themselves: every
-      // candidate source dance here is, by construction, a dance
-      // [_danceIdByCcRowId] resolved from `danceSession.records` — and EVERY
-      // such dance is already tracked by [ImportPipeline.undo], either via
+      // No undo bookkeeping is needed for a link on a dance this batch
+      // committed: every such dance is already tracked by
+      // [ImportPipeline.undo], either via
       // `insertedDanceIds` (create/duplicate — hard-deleted wholesale) or via
       // `updatedDancePriorStates` (reimport/link — the pipeline captures a
       // full pre-commit snapshot of `_dances.getById(id)` **before any field
@@ -480,7 +489,9 @@ class CallersCompanionUsrImporter {
       // that prior snapshot on undo already reverts any related-dance link
       // appended here, with zero additional tracking. See
       // `callers_companion_related_dances.dart` and this method's `undo` doc
-      // for the full argument.
+      // for the full argument. A dance from [earlierDanceIds] is the exception:
+      // this batch's undo does not restore it, so the ids of the links appended
+      // to it are recorded and removed one by one instead.
       if (archive.relatedDancePairs.isNotEmpty) {
         final candidateDanceIds = <String>{
           for (final pair in archive.relatedDancePairs)
@@ -495,6 +506,10 @@ class CallersCompanionUsrImporter {
         final existingLinksByDanceId = <String, List<DanceLink>>{
           for (final entry in dancesById.entries) entry.key: entry.value.links,
         };
+        final sessionDanceIds = {
+          for (final r in danceSession.records)
+            if (r.succeeded && r.danceId != null) r.danceId!,
+        };
         final linkResult = buildCcRelatedDanceLinks(
           archive,
           danceIdByCcRowId: danceIdByCcRowId,
@@ -505,6 +520,12 @@ class CallersCompanionUsrImporter {
         for (final entry in linkResult.newLinksByDanceId.entries) {
           final dance = dancesById[entry.key];
           if (dance == null) continue; // fetched dance vanished; skip safely
+          if (!sessionDanceIds.contains(entry.key)) {
+            // Recorded before the write, so a failure part-way is compensated.
+            linksAddedToEarlier[entry.key] = [
+              for (final link in entry.value) link.id,
+            ];
+          }
           await _dances.update(
             dance.copyWith(links: [...dance.links, ...entry.value]),
           );
@@ -521,6 +542,8 @@ class CallersCompanionUsrImporter {
       await _venues.hardDelete(insertedVenueIds);
       await _pipeline.undo(danceSession);
       await _revertUserFieldDefinitions(keptInserted, keptRestored);
+      // Last, so the older steps above run even if this one throws.
+      await _removeLinks(linksAddedToEarlier);
       rethrow;
     }
 
@@ -536,8 +559,135 @@ class CallersCompanionUsrImporter {
       relatedDanceLinkIssues: relatedDanceLinkIssues,
       insertedCustomFieldIds: keptInserted,
       restoredCustomFieldIds: keptRestored,
-      customFieldIssues: fields.issues,
+      customFieldIssues: fieldIssues,
+      linksAddedToEarlierDances: linksAddedToEarlier,
     );
+  }
+
+  /// Commits the dances of [batch] alone — no programs, no related-dance links
+  /// — for the review's per-row Edit, which writes one dance before the rest of
+  /// the file is imported. Unlike a bare [ImportPipeline.commit], it first
+  /// matches or creates the definitions behind the CC `UserDefined_*` values
+  /// (as [commit] does), since [DanceRepository] refuses a value for a field
+  /// that does not exist: without this, every dance with a user-field value
+  /// failed to commit.
+  ///
+  /// A definition no committed dance uses is dropped again, and a commit that
+  /// throws removes the definitions it created. The definitions a committed
+  /// dance holds stay, as the dance does; the per-row Edit has no undo. Pass
+  /// the CC ids of the dances written here to a later [commit] as its
+  /// `earlierDanceIds` so its sets and related dances can name them.
+  Future<ImportSession> commitDances(
+    ImportBatchResult batch, {
+    required DateTime now,
+    String Function()? newId,
+    Map<int, DedupeResolution> resolutions = const {},
+    List<String> defaultTagIds = const [],
+  }) async {
+    final committed = await _commitDancesWithFields(
+      batch,
+      now: now,
+      newId: newId ?? uuidV4,
+      resolutions: resolutions,
+      defaultTagIds: defaultTagIds,
+    );
+    return committed.session;
+  }
+
+  /// The dance half of [commit] and [commitDances]: resolves the CC user-field
+  /// definitions [batch] needs, commits its dances through the pipeline, and
+  /// drops any definition no committed dance ended up using. Returns the
+  /// session with the definitions kept; on a throw nothing is left behind.
+  Future<
+    ({
+      ImportSession session,
+      List<String> insertedFieldIds,
+      List<String> restoredFieldIds,
+      List<ImportIssue> fieldIssues,
+    })
+  >
+  _commitDancesWithFields(
+    ImportBatchResult batch, {
+    required DateTime now,
+    required String Function() newId,
+    required Map<int, DedupeResolution> resolutions,
+    required List<String> defaultTagIds,
+    void Function(int done, int total)? onProgress,
+  }) async {
+    // Definitions first: a dance cannot commit a value for a field that does
+    // not exist yet (`DanceRepository` refuses it), and they are reverted with
+    // the rest of the import.
+    final fields = await _resolveUserFieldDefinitions(
+      batch,
+      now: now,
+      newId: newId,
+    );
+    final ImportSession danceSession;
+    try {
+      danceSession = await _pipeline.commit(
+        fields.batch,
+        now: now,
+        newId: newId,
+        resolutions: resolutions,
+        // Dances only: programs carry no tags.
+        defaultTagIds: defaultTagIds,
+        onProgress: onProgress,
+      );
+    } catch (_) {
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      rethrow;
+    }
+    // A definition no committed dance ended up using (every dance that carried
+    // its key was skipped) is dropped now rather than left as an orphan. Inside
+    // its own compensation: the dances are committed by now, so a failure here
+    // must not leave them without an undo handle.
+    final keptInserted = <String>[];
+    final keptRestored = <String>[];
+    try {
+      for (final id in fields.inserted) {
+        if (await _customFields.isInUse(id)) {
+          keptInserted.add(id);
+        } else {
+          await _customFields.delete(id, permanent: true);
+        }
+      }
+      for (final id in fields.restored) {
+        if (await _customFields.isInUse(id)) {
+          keptRestored.add(id);
+        } else {
+          await _customFields.delete(id);
+        }
+      }
+    } catch (_) {
+      await _pipeline.undo(danceSession);
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      rethrow;
+    }
+    return (
+      session: danceSession,
+      insertedFieldIds: keptInserted,
+      restoredFieldIds: keptRestored,
+      fieldIssues: fields.issues,
+    );
+  }
+
+  /// Removes the links named in [linkIdsByDanceId] from each of those dances,
+  /// leaving every other link, and any dance since deleted, alone.
+  Future<void> _removeLinks(Map<String, List<String>> linkIdsByDanceId) async {
+    for (final entry in linkIdsByDanceId.entries) {
+      final dance = await _dances.getById(entry.key, includeDeleted: true);
+      if (dance == null) continue;
+      final remove = entry.value.toSet();
+      if (!dance.links.any((l) => remove.contains(l.id))) continue;
+      await _dances.update(
+        dance.copyWith(
+          links: [
+            for (final l in dance.links)
+              if (!remove.contains(l.id)) l,
+          ],
+        ),
+      );
+    }
   }
 
   /// Matches or creates one text definition per CC user-field key carried by
@@ -826,10 +976,11 @@ class CallersCompanionUsrImporter {
   /// live programs only (issue #1328), so it erased a venue a tombstoned
   /// program still named — issue #1357.
   ///
-  /// **Related-dance links (issue #688) need no dedicated revert step here** —
-  /// [ImportPipeline.undo] already fully reverts them as a side effect of its
-  /// own dance rollback. Every dance [commit] could have attached a
-  /// `relatedDance` link to is, by construction, a dance resolved through
+  /// **Related-dance links (issue #688)** on this import's own dances need no
+  /// dedicated revert step here — [ImportPipeline.undo] already fully reverts
+  /// them as a side effect of its own dance rollback. Apart from the dances an
+  /// earlier per-row Edit wrote (below), every dance [commit] could have
+  /// attached a `relatedDance` link to is a dance resolved through
   /// `_danceIdByCcRowId(result.danceSession)`, which only ever names dances
   /// appearing in `result.danceSession.records`. Every such dance is either
   /// freshly **inserted** this commit (hard-deleted wholesale by the call
@@ -840,7 +991,9 @@ class CallersCompanionUsrImporter {
   /// `dance_links` rows (a full delete-then-reinsert on every
   /// `DanceRepository.update`), so any related-dance link [commit] appended
   /// afterward is discarded along with the rest of the reverted state — with
-  /// zero additional bookkeeping.
+  /// zero additional bookkeeping. A dance named by `earlierDanceIds` is not
+  /// this import's to restore, so the links appended to it are removed by id
+  /// ([CcUsrImportResult.linksAddedToEarlierDances]) and the dance kept.
   ///
   /// [now] is an optional clock seam for deterministic callers; production
   /// undo timestamps default to the current UTC time.
@@ -873,6 +1026,8 @@ class CallersCompanionUsrImporter {
       result.insertedCustomFieldIds,
       result.restoredCustomFieldIds,
     );
+    // Last, so the older steps above run even if this one throws.
+    await _removeLinks(result.linksAddedToEarlierDances);
     result._undone = true;
   }
 

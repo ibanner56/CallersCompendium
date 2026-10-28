@@ -1,5 +1,6 @@
 import '../model/choreographer.dart';
 import '../model/dance.dart';
+import '../model/dance_link.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../serialization/archive_codec.dart';
@@ -211,12 +212,38 @@ class GenericJsonAdapter implements SourceAdapter, BatchWarningSource {
           : [legacyExternalId],
       sourceVersion: '$_schemaVersion',
       payload: _encodeSingleDance(
-        dance,
+        _withRelatedTargetsByExternalId(dance),
         _referencedChoreographers(dance),
         _referencedDifficultyLevels(dance),
         _schemaVersion,
       ),
       contentType: 'application/json',
+    );
+  }
+
+  /// [dance] with each `relatedDance` link's target, a dance id of the
+  /// sender's, rewritten to that dance's [externalIdFor] key when the archive
+  /// carries it. That key is what the target is committed and received under,
+  /// so [ImportPipeline.commit] can resolve the link to the target's receiver
+  /// id, including when the target is a row the user skipped because they
+  /// already have it. A target the archive does not carry keeps the sender's
+  /// id, which is also its key when it had no upstream provenance.
+  Dance _withRelatedTargetsByExternalId(Dance dance) {
+    if (!dance.links.any((l) => l.kind == LinkKind.relatedDance)) return dance;
+    return dance.copyWith(
+      links: [
+        for (final link in dance.links)
+          if (_dancesById[link.targetDanceId] case final target?)
+            DanceLink(
+              id: link.id,
+              kind: link.kind,
+              targetDanceId: externalIdFor(target),
+              label: link.label,
+              transitive: link.transitive,
+            )
+          else
+            link,
+      ],
     );
   }
 

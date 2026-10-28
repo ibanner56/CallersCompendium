@@ -2307,4 +2307,27 @@ void main() {
       },
     );
   });
+
+  group('purgeDeleted', () {
+    test('onlyIds erases just those past-cutoff programs, leaving other '
+        'expired ones (LIFE-1)', () async {
+      for (final id in ['a', 'b', 'c']) {
+        await repo.create(sampleProgram(id: id));
+        await repo.softDelete(id, at: DateTime.utc(2026, 1, 1));
+      }
+      await repo.create(sampleProgram(id: 'recent'));
+      await repo.softDelete('recent', at: DateTime.utc(2026, 3, 30));
+
+      final purged = await repo.purgeDeleted(
+        now: DateTime.utc(2026, 4, 1),
+        onlyIds: ['a', 'recent', 'missing'],
+      );
+
+      expect(purged, 1);
+      expect(await repo.getById('a', includeDeleted: true), isNull);
+      expect(await repo.getById('b', includeDeleted: true), isNotNull);
+      expect(await repo.getById('c', includeDeleted: true), isNotNull);
+      expect(await repo.getById('recent', includeDeleted: true), isNotNull);
+    });
+  });
 }

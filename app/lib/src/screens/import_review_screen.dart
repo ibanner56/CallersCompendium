@@ -218,9 +218,15 @@ class ImportReviewScreen extends StatefulWidget {
   /// (non-undone) commit of a [programAmbiguousImport] seed. Keys are
   /// [ProgramAmbiguousLine.originalLineIndex]; a line absent from the map had
   /// no candidate committed (every candidate was left at skip, or none
-  /// previewed) and stays a note. Never invoked when [programAmbiguousImport]
-  /// is null.
-  final void Function(Map<int, String> danceIdsByLineIndex)? onProgramCommitted;
+  /// previewed) and stays a note. [session] is the commit itself, so the
+  /// program import can undo these dances with the program (programs.md:
+  /// "the same Undo safety net as every other import"). Never invoked when
+  /// [programAmbiguousImport] is null.
+  final void Function(
+    Map<int, String> danceIdsByLineIndex,
+    ImportSession session,
+  )?
+  onProgramCommitted;
 
   @override
   State<ImportReviewScreen> createState() => _ImportReviewScreenState();
@@ -499,6 +505,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// **Edit** action. These are excluded from the batch [_commit] (so they are
   /// never imported twice) and render as "Imported" instead of offering actions.
   final Set<int> _committed = <int>{};
+
+  /// Caller's Companion `zk_Dance_ID` → dance id, for each `.USR` dance the
+  /// per-row **Edit** action committed. Handed to the batch [_commit] so the
+  /// file's sets and related dances still name those dances instead of
+  /// recording them as not imported.
+  final Map<String, String> _editCommittedCcDanceIds = <String, String>{};
 
   /// Existing dance id → title, for showing candidate/reimport target names.
   Map<String, String> _titlesById = const {};
@@ -1005,6 +1017,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         }
       }
       _committed.clear();
+      _editCommittedCcDanceIds.clear();
       _titleListProgress = null;
       _phase = _Phase.review;
     });
@@ -1433,24 +1446,45 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _commitProgress = null;
       _phase = _Phase.committing;
     });
-    // Edit is a single-dance affordance, so it always uses the adapter-agnostic
-    // dance commit path — even for the Caller's Companion `.USR` byte source,
-    // whose programs remain the batch Import button's responsibility.
+    // Edit is a single-dance affordance: it commits the dance alone. The
+    // Caller's Companion `.USR` source's programs and related dances remain the
+    // batch Import button's responsibility, but its dance goes through the
+    // `.USR` importer, which creates the definitions behind the file's user
+    // fields first — the repository refuses a value for a field that does not
+    // exist, so a plain pipeline commit failed every dance that had one.
     final pipeline = ImportPipeline(
       _repos.dances,
       _repos.choreographers,
       difficultyLevels: _repos.difficultyLevels,
     );
+    final isUsr = _selected.adapterFactory() is CallersCompanionUsrAdapter;
     try {
-      final session = await pipeline.commit(
-        ImportBatchResult(records: [plan]),
-        now: DateTime.now().toUtc(),
-        newId: uuidV4,
-        resolutions: resolution == null
-            ? const <int, DedupeResolution>{}
-            : {0: resolution},
-        defaultTagIds: await resolveDefaultImportTagIds(_repos),
-      );
+      final rowBatch = ImportBatchResult(records: [plan]);
+      final now = DateTime.now().toUtc();
+      final resolutions = resolution == null
+          ? const <int, DedupeResolution>{}
+          : {0: resolution};
+      final defaultTagIds = await resolveDefaultImportTagIds(_repos);
+      final session = isUsr
+          ? await CallersCompanionUsrImporter(
+              pipeline,
+              _repos.programs,
+              _repos.venues,
+              _repos.customFieldDefs,
+            ).commitDances(
+              rowBatch,
+              now: now,
+              newId: uuidV4,
+              resolutions: resolutions,
+              defaultTagIds: defaultTagIds,
+            )
+          : await pipeline.commit(
+              rowBatch,
+              now: now,
+              newId: uuidV4,
+              resolutions: resolutions,
+              defaultTagIds: defaultTagIds,
+            );
       if (!mounted) return;
       final committed = session.records
           .where((r) => r.succeeded && r.action != CommitAction.skip)
@@ -1466,9 +1500,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         );
         return;
       }
+      final ccDanceId = committed.first.externalId;
       setState(() {
         _phase = _Phase.review;
         _committed.add(i);
+        if (isUsr && ccDanceId != null && ccDanceId.isNotEmpty) {
+          _editCommittedCcDanceIds[ccDanceId] = danceId;
+        }
       });
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -1573,6 +1611,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           resolutions: resolutions,
           defaultTagIds: await resolveDefaultImportTagIds(_repos),
           onProgress: _onCommitProgress,
+          earlierDanceIds: Map.of(_editCommittedCcDanceIds),
         );
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
@@ -1640,9 +1679,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           newId: uuidV4,
           resolutions: resolutions,
           // Only this generic dance path and the two importers above tag.
-          // The shared-bundle branch restores the sender's own tags, and no
-          // program path reaches here.
-          defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          // The shared-bundle branch restores the sender's own tags. A program
+          // title list's ambiguous lines do reach here, and their dances are
+          // created for program slots, which keep no default tags
+          // (settings.md, "Import defaults"; #1476).
+          defaultTagIds: widget.programAmbiguousImport != null
+              ? const []
+              : await resolveDefaultImportTagIds(_repos),
           onProgress: _onCommitProgress,
         );
         if (!mounted) return;
@@ -2088,6 +2131,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final importedDances = result.danceSession.records
         .where((r) => r.succeeded && r.action != CommitAction.skip)
         .length;
+    // A dance that failed is recorded on its record, not thrown, so it has to
+    // be counted here: otherwise a file whose dances all failed reads as a
+    // success.
+    final failedDances = result.danceSession.records
+        .where((r) => !r.succeeded)
+        .length;
     final importedCount =
         importedDances +
         result.programs.length +
@@ -2097,7 +2146,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     showUndoSnackBar(
       messenger,
       key: const ValueKey('shared-import-undo-snackbar'),
-      message: l10n.sharedImportComplete(importedCount),
+      message: failedDances == 0
+          ? l10n.sharedImportComplete(importedCount)
+          : l10n.sharedImportCompleteWithFailures(importedCount, failedDances),
       undoLabel: l10n.commonUndo,
       accessibleNavigation: accessibleNavigation,
       onUndo: () async {
@@ -2314,7 +2365,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // resolved before dismissing, so the caller can link those dances into
       // program slots. Never fired on an undone commit — nothing was kept.
       if (programResults != null) {
-        widget.onProgramCommitted?.call(programResults);
+        widget.onProgramCommitted?.call(programResults, session);
       }
       // Embedded (onClose provided): dismiss via the shell — it has no route to
       // pop. Pushed (onClose null): pop this screen's route as before.

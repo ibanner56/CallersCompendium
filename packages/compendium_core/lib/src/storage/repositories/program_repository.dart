@@ -1425,16 +1425,42 @@ class ProgramRepository {
   /// than [retention] (default 30 days per `docs/design/storage.md`). Published
   /// programs remain as tombstones so peers retain deletion evidence. Physical
   /// deletes cascade slots automatically (FK).
+  ///
+  /// When [onlyIds] is non-null the purge is restricted to those ids: a row
+  /// outside the set is left alone even if it is past the cutoff. The manual
+  /// "Permanently delete" action uses this so erasing one item cannot sweep
+  /// other expired items past the user's retention setting (LIFE-1). The
+  /// cutoff and the published-record exclusion still apply, so a caller wanting
+  /// one specific row gone first backdates its `deletedAt` (see
+  /// [softDelete]).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
+    Iterable<String>? onlyIds,
   }) {
     assertUtc(now, 'now');
     final cutoff = now.subtract(retention);
+    final restrictTo = onlyIds?.toSet();
     return _db.transaction(() async {
-      final rows = await (_db.select(
-        _db.programs,
-      )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
+      final rows = <ProgramRow>[];
+      if (restrictTo == null) {
+        rows.addAll(
+          await (_db.select(
+            _db.programs,
+          )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get(),
+        );
+      } else {
+        for (final chunk in _chunkIds(restrictTo.toList())) {
+          rows.addAll(
+            await (_db.select(_db.programs)..where(
+                  (t) =>
+                      t.deletedAt.isSmallerOrEqualValue(cutoff) &
+                      t.id.isIn(chunk),
+                ))
+                .get(),
+          );
+        }
+      }
       if (rows.isEmpty) return 0;
       final publishedIds = await publishedSyncRecordIds(
         _db,

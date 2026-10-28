@@ -30,6 +30,13 @@ typedef BackupPicker = Future<String?> Function();
 bool Function() isDesktopPlatform = () =>
     Platform.isMacOS || Platform.isWindows || Platform.isLinux;
 
+/// Test seam for the OS share sheet used by the mobile branches of
+/// [saveBackupToFile] and the diagnostics-log saver; defaults to `share_plus`.
+/// Overridable so tests can return a chosen [ShareResult] without a platform
+/// channel.
+Future<ShareResult> Function(ShareParams params) shareFilesViaSheet =
+    (params) => SharePlus.instance.share(params);
+
 /// Test seam for macOS detection; defaults to the real `dart:io` getter.
 ///
 /// macOS is the one desktop platform whose sandbox forces the direct
@@ -227,9 +234,12 @@ Future<File> _createSecureSiblingTemp(File target) async {
 ///
 /// On mobile (iOS/Android) a backup is a "share to another app" action: this
 /// writes [json] to a temp file (via `path_provider`, also atomically) and
-/// hands it to the OS share sheet (via `share_plus`), returning `true` once the
-/// sheet has been invoked (share-sheet completion isn't reliably observable on
-/// those platforms).
+/// hands it to the OS share sheet (via `share_plus`), which returns when the
+/// sheet closes. Returns `false` if the sheet was dismissed without choosing a
+/// destination ([ShareResultStatus.dismissed]), so callers neither report an
+/// export nor stamp the last-backup time. Any other status counts as exported:
+/// `success`, and also `unavailable`, which some platforms report because they
+/// can't tell what the user did (so a dismissal there can't be detected).
 ///
 /// [json] is the finished backup container (issue #536): plain backup JSON with
 /// a SHA-256 integrity checksum, always saved with a `.json` extension.
@@ -252,14 +262,14 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
   await writeStringAtomically(file.path, json);
-  await SharePlus.instance.share(
+  final result = await shareFilesViaSheet(
     ShareParams(
       files: [XFile(file.path, mimeType: 'application/json')],
       fileNameOverrides: [suggestedFileName],
       subject: suggestedFileName,
     ),
   );
-  return true;
+  return result.status != ShareResultStatus.dismissed;
 }
 
 /// Writes a finished backup to the [path] a native desktop Save As panel

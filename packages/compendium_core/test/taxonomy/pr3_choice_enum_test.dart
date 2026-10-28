@@ -45,7 +45,7 @@ void main() {
       'ones contra corners': Figure(move: 'contra_corners'),
       'everyone turn alone': Figure(move: 'turn_alone'),
       'ones half figure 8': Figure(move: 'figure_8'),
-      'ones poussette neighbors half clockwise': Figure(move: 'poussette'),
+      'role1s poussette neighbors half clockwise': Figure(move: 'poussette'),
       "everyone Rory O'More right": Figure(move: 'rory_o_more'),
     };
     cases.forEach((expected, figure) {

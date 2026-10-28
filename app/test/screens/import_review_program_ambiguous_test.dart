@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/program_ambiguous_review.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
@@ -48,7 +49,7 @@ Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
   required ProgramAmbiguousImport programAmbiguousImport,
-  required void Function(Map<int, String>) onProgramCommitted,
+  required void Function(Map<int, String>, ImportSession) onProgramCommitted,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1000, 1600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -92,7 +93,7 @@ void main() {
         tester,
         repos,
         programAmbiguousImport: seed,
-        onProgramCommitted: (_) {},
+        onProgramCommitted: (_, _) {},
       );
 
       // No source dropdown / paste field — the manual input phase never shows.
@@ -136,7 +137,7 @@ void main() {
         tester,
         repos,
         programAmbiguousImport: seed,
-        onProgramCommitted: (result) => reported = result,
+        onProgramCommitted: (result, _) => reported = result,
       );
 
       // Pick "New dance" for the first candidate row.
@@ -180,7 +181,7 @@ void main() {
         tester,
         repos,
         programAmbiguousImport: seed,
-        onProgramCommitted: (result) => reported = result,
+        onProgramCommitted: (result, _) => reported = result,
       );
 
       final commitButton = tester.widget<FilledButton>(
@@ -215,7 +216,7 @@ void main() {
         tester,
         repos,
         programAmbiguousImport: seed,
-        onProgramCommitted: (result) => reported = result,
+        onProgramCommitted: (result, _) => reported = result,
       );
 
       // Both candidates set to "New dance" — the UI itself has no mutual
@@ -262,7 +263,7 @@ void main() {
         tester,
         repos,
         programAmbiguousImport: seed,
-        onProgramCommitted: (_) {},
+        onProgramCommitted: (_, _) {},
       );
 
       await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
@@ -301,7 +302,7 @@ void main() {
       tester,
       repos,
       programAmbiguousImport: seed,
-      onProgramCommitted: (result) => reported = result,
+      onProgramCommitted: (result, _) => reported = result,
     );
 
     await tester.tap(find.byKey(const ValueKey('import-row-0-create')));
@@ -316,4 +317,51 @@ void main() {
     expect(reported, isNotNull);
     expect(reported!.keys.toSet(), {0, 3});
   });
+
+  testWidgets(
+    'a dance picked for a program slot gets no default import tags (#1476), '
+    'and the commit is handed back so the program can undo it',
+    (tester) async {
+      final repos = openTestRepositories();
+      final _ = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
+      await repos.settings.set(
+        kDefaultImportTagNamesKey,
+        encodeDefaultImportTagNames(['No card']),
+      );
+      final seed = ProgramAmbiguousImport(
+        lines: [
+          ProgramAmbiguousLine(
+            originalLineIndex: 0,
+            lineText: 'Petronella',
+            candidates: [
+              _plan('Petronella', 'cb-1'),
+              _plan('Petronella', 'cd-1'),
+            ],
+          ),
+        ],
+      );
+      Map<int, String>? reported;
+      ImportSession? session;
+
+      await _pump(
+        tester,
+        repos,
+        programAmbiguousImport: seed,
+        onProgramCommitted: (result, committed) {
+          reported = result;
+          session = committed;
+        },
+      );
+      await tester.tap(find.byKey(const ValueKey('import-row-0-create')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-done-button')));
+      await tester.pumpAndSettle();
+
+      final created = (await repos.dances.getById(reported![0]!))!;
+      expect(created.tagIds, isEmpty);
+      expect(session!.insertedDanceIds, [created.id]);
+    },
+  );
 }

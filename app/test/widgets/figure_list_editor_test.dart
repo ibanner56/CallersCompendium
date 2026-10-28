@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
+import 'package:compendium_app/src/editor/free_text_composer_controller.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/figure_param_editors.dart';
@@ -882,16 +883,13 @@ void main() {
     expect(drafts.single.beats, 16);
   });
 
-  testWidgets('toggling balance on a flag move adds then removes 4 beats', (
+  testWidgets('toggling balance on a flag move removes then adds 4 beats', (
     tester,
   ) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
     await _selectMove(tester, 0, 'box the', 'box_the_gnat');
-    expect(drafts.single.beats, 4);
-
-    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
-    await tester.pumpAndSettle();
+    // Entry is the balanced, 8-beat box (taxonomy v38).
     expect(drafts.single.params['balance'], true);
     expect(drafts.single.beats, 8);
 
@@ -899,6 +897,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(drafts.single.params['balance'], false);
     expect(drafts.single.beats, 4);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.params['balance'], true);
+    expect(drafts.single.beats, 8);
   });
 
   testWidgets('balance toggle shifts a manually-set beats value by 4', (
@@ -907,6 +910,9 @@ void main() {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
     await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    // Entry is balanced; untick it so the toggle under test turns balance on.
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '6');
@@ -923,6 +929,9 @@ void main() {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
     await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    // Entry is balanced; untick it so the first toggle below turns balance on.
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '64');
@@ -1193,7 +1202,7 @@ void main() {
       // Overridden param takes the configured value...
       expect(drafts.single.params['direction'], 'right');
       // ...while non-overridden params keep their taxonomy defaults.
-      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['places'], 3);
       expect(drafts.single.params['beats'], 8);
     });
 
@@ -1211,7 +1220,7 @@ void main() {
       await _selectMove(tester, 0, 'circle', 'circle');
 
       expect(drafts.single.params['direction'], 'left');
-      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['places'], 3);
     });
 
     testWidgets('stale v34 override key not in the move schema is ignored', (
@@ -1239,7 +1248,48 @@ void main() {
       await _selectMove(tester, 0, 'circle', 'circle');
 
       expect(drafts.single.params['direction'], 'left');
-      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['places'], 3);
+    });
+
+    testWidgets(
+      'a balanceable move is seeded balanced, with the balanced beats',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts);
+        await _selectMove(tester, 0, 'gnat', 'box_the_gnat');
+
+        // Entry offers the balanced, 8-beat box; the taxonomy default (what a
+        // figure that omits the param means) is unbalanced and 4 beats.
+        expect(drafts.single.params['balance'], isTrue);
+        expect(drafts.single.params['beats'], 8);
+        expect(drafts.single.params['who'], 'neighbors');
+      },
+    );
+
+    testWidgets('long waves are seeded balanced at 4 beats', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'long waves', 'form_long_waves');
+
+      expect(drafts.single.params['balance'], isTrue);
+      expect(drafts.single.params['beats'], 4);
+    });
+
+    testWidgets('a saved per-move default still wins over the entry default', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'box_the_gnat': {'balance': false, 'beats': 4},
+        },
+      );
+      await _selectMove(tester, 0, 'gnat', 'box_the_gnat');
+
+      expect(drafts.single.params['balance'], isFalse);
+      expect(drafts.single.params['beats'], 4);
     });
   });
 
@@ -1541,6 +1591,31 @@ void main() {
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
       'A2',
+    );
+  });
+
+  testWidgets('a group that will not be saved is left out of the Total', (
+    tester,
+  ) async {
+    // One side filled: the group builds no figure, so Save drops it, and its
+    // beats must not appear in the Total either (AUTH-2).
+    final halfFilled = FigureDraft(
+      meanwhileSides: [
+        FigureDraft(move: 'swing'),
+        FigureDraft(),
+      ],
+    )..params['beats'] = 8;
+    final drafts = <FigureDraft>[
+      halfFilled,
+      FigureDraft(move: 'swing', params: {'beats': 16}),
+    ];
+
+    await _pump(tester, drafts);
+
+    expect(find.text('Total: 16 / 64 beats'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
+      'A1',
     );
   });
 
@@ -2305,6 +2380,79 @@ void main() {
       findsNothing,
     );
   });
+
+  // -------------------------------------------------------------------------
+  // Rewriting an unparsed custom's text (AUTH-14, October behaviour audit)
+  // -------------------------------------------------------------------------
+
+  testWidgets(
+    'editing an import-gap custom\'s text makes it the caller\'s own',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          move: customMove,
+          params: {'text': 'petronella twice', 'beats': 8},
+          customOrigin: CustomOrigin.importGap,
+        ),
+      ];
+      await _pump(tester, drafts);
+      expect(find.byType(ImportGapBadge), findsOneWidget);
+      await _openFigure(tester, 0);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-text')),
+        'petronella, two full turns',
+      );
+      await tester.pumpAndSettle();
+
+      expect(drafts.single.customOrigin, CustomOrigin.userEntered);
+      expect(drafts.single.toFigure()!.customOrigin, CustomOrigin.userEntered);
+      expect(find.byType(ImportGapBadge), findsNothing);
+    },
+  );
+
+  for (final group in const ['meanwhile', 'modifier']) {
+    testWidgets('editing an import-gap $group child\'s text makes it the '
+        'caller\'s own', (tester) async {
+      final drafts = <FigureDraft>[
+        group == 'meanwhile'
+            ? FigureDraft(
+                meanwhileSides: [
+                  FigureDraft(
+                    move: customMove,
+                    params: {'text': 'larks orbit', 'beats': 8},
+                    customOrigin: CustomOrigin.importGap,
+                  ),
+                  FigureDraft(move: 'swing', params: {'who': 'partners'}),
+                ],
+              )
+            : FigureDraft(
+                modifierFigures: [
+                  FigureDraft(move: 'swing', params: {'who': 'partners'}),
+                  FigureDraft(
+                    move: customMove,
+                    params: {'text': 'larks orbit', 'beats': 8},
+                    customOrigin: CustomOrigin.importGap,
+                  ),
+                ],
+              ),
+      ]..single.params['beats'] = 8;
+      final children =
+          drafts.single.meanwhileSides ?? drafts.single.modifierFigures!;
+      final child = group == 'meanwhile' ? children[0] : children[1];
+      final index = group == 'meanwhile' ? 0 : 1;
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      await tester.enterText(
+        find.byKey(ValueKey('figure-0-side-$index-text')),
+        'larks orbit once',
+      );
+      await tester.pumpAndSettle();
+
+      expect(child.customOrigin, CustomOrigin.userEntered);
+    });
+  }
 
   // -------------------------------------------------------------------------
   // Custom figure beats editor (#795)
@@ -3876,6 +4024,74 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(fieldKey), findsNothing);
       expect(drafts, hasLength(1));
+    });
+
+    testWidgets('Finish adding adds a line still in the box, then closes it '
+        '(AUTH-1)', (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Text>(
+              find.descendant(
+                of: find.byKey(doneKey),
+                matching: find.byType(Text),
+              ),
+            )
+            .data,
+        'Finish adding',
+      );
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing');
+      await tester.tap(find.byKey(doneKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(drafts, hasLength(1));
+      expect(drafts.single.toFigure()!.move, 'swing');
+    });
+
+    testWidgets('a replacement editor clears the pending flag the one it '
+        'replaced left behind', (tester) async {
+      final composer = FreeTextComposerController();
+      addTearDown(composer.dispose);
+      final drafts = <FigureDraft>[];
+      Widget host(Key key) => MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: FigureListEditor(
+              key: key,
+              drafts: drafts,
+              taxonomy: contraTaxonomy,
+              phraseStructure: PhraseStructure.standard,
+              onChanged: () {},
+              onAdd: () {},
+              onDelete: (_) {},
+              freeTextEntry: true,
+              onAddFreeText: (figures) => figures.length,
+              freeTextComposerController: composer,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(host(const ValueKey('first')));
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing');
+      await tester.pumpAndSettle();
+      expect(composer.hasPendingLine, isTrue);
+
+      // A new key: the replacement attaches before the first is disposed,
+      // and the first's detach no longer clears the flag.
+      await tester.pumpWidget(host(const ValueKey('second')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(composer.hasPendingLine, isFalse);
     });
 
     testWidgets('a blank submit closes the composer without inserting', (

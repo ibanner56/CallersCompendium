@@ -29,11 +29,11 @@ void main() {
     });
 
     test('folds taxonomy defaults so explicit == defaulted', () {
-      // allemande defaults: who=neighbors, hand=right, travel=1.0.
+      // allemande defaults: who=neighbors, hand=right, travel=1.5.
       final defaulted = Figure(move: 'allemande');
       final explicit = Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.0},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.5},
       );
       expect(
         figureSnippetSignature(defaulted, tax),

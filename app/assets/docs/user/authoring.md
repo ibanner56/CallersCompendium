@@ -67,8 +67,13 @@ beat total visible below the list.*
 ![The dance editor showing figure entry in progress, recognized figure rows, and the running beat total](images/dance-editor-figure-entry.png)
 
 The box stays open after each figure so you can keep going: type, Enter, type,
-Enter. Choose **Done**, press Escape, or press Enter on a blank box when you
-are done.
+Enter. When you have entered all your figures, choose **Finish adding**: it adds
+a line still in the box, as Enter would, and then closes the box. Press Enter on
+a blank box to close it too. Escape closes the box without adding what is in it.
+
+A line you have typed but not added is not lost if you move on. **Save** adds it
+first, as Enter would, and leaving the editor with a line in the box asks
+**Discard changes?**.
 
 ### Free-text entry
 
@@ -97,10 +102,16 @@ placeholders to delete first, unless you have saved your own
 
 It also understands common phrasings such as `N swing`, `neighbours balance and
 swing`, `half hey, ladies start by the right` and
-`allemande left 1 1/2 with neighbor`. A line whose leftover is only another
-move, `and back` or a bare number (`neighbors swing 16`) is kept as a custom
-figure, marked unparsed, rather than becoming a figure with the wrong beats; use
-the leading `16 neighbors swing` form to set the beats.
+`allemande left 1 1/2 with neighbor`. When the app reads the start of a line
+as a figure, the rest of the line becomes that figure's note
+(`neighbors swing slowly` is a swing with the note "slowly"). That happens only
+when the rest cannot change what the figure is. If the rest is `and back`, a bare
+number (`neighbors swing 16`), a turn amount (`petronella twice`,
+`circle left 3/4 and pass through`), or another move after a comma, `and` or
+`then` (`partners balance and swing, end facing down`), the whole line is kept
+as a custom figure, marked unparsed. Otherwise you would get a figure with the
+wrong beats or turn, with the rest hidden in its note. Use the leading
+`16 neighbors swing` form to set the beats.
 
 Any move's own name typed on its own works, whatever your dialect: `hey`, `mad
 robin`, `contra corners`, `give & take` (or `give and take`, `give-and-take`),
@@ -124,7 +135,12 @@ A count can also be written in brackets, `(16) circle left` or `[16] circle
 left`, and goes at the end as well: `circle left (16)` or `circle left [16]`.
 Any of these can say `beats`: `neighbor swing (16 beats)`,
 `neighbor swing 16 beats` or `16 beats neighbor swing`. A count in bars
-(`circle left 4 bars`) is kept as a note on the figure, because how many beats a bar holds depends on the dance's music.
+(`circle left 4 bars`, `circle left (4 bars)`, `4 bars circle left`) is kept as
+a note on the figure ("4 bars") and the rest of the line is read as usual,
+because how many beats a bar holds depends on the dance's music. The figure
+keeps the beats it has when you pick it from the list. If the rest of the line
+is not read as a figure, the whole line is kept as a custom figure, as you
+typed it.
 A count is never dropped: if the line states one the app cannot use (a second
 count on the same figure), the line is kept whole as a custom figure. A line
 kept as a custom figure keeps your words as you typed them, count included, and
@@ -284,9 +300,11 @@ and "LADIES chain" shows as "robins chain" under Larks and Robins.
 letter is shown capitalized.)
 Custom text saved before this change updates the next time you save the dance
 while the same dialect is active; text typed in a different dialect may need a
-manual edit. The same rewriting applies to the everyday words "man", "men",
-"lady" and "ladies" inside custom figure text (for example, "the man and lady
-swing"), which are saved as role terms and shown in your dialect's words.
+manual edit. The same rewriting applies to the everyday and older role words
+"man", "men", "woman", "women", "lady", "ladies", "gent" and "gents" inside custom
+figure text (for example, "the man and lady swing"), and to the role names of
+the built-in dialects ("lark", "robin", "gentlespoon", "ladle" and their
+plurals). They are saved as role terms and shown in your dialect's words.
 Words that are also move words are not turned into role terms, here and in
 figure notes. The move name "mad robin" is kept as the move name and saved in
 lower case, so "Mad Robin twice" comes back as "mad robin twice". If your
@@ -392,11 +410,19 @@ group first. It starts with your **Meanwhile defaults** (see
 stand-still sides if you have not set any. If you have cleared those defaults
 you get two blank sides, and a single default side is paired with one blank
 one. The group is saved with the dance once at least two of its sides are
-filled in.
+filled in; until then it is not counted in the **Total** (see
+[Keep an eye on the beats](#keep-an-eye-on-the-beats)).
 
 Inside the group, each side is labelled **Side 1**, **Side 2**, and so on, and has
 its own controls to move up, move down, or **Remove this side**. **Add side** adds
 another side, up to six.
+
+A note you add to one side, or to one figure of a modifier group, is shown in
+brackets after that figure wherever the dance is shown: in the list, on the
+dance's page, in Perform and when printed. For example,
+`robins allemande right once (1 1/2) while larks orbit`. If you choose
+**Customize wording for this dance** on the group itself, your wording replaces
+the whole line, its sides' notes included.
 
 ### Modifier figures
 
@@ -415,6 +441,14 @@ Under the figure list the app shows a running **Total** against what the dance's
 [phrase structure](./glossary.md#phrase-structure) expects, and says **Over by**
 or **Under by** when the two disagree. It is a nudge, not a rule — you can save a
 dance whose beats do not add up, and sometimes that is the honest transcription.
+A saved dance whose beats do not add up shows the same warning above its figures
+on the dance's page, because the section labels (A1, A2, B1, B2) are then worked
+out from the wrong total. Perform and printing do not show it.
+
+The Total counts only rows that will be saved. A group that is not complete yet,
+such as a meanwhile group with one side filled in, is left out, and so is a row
+with no move. A row with no move but a note is saved as a custom figure holding
+the note, so the note is not lost.
 
 ## Details, notes, and credits
 
@@ -521,6 +555,17 @@ referenced.
 |---|---|---|
 | Undo | Ctrl-Z | Cmd-Z |
 | Redo | Ctrl-Shift-Z or Ctrl-Y | Cmd-Shift-Z |
+
+The tooltips on the Undo and Redo buttons show the shortcut for your platform.
+
+### Figure keyboard shortcuts
+
+With a keyboard attached, these work on the figure list in the dance editor:
+
+| Action | Linux / Windows | macOS |
+|---|---|---|
+| Move the focused figure up or down | Alt-↑ / Alt-↓ | Option-↑ / Option-↓ |
+| Commit the figure you are editing and open the next (or add one at the end) | Ctrl-Enter | Cmd-Enter |
 
 ### Your work is kept while you type
 

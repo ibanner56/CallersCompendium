@@ -1,0 +1,14 @@
+{
+  "id": "f17-copy-and-platform-metadata",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The custom themes note in Settings now says they sync to your other devices, instead of claiming they stay on this device.",
+      "Leaving Perform on a single dance no longer promises you can resume where you left off, because the next session starts fresh.",
+      "The error card no longer says the app \"recovered\", and the Copy details button on the startup error screen now removes file paths from the stack trace, as the error card does.",
+      "The Undo, Redo and Search tooltips show the shortcut for your platform (Cmd on macOS and iOS, Ctrl elsewhere).",
+      "The macOS and Windows app details now credit Caller's Compendium contributors under the AGPL-3.0 instead of \"All rights reserved\".",
+      "macOS, Android 13+ and the Windows installer now list the app's languages (Danish, Dutch, English, French, German, Japanese)."
+    ]
+  }
+}

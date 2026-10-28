@@ -72,9 +72,8 @@ class RecentlyDeletedConfig<T> {
   /// Accessibility label for the loading spinner (whole localized phrase).
   final String Function(AppLocalizations l10n) loadingLabel;
 
-  /// Empty-state copy when auto-purge is off ("Never"). `null` for kinds whose
-  /// retention window is fixed and can never be "Never" (they always render
-  /// [emptyRetention]).
+  /// Empty-state copy when auto-purge is off ("Never"). Required whenever
+  /// [loadRetention] can resolve to `null`.
   final String Function(AppLocalizations l10n)? emptyKept;
 
   /// Empty-state copy given the configured retention window in days.
@@ -90,10 +89,10 @@ class RecentlyDeletedConfig<T> {
 /// ([RecentlyDeletedScreen.programs]) screens; the per-entity differences live
 /// in [RecentlyDeletedConfig].
 ///
-/// For dances the retention window is the user-configurable one (ROADMAP G.4):
-/// 30 / 90 days, or "Never" (kept until manually removed). The purge-ETA and
-/// empty-state copy reflect the configured window so they never contradict what
-/// the startup sweep actually does. Programs use a fixed 30-day window.
+/// For both kinds the retention window is the user-configurable one (ROADMAP
+/// G.4): 30 / 90 days, or "Never" (kept until manually removed). The purge-ETA
+/// and empty-state copy reflect the configured window so they never contradict
+/// what the startup sweep actually does.
 ///
 /// An empty state is shown when no items are pending deletion.
 class RecentlyDeletedScreen<T> extends StatefulWidget {
@@ -337,11 +336,17 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
       restore: (repos, dance) =>
           repos.dances.restore(dance.id, at: DateTime.now().toUtc()),
       permanentlyDelete: (repos, dance) async {
-        // Purge by setting deletedAt well in the past (beyond retention), then
-        // calling purgeDeleted. This is the safe path that goes through the
-        // existing purge machinery (FK cascade, FTS cleanup, slot nulling).
+        // Backdate deletedAt past any retention window, then purge by id. This
+        // goes through the existing purge machinery (FK cascade, FTS cleanup,
+        // slot nulling, orphan GC, published-record exclusion). `onlyIds` is
+        // what keeps it to this one dance: an unscoped purge would also erase
+        // every other item trashed over 30 days ago, whatever the user's
+        // retention setting says.
         await repos.dances.softDelete(dance.id, at: DateTime.utc(1970));
-        await repos.dances.purgeDeleted(now: DateTime.now().toUtc());
+        await repos.dances.purgeDeleted(
+          now: DateTime.now().toUtc(),
+          onlyIds: [dance.id],
+        );
       },
       idOf: (dance) => dance.id,
       titleOf: (dance) => dance.title,
@@ -354,23 +359,31 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
           l10n.recentlyDeletedEmptyDancesRetention(days),
     );
 
-/// Config for the programs "Recently Deleted" screen. Programs use a fixed
-/// 30-day retention window (no user-configurable setting), so [loadRetention]
-/// is omitted and the seeded [initialRetention] is used unchanged.
+/// Config for the programs "Recently Deleted" screen. Programs are purged by
+/// the same user-configurable window as dances (the startup sweep in
+/// `main.dart` passes one `retention` to both), so [loadRetention] reads the
+/// same setting (`kSoftDeleteRetentionKey`, labelled "Keep deleted items for" in
+/// Settings).
 final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
     RecentlyDeletedConfig<Program>(
       pluralNoun: 'programs',
-      initialRetention: const Duration(days: 30),
+      initialRetention: const Duration(days: kSoftDeleteRetentionDefaultDays),
+      loadRetention: (repos) => repos.settings
+          .get(kSoftDeleteRetentionKey)
+          .then(softDeleteRetentionFromStored),
       loadDeleted: (repos) => repos.programs
           .listAll(includeDeleted: true)
           .then((all) => all.where((p) => p.deletedAt != null).toList()),
       restore: (repos, program) =>
           repos.programs.restore(program.id, at: DateTime.now().toUtc()),
       permanentlyDelete: (repos, program) async {
-        // Push deletedAt beyond retention, then run the standard purge (FK
-        // cascade handles slots) — same safe path the dances screen uses.
+        // Same backdate-then-purge-by-id path the dances screen uses; see the
+        // note there on why the purge must be scoped to this one program.
         await repos.programs.softDelete(program.id, at: DateTime.utc(1970));
-        await repos.programs.purgeDeleted(now: DateTime.now().toUtc());
+        await repos.programs.purgeDeleted(
+          now: DateTime.now().toUtc(),
+          onlyIds: [program.id],
+        );
       },
       idOf: (program) => program.id,
       titleOf: (program) => program.title,
@@ -378,6 +391,7 @@ final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
       restoredMessage: (l10n, title) =>
           l10n.recentlyDeletedRestoredProgram(title),
       loadingLabel: (l10n) => l10n.recentlyDeletedLoadingPrograms,
+      emptyKept: (l10n) => l10n.recentlyDeletedEmptyProgramsKept,
       emptyRetention: (l10n, days) =>
           l10n.recentlyDeletedEmptyProgramsRetention(days),
     );
