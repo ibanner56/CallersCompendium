@@ -182,6 +182,7 @@ The maintainer chose option (d) for G2, replacing the earlier "received and dupl
 - **New setting "Require an event date"** under Settings › Programs › Calling history, **default off**, next to "Require mark performed" and working the same way. When on, a program with no event date does not count anywhere history is read: Called ×N, the Called filter, detail history rows, last-called, venue counts and half stats. Add the clause in the same caller/performed query helpers F5 edits in `program_repository.dart`, so every surface stays in lockstep. Classify the new key in the privacy registry on all three axes in this PR (follow `require_performed_for_history`), regenerate `docs/dev/data-classification.md` with its tool, add a live scope, and document it in `docs/user/settings.md` and `programs.md`.
 - **No schema change.** No origin column is needed for duplicates. The earlier origin-column design is dropped.
 - **Received programs (OUT-2's history part): treated like duplicates (maintainer decision, 2026-10-28).** A program imported from a share file arrives as Draft, with its performed marks and event date cleared, so the same rule and setting govern it: it counts by default, and "Require an event date" excludes it until the caller dates it. The importer applies this on import (`compendium_archive_import.dart`, `buildArchivePrograms`), and no schema change is needed. The sender's slots that were stamped only because their program had status Performed (the intake's "New" note under OUT-2) are cleared by the same step.
+- **Re-received programs (maintainer decision, 2026-10-28):** receiving an updated version of a program the caller already has imports it as a **new program alongside theirs**, never an in-place overwrite. Today `compendium_archive_import.dart` matches the existing program and overwrites it (INTAKE report, scenario B), which would wipe the caller's own date and marks under the rule above.
 - GIG-13: covered by the above. Its "a future draft counts" bullet is the documented default (#583), and the new setting is the opt-out.
 - **Main files:** `model/program.dart` (`duplicate`), `program_repository.dart` (history queries), `data/settings_keys.dart`, a new `require_event_date_for_history_scope.dart`, `screens/settings/program_section.dart`, `privacy/field_registry.dart`, ARB files (label and help text), `docs/user/settings.md`, `programs.md`, a `changelog.d` fragment. `imports/compendium_archive_import.dart` (received programs).
 - **Size:** M (~300). **Model:** Opus, because it touches every history query.
@@ -286,6 +287,7 @@ This is the intake's "stale copies overwrite newer data" pattern, applied to wha
 
 ### F13 `fix/import-review-followups`: one review screen, honest outcomes
 
+- **Moved out (maintainer decision, 2026-10-28):** the all-Skip `.USR` re-import that can't be committed is fixed by the INTAKE-1 session as a follow-up PR (`claude/fix-usr-all-skip-commit`), not here.
 - **Findings:**
   - **INTAKE-6:**
     - The shared-bundle commit applies default import tags to dances it creates (`settings.md:392-395`, "from the import screen").
