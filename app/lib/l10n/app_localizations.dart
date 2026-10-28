@@ -10595,7 +10595,7 @@ abstract class AppLocalizations {
   /// **'{importable} of {total} will be imported'**
   String importReviewWillImport(int importable, int total);
 
-  /// Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) carries programs. Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.
+  /// Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) or a Caller's Companion .USR file carries programs (.USR sets). Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.
   ///
   /// In en, this message translates to:
   /// **'Also includes {count, plural, =1{1 program} other{{count} programs}}.'**
