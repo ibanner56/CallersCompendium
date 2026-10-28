@@ -5445,6 +5445,41 @@ void main() {
       );
     });
 
+    testWidgets('Performed stamps survive an edit made while their commit '
+        'was in flight', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+      delayed.programs.holdNextWrite();
+      await setStatusPerformed(tester);
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+      // Overtakes the held commit, which therefore is not the latest state.
+      await tester.enterText(
+        find.byKey(const ValueKey('program-notes')),
+        'Great crowd',
+      );
+      delayed.programs.releaseWrite();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.notes, 'Great crowd');
+      expect(saved.status, ProgramStatus.performed);
+      expect(saved.slots.single.performedAt, isNotNull);
+    });
+
     testWidgets('Performed stamps survive a second explicit Save', (
       tester,
     ) async {

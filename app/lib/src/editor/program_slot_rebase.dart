@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../diagnostics/error_log.dart';
+
 /// Applies the slot edits that turned [before] into [after] to [onto], and
 /// returns the result. Positions are left for the caller to renumber.
 ///
@@ -14,7 +16,9 @@ import 'package:compendium_core/compendium_core.dart';
 /// - a slot Perform removed is removed;
 /// - a slot Perform added, or moved relative to the slots it left in place, is
 ///   placed after its nearest predecessor in [after] that [onto] holds, or
-///   first when there is none;
+///   first when there is none, and a slot that is not an alternate is placed
+///   after that predecessor's alternates the edit never saw, so they stay in
+///   its group;
 /// - a slot [onto] does not hold (an unsaved builder slot) is not added, even
 ///   when Perform changed or moved it.
 List<ProgramSlot> rebaseSlotEdits({
@@ -73,6 +77,13 @@ List<ProgramSlot> rebaseSlotEdits({
         break;
       }
     }
+    if (!merged.isAlt) {
+      while (at < result.length &&
+          result[at].isAlt &&
+          !beforeById.containsKey(result[at].id)) {
+        at++;
+      }
+    }
     result.insert(at, merged);
   }
   return result;
@@ -129,9 +140,14 @@ ProgramSlot _mergeFields(ProgramSlot was, ProgramSlot now, ProgramSlot onto) {
       danceMinutes: pick((s) => s.danceMinutes),
       performedAt: pick((s) => s.performedAt),
     );
-  } on ArgumentError {
+  } on ArgumentError catch (error, stackTrace) {
     // The field-by-field mix broke a slot invariant (say, Perform cleared the
     // text of a slot whose dance [onto] no longer has): take Perform's slot.
+    logCaughtError(
+      error,
+      stackTrace,
+      source: 'program_slot_rebase._mergeFields',
+    );
     return ProgramSlot(
       id: now.id,
       position: onto.position,

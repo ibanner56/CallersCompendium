@@ -211,7 +211,8 @@ An inserted dance and an ad-hoc note both land right after the current slot, so
 "play this next" is one action away. Every change offers **Undo**, and a change
 to a saved program is saved right away. Only the change you made in Perform is
 saved: if you opened Perform from the builder with unsaved edits, those edits
-stay unsaved in the builder, for you to save or discard when you return. The
+stay unsaved in the builder, for you to save or discard when you return (unless
+**Auto-save program changes** is on, which saves them as it always does). The
 Undo is still offered for a moment after you leave Perform (for as long as you
 need with a screen reader), but only while the program is as the change left
 it. So if the program has been changed since, for example edited in the

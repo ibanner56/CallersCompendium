@@ -188,8 +188,9 @@ class PerformProgramScreen extends StatefulWidget {
   /// restores [previous] only if the owner's program is still exactly what
   /// the adjustment [adjusted] left, and returns whether it restored.
   ///
-  /// That Undo restores a whole-program snapshot taken before the adjustment.
-  /// The prompt can outlive this screen (indefinitely with accessible
+  /// That Undo puts back the program as it was before the adjustment (the
+  /// builder reverses only the adjustment's own change, keeping its other
+  /// unsaved edits). The prompt can outlive this screen (indefinitely with accessible
   /// navigation), and by the time it is tapped the program may have been
   /// edited elsewhere; restoring the snapshot would overwrite that edit. The
   /// check and the restore must therefore be one atomic step on the owner's

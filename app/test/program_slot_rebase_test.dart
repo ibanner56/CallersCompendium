@@ -97,6 +97,21 @@ void main() {
     ], reason: 'u is an unsaved builder slot; the nearest held one is a');
   });
 
+  test('an inserted slot does not split a group the edit never saw', () {
+    final alt = ProgramSlot(
+      id: 'c-alt',
+      position: 0,
+      danceId: 'x',
+      isAlt: true,
+    );
+    final result = rebaseSlotEdits(
+      before: [_slot('c'), _slot('d')],
+      after: [_slot('c'), _slot('new'), _slot('d')],
+      onto: [_slot('c'), alt, _slot('d')],
+    );
+    expect(_ids(result), ['c', 'c-alt', 'new', 'd']);
+  });
+
   test('a slot the target does not hold is never added', () {
     final result = rebaseSlotEdits(
       before: [_slot('a'), _slot('u')],

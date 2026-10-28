@@ -248,9 +248,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Program? _performAdjusted;
   int? _performAdjustedGeneration;
 
-  /// [_performAdjusted] as the repository stored it (read back in the same
-  /// transaction as the write); null for an unsaved program. The post-exit
-  /// Undo restores only while the stored program still equals this.
+  /// The stored program after the write of [_performAdjusted]'s change (read
+  /// back in the same transaction); null for an unsaved program. It holds
+  /// only Perform's change, not the builder's other unsaved edits. The
+  /// post-exit Undo restores only while the stored program still equals this.
   Program? _performStored;
 
   /// The program Perform last showed: what it was opened with, then each
@@ -1235,12 +1236,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           return _AutoCommitOutcome.notCommitted(generation);
         }
         if (generation != _editGeneration) {
+          _adoptOvertakenCommit(draft, persisted);
           if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
           return _AutoCommitOutcome.notCommitted(generation);
         }
         await _clearDraft(waitForCommits: false, resetEditorState: false);
         if (!mounted) return _AutoCommitOutcome.notCommitted(generation);
         if (generation != _editGeneration) {
+          _adoptOvertakenCommit(draft, persisted);
           await _saveDraft();
           if (!mounted) return _AutoCommitOutcome.notCommitted(generation);
           if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
@@ -1273,6 +1276,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     } finally {
       _autoCommitInFlight = false;
     }
+  }
+
+  /// Adopts a commit that a newer edit overtook: [stored] becomes the base,
+  /// and what the write changed in the slots of [draft] (the stamps a change
+  /// of status to Performed adds) is applied to the working slots, which
+  /// keep the newer edit. Without it the next commit writes the slots back
+  /// unstamped (GIG-3).
+  void _adoptOvertakenCommit(Program draft, Program stored) {
+    setState(() {
+      _existing = stored;
+      _slots = _renumber(
+        rebaseSlotEdits(before: draft.slots, after: stored.slots, onto: _slots),
+      );
+    });
   }
 
   Future<void> _clearDraftKey(String key) async {
@@ -1927,8 +1944,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           // In-event adjustments (`docs/design/ux.md` §5) fold back into the
           // builder's working slots. For an already-saved program this is the
           // real live-gig path (a tablet routed through the builder is the
-          // primary Perform form factor), so — mirroring the wide summary
-          // pane's persist callback in `programs_shell.dart` — we write the
+          // primary Perform form factor), so — like the wide summary pane's
+          // persist callback in `programs_shell.dart` — we write the
           // change (e.g. a mark-performed stamp) straight to the repository
           // immediately. This keeps the live Perform path durable regardless of
           // whether the optional metadata auto-commit preference is enabled.
@@ -2028,9 +2045,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 // Both watch `program_slots` directly now, so the write is the
                 // whole notification (issue #768).
                 return;
-              } on Exception catch (_) {
+              } on Object catch (_) {
                 // export-guard: exempt — mark-performed stamp, not an export
-                // diagnostics: silent — slot mark-performed stamp failed; keeps working state.
+                // diagnostics: silent — logged by the commit queue above; the
+                // working copy keeps the change, as unsaved work. `Object`:
+                // a program deleted meanwhile fails with a StateError.
               }
             }
             if (!mounted) return;
@@ -2039,8 +2058,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             _performAdjustedGeneration = _editGeneration;
             _performStored = null;
           },
-          // The "Program adjusted" Undo after leaving Perform puts back the
-          // pre-adjustment slots. It may run only while this builder's working
+          // The "Program adjusted" Undo after leaving Perform reverses the
+          // adjustment's own change (other unsaved edits stay). It may run only while this builder's working
           // copy is still what the adjustment left (no edit here since; checked
           // synchronously, so no local edit can slip in before the restore is
           // queued) and, for a saved program, only while the stored program
