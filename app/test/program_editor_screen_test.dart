@@ -4492,7 +4492,7 @@ void main() {
       final committed = await repos.programs.getById('p1');
       expect(committed!.payMinorUnits, 2000, reason: 'the edit auto-committed');
       expect(
-        committed!.slots.first.performedAt,
+        committed.slots.first.performedAt,
         isNotNull,
         reason: 'the mark the refused Undo kept must not be erased',
       );
