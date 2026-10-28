@@ -44,9 +44,8 @@ const Duration kUndoSnackBarDuration = Duration(seconds: 6);
 /// failure has nowhere to surface unless this helper puts it somewhere: an
 /// exception (sync or async) is logged and reported with a plain snackbar
 /// reading [undoFailedMessage], rather than escaping to the zone log while the
-/// caller believes the action was undone (audit FAIL-6). A caller whose Undo
-/// can fail in a way it can describe better handles that itself and rethrows
-/// nothing; this is the catch-all behind it.
+/// caller believes the action was undone (audit FAIL-6). An Undo that can say
+/// more about its own failure reports it itself and does not throw.
 ///
 /// [key] is forwarded to the [SnackBar] and [actionKey] to its
 /// [SnackBarAction], so existing widget-test keys are kept.
