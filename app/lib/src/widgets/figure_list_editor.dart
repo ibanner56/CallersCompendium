@@ -2397,6 +2397,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       // while a missing one is seeded. A manual override is
                       // still respected.
                       _applyNonBeatsParamChange('text', v);
+                      // Rewriting the text is authoring it: the line is no
+                      // longer one the parser could not read, so it loses the
+                      // "couldn't parse" badge and Re-check leaves it alone.
+                      draft.customOrigin = CustomOrigin.userEntered;
                       widget.onChanged();
                     },
                   ),
@@ -3750,6 +3754,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                   value: (draft.params['text'] as String?) ?? '',
                   onChanged: (v) {
                     draft.params['text'] = v;
+                    // Authored, as for a row's own text: see above.
+                    draft.customOrigin = CustomOrigin.userEntered;
                     widget.onChanged();
                   },
                 )

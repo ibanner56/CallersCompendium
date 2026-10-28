@@ -189,17 +189,17 @@ bool _noteIsLeftover(String note, _LeftoverVocabulary vocabulary) {
   var n = note
       .toLowerCase()
       .replaceAll('&', ' and ')
-      .replaceAll(RegExp(r'\s+'), ' ')
+      .replaceAll(_whitespace, ' ')
       .trim();
-  n = n.replaceAll(RegExp(r'^[\s,.;:!?-]+|[\s,.;:!?-]+$'), '');
+  n = n.replaceAll(_edgePunctuation, '');
   // Checked before the leading "and"/"then" is stripped: "[then] [over] and
   // back" is the leftover the rule targets, but a bare "back" ("ladies chain
   // back") is the ordinary phrasing for the return chain and must keep the
   // structured parse.
   if (_andBackNote.hasMatch(n)) return true;
-  n = n.replaceFirst(RegExp(r'^(and|then) '), '');
+  n = n.replaceFirst(_leadingConnective, '');
   if (n.isEmpty) return false;
-  if (RegExp(r'^\d+$').hasMatch(n)) return true;
+  if (_bareNumber.hasMatch(n)) return true;
   if (_turnToken.hasMatch(n)) return true;
   return n
       .split(_clauseBreak)
@@ -207,6 +207,10 @@ bool _noteIsLeftover(String note, _LeftoverVocabulary vocabulary) {
 }
 
 final RegExp _andBackNote = RegExp(r'^((and|then) )?(over )?and back$');
+final RegExp _whitespace = RegExp(r'\s+');
+final RegExp _edgePunctuation = RegExp(r'^[\s,.;:!?-]+|[\s,.;:!?-]+$');
+final RegExp _leadingConnective = RegExp(r'^(and|then) ');
+final RegExp _bareNumber = RegExp(r'^\d+$');
 
 /// Where a note's clauses break: see [_noteIsLeftover].
 final RegExp _clauseBreak = RegExp(r'[,;:]|\b(?:and|then)\b');
