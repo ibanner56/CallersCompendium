@@ -21,9 +21,9 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 37', () {
-    expect(contraTaxonomyVersion, 37);
-    expect(tax.version, 37);
+  test('contraTaxonomyVersion is 38', () {
+    expect(contraTaxonomyVersion, 38);
+    expect(tax.version, 38);
   });
 
   group('box_circulate', () {
@@ -62,7 +62,8 @@ void main() {
       'has no paramBeats (balanced beats come from the cross-line merge)',
       () {
         expect(tax.resolve('box_circulate')!.paramBeats, isNull);
-        expect(tax.resolve('box_circulate')!.goodBeats, [4]);
+        // 8 is the balanced count, which the editor now offers on entry.
+        expect(tax.resolve('box_circulate')!.goodBeats, [4, 8]);
       },
     );
 

@@ -904,6 +904,10 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      rebuiltThisCall = await _emitTaxonomyV38CanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
       rebuiltThisCall = await _backfillChainHandIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
@@ -2316,6 +2320,29 @@ class CompendiumRepositories {
       await runDerivedRebuild(onProgress: onProgress);
     }
     await _writeSweepMarker(taxonomyV37CanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
+  /// Rebuilds canonical/FTS text after taxonomy v38 changed ten seeded defaults
+  /// (listed in the v38 entry of `docs/design/figure-taxonomy.md`). Source JSON
+  /// is unchanged: a figure that never stated one of these now means the new
+  /// default, and only its derived canonical text and search rows were stale.
+  Future<bool> _emitTaxonomyV38CanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(taxonomyV38CanonicalRebuildDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(taxonomyV38CanonicalRebuildDoneKey, '"done"');
     return true;
   }
 

@@ -244,6 +244,7 @@ void main() {
           compactDosidoSeesawCanonicalRebuildDoneKey,
           modifierContainerCanonicalRebuildDoneKey,
           taxonomyV37CanonicalRebuildDoneKey,
+          taxonomyV38CanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -603,7 +604,7 @@ void main() {
             .get();
         expect(
           indexed.map((row) => row.read<String>('canonical_text')),
-          containsAll(['partners swing', 'petronella', 'circle left 4 places']),
+          containsAll(['partners swing', 'petronella', 'circle left 3 places']),
         );
         final fts = await db
             .customSelect(
@@ -721,6 +722,87 @@ void main() {
               'SELECT value_json FROM settings WHERE key = ? '
               'AND deleted_at IS NULL',
               variables: [Variable<String>(taxonomyV37CanonicalRebuildDoneKey)],
+            )
+            .getSingle();
+        expect(marker.read<String>('value_json'), '"done"');
+
+        final rebuilds = repos.rebuildAttempts;
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
+      },
+    );
+  });
+
+  group('taxonomy v38 canonical rebuild', () {
+    test(
+      'a figure with no stated circle places re-derives with the new default',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = _CountingRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final unstated = Figure(move: 'circle', params: {'beats': 8});
+        final stated = Figure(
+          move: 'circle',
+          params: {'places': 4, 'beats': 8},
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'v38-circle',
+            title: 'v38 circles',
+            figures: [unstated, stated],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await _markPre1192SweepsComplete(repos);
+        await repos.settings.remove(taxonomyV38CanonicalRebuildDoneKey);
+        // What a v37 install derived for both figures.
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('circle left 4 places'),
+            Variable<String>('v38-circle'),
+          ],
+        );
+        final sourceBefore =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable<String>('v38-circle')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+
+        await repos.ensureMigrated();
+
+        final indexed = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures WHERE dance_id = ? '
+              'ORDER BY idx',
+              variables: [Variable<String>('v38-circle')],
+            )
+            .get();
+        expect(indexed.map((row) => row.read<String>('canonical_text')), [
+          'circle left 3 places',
+          'circle left 4 places',
+        ]);
+        // Source JSON is untouched: only derived text was stale.
+        final sourceAfter =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable<String>('v38-circle')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+        expect(sourceAfter, sourceBefore);
+
+        final marker = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ? '
+              'AND deleted_at IS NULL',
+              variables: [Variable<String>(taxonomyV38CanonicalRebuildDoneKey)],
             )
             .getSingle();
         expect(marker.read<String>('value_json'), '"done"');
@@ -1698,6 +1780,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     taxonomyV34CanonicalRebuildDoneKey,
     modifierContainerCanonicalRebuildDoneKey,
     taxonomyV37CanonicalRebuildDoneKey,
+    taxonomyV38CanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

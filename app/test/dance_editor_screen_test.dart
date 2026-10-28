@@ -2974,7 +2974,7 @@ void main() {
       // Overridden param takes the configured value...
       expect(figure.params['direction'], 'right');
       // ...while non-overridden params keep the taxonomy defaults.
-      expect(figure.params['places'], 4);
+      expect(figure.params['places'], 3);
       expect(figure.params['beats'], 8);
     });
   });
