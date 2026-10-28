@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/migration_guard.dart';
@@ -72,6 +73,58 @@ void main() {
 
     await tester.tap(find.text('Retry'));
     expect(retried, isTrue);
+  });
+
+  testWidgets('Copy details scrubs the stack the way CrashFallback does', (
+    tester,
+  ) async {
+    String? clipboardText;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          clipboardText = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    final completer = Completer<void>();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: AppBootstrap(
+          future: completer.future,
+          onRetry: () {},
+          onBackUpAndReset: _noopReset,
+          onResetOnly: _noopReset,
+          builder: (_) => const Text('Collection ready'),
+        ),
+      ),
+    );
+
+    completer.completeError(
+      StateError('boom'),
+      StackTrace.fromString(
+        '#0      Db.open (file:///home/jane.doe/src/app/lib/db.dart:12:3)\n'
+        '#1      main (package:compendium_app/main.dart:4:1)\n',
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bootstrap-copy-details')));
+    await tester.pumpAndSettle();
+
+    expect(clipboardText, isNotNull);
+    expect(clipboardText, contains('StateError'));
+    expect(clipboardText, contains('Db.open'));
+    expect(clipboardText, contains('package:compendium_app/main.dart'));
+    expect(clipboardText, isNot(contains('jane.doe')));
   });
 
   testWidgets('a downgrade error shows update guidance and no Retry', (

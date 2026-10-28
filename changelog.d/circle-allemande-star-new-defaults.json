@@ -1,0 +1,18 @@
+{
+  "id": "circle-allemande-star-new-defaults",
+  "user_visible": true,
+  "app": {
+    "data_migrations": [
+      "After updating, the search text for your saved figures is refreshed once so it matches the new defaults. Your dances themselves are not changed."
+    ],
+    "changed": [
+      "New circle figures now start at 3 places, new allemande figures start at 1½ turns, new star figures start with the left hand, new poussette figures start with the larks (first roles), and new square through figures start at 2 places and 8 beats. Roll away and orbit now start with the larks, arch and dive with the twos, box the gnat with the neighbors, and figure 8 with a direction of above. New box the gnat, box circulate, pass the ocean and long waves figures start balanced, with the beats to match. Saved figures that never stated one of these values now show the new default (balance stays off for a figure that did not state it); figures that stated a value keep it."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Change the taxonomy defaults for `circle.places` (4 to 3), `allemande.travel` (1 to 1.5), `star.hand` (right to left), `poussette.who` (`ones` to `role1s`), `square_through` places/beats (4/16 to 2/8), `roll_away.who` (`neighbors` to `role1s`), `orbit.who` (`ones` to `role1s`), `arch_and_dive.who` (`ones` to `twos`), `box_the_gnat.who` (`partners` to `neighbors`) and `figure_8.where` (`none` to `above`) (taxonomy v38). A one-time canonical/FTS rebuild (`taxonomyV38CanonicalRebuildDoneKey`) re-derives stored figures' canonical text; source JSON is unchanged.",
+      "Add `ParamSpec.entryDefault` and `Taxonomy.entryParams`: the value the figure editor seeds on picking a move when it differs from the default a stored figure that omits the param means. `balance` (and its beats) use it on `box_the_gnat`, `box_circulate`, `pass_the_ocean` and `form_long_waves`. `box_the_gnat` and `box_circulate` now accept 4 or 8 beats."
+    ]
+  }
+}

@@ -368,6 +368,26 @@ void main() {
       expect(figure.subFigures.map((child) => child.move), ['swing', 'roll']);
     });
 
+    test('a row with no move but a note saves as a custom figure holding the '
+        'note (AUTH-2)', () {
+      final draft = FigureDraft()..note = 'gents start on the left';
+      // toFigure still reads "no move chosen yet"; the rows the dance saves
+      // keep the note.
+      expect(draft.toFigure(), isNull);
+      final saved = draft.toFigures(resolveCompound: (_) => null);
+      expect(saved, hasLength(1));
+      expect(saved.single.move, customMove);
+      expect(saved.single.note, 'gents start on the left');
+    });
+
+    test('a blank row with no move still saves nothing', () {
+      expect(FigureDraft().toFigures(resolveCompound: (_) => null), isEmpty);
+      expect(
+        (FigureDraft()..note = '   ').toFigures(resolveCompound: (_) => null),
+        isEmpty,
+      );
+    });
+
     test('does not materialize a partial modifier container', () {
       final draft = FigureDraft(modifierFigures: [FigureDraft(move: 'swing')])
         ..params['beats'] = 8;

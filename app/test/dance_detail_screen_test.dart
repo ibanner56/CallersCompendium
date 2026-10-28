@@ -2394,7 +2394,7 @@ void main() {
 
       final expectedDate = MaterialLocalizations.of(
         tester.element(find.byKey(const ValueKey('calling-history-s1'))),
-      ).formatMediumDate(DateTime.utc(2026, 10, 3));
+      ).formatShortDate(DateTime.utc(2026, 10, 3));
       expect(find.textContaining(expectedDate), findsWidgets);
     });
 
@@ -2511,7 +2511,7 @@ void main() {
       // scheduled eventDate (2025).
       final performedDate = MaterialLocalizations.of(
         tester.element(rowFinder),
-      ).formatMediumDate(DateTime.utc(2026, 10, 3, 20));
+      ).formatShortDate(DateTime.utc(2026, 10, 3, 20));
       expect(
         label,
         contains(performedDate),

@@ -22,7 +22,7 @@
 //     new column to the stored `CREATE TABLE` text. A migrated table therefore
 //     lists columns in migration order, while a fresh one lists them in
 //     declaration order.
-//   * The four raw lookup indices are created by this repo with
+//   * The raw lookup indices are created by this repo with
 //     `IF NOT EXISTS` (they are applied from both `onCreate` and an upgrade
 //     step), but a database instantiated from a generated schema snapshot
 //     creates them without it — drift's schema writer does not round-trip that
@@ -44,9 +44,9 @@
 //
 // ## Why this covers what drift's own `SchemaVerifier` would not
 //
-// Six entities here are created by raw `customStatement` DDL rather than
-// being drift-managed: the `dance_fts` FTS5 virtual table and the five lookup
-// indices. They are maintained by hand in two places (`onCreate` and an
+// Twelve entities here are created by raw `customStatement` DDL rather than
+// being drift-managed: the `dance_fts` and `dance_substring_fts` FTS5 virtual
+// tables and the ten lookup indices. They are maintained by hand in two places (`onCreate` and an
 // upgrade step), which makes them the *likeliest* to diverge, yet a schema
 // dumped from Dart source would not contain them at all. Taking the dumps from
 // real database files keeps them in scope, and the comparison

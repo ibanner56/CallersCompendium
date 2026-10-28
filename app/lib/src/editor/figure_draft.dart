@@ -250,6 +250,17 @@ class FigureDraft {
       walkthroughOverride != null ||
       wordingOverride != null;
 
+  /// Whether this is a row with no [move] but a note, such as one whose Move
+  /// box was cleared while retyping. [toFigures] keeps the note as a custom
+  /// figure rather than dropping the row and its note, as [toFigure] does for
+  /// such a side (#679 review). [toFigure] itself still returns null for it,
+  /// because callers read that as "no move chosen yet".
+  bool get keepsNoteWithoutMove =>
+      move == null &&
+      compound == null &&
+      !isContainerDraft &&
+      note.trim().isNotEmpty;
+
   /// Best-effort immutable figure for a meanwhile side that has no [move]
   /// chosen yet but does have [_hasUnsavedContent] (#679 review): rather than
   /// silently dropping the side out of the persisted container — losing the
@@ -437,7 +448,10 @@ class FigureDraft {
   }) {
     final compound = this.compound;
     if (compound == null) {
-      return [?toFigure(canonicalizeNote: canonicalizeNote)];
+      final figure =
+          toFigure(canonicalizeNote: canonicalizeNote) ??
+          (keepsNoteWithoutMove ? _bestEffortFigure(canonicalizeNote) : null);
+      return [?figure];
     }
     final expanded = expandPlaceholder(compound, resolveCompound);
     if (expanded == null) {

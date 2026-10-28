@@ -1,4 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -465,6 +467,31 @@ void main() {
 
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
   });
+
+  for (final (platform, hint) in [
+    (TargetPlatform.android, 'Ctrl+K'),
+    (TargetPlatform.iOS, '\u2318K'),
+  ]) {
+    testWidgets('app-bar search tooltips name the $platform shortcut', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      debugDefaultTargetPlatformOverride = platform;
+      try {
+        await _pump(tester, repos, size: const Size(500, 900));
+        String tooltipOf(String key) =>
+            tester.widget<IconButton>(find.byKey(ValueKey(key))).tooltip!;
+        expect(tooltipOf('collection-search'), 'Search ($hint)');
+        await tester.tap(find.text('Programs').last);
+        await tester.pumpAndSettle();
+        expect(tooltipOf('programs-search'), 'Search ($hint)');
+      } finally {
+        // Cleared before the body returns: the binding checks foundation debug
+        // variables before any addTearDown callback runs.
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+  }
 
   testWidgets(
     'phone (360dp) shows a single, unobstructed New FAB and app-bar search',

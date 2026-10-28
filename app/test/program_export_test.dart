@@ -13,6 +13,8 @@ import 'package:compendium_app/src/export/json_export.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
+import 'package:compendium_app/src/data/date_format_scope.dart';
+import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
@@ -99,20 +101,28 @@ Future<void> _pumpMenu(
   WidgetTester tester,
   Program program, {
   Map<String, Venue> venuesById = const {},
+  DateFormatSetting? dateFormat,
 }) async {
+  final notifier = ValueNotifier<DateFormatSetting>(
+    dateFormat ?? DateFormatSetting.system,
+  );
+  addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: Scaffold(
-        appBar: AppBar(
-          actions: [
-            ProgramExportMenu(
-              program: program,
-              titleFor: _titles,
-              venuesById: venuesById,
-            ),
-          ],
+      home: DateFormatScope(
+        notifier: notifier,
+        child: Scaffold(
+          appBar: AppBar(
+            actions: [
+              ProgramExportMenu(
+                program: program,
+                titleFor: _titles,
+                venuesById: venuesById,
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -353,6 +363,41 @@ void main() {
       expect(clipboardText, contains('1. Rory O\'More'));
       expect(find.text('Set list copied to clipboard.'), findsOneWidget);
     });
+
+    for (final (setting, expected) in [
+      (DateFormatSetting(DateFormatPref.ymd), '2026-03-09'),
+      (DateFormatSetting(DateFormatPref.dmy), '09/03/2026'),
+      // System default carries the year (PLAT-12).
+      (DateFormatSetting.system, 'Mar 9, 2026'),
+    ]) {
+      testWidgets('Copy set list renders the event date per the Date format '
+          'setting (${setting.pref.name})', (tester) async {
+        String? clipboardText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+
+        await _pumpMenu(tester, _program(), dateFormat: setting);
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Copy set list'));
+        await tester.pumpAndSettle();
+
+        expect(clipboardText, contains(expected));
+      });
+    }
 
     testWidgets('Copy set list resolves a linked venue name over free text', (
       tester,

@@ -167,6 +167,21 @@ class Taxonomy {
     return effective;
   }
 
+  /// The params the figure editor seeds when [moveId] is first picked: the
+  /// move's [effectiveParams], with each spec's [ParamSpec.entryDefault]
+  /// laid over its [ParamSpec.defaultValue]. Everything that reads a stored
+  /// figure keeps using [effectiveParams]; only entry differs.
+  Map<String, Object?> entryParams(String moveId) {
+    final params = effectiveParams(Figure(move: moveId));
+    final def = resolve(moveId);
+    if (def == null) return params;
+    for (final entry in def.params.entries) {
+      final seeded = entry.value.entryDefault;
+      if (seeded != null) params[entry.key] = seeded;
+    }
+    return params;
+  }
+
   /// Converts v34 move ids and parameter keys to the v35 representation.
   ///
   /// This is intentionally recursive: structural containers store child

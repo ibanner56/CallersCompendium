@@ -41,7 +41,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
 | **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). Below the fuzzy tier, `DedupeVerdict.possibleMatchIds` lists dances that are **possibly** the same under a differently written title (see *Possible matches under another title*); it never changes the verdict. |
 | **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. An overwrite warning counts the existing dances a commit would replace; nothing silently mutates existing user data. |
-| **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. |
+| **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. A draft's links are in the source's id space (a shared file carries the sender's link ids and dance ids), so each gets a fresh id. A related-dance link names its target by the target's external id (the generic JSON and published-collection adapters rewrite the file's dance id to the target's record key when the file carries the target), and is added only after the whole batch is written: to the dance the batch wrote under that key, else a live dance already received from the same source under it, else a live dance whose id it is (a file this library wrote). One that resolves to neither is left out with an `archive_related_dance_unresolved` note on `ImportSession.issues`, which the app does not yet display. |
 
 Adapters implement a small interface (`discover() / fetch() / parse()`) in the
 pure-Dart core → each adapter unit-tested against fixture files.
@@ -397,10 +397,11 @@ declines the collapse.
 - **Program slots link to dances the commit did not write (INTAKE-1).** A slot
   resolves its CC dance id through the records the commit wrote *plus*
   `existingDanceIdByExternalId`: the review passes each re-import row's target
-  (the row defaults to Skip, #446, and is left out of the batch) and each row
-  already committed through Import and edit. Without them a routine re-import
-  turned every slot for a skipped dance into a "Dance not imported" note on a
-  program it then updated in place. The map links slots only: a dance in it is
+  (the row defaults to Skip, #446, and is left out of the batch). A row
+  committed through Import and edit is resolved by `earlierDanceIds` instead
+  (see *Per-row Edit* below), which wins over this map. Without it a routine
+  re-import turned every slot for a skipped dance into a "Dance not imported"
+  note on a program it then updated in place. The map links slots only: a dance in it is
   not written and gets no `Dance_Related` link, since undo has no prior state
   for it. An id deleted since planning is dropped, keeping the note. The share
   importer (`CompendiumArchiveImporter.commit`) takes the same map.
@@ -458,6 +459,18 @@ declines the collapse.
     carries nothing, so the value already stored for it is kept.
   - **Not migrated:** dances imported before #1890 keep the `Label: value`
     lines in their calling notes.
+- **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
+  before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
+  the same definition step as `commit` (a bare pipeline commit of a dance with a
+  user-field value is refused by the repository) but builds no programs or
+  links, and has no undo. The screen keeps each such dance's `zk_Dance_ID` →
+  dance id and passes it to the batch `commit` as `earlierDanceIds`, so set
+  slots and `Dance_Related` pairs naming it resolve to it rather than becoming
+  "not imported" placeholders; an entry whose dance no longer exists is
+  ignored, and the batch's own dance wins for a CC id it also commits. A
+  related-dance link the batch adds **to** such a dance is recorded
+  (`CcUsrImportResult.linksAddedToEarlierDances`) and removed by id on undo or a
+  failed commit, since that dance is not the batch's to restore.
 - Library-scale behaviour (a ~20 000-dance `.USR` is ~240 MB and ~40 s of
   parsing): the app reads the file on a **background isolate** (the adapter takes
   an injectable `CcUsrArchiveReader`; the default source uses
@@ -979,7 +992,10 @@ This is the load-bearing difference from the program path, and the reason
 `resolveUnmatchedOnline` is **not** reused wholesale. That function commits as it
 goes (`resolveConfidentOnlineDanceId` calls `OnlineSearchService.import` /
 `ImportPipeline.commit`), which is correct for a program line — no user is
-present to adjudicate it. A Collection import *does* have a user present, so
+present to adjudicate it. Each of those commits is recorded in a
+`ProgramImportRollback` (`app/lib/src/data/program_import_rollback.dart`), so
+the program's Undo, or backing out before the program exists, reverts them
+with `ImportPipeline.undo`. A Collection import *does* have a user present, so
 every resolved title becomes an `ImportRecordPlan` handed to `ImportReviewScreen`
 and written only on confirmation, where `_defaultChoice` already maps an
 `ambiguous` verdict to skip. Routing through the review is therefore what keeps

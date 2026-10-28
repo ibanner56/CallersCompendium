@@ -30,6 +30,7 @@ const Set<String> mappedImportIssueCodes = {
   'archive_program_unresolved_venue',
   'archive_read_error',
   'archive_read_warning',
+  'archive_related_dance_unresolved',
   'callersbox_direction_unmapped',
   'callersbox_formation_unclassified',
   'callersbox_phrase_structure_unreadable',
@@ -199,6 +200,7 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
         );
       }
       return l10n.importIssueParamUnmapped;
+    case 'archive_related_dance_unresolved':
     case 'cc_related_dance_unresolved':
       return l10n.importIssueRelatedDanceUnresolved;
     case 'duplicate_external_id_in_batch':

@@ -37,7 +37,7 @@ import 'package:compendium_core/src/storage/database.dart'
         taxonomyV34CanonicalRebuildDoneKey,
         taxonomyV35FigureNormalizationDoneKey,
         kSectionRuleVersion;
-import 'package:drift/drift.dart' show Variable;
+import 'package:drift/drift.dart' show DatabaseConnectionUser, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -244,6 +244,7 @@ void main() {
           compactDosidoSeesawCanonicalRebuildDoneKey,
           modifierContainerCanonicalRebuildDoneKey,
           taxonomyV37CanonicalRebuildDoneKey,
+          taxonomyV38CanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -603,7 +604,7 @@ void main() {
             .get();
         expect(
           indexed.map((row) => row.read<String>('canonical_text')),
-          containsAll(['partners swing', 'petronella', 'circle left 4 places']),
+          containsAll(['partners swing', 'petronella', 'circle left 3 places']),
         );
         final fts = await db
             .customSelect(
@@ -721,6 +722,87 @@ void main() {
               'SELECT value_json FROM settings WHERE key = ? '
               'AND deleted_at IS NULL',
               variables: [Variable<String>(taxonomyV37CanonicalRebuildDoneKey)],
+            )
+            .getSingle();
+        expect(marker.read<String>('value_json'), '"done"');
+
+        final rebuilds = repos.rebuildAttempts;
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
+      },
+    );
+  });
+
+  group('taxonomy v38 canonical rebuild', () {
+    test(
+      'a figure with no stated circle places re-derives with the new default',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = _CountingRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final unstated = Figure(move: 'circle', params: {'beats': 8});
+        final stated = Figure(
+          move: 'circle',
+          params: {'places': 4, 'beats': 8},
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'v38-circle',
+            title: 'v38 circles',
+            figures: [unstated, stated],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await _markPre1192SweepsComplete(repos);
+        await repos.settings.remove(taxonomyV38CanonicalRebuildDoneKey);
+        // What a v37 install derived for both figures.
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('circle left 4 places'),
+            Variable<String>('v38-circle'),
+          ],
+        );
+        final sourceBefore =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable<String>('v38-circle')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+
+        await repos.ensureMigrated();
+
+        final indexed = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures WHERE dance_id = ? '
+              'ORDER BY idx',
+              variables: [Variable<String>('v38-circle')],
+            )
+            .get();
+        expect(indexed.map((row) => row.read<String>('canonical_text')), [
+          'circle left 3 places',
+          'circle left 4 places',
+        ]);
+        // Source JSON is untouched: only derived text was stale.
+        final sourceAfter =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable<String>('v38-circle')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+        expect(sourceAfter, sourceBefore);
+
+        final marker = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ? '
+              'AND deleted_at IS NULL',
+              variables: [Variable<String>(taxonomyV38CanonicalRebuildDoneKey)],
             )
             .getSingle();
         expect(marker.read<String>('value_json'), '"done"');
@@ -1414,6 +1496,83 @@ void main() {
       expect(row.read<String?>('pay_currency'), isNull);
     });
   });
+  group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {
+    const indexes = {
+      'dance_authors_choreographer_id',
+      'dance_tags_tag_id',
+      'dance_sources_source_id',
+      'custom_field_values_field_id',
+    };
+
+    Future<Set<String>> indexNames(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect(
+                "SELECT name FROM sqlite_master WHERE type = 'index'",
+              )
+              .get())
+        row.read<String>('name'),
+    };
+
+    test('creates the four indexes and keeps every row', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        40,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        (await indexNames(historical)).intersection(indexes),
+        isEmpty,
+        reason: 'a v40 database has none of them',
+      );
+      await historical.customStatement(
+        "INSERT INTO choreographers "
+        "(id, name) VALUES ('c1', 'Keep')",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await indexNames(db), containsAll(indexes));
+      final kept = await db
+          .customSelect("SELECT name FROM choreographers WHERE id = 'c1'")
+          .getSingle();
+      expect(kept.read<String>('name'), 'Keep');
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 41);
+    });
+
+    test('is idempotent over an index that already exists', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        40,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+      raw.execute('CREATE INDEX dance_tags_tag_id ON dance_tags(tag_id)');
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await indexNames(db), containsAll(indexes));
+    });
+  });
+
   group('v39 -> v40 upgrade (user glossary, #709)', () {
     test('adds empty user_glossary_entries and figure_notes tables and keeps '
         'every row', () async {
@@ -1481,7 +1640,7 @@ void main() {
           .getSingle();
       expect(program.read<String>('notes'), 'keep');
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 40);
+      expect(version.read<int>('user_version'), kCompendiumSchemaVersion);
     });
 
     // `_ensureV40Schema` documents its existence checks as what keeps the step
@@ -1544,7 +1703,7 @@ void main() {
       expect(notes.map((n) => (n.figureId, n.notes)), [('f-kept', 'keep me')]);
       expect(await db.select(db.userGlossaryEntries).get(), isEmpty);
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 40);
+      expect(version.read<int>('user_version'), kCompendiumSchemaVersion);
     });
   });
 
@@ -1698,6 +1857,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     taxonomyV34CanonicalRebuildDoneKey,
     modifierContainerCanonicalRebuildDoneKey,
     taxonomyV37CanonicalRebuildDoneKey,
+    taxonomyV38CanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

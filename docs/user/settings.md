@@ -72,10 +72,11 @@ the full picture.
 
 ### Deleted items
 
-- **Keep deleted dances for** — choose **30 days**, **90 days**, or **Never**
-  (default is **30 days**). Deleted dances are held for this long and
-  then purged. For how soft-delete and restore work, see
-  [Collection & search](./collection.md).
+- **Keep deleted items for** — choose **30 days**, **90 days**, or **Never**
+  (default is **30 days**). Deleted dances and deleted programs are held for
+  this long and then purged. Choosing **Permanently delete** on one item in
+  **Recently deleted** removes only that item. For how soft-delete and restore
+  work, see [Collection & search](./collection.md).
 
 ### Import
 
@@ -211,7 +212,7 @@ There's a **High contrast** theme for maximum legibility — see the
 - **New custom theme** — opens an editor seeded from your current theme, so you
   start from something familiar. You can tune any colour in it.
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
-  They are saved on this device.
+  They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
 
 ### Easter eggs
 
@@ -297,7 +298,9 @@ The **Language & region** section handles formats and localization.
 
 - **Date format** — choose **System default**, **Year-month-day**,
   **Day/month/year**, **Month/day/year**, or **Custom…**. A live example shows the
-  result, and your choice controls how program event dates appear.
+  result, and your choice controls how program event dates appear: in the
+  Programs list and editor, in a dance's calling history, and in printed and
+  emailed set lists and PDFs. **System default** always includes the year.
 
   A custom pattern is built from these tokens:
 
@@ -502,6 +505,12 @@ keep the AppImage, move it out of the temporary folder to somewhere permanent
 (your home folder, say) before then. On phones and tablets, the
 banner's link takes you to the release to download it the usual way for your
 platform.
+
+If the download fails, the message says why: your connection, an error from the
+update server, a full disk, or a folder the app cannot write to. Free some space
+(on macOS, you can also choose another location), then try again. **View release** is always there as
+a manual fallback. A failure during the transfer or while saving the file is also recorded in
+**Settings** → **Diagnostics**, without file paths.
 
 Your privacy is built in: an update check downloads a small version file over a
 secure connection and nothing else. No information about you, your device, or how

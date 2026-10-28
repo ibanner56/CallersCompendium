@@ -46,6 +46,9 @@ lines worth tidying up whichever way you read.
 There is nothing wrong with leaving them as they are. A verbatim figure calls
 perfectly well; the badge just tells you the app cannot search or count beats for
 that line the way it can for a recognised move.
+Once you rewrite such a figure's text yourself in the editor, it is your own
+custom figure: the badge goes away, and **Re-check custom figures** leaves it as
+you wrote it.
 
 ## Bring in single dances from an online archive
 
@@ -74,7 +77,9 @@ keep.
    type them however your keyboard does. Accented letters must still be typed
    with their accents (`Déjà vu`, not `Deja vu`), but upper or lower case
    doesn't matter.
-5. Select a result to open a **preview** of that dance.
+5. Select a result to open a **preview** of that dance. While the dance is
+   loading you can choose **Cancel** (or press Back) to stop waiting and return
+   to your results.
 6. If it is the one you want, choose **Import** to add it to your collection.
 
 **Caller's Box results only include dances whose figures it will share.** Not
@@ -167,6 +172,14 @@ see where the dances came from.
 3. Select **Import collection** and review what it contains.
 4. Confirm the import when you are ready. Nothing is added until you commit it,
    and the same review flow lets you skip items you do not want.
+
+If the catalog or a collection cannot be loaded, the message tells you which of
+three things happened: the catalog **could not be reached** (check your
+connection), it **needs a newer app version** (update the app), or it is
+**temporarily unavailable** (it failed a safety check, so nothing was imported).
+Choose **Retry** to try again without leaving the screen (it is not offered when
+the fix is to update the app). Failures are recorded in **Settings** →
+**Diagnostics**.
 
 ## Bring in a list of dance titles
 
@@ -316,7 +329,9 @@ Moving from **Caller's Companion**? Caller's Compendium can read its exported
 A `.USR` import brings across both your **dances** and your **program history**
 (Caller's Companion "sets"), and — like every other import — it is reviewable
 before it commits and undoable right after. Dances and programs you have imported
-before are recognised and offered as updates rather than duplicated. The review
+before are recognised and offered as updates rather than duplicated. A dance
+you bring in early with **Import and edit** still takes its place in your
+programs and related dances when you then import the rest of the file. The review
 says how many programs the file includes, and they are imported even when you
 leave every dance at **Skip** — so importing a fresher export just to pick up new
 sets works when you already have all its dances.

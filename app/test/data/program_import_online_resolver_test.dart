@@ -1,7 +1,9 @@
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/plaintext_program_import.dart';
 import 'package:compendium_app/src/data/program_import_online_resolver.dart';
+import 'package:compendium_app/src/data/program_import_rollback.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,7 +20,22 @@ class _FakeOnlineService implements OnlineSearchService {
     this.previewFiguresByTitle = const {},
     this.needsConfirmationTitles = const {},
     this.source = OnlineSource.callersBox,
+    this.searchError,
+    this.loadErrors = const {},
+    this.commitForReal = false,
   });
+
+  /// Thrown by every [search] when set (a typed failure, unlike
+  /// [throwOnSearch]'s generic one).
+  final Exception? searchError;
+
+  /// Row ids whose [loadPreview] throws the given exception.
+  final Map<String, Exception> loadErrors;
+
+  /// Whether [import] writes the dance through the real shared commit
+  /// ([commitPreviewedOnlinePlan]) instead of returning a canned id, so the
+  /// write can be undone.
+  final bool commitForReal;
 
   /// Search rows keyed by the (lower-cased) query title.
   final Map<String, List<OnlineSearchResultRow>> rowsByTitle;
@@ -58,6 +75,8 @@ class _FakeOnlineService implements OnlineSearchService {
     searchedTitles.add(query.title);
     searchedQueries.add(query);
     if (throwOnSearch) throw Exception('offline');
+    final error = searchError;
+    if (error != null) throw error;
     final rows = rowsByTitle[query.title.trim().toLowerCase()] ?? const [];
     // Honour the #845 policy exactly as a real service does. Without this the
     // fake would return the same rows whatever the caller asked for, and any
@@ -75,6 +94,8 @@ class _FakeOnlineService implements OnlineSearchService {
     DedupeIndex? index,
   }) async {
     loadedIds.add(result.id);
+    final error = loadErrors[result.id];
+    if (error != null) throw error;
     final confident = confidentTitles.contains(
       result.name.trim().toLowerCase(),
     );
@@ -111,6 +132,17 @@ class _FakeOnlineService implements OnlineSearchService {
         title: title,
         danceId: 'local-existing',
         danceCount: 1,
+      );
+    }
+    if (commitForReal) {
+      return commitPreviewedOnlinePlan(
+        repos,
+        plan,
+        now: now,
+        ambiguousResolution: ambiguousResolution,
+        defaultTagIds: defaultTagIds,
+        importFailedReason: UrlFetchFailureReason.callersBoxImportFailed,
+        debugLabel: 'fake',
       );
     }
     return OnlineImportResult(
@@ -214,11 +246,11 @@ void main() {
       },
     );
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       [_unmatched('Money Musk')],
       service: service,
       repos: repos,
-    );
+    )).lines;
 
     expect(service.searchedTitles, ['Money Musk']);
     expect(service.loadedIds, ['10600']);
@@ -239,11 +271,11 @@ void main() {
       },
     );
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       [_unmatched('money musk')],
       service: service,
       repos: repos,
-    );
+    )).lines;
 
     expect(resolved.single.importedOnline, isTrue);
   });
@@ -252,11 +284,11 @@ void main() {
     final repos = openTestRepositories();
     final service = _FakeOnlineService(rowsByTitle: const {});
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       [_unmatched('Nonexistent Dance')],
       service: service,
       repos: repos,
-    );
+    )).lines;
 
     expect(service.searchedTitles, ['Nonexistent Dance']);
     expect(service.loadedIds, isEmpty);
@@ -274,11 +306,11 @@ void main() {
         },
       );
 
-      final resolved = await resolveUnmatchedOnline(
+      final resolved = (await resolveUnmatchedOnline(
         [_unmatched('Money')],
         service: service,
         repos: repos,
-      );
+      )).lines;
 
       expect(service.loadedIds, isEmpty);
       expect(resolved.single.resolution, PlaintextLineResolution.unmatched);
@@ -296,11 +328,11 @@ void main() {
       },
     );
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       [_unmatched('Petronella')],
       service: service,
       repos: repos,
-    );
+    )).lines;
 
     expect(service.loadedIds, isEmpty);
     expect(resolved.single.resolution, PlaintextLineResolution.unmatched);
@@ -319,11 +351,11 @@ void main() {
       confidentTitles: {'money musk'},
     );
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       [_unmatched('Money Musk')],
       service: service,
       repos: repos,
-    );
+    )).lines;
 
     expect(service.searchedTitles, ['Money Musk']);
     // The preview is still loaded (that's how the verdict is consulted)...
@@ -473,11 +505,11 @@ void main() {
     final repos = openTestRepositories();
     final service = _FakeOnlineService(throwOnSearch: true);
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       [_unmatched('Money Musk')],
       service: service,
       repos: repos,
-    );
+    )).lines;
 
     expect(resolved.single.resolution, PlaintextLineResolution.unmatched);
   });
@@ -505,11 +537,11 @@ void main() {
       _unmatched('Money Musk'),
     ];
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       input,
       service: service,
       repos: repos,
-    );
+    )).lines;
 
     // Only the unmatched title triggered a search.
     expect(service.searchedTitles, ['Money Musk']);
@@ -547,11 +579,11 @@ void main() {
       needsConfirmationTitles: {'some dance'},
     );
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       [_unmatched('Some Dance')],
       service: service,
       repos: repos,
-    );
+    )).lines;
 
     // Must link to the actually-imported dance, not to the candidate.
     // Without the fix the line is linked to 'local-existing' (wrong dance).
@@ -580,11 +612,11 @@ void main() {
       },
     );
 
-    final resolved = await resolveUnmatchedOnline(
+    final resolved = (await resolveUnmatchedOnline(
       [_unmatched('Money Musk')],
       service: service,
       repos: repos,
-    );
+    )).lines;
 
     // The shared lookup ran…
     expect(service.searchedTitles, ['Money Musk']);
@@ -601,16 +633,15 @@ void main() {
     expect(resolved.single.danceId, isNotNull);
   });
 
-  // Issue #845. The Caller's Box search now excludes dances whose figures TCB
-  // will not serve. This path is UNATTENDED — it commits with nobody watching —
-  // so it deliberately opts out via `requireFigures: false` and keeps the wider,
-  // pre-#845 result set. Narrowing it would promote an ambiguous
-  // multiple-exact-match, which is a considered no-op, into a single confident
-  // hit that this function then imports on its own.
+  // Issue #845, as revised by INTAKE-13 (2026-10 behaviour audit). The Caller's
+  // Box search excludes dances whose figures TCB will not serve. This path used
+  // to opt out and keep the wider, pre-#845 result set, which let an unattended
+  // program import bring in a dance with NO figures. It now keeps the default,
+  // as the Collection title-list import does (imports.md, "a list of titles").
   //
-  // Both tests drive the real resolver entry points rather than
+  // These drive the real resolver entry points rather than
   // `lookupUniqueExactTitle` directly, so they cover the actual call site.
-  test('#845: the unattended path asks for the WIDER result set', () async {
+  test('#845: the program path asks only for dances with figures', () async {
     final repos = openTestRepositories();
     final service = _FakeOnlineService(
       rowsByTitle: {
@@ -628,21 +659,37 @@ void main() {
     // `.where(...).firstOrNull`-style check would pass vacuously if the search
     // never happened at all.
     expect(service.searchedQueries, hasLength(1));
-    expect(service.searchedQueries.single.requireFigures, isFalse);
+    expect(service.searchedQueries.single.requireFigures, isTrue);
   });
 
-  test('#845: a title with a figure-hidden twin stays ambiguous here', () async {
-    // The behavioural consequence of the opt-out, end to end. Two rows share
-    // the title and only ONE would survive #845 filtering, so this is exactly
-    // the case where filtering promotes an ambiguous multiple-exact-match into
-    // a single confident hit — and this path would then import it with nobody
-    // watching. The opt-out keeps both rows visible, so it stays a no-op.
-    //
-    // The assertions below are behavioural on purpose. `_FakeOnlineService`
-    // honours `requireFigures`, so flipping the default to filter here makes
-    // `danceId` non-null and `importedIds` non-empty — the test goes red on
-    // what the code DID, not merely on which flag it passed, and the decision
-    // becomes visible instead of silent.
+  test('#845: a title held only by a figure-hidden dance stays a note', () async {
+    // The behavioural consequence, end to end. `_FakeOnlineService` honours
+    // `requireFigures`, so the old opt-out makes this line import the figureless
+    // stub — red on what the code DID, not merely on which flag it passed.
+    final repos = openTestRepositories();
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'petronella': [_row('Petronella', id: '1', figuresAvailable: false)],
+      },
+    );
+
+    final resolved = (await resolveUnmatchedOnline(
+      [_unmatched('Petronella')],
+      service: service,
+      repos: repos,
+    )).lines;
+
+    expect(resolved.single.resolution, PlaintextLineResolution.unmatched);
+    expect(service.loadedIds, isEmpty);
+    expect(service.importedIds, isEmpty);
+  });
+
+  test('#845: a figure-hidden twin no longer hides the dance that has '
+      'figures', () async {
+    // Two rows share the title and only ONE serves its figures. Filtering
+    // leaves a single exact hit, which is imported: the twin could only ever
+    // have arrived as an empty stub. The Collection title list resolves the
+    // same paste the same way.
     final repos = openTestRepositories();
     final service = _FakeOnlineService(
       rowsByTitle: {
@@ -659,10 +706,9 @@ void main() {
       repos: repos,
     );
 
-    expect(danceId, isNull);
-    expect(service.loadedIds, isEmpty);
-    expect(service.importedIds, isEmpty);
-    expect(service.searchedQueries.single.requireFigures, isFalse);
+    expect(danceId, 'imported-petronella');
+    expect(service.loadedIds, ['2']);
+    expect(service.searchedQueries.single.requireFigures, isTrue);
   });
 
   // Issue #943: the ContraDB fallback. `resolveUnmatchedOnline`'s `fallbacks`
@@ -687,12 +733,12 @@ void main() {
         source: OnlineSource.contraDb,
       );
 
-      final resolved = await resolveUnmatchedOnline(
+      final resolved = (await resolveUnmatchedOnline(
         [_unmatched('Money Musk')],
         service: callersBox,
         fallbacks: [contraDb],
         repos: repos,
-      );
+      )).lines;
 
       expect(callersBox.searchedTitles, ['Money Musk']);
       expect(contraDb.searchedTitles, ['Money Musk']);
@@ -713,12 +759,12 @@ void main() {
       );
       final contraDb = _FakeOnlineService(source: OnlineSource.contraDb);
 
-      final resolved = await resolveUnmatchedOnline(
+      final resolved = (await resolveUnmatchedOnline(
         [_unmatched('Money Musk')],
         service: callersBox,
         fallbacks: [contraDb],
         repos: repos,
-      );
+      )).lines;
 
       expect(contraDb.searchedTitles, isEmpty);
       expect(resolved.single.importedOnline, isTrue);
@@ -758,12 +804,12 @@ void main() {
         source: OnlineSource.contraDb,
       );
 
-      final resolved = await resolveUnmatchedOnline(
+      final resolved = (await resolveUnmatchedOnline(
         [_unmatched('Money Musk')],
         service: callersBox,
         fallbacks: [contraDb],
         repos: repos,
-      );
+      )).lines;
 
       expect(
         contraDb.searchedTitles,
@@ -796,12 +842,12 @@ void main() {
           source: OnlineSource.contraDb,
         );
 
-        final resolved = await resolveUnmatchedOnline(
+        final resolved = (await resolveUnmatchedOnline(
           [_unmatched('Petronella')],
           service: callersBox,
           fallbacks: [contraDb],
           repos: repos,
-        );
+        )).lines;
 
         expect(contraDb.searchedTitles, ['Petronella']);
         final line = resolved.single;
@@ -833,12 +879,12 @@ void main() {
           source: OnlineSource.contraDb,
         );
 
-        final resolved = await resolveUnmatchedOnline(
+        final resolved = (await resolveUnmatchedOnline(
           [_unmatched('Petronella')],
           service: callersBox,
           fallbacks: [contraDb],
           repos: repos,
-        );
+        )).lines;
 
         final line = resolved.single;
         expect(line.resolution, PlaintextLineResolution.unmatched);
@@ -868,12 +914,12 @@ void main() {
           source: OnlineSource.contraDb,
         );
 
-        final resolved = await resolveUnmatchedOnline(
+        final resolved = (await resolveUnmatchedOnline(
           [_unmatched('Money Musk')],
           service: callersBox,
           fallbacks: [contraDb],
           repos: repos,
-        );
+        )).lines;
 
         expect(contraDb.searchedTitles, ['Money Musk']);
         expect(resolved.single.importedOnline, isTrue);
@@ -897,12 +943,12 @@ void main() {
         source: OnlineSource.contraDb,
       );
 
-      final resolved = await resolveUnmatchedOnline(
+      final resolved = (await resolveUnmatchedOnline(
         [_unmatched('Money Musk')],
         service: callersBox,
         fallbacks: [secondFallback, thirdFallback],
         repos: repos,
-      );
+      )).lines;
 
       expect(secondFallback.searchedTitles, ['Money Musk']);
       expect(thirdFallback.searchedTitles, ['Money Musk']);
@@ -946,11 +992,11 @@ void main() {
         ],
       );
 
-      final resolved = await resolveUnmatchedOnline(
+      final resolved = (await resolveUnmatchedOnline(
         [staleLine],
         service: callersBox,
         repos: repos,
-      );
+      )).lines;
 
       final line = resolved.single;
       expect(line.resolution, PlaintextLineResolution.unmatched);
@@ -979,15 +1025,349 @@ void main() {
         ],
       );
 
-      final resolved = await resolveUnmatchedOnline(
+      final resolved = (await resolveUnmatchedOnline(
         [staleLine],
         service: callersBox,
         repos: repos,
-      );
+      )).lines;
 
       final line = resolved.single;
       expect(line.resolution, PlaintextLineResolution.unmatched);
       expect(line.onlineCandidates, isEmpty);
+    });
+  });
+
+  // ── 2026-10 audit, batch F12 (FAIL-2, INTAKE-4) ──────────────────────────
+  group('stopping, progress and undo', () {
+    test('an unreachable source stops the pass at the first title, without '
+        'asking the fallback, and says so', () async {
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService(
+        searchError: const UrlFetchException(
+          UrlFetchFailureReason.callersBoxUnreachable,
+        ),
+      );
+      final fallback = _FakeOnlineService(source: OnlineSource.contraDb);
+
+      final result = await resolveUnmatchedOnline(
+        [_unmatched('One'), _unmatched('Two'), _unmatched('Three')],
+        service: service,
+        fallbacks: [fallback],
+        repos: repos,
+      );
+
+      expect(result.stoppedAfterConnectionFailure, isTrue);
+      expect(result.cancelled, isFalse);
+      expect(service.searchedTitles, ['One']);
+      expect(fallback.searchedTitles, isEmpty);
+      expect(result.lines.map((l) => l.text), ['One', 'Two', 'Three']);
+      expect(
+        result.lines.map((l) => l.resolution),
+        everyElement(PlaintextLineResolution.unmatched),
+      );
+    });
+
+    test('a connection failure fetching the dance itself stops the pass '
+        'too', () async {
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'one': [_row('One', id: '1')],
+          'two': [_row('Two', id: '2')],
+        },
+        loadErrors: {
+          '1': const UrlFetchException(
+            UrlFetchFailureReason.timeout,
+            timeoutSeconds: 30,
+          ),
+        },
+      );
+
+      final result = await resolveUnmatchedOnline(
+        [_unmatched('One'), _unmatched('Two')],
+        service: service,
+        repos: repos,
+      );
+
+      expect(result.stoppedAfterConnectionFailure, isTrue);
+      expect(service.searchedTitles, ['One']);
+    });
+
+    test("a dance page that answers 404 is that dance's miss, not a "
+        'connection failure', () async {
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'one': [_row('One', id: '1')],
+          'two': [_row('Two', id: '2')],
+        },
+        loadErrors: {
+          '1': const UrlFetchException(
+            UrlFetchFailureReason.httpStatus,
+            statusCode: 404,
+          ),
+        },
+      );
+
+      final result = await resolveUnmatchedOnline(
+        [_unmatched('One'), _unmatched('Two')],
+        service: service,
+        repos: repos,
+      );
+
+      expect(result.stoppedAfterConnectionFailure, isFalse);
+      expect(service.searchedTitles, ['One', 'Two']);
+      expect(result.lines[0].resolution, PlaintextLineResolution.unmatched);
+      expect(result.lines[1].resolution, PlaintextLineResolution.matched);
+    });
+
+    test('reports progress over the unmatched lines and stops when '
+        'cancelled', () async {
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService();
+      final progress = <(int, int)>[];
+
+      final result = await resolveUnmatchedOnline(
+        [
+          _unmatched('One'),
+          const ParsedProgramLine(
+            text: 'Local',
+            resolution: PlaintextLineResolution.matched,
+            danceId: 'd1',
+            matchCount: 1,
+          ),
+          _unmatched('Two'),
+          _unmatched('Three'),
+        ],
+        service: service,
+        repos: repos,
+        onProgress: (done, total) => progress.add((done, total)),
+        isCancelled: () => service.searchedTitles.length >= 2,
+      );
+
+      expect(progress, [(0, 3), (1, 3), (2, 3)]);
+      expect(result.cancelled, isTrue);
+      expect(result.stoppedAfterConnectionFailure, isFalse);
+      expect(service.searchedTitles, ['One', 'Two']);
+      expect(result.lines, hasLength(4));
+      expect(result.lines[3].text, 'Three');
+    });
+
+    test('every dance the pass writes is recorded, and rolling back removes '
+        'them', () async {
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'one': [_row('One', id: '1')],
+        },
+        commitForReal: true,
+      );
+      final rollback = ProgramImportRollback(repos);
+
+      final result = await resolveUnmatchedOnline(
+        [_unmatched('One')],
+        service: service,
+        repos: repos,
+        rollback: rollback,
+      );
+
+      final danceId = result.lines.single.danceId!;
+      expect(await repos.dances.getById(danceId), isNotNull);
+      expect(rollback.isEmpty, isFalse);
+
+      await rollback.rollBack();
+      expect(await repos.dances.listAll(), isEmpty);
+    });
+
+    test("rolling back an auto-imported variation (#686) restores its "
+        "original's links", () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _localDance(
+          id: 'local-existing',
+          figures: [
+            Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+          ],
+        ),
+      );
+      final before = (await repos.dances.getById('local-existing'))!;
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'money musk': [_row('Money Musk', id: '10600')],
+        },
+        confidentTitles: {'money musk'},
+        previewFiguresByTitle: {
+          'money musk': [
+            Figure(move: 'swing', params: {'who': 'neighbors', 'beats': 8}),
+          ],
+        },
+      );
+      final rollback = ProgramImportRollback(repos);
+
+      final danceId = await resolveConfidentOnlineDanceId(
+        'Money Musk',
+        service: service,
+        repos: repos,
+        rollback: rollback,
+      );
+      expect(danceId, isNotNull);
+
+      await rollback.rollBack();
+      expect(await repos.dances.getById(danceId!), isNull);
+      final after = (await repos.dances.getById('local-existing'))!;
+      expect(after.links, before.links);
+    });
+
+    test(
+      'rolling back keeps a dance another program has linked since',
+      () async {
+        final repos = openTestRepositories();
+        final service = _FakeOnlineService(
+          rowsByTitle: {
+            'one': [_row('One', id: '1')],
+          },
+          commitForReal: true,
+        );
+        final rollback = ProgramImportRollback(repos);
+        final result = await resolveUnmatchedOnline(
+          [_unmatched('One')],
+          service: service,
+          repos: repos,
+          rollback: rollback,
+        );
+        final danceId = result.lines.single.danceId!;
+        final now = DateTime.utc(2026, 10, 28);
+        await repos.programs.create(
+          Program(
+            id: 'other',
+            title: 'Built meanwhile',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: danceId)],
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+        await rollback.rollBack();
+
+        expect(await repos.dances.getById(danceId), isNotNull);
+        expect(
+          (await repos.programs.getById('other'))!.slots.single.danceId,
+          danceId,
+        );
+      },
+    );
+
+    test("rolling back ignores the undone program's own tombstone", () async {
+      // A program sync has published is tombstoned, not erased, and keeps its
+      // slots — they must not read as "linked since".
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'one': [_row('One', id: '1')],
+        },
+        commitForReal: true,
+      );
+      final rollback = ProgramImportRollback(repos);
+      final result = await resolveUnmatchedOnline(
+        [_unmatched('One')],
+        service: service,
+        repos: repos,
+        rollback: rollback,
+      );
+      final danceId = result.lines.single.danceId!;
+      final now = DateTime.utc(2026, 10, 28);
+      await repos.programs.create(
+        Program(
+          id: 'imported',
+          title: 'Imported',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: danceId)],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await repos.db.customStatement(
+        "INSERT INTO published_records (kind, record_id) "
+        "VALUES ('program', 'imported')",
+      );
+      await repos.programs.hardDelete(['imported']);
+      // Precondition: the tombstone really does still hold the slot.
+      expect(
+        (await repos.programs.getById(
+          'imported',
+          includeDeleted: true,
+        ))!.slots.single.danceId,
+        danceId,
+      );
+
+      await rollback.rollBack(undoneProgramId: 'imported');
+
+      expect(await repos.dances.getById(danceId), isNull);
+    });
+
+    test('a two-dance session with one dance linked since removes only the '
+        'other', () async {
+      final repos = openTestRepositories();
+      ImportRecordPlan plan(String title, String externalId) =>
+          ImportRecordPlan(
+            draft: StructuredDraft(
+              dance: _localDance(
+                id: '',
+                figures: const [],
+              ).copyWith(title: title),
+              raw: RawRecord(
+                source: ProvenanceSource.callersbox,
+                externalId: externalId,
+                payload: '{}',
+              ),
+            ),
+            verdict: DedupeVerdict.isNew(),
+          );
+      final session = await ImportPipeline(repos.dances, repos.choreographers)
+          .commit(
+            ImportBatchResult(records: [plan('Alpha', 'a'), plan('Beta', 'b')]),
+            now: DateTime.utc(2026, 10, 28),
+            newId: uuidV4,
+          );
+      final [alpha, beta] = session.insertedDanceIds;
+      final rollback = ProgramImportRollback(repos);
+      await rollback.record(session);
+      final now = DateTime.utc(2026, 10, 28);
+      await repos.programs.create(
+        Program(
+          id: 'other',
+          title: 'Built meanwhile',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: alpha)],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      await rollback.rollBack();
+
+      expect(await repos.dances.getById(alpha), isNotNull);
+      expect(await repos.dances.getById(beta), isNull);
+    });
+
+    test('a session recorded after rolling back is reverted at once', () async {
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'one': [_row('One', id: '1')],
+        },
+        commitForReal: true,
+      );
+      final rollback = ProgramImportRollback(repos);
+      await rollback.rollBack();
+
+      final result = await resolveUnmatchedOnline(
+        [_unmatched('One')],
+        service: service,
+        repos: repos,
+        rollback: rollback,
+      );
+
+      expect(result.lines.single.danceId, isNotNull);
+      expect(await repos.dances.listAll(), isEmpty);
     });
   });
 }

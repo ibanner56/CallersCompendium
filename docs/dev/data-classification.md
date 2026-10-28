@@ -377,7 +377,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `programs` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `programs` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Freeform text attached to an event plan, not to a person, place or source, so it does not take _freeformNote's third-party subject. Classified by intent (running order, choreography), not by what a user might type — see "Freeform fields are classified by intent, not by content" in docs/dev/data-classification.md. Names on a program belong in programs.caller, programs.band and program_slots.guest_caller, which are third-party performer credits. Maintainer decision (2026 audit). |
 | `programs` | `pay_currency` | `pd:Income` | Financial → Transactional → Income | app user | shareable | ISO 4217 code that programs.pay_minor_units is denominated in; meaningless without it, so it carries the same classification. |
-| `programs` | `pay_minor_units` | `pd:Income` | Financial → Transactional → Income | app user | shareable | What the caller is paid for the program (DPV pd:Income). The subject is the app user: it is their own earnings, not a fact about the venue, band or any other third party. Shareable so it follows the caller to their other devices and into their own archive export; it is not part of the shared program text or PDF. |
+| `programs` | `pay_minor_units` | `pd:Income` | Financial → Transactional → Income | app user | shareable | What the caller is paid for the program (DPV pd:Income). The subject is the app user: it is their own earnings, not a fact about the venue, band or any other third party. Egress today: it follows the caller to their other devices (Device Sync) and into their own archive and backup, and it is also written into program share files sent to other people (docs/user/sharing.md), where it becomes the recipient's copy of the sender's earnings. It is never part of the shared set-list text or PDF. Whether pay should travel in share files is a pending maintainer decision; the classification is unchanged until it is made. |
 | `programs` | `status` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**102 settings keys**: 67 shareable, 8 device-local, 25 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**103 settings keys**: 67 shareable, 8 device-local, 26 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -494,6 +494,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `__taxonomy_v34_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__taxonomy_v35_figure_normalization_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__taxonomy_v37_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__taxonomy_v38_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `active_custom_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect_ref` | `dpv:NonPersonalData` | app user | shareable |  |

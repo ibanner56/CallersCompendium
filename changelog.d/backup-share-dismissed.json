@@ -1,0 +1,9 @@
+{
+  "id": "backup-share-dismissed",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On a phone or tablet, closing the share sheet without choosing a destination no longer reports \"Backup exported.\" or silences the overdue-backup reminder. The same goes for exporting the diagnostics log."
+    ]
+  }
+}

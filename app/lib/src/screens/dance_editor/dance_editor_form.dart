@@ -14,6 +14,7 @@ import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/warnings_card.dart';
 import 'custom_field_editor.dart';
 import 'dance_editor_controller.dart';
 import 'editor_fields.dart';
@@ -161,7 +162,9 @@ class DanceEditorForm extends StatelessWidget {
   /// own figure is one figure, so it takes it as its beats, as a plain
   /// shorthand does (#1879): a count the taxonomy's beats range refuses is no
   /// shorthand match, so the line is kept custom as typed; [unread], a count
-  /// too long to be beats, leaves the figure its beats and rides in its note.
+  /// that is not beats (one too long to be, or a count in bars), leaves an
+  /// own figure its beats and rides in its note; a compound row ignores it,
+  /// as it ignores any count.
   FigureDraft? _draftForToken(String token, int? beats, {String? unread}) {
     // Tokens are kept unique, but two devices can each add one before they
     // sync, and then the plain shorthand wins.
@@ -417,6 +420,10 @@ class DanceEditorForm extends StatelessWidget {
           ),
           SectionHeader(title: l10n.danceEditorFiguresSection),
           Padding(
+            // Keyed so a child shown or hidden above it (the custom-number
+            // banner) moves this section rather than rebuilding it, which
+            // would lose a line waiting in the free-text composer.
+            key: const ValueKey('figures-section'),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -458,6 +465,7 @@ class DanceEditorForm extends StatelessWidget {
                   canonicalizeDiscouragedTerms:
                       CanonicalDiscouragedTermsScope.of(context),
                   onAddFreeText: controller.insertFreeTextFigures,
+                  freeTextComposerController: controller.freeTextComposer,
                   onReplaceWithFreeText: controller.replaceWithFreeTextFigures,
                   onSubmitCompoundShorthand: _shorthandSubmit(context),
                   onReplaceWithShorthand: _shorthandSubmit(context) == null

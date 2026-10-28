@@ -227,6 +227,7 @@ class ParamSpec {
   const ParamSpec(
     this.kind, {
     required this.defaultValue,
+    this.entryDefault,
     this.choices,
     this.allowManualClear = true,
   });
@@ -235,6 +236,16 @@ class ParamSpec {
 
   /// Value assumed when the figure omits this parameter.
   final Object? defaultValue;
+
+  /// Value the figure editor seeds when a figure of this move is first entered,
+  /// when that differs from [defaultValue]; null means "seed [defaultValue]".
+  ///
+  /// This is an editor convenience only. It is never consulted when a figure
+  /// omits the parameter, so it changes neither how an omitted value renders
+  /// nor what an importer means by leaving one out (`balance` is the case it
+  /// exists for: authors usually balance, but a source that does not state a
+  /// balance is unbalanced). Read it through [Taxonomy.entryParams].
+  final Object? entryDefault;
 
   /// Explicit allowed values. Required for [ParamKind.choice]; optional for
   /// dancer kinds (narrows the shared vocabulary to what the move accepts).

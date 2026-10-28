@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Languages the app ships translations for (app/lib/l10n/app_*.arb). Android
+     13+ lists these in Settings > System > Languages > App languages. Keep in
+     step with the ARB files and the iOS/macOS CFBundleLocalizations. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en"/>
+    <locale android:name="da"/>
+    <locale android:name="de"/>
+    <locale android:name="fr"/>
+    <locale android:name="ja"/>
+    <locale android:name="nl"/>
+</locale-config>
