@@ -40,8 +40,10 @@ const String _beatsUnit = '(?:\\s*beats?)';
 /// token glued to the digits (`1/2 hey`, `1s cross`) is NOT mistaken for a
 /// count (there is no space after the leading digits in those). A bracketed
 /// count needs no space (`(16)swing`), as the trailing form needs none.
+/// A count in bars (`4 bars circle left`) is not a beat count: see
+/// [_leadingBars].
 final RegExp _leadingBeats = RegExp(
-  '^(?:(\\d+)(?:\\s+beats?)?\\s+'
+  '^(?:(\\d+)(?:\\s+beats?)?\\s+(?!bars?\\b)'
   '|[(\\[](\\d+)$_beatsUnit?[)\\]]\\s*)(\\S.*)\$',
   caseSensitive: false,
 );
@@ -75,14 +77,32 @@ final RegExp _strayTrailingCount = RegExp(
   caseSensitive: false,
 );
 
+/// A count in bars at the end of a line, bare or bracketed (`circle left 4
+/// bars`, `… (4 bars)`). Never beats: how many beats a bar holds is the dance's
+/// phrase structure, which a line does not see. Free-text entry keeps it as a
+/// note on the figure ([_BeatSplit.unread]).
+final RegExp _trailingBars = RegExp(
+  r'^(.*\S)(?:\s*[(\[]\s*(\d+)\s*bars?\s*[)\]]|\s+(\d+)\s*bars?)$',
+  caseSensitive: false,
+);
+
+/// A count in bars at the start of a line: `4 bars circle left`,
+/// `(4 bars) circle left`. See [_trailingBars].
+final RegExp _leadingBars = RegExp(
+  r'^(?:[(\[]\s*(\d+)\s*bars?\s*[)\]]\s*|(\d+)\s*bars?\s+)(\S.*)$',
+  caseSensitive: false,
+);
+
 /// The count forms of one reader: where a count may sit, and what a stated
-/// count that was not read looks like.
+/// count that was not read looks like. [bars] is `null` for a reader that
+/// does not peel a count in bars.
 typedef _CountForms = ({
   RegExp leading,
   RegExp trailing,
   RegExp strayLeading,
   RegExp strayTrailing,
   bool keepsUnread,
+  ({RegExp leading, RegExp trailing})? bars,
 });
 
 /// Free-text entry's forms, `beats` unit included.
@@ -92,6 +112,7 @@ final _CountForms _typedCounts = (
   strayLeading: _strayLeadingCount,
   strayTrailing: _strayTrailingCount,
   keepsUnread: true,
+  bars: (leading: _leadingBars, trailing: _trailingBars),
 );
 
 /// The re-parse upgrade's forms ([splitForReparse]): the unit-less ones, as
@@ -106,6 +127,7 @@ final _CountForms _reparseCounts = (
   strayLeading: RegExp(r'^[(\[]\s*0*[1-9]\d*\s*[)\]]'),
   strayTrailing: RegExp(r'[(\[]\s*0*[1-9]\d*\s*[)\]]$'),
   keepsUnread: false,
+  bars: null,
 );
 
 /// Result of splitting an optional inline beat count off a free-text line.
@@ -123,8 +145,9 @@ class _BeatSplit {
   final _CountForms forms;
 
   /// The count that was peeled off but is not a beat count: five or more
-  /// digits (`10000 beats`). Free text keeps it as a note on the figure it was
-  /// typed with (#1863); [beats] is 0, so the figure takes its default.
+  /// digits (`10000 beats`, #1863), or a count in bars (`4 bars`). Free text
+  /// keeps it as a note on the figure it was typed with; [beats] is 0, so the
+  /// figure takes its default.
   final String? unread;
 
   /// Whether [text] still starts or ends with a stated count that was not read
@@ -193,6 +216,29 @@ _BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
         0,
         f,
         unread: _countToken(token),
+      );
+    }
+  }
+  final bars = f.bars;
+  if (bars != null) {
+    final trailingBars = bars.trailing.firstMatch(line);
+    if (trailingBars != null) {
+      final head = trailingBars.group(1)!;
+      return _BeatSplit(
+        head.trim(),
+        0,
+        f,
+        unread: _countToken(line.substring(head.length)),
+      );
+    }
+    final leadingBars = bars.leading.firstMatch(line);
+    if (leadingBars != null) {
+      final rest = leadingBars.group(3)!;
+      return _BeatSplit(
+        rest.trim(),
+        0,
+        f,
+        unread: _countToken(line.substring(0, line.length - rest.length)),
       );
     }
   }

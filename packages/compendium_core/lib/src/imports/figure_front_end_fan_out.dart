@@ -60,7 +60,9 @@ enum _AttemptTier {
 
   /// Not a usable structured win: either custom/empty, OR (only when the caller
   /// opts in with `demoteNoteTails`: free-text entry and the re-parse upgrade)
-  /// a note-bearing parse whose every note is only another move name, `and back` or a bare number — see [_noteIsLeftover];
+  /// a note-bearing parse with a note that holds a leftover (another move's
+  /// name, a turn amount, `and back` or a bare number) — see
+  /// [_noteIsLeftover];
   /// such a note would otherwise structure the line with the wrong beats and
   /// hide the rest of it, so the line stays custom instead — OR a structured
   /// parse from a **non-TCB** front-end (ContraDB, CallersCompanion) whose
@@ -111,13 +113,13 @@ bool _noteSwallowedCompound(String? note) =>
 /// compound/simultaneity source syntax it must not represent as one figure.
 ///
 /// With [demoteNoteTails] (free-text entry and the re-parse upgrade), a
-/// note-bearing result whose every note passes [_noteIsLeftover] is also
+/// note-bearing result with any note that passes [_noteIsLeftover] is also
 /// [_AttemptTier.none].
 _AttemptTier _classify(
   List<Figure> result, {
   required FigureFrontEnd frontEnd,
   bool demoteNoteTails = false,
-  Set<String> moveNames = const {},
+  _LeftoverVocabulary? vocabulary,
 }) {
   if (result.isEmpty || result.any((f) => f.isCustom)) return _AttemptTier.none;
   if (!identical(frontEnd, tcbFigureFrontEnd) &&
@@ -129,7 +131,10 @@ _AttemptTier _classify(
     // whose first child carries the tail (`neighbors swing 16 while partners
     // swing`), which would otherwise rank clean.
     final notes = _allNotes(result).toList();
-    if (notes.isNotEmpty && notes.every((n) => _noteIsLeftover(n, moveNames))) {
+    if (notes.isNotEmpty &&
+        notes.any(
+          (n) => _noteIsLeftover(n, vocabulary ?? _LeftoverVocabulary.none),
+        )) {
       return _AttemptTier.none;
     }
   }
@@ -156,16 +161,38 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
       origin: CustomOrigin.importGap,
     );
 
-/// Whether [note] is only a leftover that must not count as a parse: another
-/// move name (`petronella`), `and back`, or a bare number (`16`) — each the
+/// Whether [note] holds a leftover that must not count as a parse: the
 /// unconsumed tail of a line a recognizer matched only as a PREFIX, so the
-/// structured figure would carry the wrong beats/moves with the rest hidden.
+/// structured figure would carry the wrong beats, turn or moves while the rest
+/// of what was typed sits in the note (#1612). A note is a leftover when it is
+/// `and back` (`over & back` too) or a bare number (`16`), or when, outside
+/// brackets,
+/// - a clause of it starts with another move's name: the note is cut at `,`,
+///   `;`, `:`, `and` and `then` (`and swing, end facing down`,
+///   `four in line, turn alone`); or
+/// - it holds a turn amount: a fraction (`3/4`, `½`), a decimal (`1.5`),
+///   `twice`, `x2` or `2x`, or `N times` (`petronella twice`), for N of 2
+///   or more.
 ///
-/// [moveNames] is derived from the active taxonomy ([_moveNamesOf]); nothing
-/// here is a hard-coded move list.
-bool _noteIsLeftover(String note, Set<String> moveNames) {
-  var n = note.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
-  n = n.replaceAll(RegExp(r'^[\s,.;:!-]+|[\s,.;:!-]+$'), '');
+/// Anything else keeps the structured reading with the words as its note:
+/// that is the designed behaviour. So do plain words (`slowly`,
+/// `to new neighbors`, `in lines of 4`); a move named mid-clause, where it is
+/// usually where the figure happens (`in long waves`); a bracketed aside,
+/// which the caller set apart on purpose (`(optional courtesy turn)`); and
+/// `once`, which is what a figure does by default (`once around`). A count
+/// with a unit (`8 beats`, `4 bars`) is not one either: free-text entry
+/// peels those off before the parse, and the re-parse upgrade keeps a unit
+/// count it does not read as the note (#1826).
+///
+/// [vocabulary] is derived from the active taxonomy ([_LeftoverVocabulary]);
+/// nothing here is a hard-coded move list.
+bool _noteIsLeftover(String note, _LeftoverVocabulary vocabulary) {
+  var n = note
+      .toLowerCase()
+      .replaceAll('&', ' and ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  n = n.replaceAll(RegExp(r'^[\s,.;:!?-]+|[\s,.;:!?-]+$'), '');
   // Checked before the leading "and"/"then" is stripped: "[then] [over] and
   // back" is the leftover the rule targets, but a bare "back" ("ladies chain
   // back") is the ordinary phrasing for the return chain and must keep the
@@ -173,20 +200,69 @@ bool _noteIsLeftover(String note, Set<String> moveNames) {
   if (_andBackNote.hasMatch(n)) return true;
   n = n.replaceFirst(RegExp(r'^(and|then) '), '');
   if (n.isEmpty) return false;
-  return RegExp(r'^\d+$').hasMatch(n) || moveNames.contains(n);
+  if (RegExp(r'^\d+$').hasMatch(n)) return true;
+  final unbracketed = n.replaceAll(_bracketed, ' ');
+  if (_turnToken.hasMatch(unbracketed)) return true;
+  return unbracketed
+      .split(_clauseBreak)
+      .any((clause) => vocabulary.leadingMoveName.hasMatch(clause.trim()));
 }
 
 final RegExp _andBackNote = RegExp(r'^((and|then) )?(over )?and back$');
 
-/// The lowercase move names of [taxonomy]: display names, ids spelled with
-/// spaces, and search keywords.
-Set<String> _moveNamesOf(Taxonomy taxonomy) => {
-  for (final m in taxonomy.moves.values) ...[
-    m.displayName.toLowerCase(),
-    m.id.replaceAll('_', ' '),
-    ...m.searchKeywords.map((k) => k.toLowerCase()),
-  ],
-};
+/// A bracketed aside in a note, unclosed at the end included.
+final RegExp _bracketed = RegExp(r'\([^)]*(\)|$)|\[[^\]]*(\]|$)');
+
+/// Where a note's clauses break: see [_noteIsLeftover].
+final RegExp _clauseBreak = RegExp(r'[,;:]|\b(?:and|then)\b');
+
+/// A turn amount anywhere in a normalised note: see [_noteIsLeftover].
+final RegExp _turnToken = RegExp(
+  r'\d\s*/\s*\d|[¼½¾⅓⅔]|\d\.\d|\b(twice|thrice)\b'
+  '|\\bx\\s*$_moreThanOne\\b|\\b$_moreThanOne\\s*(x|times)\\b',
+);
+
+/// A count of two or more: `1x` is once, the default turn.
+const String _moreThanOne = r'(?:[2-9]|[1-9]\d+)';
+
+/// The active taxonomy's move and alias names, as a pattern that matches one
+/// at the start of a clause, as whole words: display names, ids spelled with
+/// spaces, and search keywords, lowercase. The custom
+/// move is left out: "custom" is not a move a caller types.
+class _LeftoverVocabulary {
+  _LeftoverVocabulary._(this.leadingMoveName);
+
+  factory _LeftoverVocabulary.of(Taxonomy taxonomy) =>
+      _cache[taxonomy] ??= _build(taxonomy);
+
+  static final Expando<_LeftoverVocabulary> _cache = Expando();
+
+  static _LeftoverVocabulary _build(Taxonomy taxonomy) {
+    Iterable<String> namesOf(String id, String displayName, List<String> kw) =>
+        [
+          displayName,
+          id.replaceAll('_', ' '),
+          ...kw,
+        ].map((n) => n.toLowerCase());
+    final names = {
+      for (final m in taxonomy.moves.values)
+        if (m.id != customMoveId)
+          ...namesOf(m.id, m.displayName, m.searchKeywords),
+      for (final a in taxonomy.aliases.values)
+        ...namesOf(a.id, a.displayName, a.searchKeywords),
+    }..removeWhere((n) => n.trim().isEmpty);
+    return _LeftoverVocabulary._(
+      RegExp('^(?:${names.map(RegExp.escape).join('|')})(?![a-z0-9])'),
+    );
+  }
+
+  /// Never matches: the vocabulary of a caller that does not demote.
+  static final _LeftoverVocabulary none = _LeftoverVocabulary._(
+    RegExp(r'(?!)'),
+  );
+
+  final RegExp leadingMoveName;
+}
 
 /// Whether a container [f] holds a custom child. A container is never itself
 /// [Figure.isCustom], so without this a `meanwhile[long_lines, custom]` built by
@@ -374,9 +450,9 @@ Figure? parseFigureLineFanOut(
   final fes = (frontEnds == null || frontEnds.isEmpty)
       ? figureFanOutFrontEnds
       : frontEnds;
-  final moveNames = demoteNoteTails
-      ? _moveNamesOf(taxonomy ?? contraTaxonomy)
-      : const <String>{};
+  final vocabulary = demoteNoteTails
+      ? _LeftoverVocabulary.of(taxonomy ?? contraTaxonomy)
+      : null;
   Figure? noteWin;
   Figure? customFallback;
   var demoted = false;
@@ -394,7 +470,7 @@ Figure? parseFigureLineFanOut(
       [parsed],
       frontEnd: fe,
       demoteNoteTails: demoteNoteTails,
-      moveNames: moveNames,
+      vocabulary: vocabulary,
     )) {
       case _AttemptTier.clean:
         // Highest-precedence clean parse: nothing lower can beat it.
@@ -454,11 +530,12 @@ Figure? parseFigureLineFanOut(
 /// free-text entry demoted carries the same `CustomOrigin.importGap` as an
 /// import-gap custom, so the upgrade cannot tell them apart and must apply the
 /// same rule, or it would undo the demotion. When
-/// true, a note-bearing attempt whose every note is just another move name,
-/// `and back` or a bare number is treated as a miss (see [_classify]) and the
-/// line falls to the custom fallback, instead of becoming a structured figure
-/// with the wrong beats and the rest of the line hidden in a note
-/// (`ladies chain over and back`, `neighbors swing 16`). It defaults to false
+/// true, a note-bearing attempt with a note that holds a leftover (another
+/// move's name, a turn amount, `and back` or a bare number;
+/// see [_noteIsLeftover]) is treated as a miss (see [_classify]) and the line
+/// falls to the custom fallback, instead of becoming a structured figure with
+/// the wrong beats and the rest of the line hidden in a note
+/// (`ladies chain over and back`, `neighbors swing 16`, `petronella twice`). It defaults to false
 /// because source-rendered imports (ContraDB HTML, `.USR`, CallersBox)
 /// legitimately rely on the note tail, and changing it there would churn the
 /// import fixtures.
@@ -473,9 +550,9 @@ List<Figure> parseFigureLinesFanOut(
   final fes = (frontEnds == null || frontEnds.isEmpty)
       ? figureFanOutFrontEnds
       : frontEnds;
-  final moveNames = demoteNoteTails
-      ? _moveNamesOf(taxonomy ?? contraTaxonomy)
-      : const <String>{};
+  final vocabulary = demoteNoteTails
+      ? _LeftoverVocabulary.of(taxonomy ?? contraTaxonomy)
+      : null;
   List<Figure>? noteWin;
   List<Figure>? customFallback;
   var demoted = false;
@@ -493,7 +570,7 @@ List<Figure> parseFigureLinesFanOut(
       result,
       frontEnd: fe,
       demoteNoteTails: demoteNoteTails,
-      moveNames: moveNames,
+      vocabulary: vocabulary,
     )) {
       case _AttemptTier.clean:
         return result;

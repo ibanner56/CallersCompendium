@@ -6,6 +6,7 @@ import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import '../taxonomy/user_figure_definition.dart';
 import '../taxonomy/user_figure_use.dart';
+import '../util/inline_emphasis.dart';
 import '../util/text_sanitizer.dart';
 import 'dialect.dart';
 import 'discouraged_terms.dart';
@@ -258,11 +259,16 @@ class FigureRenderer {
       if (children.isEmpty) return meanwhileMove;
       return children
           .map(
-            (child) => _renderSummary(
+            (child) => _withChildNote(
+              _renderSummary(
+                child,
+                dialect,
+                verbose: verbose,
+                decimals: decimals,
+                canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+              ),
               child,
               dialect,
-              verbose: verbose,
-              decimals: decimals,
               canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
             ),
           )
@@ -437,16 +443,24 @@ class FigureRenderer {
       // C"): simple, deterministic, and matches the 2-side form.
       final sides = figure.subFigures;
       if (sides.isEmpty) return meanwhileMove;
-      final rendered = sides.map(
-        (side) => _render(
+      final rendered = sides.map((side) {
+        final line = _render(
           side,
           dialect,
           verbose: verbose,
           decimals: decimals,
           forCanonical: forCanonical,
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-        ),
-      );
+        );
+        return forCanonical
+            ? line
+            : _withChildNote(
+                line,
+                side,
+                dialect,
+                canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+              );
+      });
       return rendered.join(forCanonical ? ' $meanwhileMove ' : ' while ');
     }
     if (!forCanonical) {
@@ -468,25 +482,36 @@ class FigureRenderer {
               decimals: decimals,
               forCanonical: true,
             )
-          : _renderSummary(
+          : _withChildNote(
+              _renderSummary(
+                children.first,
+                dialect,
+                verbose: verbose,
+                decimals: decimals,
+                canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+              ),
               children.first,
               dialect,
-              verbose: verbose,
-              decimals: decimals,
               canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
             );
-      final modifiers = children
-          .skip(1)
-          .map(
-            (child) => _renderModifierChild(
-              child,
-              dialect,
-              verbose: verbose,
-              decimals: decimals,
-              forCanonical: forCanonical,
-              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-            ),
-          );
+      final modifiers = children.skip(1).map((child) {
+        final line = _renderModifierChild(
+          child,
+          dialect,
+          verbose: verbose,
+          decimals: decimals,
+          forCanonical: forCanonical,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        );
+        return forCanonical
+            ? line
+            : _withChildNote(
+                line,
+                child,
+                dialect,
+                canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+              );
+      });
       if (forCanonical) {
         return [core, ...modifiers].join(' $modifierMove ');
       }
@@ -753,6 +778,32 @@ class FigureRenderer {
         : _stripSubjectMark(line);
   }
 
+  /// [line], the display text of [child], a side of a meanwhile or a part of
+  /// a modifier, with [child]'s own note after it in brackets: `robins
+  /// allemande right once (1 1/2) while larks orbit`. A top-level figure's
+  /// note has a line of its own on every surface, but a child has no row of
+  /// its own, so without this its note would be shown nowhere outside the
+  /// editor. The note is free text: its role words are shown in [dialect]
+  /// and its emphasis marks are dropped, as the surfaces do for a top-level
+  /// note. Display only: [renderCanonical] never carries a note.
+  String _withChildNote(
+    String line,
+    Figure child,
+    Dialect dialect, {
+    required bool canonicalizeDiscouragedTerms,
+  }) {
+    final note = child.note?.trim();
+    if (note == null || note.isEmpty) return line;
+    final shown = parseInlineEmphasis(note)
+        .map(
+          (span) => canonicalizeDiscouragedTerms
+              ? renderFreeTextWithCanonicalDiscouragedTerms(span.text, dialect)
+              : renderFreeText(span.text, dialect),
+        )
+        .join();
+    return '$line ($shown)';
+  }
+
   String _renderModifierChild(
     Figure figure,
     Dialect dialect, {
@@ -782,19 +833,29 @@ class FigureRenderer {
       final children = figure.subFigures;
       if (children.isEmpty) return meanwhileMove;
       final rendered = [
-        _renderGerundive(
-          children.first,
-          dialect,
-          verbose: verbose,
-          decimals: decimals,
-          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-        ),
-        for (final child in children.skip(1))
-          _renderSummary(
-            child,
+        _withChildNote(
+          _renderGerundive(
+            children.first,
             dialect,
             verbose: verbose,
             decimals: decimals,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          ),
+          children.first,
+          dialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
+        for (final child in children.skip(1))
+          _withChildNote(
+            _renderSummary(
+              child,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+            child,
+            dialect,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
       ];
