@@ -1,0 +1,7 @@
+name: authprobe
+publish_to: none
+environment:
+  sdk: ^3.12.0
+dependencies:
+  compendium_core:
+    path: /home/user/CallersCompendium/packages/compendium_core
