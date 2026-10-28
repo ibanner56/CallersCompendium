@@ -1929,12 +1929,22 @@ class DanceRepository {
   /// survives as a tombstone caption). Reusable `choreographers` /
   /// `published_sources` / `tags` rows left unreferenced after the cascade
   /// are garbage-collected in the same transaction (#462, #1199).
+  ///
+  /// When [onlyIds] is non-null the purge is restricted to those ids: a row
+  /// outside the set is left alone even if it is past the cutoff. The manual
+  /// "Permanently delete" action uses this so erasing one item cannot sweep
+  /// other expired items past the user's retention setting (LIFE-1). The
+  /// cutoff and the published-record exclusion still apply, so a caller wanting
+  /// one specific row gone first backdates its `deletedAt` (see
+  /// [softDelete]).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
+    Iterable<String>? onlyIds,
   }) async {
     assertUtc(now, 'now');
     final cutoff = now.subtract(retention);
+    final restrictTo = onlyIds?.toSet();
     return _db.transaction(() async {
       // Select eligibility INSIDE the transaction so selection, cleanup, and
       // deletion all operate on one consistent snapshot. Selecting outside the
@@ -1942,9 +1952,25 @@ class DanceRepository {
       // DELETE would keep its row (it no longer matches the cutoff predicate)
       // while its dance-only slots were already tombstoned and its incoming
       // relatedDance links deleted — corrupting a dance that ends up surviving.
-      final toPurge = await (_db.select(
-        _db.dances,
-      )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
+      final toPurge = <DanceRow>[];
+      if (restrictTo == null) {
+        toPurge.addAll(
+          await (_db.select(
+            _db.dances,
+          )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get(),
+        );
+      } else {
+        for (final chunk in _chunkIds(restrictTo.toList())) {
+          toPurge.addAll(
+            await (_db.select(_db.dances)..where(
+                  (t) =>
+                      t.deletedAt.isSmallerOrEqualValue(cutoff) &
+                      t.id.isIn(chunk),
+                ))
+                .get(),
+          );
+        }
+      }
       if (toPurge.isEmpty) return 0;
       final publishedIds = await publishedSyncRecordIds(
         _db,

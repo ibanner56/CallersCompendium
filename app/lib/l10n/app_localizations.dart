@@ -13808,6 +13808,12 @@ abstract class AppLocalizations {
   /// **'Nothing in the trash. Deleted dances appear here for {days} days before being removed.'**
   String recentlyDeletedEmptyDancesRetention(int days);
 
+  /// Empty state for recently-deleted programs when there is no retention window.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in the trash. Deleted programs are kept here until you remove them.'**
+  String get recentlyDeletedEmptyProgramsKept;
+
   /// Empty state for recently-deleted programs with a retention window of {days} days.
   ///
   /// In en, this message translates to:

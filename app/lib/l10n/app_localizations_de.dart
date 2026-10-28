@@ -9398,6 +9398,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Nichts im Papierkorb. Gelöschte Programme werden hier aufbewahrt, bis Sie sie entfernen.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'Nichts im Papierkorb. Gelöschte Programme erscheinen hier für $days Tage, bevor sie entfernt werden.';
   }

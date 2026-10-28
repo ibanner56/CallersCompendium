@@ -9357,6 +9357,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Niets in de prullenbak. Verwijderde programma’s worden hier bewaard totdat je ze verwijdert.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'Niets in de prullenbak. Verwijderde programma’s verschijnen hier voor $days dagen voordat ze worden verwijderd.';
   }

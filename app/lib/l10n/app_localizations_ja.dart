@@ -8922,6 +8922,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'ゴミ箱は空です。削除したプログラムは手動で削除するまでここに保持されます。';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'ゴミ箱は空です。削除したプログラムは削除されるまで$days日間ここに表示されます。';
   }

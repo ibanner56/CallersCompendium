@@ -73,8 +73,9 @@ the full picture.
 ### Deleted items
 
 - **Keep deleted dances for** — choose **30 days**, **90 days**, or **Never**
-  (default is **30 days**). Deleted dances are held for this long and
-  then purged. For how soft-delete and restore work, see
+  (default is **30 days**). Deleted dances and deleted programs are held for
+  this long and then purged. Choosing **Permanently delete** on one item in
+  **Recently deleted** removes only that item. For how soft-delete and restore work, see
   [Collection & search](./collection.md).
 
 ### Import

@@ -647,6 +647,28 @@ void main() {
       },
     );
 
+    test('purgeDeleted with onlyIds erases just those past-cutoff dances, '
+        'leaving other expired ones (LIFE-1)', () async {
+      for (final id in ['a', 'b', 'c']) {
+        await dances.create(
+          sampleDance(id: id, deletedAt: DateTime.utc(2026, 1, 1)),
+        );
+      }
+      await dances.create(
+        sampleDance(id: 'recent', deletedAt: DateTime.utc(2026, 3, 30)),
+      );
+      final purged = await dances.purgeDeleted(
+        now: DateTime.utc(2026, 4, 1),
+        onlyIds: ['a', 'recent', 'missing'],
+      );
+      // 'recent' is in the set but inside retention; 'missing' does not exist.
+      expect(purged, 1);
+      expect(await dances.getById('a', includeDeleted: true), isNull);
+      expect(await dances.getById('b', includeDeleted: true), isNotNull);
+      expect(await dances.getById('c', includeDeleted: true), isNotNull);
+      expect(await dances.getById('recent', includeDeleted: true), isNotNull);
+    });
+
     test(
       'purging a dance nulls a referencing program slot (no dangling FK)',
       () async {

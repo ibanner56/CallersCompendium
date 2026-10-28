@@ -12063,6 +12063,10 @@
       }
     }
   },
+  "recentlyDeletedEmptyProgramsKept": "Nothing in the trash. Deleted programs are kept here until you remove them.",
+  "@recentlyDeletedEmptyProgramsKept": {
+    "description": "Empty state for recently-deleted programs when there is no retention window."
+  },
   "recentlyDeletedEmptyProgramsRetention": "Nothing in the trash. Deleted programs appear here for {days} days before being removed.",
   "@recentlyDeletedEmptyProgramsRetention": {
     "description": "Empty state for recently-deleted programs with a retention window of {days} days.",

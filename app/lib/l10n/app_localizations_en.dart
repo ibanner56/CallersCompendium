@@ -9252,6 +9252,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Nothing in the trash. Deleted programs are kept here until you remove them.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'Nothing in the trash. Deleted programs appear here for $days days before being removed.';
   }

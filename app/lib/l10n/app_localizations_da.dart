@@ -9291,6 +9291,10 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'Intet i papirkurven. Slettede programmer bevares her, indtil du fjerner dem.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'Intet i papirkurven. Slettede programmer vises her i $days dage, inden de fjernes.';
   }

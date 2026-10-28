@@ -9419,6 +9419,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get recentlyDeletedEmptyProgramsKept =>
+      'La corbeille est vide. Les programmes supprimés sont conservés ici jusqu’à ce que vous les supprimiez.';
+
+  @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
     return 'La corbeille est vide. Les programmes supprimés apparaissent ici pendant $days jours avant d’être supprimés.';
   }

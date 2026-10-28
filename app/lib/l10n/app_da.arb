@@ -9098,6 +9098,10 @@
   "@recentlyDeletedEmptyDancesRetention": {
     "x-sourceSha256": "c9d92a66a393f687c97281fca98943aeb84880a3567f05db7a68e3288e3b4454"
   },
+  "recentlyDeletedEmptyProgramsKept": "Intet i papirkurven. Slettede programmer bevares her, indtil du fjerner dem.",
+  "@recentlyDeletedEmptyProgramsKept": {
+    "x-sourceSha256": "40782a3a929823e198a707b72464757047db592e1cc6560bc2e9d2002ae6590d"
+  },
   "recentlyDeletedEmptyProgramsRetention": "Intet i papirkurven. Slettede programmer vises her i {days} dage, inden de fjernes.",
   "@recentlyDeletedEmptyProgramsRetention": {
     "x-sourceSha256": "83326b6c0a1d50400c6f6471a1e62c73897514a9eb0cf10cc921d57a7cad3a20"
