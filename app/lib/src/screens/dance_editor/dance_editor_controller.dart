@@ -520,9 +520,9 @@ class DanceEditorController extends ChangeNotifier {
   String get draftKey => _draftKey;
   String _draftKey;
 
-  /// The draft keys of the editors open in this process, so a new-dance
-  /// editor never offers, or discards, a draft another editor is still
-  /// writing.
+  /// The draft keys of the editors open in this process, and of the drafts
+  /// they are offering, so a new-dance editor never offers, or discards, a
+  /// draft another editor is writing or may take up.
   static final Set<String> _openDraftKeys = {};
 
   /// A decoded draft snapshot waiting to be restored or discarded.
@@ -573,8 +573,8 @@ class DanceEditorController extends ChangeNotifier {
       from: previous,
       to: newDialect,
     );
-    // Rebuilding the rows drops any focus in them, so leave them alone when no
-    // text changes, as for a dance whose notes name no roles.
+    // A row whose text is replaced loses its caret position, so leave the rows
+    // alone when no text changes, as for a dance whose notes name no roles.
     if (_sameDraftText(current, converted)) return;
     figureDrafts
       ..clear()
@@ -803,7 +803,9 @@ class DanceEditorController extends ChangeNotifier {
         // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
         await _repos.settings.remove(key, permanent: true);
       }
+      // Another editor may have taken it up during the reads above.
       if (draftSnapshot == null || _disposed) continue;
+      if (key != _draftKey && _openDraftKeys.contains(key)) continue;
       // Of several abandoned new dances, offer the most recent; the rest wait
       // for the next new dance. One with no save time is the oldest.
       final pendingSavedAt = _pendingDraft?.savedAt;
@@ -811,8 +813,10 @@ class DanceEditorController extends ChangeNotifier {
       if (_pendingDraft == null ||
           (savedAt != null &&
               (pendingSavedAt == null || savedAt.isAfter(pendingSavedAt)))) {
+        _releaseOfferedDraftKey();
         _pendingDraft = draftSnapshot;
         _pendingDraftKey = key;
+        _openDraftKeys.add(key);
       }
     }
 
@@ -827,6 +831,14 @@ class DanceEditorController extends ChangeNotifier {
   // -------------------------------------------------------------------------
   // Draft restore
   // -------------------------------------------------------------------------
+
+  /// Gives back the key of another new dance's draft this editor offered and
+  /// did not take up, so a later editor can offer it again.
+  void _releaseOfferedDraftKey() {
+    if (_pendingDraftKey case final key? when key != _draftKey) {
+      _openDraftKeys.remove(key);
+    }
+  }
 
   /// Clears the pending draft marker (called once the restore prompt is shown).
   /// [discardPendingDraft] and [applyRestoredDraft] still act on the draft's
@@ -864,8 +876,9 @@ class DanceEditorController extends ChangeNotifier {
   /// Discards a pending autosave draft from storage.
   Future<void> discardPendingDraft() async {
     final key = _pendingDraftKey ?? draftKey;
-    _pendingDraftKey = null;
     await _repos.settings.remove(key, permanent: true);
+    _releaseOfferedDraftKey();
+    _pendingDraftKey = null;
   }
 
   // -------------------------------------------------------------------------
@@ -1974,6 +1987,7 @@ class DanceEditorController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _releaseOfferedDraftKey();
     _openDraftKeys.remove(_draftKey);
     unawaited(_glossarySubscription?.cancel());
     _undoTimer?.cancel();

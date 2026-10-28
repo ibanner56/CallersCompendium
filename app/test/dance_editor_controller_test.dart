@@ -2190,6 +2190,29 @@ void main() {
         expect(await hasNewDanceDraft(repos), isFalse);
       });
 
+      test('a draft one editor is offering is not offered to another until '
+          'that editor lets it go', () async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kLegacyNewDanceEditorDraftKey,
+          '{"v":13,"title":"Legacy","form":"contra",'
+          '"formationShape":"dupleImproper","progression":"single",'
+          '"status":"active","figureDrafts":[]}',
+        );
+        final offering = await newDanceController(repos);
+        expect(offering.pendingDraft?.title, 'Legacy');
+
+        final second = await newDanceController(repos);
+        addTearDown(second.dispose);
+        expect(second.pendingDraft, isNull);
+
+        // Closed without an answer: the draft is free for the next editor.
+        offering.dispose();
+        final third = await newDanceController(repos);
+        addTearDown(third.dispose);
+        expect(third.pendingDraft?.title, 'Legacy');
+      });
+
       test(
         'discarding removes the abandoned draft, not this editor\'s',
         () async {

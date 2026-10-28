@@ -95,6 +95,11 @@ bool isNewDanceEditorDraftKey(String key) =>
 ///   role terms of the dialect the figure notes and custom-figure text are
 ///   written in, which stay as typed. A restore under other role terms
 ///   converts them; an older build reads them as before.
+///
+/// An older build does look for a new dance's draft under the shared key
+/// [kLegacyNewDanceEditorDraftKey] only, so after a downgrade it does not
+/// offer a draft written under [kNewDanceEditorDraftKeyPrefix]. The draft is
+/// not deleted, and is offered again once the newer build is back.
 const _kDraftVersion = 14;
 
 /// The version a draft without a compound placeholder is stamped with.

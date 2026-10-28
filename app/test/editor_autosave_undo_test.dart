@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart'
     show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
@@ -1061,7 +1062,11 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.textContaining('Draft saved Oct 28, 2026'), findsOneWidget);
+      // Shown in local time, so the expected text is built the same way.
+      final shown = DateFormat.yMMMd(
+        'en',
+      ).add_jm().format(DateTime.utc(2026, 10, 28, 15, 4).toLocal());
+      expect(find.text('Draft saved $shown.'), findsOneWidget);
       expect(find.byKey(const ValueKey('draft-changed-since')), findsOneWidget);
     });
 
