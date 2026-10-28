@@ -2109,8 +2109,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final expected = _performStored;
     if (expected == null) return false;
     final keepDirty = _dirty;
+    final previousSlots = _slots;
     final workingSlots = undo(_slots);
     final replacement = expected.copyWith(slots: undo(expected.slots));
+    // With other edits unsaved, the working copy takes the Undo now, so a
+    // shutdown flush during the write snapshots it without the undone change;
+    // it is put back below if the restore is refused or fails.
+    if (keepDirty) setState(() => _slots = workingSlots);
     _autoCommitTimer?.cancel();
     final generation = ++_editGeneration;
     final operation = _commitQueueTail.then(
@@ -2120,9 +2125,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         updatedAt: DateTime.now().toUtc(),
       ),
     );
-    // As for the Perform write: with other edits unsaved, not a clean commit.
+    // What a shutdown flush must write ([_prepareShutdownFlush] writes its
+    // snapshot unless the outcome is `committed`). With other edits unsaved,
+    // a restore leaves them to write (not a clean commit). A refused or
+    // failed one leaves the draft on disk right: the Perform write saved it,
+    // with no edit since; the snapshot, taken after the Undo above, is not.
     _commitQueueTail = operation.then<_AutoCommitOutcome>(
-      (_) => keepDirty
+      (restored) => keepDirty && restored
           ? _AutoCommitOutcome.notCommitted(generation)
           : _AutoCommitOutcome.committed(generation),
       onError: (Object error, StackTrace stackTrace) {
@@ -2131,16 +2140,26 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           stackTrace,
           source: 'program_editor_screen._restorePerformSnapshot',
         );
-        return _AutoCommitOutcome.failed(generation);
+        return keepDirty
+            ? _AutoCommitOutcome.committed(generation)
+            : _AutoCommitOutcome.failed(generation);
       },
     );
+    void putBack() {
+      if (keepDirty && mounted && identical(_slots, workingSlots)) {
+        setState(() => _slots = previousSlots);
+      }
+    }
+
     final bool restored;
     try {
       restored = await operation;
     } on Object catch (_) {
       // diagnostics: silent — logged by the commit queue above; the Undo is refused.
+      putBack();
       return false;
     }
+    if (!restored) putBack();
     if (!restored || !mounted) return restored;
     final live = await _repos.programs.getById(existing.id);
     // An edit made while the restore was in flight keeps its working copy;

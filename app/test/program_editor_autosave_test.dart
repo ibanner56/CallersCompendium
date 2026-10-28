@@ -834,6 +834,77 @@ void main() {
     );
 
     testWidgets(
+      'shutdown during the post-exit Undo keeps a draft without the undone '
+      'adjustment (GIG-4)',
+      (tester) async {
+        final delayed = openTestRepositoriesWithDelayedPrograms();
+        await delayed.repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'First Dance',
+            figures: const [],
+            status: DanceStatus.active,
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        await delayed.repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Before',
+            slots: [_danceSlot('s1', 0, 'd1')],
+          ),
+        );
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(
+          tester,
+          delayed.repos,
+          programId: 'p1',
+          shutdownController: shutdown,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Pending metadata',
+        );
+        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-done')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+        await tester.pumpAndSettle();
+
+        delayed.programs.holdNextWrite();
+        await tester.tap(find.byType(SnackBarAction));
+        await tester.pump();
+        await delayed.programs.writeStarted;
+        final flush = shutdown.flushAll();
+        await tester.pump();
+        delayed.programs.releaseWrite();
+        await flush;
+        await tester.pumpAndSettle();
+
+        final persisted = await delayed.repos.programs.getById('p1');
+        expect(persisted?.slots.single.performedAt, isNull);
+        final recovered = decodeProgramDraft(
+          await delayed.repos.settings.get('program_editor_draft:p1'),
+        );
+        expect(recovered.title, 'Pending metadata');
+        expect(
+          recovered.slots.single.performedAt,
+          isNull,
+          reason: 'restoring the draft must not bring back the undone mark',
+        );
+      },
+    );
+
+    testWidgets(
       'shutdown waits for a successful auto-commit without recreating its draft',
       (tester) async {
         final delayed = openTestRepositoriesWithDelayedPrograms();

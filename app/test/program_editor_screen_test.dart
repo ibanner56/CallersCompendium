@@ -4283,6 +4283,72 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a refused post-exit Undo with unsaved builder edits keeps the adjustment '
+    'in the working copy (GIG-4)',
+    (tester) async {
+      installFakeWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(800, 1600),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed',
+      );
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+
+      // A write from elsewhere: the stored program no longer equals what the
+      // adjustment stored, so the Undo is refused.
+      final stored = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        stored.copyWith(
+          notes: 'Synced note',
+          updatedAt: stored.updatedAt.add(const Duration(seconds: 1)),
+        ),
+      );
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgramEditorScreen)),
+      );
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final committed = await repos.programs.getById('p1');
+      expect(committed!.title, 'Renamed');
+      expect(
+        committed.slots.single.performedAt,
+        isNotNull,
+        reason: 'the refused Undo must leave the working copy as it was',
+      );
+    },
+  );
+
   testWidgets('blocks clearing a free-text slot to empty', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(
