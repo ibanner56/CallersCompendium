@@ -409,19 +409,23 @@ You do **not** need to write code to translate the app.
    the change ever reaches a build.
 5. **Platform manifests:** the OS advertises the languages an app supports from
    each platform's own list, so without an entry a contributed language isn't
-   offered by the system. Add the locale to every one, using the **hyphenated
-   BCP-47 tag** (e.g. `fr`, `pt-BR`, `zh-Hant`) — not the underscore filename
-   form:
+   offered by the system. Add the locale to every one:
    - iOS: a `CFBundleLocalizations` array in `app/ios/Runner/Info.plist`
-     (`<string>fr</string>`, `<string>pt-BR</string>`, …).
-   - macOS: `CFBundleLocalizations` in `app/macos/Runner/Info.plist`. macOS
-     `knownRegions` in `app/macos/Runner.xcodeproj/project.pbxproj` still lists
-     only `en, Base`; the plist entry has not been confirmed on a Mac to be
-     enough on its own.
-   - Android 13+: `app/android/app/src/main/res/xml/locales_config.xml`.
-   - Windows installer: the `[Languages]` section of
-     `packaging/windows/CallersCompendium.iss` (pick the matching
-     `compiler:Languages\*.isl`).
+     (`<string>fr</string>`, `<string>pt-BR</string>`, …), using the
+     **hyphenated BCP-47 tag** (e.g. `fr`, `pt-BR`, `zh-Hant`), not the
+     underscore filename form.
+   - macOS: `CFBundleLocalizations` in `app/macos/Runner/Info.plist`, with the
+     same tag form. macOS `knownRegions` in
+     `app/macos/Runner.xcodeproj/project.pbxproj` still lists only `en, Base`;
+     the plist entry has not been confirmed on a Mac to be enough on its own.
+   - Android 13+: a `<locale android:name="…"/>` line in
+     `app/android/app/src/main/res/xml/locales_config.xml`, with the same tag
+     form.
+   - Windows installer: the Inno `[Languages]` section of
+     `packaging/windows/CallersCompendium.iss` is keyed by Inno's English
+     language name, not a tag. Add a line matching the existing entries, e.g.
+     `Name: "brazilianportuguese"; MessagesFile:
+     "compiler:Languages\BrazilianPortuguese.isl"` (one line in the file).
 
    The Dart side needs nothing further: `resolveSystemLocale`
    (`locale_scope.dart`) matches the device's language list against the
