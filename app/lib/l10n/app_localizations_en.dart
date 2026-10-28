@@ -20,6 +20,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Added a modifier container.';
 
   @override
+  String get danceEditorAddedSequenceAnnouncement =>
+      'Added a sequence container.';
+
+  @override
   String get navCollection => 'Collection';
 
   @override
@@ -7659,6 +7663,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String validationSequenceExceedsPhrase(int position, int actual, int limit) {
+    return 'Figure $position is a sequence of $actual beats, longer than one phrase ($limit beats).';
+  }
+
+  @override
   String get validationPhraseInvalid => 'That phrase structure isn\'t valid.';
 
   @override
@@ -8000,6 +8009,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorAddModifier => 'Add modifier';
 
   @override
+  String get danceEditorAddSequence => 'Add sequence';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'Paste at end of figure list';
 
   @override
@@ -8133,16 +8145,98 @@ class AppLocalizationsEn extends AppLocalizations {
       'Group with next as modifier';
 
   @override
+  String get danceEditorGroupWithNextAsSequence =>
+      'Group with next as sequence';
+
+  @override
   String get danceEditorConvertToMeanwhile => 'Convert to meanwhile';
 
   @override
   String get danceEditorConvertToModifier => 'Convert to modifier';
 
   @override
+  String get danceEditorConvertToSequence => 'Convert to sequence';
+
+  @override
   String get danceEditorUngroupMeanwhile => 'Ungroup meanwhile';
 
   @override
   String get danceEditorUngroupModifier => 'Ungroup modifier';
+
+  @override
+  String get danceEditorUngroupSequence => 'Ungroup sequence';
+
+  @override
+  String get danceEditorSequenceOptionLabel => 'sequence';
+
+  @override
+  String danceEditorSequenceGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sequence ($count figures)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures',
+      one: '1 figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return 'Sequence group, $_temp0 in order, $_temp1 in total.';
+  }
+
+  @override
+  String danceEditorSequenceTotalBeats(int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats in total',
+      one: '1 beat in total',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceOverPhrase(int beats, int limit) {
+    return 'This sequence is $beats beats, longer than one phrase ($limit beats).';
+  }
+
+  @override
+  String danceEditorSequencePhraseFull(int limit) {
+    return 'These figures fill one phrase ($limit beats).';
+  }
+
+  @override
+  String danceEditorSequenceStepsCapReached(int max) {
+    return 'Maximum of $max figures in a sequence.';
+  }
+
+  @override
+  String danceEditorSequenceStepLabel(int number) {
+    return 'Figure $number';
+  }
+
+  @override
+  String danceEditorSequenceStepSemantic(int number, int total) {
+    return 'Figure $number of $total in sequence.';
+  }
+
+  @override
+  String get danceEditorAddSequenceStep => 'Add next figure';
+
+  @override
+  String get danceEditorRemoveSequenceStep => 'Remove this figure';
 
   @override
   String danceEditorModifierGroupLabel(num count) {

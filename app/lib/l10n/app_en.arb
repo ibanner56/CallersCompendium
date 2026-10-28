@@ -12,6 +12,10 @@
   "@danceEditorAddedModifierAnnouncement": {
     "description": "Screen-reader announcement after adding a modifier container."
   },
+  "danceEditorAddedSequenceAnnouncement": "Added a sequence container.",
+  "@danceEditorAddedSequenceAnnouncement": {
+    "description": "Screen-reader announcement after the Add menu inserts a new, empty sequence container (figures danced one after another on one line)."
+  },
   "navCollection": "Collection",
   "@navCollection": {
     "description": "Bottom/rail navigation label for the dance collection destination."
@@ -9896,6 +9900,24 @@
       }
     }
   },
+  "validationSequenceExceedsPhrase": "Figure {position} is a sequence of {actual} beats, longer than one phrase ({limit} beats).",
+  "@validationSequenceExceedsPhrase": {
+    "description": "Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance, for example after the phrase structure was changed.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
+      "actual": {
+        "type": "int",
+        "example": "20"
+      },
+      "limit": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
   "validationPhraseInvalid": "That phrase structure isn't valid.",
   "@validationPhraseInvalid": {
     "description": "Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds)."
@@ -10392,6 +10414,10 @@
   "@danceEditorAddModifier": {
     "description": "Menu item label for adding an empty modifier container."
   },
+  "danceEditorAddSequence": "Add sequence",
+  "@danceEditorAddSequence": {
+    "description": "Menu item label for adding an empty sequence container: two or more figures danced one after another and shown on one line, such as \"balance and swing\"."
+  },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {
     "description": "Semantics label for pasting a cut figure at the end of the list."
@@ -10568,6 +10594,10 @@
   "@danceEditorGroupWithNextAsModifier": {
     "description": "Menu item label that groups this figure row with the one immediately after it into an ordered modifier group."
   },
+  "danceEditorGroupWithNextAsSequence": "Group with next as sequence",
+  "@danceEditorGroupWithNextAsSequence": {
+    "description": "Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase."
+  },
   "danceEditorConvertToMeanwhile": "Convert to meanwhile",
   "@danceEditorConvertToMeanwhile": {
     "description": "Menu item label for converting a flat modifier group into a meanwhile group."
@@ -10576,6 +10606,10 @@
   "@danceEditorConvertToModifier": {
     "description": "Menu item label for converting a flat meanwhile group into a modifier group."
   },
+  "danceEditorConvertToSequence": "Convert to sequence",
+  "@danceEditorConvertToSequence": {
+    "description": "Menu item label for converting a meanwhile or modifier group into a sequence group, whose figures are danced in order."
+  },
   "danceEditorUngroupMeanwhile": "Ungroup meanwhile",
   "@danceEditorUngroupMeanwhile": {
     "description": "Menu item label for replacing a meanwhile group with its child figures."
@@ -10583,6 +10617,114 @@
   "danceEditorUngroupModifier": "Ungroup modifier",
   "@danceEditorUngroupModifier": {
     "description": "Menu item label for replacing a modifier group with its child figures."
+  },
+  "danceEditorUngroupSequence": "Ungroup sequence",
+  "@danceEditorUngroupSequence": {
+    "description": "Menu item label for replacing a sequence group with its child figures."
+  },
+  "danceEditorSequenceOptionLabel": "sequence",
+  "@danceEditorSequenceOptionLabel": {
+    "description": "Lower-case entry in the move picker that turns the current figure into the first figure of a sequence group (figures danced one after another, shown on one line). Shown beside move names, so it reads like one; the English word also always matches what the user types."
+  },
+  "danceEditorSequenceGroupLabel": "{count, plural, other{Sequence ({count} figures)}}",
+  "@danceEditorSequenceGroupLabel": {
+    "description": "Visible heading for a sequence group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorSequenceGroupSemantic": "Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {beats, plural, =1{1 beat} other{{beats} beats}} in total.",
+  "@danceEditorSequenceGroupSemantic": {
+    "description": "Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "beats": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "danceEditorSequenceTotalBeats": "{beats, plural, =1{1 beat in total} other{{beats} beats in total}}",
+  "@danceEditorSequenceTotalBeats": {
+    "description": "Read-only line in a sequence group's editor giving the sum of its figures' beats. Unlike a meanwhile or modifier, a sequence has no shared beats field: each figure edits its own.",
+    "placeholders": {
+      "beats": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "danceEditorSequenceOverPhrase": "This sequence is {beats} beats, longer than one phrase ({limit} beats).",
+  "@danceEditorSequenceOverPhrase": {
+    "description": "Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.",
+    "placeholders": {
+      "beats": {
+        "type": "int",
+        "example": "20"
+      },
+      "limit": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "danceEditorSequencePhraseFull": "These figures fill one phrase ({limit} beats).",
+  "@danceEditorSequencePhraseFull": {
+    "description": "Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "danceEditorSequenceStepsCapReached": "Maximum of {max} figures in a sequence.",
+  "@danceEditorSequenceStepsCapReached": {
+    "description": "Inline message shown in place of the add-figure button once a sequence group holds the maximum number of figures.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "danceEditorSequenceStepLabel": "Figure {number}",
+  "@danceEditorSequenceStepLabel": {
+    "description": "Compact heading for one figure within a sequence group's editor, numbered in dance order.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "danceEditorSequenceStepSemantic": "Figure {number} of {total} in sequence.",
+  "@danceEditorSequenceStepSemantic": {
+    "description": "Screen-reader label identifying one figure's position within a sequence group.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "danceEditorAddSequenceStep": "Add next figure",
+  "@danceEditorAddSequenceStep": {
+    "description": "Button label that adds another figure to the end of a sequence group."
+  },
+  "danceEditorRemoveSequenceStep": "Remove this figure",
+  "@danceEditorRemoveSequenceStep": {
+    "description": "Icon button tooltip/semantics for removing one figure from a sequence group. Removing down to one figure collapses the group back to a plain figure."
   },
   "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} figures)}}",
   "@danceEditorModifierGroupLabel": {

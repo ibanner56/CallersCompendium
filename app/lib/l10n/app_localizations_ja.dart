@@ -18,6 +18,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddedModifierAnnouncement => 'モディファイアコンテナを追加しました。';
 
   @override
+  String get danceEditorAddedSequenceAnnouncement => 'シーケンスコンテナを追加しました。';
+
+  @override
   String get navCollection => 'コレクション';
 
   @override
@@ -7380,6 +7383,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String validationSequenceExceedsPhrase(int position, int actual, int limit) {
+    return 'フィギュア$positionは$actual拍のシーケンスで、1フレーズ（$limit拍）より長くなっています。';
+  }
+
+  @override
   String get validationPhraseInvalid => 'そのフレーズ構造は無効です。';
 
   @override
@@ -7711,6 +7719,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddModifier => 'モディファイアを追加';
 
   @override
+  String get danceEditorAddSequence => 'シーケンスを追加';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'フィギュアリストの末尾にペースト';
 
   @override
@@ -7840,16 +7851,97 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorGroupWithNextAsModifier => '次のフィギュアとモディファイアとしてグループ化';
 
   @override
+  String get danceEditorGroupWithNextAsSequence => '次のフィギュアとシーケンスとしてグループ化';
+
+  @override
   String get danceEditorConvertToMeanwhile => 'Meanwhileに変換';
 
   @override
   String get danceEditorConvertToModifier => 'モディファイアに変換';
 
   @override
+  String get danceEditorConvertToSequence => 'シーケンスに変換';
+
+  @override
   String get danceEditorUngroupMeanwhile => 'Meanwhileのグループ化を解除';
 
   @override
   String get danceEditorUngroupModifier => 'モディファイアのグループ化を解除';
+
+  @override
+  String get danceEditorUngroupSequence => 'シーケンスのグループ化を解除';
+
+  @override
+  String get danceEditorSequenceOptionLabel => 'シーケンス';
+
+  @override
+  String danceEditorSequenceGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'シーケンス（$countフィギュア）',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countフィギュア',
+      one: '1フィギュア',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats拍',
+      one: '1拍',
+    );
+    return 'シーケンスグループ、順に$_temp0、合計$_temp1。';
+  }
+
+  @override
+  String danceEditorSequenceTotalBeats(int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '合計$beats拍',
+      one: '合計1拍',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceOverPhrase(int beats, int limit) {
+    return 'このシーケンスは$beats拍で、1フレーズ（$limit拍）より長くなっています。';
+  }
+
+  @override
+  String danceEditorSequencePhraseFull(int limit) {
+    return 'これらのフィギュアで1フレーズ（$limit拍）が埋まっています。';
+  }
+
+  @override
+  String danceEditorSequenceStepsCapReached(int max) {
+    return 'シーケンスのフィギュアは最大$max件です。';
+  }
+
+  @override
+  String danceEditorSequenceStepLabel(int number) {
+    return 'フィギュア$number';
+  }
+
+  @override
+  String danceEditorSequenceStepSemantic(int number, int total) {
+    return 'シーケンスの$total件中$number番目のフィギュア。';
+  }
+
+  @override
+  String get danceEditorAddSequenceStep => '次のフィギュアを追加';
+
+  @override
+  String get danceEditorRemoveSequenceStep => 'このフィギュアを削除';
 
   @override
   String danceEditorModifierGroupLabel(num count) {

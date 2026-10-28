@@ -274,6 +274,25 @@ class FigureRenderer {
           )
           .join(' while ');
     }
+    if (figure.isSequence) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return sequenceMove;
+      return _andList([
+        for (final child in children)
+          _withChildNote(
+            _renderSummary(
+              child,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+            child,
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          ),
+      ]);
+    }
     if (!figure.isCustom &&
         _resolvedMoveWording(figure, dialect) != null &&
         !figure.isMeanwhile) {
@@ -471,6 +490,40 @@ class FigureRenderer {
       );
       if (override != null) return override;
     }
+    if (figure.isSequence) {
+      // A sequence renders its children in order as one line. Like the other
+      // containers, `renderCanonical` joins them with the structural id
+      // (`' sequence '`) so the dedupe/FTS key never varies with `dialect`;
+      // display renders read as an English list: "A and B", "A, B, and C".
+      final children = figure.subFigures;
+      if (children.isEmpty) return sequenceMove;
+      final rendered = [
+        for (final child in children)
+          forCanonical
+              ? _render(
+                  child,
+                  dialect,
+                  verbose: verbose,
+                  decimals: decimals,
+                  forCanonical: true,
+                )
+              : _withChildNote(
+                  _render(
+                    child,
+                    dialect,
+                    verbose: verbose,
+                    decimals: decimals,
+                    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+                  ),
+                  child,
+                  dialect,
+                  canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+                ),
+      ];
+      return forCanonical
+          ? rendered.join(' $sequenceMove ')
+          : _andList(rendered);
+    }
     if (figure.isModifier) {
       final children = figure.subFigures;
       if (children.isEmpty) return modifierMove;
@@ -517,12 +570,7 @@ class FigureRenderer {
       }
       final renderedModifiers = modifiers.toList();
       if (renderedModifiers.isEmpty) return core;
-      final suffix = renderedModifiers.length == 1
-          ? renderedModifiers.single
-          : renderedModifiers.length == 2
-          ? '${renderedModifiers.first} and ${renderedModifiers.last}'
-          : '${renderedModifiers.take(renderedModifiers.length - 1).join(', ')}, and ${renderedModifiers.last}';
-      return '$core, $suffix';
+      return '$core, ${_andList(renderedModifiers)}';
     }
 
     final def = taxonomy.resolve(figure.move);
@@ -778,8 +826,18 @@ class FigureRenderer {
         : _stripSubjectMark(line);
   }
 
+  /// [parts] as an English list, with a serial comma from three on: `A`,
+  /// `A and B`, `A, B, and C`. Shared by a modifier's modifiers and a
+  /// sequence's children. Fixed structural vocabulary, like " while ".
+  static String _andList(List<String> parts) => switch (parts.length) {
+    0 => '',
+    1 => parts.single,
+    2 => '${parts.first} and ${parts.last}',
+    _ => '${parts.take(parts.length - 1).join(', ')}, and ${parts.last}',
+  };
+
   /// [line], the display text of [child], a side of a meanwhile or a part of
-  /// a modifier, with [child]'s own note after it in brackets: `robins
+  /// a modifier or sequence, with [child]'s own note after it in brackets: `robins
   /// allemande right once (1 1/2) while larks orbit`. A top-level figure's
   /// note has a line of its own on every surface, but a child has no row of
   /// its own, so without this its note would be shown nowhere outside the
@@ -860,6 +918,25 @@ class FigureRenderer {
           ),
       ];
       return rendered.join(' while ');
+    }
+    if (figure.isSequence) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return sequenceMove;
+      return _andList([
+        for (final child in children)
+          _withChildNote(
+            _renderGerundive(
+              child,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+            child,
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          ),
+      ]);
     }
     return _renderGerundive(
       figure,

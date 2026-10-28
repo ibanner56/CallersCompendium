@@ -124,6 +124,12 @@ abstract class AppLocalizations {
   /// **'Added a modifier container.'**
   String get danceEditorAddedModifierAnnouncement;
 
+  /// Screen-reader announcement after the Add menu inserts a new, empty sequence container (figures danced one after another on one line).
+  ///
+  /// In en, this message translates to:
+  /// **'Added a sequence container.'**
+  String get danceEditorAddedSequenceAnnouncement;
+
   /// Bottom/rail navigation label for the dance collection destination.
   ///
   /// In en, this message translates to:
@@ -11549,6 +11555,12 @@ abstract class AppLocalizations {
   /// **'The figures total {actual} beats; the phrase structure expects {expected}.'**
   String validationPhraseBeatMismatch(int actual, int expected);
 
+  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance, for example after the phrase structure was changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} is a sequence of {actual} beats, longer than one phrase ({limit} beats).'**
+  String validationSequenceExceedsPhrase(int position, int actual, int limit);
+
   /// Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds).
   ///
   /// In en, this message translates to:
@@ -12045,6 +12057,12 @@ abstract class AppLocalizations {
   /// **'Add modifier'**
   String get danceEditorAddModifier;
 
+  /// Menu item label for adding an empty sequence container: two or more figures danced one after another and shown on one line, such as "balance and swing".
+  ///
+  /// In en, this message translates to:
+  /// **'Add sequence'**
+  String get danceEditorAddSequence;
+
   /// Semantics label for pasting a cut figure at the end of the list.
   ///
   /// In en, this message translates to:
@@ -12194,6 +12212,12 @@ abstract class AppLocalizations {
   /// **'Group with next as modifier'**
   String get danceEditorGroupWithNextAsModifier;
 
+  /// Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Group with next as sequence'**
+  String get danceEditorGroupWithNextAsSequence;
+
   /// Menu item label for converting a flat modifier group into a meanwhile group.
   ///
   /// In en, this message translates to:
@@ -12206,6 +12230,12 @@ abstract class AppLocalizations {
   /// **'Convert to modifier'**
   String get danceEditorConvertToModifier;
 
+  /// Menu item label for converting a meanwhile or modifier group into a sequence group, whose figures are danced in order.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to sequence'**
+  String get danceEditorConvertToSequence;
+
   /// Menu item label for replacing a meanwhile group with its child figures.
   ///
   /// In en, this message translates to:
@@ -12217,6 +12247,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ungroup modifier'**
   String get danceEditorUngroupModifier;
+
+  /// Menu item label for replacing a sequence group with its child figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup sequence'**
+  String get danceEditorUngroupSequence;
+
+  /// Lower-case entry in the move picker that turns the current figure into the first figure of a sequence group (figures danced one after another, shown on one line). Shown beside move names, so it reads like one; the English word also always matches what the user types.
+  ///
+  /// In en, this message translates to:
+  /// **'sequence'**
+  String get danceEditorSequenceOptionLabel;
+
+  /// Visible heading for a sequence group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{Sequence ({count} figures)}}'**
+  String danceEditorSequenceGroupLabel(int count);
+
+  /// Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {beats, plural, =1{1 beat} other{{beats} beats}} in total.'**
+  String danceEditorSequenceGroupSemantic(int count, int beats);
+
+  /// Read-only line in a sequence group's editor giving the sum of its figures' beats. Unlike a meanwhile or modifier, a sequence has no shared beats field: each figure edits its own.
+  ///
+  /// In en, this message translates to:
+  /// **'{beats, plural, =1{1 beat in total} other{{beats} beats in total}}'**
+  String danceEditorSequenceTotalBeats(int beats);
+
+  /// Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.
+  ///
+  /// In en, this message translates to:
+  /// **'This sequence is {beats} beats, longer than one phrase ({limit} beats).'**
+  String danceEditorSequenceOverPhrase(int beats, int limit);
+
+  /// Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.
+  ///
+  /// In en, this message translates to:
+  /// **'These figures fill one phrase ({limit} beats).'**
+  String danceEditorSequencePhraseFull(int limit);
+
+  /// Inline message shown in place of the add-figure button once a sequence group holds the maximum number of figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of {max} figures in a sequence.'**
+  String danceEditorSequenceStepsCapReached(int max);
+
+  /// Compact heading for one figure within a sequence group's editor, numbered in dance order.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {number}'**
+  String danceEditorSequenceStepLabel(int number);
+
+  /// Screen-reader label identifying one figure's position within a sequence group.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {number} of {total} in sequence.'**
+  String danceEditorSequenceStepSemantic(int number, int total);
+
+  /// Button label that adds another figure to the end of a sequence group.
+  ///
+  /// In en, this message translates to:
+  /// **'Add next figure'**
+  String get danceEditorAddSequenceStep;
+
+  /// Icon button tooltip/semantics for removing one figure from a sequence group. Removing down to one figure collapses the group back to a plain figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this figure'**
+  String get danceEditorRemoveSequenceStep;
 
   /// Visible heading for a modifier group's expanded editor.
   ///

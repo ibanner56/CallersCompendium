@@ -143,6 +143,20 @@ class PhraseStructure {
         : null;
   }
 
+  /// Beats in the longest phrase: [beatsPerPhrase] when the phrases are
+  /// uniform, and the largest component's phrase length when they are not.
+  ///
+  /// This is the "one phrase" a `sequence` container must fit in
+  /// ([sequenceExceedsPhrase]). An uneven structure takes its longest phrase
+  /// rather than its shortest, so a sequence that fits the phrase it is danced
+  /// in is never flagged; the cost is that one overrunning a shorter phrase is
+  /// not flagged either.
+  int get longestPhraseBeats => components.fold(
+    0,
+    (longest, component) =>
+        component.beatsPerPhrase > longest ? component.beatsPerPhrase : longest,
+  );
+
   /// The persisted representation (`""` for standard).
   final String raw;
 
@@ -295,10 +309,15 @@ class SectionedFigure {
 /// error — real dances bend phrasing, and choreography validation proper is a
 /// later milestone.
 ///
-/// A `meanwhile` container figure (#590) is a single flat list element, so it
+/// A structural container figure (#590) is a single flat list element, so it
 /// contributes its **shared** beats (`params['beats']`, read via [Figure.beats])
-/// exactly **once** — the loop never recurses into its concurrent sides, so a
-/// side's display-only beats can never leak into the cumulative total.
+/// exactly **once** — the loop never recurses into its children, so a child's
+/// own beats can never leak into the cumulative total.
+///
+/// Each `sequence` container, top-level or nested, whose count is longer than
+/// one phrase ([sequenceExceedsPhrase]) also adds a `sequence_exceeds_phrase`
+/// warning. The editor stops a sequence growing past a phrase; this catches
+/// one that a later phrase-structure edit, or another device, left too long.
 List<SectionedFigure> deriveSections(
   List<Figure> figures,
   PhraseStructure structure, {
@@ -315,9 +334,10 @@ List<SectionedFigure> deriveSections(
         label: labelForFigure(beat, figures[i].beats, structure),
       ),
     );
-    // One list element → one beat advance. For a meanwhile container this is
-    // the shared count, counted once (no double-count from its nested sides).
+    // One list element → one beat advance. For a container this is the
+    // shared count, counted once (no double-count from its children).
     beat += figures[i].beats;
+    if (issues != null) _flagLongSequences(figures[i], i, structure, issues);
   }
   if (issues != null && figures.isNotEmpty && beat != structure.totalBeats) {
     issues.add(
@@ -334,4 +354,38 @@ List<SectionedFigure> deriveSections(
     );
   }
   return result;
+}
+
+/// Whether [sequence], a `sequence` container, is counted longer than one
+/// phrase of [structure] ([PhraseStructure.longestPhraseBeats]). False for any
+/// other figure.
+bool sequenceExceedsPhrase(Figure sequence, PhraseStructure structure) =>
+    sequence.isSequence && sequence.beats > structure.longestPhraseBeats;
+
+void _flagLongSequences(
+  Figure figure,
+  int index,
+  PhraseStructure structure,
+  List<ValidationIssue> issues,
+) {
+  if (sequenceExceedsPhrase(figure, structure)) {
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.warning,
+        code: 'sequence_exceeds_phrase',
+        message:
+            'figure ${index + 1} is a sequence of ${figure.beats} beats; '
+            'one phrase is ${structure.longestPhraseBeats}',
+        data: {
+          'position': index + 1,
+          'actual': figure.beats,
+          'limit': structure.longestPhraseBeats,
+        },
+      ),
+    );
+  }
+  if (!figure.isContainer) return;
+  for (final child in figure.subFigures) {
+    _flagLongSequences(child, index, structure, issues);
+  }
 }

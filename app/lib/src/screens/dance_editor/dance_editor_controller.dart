@@ -1447,6 +1447,19 @@ class DanceEditorController extends ChangeNotifier {
     return group.id;
   }
 
+  /// Inserts a sequence draft with two blank steps. Unlike a meanwhile or
+  /// modifier, a sequence has no Defaults preference to seed it from.
+  Future<String?> addSequence() async {
+    if (_disposed) return null;
+    final group = FigureDraft(sequenceFigures: [FigureDraft(), FigureDraft()]);
+    figureDrafts.add(group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return group.id;
+  }
+
   /// Inserts the figure(s) parsed from one free-text entry line at the end of
   /// the list (issue #419, opt-in "Free-text entry"). Each parsed [Figure] —
   /// a matched taxonomy figure or an unparsed [CustomOrigin.importGap] custom —
@@ -1648,81 +1661,70 @@ class DanceEditorController extends ChangeNotifier {
   /// Merges [draft] (a top-level figure row) with the row immediately after
   /// it into ONE new meanwhile group draft (#590/#593): both are demoted to
   /// concurrent sides, seeded with the first side's beats (the user edits the
-  /// shared count afterward). Existing modifier groups may be nested as
-  /// concurrent sides, but only when they contain no further container.
-  void groupFigureWithNext(FigureDraft draft) {
-    final index = figureDrafts.indexOf(draft);
-    if (index == -1 || index >= figureDrafts.length - 1) return;
-    final first = figureDrafts[index];
-    final second = figureDrafts[index + 1];
-    if (!first.canNestInContainer(modifierParent: false) ||
-        !second.canNestInContainer(modifierParent: false)) {
-      return;
-    }
-    final group = FigureDraft(meanwhileSides: [first, second]);
-    group.params['beats'] = first.beats;
-    group.beatsTouched = first.beatsTouched;
-    figureDrafts
-      ..removeAt(index + 1)
-      ..removeAt(index)
-      ..insert(index, group);
-    recomputeWarnings();
-    pushUndoNow();
-    scheduleAutosave();
-    _notify();
-  }
+  /// shared count afterward). Existing modifier or sequence groups may be
+  /// nested as concurrent sides, but only when they contain no further
+  /// container.
+  void groupFigureWithNext(FigureDraft draft) =>
+      _groupWithNext(draft, meanwhileMove);
 
   /// Groups a top-level figure with the following row as an ordered modifier
-  /// container. Existing meanwhile groups may be nested as ordered children
-  /// when they contain no further container.
-  void groupFigureWithNextAsModifier(FigureDraft draft) {
+  /// container. Existing meanwhile or sequence groups may be nested as ordered
+  /// children when they contain no further container.
+  void groupFigureWithNextAsModifier(FigureDraft draft) =>
+      _groupWithNext(draft, modifierMove);
+
+  /// Groups a top-level figure with the following row as a sequence, when
+  /// their counts together fit in one phrase. Existing meanwhile or modifier
+  /// groups may be nested as steps when they contain no further container.
+  void groupFigureWithNextAsSequence(FigureDraft draft) =>
+      _groupWithNext(draft, sequenceMove);
+
+  void _groupWithNext(FigureDraft draft, String kind) {
     final index = figureDrafts.indexOf(draft);
     if (index == -1 || index >= figureDrafts.length - 1) return;
     final first = figureDrafts[index];
     final second = figureDrafts[index + 1];
-    if (!first.canNestInContainer(modifierParent: true) ||
-        !second.canNestInContainer(modifierParent: true)) {
+    if (!FigureDraft.canGroup(
+      kind,
+      first,
+      second,
+      sequenceBeatLimit: sequenceBeatLimit,
+    )) {
       return;
     }
-    final group = FigureDraft(modifierFigures: [first, second]);
-    group.params['beats'] = first.beats;
-    group.beatsTouched = first.beatsTouched;
     figureDrafts
       ..removeAt(index + 1)
       ..removeAt(index)
-      ..insert(index, group);
+      ..insert(index, FigureDraft.group(kind, first, second));
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
     _notify();
   }
 
-  void convertContainerToMeanwhile(FigureDraft draft) {
-    final index = figureDrafts.indexOf(draft);
-    if (index == -1 || !draft.isModifierGroup) return;
-    final children = draft.modifierFigures;
-    if (children == null || children.any((child) => child.isContainerDraft)) {
-      return;
-    }
-    draft
-      ..meanwhileSides = children
-      ..modifierFigures = null;
-    recomputeWarnings();
-    pushUndoNow();
-    scheduleAutosave();
-    _notify();
-  }
+  /// The most beats a sequence may hold: one phrase of this dance
+  /// ([PhraseStructure.longestPhraseBeats]).
+  int get sequenceBeatLimit => _phraseStructure.longestPhraseBeats;
 
-  void convertContainerToModifier(FigureDraft draft) {
+  void convertContainerToMeanwhile(FigureDraft draft) =>
+      _convertContainer(draft, meanwhileMove);
+
+  void convertContainerToModifier(FigureDraft draft) =>
+      _convertContainer(draft, modifierMove);
+
+  void convertContainerToSequence(FigureDraft draft) =>
+      _convertContainer(draft, sequenceMove);
+
+  void _convertContainer(FigureDraft draft, String kind) {
     final index = figureDrafts.indexOf(draft);
-    if (index == -1 || !draft.isMeanwhileGroup) return;
-    final children = draft.meanwhileSides;
-    if (children == null || children.any((child) => child.isContainerDraft)) {
+    if (index == -1 ||
+        !draft.canConvertContainerTo(
+          kind,
+          sequenceBeatLimit: sequenceBeatLimit,
+        )) {
       return;
     }
-    draft
-      ..modifierFigures = children
-      ..meanwhileSides = null;
+    draft.convertContainerTo(kind);
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
@@ -1733,7 +1735,7 @@ class DanceEditorController extends ChangeNotifier {
     final index = figureDrafts.indexOf(draft);
     if (index == -1 || !draft.isContainerDraft) return;
     final children = List<FigureDraft>.of(
-      draft.meanwhileSides ?? draft.modifierFigures ?? const <FigureDraft>[],
+      draft.containerChildren ?? const <FigureDraft>[],
     );
     if (children.length < 2) return;
     figureDrafts

@@ -228,8 +228,9 @@ class ShorthandMappings {
   /// returning `null` on any structural error, any decode throw, or any
   /// error-severity validation issue (unknown move, unknown param, out-of-range
   /// / non-conforming value). Structural containers are not taxonomy moves, so
-  /// they are checked recursively against the same bounded alternating-child
-  /// invariant enforced by [Figure.meanwhile]/[Figure.modifier]. Never throws.
+  /// they are checked recursively against the same bounded nesting invariant
+  /// enforced by [Figure.meanwhile]/[Figure.modifier]/[Figure.sequence]. Never
+  /// throws.
   static Figure? _decodeFigure(Object? raw, {required Taxonomy taxonomy}) {
     if (raw is! Map) return null;
     if (!_passesRawStructuralShape(raw)) return null;
@@ -249,7 +250,7 @@ class ShorthandMappings {
     if (raw is! Map) return false;
     final move = raw['move'];
     if (move is! String) return false;
-    if (move != meanwhileMove && move != modifierMove) {
+    if (!isContainerMove(move)) {
       try {
         figureFromJson(raw.cast<String, Object?>());
         return true;
@@ -265,21 +266,18 @@ class ShorthandMappings {
     final beats = params['beats'];
     if (rawChildren is! List ||
         rawChildren.length < 2 ||
-        rawChildren.length > kMaxMeanwhileSides ||
+        rawChildren.length > maxContainerChildren(move) ||
         beats is! int ||
         beats < 0) {
       return false;
     }
 
-    final expectedChildMove = move == meanwhileMove
-        ? modifierMove
-        : meanwhileMove;
     for (final rawChild in rawChildren) {
       if (rawChild is! Map) return false;
       final childMove = rawChild['move'];
       if (childMove is! String) return false;
-      if (childMove == meanwhileMove || childMove == modifierMove) {
-        if (childMove != expectedChildMove ||
+      if (isContainerMove(childMove)) {
+        if (childMove == move ||
             !_passesRawStructuralShape(rawChild, depth: depth + 1)) {
           return false;
         }
@@ -305,19 +303,14 @@ class ShorthandMappings {
       final beats = figure.params['beats'];
       if (figure.params['figures'] is! List ||
           children.length < 2 ||
-          children.length > kMaxMeanwhileSides ||
+          children.length > maxContainerChildren(figure.move) ||
           beats is! int ||
           beats < 0) {
         return false;
       }
 
       return children.every((child) {
-        if (child.isContainer) {
-          final expectedMove = figure.isMeanwhile
-              ? modifierMove
-              : meanwhileMove;
-          if (child.move != expectedMove) return false;
-        }
+        if (child.isContainer && child.move == figure.move) return false;
         return _passesValidation(child, taxonomy, depth: depth + 1);
       });
     }

@@ -428,8 +428,7 @@ List<ValidationIssue> validateCompound(
     final figure = definition.figures[i];
     final move = figure.move;
     if (move == customMove ||
-        move == meanwhileMove ||
-        move == modifierMove ||
+        isContainerMove(move) ||
         taxonomy.resolve(move) == null) {
       error(
         CompoundIssueCodes.badTemplate,

@@ -138,6 +138,15 @@ class _ShorthandMappingEditorScreenState
     return group.id;
   }
 
+  Future<String?> _addSequence() async {
+    final group = FigureDraft(sequenceFigures: [FigureDraft(), FigureDraft()]);
+    setState(() {
+      _drafts.add(group);
+      _error = null;
+    });
+    return group.id;
+  }
+
   void _deleteFigure(FigureDraft draft) {
     setState(() {
       _drafts.remove(draft);
@@ -244,6 +253,7 @@ class _ShorthandMappingEditorScreenState
               onAdd: _addFigure,
               onAddMeanwhile: _addMeanwhile,
               onAddModifier: _addModifier,
+              onAddSequence: _addSequence,
               onDelete: _deleteFigure,
               onDuplicate: _duplicateFigure,
               onReorder: _reorderFigure,

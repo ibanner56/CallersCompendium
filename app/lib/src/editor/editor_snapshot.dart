@@ -22,6 +22,7 @@ class FigureDraftSnapshot {
     this.wordingOverride,
     this.meanwhileSides,
     this.modifierFigures,
+    this.sequenceFigures,
     this.compound,
   });
 
@@ -46,6 +47,11 @@ class FigureDraftSnapshot {
             ? null
             : List.unmodifiable(
                 draft.modifierFigures!.map(FigureDraftSnapshot.fromDraft),
+              ),
+        sequenceFigures: draft.sequenceFigures == null
+            ? null
+            : List.unmodifiable(
+                draft.sequenceFigures!.map(FigureDraftSnapshot.fromDraft),
               ),
         compound: draft.compound?.copy(),
       );
@@ -84,6 +90,9 @@ class FigureDraftSnapshot {
   /// Non-null when this snapshot is a modifier group.
   final List<FigureDraftSnapshot>? modifierFigures;
 
+  /// Non-null when this snapshot is a sequence group.
+  final List<FigureDraftSnapshot>? sequenceFigures;
+
   /// Non-null when this snapshot is a compound placeholder (#709); mirrors
   /// [FigureDraft.compound]. A private copy: [toDraft] copies it again, so no
   /// draft ever shares it.
@@ -104,6 +113,9 @@ class FigureDraftSnapshot {
         ?.map((s) => s.toDraft())
         .toList(growable: true),
     modifierFigures: modifierFigures
+        ?.map((s) => s.toDraft())
+        .toList(growable: true),
+    sequenceFigures: sequenceFigures
         ?.map((s) => s.toDraft())
         .toList(growable: true),
     compound: compound?.copy(),

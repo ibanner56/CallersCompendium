@@ -500,12 +500,7 @@ List<Figure> meanwhileSideFiguresFromStored(Object? stored) {
       final raw = jsonDecode(stored);
       if (raw is! List ||
           raw.length > kMaxMeanwhileSides ||
-          raw.any(
-            (entry) =>
-                entry is! Map ||
-                entry['move'] == meanwhileMove ||
-                entry['move'] == modifierMove,
-          )) {
+          raw.any((entry) => entry is! Map || isContainerMove(entry['move']))) {
         return defaultMeanwhileSideFigures();
       }
       final figures = decodeFigures(stored);
@@ -543,12 +538,7 @@ List<Figure> modifierFiguresFromStored(Object? stored) {
       final raw = jsonDecode(stored);
       if (raw is! List ||
           raw.length > kMaxModifierFigures ||
-          raw.any(
-            (entry) =>
-                entry is! Map ||
-                entry['move'] == meanwhileMove ||
-                entry['move'] == modifierMove,
-          )) {
+          raw.any((entry) => entry is! Map || isContainerMove(entry['move']))) {
         return defaultModifierFigures();
       }
       final figures = decodeFigures(stored);
