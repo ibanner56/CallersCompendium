@@ -407,22 +407,26 @@ You do **not** need to write code to translate the app.
    It flags stale English-source markers, missing/renamed placeholders,
    mismatched plural arguments, a wrong `@@locale`, and unsafe content before
    the change ever reaches a build.
-5. **iOS only:** add your locale to `app/ios/Runner/Info.plist` under a
-   `CFBundleLocalizations` array, using the **hyphenated BCP-47 tag** (e.g.
-   `<string>fr</string>`, `<string>pt-BR</string>`, `<string>zh-Hant</string>`) —
-   not the underscore filename form. iOS advertises the languages an app supports
-   from this list, so without it a contributed language isn't offered by the
-   system. The Dart side needs nothing further: `resolveSystemLocale`
+5. **Platform manifests:** the OS advertises the languages an app supports from
+   each platform's own list, so without an entry a contributed language isn't
+   offered by the system. Add the locale to every one, using the **hyphenated
+   BCP-47 tag** (e.g. `fr`, `pt-BR`, `zh-Hant`) — not the underscore filename
+   form:
+   - iOS: a `CFBundleLocalizations` array in `app/ios/Runner/Info.plist`
+     (`<string>fr</string>`, `<string>pt-BR</string>`, …).
+   - macOS: `CFBundleLocalizations` in `app/macos/Runner/Info.plist`. macOS
+     `knownRegions` in `app/macos/Runner.xcodeproj/project.pbxproj` still lists
+     only `en, Base`; the plist entry has not been confirmed on a Mac to be
+     enough on its own.
+   - Android 13+: `app/android/app/src/main/res/xml/locales_config.xml`.
+   - Windows installer: the `[Languages]` section of
+     `packaging/windows/CallersCompendium.iss` (pick the matching
+     `compiler:Languages\*.isl`).
+
+   The Dart side needs nothing further: `resolveSystemLocale`
    (`locale_scope.dart`) matches the device's language list against the
    supported locales and falls back to **English** — not `supportedLocales.first`,
-   which is alphabetical (`da`) — when none match. The OS per-app language
-   pickers do depend on platform manifests, though, so add the locale to each:
-   `CFBundleLocalizations` in `app/macos/Runner/Info.plist`,
-   `app/android/app/src/main/res/xml/locales_config.xml` (Android 13+), and the
-   `[Languages]` section of `packaging/windows/CallersCompendium.iss` (pick the
-   matching `compiler:Languages\*.isl`). macOS `knownRegions` in
-   `app/macos/Runner.xcodeproj/project.pbxproj` still lists only `en, Base`; the
-   macOS plist entry has not been confirmed on a Mac to be enough on its own.
+   which is alphabetical (`da`) — when none match.
 6. That's it — your language automatically appears in **Settings ▸ Language &
    region ▸ App language**, shown by its native name, with no code change. If the
    endonym doesn't yet have an entry in `nativeLanguageName` it falls back to the
