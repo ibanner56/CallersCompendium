@@ -87,7 +87,7 @@ String _figureLikePattern(String text, {required bool prefix}) {
   return prefix ? '% $escaped%' : '%$escaped%';
 }
 
-/// The `figures_text` condition that matches [ftsBind] (bound first) and still
+/// The `figures_text` condition that matches an FTS query (bound first) and still
 /// holds with the role tokens removed (pattern bound second).
 String _figureMatchWithoutRoleTokens(String table, {required bool prefix}) =>
     'id IN (SELECT dance_id FROM $table WHERE figures_text MATCH ? '
