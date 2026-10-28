@@ -316,7 +316,9 @@ Moving from **Caller's Companion**? Caller's Compendium can read its exported
 A `.USR` import brings across both your **dances** and your **program history**
 (Caller's Companion "sets"), and — like every other import — it is reviewable
 before it commits and undoable right after. Dances and programs you have imported
-before are recognised and offered as updates rather than duplicated.
+before are recognised and offered as updates rather than duplicated. A dance
+you bring in early with **Import and edit** still takes its place in your
+programs and related dances when you then import the rest of the file.
 
 Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app

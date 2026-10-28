@@ -1,0 +1,15 @@
+{
+  "id": "cc-usr-import-and-edit",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Import and edit no longer says \"Couldn't import that dance to edit.\" for a Caller's Companion dance that has a value in one of your custom columns.",
+      "A Caller's Companion dance brought in with Import and edit now keeps its place in your programs and related dances when you import the rest of the file, instead of showing as \"Dance not imported\"."
+    ]
+  },
+  "core": {
+    "added": [
+      "CallersCompanionUsrImporter.commitDances commits .USR dances alone, creating their user-field definitions first; commit takes earlierDanceIds so its programs and related-dance links can name those dances."
+    ]
+  }
+}

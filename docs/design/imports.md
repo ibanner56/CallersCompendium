@@ -448,6 +448,18 @@ declines the collapse.
     carries nothing, so the value already stored for it is kept.
   - **Not migrated:** dances imported before #1890 keep the `Label: value`
     lines in their calling notes.
+- **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
+  before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
+  the same definition step as `commit` (a bare pipeline commit of a dance with a
+  user-field value is refused by the repository) but builds no programs or
+  links, and has no undo. The screen keeps each such dance's `zk_Dance_ID` →
+  dance id and passes it to the batch `commit` as `earlierDanceIds`, so set
+  slots and `Dance_Related` pairs naming it resolve to it rather than becoming
+  "not imported" placeholders; an entry whose dance no longer exists is
+  ignored, and the batch's own dance wins for a CC id it also commits. A
+  related-dance link the batch adds **to** such a dance is recorded
+  (`CcUsrImportResult.linksAddedToEarlierDances`) and removed by id on undo or a
+  failed commit, since that dance is not the batch's to restore.
 - Library-scale behaviour (a ~20 000-dance `.USR` is ~240 MB and ~40 s of
   parsing): the app reads the file on a **background isolate** (the adapter takes
   an injectable `CcUsrArchiveReader`; the default source uses
