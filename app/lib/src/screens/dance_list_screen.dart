@@ -1316,11 +1316,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     });
   }
 
-  /// Says that a batch write failed, and why it matters that nothing more
-  /// happens: selection mode stays open so the caller can simply try again.
-  /// Shared by every batch handler, so none of them fails silently.
-  void _reportBatchFailure(Object error, StackTrace stackTrace, String source) {
-    logCaughtError(error, stackTrace, source: source);
+  /// Says that a batch write failed (the caller has logged it): selection mode
+  /// stays open so the caller can simply try again. Shared by every batch
+  /// handler, so none of them fails silently.
+  void _reportBatchFailure() {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
@@ -1423,7 +1422,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
       });
     } catch (error, stackTrace) {
-      _reportBatchFailure(error, stackTrace, 'dance_list_screen._applyTags');
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._applyTags');
+      _reportBatchFailure();
       return;
     }
 
@@ -1527,11 +1527,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
         now: DateTime.now().toUtc(),
       );
     } catch (error, stackTrace) {
-      _reportBatchFailure(
+      logCaughtError(
         error,
         stackTrace,
-        'dance_list_screen._batchSetLevel',
+        source: 'dance_list_screen._batchSetLevel',
       );
+      _reportBatchFailure();
       return;
     }
 
@@ -1661,11 +1662,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
         now: DateTime.now().toUtc(),
       );
     } catch (error, stackTrace) {
-      _reportBatchFailure(
+      logCaughtError(
         error,
         stackTrace,
-        'dance_list_screen._batchSetRating',
+        source: 'dance_list_screen._batchSetRating',
       );
+      _reportBatchFailure();
       return;
     }
 
@@ -1741,11 +1743,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
         now: DateTime.now().toUtc(),
       );
     } catch (error, stackTrace) {
-      _reportBatchFailure(
+      logCaughtError(
         error,
         stackTrace,
-        'dance_list_screen._batchAddTunes',
+        source: 'dance_list_screen._batchAddTunes',
       );
+      _reportBatchFailure();
       return;
     }
 
@@ -1822,11 +1825,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
         now: DateTime.now().toUtc(),
       );
     } catch (error, stackTrace) {
-      _reportBatchFailure(
+      logCaughtError(
         error,
         stackTrace,
-        'dance_list_screen._batchClearTunes',
+        source: 'dance_list_screen._batchClearTunes',
       );
+      _reportBatchFailure();
       return;
     }
 
@@ -1910,11 +1914,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
         );
       }
     } catch (error, stackTrace) {
-      _reportBatchFailure(
+      logCaughtError(
         error,
         stackTrace,
-        'dance_list_screen._batchCustomField',
+        source: 'dance_list_screen._batchCustomField',
       );
+      _reportBatchFailure();
       return;
     }
 

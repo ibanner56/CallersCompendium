@@ -323,6 +323,8 @@ Future<Dance> duplicateDanceWithRelatedLinks(
   try {
     await saveDanceWithRelatedLinks(repos, dance: copy);
   } on RelatedDanceLinkSaveException catch (error) {
+    // diagnostics: silent — the oversized-group case has a working fallback
+    // below, and other save failures are rethrown to the caller.
     // A group past the inspection bound cannot be reconciled, but duplicating
     // a member of one worked before and must keep working: the copy is made
     // with ordinary links, outside the group, as it was.
