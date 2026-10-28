@@ -308,6 +308,9 @@ This is the intake's "stale copies overwrite newer data" pattern, applied to wha
 
 ### F14 `fix/action-failures-visible`: user actions fail visibly and write atomically
 
+- **Added after wave 1 merged (2026-10-28):**
+  - From F12 (#1989): both program-import Undo closures await `hardDelete` then `rollBack`. When `showUndoSnackBar`'s callback becomes failure-aware, a rollback failure must be surfaced too.
+  - From F15 (#1987): re-tapping an online result after Cancel starts a second fetch while the first runs out its 30 s timeout. Add a dedupe guard so only one preview fetch is in flight.
 - **Findings:**
   - **FAIL-6, scenario A** (B is folded into F12):
     - `showUndoSnackBar` takes an async callback and shows "Couldn't undo" on failure.
