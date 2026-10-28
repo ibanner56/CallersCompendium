@@ -8166,6 +8166,18 @@
   "@updateDownloadFailureUnreachable": {
     "x-sourceSha256": "1c201c02be93aad9d8d0ed525a227d4c119bb8e54e3bd4aa9667cbe9f91398ac"
   },
+  "updateDownloadFailureServerError": "Der Update-Server konnte die Datei nicht bereitstellen. Versuchen Sie es später erneut oder verwenden Sie „Release ansehen“.",
+  "@updateDownloadFailureServerError": {
+    "x-sourceSha256": "4338a8e9d36a12cf4d4ae938595585ad4c51a44c0fae849c83d24cb455b553e3"
+  },
+  "updateDownloadFailureDiskFull": "Es ist nicht genug freier Speicherplatz vorhanden, um das Update zu speichern. Schaffen Sie Platz und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.",
+  "@updateDownloadFailureDiskFull": {
+    "x-sourceSha256": "5d4f7d6e3ab2a579945c55b6926d2f050473c47771901c487de5d3267ed87332"
+  },
+  "updateDownloadFailureUnwritable": "Das Update konnte nicht gespeichert werden, weil der Download-Ort nicht beschreibbar ist. Prüfen Sie die Berechtigungen und versuchen Sie es erneut oder verwenden Sie „Release ansehen“.",
+  "@updateDownloadFailureUnwritable": {
+    "x-sourceSha256": "69d9b3ec764ae6d45e0a00b084db3375138a8f12a58130d9903fdc98f8f32289"
+  },
   "updateDownloadFailureChecksumMismatch": "Das heruntergeladene Update hat die Sicherheitsprüfung (sha256) nicht bestanden und wurde gelöscht. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.",
   "@updateDownloadFailureChecksumMismatch": {
     "x-sourceSha256": "9b45db38ce784fbb8fe3c676b1a9f3f344ef746368f97db1c8ac5f1201b43ea7"
@@ -9329,6 +9341,14 @@
   "publishedCollectionsUnavailable": "Veröffentlichte Sammlungen sind vorübergehend nicht verfügbar.",
   "@publishedCollectionsUnavailable": {
     "x-sourceSha256": "286ca7d1f2dfaf05d973b18f9d8167ca700dd94c02afc27cd91e74f85abbd35f"
+  },
+  "publishedCollectionsOffline": "Veröffentlichte Sammlungen konnten nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+  "@publishedCollectionsOffline": {
+    "x-sourceSha256": "9d5685db1bd84a665edf1099bdca7fbbe48285bd68a1426598c99ee55c348fa5"
+  },
+  "publishedCollectionsNeedsNewerApp": "Diese veröffentlichten Sammlungen benötigen eine neuere App-Version. Aktualisieren Sie die App, um sie zu sehen.",
+  "@publishedCollectionsNeedsNewerApp": {
+    "x-sourceSha256": "0cad4410562e2480c61c29e63be41b3101e5d9562c150eeb28db9e393e98f213"
   },
   "publishedCollectionImport": "Sammlung importieren",
   "@publishedCollectionImport": {

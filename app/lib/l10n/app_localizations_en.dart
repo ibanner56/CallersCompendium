@@ -8261,6 +8261,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'The update could not be downloaded. Check your connection and try again, or use \"View release\".';
 
   @override
+  String get updateDownloadFailureServerError =>
+      'The update server could not provide the file. Try again later, or use \"View release\".';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'There is not enough free disk space to save the update. Free up some space and try again, or use \"View release\".';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'The update could not be saved because the download location is not writable. Check its permissions and try again, or use \"View release\".';
+
+  @override
   String get updateDownloadFailureChecksumMismatch =>
       'The downloaded update failed its security (sha256) check and was deleted. Try again, or use \"View release\" to download it manually.';
 
@@ -9446,6 +9458,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Published collections are temporarily unavailable.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Published collections could not be reached. Check your connection and try again.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'These published collections need a newer app version. Update the app to see them.';
 
   @override
   String get publishedCollectionImport => 'Import collection';

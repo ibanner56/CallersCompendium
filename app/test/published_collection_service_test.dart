@@ -6,6 +6,7 @@ import 'package:compendium_app/src/published_collections/published_collection_se
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  _catalogFormatTests();
   test('requires the archive digest to match the signed entry', () async {
     final archive = utf8.encode('archive');
     final service = PublishedCollectionService(
@@ -137,5 +138,73 @@ void main() {
       ),
     );
     expect(archiveFetched, isFalse);
+  });
+}
+
+Future<PublishedCollectionFetchFailure> _catalogFailure(
+  Map<String, Object?> manifest,
+) async {
+  final service = PublishedCollectionService(
+    bytesFetcher: (uri, _) async =>
+        uri.toString() == kPublishedCollectionManifestUrl
+        ? utf8.encode(jsonEncode(manifest))
+        : utf8.encode('signature'),
+    signatureVerifier: (_, _) async => true,
+  );
+  try {
+    await service.fetchCatalog();
+  } on PublishedCollectionFetchException catch (error) {
+    return error.code;
+  }
+  fail('fetchCatalog did not throw');
+}
+
+void _catalogFormatTests() {
+  group('a catalog this app cannot read', () {
+    Map<String, Object?> manifest({
+      int major = 1,
+      int minor = 0,
+      String minReader = '0.1.0',
+    }) => {
+      'manifestSchema': {'major': major, 'minor': minor},
+      'minReaderVersion': minReader,
+      'collections': const <Object?>[],
+    };
+
+    test('a newer schema major needs a newer app', () async {
+      expect(
+        await _catalogFailure(manifest(major: 2)),
+        PublishedCollectionFetchFailure.unsupported,
+      );
+    });
+
+    test('a newer schema minor needs a newer app', () async {
+      expect(
+        await _catalogFailure(manifest(minor: 1)),
+        PublishedCollectionFetchFailure.unsupported,
+      );
+    });
+
+    test('a minimum reader version above this app needs a newer app', () async {
+      expect(
+        await _catalogFailure(manifest(minReader: '999.0.0')),
+        PublishedCollectionFetchFailure.unsupported,
+      );
+    });
+
+    test(
+      'an older schema major or a corrupt manifest stays malformed',
+      () async {
+        expect(
+          await _catalogFailure(manifest(major: 0)),
+          PublishedCollectionFetchFailure.malformed,
+        );
+        expect(
+          await _catalogFailure(manifest()),
+          PublishedCollectionFetchFailure.malformed,
+          reason: 'an empty collections list is a corrupt manifest',
+        );
+      },
+    );
   });
 }

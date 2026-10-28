@@ -117,7 +117,7 @@ void main() {
     expect(await dest.exists(), isFalse);
   });
 
-  test('a non-2xx status is a network error and leaves no file', () async {
+  test('a non-2xx status is an httpError and leaves no file', () async {
     final client = _streamingClient([utf8.encode('nope')], statusCode: 500);
 
     final outcome = await downloadArtifact(
@@ -126,8 +126,8 @@ void main() {
       client: client,
     );
 
-    expect(outcome.kind, DownloadResultKind.networkError);
-    expect(outcome.message, contains('500'));
+    expect(outcome.kind, DownloadResultKind.httpError);
+    expect(outcome.httpStatus, 500);
     expect(await dest.exists(), isFalse);
   });
 
@@ -423,7 +423,7 @@ void main() {
       client: client,
     );
 
-    expect(outcome.kind, DownloadResultKind.networkError);
+    expect(outcome.kind, DownloadResultKind.destinationOccupied);
     expect(outcome.message, contains('already exists'));
     // The pre-existing directory must be left untouched, not deleted.
     expect(await collide.exists(), isTrue);
@@ -445,7 +445,7 @@ void main() {
       client: client,
     );
 
-    expect(outcome.kind, DownloadResultKind.networkError);
+    expect(outcome.kind, DownloadResultKind.destinationOccupied);
     expect(outcome.message, contains('already exists'));
     // The symlink must still exist, unmolested, and its target must be
     // completely untouched — the write never followed it.
@@ -470,7 +470,7 @@ void main() {
       client: client,
     );
 
-    expect(outcome.kind, DownloadResultKind.networkError);
+    expect(outcome.kind, DownloadResultKind.destinationOccupied);
     expect(outcome.message, contains('already exists'));
     // The dangling symlink must still exist, unmolested, and its target
     // must still not exist — the write never followed/created through it.
@@ -517,6 +517,46 @@ void main() {
       expect(sink.closeCalls, 1, reason: 'the handle must be released');
       expect(dest.existsSync(), isFalse);
     });
+
+    test('a flush failure from a full disk is diskFull', () async {
+      final sink = _FakeSink(
+        flushError: const FileSystemException(
+          'flush failed',
+          '/x',
+          OSError('No space left on device', 28),
+        ),
+      );
+
+      final outcome = await downloadArtifact(
+        _artifact(size: 4),
+        destination: _SinkFile(dest, sink),
+        client: _streamingClient([utf8.encode('AAAA')], contentLength: 4),
+      );
+
+      expect(outcome.kind, DownloadResultKind.diskFull);
+      expect(dest.existsSync(), isFalse);
+    });
+
+    test(
+      'a flush failure from a permission error is permissionDenied',
+      () async {
+        final sink = _FakeSink(
+          flushError: const FileSystemException(
+            'flush failed',
+            '/x',
+            OSError('Permission denied', 13),
+          ),
+        );
+
+        final outcome = await downloadArtifact(
+          _artifact(size: 4),
+          destination: _SinkFile(dest, sink),
+          client: _streamingClient([utf8.encode('AAAA')], contentLength: 4),
+        );
+
+        expect(outcome.kind, DownloadResultKind.permissionDenied);
+      },
+    );
 
     test('a flush failure after a failed transfer keeps the original outcome '
         'and still closes the sink', () async {

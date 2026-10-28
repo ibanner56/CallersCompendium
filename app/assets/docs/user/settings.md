@@ -503,6 +503,12 @@ keep the AppImage, move it out of the temporary folder to somewhere permanent
 banner's link takes you to the release to download it the usual way for your
 platform.
 
+If the download fails, the message says why: your connection, an error from the
+update server, a full disk, or a folder the app cannot write to. Free some space
+or choose another location, then try again. **View release** is always there as
+a manual fallback. Each failure is also recorded in **Settings** → **Diagnostics**,
+without file paths.
+
 Your privacy is built in: an update check downloads a small version file over a
 secure connection and nothing else. No information about you, your device, or how
 you use the app is ever sent.

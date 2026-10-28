@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/update/artifact_downloader.dart';
 import 'package:compendium_app/src/update/artifact_destination.dart';
 import 'package:compendium_app/src/update/artifact_handoff.dart';
@@ -728,6 +730,55 @@ void main() {
       expect(c.downloadFailure, UpdateDownloadFailure.handoffFailed);
     });
 
+    for (final (outcome, expected) in [
+      (DownloadOutcome.httpError(404), UpdateDownloadFailure.serverError),
+      (
+        DownloadOutcome.fileFailure(
+          'write',
+          const FileSystemException('w', '/secret/path', OSError('full', 28)),
+        ),
+        UpdateDownloadFailure.diskFull,
+      ),
+      (
+        DownloadOutcome.fileFailure(
+          'write',
+          const FileSystemException('w', '/secret/path', OSError('denied', 13)),
+        ),
+        UpdateDownloadFailure.unwritable,
+      ),
+      (
+        DownloadOutcome.networkError('offline'),
+        UpdateDownloadFailure.unreachable,
+      ),
+    ]) {
+      test('${outcome.kind.name} is ${expected.name}, and the failure is '
+          'logged without a path', () async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+        final repos = openTestRepositories();
+        final c = controller(
+          repos,
+          manifestBody: _manifest(),
+          downloader: failing(outcome),
+        );
+        addTearDown(c.dispose);
+        await c.load();
+        await c.checkNow();
+
+        await c.startAssistedDownload();
+
+        expect(c.downloadFailure, expected);
+        expect(sink.records, hasLength(1));
+        expect(sink.records.single.$2, contains(expected.name));
+        expect(sink.records.single.$2, isNot(contains('/secret/path')));
+        expect(
+          sink.records.single.$1,
+          'update_controller.startAssistedDownload',
+        );
+      });
+    }
+
     test('a fresh attempt and a reset both clear the reason', () async {
       final repos = openTestRepositories();
       final c = controller(
@@ -916,10 +967,10 @@ void main() {
 
       await c.startAssistedDownload();
 
-      expect(seen?.kind, DownloadResultKind.networkError);
+      expect(seen?.kind, DownloadResultKind.destinationOccupied);
       expect(seen?.message, contains('already exists'));
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
-      expect(c.downloadFailure, UpdateDownloadFailure.unreachable);
+      expect(c.downloadFailure, UpdateDownloadFailure.destinationOccupied);
     });
   });
 }
@@ -944,4 +995,13 @@ class _PlantingTempDir implements Directory {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _RecordingSink implements CrashLogSink {
+  final List<(String, String)> records = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    records.add((source, error.toString()));
+  }
 }

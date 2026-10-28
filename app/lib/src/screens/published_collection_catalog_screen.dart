@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../diagnostics/error_log.dart';
 import '../published_collections/published_collection_manifest.dart';
 import '../published_collections/published_collection_service.dart';
 import '../theme/app_spacing.dart';
@@ -86,13 +87,41 @@ class _PublishedCollectionCatalogState
     extends State<PublishedCollectionCatalog> {
   late final PublishedCollectionService _service =
       widget.service ?? PublishedCollectionService();
-  late final Future<PublishedCollectionManifest> _catalog = _service
-      .fetchCatalog();
+  late Future<PublishedCollectionManifest> _catalog = _loadCatalog();
   final _statusByEntry =
       <(String, String), Future<PublishedCollectionStatus>>{};
   PublishedCollectionEntry? _loadingEntry;
   PublishedCollectionFetchFailure? _archiveError;
   PublishedCollectionEntry? _archiveErrorEntry;
+
+  /// Fetches the catalog, recording a failure in the diagnostics log once per
+  /// attempt (not once per rebuild of the [FutureBuilder]). A typed failure
+  /// logs its code; anything else logs only its runtime type.
+  Future<PublishedCollectionManifest> _loadCatalog() async {
+    try {
+      return await _service.fetchCatalog();
+    } on PublishedCollectionFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'published_collection_catalog_screen._loadCatalog',
+      );
+      rethrow;
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'published_collection_catalog_screen._loadCatalog',
+      );
+      rethrow;
+    }
+  }
+
+  void _retryCatalog() {
+    setState(() {
+      _catalog = _loadCatalog();
+    });
+  }
 
   Future<void> _import(PublishedCollectionEntry entry) async {
     if (!entry.isSupported || _loadingEntry != null) return;
@@ -109,7 +138,11 @@ class _PublishedCollectionCatalogState
         _statusByEntry.removeWhere((key, _) => key.$1 == entry.id);
       }
     } on PublishedCollectionFetchException catch (error) {
-      // diagnostics: silent — this expected typed failure is shown inline.
+      logCaughtError(
+        error,
+        null,
+        source: 'published_collection_catalog_screen._import',
+      );
       if (!mounted) return;
       setState(() {
         _archiveError = error.code;
@@ -141,9 +174,25 @@ class _PublishedCollectionCatalogState
         if (error != null || !snapshot.hasData) {
           return Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Text(
-              l10n.publishedCollectionsUnavailable,
-              textAlign: TextAlign.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _failureMessage(
+                    l10n,
+                    error is PublishedCollectionFetchException
+                        ? error.code
+                        : PublishedCollectionFetchFailure.unavailable,
+                    catalog: true,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextButton(
+                  onPressed: _retryCatalog,
+                  child: Text(l10n.commonRetry),
+                ),
+              ],
             ),
           );
         }
@@ -242,8 +291,17 @@ class _PublishedCollectionCatalogState
             if (archiveError) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(
-                l10n.publishedCollectionsUnavailable,
+                _failureMessage(l10n, _archiveError!),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton(
+                  onPressed: _loadingEntry != null
+                      ? null
+                      : () => _import(entry),
+                  child: Text(l10n.commonRetry),
+                ),
               ),
             ],
             const SizedBox(height: AppSpacing.sm),
@@ -267,4 +325,32 @@ class _PublishedCollectionCatalogState
       ),
     );
   }
+}
+
+/// Plain-language reason for a failed published-collection fetch. A transport
+/// failure reads as "offline" and an unreadable newer format as "needs a newer
+/// app"; every integrity or trust failure reads as "unavailable" (the cause is
+/// in the diagnostics log, not shown). [catalog] selects the whole-catalog
+/// wording of the newer-app case.
+String _failureMessage(
+  AppLocalizations l10n,
+  PublishedCollectionFetchFailure code, {
+  bool catalog = false,
+}) {
+  return switch (code) {
+    PublishedCollectionFetchFailure.unavailable =>
+      l10n.publishedCollectionsOffline,
+    PublishedCollectionFetchFailure.unsupported =>
+      catalog
+          ? l10n.publishedCollectionsNeedsNewerApp
+          : l10n.publishedCollectionUnsupported,
+    PublishedCollectionFetchFailure.redirectRefused ||
+    PublishedCollectionFetchFailure.responseTooLarge ||
+    PublishedCollectionFetchFailure.malformed ||
+    PublishedCollectionFetchFailure.missingSignature ||
+    PublishedCollectionFetchFailure.invalidSignature ||
+    PublishedCollectionFetchFailure.digestMismatch ||
+    PublishedCollectionFetchFailure.byteCountMismatch =>
+      l10n.publishedCollectionsUnavailable,
+  };
 }

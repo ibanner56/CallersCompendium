@@ -73,10 +73,13 @@ class PublishedCollectionService {
         utf8.decode(manifestBytes),
         readerVersion: SemVer.tryParse(kAppVersion)!,
       );
-    } on PublishedCollectionFormatException {
-      // diagnostics: silent — map the typed parser failure to a safe UI error.
-      throw const PublishedCollectionFetchException(
-        PublishedCollectionFetchFailure.malformed,
+    } on PublishedCollectionFormatException catch (error) {
+      // diagnostics: silent — map the typed parser failure to a safe UI error;
+      // the screen logs the typed code.
+      throw PublishedCollectionFetchException(
+        error.requiresNewerApp
+            ? PublishedCollectionFetchFailure.unsupported
+            : PublishedCollectionFetchFailure.malformed,
       );
     } on FormatException {
       // diagnostics: silent — map malformed UTF-8 to a safe UI error.

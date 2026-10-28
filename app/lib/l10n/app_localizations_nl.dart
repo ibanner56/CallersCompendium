@@ -8357,6 +8357,18 @@ class AppLocalizationsNl extends AppLocalizations {
       'De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw, of gebruik „Release bekijken”.';
 
   @override
+  String get updateDownloadFailureServerError =>
+      'De updateserver kon het bestand niet leveren. Probeer het later opnieuw, of gebruik „Release bekijken”.';
+
+  @override
+  String get updateDownloadFailureDiskFull =>
+      'Er is niet genoeg vrije schijfruimte om de update op te slaan. Maak ruimte vrij en probeer het opnieuw, of gebruik „Release bekijken”.';
+
+  @override
+  String get updateDownloadFailureUnwritable =>
+      'De update kon niet worden opgeslagen omdat de downloadlocatie niet beschrijfbaar is. Controleer de rechten en probeer het opnieuw, of gebruik „Release bekijken”.';
+
+  @override
   String get updateDownloadFailureChecksumMismatch =>
       'De gedownloade update is niet door de beveiligingscontrole (sha256) gekomen en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.';
 
@@ -9553,6 +9565,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get publishedCollectionsUnavailable =>
       'Gepubliceerde collecties zijn tijdelijk niet beschikbaar.';
+
+  @override
+  String get publishedCollectionsOffline =>
+      'Gepubliceerde collecties konden niet worden bereikt. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get publishedCollectionsNeedsNewerApp =>
+      'Deze gepubliceerde collecties hebben een nieuwere appversie nodig. Werk de app bij om ze te zien.';
 
   @override
   String get publishedCollectionImport => 'Collectie importeren';
