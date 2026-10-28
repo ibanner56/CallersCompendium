@@ -87,7 +87,12 @@ class CcDanceRecord {
     this.name,
     List<String> authors = const [],
     this.type,
+    this.subType,
     this.formation,
+    this.formationFamily,
+    this.contraForm,
+    this.direction,
+    this.formationOther,
     this.level,
     this.progression,
     this.music,
@@ -112,8 +117,29 @@ class CcDanceRecord {
   /// CC `Type` (e.g. "Contra", "Square").
   final String? type;
 
-  /// CC `Formation`/`ContraForm` (e.g. "Improper", "Becket", "Proper").
+  /// CC `SubType` (e.g. "Keeper, H S H S", "Mixer, H H S S" on a square).
+  final String? subType;
+
+  /// A single formation string (e.g. "Improper", "Becket", "Proper"), as the
+  /// CC text export gives it. Read only when none of the separate `.USR`
+  /// columns below is present.
   final String? formation;
+
+  /// CC `Formation`: the shape family ("Duple Minor", "Four Facing Four",
+  /// "Triple Minor", "Triplet", "Square", "Other").
+  final String? formationFamily;
+
+  /// CC `ContraForm`: how a duple minor starts ("Improper", "Becket",
+  /// "Proper", "Indecent").
+  final String? contraForm;
+
+  /// CC `Direction`: a Becket's rotation ("CW"/"CCW"), or "Rev" for a
+  /// reverse-progression improper.
+  final String? direction;
+
+  /// CC `FormationOther`: the caller's own description of the start
+  /// ("Long Waves, R-hand to Neighbor", "Five couple horseshoe").
+  final String? formationOther;
 
   /// CC `Level` (e.g. "Beginner", "Intermediate", "Advanced", "Mixed").
   final String? level;
@@ -296,8 +322,16 @@ CcDanceMapping mapCallersCompanionDance(
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
   final (form, typeNote) = _mapForm(record.type, issues);
 
-  // Formation → FormationShape, preserving unmapped text as detail.
-  final formation = _mapFormation(record.formation, issues);
+  // Formation → FormationShape, preserving unmapped text as detail. A `.USR`
+  // carries the formation in separate columns (#1972); the text export gives
+  // one string.
+  final structured = _hasFormationColumns(record);
+  final formation = structured
+      ? _mapFormationColumns(record, issues)
+      : _mapFormation(record.formation, issues);
+  // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
+  // SubType ("Mixer, H H S S") (#1972).
+  final mixer = structured && _isCcMixer(record);
 
   // Progression → Progression enum, best-effort.
   final progression = _mapProgression(record.progression, issues);
@@ -373,6 +407,7 @@ CcDanceMapping mapCallersCompanionDance(
     form: form,
     formation: formation,
     progression: progression,
+    mixer: mixer,
     figures: figures,
     callingNotes: notes,
     difficultyLevelId: difficultyLevelId,
@@ -619,6 +654,8 @@ bool callersCompanionDifficultyLabelMatches(
   if (value.isEmpty) return (DanceForm.contra, null);
   if (value.contains('contra')) return (DanceForm.contra, null);
   if (value.contains('square')) return (DanceForm.square, null);
+  // Formation types, read into the formation instead (#1972).
+  if (_ccFormationTypes.contains(value)) return (DanceForm.contra, null);
   if (value.contains('english') || value == 'ecd') {
     return (DanceForm.ecd, null);
   }
@@ -632,6 +669,104 @@ bool callersCompanionDifficultyLabelMatches(
     ),
   );
   return (DanceForm.contra, 'Type: ${raw.trim()}');
+}
+
+/// CC `Type` values that name a formation rather than a dance form.
+const Set<String> _ccFormationTypes = {
+  'circle mixer',
+  'scatter mixer',
+  'longways',
+};
+
+bool _hasFormationColumns(CcDanceRecord r) => [
+  r.formationFamily,
+  r.contraForm,
+  r.direction,
+  r.formationOther,
+].any((v) => v != null && v.trim().isNotEmpty);
+
+bool _isCcMixer(CcDanceRecord r) {
+  final type = r.type?.trim().toLowerCase() ?? '';
+  final subType = r.subType?.trim().toLowerCase() ?? '';
+  return type.endsWith('mixer') || subType.startsWith('mixer');
+}
+
+/// The formation from a `.USR`'s separate columns (#1972). `Type` and the
+/// `Formation` family decide the shape; a duple minor's `ContraForm` and
+/// `Direction` refine it; `FormationOther` is the detail.
+Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
+  String low(String? v) => v?.trim().toLowerCase() ?? '';
+  final type = low(r.type);
+  final family = low(r.formationFamily);
+  final contraForm = low(r.contraForm);
+  final direction = low(r.direction);
+  final other = _sanitizeLine(r.formationOther);
+  final detail = (other == null || other.isEmpty) ? null : other;
+
+  if (type == 'circle mixer') {
+    return Formation(FormationShape.circleMixer, detail: detail);
+  }
+  if (type == 'scatter mixer') {
+    return Formation(FormationShape.scatterMixer, detail: detail);
+  }
+  if (type == 'longways') {
+    return Formation(FormationShape.longways, detail: detail);
+  }
+  switch (family) {
+    case 'four facing four':
+      return Formation(FormationShape.fourFaceFour, detail: detail);
+    case 'triplet':
+      return Formation(FormationShape.triplet, detail: detail);
+    case 'triple minor':
+      // No triple-minor shape per start, so the start is the detail.
+      final start = _sanitizeLine(r.contraForm);
+      final parts = [?start, ?detail].where((p) => p.isNotEmpty);
+      return Formation(
+        FormationShape.tripleMinor,
+        detail: parts.isEmpty ? null : parts.join('; '),
+      );
+    case 'square':
+      return Formation(
+        FormationShape.other,
+        detail: detail == null ? 'Square' : 'Square; $detail',
+      );
+    case 'other':
+      return Formation(FormationShape.other, detail: detail ?? 'Other');
+    case '' || 'duple minor':
+      break;
+    default:
+      final raw = _sanitizeLine(r.formationFamily)!;
+      issues.add(
+        ImportIssue(
+          severity: ImportIssueSeverity.warning,
+          code: 'cc_unmapped_formation',
+          message:
+              'Formation "$raw" is unrecognized; preserved as free-text '
+              'detail.',
+        ),
+      );
+      return Formation(
+        FormationShape.other,
+        detail: detail == null ? raw : '$raw; $detail',
+      );
+  }
+  final FormationShape shape;
+  if (contraForm.contains('becket')) {
+    shape = direction == 'ccw'
+        ? FormationShape.becketCcw
+        : FormationShape.becketCw;
+  } else if (contraForm.contains('indecent')) {
+    shape = FormationShape.dupleIndecent;
+  } else if (contraForm.contains('proper') &&
+      !contraForm.contains('improper')) {
+    shape = FormationShape.dupleProper;
+  } else if (direction == 'rev') {
+    shape = FormationShape.reverseProgressionImproper;
+  } else {
+    // Improper, or no start stated (as the single-string path defaults).
+    shape = FormationShape.dupleImproper;
+  }
+  return Formation(shape, detail: detail);
 }
 
 Formation _mapFormation(String? raw, List<ImportIssue> issues) {

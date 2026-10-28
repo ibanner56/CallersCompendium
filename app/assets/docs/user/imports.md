@@ -357,6 +357,13 @@ Importing a dance again no longer clears custom-field values you have added to
 it since. A column you emptied in Caller's Companion does not clear the value
 already in that field; clear it in the app.
 
+Each dance's **formation** comes across as Caller's Companion recorded it: a
+Becket keeps its direction (clockwise or counterclockwise), four facing four,
+triplets, triple minors, longways and squares keep their shape, circle and
+scatter mixers are marked as mixers, and your own description of the starting
+position ("Long Waves, R-hand to Neighbor") is kept as the formation's detail.
+Alternates in your sets come across as alternates.
+
 Your **venues** and **related-dance links** come across as well. Set locations
 become real venue entries — matching one you already have when it is clearly the
 same place, and creating a new one when it isn't (an ambiguous match always

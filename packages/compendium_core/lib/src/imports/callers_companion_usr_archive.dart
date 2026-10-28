@@ -570,7 +570,12 @@ CcDanceRecord ccDanceRecordFromColumns(
     name: lookup.get('Name'),
     authors: authors,
     type: lookup.firstNonEmpty(['Type', 'SubType']),
+    subType: lookup.get('SubType'),
     formation: formation,
+    formationFamily: lookup.get('Formation'),
+    contraForm: lookup.get('ContraForm'),
+    direction: lookup.get('Direction'),
+    formationOther: lookup.get('FormationOther'),
     level: level,
     progression: progression,
     music: lookup.get('Music'),
@@ -922,7 +927,10 @@ List<CcSet> _extractSets(FmpDatabase db, _UsrWarnings warnings) {
               order: _parseInt(cols.get('Order')) ?? items[setId]?.length ?? 0,
               danceRecordId: hasDance ? danceId : null,
               breakText: hasDance ? null : breakText,
-              isAlt: _isTruthy(cols.get('AlternateDance')),
+              // A real file marks an alternate "ALT" (#1972).
+              isAlt:
+                  _isTruthy(cols.get('AlternateDance')) ||
+                  cols.get('AlternateDance')?.trim().toLowerCase() == 'alt',
               guestCaller: cols.get('Caller'),
               minutes: _parseInt(cols.get('Time')),
             ),
@@ -1373,6 +1381,7 @@ const List<String> kCcDanceColumnsRead = [
   'ContraForm',
   'Formation',
   'FormationOther',
+  'Direction',
   'Progression',
   'ProgressionOther',
   'Level',

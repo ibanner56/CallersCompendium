@@ -1620,14 +1620,10 @@ class CallersBoxAdapter implements SourceAdapter {
     final flag = _asString(dance['Mixer?'])?.trim().toLowerCase();
     if (flag == 'yes') return true;
     // NOTE (issue #732): this inference is intentionally scoped to The Caller's
-    // Box and is NOT applied by the ContraDB or Caller's Companion adapters.
-    // ContraDB has no first-class mixer category to read. Caller's Companion may
-    // — Chris builds his collection in CC and exports to The Caller's Box, so
-    // his data probably aligns, but "mixer" may be a custom field of his rather
-    // than a native CC concept, and we have not confirmed which. Rather than
-    // guess a mapping for a source we have not verified, those adapters leave
-    // `mixer` at its `false` default. This was considered and declined, not
-    // overlooked; revisit if an explicit request for those sources arrives.
+    // Box and is NOT applied by the ContraDB adapter, which has no first-class
+    // mixer category to read. Caller's Companion reads its own stated mixer
+    // types instead (#1972: `Type` "Circle Mixer"/"Scatter Mixer", a square's
+    // `SubType` "Mixer, …"), not an inference from the shape.
     return formation.shape == FormationShape.circleMixer ||
         formation.shape == FormationShape.scatterMixer;
   }
