@@ -2992,10 +2992,8 @@ void main() {
     // nothing. Discarding it would leave a screen that silently keeps its last
     // state with nothing logged and nothing shown.
     //
-    // Rendering is deliberately unchanged — the previous builder never read
-    // `snapshot.error`, so a failure already rendered as "not found" — and that
-    // is exactly why the log matters: on screen, a broken query and an absent
-    // dance are the same thing.
+    // A failed read renders its own "couldn't load" body with Retry, apart from
+    // "not found", and is still logged so the cause reaches the diagnostic log.
 
     testWidgets('is logged, and says it could not load rather than not found', (
       tester,

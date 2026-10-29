@@ -188,13 +188,24 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     }
   }
 
-  /// Retries a failed load from scratch with a fresh controller.
+  /// Retries after a load error.
   ///
-  /// [_load] appends into the controller's collections, so re-running it on the
-  /// controller that failed part-way could duplicate state; replacing the
-  /// controller is the one way to start clean. Nothing is lost by it: the
-  /// editing surface is not shown while [_loadError] is set.
+  /// When the controller finished loading, the error came from the
+  /// reference-data stream failing mid-edit, so the draft it holds is live:
+  /// only that subscription is reopened and the draft is kept.
+  ///
+  /// Otherwise [_load] failed part-way. It appends into the controller's
+  /// collections, so re-running it on the same controller could duplicate
+  /// state; replacing the controller is the one way to start clean. Nothing is
+  /// lost by that: the controller never loaded, so there is no draft in it.
   void _retryLoad() {
+    if (_loadInFlight) return;
+    if (_controller.loaded) {
+      unawaited(_refDataSub?.cancel());
+      setState(() => _loadError = null);
+      _subscribeReferenceData();
+      return;
+    }
     _unregisterShutdownFlush?.call();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
@@ -341,8 +352,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     super.dispose();
   }
 
-  /// Whether a [_load] is still running; [_retryLoad] waits for it so two
-  /// loads never fill one controller.
+  /// Whether a [_load] is still running. [_retryLoad] does nothing while it is,
+  /// and the Retry button is disabled, so two loads never fill one controller.
   bool _loadInFlight = false;
 
   Future<void> _load() async {

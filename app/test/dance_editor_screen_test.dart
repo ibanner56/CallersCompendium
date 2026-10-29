@@ -3479,6 +3479,38 @@ void main() {
       );
     });
 
+    testWidgets('Retry after a mid-edit stream error keeps the typed draft', (
+      tester,
+    ) async {
+      final failer = _FailOneChoreographersSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+          closeOnTearDown: false,
+        ),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Typed Title',
+      );
+      failer.arm();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      await tester.pumpAndSettle();
+      expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+      expect(find.text('Could not load the dance.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load the dance.'), findsNothing);
+      expect(find.text('Typed Title'), findsOneWidget);
+    });
+
     testWidgets('a subsequent write recovers the editor after a stream error', (
       tester,
     ) async {
