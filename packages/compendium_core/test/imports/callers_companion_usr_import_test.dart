@@ -184,6 +184,7 @@ void main() {
       venues,
       customFieldDefs,
       publishedSources: PublishedSourceRepository(db),
+      difficultyLevels: DifficultyLevelRepository(db),
     );
     nextId = sequentialIds();
   });
@@ -220,6 +221,7 @@ void main() {
         venues,
         customFieldDefs,
         publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
         adapter: CallersCompanionUsrAdapter(
           reader: (bytes, limits) async {
             reads++;
@@ -253,6 +255,7 @@ void main() {
           venues,
           customFieldDefs,
           publishedSources: PublishedSourceRepository(db),
+          difficultyLevels: DifficultyLevelRepository(db),
           adapter: CallersCompanionUsrAdapter(
             reader: (bytes, limits) async {
               reads++;
@@ -289,6 +292,7 @@ void main() {
         venues,
         customFieldDefs,
         publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
         adapter: CallersCompanionUsrAdapter(
           limits: const FmpReadLimits(maxTables: 1),
           reader: (bytes, limits) async {
@@ -569,6 +573,7 @@ void main() {
           venues,
           customFieldDefs,
           publishedSources: PublishedSourceRepository(db),
+          difficultyLevels: DifficultyLevelRepository(db),
         );
 
         await expectLater(
@@ -612,6 +617,7 @@ void main() {
           venues,
           customFieldDefs,
           publishedSources: PublishedSourceRepository(db),
+          difficultyLevels: DifficultyLevelRepository(db),
         );
         await expectLater(
           rollbackImporter.import(
@@ -1044,6 +1050,7 @@ void main() {
         countingVenues,
         customFieldDefs,
         publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
       );
 
       final result = await spiedImporter.import(
@@ -1352,6 +1359,7 @@ void main() {
       venues,
       customFieldDefs,
       publishedSources: PublishedSourceRepository(db),
+      difficultyLevels: DifficultyLevelRepository(db),
       adapter: adapter,
     );
 
@@ -1514,6 +1522,7 @@ void main() {
           venues,
           customFieldDefs,
           publishedSources: PublishedSourceRepository(db),
+          difficultyLevels: DifficultyLevelRepository(db),
           adapter: adapter,
         );
         final (rest, editedId) = await editFirst(

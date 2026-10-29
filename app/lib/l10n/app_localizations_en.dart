@@ -7019,6 +7019,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'A level wasn\'t recognized; left unspecified.';
 
   @override
+  String importIssueNewLevel(String level) {
+    return 'The level \"$level\" is added to your difficulty levels.';
+  }
+
+  @override
   String get importIssueUnmappedProgression =>
       'A progression wasn\'t recognized; defaulted to single.';
 

@@ -1,0 +1,14 @@
+{
+  "id": "dialect-rename-follows-programs",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Renaming a dialect now carries the new name to every program that uses it, including programs in Recently deleted, so they keep their Perform dialect instead of falling back to your active one."
+    ]
+  },
+  "core": {
+    "added": [
+      "`ProgramRepository.renameDialect` renames a dialect on every program that names it and bumps their `updatedAt` so the change syncs."
+    ]
+  }
+}

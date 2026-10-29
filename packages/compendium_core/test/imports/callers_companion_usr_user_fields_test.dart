@@ -59,6 +59,7 @@ void main() {
         VenueRepository(db),
         defs,
         publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
         adapter: adapter,
       );
 
@@ -595,6 +596,7 @@ void main() {
           VenueRepository(db),
           _ThrowingInUseDefs(db),
           publishedSources: PublishedSourceRepository(db),
+          difficultyLevels: DifficultyLevelRepository(db),
           adapter: adapter,
         );
         await expectLater(
