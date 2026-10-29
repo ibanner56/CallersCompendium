@@ -18,6 +18,7 @@ import 'package:compendium_app/src/widgets/online_result_tile.dart';
 
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+import '../support/panel_chip.dart';
 
 Dance _dance({
   required String id,
@@ -278,10 +279,6 @@ Future<void> _openOnlineResult(
     textScale: textScale,
   );
   await tester.pumpAndSettle();
-  await _tapVisible(
-    tester,
-    find.byKey(const ValueKey('picker-advanced-panel')),
-  );
   await _tapVisible(
     tester,
     find.byKey(const ValueKey('picker-online-search-enable')),
@@ -673,10 +670,6 @@ void main() {
       tester,
       find.byKey(const ValueKey('picker-advanced-panel')),
     );
-    await _tapVisible(
-      tester,
-      find.byKey(const ValueKey('picker-advanced-enable')),
-    );
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has figure'));
 
@@ -692,18 +685,19 @@ void main() {
     expect(_titles(tester), ['Has Petronella']);
     expect(find.text('Advanced (on)'), findsOneWidget);
 
-    // Online results are not narrowed by the query, so the button stops
-    // saying it is on.
+    // Online results are not narrowed by the query, so Advanced is greyed out
+    // while online, but the query is kept for local search.
     await _tapVisible(
       tester,
       find.byKey(const ValueKey('picker-online-search-enable')),
     );
+    expectPanelDisabled(tester, 'picker-advanced-panel');
     await _tapVisible(
       tester,
-      find.byKey(const ValueKey('picker-advanced-panel')),
+      find.byKey(const ValueKey('picker-online-search-enable')),
     );
-    expect(find.text('Advanced (on)'), findsNothing);
-    expect(find.text('Advanced'), findsOneWidget);
+    expect(find.text('Advanced (on)'), findsOneWidget);
+    expect(_titles(tester), ['Has Petronella']);
   });
 
   testWidgets('advanced builder: two "Has tag" rows find dances with both '
@@ -729,10 +723,6 @@ void main() {
     await _tapVisible(
       tester,
       find.byKey(const ValueKey('picker-advanced-panel')),
-    );
-    await _tapVisible(
-      tester,
-      find.byKey(const ValueKey('picker-advanced-enable')),
     );
 
     final tagDropdowns = find.byWidgetPredicate((w) {
@@ -1185,10 +1175,6 @@ void main() {
 
     await _tapVisible(
       tester,
-      find.byKey(const ValueKey('picker-advanced-panel')),
-    );
-    await _tapVisible(
-      tester,
       find.byKey(const ValueKey('picker-online-search-enable')),
     );
     expect(
@@ -1249,10 +1235,6 @@ void main() {
     );
     await _tapVisible(
       tester,
-      find.byKey(const ValueKey('picker-advanced-panel')),
-    );
-    await _tapVisible(
-      tester,
       find.byKey(const ValueKey('picker-online-search-enable')),
     );
     await tester.enterText(
@@ -1288,10 +1270,6 @@ void main() {
     );
     await _tapVisible(
       tester,
-      find.byKey(const ValueKey('picker-advanced-panel')),
-    );
-    await _tapVisible(
-      tester,
       find.byKey(const ValueKey('picker-online-search-enable')),
     );
     await tester.enterText(
@@ -1322,10 +1300,6 @@ void main() {
       onAddDance: (_) {},
       enableOnlineSearch: true,
       callersBoxOnline: online,
-    );
-    await _tapVisible(
-      tester,
-      find.byKey(const ValueKey('picker-advanced-panel')),
     );
     await _tapVisible(
       tester,
@@ -1580,10 +1554,6 @@ void main() {
     await tester.pumpAndSettle();
     await _tapVisible(
       tester,
-      find.byKey(const ValueKey('picker-advanced-panel')),
-    );
-    await _tapVisible(
-      tester,
       find.byKey(const ValueKey('picker-online-search-enable')),
     );
     await tester.tap(find.text('ContraDB'));
@@ -1597,7 +1567,7 @@ void main() {
 
     expect(callersBox.searchedTitles, isEmpty);
     expect(contraDb.searchedTitles, ['Remote Dance']);
-    expect(find.byKey(const ValueKey('picker-by-phrase-panel')), findsNothing);
+    expectPanelDisabled(tester, 'picker-by-phrase-panel');
   });
 
   testWidgets('online add indicators are scoped to their source', (
@@ -1623,10 +1593,6 @@ void main() {
       contraDbOnline: contraDb,
     );
     await tester.pumpAndSettle();
-    await _tapVisible(
-      tester,
-      find.byKey(const ValueKey('picker-advanced-panel')),
-    );
     await _tapVisible(
       tester,
       find.byKey(const ValueKey('picker-online-search-enable')),

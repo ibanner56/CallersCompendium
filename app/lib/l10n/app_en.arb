@@ -4848,14 +4848,6 @@
       }
     }
   },
-  "collectionUseAdvancedQuery": "Use advanced query",
-  "@collectionUseAdvancedQuery": {
-    "description": "Toggle that enables the boolean advanced-query builder."
-  },
-  "collectionUseAdvancedQuerySubtitle": "Combine figures and sequences with all / any / none groups.",
-  "@collectionUseAdvancedQuerySubtitle": {
-    "description": "Subtitle explaining what the advanced-query builder does."
-  },
   "collectionDanceCount": "{count, plural, =1{1 dance} other{{count} dances}}",
   "@collectionDanceCount": {
     "description": "Result count of local dances matching the current query.",
@@ -11589,14 +11581,6 @@
   "collectionPickerAdvanced": "Advanced",
   "@collectionPickerAdvanced": {
     "description": "Collection-picker advanced-search section header."
-  },
-  "collectionPickerUseAdvancedQuery": "Use advanced query",
-  "@collectionPickerUseAdvancedQuery": {
-    "description": "Collection-picker toggle enabling the advanced structured query builder."
-  },
-  "collectionPickerAdvancedQueryHelp": "Combine figures and sequences with all / any / none groups.",
-  "@collectionPickerAdvancedQueryHelp": {
-    "description": "Helper text describing the advanced query builder in the collection picker."
   },
   "collectionPickerAddSemantic": "Add {title} to program",
   "@collectionPickerAddSemantic": {

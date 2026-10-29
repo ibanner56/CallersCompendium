@@ -3976,14 +3976,6 @@
   "@searchToolActiveCount": {
     "x-sourceSha256": "5b8a6a9e19d0ec31c4463cf80c078271b75f4c627707208de400747487479366"
   },
-  "collectionUseAdvancedQuery": "Utiliser la recherche avancée",
-  "@collectionUseAdvancedQuery": {
-    "x-sourceSha256": "60f30365a9a0dae2b2f12c870256fe9903ea7578ab6bd0096dc72f5556c1c7eb"
-  },
-  "collectionUseAdvancedQuerySubtitle": "Combinez figures et séquences avec des groupes tout / l’un / aucun.",
-  "@collectionUseAdvancedQuerySubtitle": {
-    "x-sourceSha256": "11093d62284e858fce6d9304c6f0ce47e880a8358c299a30d722cdb6146df9e7"
-  },
   "collectionDanceCount": "{count, plural, =1{1 danse} other{{count} danses}}",
   "@collectionDanceCount": {
     "x-sourceSha256": "494f9853fc3774e0f786711a47fd9eadd58c8bb7368cc1b789ad71cb16de9db3"
@@ -8657,14 +8649,6 @@
   "collectionPickerAdvanced": "Avancé",
   "@collectionPickerAdvanced": {
     "x-sourceSha256": "9f088dbebd6c3c70a5ddbc2c943b11e4ca9acea5757b0b4f2b32479f0dbb747e"
-  },
-  "collectionPickerUseAdvancedQuery": "Utiliser la recherche avancée",
-  "@collectionPickerUseAdvancedQuery": {
-    "x-sourceSha256": "60f30365a9a0dae2b2f12c870256fe9903ea7578ab6bd0096dc72f5556c1c7eb"
-  },
-  "collectionPickerAdvancedQueryHelp": "Combinez figures et séquences avec des groupes tout / l’un / aucun.",
-  "@collectionPickerAdvancedQueryHelp": {
-    "x-sourceSha256": "11093d62284e858fce6d9304c6f0ce47e880a8358c299a30d722cdb6146df9e7"
   },
   "collectionPickerAddSemantic": "Ajouter {title} au programme",
   "@collectionPickerAddSemantic": {
