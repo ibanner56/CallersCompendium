@@ -242,10 +242,10 @@ void main() {
       await tester.tap(find.text('Save program file…'));
       await tester.pumpAndSettle();
 
-      expect(saved, ['Friday_Contra.ccshare']);
+      expect(saved, ['Friday_Contra_2026-03-09.ccshare']);
       expect(
         find.text(
-          '"Friday_Contra.ccshare" saved to ${dir.path}/Friday_Contra.ccshare.',
+          '"Friday_Contra_2026-03-09.ccshare" saved to ${dir.path}/Friday_Contra_2026-03-09.ccshare.',
         ),
         findsOneWidget,
       );
@@ -301,7 +301,7 @@ void main() {
       await tester.tap(find.text('Export as JSON file'));
       await tester.pumpAndSettle();
 
-      expect(saved, ['Friday_Contra.json']);
+      expect(saved, ['Friday_Contra_2026-03-09.json']);
       expect(find.byType(SnackBar), findsOneWidget);
     });
   });
@@ -1485,7 +1485,7 @@ void main() {
       expect(files.single.mimeType, 'application/json');
       expect(files.single.path, endsWith('.json'));
       expect(files.single.path, isNot(endsWith('.ccshare')));
-      expect(captured!.fileNameOverrides, ['Friday_Contra.json']);
+      expect(captured!.fileNameOverrides, ['Friday_Contra_2026-03-09.json']);
 
       final archive = decodeArchive(
         File(files.single.path).readAsStringSync(),
@@ -1525,12 +1525,12 @@ void main() {
       await tester.tap(find.text('Export as JSON file'));
       await tester.pumpAndSettle();
 
-      expect(savedName, 'Friday_Contra.json');
+      expect(savedName, 'Friday_Contra_2026-03-09.json');
       expect(jsonDecode(savedJson!)['programs'], isNotEmpty);
       expect(shares, 0);
       expect(
         find.text(
-          '"Friday_Contra.json" saved to ${dir.path}/Friday_Contra.json.',
+          '"Friday_Contra_2026-03-09.json" saved to ${dir.path}/Friday_Contra_2026-03-09.json.',
         ),
         findsOneWidget,
       );
