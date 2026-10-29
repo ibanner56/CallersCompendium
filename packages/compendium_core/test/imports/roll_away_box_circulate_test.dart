@@ -70,6 +70,7 @@ void main() {
               'Neighbor roll away (Larks roll Right, Robins step Left)',
               'role2s',
             ),
+            ('Neighbor roll away (Robins Roll R, Larks Step L)', 'role1s'),
           ]) {
             final f = single(line);
             expect(f.params['who'], who, reason: line);
@@ -128,7 +129,8 @@ void main() {
       expect(f.params['who'], 'role1s');
       expect(f.params['whom'], 'neighbors');
       expect(f.assumedSubject, isFalse);
-      expect(f.note, contains('role2s'));
+      // The bracket stays as the note it was before #1975.
+      expect(f.note, 'role2s; role2s roll right, role1s side-step left');
     });
 
     test('naming no dancer set is a note when a note names the roller', () {
