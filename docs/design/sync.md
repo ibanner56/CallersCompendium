@@ -4013,7 +4013,7 @@ transaction that already committed locally.
   reconcile against every peer) behind a long-press or a Settings action was
   designed but is **not built** (#1432).
 
-**Metered connections.** A setting, *Sync only on WiFi*, defaults to **on**, in
+**Metered connections.** A setting, *Sync only on Wi-Fi*, defaults to **on**, in
 the manner of any app with downloadable content. While it is on and the
 connection is metered, automatic sync does not run — and a manual "Sync now"
 does not silently override it. Instead it surfaces a snackbar explaining why,
@@ -5274,7 +5274,7 @@ Recorded so the reasoning is not re-litigated.
 | Operator visibility | Opaque by design, with a **logged break-glass path** for abuse, disclosed in the privacy policy. |
 | `programs.venue` label | Stays `shareable` — a label the user typed, and a program is meaningless without it. |
 | "Sync now" | The same pass as an automatic trigger. (A separate full re-verify behind a long-press or Settings action was designed but is not built, #1432.) |
-| Metered connections | *Sync only on WiFi*, default on; manual attempts route to the setting via a snackbar. |
+| Metered connections | *Sync only on Wi-Fi*, default on; manual attempts route to the setting via a snackbar. |
 | Quota exhaustion | An "almost full" warning from the store's `quota` at 80%, with the exclude-imports toggle inline; a `507` is surfaced with the toggle in its advice. (The size breakdown by category first decided here is not built.) |
 | Naming | **Athenaeum** — the earlier "Athanaeum" was a typo; DNS corrected and verified. |
 | Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Device Sync gets its own top-level Settings blade. |

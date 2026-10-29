@@ -79,11 +79,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appBootstrapError => 'Kunne ikke forberede samlingen.';
 
   @override
-  String appBootstrapErrorType(String errorType) {
-    return 'Fejl: $errorType';
-  }
-
-  @override
   String get appBootstrapCopyDetails => 'Kopiér detaljer';
 
   @override
@@ -197,6 +192,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get migrationBelowFloorResetConfirmBody =>
       'En sikkerhedskopi er gemt. Nulstilling erstatter dine nuværende data med en ny, tom database.';
+
+  @override
+  String get migrationBelowFloorResetConfirmAction => 'Nulstil';
 
   @override
   String migrationBelowFloorBackupSavedAt(String backupPath) {
@@ -412,7 +410,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get glossaryCustomRenameMine => 'Omdøb min';
 
   @override
-  String get glossaryCustomSwitchToShipped => 'Skift til appens';
+  String get glossaryCustomSwitchToShipped => 'Skift til appens figur';
 
   @override
   String userFigureSwitchTitle(String name) {
@@ -533,11 +531,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Slået fra som standard. Når du slår det til, sendes intet, før du har tilsluttet et lager.';
 
   @override
-  String get settingsSyncWifiOnlyTitle => 'Synkronisér kun på WiFi';
+  String get settingsSyncWifiOnlyTitle => 'Synkronisér kun på Wi-Fi';
 
   @override
   String get settingsSyncWifiOnlySubtitle =>
-      'Slået til som standard. På en mobildataforbindelse venter synkroniseringen, til du er på WiFi.';
+      'Slået til som standard. På en mobildataforbindelse venter synkroniseringen, til du er på Wi-Fi.';
 
   @override
   String get settingsSyncExcludeImportsTitle =>
@@ -685,7 +683,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncQuotaExcludeImports =>
-      'Stop med at synkronisere importerede danse';
+      'Spring ubrugte importerede danse over';
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
@@ -1474,7 +1472,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncMeteredRouted =>
-      'Du bruger mobildata, og Synkronisér kun på WiFi er slået til. Slå den indstilling fra nedenfor for at synkronisere nu.';
+      'Du bruger mobildata, og Synkronisér kun på Wi-Fi er slået til. Slå den indstilling fra nedenfor for at synkronisere nu.';
 
   @override
   String get settingsSyncOffline =>
@@ -1489,7 +1487,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get commonSyncMeteredBlocked =>
-      'Du bruger mobildata, og Synkronisér kun på WiFi er slået til. Slå den indstilling fra i Indstillinger for at synkronisere nu.';
+      'Du bruger mobildata, og Synkronisér kun på Wi-Fi er slået til. Slå den indstilling fra i Indstillinger for at synkronisere nu.';
 
   @override
   String get settingsSyncConnectTitle => 'Forbind';
@@ -1641,7 +1639,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingCompleteMetered =>
-      'Dit bibliotek er forbundet. Den første synkronisering venter på WiFi, fordi Synkronisér kun på WiFi er slået til.';
+      'Dit bibliotek er forbundet. Den første synkronisering venter på Wi-Fi, fordi Synkronisér kun på Wi-Fi er slået til.';
 
   @override
   String get settingsSyncPairingCompleteOffline =>
@@ -1887,7 +1885,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsUpdatesVerifyingSubtitle =>
-      'Kontrollerer downloadens sha256-integritet…';
+      'Kontrollerer, at downloaden er komplet og uændret…';
 
   @override
   String get settingsUpdatesHandoffTitle =>
@@ -2575,7 +2573,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt, og en linje skrevet i en eksisterende figurs bevægelse erstatter figuren, når du trykker Enter. Linjen parses til figur(er); alt der ikke genkendes gemmes som en brugerdefineret figur, du kan rette senere. Nye danse starter uden figurer, medmindre du har gemt startfigurer.';
+      'Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt, og en linje skrevet i en eksisterende figurs bevægelse erstatter figuren, når du trykker Enter. Linjen omdannes til figurer; alt der ikke genkendes gemmes som en brugerdefineret figur, du kan rette senere. Nye danse starter uden figurer, medmindre du har gemt startfigurer.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -3079,7 +3077,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewIntro =>
-      'Disse poster kræver en beslutning, før ændringen fra peer-enheden kan anvendes.';
+      'Disse poster kræver en beslutning, før en ændring fra en anden enhed kan anvendes.';
 
   @override
   String get syncReviewLoadFailed =>
@@ -3132,17 +3130,17 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String syncReviewLocalRecord(String id) {
-    return 'Lokal post: $id';
+    return 'På denne enhed: $id';
   }
 
   @override
   String syncReviewPeerRecord(String identity) {
-    return 'Peer-post: $identity';
+    return 'Fra den anden enhed: $identity';
   }
 
   @override
   String get syncReviewTombstoneReason =>
-      'En peer slettede en matchende post, som denne enhed oprettede.';
+      'En anden enhed slettede en tilsvarende post, som denne enhed oprettede.';
 
   @override
   String get syncReviewDanceAmbiguityReason =>
@@ -3170,7 +3168,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewUnsupportedAction =>
-      'Behold denne post, indtil en senere synkronisering eller en understøttet gennemgang kan håndtere den.';
+      'Behold denne post for nu; en senere synkronisering eller appopdatering kan måske håndtere den.';
 
   @override
   String get syncReviewMergeAction => 'Flet';
@@ -3192,11 +3190,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewCandidateInvalid =>
-      'Den gemte ændring fra peer-enheden er ugyldig, så den blev bevaret.';
+      'Den gemte ændring fra en anden enhed er ugyldig, så den blev bevaret.';
 
   @override
   String get syncReviewCandidateChanged =>
-      'Den gemte ændring fra peer-enheden er ikke længere aktuel, så den blev bevaret.';
+      'Den gemte ændring fra en anden enhed er ikke længere aktuel, så den blev bevaret.';
 
   @override
   String get syncReviewTargetMissing =>
@@ -3204,7 +3202,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewCandidateAlreadyPresent =>
-      'Peer-posten findes allerede, så beslutningen blev bevaret.';
+      'Posten fra den anden enhed findes allerede her, så beslutningen blev bevaret.';
 
   @override
   String get settingsGeneralImportHeader => 'Import';
@@ -3222,7 +3220,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Genpars importerede danse, hvis figurer kun er gemt som brugerdefinerede, fordi de ikke kunne genkendes ved importtidspunktet. Forbedret parsing opgraderer dem på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.';
+      'Tjek importerede danse igen, hvis figurer kun er gemt som brugerdefinerede, fordi de ikke kunne genkendes ved importtidspunktet. Hvis appen nu kan genkende dem, opgraderes de på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Genkontrollér…';
@@ -3677,14 +3675,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importGapMessage =>
-      'Kunne ikke fortolke dette kald – beholdt ordret som en brugerdefineret figur.';
+      'Kunne ikke genkende dette kald – beholdt præcis som skrevet som en brugerdefineret figur.';
 
   @override
   String get importGapDialogTitle => 'Ukendt figur';
 
   @override
   String get importGapSemanticLabel =>
-      'Ukendt figur. Kunne ikke fortolke dette kald – beholdt ordret som en brugerdefineret figur.';
+      'Ukendt figur. Beholdt præcis som skrevet som en brugerdefineret figur.';
 
   @override
   String get collectionScreenTitle => 'Samling';
@@ -4750,7 +4748,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'Markér alle som fremført';
 
   @override
-  String get programsSaveDirty => 'Gem *';
+  String get programsSaveDirty => 'Gem ændringer';
 
   @override
   String get commonSave => 'Gem';
@@ -4981,7 +4979,13 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String programsSetListHeader(int count) {
-    return 'Sætliste ($count)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse',
+      one: '1 dans',
+    );
+    return 'Sætliste ($_temp0)';
   }
 
   @override
@@ -5018,12 +5022,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsPerformed => 'Fremført';
 
   @override
-  String programsSlotCount(int count) {
+  String programsDanceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count slots',
-      one: '1 slot',
+      other: '$count danse',
+      one: '1 dans',
     );
     return '$_temp0';
   }
@@ -5094,6 +5098,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String programsRemovedSlot(String name) {
     return '$name fjernet.';
+  }
+
+  @override
+  String programsAlternatePromoted(String name) {
+    return '$name træder i stedet.';
   }
 
   @override
@@ -6130,7 +6139,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogBody(String existingTitle) {
-    return 'Titlen og calleren på denne dans matcher „$existingTitle“, men dens figurer er anderledes. Hvordan vil du importere den?';
+    return 'Titlen og forfatteren på denne dans matcher „$existingTitle“, men dens figurer er anderledes. Hvordan vil du importere den?';
   }
 
   @override
@@ -6488,6 +6497,21 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importSourceLabelGenericJson => 'en Caller\'s Compendium JSON-fil';
+
+  @override
+  String get fileDialogTypeBackupJson => 'Sikkerhedskopi (JSON)';
+
+  @override
+  String get fileDialogTypeCompendiumShare => 'Compendium-delefil';
+
+  @override
+  String get fileDialogTypeCompanionUsr => 'Caller’s Companion .USR';
+
+  @override
+  String get fileDialogTypeDiagnosticsLog => 'Diagnostiklog';
+
+  @override
+  String get fileDialogTypeMacosUpdate => 'Caller’s Compendium-opdatering';
 
   @override
   String get importSourceLabelCallersBox => 'The Caller\'s Box';
@@ -6973,7 +6997,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueMetadataOnlyStub =>
-      'Denne dans er kun tilgængelig som metadata (ingen figurer); importeret som en stub.';
+      'Kun dansens oplysninger var tilgængelige (ingen figurer), så den blev importeret uden figurer.';
 
   @override
   String importIssueDateAssumedMdy(String field) {
@@ -7040,7 +7064,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueNoFiguresTable =>
-      'Siden havde ingen figurer; importeret som en metadata-only stub.';
+      'Siden havde ingen figurer, så dansen blev importeret uden figurer.';
 
   @override
   String get importIssueMoveFallback =>
@@ -7053,16 +7077,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueParamUnmapped =>
-      'En figurparameter kunne ikke tilknyttes; en taksonomistandard blev brugt.';
+      'En af en figurs indstillinger kunne ikke tilknyttes, så standardværdien blev brugt.';
 
   @override
   String importIssueParamValueUnmapped(String param) {
-    return 'Parameteren $param kunne ikke konverteres; en taksonomistandard blev brugt.';
+    return 'Indstillingen $param kunne ikke konverteres, så standardværdien blev brugt.';
   }
 
   @override
   String importIssueParamCountUnmapped(int provided, int mapped) {
-    return 'En figur havde $provided parameterværdier, men kun $mapped er tilknyttet; de overskydende blev ignoreret.';
+    return 'En figur havde $provided indstillinger, men kun $mapped kunne tilknyttes; de overskydende blev ignoreret.';
   }
 
   @override
@@ -7431,7 +7455,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importReviewVariationBody(String title) {
-    return 'Denne dans\' titel og caller matcher \"$title\", men figurerne er forskellige. Se, hvordan de adskiller sig, og vælg derefter, hvordan den skal importeres.';
+    return 'Denne dans\' titel og forfatter matcher \"$title\", men figurerne er forskellige. Se, hvordan de adskiller sig, og vælg derefter, hvordan den skal importeres.';
   }
 
   @override
@@ -7499,7 +7523,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'Skriv en bevægelse (f.eks. \"sw\" → swing) og tryk Enter for at tilføje den med standardparametre; umatched tekst gemmes som en brugerdefineret figur.';
+      'Skriv en bevægelse (f.eks. \"sw\" → swing) og tryk Enter for at tilføje den med standardværdier; tekst, der ikke genkendes, bliver til en brugerdefineret figur.';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
@@ -8521,7 +8545,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorLingoStylingHelper =>
-      'Bevægelsesnavne prikket·understreget, rolleudtryk understreget, frarådte termer gennemstreget';
+      'Bevægelsesnavne får en prikket understregning, rolleudtryk en understregning, og frarådte termer en gennemstregning';
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -8649,7 +8673,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
-      'Den hentede opdatering bestod ikke sikkerhedstjekket (sha256) og blev slettet. Prøv igen, eller brug „Se udgivelse“ for at hente den manuelt.';
+      'Den hentede opdatering bestod ikke sikkerhedstjekket og blev slettet. Prøv igen, eller brug „Se udgivelse“ for at hente den manuelt.';
 
   @override
   String get updateDownloadFailureHandoffFailed =>
@@ -9230,7 +9254,7 @@ class AppLocalizationsDa extends AppLocalizations {
       other: '$danceCount danse',
       one: '1 dans',
     );
-    return 'Dette vil genparsere $_temp0 i $_temp1. Dine tags, vurderinger, noter og alt andet på hver dans bevares nøjagtigt som de er. Dette erstatter kun figurer, der nu genkender en kendt bevægelse.';
+    return 'Dette tjekker $_temp0 i $_temp1 igen. Dine tags, vurderinger, noter og alt andet på hver dans bevares nøjagtigt som de er. Dette erstatter kun figurer, der nu genkender en kendt bevægelse.';
   }
 
   @override
@@ -9271,7 +9295,7 @@ class AppLocalizationsDa extends AppLocalizations {
       other: '$danceCount danse',
       one: '1 dans',
     );
-    return 'Forbedret figurparsing kan opgradere $_temp0 i $_temp1. Gennemse nedenfor, og bekræft derefter – intet ændres før du gør det, og alle dine tags, vurderinger og noter bevares.';
+    return 'Forbedret figurgenkendelse kan opgradere $_temp0 i $_temp1. Gennemse nedenfor, og bekræft derefter – intet ændres før du gør det, og alle dine tags, vurderinger og noter bevares.';
   }
 
   @override
@@ -9301,7 +9325,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'Ingen af dine brugerdefinerede figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter fremtidige opdateringer.';
+      'Ingen af dine brugerdefinerede figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter en kommende opdatering, der forbedrer genkendelsen af figurer.';
 
   @override
   String get reparseErrorTitle => 'Kunne ikke kontrollere dine figurer';
@@ -9371,7 +9395,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get customFieldsTypeNumber => 'Tal';
 
   @override
-  String get customFieldsTypeBoolean => 'Boolean';
+  String get customFieldsTypeBoolean => 'Ja/nej';
 
   @override
   String get customFieldsTypeChoice => 'Valg';
@@ -9401,7 +9425,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsKeyHelper =>
-      'Stabil maskinnøgle (bogstaver, cifre, underscores; skal starte med et bogstav eller underscore)';
+      'Et kort ID til dette felt. Kun bogstaver, cifre og understregninger; skal starte med et bogstav eller en understregning. Kan ikke ændres, når feltet bruges på danse.';
 
   @override
   String get customFieldsKeyLocked => 'Nøgle er låst – felt bruges på danse';
@@ -9806,7 +9830,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceReimport => 'Genimportér koreografi';
 
   @override
-  String get danceReimportJson => 'Callers Compendium JSON';
+  String get danceReimportJson => 'Caller’s Compendium JSON';
 
   @override
   String get danceReimportLinkOrId => 'Link eller id';

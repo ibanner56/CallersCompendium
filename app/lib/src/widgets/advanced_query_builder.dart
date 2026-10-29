@@ -131,7 +131,7 @@ class _GroupView extends StatelessWidget {
                   IconButton(
                     key: ValueKey('remove-${group.id}'),
                     tooltip: l10n.collectionQueryRemoveGroup,
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.remove_circle_outline),
                     onPressed: () {
                       onRemove!();
                       onChanged();
@@ -316,7 +316,7 @@ class _FigureRow extends StatelessWidget {
           IconButton(
             key: ValueKey('remove-${figure.id}'),
             tooltip: l10n.collectionQueryRemoveFigure,
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.remove_circle_outline),
             onPressed: onRemove,
           ),
         ],
@@ -396,7 +396,7 @@ class _TagRow extends StatelessWidget {
           IconButton(
             key: ValueKey('remove-${node.id}'),
             tooltip: l10n.collectionQueryRemoveTag,
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.remove_circle_outline),
             onPressed: onRemove,
           ),
         ],
@@ -478,7 +478,7 @@ class _ThenRow extends StatelessWidget {
           IconButton(
             key: ValueKey('remove-${node.id}'),
             tooltip: l10n.collectionQueryRemoveSequence,
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.remove_circle_outline),
             onPressed: onRemove,
           ),
         ],

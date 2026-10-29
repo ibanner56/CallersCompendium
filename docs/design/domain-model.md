@@ -296,9 +296,14 @@ URLs. (Every settings key is classified in
   ux.md §4). A leading/orphaned alt (no preceding primary) is a **non-blocking
   warning** — surfaced by `Program.validate()` (`orphaned_alt`), never a
   construction error, so a program with bad ALT ordering (a reorder bug, an
-  import, a deleted primary) always stays loadable and fixable. `grouped` is
-  total: an orphaned alt renders as its own degenerate group.
-- Deleting a dance (soft) keeps program slots valid; UI shows tombstone.
+  import, or marking the first slot as an alternate) always stays loadable and
+  fixable. The builder does not create one by cutting or moving a primary: its
+  first alternate takes its place (`Program.removeSlotPromotingAlternate`).
+  `grouped` is total: an orphaned alt renders as its own degenerate group.
+- Deleting a dance (soft) keeps program slots valid. While the dance is in
+  Recently deleted every program view shows its title marked as deleted
+  (`resolveDeletedSlotDances` in the app); a dance id that resolves to nothing
+  shows a tombstone.
 
 ## Explicitly out of v1
 

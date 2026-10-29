@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import '../search/collection_query.dart' show ByPhraseSelections;
+import 'file_dialog_labels.dart';
 import 'picker_extensions.dart';
 import 'usr_archive_isolate.dart';
 
@@ -238,7 +239,7 @@ Future<Uint8List?> pickImportUsrFile() async {
 /// The file-type filter behind [pickImportFile].
 @visibleForTesting
 XTypeGroup importJsonTypeGroup({bool? isLinux}) => XTypeGroup(
-  label: 'Compendium share',
+  label: FileDialogLabels.current.fileDialogTypeCompendiumShare,
   extensions: pickerExtensions(['ccshare', 'json'], isLinux),
   uniformTypeIdentifiers: [
     'org.callerscompendium.compendiumApp.share',
@@ -250,7 +251,7 @@ XTypeGroup importJsonTypeGroup({bool? isLinux}) => XTypeGroup(
 /// The file-type filter behind [pickImportUsrFile].
 @visibleForTesting
 XTypeGroup importUsrTypeGroup({bool? isLinux}) => XTypeGroup(
-  label: "Caller's Companion .USR",
+  label: FileDialogLabels.current.fileDialogTypeCompanionUsr,
   extensions: pickerExtensions(['usr'], isLinux),
   // FileMaker's `.usr` has no registered UTI/MIME; match on extension only.
   uniformTypeIdentifiers: ['public.data'],

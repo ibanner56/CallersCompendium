@@ -1541,9 +1541,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(await harness.repos.settings.get('sync_enabled'), isTrue);
-        expect(find.text('Sync only on WiFi'), findsOneWidget);
+        expect(find.text('Sync only on Wi-Fi'), findsOneWidget);
         final wifi = tester.widget<SwitchListTile>(
-          find.widgetWithText(SwitchListTile, 'Sync only on WiFi'),
+          find.widgetWithText(SwitchListTile, 'Sync only on Wi-Fi'),
         );
         expect(wifi.value, isTrue);
         expect(find.text('Not connected to a store yet.'), findsOneWidget);
@@ -1844,7 +1844,7 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(
-            find.textContaining('Sync only on WiFi is on'),
+            find.textContaining('Sync only on Wi-Fi is on'),
             findsOneWidget,
           );
         },
@@ -5143,7 +5143,7 @@ void main() {
               status: null,
               expected:
                   'Your library is connected. The first sync is waiting for '
-                  'WiFi, because Sync only on WiFi is on.',
+                  'Wi-Fi, because Sync only on Wi-Fi is on.',
             ),
             (
               name: 'a first pass deferred while offline',
@@ -5399,7 +5399,7 @@ void main() {
                 'unreachable behind it',
           );
           expect(
-            find.textContaining('Sync only on WiFi is on'),
+            find.textContaining('Sync only on Wi-Fi is on'),
             findsOneWidget,
           );
           expect(

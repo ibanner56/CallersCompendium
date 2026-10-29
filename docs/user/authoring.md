@@ -113,8 +113,8 @@ placeholders to delete first, unless you have saved your own
 [starting figures](#start-new-dances-the-way-you-work).
 
 It also understands common phrasings such as `N swing`, `neighbours balance and
-swing`, `half hey, ladies start by the right` and
-`allemande left 1 1/2 with neighbor`. When the app reads the start of a line
+swing`, `half hey, ladies start by the right`, `1/4 hey, partner start right
+shoulder` and `allemande left 1 1/2 with neighbor`. When the app reads the start of a line
 as a figure, the rest of the line becomes that figure's note
 (`neighbors swing slowly` is a swing with the note "slowly"). That happens only
 when the rest cannot change what the figure is. If the rest is `and back`, a bare
@@ -655,8 +655,8 @@ you changed dialects since the draft was saved.
 ### Leaving without saving
 
 If you try to leave with unsaved changes, the app asks **Discard changes?** —
-**Keep editing** returns you to the dance, **Discard** leaves it as it was last
-saved.
+**Keep editing** (the highlighted button) returns you to the dance, and
+**Discard** (in red) leaves it as it was last saved.
 
 The editors for [figure shorthands](#figure-shorthands), custom themes,
 [venues](./settings.md#venues) and [custom fields](./collection.md#make-your-own-fields)

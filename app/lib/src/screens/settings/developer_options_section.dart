@@ -116,7 +116,7 @@ class _ResetDatabaseDialogState extends State<_ResetDatabaseDialog> {
     final syncPaired = SyncScope.maybeOf(context)?.paired ?? false;
     return AlertDialog(
       key: const ValueKey('developer-reset-dialog'),
-      icon: const Icon(Icons.warning_amber_rounded),
+      icon: const Icon(Icons.warning_amber_outlined),
       title: Text(l10n.settingsDeveloperResetConfirmTitle),
       content: SingleChildScrollView(
         child: Column(

@@ -38,6 +38,7 @@ import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_status_chip.dart';
+import '../widgets/readable_width.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/tag_chip.dart';
 import 'dance_detail/calling_history_section.dart';
@@ -1065,7 +1066,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         )
         .toList();
 
-    return ListView(
+    return ReadableListView(
       // The bottom inset lets the last section scroll clear of the Edit FAB.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -1371,12 +1372,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.xxs),
-          for (final field in detail.customFields)
+          for (final field in detail.customFields.map(
+            (f) =>
+                (label: f.label, text: formatCustomFieldValue(l10n, f.value)),
+          ))
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
-                '${field.label}: ${canonicalDiscouragedTerms ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(field.value, dialect) : field.value}',
+                '${field.label}: ${canonicalDiscouragedTerms ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(field.text, dialect) : field.text}',
               ),
             ),
         ],

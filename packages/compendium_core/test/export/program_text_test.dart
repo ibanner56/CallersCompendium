@@ -349,8 +349,32 @@ void main() {
         ),
         titleFor: titles,
       );
-      // The orphaned alt becomes a degenerate primary and is numbered.
-      expect(text, contains('1. Rory O\'More'));
+      // The orphaned alt becomes a degenerate primary. It is still an
+      // alternate, so it keeps its ALT prefix and takes no dance number.
+      expect(text, contains('ALT: Rory O\'More'));
+      expect(text, isNot(contains('1.')));
+    });
+
+    test('numbers planned dances only: the break is unnumbered (GIG-10)', () {
+      final text = programToPlainText(
+        program(
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+            ProgramSlot(id: 's3', position: 2, text: Program.breakSlotText),
+            ProgramSlot(id: 's4', position: 3, text: 'Waltz'),
+            ProgramSlot(id: 's5', position: 4, danceId: 'd2'),
+          ],
+        ),
+        titleFor: titles,
+      );
+      expect(text.split('\n').skip(2).toList(), [
+        '1. Rory O\'More',
+        '   ALT: The Nice Combination',
+        'Break',
+        '2. Waltz',
+        '3. The Nice Combination',
+      ]);
     });
 
     test('omits a leading/orphaned alt when hideAlternates is set', () {
@@ -366,9 +390,11 @@ void main() {
       expect(hidden, isNot(contains('Rory O\'More')));
       expect(hidden, contains('1. The Nice Combination'));
 
-      // With the flag off it still renders as a numbered degenerate primary.
+      // With the flag off it still renders, as an unnumbered alternate, and
+      // the planned dance keeps its number either way.
       final shown = programToPlainText(program(slots: slots), titleFor: titles);
-      expect(shown, contains('1. Rory O\'More'));
+      expect(shown, contains('ALT: Rory O\'More'));
+      expect(shown, contains('1. The Nice Combination'));
     });
 
     test(

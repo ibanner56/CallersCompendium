@@ -10,7 +10,9 @@ library;
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
+import '../data/file_dialog_labels.dart';
 import 'update_config.dart';
 import 'update_manifest.dart';
 
@@ -25,10 +27,11 @@ typedef SaveLocationPicker =
       required List<XTypeGroup> acceptedTypeGroups,
     });
 
-const _macosUpdateTypeGroup = XTypeGroup(
-  label: "Caller's Compendium update",
-  extensions: ['dmg', 'zip'],
-  uniformTypeIdentifiers: ['com.apple.disk-image', 'public.zip-archive'],
+@visibleForTesting
+XTypeGroup macosUpdateTypeGroup() => XTypeGroup(
+  label: FileDialogLabels.current.fileDialogTypeMacosUpdate,
+  extensions: const ['dmg', 'zip'],
+  uniformTypeIdentifiers: const ['com.apple.disk-image', 'public.zip-archive'],
 );
 
 /// Opens the macOS native Save As panel and returns the selected destination.
@@ -44,7 +47,7 @@ Future<File?> pickMacosArtifactDestination(
 }) async {
   final location = await saveLocationPicker(
     suggestedName: downloadFileName(artifact.url),
-    acceptedTypeGroups: const [_macosUpdateTypeGroup],
+    acceptedTypeGroups: [macosUpdateTypeGroup()],
   );
   return location == null ? null : File(location.path);
 }
