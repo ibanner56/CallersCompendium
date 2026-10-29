@@ -10110,6 +10110,10 @@
   "@glossaryCustomDeleteDefaults": {
     "x-sourceSha256": "60f9d9b3c005db0b184ac777d688e5bdae100ee989fa1418bf1490b7f9475e7e"
   },
+  "glossaryCustomDeleteShorthands": "{count, plural, other{このフィギュアの{count}件のショートハンドは残り、入力すると通常の行として読み取られます。}}",
+  "@glossaryCustomDeleteShorthands": {
+    "x-sourceSha256": "57cf5fa1c84c84032888ea8146381ebd3fd2c18fac1f6a427cf526e2c915d5af"
+  },
   "glossaryCustomDeleteUses": "{count, plural, =0{コレクションにこのフィギュアを使っているダンスはありません。用語集から削除されます。} =1{1件のダンスがこのフィギュアを使っています。用語集から削除され、そのダンスは現在の文言をプレーンテキストとして残します。} other{{count}件のダンスがこのフィギュアを使っています。用語集から削除され、それらのダンスは現在の文言をプレーンテキストとして残します。}}",
   "@glossaryCustomDeleteUses": {
     "x-sourceSha256": "c26dae9673781a119531b3beaa3e8435e9dc2cce5a817010d981d67553f28cbc"

@@ -9888,6 +9888,16 @@ class AppLocalizationsJa extends AppLocalizations {
       '設定の既定のフィギュアがこのフィギュアを使っており、現在の文言をプレーンテキストとして残します。';
 
   @override
+  String glossaryCustomDeleteShorthands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'このフィギュアの$count件のショートハンドは残り、入力すると通常の行として読み取られます。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String glossaryCustomDeleteUses(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

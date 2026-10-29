@@ -4358,6 +4358,41 @@ void main() {
       expect(figure.subFigures, hasLength(2));
     });
 
+    // October behaviour audit, AUTH-11: a group's count started at 0 and
+    // never followed its sides.
+    testWidgets('the shared count follows the sides until one is typed', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(meanwhileSides: [FigureDraft(), FigureDraft()])
+          ..params['beats'] = 0,
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      Future<void> pick(int side, String move) async {
+        await tester.enterText(
+          find.byKey(ValueKey('figure-0-side-$side-move-input')),
+          move,
+        );
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+      }
+
+      await pick(1, 'circle');
+      expect(drafts.single.beats, 8);
+      await pick(0, 'contra corners');
+      expect(drafts.single.beats, 16);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-meanwhile-beats')),
+        '12',
+      );
+      await tester.pumpAndSettle();
+      await pick(0, 'swing');
+      expect(drafts.single.beats, 12);
+    });
+
     testWidgets('add side appends a 3rd concurrent figure', (tester) async {
       final drafts = <FigureDraft>[
         FigureDraft(

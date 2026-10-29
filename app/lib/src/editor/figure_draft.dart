@@ -33,7 +33,11 @@ class FigureDraft {
   /// `beats` value — that authored count is user-owned and never auto-filled
   /// over (see [beatsTouched]). A figure with no `beats` (older/partial data)
   /// stays untouched so it can still adopt the taxonomy default on the next
-  /// resync rather than remaining stuck at 0.
+  /// resync rather than remaining stuck at 0. A group's count is its sides'
+  /// to follow ([syncContainerBeats]) unless it differs from what they call
+  /// for ([sidesBeats]): a count that matches them, or a group's 0, is not
+  /// one the caller typed, so the group keeps following its sides after the
+  /// dance is saved and reopened.
   ///
   /// [assumedSubject] is preserved so an imported figure whose subject the
   /// parser DEFAULTED (#460) keeps its non-authoritative marker across an
@@ -42,7 +46,16 @@ class FigureDraft {
   ///
   /// When [figure] is a structural container, the draft is seeded from
   /// [Figure.subFigures] while preserving its container kind.
-  factory FigureDraft.fromFigure(Figure figure) => FigureDraft(
+  factory FigureDraft.fromFigure(Figure figure) {
+    final draft = FigureDraft._fromFigure(figure);
+    // AUTH-11: see above.
+    if (draft.isContainerDraft) {
+      draft.beatsTouched = figure.beats > 0 && figure.beats != draft.sidesBeats;
+    }
+    return draft;
+  }
+
+  factory FigureDraft._fromFigure(Figure figure) => FigureDraft(
     move: figure.move,
     params: Map<String, Object?>.of(figure.params),
     note: figure.note ?? '',
@@ -70,10 +83,21 @@ class FigureDraft {
   /// [Taxonomy.effectiveParams], `beats` included, the way picking a move in
   /// the editor does. [beatsTouched] stays false for a derived count, so a
   /// later param change still re-derives it; a stated count stays touched.
-  /// Customs and a container's own shared count are left as parsed.
-  factory FigureDraft.fromFreeTextFigure(Figure figure, Taxonomy taxonomy) {
+  ///
+  /// [moveParamDefaults] are the user's Move defaults (DD.3), by move id, as
+  /// picking a move applies them (AUTH-7): each fills a parameter the line
+  /// did not state, and a stated one (`half hey`, `16 hey`) is kept. A
+  /// default count is the user's own, so it is touched. A custom keeps its
+  /// text as parsed; a container's sides each take their own move's defaults,
+  /// and its own shared count, unstated, follows them
+  /// ([syncContainerBeats]).
+  factory FigureDraft.fromFreeTextFigure(
+    Figure figure,
+    Taxonomy taxonomy, {
+    Map<String, Map<String, Object?>>? moveParamDefaults,
+  }) {
     final draft = FigureDraft.fromFigure(figure);
-    _fillDerivedParams(draft, figure, taxonomy);
+    _fillDerivedParams(draft, figure, taxonomy, moveParamDefaults);
     return draft;
   }
 
@@ -81,6 +105,7 @@ class FigureDraft {
     FigureDraft draft,
     Figure figure,
     Taxonomy taxonomy,
+    Map<String, Map<String, Object?>>? moveParamDefaults,
   ) {
     if (figure.isContainer) {
       final children = figure.isMeanwhile
@@ -89,15 +114,106 @@ class FigureDraft {
       final sources = figure.subFigures;
       if (children == null || children.length != sources.length) return;
       for (var i = 0; i < children.length; i++) {
-        _fillDerivedParams(children[i], sources[i], taxonomy);
+        _fillDerivedParams(
+          children[i],
+          sources[i],
+          taxonomy,
+          moveParamDefaults,
+        );
+      }
+      // A group typed with no count of its own follows its sides (AUTH-11).
+      if (draft.beats <= 0) {
+        draft.beatsTouched = false;
+        draft.syncContainerBeats();
       }
       return;
     }
-    if (figure.isCustom || figure.params.containsKey('beats')) return;
-    draft.params
-      ..clear()
-      ..addAll(taxonomy.effectiveParams(figure));
-    draft.beatsTouched = false;
+    final defaults = _unstatedDefaults(figure, taxonomy, moveParamDefaults);
+    if (figure.isCustom) {
+      // Only a count: the text is what was typed.
+      if (defaults['beats'] case final beats?) {
+        draft.params['beats'] = beats;
+        draft.beatsTouched = true;
+      }
+      return;
+    }
+    if (figure.params.containsKey('beats')) {
+      draft.params.addAll(defaults);
+    } else {
+      draft.params
+        ..clear()
+        ..addAll(
+          taxonomy.effectiveParams(
+            figure.copyWith(params: {...figure.params, ...defaults}),
+          ),
+        );
+      draft.beatsTouched = defaults.containsKey('beats');
+    }
+    // A default `who` is the user's stated choice, as picking the move makes
+    // it (#460), not one the parser assumed.
+    if (defaults.containsKey('who')) draft.assumedSubject = false;
+    // As picking the move does (#976): a default `who` brings its hand.
+    if (defaults.containsKey('who') &&
+        !defaults.containsKey('hand') &&
+        !figure.params.containsKey('hand')) {
+      seedChainHand(figure.move, draft.params);
+    }
+  }
+
+  /// The user's Move defaults for [figure]'s move that the line left unstated,
+  /// limited to the move's own parameters, as picking it applies them. A
+  /// default count goes with the defaults it was saved beside: when the line
+  /// states one of them itself (`half hey` against a full-hey default of 16
+  /// beats), the count is left to follow what was typed. A subject the parser
+  /// assumed ([Figure.assumedSubject], #460) was not stated either.
+  static Map<String, Object?> _unstatedDefaults(
+    Figure figure,
+    Taxonomy taxonomy,
+    Map<String, Map<String, Object?>>? moveParamDefaults,
+  ) {
+    final overrides = moveParamDefaults?[figure.move];
+    final schema = taxonomy.resolve(figure.move)?.params;
+    if (overrides == null || schema == null) return const {};
+    final applicable = {
+      for (final entry in overrides.entries)
+        if (schema.containsKey(entry.key) && entry.key != 'text')
+          entry.key: entry.value,
+    };
+    bool stated(String key) =>
+        figure.params.containsKey(key) &&
+        !(key == 'who' && figure.assumedSubject);
+    final overruled = applicable.keys.any(
+      (key) => key != 'beats' && stated(key),
+    );
+    return {
+      for (final entry in applicable.entries)
+        if (!stated(entry.key) && !(entry.key == 'beats' && overruled))
+          entry.key: entry.value,
+    };
+  }
+
+  /// Gives the rows [rows] that replaced the row [replaced], whose move was
+  /// retyped, what it had beside its move, as picking a new move keeps them
+  /// (AUTH-9): its note goes on the first row, after a note typed with the
+  /// line, its walkthrough step too unless that row has one or is a
+  /// combination's (which has none of its own), and its progression mark on
+  /// the last row, unless a row already has one. This is how a combination's
+  /// row passes them on when it expands on Save.
+  static void carryRowExtras(FigureDraft replaced, List<FigureDraft> rows) {
+    final first = rows.first;
+    final note = replaced.note.trim();
+    if (note.isNotEmpty) {
+      final own = first.note.trim();
+      first.note = own.isEmpty ? note : '$own; $note';
+    }
+    if (replaced.walkthroughOverride case final step?
+        when first.walkthroughOverride == null &&
+            !first.isCompoundPlaceholder) {
+      first.walkthroughOverride = step;
+    }
+    if (replaced.progression && !rows.any((row) => row.progression)) {
+      rows.last.progression = true;
+    }
   }
 
   /// Stable identity for widget keys across reorders/rebuilds.
@@ -115,9 +231,11 @@ class FigureDraft {
   /// Beats are auto-filled from the taxonomy: picking a move seeds the move's
   /// canonical default and clears this flag. Once the user edits the beats
   /// field directly (or the draft is seeded from a loaded figure that already
-  /// carries an explicit `beats` via [FigureDraft.fromFigure]), this becomes
-  /// `true` and the editor stops auto-filling beats so a manual override is
-  /// never silently overwritten. (Exception: toggling a `balance` flag shifts
+  /// carries an explicit `beats` via [FigureDraft.fromFigure], except a group
+  /// whose count is 0 or matches what its sides call for ([sidesBeats]),
+  /// which keeps following them, AUTH-11), this becomes `true` and the editor
+  /// stops auto-filling beats so a manual override is never silently
+  /// overwritten. (Exception: toggling a `balance` flag shifts
   /// the count by 4 either way; see core's `applyParamChange`.)
   bool beatsTouched;
 
@@ -210,6 +328,33 @@ class FigureDraft {
   /// The draft's beat count. A compound placeholder's is the count its
   /// expansion last had ([CompoundPlaceholder.beats]).
   int get beats => compound?.beats ?? (params['beats'] as int?) ?? 0;
+
+  /// The count a group's sides call for (AUTH-11): a modifier group's core's,
+  /// since the other figures say how the core is danced, or while the core
+  /// has none yet the longest side's; a meanwhile group's longest side's,
+  /// since its sides are danced at once. 0 for an ordinary row, or for a
+  /// group none of whose sides has a count yet.
+  int get sidesBeats {
+    final sides = meanwhileSides ?? modifierFigures;
+    if (sides == null || sides.isEmpty) return 0;
+    if (isModifierGroup && sides.first.beats > 0) return sides.first.beats;
+    return sides.fold(
+      0,
+      (longest, side) => side.beats > longest ? side.beats : longest,
+    );
+  }
+
+  /// Sets a group's shared count to [sidesBeats], while the caller has not
+  /// typed a count of their own ([beatsTouched]) and the sides call for one,
+  /// so the group follows its sides (AUTH-11). Returns whether the count
+  /// changed. Does nothing for an ordinary row.
+  bool syncContainerBeats() {
+    if (!isContainerDraft || beatsTouched) return false;
+    final derived = sidesBeats;
+    if (derived <= 0 || derived == beats) return false;
+    params['beats'] = derived;
+    return true;
+  }
 
   /// Returns an independent copy with a FRESH [id] (the stable-identity
   /// contract: a duplicate is a distinct row) and every other field copied

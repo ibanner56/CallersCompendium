@@ -354,6 +354,57 @@ void main() {
       expect(figures[1].params['hand'], 'left');
     });
 
+    // October behaviour audit, AUTH-8: Enter in the Move box took the first
+    // move whose name contained the token (`rl` is in butterfly whirl, `sw` in
+    // swing) before the shorthand was ever consulted.
+    testWidgets('a token inside a move\'s name, typed into an existing row\'s '
+        'Move box, still means the shorthand', (tester) async {
+      final repos = await pump(tester, compounds: [shorthand(token: 'rl')]);
+      await typeInExistingRow(tester, 'rl');
+      final figures = await saved(tester, repos);
+      expect(
+        [for (final f in figures) f.move],
+        ['swing', 'pull_by', 'pull_by', 'pull_by', 'pull_by', 'turn_alone'],
+      );
+    });
+
+    testWidgets('a token whose combination was deleted is read as any other '
+        'Move-box text, so it takes the move whose name contains it', (
+      tester,
+    ) async {
+      final repos = await pump(
+        tester,
+        compounds: [shorthand(token: 'sw')],
+        storeEntry: false,
+      );
+      await typeInExistingRow(tester, 'sw');
+      final figures = await saved(tester, repos);
+      expect(
+        [for (final f in figures) f.move],
+        ['swing', 'swing', 'turn_alone'],
+      );
+    });
+
+    testWidgets('so does a plain shorthand\'s token', (tester) async {
+      final repos = await pump(
+        tester,
+        figureShorthands: [
+          ShorthandMapping(
+            token: 'sw',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 4}),
+            ],
+          ),
+        ],
+      );
+      await typeInExistingRow(tester, 'sw');
+      final figures = await saved(tester, repos);
+      expect(
+        [for (final f in figures) f.move],
+        ['swing', 'balance', 'turn_alone'],
+      );
+    });
+
     // A compound row takes its beats from the compound, so a count is dropped
     // (#1861), even for a one-figure compound.
     for (final line in ['16 grl', 'grl (16)', 'GRL 16 beats']) {

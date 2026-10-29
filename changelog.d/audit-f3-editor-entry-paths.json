@@ -1,0 +1,19 @@
+{
+  "id": "audit-f3-editor-entry-paths",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Your Move defaults now apply to figures you type with Free-text entry, as they do to a move you pick, except for what you type in the line: with a full-hey default, \"hey\" gives a full hey and \"half hey\" still a half hey.",
+      "Pressing Enter in a figure's Move box now chooses the move named exactly by what you typed (\"star\" is a star, not a star through), then your shorthand with that token, before the first move whose name merely contains it.",
+      "Retyping a figure in its Move box, in a dance or in your default figures in Settings, now keeps its note, walkthrough step and progression mark, as picking a new move does.",
+      "A meanwhile group's shared beats now follow its longest side, and a modifier group's its core, until you type a count for the group, however the group was made. Before, a group took its first side's count when grouped or added (so a 4-beat balance grouped with an 8-beat swing got 4), or 0 when typed or made in a shorthand.",
+      "Deleting one of your own figures or combinations now says how many of your shorthands are for it, and that typing them will be read as ordinary lines.",
+      "With Free-text entry, a turn amount spelled out (\"petronella two times\", \"allemande left three quarters\") now keeps the line as a custom figure, as the same amount in figures does."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The free-text leftover rule (demoteNoteTails) also demotes a note holding a spelled-out turn amount: \"two times\" and up, and a spelled count before a fraction word (\"three quarters\", \"a half\") at the end of a clause or before a turn word (\"turn\", \"around\", \"times\"), so \"a half step\" stays plain words."
+    ]
+  }
+}
