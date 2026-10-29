@@ -2439,6 +2439,51 @@ void main() {
       );
 
       test(
+        'a dialect change re-renders sequence step text, nested too',
+        () async {
+          final controller = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialect: ravens,
+            debounce: testDebounce,
+          );
+          addTearDown(controller.dispose);
+          final [note, text] = figuresOf(noteDance());
+          final sequence = Figure.sequence(figures: [note, text], beats: 8);
+          await controller.load(
+            dance: noteDance().copyWith(
+              figures: [
+                sequence,
+                Figure.meanwhile(
+                  figures: [
+                    sequence,
+                    testFigure(move: 'orbit', params: const {'beats': 8}),
+                  ],
+                  beats: 8,
+                ),
+              ],
+            ),
+            fieldDefs: const [],
+          );
+
+          controller.updateDialect(Dialect.leadsFollows);
+
+          final [top, meanwhile] = controller.figureDrafts;
+          final nested = meanwhile.meanwhileSides!.first;
+          for (final steps in [top.sequenceFigures!, nested.sequenceFigures!]) {
+            expect(steps.first.note, 'leads go first');
+            expect(steps.last.params['text'], 'follows wait');
+          }
+          final [savedTop, savedMeanwhile] = figuresOf(controller.buildDance());
+          expect(savedTop.subFigures.first.note, 'role1s go first');
+          expect(
+            savedMeanwhile.subFigures.first.subFigures.last.params['text'],
+            'role2s wait',
+          );
+        },
+      );
+
+      test(
         'undo across a dialect change shows the text in the new dialect',
         () async {
           final controller = DanceEditorController(

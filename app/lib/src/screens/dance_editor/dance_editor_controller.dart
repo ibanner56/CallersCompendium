@@ -152,8 +152,9 @@ class DanceEditorController extends ChangeNotifier {
             !isUserFigureDraft(draft)) {
           draft.params['text'] = convert(text);
         }
-        if (draft.meanwhileSides case final sides?) convertAll(sides);
-        if (draft.modifierFigures case final children?) convertAll(children);
+        if (draft.containerChildren case final children?) {
+          convertAll(children);
+        }
       }
     }
 
@@ -595,6 +596,10 @@ class DanceEditorController extends ChangeNotifier {
           !_sameDraftText(
             x.modifierFigures ?? const [],
             y.modifierFigures ?? const [],
+          ) ||
+          !_sameDraftText(
+            x.sequenceFigures ?? const [],
+            y.sequenceFigures ?? const [],
           )) {
         return false;
       }
