@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+import '../support/panel_chip.dart';
 
 /// Widget tests for the ContraDB online-search source: it is reachable via the
 /// source selector, renders results, hides the by-phrase panel (ContraDB does
@@ -94,11 +95,8 @@ Future<void> _pumpShell(
   await tester.pumpAndSettle();
 }
 
-/// Expands the Advanced panel, turns on the "Online search" switch, and selects
-/// the ContraDB source.
+/// Turns on "Online search" and selects the ContraDB source.
 Future<void> _enableContraDb(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('online-search-enable')));
   await tester.pumpAndSettle();
   await tester.tap(find.text('ContraDB'));
@@ -122,8 +120,6 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpShell(tester, repos, _contraDb());
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
 
@@ -141,6 +137,8 @@ void main() {
     await _pumpShell(tester, repos, _contraDb());
     await _enableContraDb(tester);
 
+    // An empty collection has nothing to filter, so neither tool is in the
+    // row; with dances they stay in it, greyed out.
     expect(find.byKey(const ValueKey('by-phrase-panel')), findsNothing);
     expect(find.byKey(const ValueKey('filters-panel')), findsNothing);
   });
@@ -151,8 +149,8 @@ void main() {
     await _pumpShell(tester, repos, _contraDb());
     await _enableContraDb(tester);
 
-    // ContraDB has no by-phrase search, so only Advanced is offered.
-    expect(find.byKey(const ValueKey('advanced-panel')), findsOneWidget);
+    // ContraDB has no by-phrase search, and Advanced is local-only.
+    expectPanelDisabled(tester, 'advanced-panel');
     expect(find.byKey(const ValueKey('by-phrase-panel')), findsNothing);
 
     // Caller's Box supports by-phrase search, so the tool comes back.

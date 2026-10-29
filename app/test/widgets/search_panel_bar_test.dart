@@ -141,6 +141,52 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('a trailing control shares the toggles\' row', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SearchPanelBar(
+            storageId: 'test',
+            panels: _panels(),
+            trailing: const SizedBox(
+              key: ValueKey('trail'),
+              width: 40,
+              height: 40,
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(
+      tester.getCenter(find.byKey(const ValueKey('trail'))).dy,
+      closeTo(tester.getCenter(find.byKey(_b)).dy, 1),
+    );
+  });
+
+  testWidgets('a tool that stops being offered is not open when it returns', (
+    tester,
+  ) async {
+    Future<void> pump({required bool withA}) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SearchPanelBar(
+            storageId: 'test',
+            panels: withA ? _panels() : [_panels().last],
+          ),
+        ),
+      ),
+    );
+    await pump(withA: true);
+    await tester.tap(find.byKey(_a));
+    await tester.pumpAndSettle();
+    expect(find.text('Nested one'), findsOneWidget);
+
+    await pump(withA: false);
+    await pump(withA: true);
+    await tester.pumpAndSettle();
+    expect(find.text('Nested one'), findsNothing);
+  });
+
   testWidgets('the open tool survives the bar scrolling out of view and back', (
     tester,
   ) async {

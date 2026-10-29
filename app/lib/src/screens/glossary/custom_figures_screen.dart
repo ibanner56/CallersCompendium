@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/dialect_library_scope.dart';
+import '../../widgets/empty_state.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../glossary/custom_figures.dart';
-import '../../theme/app_spacing.dart';
 import 'compound_editor_screen.dart';
 import 'custom_figure_detail.dart';
 
@@ -110,15 +110,20 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
         ],
       ),
       body: shown.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Text(
-                  l10n.customFiguresEmpty,
-                  key: const ValueKey('custom-figures-empty'),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+          ? EmptyState(
+              key: const ValueKey('custom-figures-empty'),
+              icon: EmptyState.glyph(context, Icons.extension_outlined),
+              title: l10n.customFiguresEmptyTitle,
+              body: l10n.customFiguresEmpty,
+              actions: [
+                if (_repos != null)
+                  FilledButton.icon(
+                    key: const ValueKey('custom-figures-empty-add'),
+                    onPressed: () => _add(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.glossaryAddCustomFigure),
+                  ),
+              ],
             )
           : ListView(
               children: [

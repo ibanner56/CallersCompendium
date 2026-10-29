@@ -3818,8 +3818,18 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get collectionEmpty =>
-      'Din samling er tom. Tilføj eller importér en dans for at komme i gang – eller aktiver onlinesøgning i indstillinger.';
+  String get collectionEmptyBody =>
+      'Tilføj eller importér en dans for at komme i gang – eller aktiver onlinesøgning i indstillinger.';
+
+  @override
+  String get collectionEmptyTitle => 'Din samling er tom';
+
+  @override
+  String get collectionImportCardTitle => 'Hent dine danse ind';
+
+  @override
+  String get collectionImportCardBody =>
+      'Importér danse, du allerede har, eller skriv din første. „The Baby Rose“ er med som eksempel, så du kan se dig om.';
 
   @override
   String get collectionFiltersTitle => 'Filtre';
@@ -3847,13 +3857,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String searchToolActiveCount(String tool, int count) {
     return '$tool · $count';
   }
-
-  @override
-  String get collectionUseAdvancedQuery => 'Brug avanceret forespørgsel';
-
-  @override
-  String get collectionUseAdvancedQuerySubtitle =>
-      'Kombiner figurer og sekvenser med alle / nogen / ingen grupper.';
 
   @override
   String collectionDanceCount(int count) {
@@ -8862,13 +8865,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionPickerAdvanced => 'Avanceret';
 
   @override
-  String get collectionPickerUseAdvancedQuery => 'Brug avanceret forespørgsel';
-
-  @override
-  String get collectionPickerAdvancedQueryHelp =>
-      'Kombiner figurer og sekvenser med alle / nogen / ingen grupper.';
-
-  @override
   String collectionPickerAddSemantic(String title) {
     return 'Tilføj $title til program';
   }
@@ -9646,6 +9642,9 @@ class AppLocalizationsDa extends AppLocalizations {
       'Intet i papirkurven. Slettede danse bevares her, indtil du fjerner dem.';
 
   @override
+  String get recentlyDeletedEmptyTitle => 'Intet slettet';
+
+  @override
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'Intet i papirkurven. Slettede danse vises her i $days dage, inden de fjernes.';
   }
@@ -9685,8 +9684,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get venueManagerClearSearchTooltip => 'Ryd søgning';
 
   @override
-  String get venueManagerEmpty =>
-      'Ingen spillesteder endnu. Tilføj et med knappen nedenfor, eller fra et program når genanvendelige spillesteder er aktiveret.';
+  String get venueManagerEmptyBody =>
+      'Tilføj et her, eller fra et program når genanvendelige spillesteder er aktiveret.';
+
+  @override
+  String get venueManagerEmptyTitle => 'Ingen spillesteder endnu';
 
   @override
   String get venueManagerNoMatches => 'Ingen spillesteder matcher din søgning.';
@@ -10075,6 +10077,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get customFiguresEmpty =>
       'Du har ikke lavet nogen egne figurer endnu. Vælg + for at tilføje en.';
+
+  @override
+  String get customFiguresEmptyTitle => 'Ingen egne figurer endnu';
 
   @override
   String get glossaryAddCustomFigure => 'Tilføj din egen figur';

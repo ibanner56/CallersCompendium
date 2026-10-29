@@ -165,8 +165,8 @@ picker.*
 **Add note / waltz** adds a free-text slot, and **Insert break** adds a break.
 On a narrow screen, **Add dance** opens the collection picker.
 
-To bring in a dance you don't have yet, open the picker's **Advanced** panel and
-turn on **Online search** to search The Caller's Box or ContraDB. Selecting a
+To bring in a dance you don't have yet, tap the **Online search** icon at the end of the
+picker's row of search tools to search The Caller's Box or ContraDB. Selecting a
 result imports it and adds it straight away. If the dance is already in your
 collection, the app uses your copy without asking. If it matches one of your
 dances but the source or figures differ, the app asks how to handle it before
