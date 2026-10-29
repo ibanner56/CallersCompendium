@@ -6192,6 +6192,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '“$title” is gewijzigd sinds je hem importeerde, dus Ongedaan maken heeft hem gelaten zoals hij is.';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '“$title” staat al in je collectie.';
   }
@@ -6220,7 +6225,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Je collectie bevat “$existingTitle” al uit een andere bron. Beide versies hebben dezelfde volgorde van moves.';
+    return 'Je collectie bevat “$existingTitle” al. Beide versies hebben dezelfde volgorde van moves.';
   }
 
   @override
@@ -7895,6 +7900,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'Figuur $position is niet compleet, dus Opslaan laat hem weg.';
+  }
+
+  @override
   String get validationPhraseInvalid => 'Die fraseopbouw is ongeldig.';
 
   @override
@@ -8322,6 +8332,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'Deze eigen figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijven alleen de naam, de beats, de notitie en de progressie bewaard.';
+
+  @override
+  String get danceEditorIncompleteFigure =>
+      'Niet compleet, dus Opslaan laat hem weg.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9526,7 +9540,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Stel dit veld beschikbaar als filter in het zoekpaneel';
+      'Bied dit veld aan in het paneel Filters en laat de zoekbalk de waarden ervan vinden';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Bied dit veld aan in het paneel Filters';
 
   @override
   String get customFieldsChoicesLabel => 'Keuzes *';

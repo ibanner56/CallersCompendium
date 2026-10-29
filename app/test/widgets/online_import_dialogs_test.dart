@@ -393,6 +393,36 @@ void main() {
       );
       await getResult();
     });
+
+    // INTAKE-5: the dialog is also shown for a dance the user typed in, which
+    // has no source, so its wording must not claim one.
+    testWidgets('its body names no source', (tester) async {
+      final getResult = await _pumpCrossSourceDialog(tester);
+      await tester.tap(find.byKey(const ValueKey('open-dialog')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Your collection already has "Tangled Yarns". Both versions have '
+          'the same sequence of moves.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.textContaining('source'),
+        ),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('online-import-cross-source-duplicate-cancel'),
+        ),
+      );
+      await getResult();
+    });
   });
 
   group('resolveAndImportOnline', () {

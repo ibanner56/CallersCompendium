@@ -8,8 +8,10 @@ import 'program_import_rollback.dart';
 /// How one ContraDB program activity resolved into a program slot (epic #291,
 /// sub-issue #314). Drives the preview's per-slot label and the commit summary.
 enum ContraDbActivityResolution {
-  /// A linked dance imported (or de-duplicated) directly from ContraDB by its
-  /// `/dances/{id}` identity — the strongest, exact result.
+  /// A linked dance resolved directly from ContraDB by its `/dances/{id}`
+  /// identity: imported, matched to an earlier import of that id, or matched
+  /// to a dance already in the collection with the same title, author and
+  /// figures (INTAKE-3), whatever that dance's source.
   linkedContraDb,
 
   /// The ContraDB dance couldn't be scraped (e.g. unpublished/removed), so the
@@ -88,9 +90,12 @@ class ResolvedContraDbActivity {
 /// - **Linked dance** → resolved **identity-first**: imported via [contraDb]
 ///   ([OnlineSearchService.loadPreview] + [OnlineSearchService.import]) using the
 ///   known `/dances/{id}` id, so the shipped provenance/dedupe guards link to an
-///   already-imported copy instead of duplicating. A same-titled *local* dance is
-///   never assumed to be this dance — resolution keys on the ContraDB id, not a
-///   fuzzy title. If the ContraDB scrape fails (unpublished/removed), it falls
+///   already-imported copy instead of duplicating. A dance already in the
+///   collection that confidently matches it (title and author) **with the same
+///   figures** is linked too, from any source or entered by hand (#685,
+///   INTAKE-3); a confident match whose figures differ is imported as its own
+///   dance, with no per-dance prompt (#797). A same-titled local dance is never
+///   assumed to be this dance on its title alone. If the ContraDB scrape fails (unpublished/removed), it falls
 ///   back to [callersBox] by title under the #313 confident unique-exact rule;
 ///   if that also fails, the verbatim title (plus any attached note) is kept as a
 ///   note slot — nothing is invented or dropped.
@@ -170,14 +175,27 @@ Future<ResolvedContraDbActivity> _resolveDance(
       formation: '',
     );
     final preview = await contraDb.loadPreview(repos, row, now: now);
+    // #685: a dance the user already has, with the same figures, is reused,
+    // never duplicated (INTAKE-3). Whatever its source, hand-entered included:
+    // the slot links the existing dance and nothing is written.
+    final identicalId = await confidentIdenticalMatchId(repos, preview.plan);
+    if (identicalId != null) {
+      return ResolvedContraDbActivity.linked(
+        resolution: ContraDbActivityResolution.linkedContraDb,
+        danceId: identicalId,
+        title: title,
+        text: attachedNote,
+      );
+    }
     final result = await contraDb.import(
       repos,
       preview.plan,
       now: now,
-      // Program import is non-interactive — no per-dance prompt (#797).
-      // Pass duplicate() explicitly so the confident-match detection block
-      // in the service is bypassed and pre-#797 behaviour is preserved by
-      // construction rather than by assumption.
+      // Program import is non-interactive — no per-dance prompt (#797). Any
+      // other confident match has differing (or unreadable) figures, and is
+      // imported as its own dance: duplicate() is passed explicitly so the
+      // service's confirmation outcomes are bypassed by construction rather
+      // than by assumption.
       ambiguousResolution: DedupeResolution.duplicate(),
     );
     final session = result.session;

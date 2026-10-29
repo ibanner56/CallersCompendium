@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../editor/pending_move_text_controller.dart';
 import 'responsive_autocomplete.dart';
 
 /// The kind of entry selected from a [MoveAutocomplete]: a taxonomy move or
@@ -50,6 +51,7 @@ class MoveAutocomplete extends StatefulWidget {
     this.onCleared,
     this.onCustomSubmitted,
     this.submitsAsText,
+    this.commitOnBlur = false,
     this.includeAliases = true,
     this.includeModifier = false,
     this.includeSequence = false,
@@ -95,6 +97,18 @@ class MoveAutocomplete extends StatefulWidget {
   /// Null treats no text that way.
   final bool Function(String text)? submitsAsText;
 
+  /// Whether leaving the box settles what was typed in it without Enter
+  /// (AUTH-1): an option named exactly by the text is chosen, text that
+  /// [submitsAsText] takes goes to [onCustomSubmitted], and anything else is
+  /// put back to [initialText]. On a phone, closing the options sheet without
+  /// choosing settles the sheet's text the same way.
+  ///
+  /// A [PendingMoveTextScope] above the box is told whether it holds text
+  /// leaving would apply, and can settle it, so Save and Back do not depend on
+  /// the tap moving focus. Off by default: a picker whose choice closes a
+  /// dialog, or runs a search, must not act because focus moved.
+  final bool commitOnBlur;
+
   final bool includeAliases;
 
   /// Whether to offer the structural `modifier` option alongside taxonomy
@@ -138,6 +152,150 @@ class MoveAutocomplete extends StatefulWidget {
 
 class _MoveAutocompleteState extends State<MoveAutocomplete> {
   static String _labelKey(String label) => label.trim().toLowerCase();
+
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialText,
+  );
+  final FocusNode _focusNode = FocusNode();
+
+  /// The scope's controller this box attached to when it took focus, while
+  /// [MoveAutocomplete.commitOnBlur] is on.
+  PendingMoveTextController? _pending;
+
+  /// The box's text, as [_labelKey], when it last showed what the row holds:
+  /// [MoveAutocomplete.initialText], or what Enter or a choice just applied.
+  /// Enter takes focus from the box before the row's new move reaches
+  /// [MoveAutocomplete.initialText], and that blur must not apply it again.
+  late String _settledKey = _labelKey(widget.initialText);
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+    _controller.addListener(_reportPendingText);
+  }
+
+  @override
+  void didUpdateWidget(MoveAutocomplete oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The row's move changed (chosen here, or by Undo, a restore or a
+    // reorder): show it.
+    if (oldWidget.initialText != widget.initialText) {
+      _controller.value = TextEditingValue(text: widget.initialText);
+      _settledKey = _labelKey(widget.initialText);
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _controller.removeListener(_reportPendingText);
+    _pending?.detach(_settle);
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (!widget.commitOnBlur) return;
+    if (_focusNode.hasFocus) {
+      _pending = PendingMoveTextScope.maybeOf(context)?..attach(_settle);
+      _reportPendingText();
+    } else {
+      // On a phone the field gives up focus when it opens the options sheet;
+      // its text is still the row's then, so settling changes nothing.
+      _settle();
+    }
+  }
+
+  /// Settles the box as leaving it does. A box that has lost focus stops
+  /// serving the scope; one the scope settled while it still has focus (Save
+  /// on a touch screen, which can leave focus in the box) keeps serving it.
+  void _settle() {
+    if (!mounted) return;
+    final text = _controller.text;
+    if (!_isSettled(text) && !_applyOnBlur(text)) {
+      // The box can keep focus (Save on a touch screen), so the caret goes
+      // somewhere valid: the end, as after a choice.
+      _controller.value = TextEditingValue(
+        text: widget.initialText,
+        selection: TextSelection.collapsed(offset: widget.initialText.length),
+      );
+      _settledKey = _labelKey(widget.initialText);
+    }
+    if (_focusNode.hasFocus) {
+      _reportPendingText();
+    } else {
+      final pending = _pending;
+      _pending = null;
+      pending?.detach(_settle);
+    }
+  }
+
+  /// Settles text typed into the phone sheet and left without a choice: the
+  /// field under the sheet still shows the row, so text that applies nothing
+  /// is simply dropped.
+  void _settleSheetText(String text) {
+    if (mounted && !_isSettled(text)) _applyOnBlur(text);
+  }
+
+  /// Whether [text] is what the row holds already, or blank: emptying the box
+  /// has cleared the move ([MoveAutocomplete.onCleared]).
+  bool _isSettled(String text) {
+    final q = _labelKey(text);
+    return q.isEmpty || q == _settledKey || q == _labelKey(widget.initialText);
+  }
+
+  void _select(MoveOption option) {
+    _settledKey = _labelKey(option.displayName);
+    widget.onSelected(option);
+  }
+
+  void _reportPendingText() {
+    _pending?.updatePendingText(
+      _focusNode.hasFocus &&
+          !_isSettled(_controller.text) &&
+          _blurAction(_controller.text) != null,
+    );
+  }
+
+  /// What leaving the box with [text] in it applies, or null when it puts the
+  /// row's own text back (AUTH-1): the option [text] names exactly, as Enter
+  /// would choose it; else, when [text] is a shorthand
+  /// ([MoveAutocomplete.submitsAsText]), [text] itself, for
+  /// [MoveAutocomplete.onCustomSubmitted]. Unlike Enter it never takes a
+  /// suggestion by part of a name, or makes a custom figure.
+  Object? _blurAction(String text) {
+    final q = _labelKey(text);
+    for (final option in _matchingOptions(q)) {
+      if (_namesExactly(option, q)) return option;
+    }
+    if (widget.onCustomSubmitted != null &&
+        (widget.submitsAsText?.call(q) ?? false)) {
+      return text.trim();
+    }
+    return null;
+  }
+
+  /// Applies what leaving the box with [text] in it applies, and returns
+  /// whether there was anything.
+  bool _applyOnBlur(String text) {
+    switch (_blurAction(text)) {
+      case final MoveOption option:
+        // As choosing it from the options does: the box shows its name.
+        _controller.value = TextEditingValue(
+          text: option.displayName,
+          selection: TextSelection.collapsed(offset: option.displayName.length),
+        );
+        _select(option);
+        return true;
+      case final String shorthand:
+        _settledKey = _labelKey(shorthand);
+        widget.onCustomSubmitted?.call(shorthand);
+        return true;
+    }
+    return false;
+  }
 
   /// The options offered for [query], first the one Enter takes (AUTH-8):
   /// the option named exactly by it (`star` is star, not star through, and
@@ -255,7 +413,8 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
   @override
   Widget build(BuildContext context) {
     return ResponsiveAutocomplete<MoveOption>(
-      initialValue: TextEditingValue(text: widget.initialText),
+      textEditingController: _controller,
+      focusNode: _focusNode,
       displayStringForOption: (o) => o.displayName,
       // Reuses the field's own label as the sheet's a11y announcement (e.g.
       // "Move") — matches the field the user was just interacting with,
@@ -264,7 +423,8 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       autofocus: widget.autofocus,
       overlayConstraints: const BoxConstraints(maxHeight: 240, maxWidth: 280),
       optionsBuilder: (value) => _optionsFor(value.text),
-      onSelected: widget.onSelected,
+      onSelected: _select,
+      onSheetDismissed: widget.commitOnBlur ? _settleSheetText : null,
       optionTileBuilder: (context, option, onSelected) {
         final compound = option.isUsers;
         return ListTile(
@@ -314,12 +474,22 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
           onSubmitted: (text) {
             final q = text.trim();
             final options = _optionsFor(q);
+            final custom = widget.onCustomSubmitted;
+            final applied =
+                options.isNotEmpty || (q.isNotEmpty && custom != null);
             if (options.isNotEmpty) {
-              widget.onSelected(options.first);
+              _select(options.first);
             } else if (q.isNotEmpty) {
-              widget.onCustomSubmitted?.call(q);
+              custom?.call(q);
             }
             onSubmit();
+            // Enter takes focus from the box next; what it just applied is
+            // the row's now, not text for that blur to apply again. Text it
+            // applied nothing for is still put back. (The phone sheet's own
+            // field closes the sheet instead.)
+            if (applied && identical(controller, _controller)) {
+              _settledKey = _labelKey(controller.text);
+            }
           },
         );
       },

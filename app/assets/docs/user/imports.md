@@ -81,6 +81,10 @@ keep.
    loading you can choose **Cancel** (or press Back) to stop waiting and return
    to your results.
 6. If it is the one you want, choose **Import** to add it to your collection.
+   The message that confirms it offers **Undo** while it is showing. Undo takes
+   the dance back out, or, if you chose **Same dance (update existing)** for a
+   dance you already had, puts your own version back. A dance you have since
+   added to a program, or changed, is kept as it is.
 
 **Caller's Box results only include dances whose figures it will share.** Not
 every dance in The Caller's Box has its choreographer's permission for the
@@ -573,10 +577,11 @@ watches for matches:
   from the same source, the app recognises it and offers to **update** the one
   you already have rather than adding a copy. (This is how the Caller's Box
   online import can tell you a dance *"is already in your collection."*)
-- **Same dance, different source.** If a dance matches one already in your
-  collection by title, author, and figures — the same moves in the same order,
-  even if the timing or notes differ — but comes from a different archive
-  — the app prompts rather than adding a second copy. You can choose **Same
+- **Same dance, from another source or typed in.** If a dance matches one
+  already in your collection by title, author, and figures — the same moves in
+  the same order, even if the timing or notes differ — and yours came from a
+  different archive, or is one you typed in yourself, the app prompts rather
+  than adding a second copy. You can choose **Same
   dance (update existing)** to link the import to your existing copy — this
   replaces your version of the dance with the online record's, including its
   title, figures, notes, tags, and rating; your custom fields, its place in your

@@ -6,12 +6,15 @@ import 'package:flutter/widgets.dart';
 
 import '../../data/editor_draft_shutdown_scope.dart';
 import '../../data/display_defaults.dart';
+import '../../data/validation_issue_labels.dart'
+    show incompleteFigureValidationCode;
 import '../../diagnostics/error_log.dart';
 import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
 import '../../editor/editor_undo_stack.dart';
 import '../../editor/figure_draft.dart';
 import '../../editor/free_text_composer_controller.dart';
+import '../../editor/pending_move_text_controller.dart';
 import '../../editor/user_figure_draft.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'choice_option.dart';
@@ -52,6 +55,7 @@ class DanceEditorController extends ChangeNotifier {
            ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
            : danceEditorDraftKey(danceId) {
     freeTextComposer.addListener(_notify);
+    pendingMoveText.addListener(_notify);
     _openDraftKeys.add(_draftKey);
   }
 
@@ -507,14 +511,24 @@ class DanceEditorController extends ChangeNotifier {
   /// discarding. Reset on a successful save.
   bool _dirty = false;
 
-  /// Whether leaving now would lose work: an unsaved edit, or a line typed into
-  /// the free-text composer and not yet added ([freeTextComposer]), which is
-  /// in neither the figure drafts nor the autosave draft.
-  bool get dirty => _dirty || freeTextComposer.hasPendingLine;
+  /// Whether leaving now would lose work: an unsaved edit, a line typed into
+  /// the free-text composer and not yet added ([freeTextComposer]), or a move
+  /// name or shorthand typed into a Move box and not yet applied
+  /// ([pendingMoveText]). Neither is in the figure drafts or the autosave
+  /// draft.
+  bool get dirty =>
+      _dirty ||
+      freeTextComposer.hasPendingLine ||
+      pendingMoveText.hasPendingText;
 
   /// The figure list's free-text composer (#419), so a line still in its box
   /// counts as unsaved ([dirty]) and Save can add it first.
   final freeTextComposer = FreeTextComposerController();
+
+  /// The figure list's Move boxes (AUTH-1), so a move name or shorthand typed
+  /// into one and not yet applied counts as unsaved ([dirty]) and Save can
+  /// apply it first.
+  final pendingMoveText = PendingMoveTextController();
 
   /// The settings key this editor autosaves under: the dance's own, or for a
   /// new dance one made for this editor (AUTH-10), so two new dances never
@@ -894,18 +908,66 @@ class DanceEditorController extends ChangeNotifier {
   /// Recomputes the non-blocking phrase warnings from the current figures and
   /// phrase-structure text. Invalid phrase structure is surfaced by the field
   /// validator instead, so here it just leaves the last good warnings.
+  ///
+  /// Rows Save would leave out (AUTH-2) are read from the drafts, not the
+  /// figures they build, which no longer hold them, and are listed whatever
+  /// the phrase structure.
+  ///
+  /// Every warning numbers rows as the list shows them ("Figure 2 of 5"). A
+  /// phrase warning counts built figures, which leave out those rows and
+  /// expand a compound into several, so its position is mapped back to the
+  /// row that built the figure.
   void recomputeWarnings() {
     try {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
+      final issues = <ValidationIssue>[];
+      deriveSections(_figures, _phraseStructure, issues: issues);
+      final rowOfFigure = [
+        for (final (row, draft) in figureDrafts.indexed)
+          for (final _ in draft.toFigures(resolveCompound: resolveCompound))
+            row + 1,
+      ];
+      _phraseWarnings = [
+        for (final issue in issues) _numberedByRow(issue, rowOfFigure),
+      ];
     } on FormatException {
       // diagnostics: silent — invalid phrase structure is surfaced by the
       // field validator instead (see the method doc); here it just leaves the
-      // last good warnings rather than clearing them.
-      return;
+      // last good phrase warnings rather than clearing them.
     }
-    final issues = <ValidationIssue>[];
-    deriveSections(_figures, _phraseStructure, issues: issues);
-    _warnings = issues;
+    _warnings = [
+      for (final (index, draft) in figureDrafts.indexed)
+        if (draft.isIncomplete)
+          ValidationIssue(
+            severity: ValidationSeverity.warning,
+            code: incompleteFigureValidationCode,
+            message:
+                'figure ${index + 1} is incomplete and is not saved', // i18n-ignore: internal diagnostic, never shown
+            data: {'position': index + 1},
+          ),
+      ..._phraseWarnings,
+    ];
+  }
+
+  /// The phrase warnings from the last phrase structure that parsed.
+  List<ValidationIssue> _phraseWarnings = const [];
+
+  /// [issue], with a built figure's 1-based `position` replaced by the row
+  /// that built it, from [rowOfFigure]. An issue with no position is kept.
+  static ValidationIssue _numberedByRow(
+    ValidationIssue issue,
+    List<int> rowOfFigure,
+  ) {
+    final position = issue.data['position'];
+    if (position is! int || position < 1 || position > rowOfFigure.length) {
+      return issue;
+    }
+    return ValidationIssue(
+      severity: issue.severity,
+      code: issue.code,
+      message: issue.message,
+      data: {...issue.data, 'position': rowOfFigure[position - 1]},
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -2027,6 +2089,7 @@ class DanceEditorController extends ChangeNotifier {
       c.dispose();
     }
     freeTextComposer.dispose();
+    pendingMoveText.dispose();
     super.dispose();
   }
 }

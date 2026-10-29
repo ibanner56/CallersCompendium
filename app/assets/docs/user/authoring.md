@@ -56,9 +56,9 @@ box that takes a whole line and offers no move suggestions. Press Enter and the
 line is added; `sw` typed there on its own is a custom figure, not a swing. See
 [Free-text entry](#free-text-entry) below.
 
-Anything the app cannot recognise is still kept — it becomes a **custom figure**,
-holding your text. Nothing you type is ever thrown away because the app did not
-understand it; the only change is that role words are saved as role terms and
+Anything you add that the app cannot recognise is still kept — it becomes a
+**custom figure**, holding your text. Nothing you add is ever thrown away because
+the app did not understand it; the only change is that role words are saved as role terms and
 shown in your own dialect (see below).
 
 *The dance editor while entering figures, with recognized rows and the running
@@ -107,6 +107,15 @@ your own figure) whose name is exactly what you typed, so `star` is a star and
 not a star through; then, with **Free-text entry** on, your shorthand with that
 token, so a short token such as `rl` is not taken for the first move whose name
 contains it; and only then the first suggestion offered.
+
+If you leave a figure's **Move** box without pressing Enter, by moving to
+another box, saving the dance, or closing the figure or opening another one,
+what you typed is used only when it is exactly a move's name (or one of your
+own figures' names) or, with **Free-text entry** on, one of your shorthands.
+Anything else, such as part of a name, goes back to the move the figure had:
+leaving the box never picks a suggestion for you or makes a custom figure. On a
+phone the same goes for closing the list of moves without choosing one. Going
+back with such a name or shorthand still in the box asks before discarding it.
 
 With **Free-text entry** on, a new dance starts with no figures, so there are no
 placeholders to delete first, unless you have saved your own
@@ -500,6 +509,15 @@ The Total counts only rows that will be saved. A group that is not complete yet,
 such as a meanwhile group with one side filled in, is left out, and so is a row
 with no move. A row with no move but a note is saved as a custom figure holding
 the note, so the note is not lost.
+
+A row that Save would leave out says so, **Not complete, so Save leaves it
+out**, and is listed under **Warnings** by its figure number. That is a group
+(meanwhile, modifier or sequence) with fewer than two of its figures filled in,
+such as a sequence just added with two blank steps; a modifier group with no
+**Core**; a group holding such a group; or a row with no move that still holds
+something other than a note, such as a walkthrough step. Fill it in, or remove it, and the
+warning goes. A blank row, with nothing chosen or typed, is not listed: there is
+nothing in it to lose.
 
 ## Details, notes, and credits
 

@@ -190,11 +190,11 @@ class CallersBoxOnline implements OnlineSearchService {
   ///   so the caller can show a resolution dialog (issue #797);
   /// - a fuzzy near-match with a confident title+author candidate,
   ///   **canonically identical** figures (same moves and order; beats and notes
-  ///   may differ), and a confirmed different source returns
-  ///   [OnlineImportKind.needsConfirmationIdentical] (nothing written) so the
-  ///   caller can show a cross-source duplicate dialog (issue #811); dances with
-  ///   null provenance (hand-entered) fall through to the next case rather than
-  ///   being falsely labelled "from a different source";
+  ///   may differ), and either a different source or a hand-entered existing
+  ///   dance returns [OnlineImportKind.needsConfirmationIdentical] (nothing
+  ///   written) so the caller can show the duplicate dialog (issue #811;
+  ///   INTAKE-5); only a same-source re-import whose id has drifted is created
+  ///   without asking;
   /// - with no confident candidate, a possible match under another title
   ///   ([DedupeVerdict.possibleMatchIds]) returns
   ///   [OnlineImportKind.needsPossibleMatchChoice] (nothing written) so the
