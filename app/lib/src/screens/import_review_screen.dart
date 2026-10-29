@@ -2082,19 +2082,24 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       );
     }
     if (!mounted) return;
+    // Each step is undone once: a retry after a failed Undo resumes where it
+    // failed, so a failure in the figures step does not skip them.
+    var figuresUndone = figures == null;
     await _showResult(
       session: result.danceSession,
       skipped: skipped,
       onUndo: () async {
-        // Idempotent: a repeated tap (or a tap after another undo) is a no-op.
-        if (result.isUndone) return;
+        if (result.isUndone && figuresUndone) return;
         await _runSyncWriterLifecycle(
           runWrite: lifecycle?.runWrite,
           operation: () async {
-            await importer.undo(result);
+            if (!result.isUndone) await importer.undo(result);
             // After the import's own undo, which restores the dances it
             // pointed at a copy.
-            await figures?.undo(_repos);
+            if (!figuresUndone) {
+              await figures!.undo(_repos);
+              figuresUndone = true;
+            }
           },
         );
       },

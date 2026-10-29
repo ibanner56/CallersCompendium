@@ -360,6 +360,37 @@ void main() {
       expect(await repos.userGlossary.getById('zoom-id'), isNull);
     });
 
+    // A retry after a failed Undo must still take the figures back, not
+    // stop at the dances the first attempt already removed.
+    testWidgets('a retried Undo takes the figures back when the first try '
+        'failed on them', (tester) async {
+      final repos = openTestRepositories();
+      await pumpShared(tester, repos);
+      await tester.tap(
+        find.byKey(const ValueKey('user-figure-import-confirm')),
+      );
+      await tester.pumpAndSettle();
+      await tester.runAsync(
+        () => repos.db.customStatement(
+          'CREATE TRIGGER boom BEFORE DELETE ON user_glossary_entries '
+          "BEGIN SELECT RAISE(ABORT, 'boom'); END",
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('import-undo-failed')), findsOneWidget);
+      expect(await repos.dances.listAll(), isEmpty);
+      expect(await repos.userGlossary.getById('zoom-id'), isNotNull);
+
+      await tester.runAsync(
+        () => repos.db.customStatement('DROP TRIGGER boom'),
+      );
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
+      expect(await repos.userGlossary.getById('zoom-id'), isNull);
+    });
+
     testWidgets('a figure whose id is taken here comes in as a copy, and the '
         'imported dance uses the copy', (tester) async {
       final repos = openTestRepositories();
