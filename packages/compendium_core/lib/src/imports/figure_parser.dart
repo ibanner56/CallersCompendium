@@ -725,7 +725,7 @@ bool _isSameRolePair(List<String> w, int i) =>
 /// null (#1975): "New Neighbor" is the next neighbors, and "Corner" the first
 /// corners ("1st"/"2nd", "first"/"second" corner name either). A bare plural
 /// ("the corners") may mean both corners in turn, so only the singular is
-/// read; a corner in "contra corners" is the figure, not a dancer.
+/// read, which also leaves the "contra corners" figure alone.
 String? _takeNamedDancerAt(List<String> w, int i) {
   final word = w[i];
   final next = i + 1 < w.length ? w[i + 1] : null;
@@ -738,7 +738,7 @@ String? _takeNamedDancerAt(List<String> w, int i) {
     w.removeRange(i, i + 2);
     return corners;
   }
-  if (word == 'corner' && (i == 0 || w[i - 1] != 'contra')) {
+  if (word == 'corner') {
     w.removeAt(i);
     return 'firstCorners';
   }

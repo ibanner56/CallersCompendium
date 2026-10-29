@@ -1527,6 +1527,15 @@ has to be judged in its own context.
   rather than declining to custom — forcing custom would regress a line that
   structures today.
 
+  **Caller's Companion dancer names (#1975):** `_takeDancer` (and
+  `_takeLeadingDancer`) read `new neighbor(s)` as `nextNeighbors` and a
+  singular `corner` as `firstCorners`, with `1st`/`first` and `2nd`/`second`
+  corner(s) naming either corner. A bare plural (`allemande left the
+  corners`, ContraDB's contra-corners text) may mean both corners in turn, so
+  it is not read; that also leaves the `contra corners` figure alone. These
+  are context-dependent two-word names, so they live in the reader rather than
+  in `dancerWords`.
+
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on
   **all 626** of the corpus lines that import as `star_promenade` (measured
