@@ -7,6 +7,7 @@ import '../model/formation.dart';
 import '../model/phrase_structure.dart';
 import '../util/text_sanitizer.dart';
 import 'author_tokenizer.dart';
+import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
@@ -599,11 +600,14 @@ class CallersBoxAdapter implements SourceAdapter {
     // Route through the shared parser: recognised moves become structured
     // figures; the rest fall back to custom. Empty when the line is empty
     // after scrubbing.
-    return parseFigureLines(
+    return withBeatImpliedBalance(
       text,
-      beats: beats,
-      frontEnd: tcbFigureFrontEnd,
-    ).map(_preserveBalanceWaveBracketNote).toList();
+      parseFigureLines(
+        text,
+        beats: beats,
+        frontEnd: tcbFigureFrontEnd,
+      ).map(_preserveBalanceWaveBracketNote).toList(),
+    );
   }
 
   // --- Cross-line merge (PR3b) -----------------------------------------------

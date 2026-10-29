@@ -1,6 +1,7 @@
 import '../model/figure.dart';
 import '../storage/figure_reparse.dart';
 import '../taxonomy/taxonomy.dart';
+import 'beat_implied_balance.dart';
 import 'figure_front_end_fan_out.dart';
 import 'free_text_entry.dart';
 import '../taxonomy/user_figure_use.dart';
@@ -190,7 +191,10 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   // editor persists one for a custom figure, and an "upgrade" must not discard
   // user text. (A `wordingOverride` is never persisted on a custom, #1394, so
   // there is nothing of it to carry.)
-  return parsed.copyWith(
+  // The stored custom is a whole import line, so unless it is a `;` line its
+  // beats are the figure's own and imply a box circulate's balance as they do
+  // on import (#1975).
+  return beatImpliedBalance(line.text, parsed).copyWith(
     note: _mergeNotes(figure.note, parsed.note),
     walkthroughOverride: figure.walkthroughOverride,
   );

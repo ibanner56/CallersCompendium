@@ -1422,6 +1422,50 @@ has to be judged in its own context.
   CallersBox provenance and exact legacy shape prove the same interpretation;
   the source-scoped migration also rebuilds the derived indexes before marking
   the repair complete.
+  **Roll away with a relationship (#1975, maintainer decision):** a
+  relationship that is the line's only dancer set (`Neighbor Roll Away`,
+  `Partners roll away`, `N2 neighbor roll away`, `roll away neighbors`) is
+  `whom`, the pair the roll away is with; `who` is left to the taxonomy
+  default and marked assumed. Before this it was `who`, which says the
+  neighbors roll one another away. The shared reader and the ContraDB dialect
+  (which claims `Neighbors roll away` first; ContraDB itself always writes
+  both dancers) read it the same way, from one list of relationships
+  (`roll_away_relationships.dart`). A role, a couple or everyone there still
+  rolls (`Larks roll away`), and with a dancer on each side the first is `who`
+  (`Ones roll away neighbors`). The #1192 annotation then states the roller,
+  with any of those relationships, and clears the assumption. Caller's
+  Companion's wording of that note (`Robins roll R, Larks step L`: one role
+  rolls, the other steps) states the roller the same way (maintainer
+  decision); any other note stays a note only, and `Rob roll L` is not read as
+  the robins. A leading Caller's Box bracket that names a dancer set (`[Larks]
+  Neighbor roll away`) states the roller too, so it is not assumed (this
+  applies to any move whose `who` the bracket fills); one that names none
+  (`[All four]`) leaves the line custom unless a note names the roller, and a
+  bracket never overrules the roller a note names. Structured figures already
+  stored keep their old `who`: the #1192 repair is unchanged and nothing
+  re-reads them, so re-importing the same dance can differ from the stored
+  copy. An import-gap custom that **Re-check custom figures** re-reads gets
+  the new reading. `rollaway` and `w/ half sashay` read too.
+  **Box circulate balance from beats (#1975, maintainer decision):** a box
+  circulate that is a whole line gets `balance: true` in 8 beats and `balance:
+  false` in 4 (explicitly, because the renderer shows a box circulate's
+  balance when the flag is absent); other counts, and a balance the line
+  states, are left alone. `withBeatImpliedBalance` applies it once the line's
+  beats are settled, and only to a line with no top-level `;` that produced
+  that one figure: a `;` line spreads its total over its clauses, or keeps it
+  on one figure while a clause becomes a note, and neither says what the box
+  circulate's own beats are. It runs in the Caller's Companion mapper, the
+  Caller's Box per-line parse, the re-parse upgrade and free-text entry (a
+  typed `(8) Box circulate`; applying it there too, so typing and importing
+  agree, was my call, not a separate maintainer decision). It does not run in
+  ContraDB import, whose rendering states the balance, nor for a Caller's Box
+  compound parent or its children, nor for an inserted call shorthand. Fold 1
+  never folds a balance line into a move that already has a balance, so a
+  balance line before an 8-beat box circulate would now stay its own figure;
+  that follows from the code, no such pair is in the beta tester's file, and
+  the Caller's Box measurement above does not record the box circulates'
+  beats. A 4-beat box circulate's explicit `false` does not stop the fold. A
+  repetition is not told apart: `(8) Box circulate (twice)` gets a balance.
   ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
   is likewise promoted from the existing figure note to `turn`, using the
   maintainer mapping `on the left` → `clockwise` and `on the right` →
