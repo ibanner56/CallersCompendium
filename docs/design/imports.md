@@ -394,24 +394,34 @@ declines the collapse.
 - **Formation (#1972).** A `.USR` states the formation in separate `Dance`
   columns, and they are read together rather than taking the first non-empty
   one. `Type` "Circle Mixer"/"Scatter Mixer"/"Longways" gives that shape (the
-  two mixers with `mixer: true`). Otherwise the `Formation` family decides:
-  Four Facing Four, Triplet, Triple Minor (its `ContraForm` start as the
-  detail), Square (`other`, detail "Square"; the dance form comes from `Type`),
-  Other (`other`). A blank family and start with only `FormationOther` is read
-  as the text export's single string would be. A Duple Minor, or a blank
-  family, is refined by `ContraForm`
-  and `Direction`: Becket with `CCW` is `becketCcw` (else `becketCw`), Indecent,
-  Proper, and Improper (or no start) with `Rev` is
+  two mixers with `mixer: true`). Otherwise the `Formation` family decides: Four
+  Facing Four, Triplet, Triple Minor (its `ContraForm` start as the detail),
+  Square (`other`, detail "Square"; the dance form comes from `Type`), Other
+  (`other`). A blank family and start with only `FormationOther` is read as the
+  text export's single string would be. A Duple Minor, or a blank family, is
+  refined by `ContraForm` and `Direction`: Becket with `CCW` is `becketCcw`
+  (else `becketCw`), Indecent, Proper, and Improper (or no start) with `Rev` is
   `reverseProgressionImproper`; other `Direction` values are ignored. A family
   or start outside those CC offers is read as the text export's single string
   would be, so "Sicilian Circle" keeps its shape and unrecognised text is the
   `other` detail with a `cc_unmapped_formation` warning. `FormationOther`, the
-  caller's own description of the start, is the detail. A square whose
-  `SubType` starts "Mixer" is a mixer (in a real file only squares have one). A formation type read this way adds no
-  "Type:" line to the calling notes. The CC text export, which gives one
-  formation string, keeps the single-string mapping, its "Type:" note for
-  these types, and `mixer: false`. `SetItem.AlternateDance` marks an alternate
-  "ALT" in a real file, which is read as true.
+  caller's own description of the start, is the detail. A square whose `SubType`
+  starts "Mixer" is a mixer (in a real file only squares have one). A formation
+  type read this way adds no "Type:" line to the calling notes. The CC text
+  export, which gives one formation string, keeps the single-string mapping, its
+  "Type:" note for these types, and `mixer: false`. `SetItem.AlternateDance`
+  marks an alternate "ALT" in a real file, which is read as true.
+- **Program slots link to dances the commit did not write (INTAKE-1).** A slot
+  resolves its CC dance id through the records the commit wrote *plus*
+  `existingDanceIdByExternalId`: the review passes each re-import row's target
+  (the row defaults to Skip, #446, and is left out of the batch). A row
+  committed through Import and edit is resolved by `earlierDanceIds` instead
+  (see *Per-row Edit* below), which wins over this map. Without it a routine
+  re-import turned every slot for a skipped dance into a "Dance not imported"
+  note on a program it then updated in place. The map links slots only: a dance in it is
+  not written and gets no `Dance_Related` link, since undo has no prior state
+  for it. An id deleted since planning is dropped, keeping the note. The share
+  importer (`CompendiumArchiveImporter.commit`) takes the same map.
 - **`UserDefined_1..3` → text custom fields (#1890).** Each non-empty column
   becomes a `CustomFieldValue` on the dance; the column's `_Name` label (or
   `User field N` when blank) becomes `CustomFieldDef.label`. The mapper is pure

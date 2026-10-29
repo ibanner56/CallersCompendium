@@ -1386,6 +1386,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// `externalId → danceId` for each re-import row: its verdict's target,
+  /// which Skip leaves as it is (INTAKE-1). The program-carrying importers
+  /// link a slot through this map when the batch commit did not write that
+  /// slot's dance, so a skipped re-import no longer turns the dance's slots
+  /// into "not imported" placeholders. A row the commit did write wins over
+  /// this map in the importer, and so does a `.USR` row committed through Edit
+  /// (`earlierDanceIds`).
+  Map<String, String> _slotDanceIdsOutsideCommit() => {
+    for (final record in _batch!.records)
+      if (record.verdict.kind == DedupeKind.reimport &&
+          record.verdict.targetDanceId != null &&
+          (record.draft.raw.externalId ?? '').isNotEmpty)
+        record.draft.raw.externalId!: record.verdict.targetDanceId!,
+  };
+
   Future<bool?> _confirmEditOverwrite(String matchedTitle) {
     final l10n = AppLocalizations.of(context);
     return showDialog<bool>(
@@ -1602,6 +1617,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           newId: uuidV4,
           newSlotId: uuidV4,
           resolutions: resolutions,
+          existingDanceIdByExternalId: _slotDanceIdsOutsideCommit(),
           defaultTagIds: await resolveDefaultImportTagIds(_repos),
           onProgress: _onCommitProgress,
           earlierDanceIds: Map.of(_editCommittedCcDanceIds),
@@ -1992,6 +2008,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         newId: uuidV4,
         newSlotId: uuidV4,
         resolutions: resolutions,
+        existingDanceIdByExternalId: _slotDanceIdsOutsideCommit(),
       ),
     );
     if (!mounted) return;

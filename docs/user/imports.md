@@ -588,6 +588,14 @@ matches are under another title). The commit summary counts re-imports separatel
 was an update. The **Imported** badge appears only on a row you brought in with **Import and
 edit** during review.
 
+**Skip** leaves your copy of a dance exactly as it is, but programs in the same
+file still point at it. When a `.USR` file or a shared program uses a dance the
+review recognised as one you already have and you left it at **Skip**, or one you
+brought in with **Import and edit**, its place in the program links to the dance
+in your collection. A dance that is not brought in and was not recognised —
+including a **Possible match** you skip — still becomes a *Dance not imported*
+note in the program.
+
 Re-importing overwrites that dance with the incoming version, so if you have
 edited your copy, look before you commit. The **Undo** on the summary reverses the
 whole batch import if it was not what you wanted (but not a dance you brought in
