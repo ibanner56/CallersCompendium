@@ -15368,6 +15368,12 @@ abstract class AppLocalizations {
   /// **'Your default figures in Settings use it, and keep its current wording as plain text.'**
   String get glossaryCustomDeleteDefaults;
 
+  /// Added to the dialog confirming that one of the user's own figures, a combination or a new figure, is deleted, when the user has shorthands for it: the shorthands are kept, and once the figure is gone, typing one is read as an ordinary free-text line.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Your shorthand for it stays, and typing it will be read as an ordinary line.} other{Your {count} shorthands for it stay, and typing them will be read as ordinary lines.}}'**
+  String glossaryCustomDeleteShorthands(int count);
+
   /// Body of the dialog confirming that a new figure is deleted, with how many dances use it.
   ///
   /// In en, this message translates to:

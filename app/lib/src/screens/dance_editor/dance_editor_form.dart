@@ -144,6 +144,14 @@ class DanceEditorForm extends StatelessWidget {
     };
   }
 
+  /// Whether [token] is a usable compound or own-figure shorthand's token,
+  /// for the Move box's Enter (AUTH-8): one whose figure was deleted, or no
+  /// longer takes its values, is read as an ordinary line, so it must not
+  /// hide the box's suggestions. One a plain shorthand also has is the plain
+  /// one's, which [FigureListEditor] already knows.
+  bool _isOwnShorthandToken(String token) =>
+      _draftForToken(token, null) != null;
+
   /// The row for [clause] when it is a compound or own-figure shorthand, else
   /// null. A count typed with the token (`16 grl`, `grl (16)`) is split off as
   /// it is for a plain shorthand (#1861), after the whole clause, so a token
@@ -473,6 +481,9 @@ class DanceEditorForm extends StatelessWidget {
                       ? null
                       : (draft, line) =>
                             _shorthandSubmit(context, replacing: draft)!(line),
+                  isOwnShorthandToken: _shorthandSubmit(context) == null
+                      ? null
+                      : _isOwnShorthandToken,
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,
                   onReorder: controller.reorderFigure,

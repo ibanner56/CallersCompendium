@@ -578,4 +578,53 @@ void main() {
       isNotNull,
     );
   });
+  // October behaviour audit, LIFE-13: the delete dialog said nothing of the
+  // figure's shorthands, which the switch dialog counts.
+  testWidgets('deleting the figure says its shorthands stay, counting only '
+      'those an ordinary shorthand does not have', (tester) async {
+    await pump(
+      tester,
+      entry: mine(name: 'zoom'),
+      seed: (repos) async {
+        await repos.settings.set(
+          kShorthandMappingsKey,
+          ShorthandMappings([
+            ShorthandMapping(
+              token: 'zz',
+              figures: [Figure(move: 'balance')],
+            ),
+          ]).toJson(),
+        );
+        await repos.settings.set(
+          kUserFigureShorthandsKey,
+          UserFigureShorthands([
+            for (final token in ['zm', 'zb', 'ZZ'])
+              UserFigureShorthand(
+                token: token,
+                figureId: 'mine',
+                figureName: 'zoom',
+              ),
+            UserFigureShorthand(
+              token: 'other',
+              figureId: 'not-mine',
+              figureName: 'other',
+            ),
+          ]).toJson(),
+        );
+      },
+    );
+
+    await tester.tap(find.byKey(const ValueKey('glossary-custom-delete')));
+    await settle(tester);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('glossary-custom-delete-body')),
+          )
+          .data,
+      "No dance in your collection uses it. It's removed from your Glossary. "
+      'Your 2 shorthands for it stay, and typing them will be read as '
+      'ordinary lines.',
+    );
+  });
 }

@@ -10343,6 +10343,19 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dine standardfigurer i Indstillinger bruger den og beholder dens nuværende ordlyd som almindelig tekst.';
 
   @override
+  String glossaryCustomDeleteShorthands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Dine $count kortformer for den bliver, og når du skriver dem, læses de som almindelige linjer.',
+      one:
+          'Din kortform for den bliver, og når du skriver den, læses den som en almindelig linje.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String glossaryCustomDeleteUses(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

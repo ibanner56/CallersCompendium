@@ -156,15 +156,32 @@ void main() {
       );
     });
 
-    test('leaving a sequence keeps its total as the shared count', () {
+    test('leaving a sequence, the shared count follows the children', () {
       final draft = FigureDraft(
         sequenceFigures: [step('balance', 4), step('swing', 12)],
       );
       draft.convertContainerTo(meanwhileMove);
       expect(draft.isMeanwhileGroup, isTrue);
       expect(draft.isSequenceGroup, isFalse);
-      expect(draft.beats, 16);
-      expect(draft.beatsTouched, isTrue);
+      // The longer side's, as for any meanwhile nobody typed a count for.
+      expect(draft.beats, 12);
+      expect(draft.beatsTouched, isFalse);
+      draft.convertContainerTo(modifierMove);
+      // A modifier's core's.
+      expect(draft.beats, 4);
+    });
+
+    test('a meanwhile follows a sequence side\'s total', () {
+      final sequence = FigureDraft(
+        sequenceFigures: [step('balance', 4), step('swing', 12)],
+      );
+      final group = FigureDraft.group(
+        meanwhileMove,
+        sequence,
+        step('orbit', 8),
+      );
+      expect(group.beats, 16);
+      expect(group.beatsTouched, isFalse);
     });
   });
 

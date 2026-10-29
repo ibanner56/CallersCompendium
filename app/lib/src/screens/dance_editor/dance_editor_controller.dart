@@ -197,6 +197,11 @@ class DanceEditorController extends ChangeNotifier {
   final LingoTextEditingController formationDetailController;
   final LingoTextEditingController tuneController;
 
+  /// The user's Move defaults (DD.3), by move id, which a typed line's rows
+  /// take for what it leaves unstated, as picking a move takes them (AUTH-7).
+  /// The screen sets them once it has read them; empty until then.
+  Map<String, Map<String, Object?>> moveParamDefaults = const {};
+
   /// Custom text/number field editors, keyed by field id. Text fields get lingo
   /// styling; number fields carry the same controller type but never match a
   /// discouraged/role term, so they render as plain text.
@@ -1586,7 +1591,8 @@ class DanceEditorController extends ChangeNotifier {
       sides.add(FigureDraft());
     }
     final group = FigureDraft(meanwhileSides: sides);
-    group.params['beats'] = sides.first.beats;
+    group.params['beats'] = 0;
+    group.syncContainerBeats();
     _renderDraftTextRecursively([group]);
     figureDrafts.add(group);
     recomputeWarnings();
@@ -1616,7 +1622,8 @@ class DanceEditorController extends ChangeNotifier {
       children.add(FigureDraft());
     }
     final group = FigureDraft(modifierFigures: children);
-    group.params['beats'] = children.first.beats;
+    group.params['beats'] = 0;
+    group.syncContainerBeats();
     _renderDraftTextRecursively([group]);
     figureDrafts.add(group);
     recomputeWarnings();
@@ -1652,7 +1659,11 @@ class DanceEditorController extends ChangeNotifier {
     if (figures.isEmpty) return 0;
     final inserted = [
       for (final figure in figures)
-        FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+        FigureDraft.fromFreeTextFigure(
+          figure,
+          contraTaxonomy,
+          moveParamDefaults: moveParamDefaults,
+        ),
     ];
     figureDrafts.addAll(inserted);
     _renderDraftTextRecursively(inserted);
@@ -1666,7 +1677,8 @@ class DanceEditorController extends ChangeNotifier {
   /// Replaces the row [draft] with the figure(s) parsed from a line typed into
   /// its Move box (#1177, opt-in "Free-text entry"), in its place. The rows are
   /// built as [insertFreeTextFigures] builds them, so parser-gap customs keep
-  /// the #398 marker and stay reparse-eligible. Returns the number of rows
+  /// the #398 marker and stay reparse-eligible, and they keep what [draft] had
+  /// beside its move ([FigureDraft.carryRowExtras]). Returns the number of rows
   /// inserted; 0 (an empty list, or [draft] no longer in the list) changes
   /// nothing.
   int replaceWithFreeTextFigures(FigureDraft draft, List<Figure> figures) {
@@ -1674,10 +1686,15 @@ class DanceEditorController extends ChangeNotifier {
     if (figures.isEmpty || index == -1) return 0;
     final inserted = [
       for (final figure in figures)
-        FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+        FigureDraft.fromFreeTextFigure(
+          figure,
+          contraTaxonomy,
+          moveParamDefaults: moveParamDefaults,
+        ),
     ];
     figureDrafts.replaceRange(index, index + 1, inserted);
     _renderDraftTextRecursively(inserted);
+    FigureDraft.carryRowExtras(draft, inserted);
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
@@ -1686,9 +1703,9 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   /// Puts the shorthand rows [drafts] at the end of the list, or in place of
-  /// [replacing] (#1847) when that row is still in the list. Returns false,
-  /// changing nothing, when [replacing] was given but is gone or [drafts] is
-  /// empty.
+  /// [replacing] (#1847) when that row is still in the list, keeping what it
+  /// had beside its move ([FigureDraft.carryRowExtras]). Returns false, changing
+  /// nothing, when [replacing] was given but is gone or [drafts] is empty.
   bool placeShorthandDrafts(
     List<FigureDraft> drafts, {
     FigureDraft? replacing,
@@ -1700,6 +1717,7 @@ class DanceEditorController extends ChangeNotifier {
       final index = figureDrafts.indexOf(replacing);
       if (index == -1) return false;
       figureDrafts.replaceRange(index, index + 1, drafts);
+      FigureDraft.carryRowExtras(replacing, drafts);
     }
     recomputeWarnings();
     pushUndoNow();
@@ -1715,7 +1733,11 @@ class DanceEditorController extends ChangeNotifier {
   List<FigureDraft> draftsForFreeTextFigures(List<Figure> figures) {
     final drafts = [
       for (final figure in figures)
-        FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+        FigureDraft.fromFreeTextFigure(
+          figure,
+          contraTaxonomy,
+          moveParamDefaults: moveParamDefaults,
+        ),
     ];
     _renderDraftTextRecursively(drafts);
     return drafts;
@@ -1839,10 +1861,10 @@ class DanceEditorController extends ChangeNotifier {
 
   /// Merges [draft] (a top-level figure row) with the row immediately after
   /// it into ONE new meanwhile group draft (#590/#593): both are demoted to
-  /// concurrent sides, seeded with the first side's beats (the user edits the
-  /// shared count afterward). Existing modifier or sequence groups may be
-  /// nested as concurrent sides, but only when they contain no further
-  /// container.
+  /// concurrent sides, and the group's shared count follows them, the longer
+  /// side's, until the user types one ([FigureDraft.syncContainerBeats]).
+  /// Existing modifier or sequence groups may be nested as concurrent sides,
+  /// but only when they contain no further container.
   void groupFigureWithNext(FigureDraft draft) =>
       _groupWithNext(draft, meanwhileMove);
 

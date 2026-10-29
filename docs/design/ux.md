@@ -72,7 +72,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 
 ### 3. Dance editor
 - **Keyboard-first figure entry** (the CC "Insert Call" lesson): type-ahead
-  move picker — typing "sw" offers swing; Enter accepts defaults (who/beats);
+  move picker — typing "sw" offers swing; Enter accepts defaults (who/beats).
+  Enter takes the option named exactly by the text first ("star" is star, not
+  star through), then, with free-text entry on, a shorthand with that token,
+  and only then the first option offered (audit AUTH-8);
   Tab cycles named params with sensible defaults from the taxonomy; running
   beat count per section shown continuously (overflow = inline warning, not
   error). Full entry of a standard dance must be achievable in <1 min without
@@ -86,6 +89,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   it with the next row into one 2–6-side concurrent group, each side authored
   with the same figure editor and one shared beats field for the whole group;
   removing down to 1 side auto-collapses back to a plain figure (#590/#593).
+  Until the author types a count there, the field follows the sides: the
+  longest side's, or a modifier group's core's (audit AUTH-11).
 - **The user's own compound figures** (#709), while Custom Figures is on: the
   move picker of a top-level row lists matching ones first, marked as the
   user's own in words. Picking one makes the row an editor-only placeholder —
