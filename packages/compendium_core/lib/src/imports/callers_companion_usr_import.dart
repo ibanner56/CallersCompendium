@@ -297,6 +297,16 @@ class CallersCompanionUsrImporter {
   /// to one is recorded in [CcUsrImportResult.linksAddedToEarlierDances] and
   /// [undo] removes just that link.
   ///
+  /// **Skipped re-import rows (INTAKE-1):** [existingDanceIdByExternalId] maps
+  /// a CC `zk_Dance_ID` to the local dance a re-import row the review left at
+  /// Skip already matches (its verdict's target). Program slots for that dance
+  /// link to it instead of becoming "not imported" placeholders. The map is
+  /// used for slots only: the dances it names are not written, so
+  /// `Dance_Related` links are never added to a dance the user chose to leave
+  /// as it is (and [undo] has no prior state to restore one from). An entry
+  /// whose dance no longer exists is ignored, and [batch]'s own dance and an
+  /// [earlierDanceIds] entry both win over it for the same CC id.
+  ///
   /// Everything is recorded on the returned [CcUsrImportResult] so [undo]
   /// reverts dances, programs **and** venues.
   Future<CcUsrImportResult> commit(
@@ -307,6 +317,7 @@ class CallersCompanionUsrImporter {
     String Function()? newId,
     String Function()? newSlotId,
     Map<int, DedupeResolution> resolutions = const {},
+    Map<String, String> existingDanceIdByExternalId = const {},
     List<String> defaultTagIds = const [],
     void Function(int done, int total)? onProgress,
     Map<String, String> earlierDanceIds = const {},
@@ -333,12 +344,24 @@ class CallersCompanionUsrImporter {
     // since) resolves to nothing, so its slots fall back to placeholders
     // rather than naming a missing dance.
     final committedEarlier = <String, String>{};
+    final Map<String, String> danceIdByCcRowId;
+    // Slots also link to a skipped re-import row's existing dance (see the doc
+    // above); `Dance_Related` resolution below does not.
+    final Map<String, String> slotDanceIdByCcRowId;
     try {
       for (final entry in earlierDanceIds.entries) {
         if (await _dances.getById(entry.value) != null) {
           committedEarlier[entry.key] = entry.value;
         }
       }
+      danceIdByCcRowId = {
+        ...committedEarlier,
+        ..._danceIdByCcRowId(danceSession),
+      };
+      slotDanceIdByCcRowId = await _pipeline.withLiveExistingDances(
+        danceIdByCcRowId,
+        existingDanceIdByExternalId,
+      );
     } catch (_) {
       await _pipeline.undo(danceSession);
       await _revertUserFieldDefinitions(keptInserted, keptRestored);
@@ -346,13 +369,9 @@ class CallersCompanionUsrImporter {
       rethrow;
     }
 
-    final danceIdByCcRowId = {
-      ...committedEarlier,
-      ..._danceIdByCcRowId(danceSession),
-    };
     final built = buildCcPrograms(
       archive,
-      danceIdByCcRowId: danceIdByCcRowId,
+      danceIdByCcRowId: slotDanceIdByCcRowId,
       newId: mintId,
       newSlotId: newSlotId ?? uuidV4,
       now: now,

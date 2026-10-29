@@ -24,14 +24,16 @@ class CcProgramsResult {
 }
 
 /// Builds [Program]s from a Caller's Companion [CcUsrArchive]'s `Set`/`SetItem`
-/// rows, resolving each item's CC dance reference to an already-committed
-/// Compendium dance id via [danceIdByCcRowId].
+/// rows, resolving each item's CC dance reference to a local Compendium dance
+/// id via [danceIdByCcRowId].
 ///
 /// This is a **pure builder** — it takes no repository and performs no I/O,
 /// mirroring [mapCallersCompanionDance]'s philosophy — so it is trivially
 /// unit-testable and stays Flutter-free in the core. The app layer calls it
 /// *after* the dance import commits (so [danceIdByCcRowId] maps CC `Dance`
-/// record ids → the new Compendium dance ids), then persists the returned
+/// record ids → the Compendium dance ids the commit wrote, plus dances the
+/// review resolved outside the commit: a skipped re-import row's target, or a
+/// row already committed through Import and edit), then persists the returned
 /// programs via `ProgramRepository` and records them for undo. Wiring that
 /// persistence/undo is an app-layer follow-up because [ImportPipeline] is
 /// dance-only; keeping this a pure function avoids a large pipeline refactor in

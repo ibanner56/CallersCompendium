@@ -4224,6 +4224,281 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Undo of a Perform adjustment after leaving Perform keeps unsaved builder '
+    'edits unsaved (GIG-4)',
+    (tester) async {
+      installFakeWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(800, 1600),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed',
+      );
+      await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgramEditorScreen)),
+      );
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.title, 'Night');
+      expect(saved.slots.single.performedAt, isNull);
+      expect(find.text('Save *'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final committed = await repos.programs.getById('p1');
+      expect(committed!.title, 'Renamed');
+      expect(committed.slots, hasLength(2));
+      expect(committed.slots.first.performedAt, isNull);
+    },
+  );
+
+  testWidgets(
+    'a refused post-exit Undo with unsaved builder edits keeps the adjustment '
+    'in the working copy (GIG-4)',
+    (tester) async {
+      installFakeWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(800, 1600),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed',
+      );
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+
+      // A write from elsewhere: the stored program no longer equals what the
+      // adjustment stored, so the Undo is refused.
+      final stored = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        stored.copyWith(
+          notes: 'Synced note',
+          updatedAt: stored.updatedAt.add(const Duration(seconds: 1)),
+        ),
+      );
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgramEditorScreen)),
+      );
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final committed = await repos.programs.getById('p1');
+      expect(committed!.title, 'Renamed');
+      expect(
+        committed.slots.single.performedAt,
+        isNotNull,
+        reason: 'the refused Undo must leave the working copy as it was',
+      );
+    },
+  );
+
+  testWidgets(
+    'a refused post-exit Undo keeps the adjustment when the builder was '
+    'edited during its write (GIG-4)',
+    (tester) async {
+      installFakeWakelock();
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(800, 1600),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed',
+      );
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+
+      // A write from elsewhere, so the Undo will be refused.
+      final stored = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        stored.copyWith(
+          notes: 'Synced note',
+          updatedAt: stored.updatedAt.add(const Duration(seconds: 1)),
+        ),
+      );
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgramEditorScreen)),
+      );
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pump();
+      await delayed.programs.writeStarted;
+      // An edit while the Undo's write is in flight.
+      await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+      await tester.pump();
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final committed = await repos.programs.getById('p1');
+      expect(committed!.title, 'Renamed');
+      expect(committed.slots, hasLength(2));
+      expect(
+        committed.slots.first.performedAt,
+        isNotNull,
+        reason: 'the mark the refused Undo kept must not be erased',
+      );
+    },
+  );
+
+  testWidgets(
+    'with auto-save on, a refused post-exit Undo keeps the adjustment when '
+    'the builder was edited during its write (GIG-4)',
+    (tester) async {
+      installFakeWakelock();
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        autoCommit: true,
+        size: const Size(800, 1600),
+      );
+
+      // An unparseable pay keeps the builder dirty without auto-committing.
+      await _expandMoreDetails(tester);
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), 'x');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+
+      // A write from elsewhere, so the Undo will be refused.
+      final stored = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(
+        stored.copyWith(
+          notes: 'Synced note',
+          updatedAt: stored.updatedAt.add(const Duration(seconds: 1)),
+        ),
+      );
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgramEditorScreen)),
+      );
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pump();
+      await delayed.programs.writeStarted;
+      // An edit while the Undo's write is in flight, which makes the builder
+      // committable, so its auto-commit queues behind the Undo.
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), '20');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
+
+      final committed = await repos.programs.getById('p1');
+      expect(committed!.payMinorUnits, 2000, reason: 'the edit auto-committed');
+      expect(
+        committed.slots.first.performedAt,
+        isNotNull,
+        reason: 'the mark the refused Undo kept must not be erased',
+      );
+    },
+  );
+
   testWidgets('blocks clearing a free-text slot to empty', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(
@@ -5311,6 +5586,282 @@ void main() {
         expect(await repos.dances.listAll(), isEmpty);
       },
     );
+  });
+
+  /// GIG-3 and GIG-4: after a commit the builder must hold the program as
+  /// stored, not the copy it wrote, and a Perform adjustment must persist only
+  /// Perform's own slot change.
+  group('stale program copies (GIG-3, GIG-4)', () {
+    Future<void> setStatusPerformed(WidgetTester tester) async {
+      await _expandMoreDetails(tester);
+      await tester.ensureVisible(find.byKey(const ValueKey('program-status')));
+      await tester.tap(find.byKey(const ValueKey('program-status')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Performed').last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> markCurrentPerformed(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> exitPerform(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<CompendiumRepositories> seed() async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Hull’s Victory'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+          ],
+        ),
+      );
+      return repos;
+    }
+
+    testWidgets('Performed stamps survive a later auto-commit', (tester) async {
+      final repos = await seed();
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+      await setStatusPerformed(tester);
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      final stamped = await repos.programs.getById('p1');
+      expect(stamped!.status, ProgramStatus.performed);
+      expect(stamped.slots.map((s) => s.performedAt), everyElement(isNotNull));
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-notes')),
+        'Great crowd',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.notes, 'Great crowd');
+      expect(
+        saved.slots.map((s) => s.performedAt),
+        stamped.slots.map((s) => s.performedAt),
+        reason: 'the second commit must not write back unstamped slots',
+      );
+    });
+
+    testWidgets('Performed stamps survive an edit made while their commit '
+        'was in flight', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+      delayed.programs.holdNextWrite();
+      await setStatusPerformed(tester);
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+      // Overtakes the held commit, which therefore is not the latest state.
+      await tester.enterText(
+        find.byKey(const ValueKey('program-notes')),
+        'Great crowd',
+      );
+      delayed.programs.releaseWrite();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.notes, 'Great crowd');
+      expect(saved.status, ProgramStatus.performed);
+      expect(saved.slots.single.performedAt, isNotNull);
+    });
+
+    testWidgets('Performed stamps survive a second explicit Save', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await setStatusPerformed(tester);
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final stamped = await repos.programs.getById('p1');
+      expect(stamped!.slots.map((s) => s.performedAt), everyElement(isNotNull));
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-notes')),
+        'Great crowd',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.notes, 'Great crowd');
+      expect(
+        saved.slots.map((s) => s.performedAt),
+        stamped.slots.map((s) => s.performedAt),
+      );
+    });
+
+    testWidgets('with auto-save off, Performed then two Perform adjustments '
+        'keeps every performed mark', (tester) async {
+      installFakeWakelock();
+      final repos = await seed();
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(800, 1600),
+      );
+
+      await setStatusPerformed(tester);
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await markCurrentPerformed(tester);
+      await markCurrentPerformed(tester);
+      await markCurrentPerformed(tester);
+      await exitPerform(tester);
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.status, ProgramStatus.performed);
+      expect(
+        saved.slots.map((s) => s.performedAt),
+        everyElement(isNotNull),
+        reason: 'no performed mark may be erased by a later write',
+      );
+    });
+
+    testWidgets('a Perform adjustment after an auto-commit stamped the program '
+        'keeps the stamps Perform never saw', (tester) async {
+      installFakeWakelock();
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        autoCommit: true,
+        size: const Size(800, 1600),
+      );
+
+      // The status commit is held until Perform is open, so the stamps it
+      // makes are not in the copy Perform was given.
+      delayed.programs.holdNextWrite();
+      await setStatusPerformed(tester);
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      final stamped = await repos.programs.getById('p1');
+      expect(stamped!.status, ProgramStatus.performed);
+      expect(stamped.slots.single.performedAt, isNotNull);
+
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('adjust-note-field')),
+        'Announcements',
+      );
+      await tester.tap(find.byKey(const ValueKey('adjust-add-note')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots, hasLength(2));
+      expect(
+        saved.slots.first.performedAt,
+        stamped.slots.single.performedAt,
+        reason: "Perform's stale copy must not be written over the stamp",
+      );
+    });
+
+    testWidgets('a Perform adjustment persists only its slot change; unsaved '
+        'builder edits stay unsaved', (tester) async {
+      installFakeWakelock();
+      final repos = await seed();
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(800, 1600),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed',
+      );
+      await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+      await tester.pumpAndSettle();
+      await setStatusPerformed(tester);
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await markCurrentPerformed(tester);
+      await exitPerform(tester);
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.title, 'Night');
+      expect(saved.status, ProgramStatus.draft);
+      expect(saved.slots.map((s) => s.id), ['s0', 's1']);
+      expect(saved.slots.first.performedAt, isNotNull);
+      expect(
+        saved.slots.last.performedAt,
+        isNull,
+        reason: 'the unsaved Performed status must not stamp the program',
+      );
+
+      // The builder still holds the unsaved edits, and says so.
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('program-title')))
+            .controller!
+            .text,
+        'Renamed',
+      );
+      expect(find.text('Save *'), findsOneWidget);
+      final draft = await repos.settings.get('program_editor_draft:p1');
+      expect(draft, contains('Renamed'));
+
+      // Saving now commits them together with Perform's mark.
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final committed = await repos.programs.getById('p1');
+      expect(committed!.title, 'Renamed');
+      expect(committed.slots, hasLength(3));
+      expect(committed.slots.first.performedAt, saved.slots.first.performedAt);
+    });
   });
 }
 
