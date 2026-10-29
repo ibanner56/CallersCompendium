@@ -4549,6 +4549,18 @@ abstract class AppLocalizations {
   /// **'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
   String get settingsGeneralRequirePerformedForHistorySubtitle;
 
+  /// Title of the Calling history setting that adds a mark-performed toggle to each dance row in the program view.
+  ///
+  /// In en, this message translates to:
+  /// **'Show mark-performed toggles'**
+  String get settingsGeneralShowPerformedTogglesTitle;
+
+  /// Subtitle explaining the show mark-performed toggles setting.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.'**
+  String get settingsGeneralShowPerformedTogglesSubtitle;
+
   /// Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs).
   ///
   /// In en, this message translates to:
@@ -7768,6 +7780,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked performed.'**
   String get programsMarkedPerformed;
+
+  /// Screen-reader label of a program-view dance row's mark-performed toggle when the dance is marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: performed'**
+  String programsSummaryPerformedToggleOn(String title);
+
+  /// Screen-reader label of a program-view dance row's mark-performed toggle when the dance is not marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: not performed'**
+  String programsSummaryPerformedToggleOff(String title);
+
+  /// Tooltip of a program-view dance row's mark-performed toggle while the dance is not marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark {title} performed'**
+  String programsSummaryMarkPerformedTooltip(String title);
+
+  /// Tooltip of a program-view dance row's mark-performed toggle while the dance is marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear performed mark on {title}'**
+  String programsSummaryClearPerformedTooltip(String title);
+
+  /// Undo snackbar shown after a dance row's toggle marks it performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked {title} performed.'**
+  String programsSummaryMarkedPerformedSnack(String title);
+
+  /// Undo snackbar shown after a dance row's toggle clears its performed mark.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared the performed mark on {title}.'**
+  String programsSummaryClearedPerformedSnack(String title);
+
+  /// Snackbar shown when a program-view dance row's mark-performed toggle could not be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update the performed mark. Please try again.'**
+  String get programsSummaryPerformedToggleError;
+
+  /// Snackbar shown when undoing a single dance row's performed mark fails, for instance because the program was edited in the meantime.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not undo that change to the performed mark.'**
+  String get programsSummaryUndoPerformedToggleError;
 
   /// Accessibility announcement after a slot's performed mark is cleared.
   ///

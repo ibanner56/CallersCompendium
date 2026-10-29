@@ -2976,6 +2976,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn aktiviert, listet der Calling-Verlauf eines Tanzes nur Programme auf, deren Slot für diesen Tanz als aufgeführt markiert wurde. Wenn deaktiviert, erscheint ein Programm, sobald es den Tanz enthält.';
 
   @override
+  String get settingsGeneralShowPerformedTogglesTitle =>
+      'Schalter „Als aufgeführt markieren“ anzeigen';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'Wenn aktiviert, hat jeder Tanz in der Programmansicht einen Schalter, um ihn als aufgeführt zu markieren oder nicht – ohne den Editor zu öffnen. Wenn deaktiviert, zeigen die Zeilen nur an, ob ein Tanz aufgeführt wurde.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Calling-Verlauf für alle Caller erfassen';
 
@@ -5046,6 +5054,44 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => 'Als aufgeführt markiert.';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title: aufgeführt';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title: nicht aufgeführt';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return '$title als aufgeführt markieren';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return 'Aufführungsmarkierung von $title entfernen';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$title als aufgeführt markiert.';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return 'Aufführungsmarkierung von $title entfernt.';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      'Die Aufführungsmarkierung konnte nicht aktualisiert werden. Bitte versuche es erneut.';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      'Die Änderung der Aufführungsmarkierung konnte nicht rückgängig gemacht werden.';
 
   @override
   String get programsPerformedCleared => 'Aufführungsmarkierung entfernt.';

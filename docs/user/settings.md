@@ -193,6 +193,11 @@ details are handled when you export.
   [alternate](./glossary.md#alt) counts only once you mark that slot performed;
   **Mark all performed** and the **Performed** status skip alternates, so mark
   the ones you used yourself.
+- **Show mark-performed toggles** (on) — adds a circle to the end of each dance
+  row on a saved program's summary, alternates included, so you can mark that
+  dance performed (or clear the mark) without opening the editor. Marking or
+  clearing offers an **Undo**. Turn it off and rows only show a check on dances
+  already marked performed. The change applies straight away.
 - **Track calling history for all callers** (off) — when off *and* you've set a
   [default caller for new programs](#program-defaults), a dance's calling history
   and "called ×N" counts include only programs led by that caller (plus any

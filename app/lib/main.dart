@@ -61,6 +61,7 @@ import 'src/data/matrix_collision_mode_scope.dart';
 import 'src/data/program_matrix_column_config_scope.dart';
 import 'src/data/program_auto_commit_scope.dart';
 import 'src/data/set_list_color_coding_scope.dart';
+import 'src/data/show_performed_toggles_scope.dart';
 import 'src/data/shorthand_mappings_controller.dart';
 import 'src/data/shorthand_mappings_scope.dart';
 import 'src/data/single_instance_guard.dart';
@@ -619,6 +620,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : true,
     encode: (v) => v,
   );
+  final _showPerformedTogglesNotifier = PreferenceNotifier<bool>(
+    key: kShowPerformedTogglesKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
   final _matrixExactBeatCollisionNotifier = PreferenceNotifier<bool>(
     key: kMatrixExactBeatCollisionKey,
     defaultValue: true,
@@ -1073,6 +1080,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _autoCommitProgramChangesNotifier,
     _colourDanceThemeNotifier,
     _setListColorCodingNotifier,
+    _showPerformedTogglesNotifier,
     _matrixExactBeatCollisionNotifier,
     _themeNotifier,
     _collectionTileFieldsNotifier,
@@ -1876,6 +1884,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _autoCommitProgramChangesNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
+    _showPerformedTogglesNotifier.dispose();
     _matrixExactBeatCollisionNotifier.dispose();
     _programMatrixColumnsNotifier.dispose();
     _dateFormatNotifier.dispose();
@@ -2479,6 +2488,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     ),
     (child) => SetListColorCodingScope(
       notifier: _setListColorCodingNotifier,
+      child: child,
+    ),
+    (child) => ShowPerformedTogglesScope(
+      notifier: _showPerformedTogglesNotifier,
       child: child,
     ),
     (child) => MatrixCollisionModeScope(

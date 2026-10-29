@@ -2940,6 +2940,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret viser en dans\' kaldshistorik kun programmer, hvis slot for den dans er markeret som fremført. Når deaktiveret vises et program, så snart det indeholder dansen.';
 
   @override
+  String get settingsGeneralShowPerformedTogglesTitle =>
+      'Vis knapper til markering som fremført';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'Når aktiveret har hver dans i programvisningen en knap til at markere den som fremført eller ej, uden at åbne editoren. Når deaktiveret viser rækkerne kun, om en dans er fremført.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Spor kaldshistorik for alle callere';
 
@@ -4994,6 +5002,44 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => 'Markeret som fremført.';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title: fremført';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title: ikke fremført';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return 'Markér $title som fremført';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return 'Ryd fremført-markeringen på $title';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$title markeret som fremført.';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return 'Fremført-markeringen på $title er ryddet.';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      'Fremført-markeringen kunne ikke opdateres. Prøv igen.';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      'Ændringen af fremført-markeringen kunne ikke fortrydes.';
 
   @override
   String get programsPerformedCleared => 'Fremført-markering ryddet.';

@@ -2994,6 +2994,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Activé : l’historique d’appel d’une danse ne liste que les programmes dont le créneau pour cette danse a été marqué comme joué. Désactivé : un programme apparaît dès qu’il contient la danse.';
 
   @override
+  String get settingsGeneralShowPerformedTogglesTitle =>
+      'Afficher les commutateurs « marquer comme joué »';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'Activé : chaque danse de la vue d’un programme a un commutateur pour la marquer comme jouée ou non, sans ouvrir l’éditeur. Désactivé : les lignes indiquent seulement si une danse a été jouée.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Suivre l’historique d’appel pour tous les callers';
 
@@ -5059,6 +5067,44 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => 'Marqué comme joué.';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title : joué';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title : non joué';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return 'Marquer $title comme joué';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return 'Effacer la marque de joué sur $title';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$title marqué comme joué.';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return 'Marque de joué effacée sur $title.';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      'Impossible de mettre à jour la marque de joué. Veuillez réessayer.';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      'Impossible d’annuler cette modification de la marque de joué.';
 
   @override
   String get programsPerformedCleared => 'Marque de joué effacée.';

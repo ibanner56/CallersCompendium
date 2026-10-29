@@ -309,6 +309,7 @@ final Map<String, DataClassification> settingsClassifications = {
         'travel in a user-controlled local backup.',
   ),
   'require_performed_for_history': _preference,
+  'show_performed_toggles': _preference,
   'track_history_for_all_callers': _preference,
   'venue_call_count': _preference,
 

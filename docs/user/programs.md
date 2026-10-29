@@ -459,8 +459,15 @@ calling it: if Hull's Victory is the alternate to Chorus Jig and you call Chorus
 Jig, only Chorus Jig's count goes up. Mark Hull's Victory performed too if you
 called it instead, or as well.
 
-To mark one slot, choose **Mark performed** from its **…** menu, or mark it
-from [Perform mode](./perform.md#adjust-on-the-fly) while you call. To mark
+To mark one slot, tap the circle at the end of its row on a saved program's
+summary (alternates included; tap it again to clear the mark), choose **Mark
+performed** from its **…** menu in the editor, or mark it from
+[Perform mode](./perform.md#adjust-on-the-fly) while you call. Marking or
+clearing from the summary shows an **Undo**, which only applies while the
+program is otherwise unchanged. If you'd rather not see the circles, turn off
+**Show mark-performed toggles** in
+[Settings › Program › Calling history](./settings.md#calling-history); rows then
+just show a check on dances already marked. To mark
 every unperformed dance at once, use **Mark all performed** in the program
 editor or on a saved program's summary; it offers a one-tap **Undo**. Mark all
 performed skips alternates, and so does setting a program's status to

@@ -46,6 +46,7 @@ import 'regional_formats.dart'
 import 'seed_service.dart' show kInitialSeedCompletedKey;
 import 'settings_keys.dart';
 import 'set_list_color_coding_scope.dart' show kSetListColorCodingKey;
+import 'show_performed_toggles_scope.dart' show kShowPerformedTogglesKey;
 import 'shorthand_mappings_controller.dart'
     show
         kCompoundShorthandsKey,
@@ -104,6 +105,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kShowCustomFiguresKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
+    kShowPerformedTogglesKey,
     kUpdateAutoCheckKey,
     kUpdateBetaChannelKey,
     kMatrixExactBeatCollisionKey,

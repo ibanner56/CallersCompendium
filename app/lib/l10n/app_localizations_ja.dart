@@ -2796,6 +2796,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、ダンスのコーリング履歴には、そのダンスのスロットが「実施済み」とマークされたプログラムのみが表示されます。オフにすると、ダンスを含むプログラムがすぐに表示されます。';
 
   @override
+  String get settingsGeneralShowPerformedTogglesTitle => '「実施済み」切り替えを表示';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'オンにすると、プログラム表示の各ダンスに、エディターを開かずに実施済みかどうかをマークする切り替えが表示されます。オフにすると、行にはダンスが実施済みかどうかだけが表示されます。';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'すべてのコーラーのコーリング履歴を記録する';
 
@@ -4782,6 +4789,44 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => '実施済みとしてマークしました。';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title：実施済み';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title：未実施';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return '$titleを実施済みとしてマーク';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return '$titleの実施済みマークをクリア';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$titleを実施済みとしてマークしました。';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return '$titleの実施済みマークをクリアしました。';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      '実施済みマークを更新できませんでした。もう一度お試しください。';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      '実施済みマークの変更を取り消せませんでした。';
 
   @override
   String get programsPerformedCleared => '実施済みマークをクリアしました。';
