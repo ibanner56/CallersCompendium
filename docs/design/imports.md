@@ -472,10 +472,41 @@ declines the collapse.
     carries nothing, so the value already stored for it is kept.
   - **Not migrated:** dances imported before #1890 keep the `Label: value`
     lines in their calling notes.
+- **Notes, links and sources (#1974).** The calling notes are assembled from
+  `CallingNotes`, then `Music:`, the unmapped-type line, `Progression:` with
+  `ProgressionOther` when `Progression` is also set (alone, `ProgressionOther`
+  is still read as the progression), `Credits`, `Other notes:` with
+  `NotesOther`, and last `Source:` with `From`, as the Caller's Box and ContraDB
+  importers end with "Imported from …". `SourceURL` is a source link and
+  `VideoURL` … `VideoURL5` are video links, each kept only when it is an
+  `http`/`https` URL with a host and no whitespace or invisible characters
+  (`ccLinkUrl`), so CC's empty `http://` placeholder is dropped. `CallersBox_id`
+  is a source link labelled "The Caller's Box" to its
+  `…/thecallersbox/dance.php?id=N` page; the dance's provenance stays CC's, which
+  re-import matches on. `Reference` is a published source cited with
+  `PageNumber` as the page: the mapper writes a placeholder source id
+  (`cc-published-source:<title>`), and `CallersCompanionUsrImporter` resolves it
+  before the pipeline commit, reusing a source with that title, compared
+  normalised and case-folded (`naturalKeyMatchKey`), whatever else it has set,
+  so a book entered with its author is not duplicated (a live one before a
+  tombstone, which is revived, then an exact title, then the smallest id), or
+  creating one.
+  Created and revived sources are reverted with a failed commit, dropped
+  straight after the commit when no live dance cites them (every dance citing
+  one was skipped), and removed (revived ones tombstoned again) on `undo`, each
+  behind the repository's guard against deleting a source a live dance cites,
+  so a source a user's own dance has since cited stays.
+- **Set flags (#1974).** `SetItem.Break` is a checkbox that CC's own set-list
+  layout describes as "a break occurs after this dance", so the program gets a
+  `Break` text slot after that dance and its alternates, unless the set already
+  has its own break slot there. A slot with no dance that carries the flag is
+  the break itself. `Set.SetList_HideALT` is `Program.hideAlternates`,
+  re-applied from the file on re-import like the program's other fields.
 - **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
   before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
-  the same definition step as `commit` (a bare pipeline commit of a dance with a
-  user-field value is refused by the repository) but builds no programs or
+  the same definition and published-source steps as `commit` (a bare pipeline
+  commit of a dance with a user-field value is refused by the repository) but
+  builds no programs or
   links, and has no undo. The screen keeps each such dance's `zk_Dance_ID` →
   dance id and passes it to the batch `commit` as `earlierDanceIds`, so set
   slots and `Dance_Related` pairs naming it resolve to it rather than becoming
