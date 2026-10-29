@@ -46,6 +46,27 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="application/json"/>
             </intent-filter>
+            <!-- A saved .ccshare file (PLAT-4): Android has no type for the
+                 extension, so Gmail, Drive and file managers usually hand it
+                 over as application/octet-stream. This puts the app in
+                 "Open with" / Share for any file of unknown type; Dart rejects
+                 anything that is not a share file before anything is imported.
+                 It cannot be narrowed to .ccshare: a pathPattern does not match
+                 the opaque content:// URIs mail and cloud apps use, which are
+                 the main case. Not BROWSABLE, like the filters above
+                 (security-6). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="content"/>
+                <data android:scheme="file"/>
+                <data android:mimeType="application/octet-stream"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="application/octet-stream"/>
+            </intent-filter>
             <!-- Receive-side share import of a web URL (issue #343): a browser
                  "Share" of a ContraDB program page sends the page URL as
                  text/plain via ACTION_SEND (EXTRA_TEXT). Dart validates the
