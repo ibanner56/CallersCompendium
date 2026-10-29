@@ -95,10 +95,15 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
   - The default `idByName` skips tombstones (`tag_repository.dart:260-266`).
     A rename onto a name a tombstone holds would then reach `upsert` and
     throw `DuplicateNaturalKeyError` (`existence.dart:368-383`).
-  - **Recommendation:** when only a tombstone holds the name, free it first by
-    renaming that tombstone with the suffix described under Merge, then
-    rename. Rejected alternative: refuse, which would block a name the user
-    can no longer see anywhere.
+  - **Recommendation:** when only a tombstone holds the name, free it first
+    with the name-only tombstone write described under Merge, then rename.
+    Rejected alternative: refuse, which would block a name the user can no
+    longer see anywhere.
+  - That write must not go through `upsert`. `applyUpsertExistence` clears
+    `deleted_at` on every upsert (`existence.dart:250-256`), and with
+    `localUserEdit` the upsert also cancels pending deletions
+    (`tag_repository.dart:190-199`). Renaming a tombstone through `upsert`
+    would therefore bring it back to life.
 - **On a collision, offer a merge.** Don't refuse. The dialog says:
   "'Flowy' already exists. Merge 'Flowing' into it?", with **Keep editing**
   and **Merge**.
@@ -143,9 +148,19 @@ The steps run in one transaction:
 
 1. **Free the loser's name.** The loser is renamed to `<name>_<suffix>`, where
    `<suffix>` is the first eight hex digits of its UUID, with hyphens
-   removed. This is the same derivation §6.6 uses for custom-field keys
-   (`sync-spec.md:3377-3382`). Without it, three things go wrong, because the
-   `UNIQUE` index also covers tombstones (§4.1):
+   removed. If that name is taken, the suffix becomes all 32 digits, as
+   §6.6's custom-field rule does (`sync-spec.md:3377-3392`).
+   - Only this device derives the name, so it need not be deterministic the
+     way the custom-field rule must be. The rule is borrowed for its shape,
+     not for its convergence argument.
+   - The rename goes through a new **name-only write**: it sets the name and
+     bumps `updatedAt`. It leaves `deleted_at` and `existence_at` alone
+     (§6.4) and cancels no pending deletion.
+   - That write is valid under I2, because the body changes. It is not
+     `upsert`, which revives (see [Rename](#rename)).
+
+   Without step 1, three things go wrong, because the `UNIQUE` index also
+   covers tombstones (§4.1):
    - **The survivor can't take the name.** When the smaller id belongs to
      "Flowing", the survivor needs "Flowy", which the loser holds.
    - **Re-creating the name adopts the merged-away row.** Typing "Bouncey"
@@ -208,12 +223,13 @@ The steps run in one transaction:
 
 **Undo** restores the transaction's before-image:
 
-- the loser is revived under its old name, and its fields restored;
-- the captured joins are put back, with author and source positions and
-  citation page and number;
-- the survivor's fields are restored;
-- the alias is removed, and the setting restored;
-- every touched dance is bumped again.
+1. the survivor's fields are restored first, so that its old name is free
+   again for the loser;
+2. the loser is revived under its old name, and its fields restored;
+3. the captured joins are put back, with author and source positions and
+   citation page and number;
+4. the alias is removed, and the setting restored;
+5. every touched dance is bumped again.
 
 If a sync pass ran in between, the revival stamps above the tombstone (§6.4,
 `sync-spec.md:3036-3040`), so peers converge on the undone state as ordinary
@@ -248,12 +264,31 @@ the spec. I did not run them.
 - A merge on A while B, offline, renames the loser: B's edit lands on the
   survivor on A, and the tombstone should win on B (§6.4: a rename is an
   edit, not a revival).
-- Apply order on a peer. If the survivor's rename onto the loser's old name
-  arrives before the loser's renamed tombstone, the peer sees "renamed onto
-  a name this device already uses" and queues it (§6.6 step 1,
-  `sync-spec.md:3246-3262`). T1 must show that it resolves on a later pass,
-  or else order natural-key tombstones before renames within a batch. This
-  is the open risk in this design.
+- **The open risk: a peer that holds the deletion pending.** §6.8 keeps a
+  held row live, under its old name (`sync-spec.md:3730`), so the suffixed
+  name never reaches that peer's row.
+  - When the survivor arrives renamed onto that name, the peer queues it as
+    "renamed onto a name this device already uses" (§6.6 step 1,
+    `sync-spec.md:3246-3262`).
+  - While that row stands, the peer skips the survivor's update on every
+    pass (`sync-spec.md:3263-3264`). That lasts as long as the peer's own
+    citations of the loser do, which is exactly the offline-citation case
+    the alias exists for.
+  - The same happens briefly, on any peer, if the survivor's rename is
+    applied before the loser's tombstone.
+  - T1 must settle this before it builds anything else. The candidate fixes
+    are: apply a held row's name from its tombstone while keeping the row
+    live, or order natural-key tombstones before renames. Both are spec
+    changes, so they belong in D-N2-1's amendment.
+  - It arises only when the survivor takes the *loser's* name, that is, when
+    the smaller id is the entry being renamed. In the other direction the
+    survivor keeps its own name and nothing collides.
+- **A known limit: three-way merges.** A merges L into S while B merges L
+  into T. If L has the smallest id on A but T is the smaller on B, A keeps L,
+  while B tombstones L and aliases it to T. B's dances that still cite S can
+  then reach A rewritten onto a tombstone. The smaller-id rule settles the
+  two-way case only. T1 should test this, and the amendment should state it
+  as a limit if T1 cannot close it.
 - A peer whose advertised tombstone of the loser is rewritten onto the
   survivor by the alias: that must never tombstone the survivor.
 
@@ -536,8 +571,9 @@ reusing §6.6's alias table and needing nothing from §6.15. The sync "Merge"
 choice (`settings.md:1212-1218`) keeps working as it does. Because the loser's
 tombstone gives up its name, a peer that created that name on its own gets no
 "deleted something this device still has" review row
-(`settings.md:1203-1210`). The one collision left is the apply-order risk
-under [Merge](#merge).
+(`settings.md:1203-1210`). A step-1 collision can still arise on a peer that
+holds the loser's deletion pending. That is the open risk described under
+[Merge](#merge).
 
 ## Docs to change with the code
 
@@ -560,11 +596,13 @@ Each implementation branch updates these in the same PR:
 ## Decisions needed
 
 1. **D-N2-1: amend sync-spec §6.6 for the user merge.** The amendment
-   covers four rules:
+   covers five rules:
    - the surviving id is the smaller UUID;
    - the loser's tombstone gives up its name;
    - the merge records an id alias;
-   - a peer's edit of the loser lands on the survivor.
+   - a peer's edit of the loser lands on the survivor;
+   - the fix T1 settles for a peer that holds the loser's deletion pending
+     (see [Merge](#merge)).
 
    Recommendation: yes. Without the alias, an offline peer's citations of
    the loser are left to however apply treats a citation of a tombstone.
