@@ -333,8 +333,10 @@ expressible in that one statement and are
 applied as a **post-fetch pass in Dart** over the returned id set:
 
 - `author` — needs the author-name join/ordering; and
-- `last-called` — needs the separate `ProgramRepository.lastCalledByDance()`
-  query (as in 3.1).
+- `last-called` — needs a per-dance aggregate over `program_slots`/`programs`
+  (`DanceRepository._sortByLastCalled`), scoped by the same caller filter,
+  performed setting and alternate rule as the "called ×N" count, and ordered by
+  `COALESCE(performed_at, event_date, updated_at)`.
 
 So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
 requested sort is `author` or `last-called`, the id set it returns is reordered

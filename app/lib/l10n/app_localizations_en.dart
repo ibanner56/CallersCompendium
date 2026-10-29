@@ -4588,6 +4588,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsMarkedAllPerformed => 'Marked all dances performed.';
 
   @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Marked all dances performed except alternates. Mark an alternate yourself if you called it.';
+
+  @override
   String programsSavedSnack(String title) {
     return '\"$title\" saved.';
   }

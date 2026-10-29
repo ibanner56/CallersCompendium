@@ -43,6 +43,7 @@ import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
+import 'package:compendium_app/src/data/default_program_caller_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_call_count_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
@@ -74,6 +75,7 @@ const _expectedAppScopeTypes = <Type>[
   CollectionTileFieldsScope,
   DanceShareFieldsScope,
   TrackHistoryForAllCallersScope,
+  DefaultProgramCallerScope,
   VenueCallCountScope,
   SortIgnoreArticlesScope,
   ReduceMotionScope,

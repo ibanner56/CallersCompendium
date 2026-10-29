@@ -4683,6 +4683,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Toutes les danses marquées comme jouées.';
 
   @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Toutes les danses marquées comme jouées, sauf les alternatives. Marquez vous-même une alternative si vous l’avez appelée.';
+
+  @override
   String programsSavedSnack(String title) {
     return '« $title » enregistré.';
   }

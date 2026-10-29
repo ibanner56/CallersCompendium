@@ -4417,6 +4417,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMarkedAllPerformed => 'すべてのダンスを実施済みにしました。';
 
   @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      '代替を除くすべてのダンスを実施済みにしました。代替をコールした場合は、ご自身で実施済みにしてください。';
+
+  @override
   String programsSavedSnack(String title) {
     return '「$title」を保存しました。';
   }

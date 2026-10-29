@@ -7157,6 +7157,12 @@ abstract class AppLocalizations {
   /// **'Marked all dances performed.'**
   String get programsMarkedAllPerformed;
 
+  /// Confirmation (snackbar and screen-reader announcement) after Mark all performed, shown instead of programsMarkedAllPerformed when the program has an alternate dance that was left unmarked. Mark all performed never marks alternates, because an alternate counts as called only once the caller marks it.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed except alternates. Mark an alternate yourself if you called it.'**
+  String get programsMarkedAllPerformedExceptAlternates;
+
   /// Snackbar confirming the program was saved, quoting its title.
   ///
   /// In en, this message translates to:

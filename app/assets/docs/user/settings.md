@@ -183,14 +183,19 @@ details are handled when you export.
 - **Require "mark performed" for calling history** (off) — when on, a dance's
   calling history lists only the [programs](./glossary.md#program) whose
   [slot](./glossary.md#slot) was actually marked performed, rather than every
-  program the dance appears in.
+  program the dance appears in. Either way, an
+  [alternate](./glossary.md#alt) counts only once you mark that slot performed;
+  **Mark all performed** and the **Performed** status skip alternates, so mark
+  the ones you used yourself.
 - **Track calling history for all callers** (off) — when off *and* you've set a
   [default caller for new programs](#program-defaults), a dance's calling history
   and "called ×N" counts include only programs led by that caller (plus any
   programs with no caller recorded, which are treated as your own). Turn it on —
   or leave the default caller blank — to track every program that contains the
   dance. Matching ignores surrounding spaces and letter case, and applies on top
-  of the *Require "mark performed"* setting (both must pass).
+  of the *Require "mark performed"* setting (both must pass). Collection's
+  counts and **Last called** sort follow a change to the default caller straight
+  away.
 - **Repeated venues in calling history** (3) — shows the top venues where a
   dance was called more than once. Set this to 0 to hide the summary, or choose
   up to 10 venues.

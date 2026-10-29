@@ -2383,7 +2383,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     setState(() {
       final updatedSlots = <ProgramSlot>[];
       for (final s in _slots) {
-        if (s.danceId != null && s.performedAt == null) {
+        // Alternates are skipped: one counts as called only once the caller
+        // marks it by hand (maintainer ruling, 2026-10-28).
+        if (s.isBulkMarkPerformedTarget) {
           markedSlotIds.add(s.id);
           updatedSlots.add(s.copyWith(performedAt: now));
         } else {
@@ -2395,7 +2397,22 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _pendingBulkUndoTimestamp = now;
       }
     });
-    if (markedSlotIds.isEmpty) return;
+    if (markedSlotIds.isEmpty) {
+      // Every primary was already marked: say why the alternates still are not,
+      // rather than doing nothing visible. There is nothing to undo.
+      if (_slots.any(_isUnmarkedAlternate)) {
+        final message = l10n.programsMarkedAllPerformedExceptAlternates;
+        SemanticsService.sendAnnouncement(
+          View.of(context),
+          message,
+          Directionality.maybeOf(context) ?? TextDirection.ltr,
+        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+      return;
+    }
     _pendingBulkUndoBaseline = _existing;
     _markDirty();
     final actionToken = ++_bulkUndoActionToken;
@@ -2406,11 +2423,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _persistedBulkUndoActionToken = null;
     SemanticsService.sendAnnouncement(
       View.of(context),
-      l10n.programsMarkedAllPerformed,
+      _markedAllPerformedMessage(l10n),
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
     _showBulkUndoSnackBar();
   }
+
+  static bool _isUnmarkedAlternate(ProgramSlot s) =>
+      s.danceId != null && s.isAlt && s.performedAt == null;
+
+  /// What Mark all performed reports: it says so when it left an alternate
+  /// unmarked, so the caller knows to mark the one they used.
+  String _markedAllPerformedMessage(AppLocalizations l10n) =>
+      _slots.any(_isUnmarkedAlternate)
+      ? l10n.programsMarkedAllPerformedExceptAlternates
+      : l10n.programsMarkedAllPerformed;
 
   void _showBulkUndoSnackBar({String? message}) {
     final markedSlotIds = _pendingBulkUndoSlotIds;
@@ -2431,7 +2458,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final undoGeneration = ++_bulkUndoGeneration;
     final snackBar = showUndoSnackBar(
       messenger,
-      message: message ?? l10n.programsMarkedAllPerformed,
+      message: message ?? _markedAllPerformedMessage(l10n),
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () {

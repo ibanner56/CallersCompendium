@@ -5891,6 +5891,10 @@
   "@programsMarkedAllPerformed": {
     "description": "Confirmation (snackbar and screen-reader announcement) after marking every dance in the program as performed."
   },
+  "programsMarkedAllPerformedExceptAlternates": "Marked all dances performed except alternates. Mark an alternate yourself if you called it.",
+  "@programsMarkedAllPerformedExceptAlternates": {
+    "description": "Confirmation (snackbar and screen-reader announcement) after Mark all performed, shown instead of programsMarkedAllPerformed when the program has an alternate dance that was left unmarked. Mark all performed never marks alternates, because an alternate counts as called only once the caller marks it."
+  },
   "programsSavedSnack": "\"{title}\" saved.",
   "@programsSavedSnack": {
     "description": "Snackbar confirming the program was saved, quoting its title.",

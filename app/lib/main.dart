@@ -58,6 +58,7 @@ import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
+import 'src/data/default_program_caller_scope.dart';
 import 'src/data/track_history_for_all_callers_scope.dart';
 import 'src/data/seed_service.dart';
 import 'src/data/matrix_collision_mode_scope.dart';
@@ -75,7 +76,8 @@ import 'src/data/show_custom_figures_scope.dart';
 import 'src/data/show_glossary_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
-import 'src/data/display_defaults.dart' show kCanonicalDiscouragedTermsKey;
+import 'src/data/display_defaults.dart'
+    show kCanonicalDiscouragedTermsKey, kDefaultProgramCallerKey;
 import 'src/data/venue_entity_mode_scope.dart';
 import 'src/data/venue_call_count_scope.dart';
 import 'src/data/walkthrough_snippet_library_controller.dart';
@@ -518,6 +520,14 @@ class _CompendiumAppState extends State<CompendiumApp>
     key: kTrackHistoryForAllCallersKey,
     defaultValue: false,
     decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  // Live so Collection's caller-scoped counts follow an edit or a synced change
+  // without a restart (PRES-4). Trimmed on read, as the resolver trims it.
+  final _defaultProgramCallerNotifier = PreferenceNotifier<String>(
+    key: kDefaultProgramCallerKey,
+    defaultValue: '',
+    decode: (Object? v) => v is String ? v.trim() : '',
     encode: (v) => v,
   );
   final _venueCallCountNotifier = PreferenceNotifier<int>(
@@ -1052,6 +1062,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   late final List<PreferenceNotifier<Object?>> _preferences = [
     _requirePerformedForHistoryNotifier,
     _trackHistoryForAllCallersNotifier,
+    _defaultProgramCallerNotifier,
     _sortIgnoreArticlesNotifier,
     _reduceMotionNotifier,
     _verboseFigureRenderingNotifier,
@@ -1853,6 +1864,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _danceShareFieldsNotifier.dispose();
     _collectionHiddenFacetsNotifier.dispose();
     _trackHistoryForAllCallersNotifier.dispose();
+    _defaultProgramCallerNotifier.dispose();
     _venueCallCountNotifier.dispose();
     _sortIgnoreArticlesNotifier.dispose();
     _reduceMotionNotifier.dispose();
@@ -2436,6 +2448,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     ),
     (child) => TrackHistoryForAllCallersScope(
       notifier: _trackHistoryForAllCallersNotifier,
+      child: child,
+    ),
+    (child) => DefaultProgramCallerScope(
+      notifier: _defaultProgramCallerNotifier,
       child: child,
     ),
     (child) =>

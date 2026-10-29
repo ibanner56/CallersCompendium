@@ -4652,6 +4652,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Alle dansen gemarkeerd als uitgevoerd.';
 
   @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd. Markeer een alternatief zelf als je het hebt gecalld.';
+
+  @override
   String programsSavedSnack(String title) {
     return '“$title” opgeslagen.';
   }

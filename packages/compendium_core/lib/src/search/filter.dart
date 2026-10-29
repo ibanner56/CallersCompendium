@@ -227,7 +227,9 @@ class MixerFilter extends DanceFilter {
 /// [callerFilter] follows the calling-history convention: null or blank means
 /// all callers; a configured caller includes matching host callers and
 /// programs whose host caller is null or blank. [performedOnly] restricts the
-/// matching slots to those with a non-null performed timestamp.
+/// matching slots to those with a non-null performed timestamp. In either
+/// mode an alternate slot matches only once it is marked performed
+/// (`ProgramSlot.countsTowardCallingHistory`).
 @immutable
 class CalledFilter extends DanceFilter {
   const CalledFilter({
