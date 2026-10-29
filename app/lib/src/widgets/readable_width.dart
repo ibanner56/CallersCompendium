@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 /// does not strand a figure's beats at the far edge from its words.
 ///
 /// This is the single place the width is chosen. 760 is the width the dance
-/// detail wireframe draws; the maintainer has not ruled on the number.
+/// detail wireframe draws (`docs/design/wireframes/2-dance-detail.svg`).
 const double kReadableContentWidth = 760;
 
 /// [base] with its horizontal insets raised so that, in a viewport
@@ -23,6 +23,7 @@ EdgeInsets readableContentPadding(
   double viewportWidth, [
   EdgeInsets base = EdgeInsets.zero,
 ]) {
+  if (!viewportWidth.isFinite) return base;
   final inset = math.max(0.0, (viewportWidth - kReadableContentWidth) / 2);
   return base.copyWith(
     left: math.max(base.left, inset),
