@@ -508,11 +508,6 @@ CcDanceRecord ccDanceRecordFromColumns(
     lookup.get('Author2'),
   ].whereType<String>().where((s) => s.trim().isNotEmpty).toList();
 
-  final formation = lookup.firstNonEmpty([
-    'ContraForm',
-    'Formation',
-    'FormationOther',
-  ]);
   final progression = lookup.firstNonEmpty(['Progression', 'ProgressionOther']);
   // Beside a stated `Progression`, `ProgressionOther` is its detail ("Keeper",
   // "Ls CCW, Rs 2xCCW") rather than a fallback (#1974).
@@ -587,7 +582,12 @@ CcDanceRecord ccDanceRecordFromColumns(
     name: lookup.get('Name'),
     authors: authors,
     type: lookup.firstNonEmpty(['Type', 'SubType']),
-    formation: formation,
+    subType: lookup.get('SubType'),
+    formationFamily: lookup.get('Formation'),
+    contraForm: lookup.get('ContraForm'),
+    direction: lookup.get('Direction'),
+    formationOther: lookup.get('FormationOther'),
+    fromUsrColumns: true,
     level: level,
     progression: progression,
     progressionOther: progressionOther,
@@ -953,7 +953,10 @@ List<CcSet> _extractSets(FmpDatabase db, _UsrWarnings warnings) {
               order: _parseInt(cols.get('Order')) ?? items[setId]?.length ?? 0,
               danceRecordId: hasDance ? danceId : null,
               breakText: hasDance ? null : breakText,
-              isAlt: _isTruthy(cols.get('AlternateDance')),
+              // A real file marks an alternate "ALT" (#1972).
+              isAlt:
+                  _isTruthy(cols.get('AlternateDance')) ||
+                  cols.get('AlternateDance')?.trim().toLowerCase() == 'alt',
               breakAfter: hasDance && breakFlag,
               guestCaller: cols.get('Caller'),
               minutes: _parseInt(cols.get('Time')),
@@ -1415,6 +1418,7 @@ const List<String> kCcDanceColumnsRead = [
   'ContraForm',
   'Formation',
   'FormationOther',
+  'Direction',
   'Progression',
   'ProgressionOther',
   'Level',
