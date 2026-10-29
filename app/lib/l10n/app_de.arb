@@ -3932,19 +3932,19 @@
   "@collectionDuplicatedSnack": {
     "x-sourceSha256": "1e8abaccfd4d132fe2f88a47470b52b6877382f7f0dbd132e013442a426db6b5"
   },
-  "collectionEmptyBody": "Füge einen Tanz hinzu oder importiere einen, um loszulegen – oder aktiviere oben die Online-Suche, um aus einer Online-Quelle zu importieren.",
+  "collectionEmptyBody": "Fügen Sie einen Tanz hinzu oder importieren Sie einen, um loszulegen – oder aktivieren Sie oben die Online-Suche, um aus einer Online-Quelle zu importieren.",
   "@collectionEmptyBody": {
     "x-sourceSha256": "7604daeeb118f95e9a4422b2efb266011a37a55b91dd0059c9acc8a26227bddc"
   },
-  "collectionEmptyTitle": "Deine Sammlung ist leer",
+  "collectionEmptyTitle": "Ihre Sammlung ist leer",
   "@collectionEmptyTitle": {
     "x-sourceSha256": "0f86ba83481174dfb5610d2b5df22c92b9cbdc189881b5a4610067ea3756c5ba"
   },
-  "collectionImportCardTitle": "Bring deine Tänze mit",
+  "collectionImportCardTitle": "Bringen Sie Ihre Tänze mit",
   "@collectionImportCardTitle": {
     "x-sourceSha256": "170bbd223c5b8378ad829c259498938702a9e30e61d2babf1d250e4a136cfafd"
   },
-  "collectionImportCardBody": "Importiere Tänze, die du schon hast, oder schreibe deinen ersten. „The Baby Rose“ ist als Beispiel zum Umsehen dabei.",
+  "collectionImportCardBody": "Importieren Sie Tänze, die Sie bereits haben, oder schreiben Sie Ihren ersten. „The Baby Rose“ liegt als Beispiel zum Umsehen bei.",
   "@collectionImportCardBody": {
     "x-sourceSha256": "649231300ea8176cd514a89b53a1a09c17b3841fc09ce91fe4957c980d954fdf"
   },
@@ -9430,7 +9430,7 @@
   "@venueManagerClearSearchTooltip": {
     "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
   },
-  "venueManagerEmptyBody": "Füge hier einen hinzu oder über ein Programm, wenn wiederverwendbare Veranstaltungsorte aktiviert sind.",
+  "venueManagerEmptyBody": "Fügen Sie hier einen hinzu oder über ein Programm, wenn wiederverwendbare Veranstaltungsorte aktiviert sind.",
   "@venueManagerEmptyBody": {
     "x-sourceSha256": "ed699db880ba60a725bb3cf6140ac4ae71a6868601fdb168df1390ca9a263361"
   },

@@ -3863,17 +3863,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionEmptyBody =>
-      'Füge einen Tanz hinzu oder importiere einen, um loszulegen – oder aktiviere oben die Online-Suche, um aus einer Online-Quelle zu importieren.';
+      'Fügen Sie einen Tanz hinzu oder importieren Sie einen, um loszulegen – oder aktivieren Sie oben die Online-Suche, um aus einer Online-Quelle zu importieren.';
 
   @override
-  String get collectionEmptyTitle => 'Deine Sammlung ist leer';
+  String get collectionEmptyTitle => 'Ihre Sammlung ist leer';
 
   @override
-  String get collectionImportCardTitle => 'Bring deine Tänze mit';
+  String get collectionImportCardTitle => 'Bringen Sie Ihre Tänze mit';
 
   @override
   String get collectionImportCardBody =>
-      'Importiere Tänze, die du schon hast, oder schreibe deinen ersten. „The Baby Rose“ ist als Beispiel zum Umsehen dabei.';
+      'Importieren Sie Tänze, die Sie bereits haben, oder schreiben Sie Ihren ersten. „The Baby Rose“ liegt als Beispiel zum Umsehen bei.';
 
   @override
   String get collectionFiltersTitle => 'Filter';
@@ -9810,7 +9810,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get venueManagerEmptyBody =>
-      'Füge hier einen hinzu oder über ein Programm, wenn wiederverwendbare Veranstaltungsorte aktiviert sind.';
+      'Fügen Sie hier einen hinzu oder über ein Programm, wenn wiederverwendbare Veranstaltungsorte aktiviert sind.';
 
   @override
   String get venueManagerEmptyTitle => 'Noch keine Veranstaltungsorte';
