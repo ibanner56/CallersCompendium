@@ -172,6 +172,49 @@ void main() {
   });
 
   group('diffFigures', () {
+    test('a balance-only change reads differently on each side (PRES-7)', () {
+      final result = diff(
+        [Figure(move: 'petronella')],
+        [
+          Figure(move: 'petronella', params: {'balance': false}),
+        ],
+      );
+      expect(result.identical, isFalse);
+      expect(result.entries.map((e) => e.displayText).toSet(), {
+        'balance & petronella',
+        'petronella',
+      });
+    });
+
+    test('display text honours decimals and canonical discouraged terms', () {
+      final figure = Figure(
+        move: 'allemande',
+        params: {'hand': 'left', 'travel': 0.75},
+      );
+      String text({required bool decimals, required bool canonical}) =>
+          diffFigures(
+            oldFigures: const [],
+            oldStructure: structure,
+            newFigures: [figure],
+            newStructure: structure,
+            taxonomy: tax,
+            renderer: renderer,
+            dialect: dialect,
+            decimals: decimals,
+            canonicalDiscouragedTerms: canonical,
+          ).entries.single.displayText;
+      expect(text(decimals: false, canonical: false), contains('¾'));
+      expect(text(decimals: true, canonical: false), contains('0.75'));
+      expect(
+        text(decimals: true, canonical: true),
+        renderer.renderSummaryWithCanonicalDiscouragedTerms(
+          figure,
+          dialect,
+          decimals: true,
+        ),
+      );
+    });
+
     test('identical canonical sequences → identical, no entries', () {
       final figures = [
         Figure(move: 'allemande', params: {'hand': 'left'}),

@@ -3347,6 +3347,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'Der er ikke nok ledig plads til at erstatte denne sikkerhedskopi ($neededMb MB nødvendig; $freeMb MB ledig), så intet blev gemt. Din tidligere sikkerhedskopi er uændret.';
+  }
+
+  @override
   String get backupExportInProgress => 'Forbereder din sikkerhedskopi…';
 
   @override
@@ -7823,6 +7828,24 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'Du har en ugemt kladde til denne dans. Vil du gendanne den?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Du har en ugemt kladde til en anden ny dans, „$title“. Vil du gendanne den i stedet for at starte en ny?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Du har en ugemt kladde til en anden ny dans, der endnu ikke har en titel. Vil du gendanne den i stedet for at starte en ny?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Kladden blev gemt $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Dansen er blevet ændret, siden kladden blev gemt. Hvis du gendanner kladden, erstattes disse ændringer.';
 
   @override
   String get danceEditorDiscard => 'Kassér';

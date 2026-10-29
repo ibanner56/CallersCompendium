@@ -1,0 +1,157 @@
+{
+  "archiveChoreographerToJson": {
+    "id": "baseline",
+    "name": "baseline",
+    "website": "baseline",
+    "notes": "baseline",
+    "email": "baseline",
+    "location": "baseline",
+    "deceased": "baseline"
+  },
+  "archivePublishedSourceToJson": {
+    "id": "baseline",
+    "title": "baseline",
+    "author": "baseline",
+    "year": "baseline",
+    "url": "baseline",
+    "notes": "baseline"
+  },
+  "archiveTagToJson": {
+    "id": "baseline",
+    "name": "baseline",
+    "color": "baseline"
+  },
+  "archiveCustomFieldDefToJson": {
+    "id": "baseline",
+    "key": "baseline",
+    "label": "baseline",
+    "type": "baseline",
+    "choices": "baseline",
+    "showInList": "baseline",
+    "searchable": "baseline",
+    "shareable": "baseline"
+  },
+  "archiveDifficultyLevelToJson": {
+    "id": "baseline",
+    "label": "baseline",
+    "position": "baseline"
+  },
+  "archiveDanceToJson": {
+    "id": "baseline",
+    "title": "baseline",
+    "authorIds": "baseline",
+    "form": "baseline",
+    "formation": "baseline",
+    "progression": "baseline",
+    "phraseStructure": "baseline",
+    "figures": "baseline",
+    "figuresRaw": "archiveSchemaVersionUnreadableFigures",
+    "hook": "baseline",
+    "callingNotes": "baseline",
+    "walkthrough": "baseline",
+    "status": "baseline",
+    "difficultyLevelId": "archiveSchemaVersionDifficultyLevels",
+    "mixedLevel": "baseline",
+    "mixer": "baseline",
+    "rating": "baseline",
+    "tunes": "baseline",
+    "tunesRaw": "archiveSchemaVersionUnreadableTunes",
+    "customFields": "baseline",
+    "tagIds": "baseline",
+    "links": "baseline",
+    "sourceCitations": "baseline",
+    "provenance": "baseline",
+    "composedOn": "baseline",
+    "revisedOn": "baseline",
+    "createdAt": "baseline",
+    "updatedAt": "baseline",
+    "deletedAt": "baseline"
+  },
+  "archiveFormationToJson": {
+    "shape": "baseline",
+    "detail": "baseline"
+  },
+  "archiveCustomFieldValueToJson": {
+    "fieldId": "baseline",
+    "value": "baseline"
+  },
+  "archiveDanceLinkToJson": {
+    "id": "baseline",
+    "kind": "baseline",
+    "url": "baseline",
+    "targetDanceId": "baseline",
+    "label": "baseline",
+    "transitive": "baseline"
+  },
+  "archiveSourceCitationToJson": {
+    "sourceId": "baseline",
+    "page": "baseline",
+    "number": "baseline"
+  },
+  "archiveProvenanceToJson": {
+    "source": "baseline",
+    "externalId": "baseline",
+    "importedAt": "baseline",
+    "permission": "baseline",
+    "license": "baseline",
+    "sourceVersion": "baseline"
+  },
+  "archiveProgramToJson": {
+    "id": "baseline",
+    "title": "baseline",
+    "eventDate": "baseline",
+    "venue": "baseline",
+    "venueId": "archiveSchemaVersionVenues",
+    "band": "baseline",
+    "caller": "baseline",
+    "dancerLevel": "baseline",
+    "notes": "baseline",
+    "status": "baseline",
+    "hideAlternates": "baseline",
+    "dialectName": "backupSchemaVersionProgramPay",
+    "payMinorUnits": "backupSchemaVersionProgramPay",
+    "payCurrency": "backupSchemaVersionProgramPay",
+    "slots": "baseline",
+    "provenance": "baseline",
+    "createdAt": "baseline",
+    "updatedAt": "baseline",
+    "deletedAt": "baseline"
+  },
+  "archiveProgramSlotToJson": {
+    "id": "baseline",
+    "position": "baseline",
+    "danceId": "baseline",
+    "text": "baseline",
+    "isPurgedDance": "archiveSchemaVersionProgramSlotMarkers",
+    "isAlt": "baseline",
+    "guestCaller": "baseline",
+    "walkthroughMinutes": "baseline",
+    "danceMinutes": "baseline",
+    "performedAt": "baseline"
+  },
+  "archiveVenueToJson": {
+    "id": "baseline",
+    "name": "baseline",
+    "address1": "baseline",
+    "address2": "baseline",
+    "city": "baseline",
+    "stateProv": "baseline",
+    "country": "baseline",
+    "postalCode": "baseline",
+    "plus4": "baseline",
+    "website": "baseline",
+    "sponsor": "baseline",
+    "eventName": "baseline",
+    "time": "baseline",
+    "genericSchedule": "baseline",
+    "price": "baseline",
+    "notes": "baseline",
+    "contact1Name": "baseline",
+    "contact1Phone": "baseline",
+    "contact1Email": "baseline",
+    "contact2Name": "baseline",
+    "contact2Phone": "baseline",
+    "contact2Email": "baseline",
+    "provenance": "baseline"
+  }
+}

@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/widgets/program_matrix_table.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
@@ -1319,5 +1320,50 @@ void main() {
         expect(hoveredOpacity, 1);
       },
     );
+
+    for (final reduce in [true, false]) {
+      testWidgets(
+        'the hide glyph fade ${reduce ? 'snaps' : 'animates'} when Reduce '
+        'motion is ${reduce ? 'on' : 'off'} (PRES-14)',
+        (tester) async {
+          final notifier = ValueNotifier<bool?>(reduce);
+          addTearDown(notifier.dispose);
+          await tester.binding.setSurfaceSize(const Size(1400, 900));
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          await tester.pumpWidget(
+            ReduceMotionScope(
+              notifier: notifier,
+              child: MaterialApp(
+                localizationsDelegates: testLocalizationsDelegates,
+                supportedLocales: testSupportedLocales,
+                home: Scaffold(
+                  body: ProgramMatrixTable(
+                    matrix: buildProgramMatrix([
+                      dance('d1', 'A', [swing()]),
+                    ]),
+                    taxonomy: contraTaxonomy,
+                    dialect: Dialect.canonical,
+                    omittedFreeTextCount: 0,
+                    onHideColumn: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final fade = tester.widget<AnimatedOpacity>(
+            find.ancestor(
+              of: find.byTooltip('Hide partner swing column'),
+              matching: find.byType(AnimatedOpacity),
+            ),
+          );
+          expect(
+            fade.duration,
+            reduce ? Duration.zero : const Duration(milliseconds: 120),
+          );
+        },
+      );
+    }
   });
 }

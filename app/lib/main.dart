@@ -18,12 +18,8 @@ import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
-import 'src/data/backup_io.dart'
-    show
-        BackupExportTooLargeException,
-        BackupSaver,
-        backupMegabytes,
-        saveBackupToFile;
+import 'src/data/backup_export_labels.dart';
+import 'src/data/backup_io.dart' show BackupSaver, saveBackupToFile;
 import 'src/data/backup_reminder.dart';
 import 'src/data/backup_service.dart' show exportBackupNow;
 import 'src/data/sync_writer_lifecycle_scope.dart';
@@ -2309,21 +2305,11 @@ class _CompendiumAppState extends State<CompendiumApp>
       if (!delivered || !mounted) return;
       _backupReminderBanner?.close();
       messenger?.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
-    } on BackupExportTooLargeException catch (e, st) {
-      logCaughtError(e, st, source: 'main.backupReminderExport');
-      messenger?.showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.backupExportTooLarge(
-              backupMegabytes(e.sizeBytes),
-              backupMegabytes(e.maxBytes),
-            ),
-          ),
-        ),
-      );
     } on Object catch (e, st) {
       logCaughtError(e, st, source: 'main.backupReminderExport');
-      messenger?.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
+      messenger?.showSnackBar(
+        SnackBar(content: Text(backupExportFailureMessage(l10n, e))),
+      );
     } finally {
       _backupReminderExporting = false;
     }
@@ -2529,6 +2515,8 @@ class _CompendiumAppState extends State<CompendiumApp>
         _themeNotifier,
         _customThemes,
         _localeNotifier,
+        // `themeAnimationStyle` and the `MediaQuery` override below both read it.
+        _reduceMotionNotifier,
       ]),
       builder: (context, _) {
         final selection = _themeNotifier.value;
@@ -2590,8 +2578,30 @@ class _CompendiumAppState extends State<CompendiumApp>
           highContrastTheme: AppTheme.highContrast,
           highContrastDarkTheme: AppTheme.highContrast,
           themeMode: themeMode,
-          builder: (context, child) => _appScopeWrappers().reversed
-              .fold<Widget>(child!, (inner, wrap) => wrap(inner)),
+          // The in-app Reduce motion switch, when set, wins over the OS in both
+          // directions. Flutter's own `AnimationController`s read the OS flag
+          // from the platform, not from `MediaQuery`, so what this can reach is
+          // the theme cross-fade (an explicit "on" turns it off here; with the
+          // switch unset the framework already follows the OS) and everything
+          // that reads `MediaQuery.disableAnimations`, such as animated images.
+          themeAnimationStyle: _reduceMotionNotifier.value == true
+              ? AnimationStyle.noAnimation
+              : null,
+          builder: (context, child) {
+            final override = _reduceMotionNotifier.value;
+            final scoped = _appScopeWrappers().reversed.fold<Widget>(
+              child!,
+              (inner, wrap) => wrap(inner),
+            );
+            // Always present, so the tree keeps one shape whatever the switch says.
+            final media = MediaQuery.of(context);
+            return MediaQuery(
+              data: override == null
+                  ? media
+                  : media.copyWith(disableAnimations: override),
+              child: scoped,
+            );
+          },
           home: AppBootstrap(
             future: _bootstrap,
             onRetry: _retry,

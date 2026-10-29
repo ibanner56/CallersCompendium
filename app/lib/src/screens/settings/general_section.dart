@@ -15,6 +15,7 @@ import '../../data/backup_document.dart'
         decodeBackupOnIsolate,
         decodeBackupSizedOnIsolate,
         defaultBackupCodecRunner;
+import '../../data/backup_export_labels.dart';
 import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
@@ -230,26 +231,15 @@ class _GeneralSectionState extends State<GeneralSection> {
         _lastBackupAt = now.toUtc();
       });
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
-    } on BackupExportTooLargeException catch (e, st) {
-      closeProgress();
-      logCaughtError(e, st, source: 'general_section._onExportBackup');
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.backupExportTooLarge(
-              backupMegabytes(e.sizeBytes),
-              backupMegabytes(e.maxBytes),
-            ),
-          ),
-        ),
-      );
     } on Object catch (e, st) {
       closeProgress();
       logCaughtError(e, st, source: 'general_section._onExportBackup');
       if (kDebugMode) {
         debugPrint('Backup export failed: $e\n$st');
       }
-      messenger.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(backupExportFailureMessage(l10n, e))),
+      );
     } finally {
       closeProgress();
       _exportInFlight = false;

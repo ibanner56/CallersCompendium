@@ -40,6 +40,36 @@ Future<void> _pumpManager(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets(
+    'the list preview keeps the balance a shorthand carries (AUTH-15)',
+    (tester) async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      addTearDown(controller.dispose);
+      await repos.settings.set(
+        kShorthandMappingsKey,
+        ShorthandMappings([
+          ShorthandMapping(
+            token: 'bp',
+            figures: [Figure(move: 'petronella')],
+          ),
+          ShorthandMapping(
+            token: 'p',
+            figures: [
+              Figure(move: 'petronella', params: {'balance': false}),
+            ],
+          ),
+        ]).toJson(),
+      );
+      await controller.load();
+
+      await _pumpManager(tester, controller);
+
+      expect(find.text('balance & petronella'), findsOneWidget);
+      expect(find.text('petronella'), findsOneWidget);
+    },
+  );
+
   testWidgets('shows the empty state when there are no mappings', (
     tester,
   ) async {

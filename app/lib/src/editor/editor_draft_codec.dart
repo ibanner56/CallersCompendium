@@ -7,13 +7,34 @@ import 'figure_draft.dart';
 
 /// Settings-table key prefix for the dance editor's transient autosave drafts.
 ///
-/// Draft keys are dynamic (`editor_draft:<danceId|new>`) and hold unsaved,
+/// Draft keys are dynamic ([danceEditorDraftKey]: `editor_draft:<danceId>`, or
+/// `editor_draft:new:<editor id>` for a dance not yet saved) and hold unsaved,
 /// device-local in-progress edits — not user content or preferences. They must
 /// never travel in a backup, so `backup_service.dart` excludes this prefix from
 /// both export and restore (see `kBackupSettingsDenylistPrefixes`). It lives in
 /// this non-UI module so both the editor screen and `BackupService` can share
 /// it without a data→UI dependency.
 const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
+
+/// The draft key for [id] under [kDanceEditorDraftKeyPrefix]: a dance's id,
+/// or for a dance not yet saved, an id made from [kNewDanceDraftIdPrefix].
+String danceEditorDraftKey(String id) => '$kDanceEditorDraftKeyPrefix$id';
+
+/// The draft id every new dance shared before each new dance got its own
+/// (AUTH-10). A draft still stored under it is read as one more new dance's.
+const String kLegacyNewDanceDraftId = 'new';
+
+/// How the draft id of a dance not yet saved starts: each new-dance editor
+/// writes under this plus its own id, so two new dances never share a draft.
+const String kNewDanceDraftIdPrefix = '$kLegacyNewDanceDraftId:';
+
+/// Whether [key] holds the draft of a dance not yet saved, under either the
+/// per-editor form or the legacy shared id.
+bool isNewDanceEditorDraftKey(String key) {
+  if (!key.startsWith(kDanceEditorDraftKeyPrefix)) return false;
+  final id = key.substring(kDanceEditorDraftKeyPrefix.length);
+  return id == kLegacyNewDanceDraftId || id.startsWith(kNewDanceDraftIdPrefix);
+}
 
 /// Draft schema version. Increment if the JSON shape changes in a
 /// backward-incompatible way; [decodeDraft] checks this and rejects
@@ -67,6 +88,23 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// draft as unreadable instead — and, as for any unknown version, deletes it
 /// when the editor opens — while every other draft stays v13 and still
 /// restores there.
+///
+/// Added without a version bump, because a build that ignores them still
+/// restores the draft without losing anything (AUTH-5, AUTH-10, AUTH-17):
+/// - per-figure `beatsTouched` (bool). A draft without it reads each figure as
+///   touched when it carries a `beats` count, as opening a saved dance does.
+/// - `savedAt` and `baseUpdatedAt` (ISO-8601 UTC timestamps, omitted when
+///   unknown): when the draft was written, and the stored dance's `updatedAt`
+///   it was edited from.
+/// - `textRoles` (role id → `{singular, plural}`, as [RoleTerm.toJson]): the
+///   role terms of the dialect the figure notes and custom-figure text are
+///   written in, which stay as typed. A restore under other role terms
+///   converts them; an older build reads them as before.
+///
+/// An older build does look for a new dance's draft under the shared key
+/// `editor_draft:new` only, so after a downgrade it does not
+/// offer a draft written under a per-editor key. The draft is
+/// not deleted, and is offered again once the newer build is back.
 const _kDraftVersion = 14;
 
 /// The version a draft without a compound placeholder is stamped with.
@@ -83,6 +121,10 @@ const _kDraftVersionWithoutCompounds = 13;
 /// ```jsonc
 /// {
 ///   "v": 14,
+///   "savedAt": "2026-10-28T15:04:05.000Z",
+///   "baseUpdatedAt": "2026-10-27T09:00:00.000Z",
+///   "textRoles": {"role1": {"singular": "lark", "plural": "larks"},
+///                 "role2": {"singular": "robin", "plural": "robins"}},
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -105,10 +147,10 @@ const _kDraftVersionWithoutCompounds = 13;
 ///   "figureDrafts": [
 ///     {"id":"...", "move":"swing",
 ///      "params":{"who":"partners","beats":16},
-///      "note":"", "progression":false, "sv":1,
+///      "note":"", "progression":false, "sv":1, "beatsTouched":true,
 ///      "walkthroughOverride":"Swing them."},
 ///     {"id":"...", "move":null, "params":{}, "note":"", "progression":false,
-///      "sv":1,
+///      "sv":1, "beatsTouched":false,
 ///      "compound":{"id":"...","name":"grand right and left",
 ///                  "args":{"hand":"right"},"beats":8}}
 ///   ]
@@ -117,7 +159,8 @@ const _kDraftVersionWithoutCompounds = 13;
 /// `move` may be `null` for an incomplete draft row, and is for a compound
 /// placeholder.
 /// `label`, `url`, and `targetDanceId` may be omitted when empty/null.
-/// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset.
+/// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset, as
+/// are `savedAt`, `baseUpdatedAt` and `textRoles`.
 /// `sourceCitations` is omitted when empty; per-citation `page`/`number` are
 /// omitted when null.
 String encodeDraft(EditorSnapshot snapshot) {
@@ -125,6 +168,14 @@ String encodeDraft(EditorSnapshot snapshot) {
     'v': snapshot.figureDrafts.any((d) => d.compound != null)
         ? _kDraftVersion
         : _kDraftVersionWithoutCompounds,
+    if (snapshot.savedAt case final savedAt?)
+      'savedAt': savedAt.toUtc().toIso8601String(),
+    if (snapshot.baseUpdatedAt case final base?)
+      'baseUpdatedAt': base.toUtc().toIso8601String(),
+    if (snapshot.textDialect case final dialect?)
+      'textRoles': {
+        for (final e in dialect.roles.entries) e.key: e.value.toJson(),
+      },
     'title': snapshot.title,
     'hook': snapshot.hook,
     'notes': snapshot.notes,
@@ -251,8 +302,33 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     sourceCitations: _parseSourceCitations(json['sourceCitations']),
     customValues: _parseCustomValues(json['customValues']),
     figureDrafts: _parseFigureDrafts(json['figureDrafts']),
+    textDialect: _parseTextRoles(json['textRoles']),
+    savedAt: _parseNullableTimestamp(json['savedAt']),
+    baseUpdatedAt: _parseNullableTimestamp(json['baseUpdatedAt']),
   );
 }
+
+/// Reads the optional `textRoles` as a dialect holding just those role terms,
+/// which is all the conversion between dialects reads. Tolerant, like the
+/// timestamps: an absent or unreadable value reads as `null`, and the text is
+/// then taken to be in the active dialect, as before the key existed.
+Dialect? _parseTextRoles(Object? raw) {
+  if (raw is! Map) return null;
+  final roles = <String, RoleTerm>{};
+  for (final entry in raw.entries) {
+    final value = entry.value;
+    if (value is! Map) return null;
+    final term = RoleTerm.fromJson(value.cast<String, Object?>());
+    if (term == null) return null;
+    roles[entry.key.toString()] = term;
+  }
+  return Dialect(name: 'Draft text', roles: roles);
+}
+
+/// Reads an optional ISO-8601 timestamp. Tolerant: the draft is still worth
+/// restoring without one, so an absent or unreadable value reads as `null`.
+DateTime? _parseNullableTimestamp(Object? raw) =>
+    raw is String ? DateTime.tryParse(raw)?.toUtc() : null;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -535,6 +611,12 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     note: note,
     progression: progression,
     schemaVersion: sv,
+    // Additive/tolerant (AUTH-5): a draft from before the flag was written
+    // reads a stored count as the caller's, as `FigureDraft.fromFigure` does.
+    beatsTouched: switch (m['beatsTouched']) {
+      final bool touched => touched,
+      _ => (normalized?.params ?? parsedParams).containsKey('beats'),
+    },
     // Additive/tolerant (#460): absent or non-bool → not assumed.
     assumedSubject: m['assumedSubject'] == true,
     // Additive/tolerant (#419): only the string 'importGap' flags a parser-gap
@@ -594,6 +676,7 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
     'note': draft.note,
     'progression': draft.progression,
     'sv': draft.schemaVersion,
+    'beatsTouched': draft.beatsTouched,
     if (draft.assumedSubject) 'assumedSubject': true,
     if (draft.customOrigin == CustomOrigin.importGap)
       'customOrigin': 'importGap',

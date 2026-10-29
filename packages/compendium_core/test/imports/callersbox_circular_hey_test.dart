@@ -13,7 +13,8 @@ import '../figures_support.dart';
 /// the even cells' dancers are `who2` (taxonomy v37), the first cell's side is
 /// `shoulder`, and the count is `changes`. The pass list does not say whether
 /// the first pass runs across or along, so `where` is left to the taxonomy
-/// default, as for TCB heys. A line with no pass list stays custom.
+/// default, as for TCB heys. A line with no pass list is a square through
+/// noting "without hands" (#1971); one whose list does not decode stays custom.
 List<Figure> _parse(String text, {int beats = 0}) =>
     parseFigureLines(text, beats: beats, frontEnd: tcbFigureFrontEnd);
 
@@ -33,6 +34,11 @@ Future<List<Figure>> _importedFigures(List<String> lines) async {
 }
 
 void main() {
+  void expectCustomLine(String line) {
+    final f = _parse(line, beats: 8).single;
+    expect(f.isCustom, isTrue, reason: line);
+  }
+
   group('square through without hands -> circular_hey', () {
     test('(NR;PL;NR): three changes, neighbors first by the right', () {
       final f = _parse(
@@ -79,6 +85,66 @@ void main() {
       expect(next.params['who2'], 'nextNeighbors');
     });
 
+    test('no pass list: a square through noting "without hands" (#1971)', () {
+      // The first passer is unknown, so there is no circular hey to build.
+      final f = _parse('Square through 3 without hands', beats: 8).single;
+      expect(f.move, 'square_through');
+      expect(f.params['places'], 3);
+      // No balance-and-pull, and an import never gains an unstated balance.
+      expect(f.params['balance'], isFalse);
+      expect(f.note, 'without hands');
+    });
+
+    test('a bracket that is not a pass list does not block the reading', () {
+      final f = _parse('Square through 4 without hands (optional)').single;
+      expect(f.move, 'square_through');
+      expect(f.note, 'without hands; optional');
+      // A short word ending in r or l is not a pass cell either; TCB's
+      // multi-letter people codes are (below).
+      for (final word in ['all', 'over', 'pull']) {
+        final g = _parse('Square through 4 without hands ($word)').single;
+        expect(g.move, 'square_through', reason: word);
+        expect(g.params['places'], 4, reason: word);
+      }
+    });
+
+    test('a list in TCB codes this file cannot decode stays custom', () {
+      expectCustomLine('Square through 4 without hands (NR;PhL;NR;PhL)');
+      expectCustomLine('Square through 2 without hands (OR,SRNL)');
+      expectCustomLine('Square through 2 without hands (TBR, PL)');
+      expectCustomLine('Square through 2 without hands (NR, Ph2L)');
+    });
+
+    test('"thru" with an undecodable list stays custom too', () {
+      expectCustomLine('Square thru 3 without hands (NR;PR;NR)');
+      expectCustomLine('Square thru 3 without hands (NR;PL;NR)');
+    });
+
+    test('a comma list followed by another clause stays custom', () {
+      expectCustomLine(
+        'Square through 4 without hands (NR, PL, NR, PL), then balance',
+      );
+    });
+
+    test('a comma list on a square through with hands is not read', () {
+      final f = _parse('Square through 3 (NL, PR, NL)', beats: 8).single;
+      expect(f.move, 'square_through');
+      expect(f.params.containsKey('who2'), isFalse);
+    });
+
+    test("Caller's Companion's comma pass list is read too (#1971)", () {
+      final f = _parse(
+        'Square through 3 without hands (NR, PL, NR) to new Neighbor',
+        beats: 8,
+      ).single;
+      expect(f.move, 'circular_hey');
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['who2'], 'partners');
+      expect(f.params['changes'], 3);
+      expect(f.params['shoulder'], 'right');
+      expect(f.note, 'to new Neighbor');
+    });
+
     test('a square through WITH hands is still a square through', () {
       final f = _parse('Square through 3 (NR;PL;NR)', beats: 8).single;
       expect(f.move, 'square_through');
@@ -94,10 +160,6 @@ void main() {
       expect(f.isCustom, isTrue, reason: line);
       expect(f.params['text'], line);
     }
-
-    test('no pass list: the first passer is unknown', () {
-      expectCustom('Square through 3 without hands');
-    });
 
     test('the same group passed twice running', () {
       expectCustom('Square through 2 without hands (NR;NL)');

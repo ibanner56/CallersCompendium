@@ -24,6 +24,11 @@ class MainFlutterWindow: NSWindow {
     InstallLocationBridge.shared.register(
       messenger: flutterViewController.engine.binaryMessenger)
 
+    // FAIL-16: lets Dart check free space before a backup save overwrites an
+    // existing backup in place.
+    BackupVolumeBridge.shared.register(
+      messenger: flutterViewController.engine.binaryMessenger)
+
     super.awakeFromNib()
   }
 }

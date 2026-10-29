@@ -3384,6 +3384,10 @@
   "@backupExportTooLarge": {
     "x-sourceSha256": "1416959a2f449b0558cc843bfa3dbd39209ae1069307cb905582625594368e3e"
   },
+  "backupExportDiskFull": "Es ist nicht genug Speicherplatz frei, um diese Sicherung zu ersetzen ({neededMb} MB benötigt; {freeMb} MB frei), daher wurde nichts gespeichert. Ihre frühere Sicherung bleibt unverändert.",
+  "@backupExportDiskFull": {
+    "x-sourceSha256": "891f8cc1f6aa387d25f0ac96f04536ea5ef0d34348c4e4e344d9f86a90220382"
+  },
   "backupExportInProgress": "Sicherung wird vorbereitet…",
   "@backupExportInProgress": {
     "x-sourceSha256": "9174795f8bf8199c1a9f40bd555b24c33361d0c752e5f0d07215277151a36101"
@@ -7745,6 +7749,22 @@
   "danceEditorUnsavedDraftMessage": "Sie haben einen nicht gespeicherten Entwurf für diesen Tanz. Möchten Sie ihn wiederherstellen?",
   "@danceEditorUnsavedDraftMessage": {
     "x-sourceSha256": "4361737050c69693981e562c818bb6e1759d9787f3c3063b7c5a24110ff4bd05"
+  },
+  "danceEditorUnsavedNewDanceDraftMessage": "Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, „{title}“. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?",
+  "@danceEditorUnsavedNewDanceDraftMessage": {
+    "x-sourceSha256": "cfa0a260dbb7d319cf1657e51a6a8c15425b1eeb38646cecfe70f1b5513810c7"
+  },
+  "danceEditorUnsavedNewDanceDraftUntitledMessage": "Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, noch ohne Titel. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?",
+  "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
+    "x-sourceSha256": "cc94ad5921a82b7a09da9609d23e294e7143bbf350f0726fb70299e73c9003e9"
+  },
+  "danceEditorUnsavedDraftSavedAt": "Entwurf gespeichert: {when}.",
+  "@danceEditorUnsavedDraftSavedAt": {
+    "x-sourceSha256": "0a54afbff697740ab32849f748b479e07b7e7368e5d94fa21defb9d187ca2092"
+  },
+  "danceEditorUnsavedDraftChangedSince": "Dieser Tanz wurde geändert, seit der Entwurf gespeichert wurde. Wenn Sie den Entwurf wiederherstellen, werden diese Änderungen ersetzt.",
+  "@danceEditorUnsavedDraftChangedSince": {
+    "x-sourceSha256": "3a7cbbf1fc29a4de9fc4d7ddfd2d0542dba59459363b98374e564ac0ff457703"
   },
   "danceEditorDiscard": "Verwerfen",
   "@danceEditorDiscard": {
