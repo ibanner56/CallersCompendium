@@ -56,8 +56,10 @@ import 'settings_screen.dart'
 
 /// Snapshot of a Perform session's resumable state (issue #434). Purely a UI
 /// concern (never persisted to the domain model, per ADR-001): the launching
-/// screen holds the latest snapshot in memory so a re-entry restores the
-/// caller's place and clock instead of resetting to slot 1 with a fresh timer.
+/// screen, or for the Programs summary the Programs shell
+/// ([PerformResumeStore]), holds the latest snapshot in memory so a re-entry
+/// restores the caller's place and clock instead of resetting to slot 1 with
+/// a fresh timer.
 @immutable
 class PerformResumeState {
   const PerformResumeState({
@@ -218,14 +220,16 @@ class PerformProgramScreen extends StatefulWidget {
   onProgramChanged;
 
   /// Performs the "Program adjusted" Undo once this screen has closed:
-  /// restores [previous] only if the owner's program is still exactly what
-  /// the adjustment [adjusted] left, and returns whether it restored.
+  /// reverses the change from [previous] to [adjusted] only if the owner's
+  /// program is still exactly what that adjustment left, and returns whether
+  /// it did.
   ///
-  /// That Undo puts back the program as it was before the adjustment (the
-  /// builder reverses only the adjustment's own change, keeping its other
-  /// unsaved edits). The prompt can outlive this screen (indefinitely with accessible
-  /// navigation), and by the time it is tapped the program may have been
-  /// edited elsewhere; restoring the snapshot would overwrite that edit. The
+  /// That Undo reverses only the adjustment's own change, so a change from
+  /// elsewhere that the adjustment was written on top of (GIG-6), and the
+  /// builder's other unsaved edits, stay. The prompt can outlive this screen
+  /// (indefinitely with accessible navigation), and by the time it is tapped
+  /// the program may have been edited elsewhere; reversing the change then
+  /// could overwrite that edit. The
   /// check and the restore must therefore be one atomic step on the owner's
   /// side (for a stored program, [ProgramRepository.replaceIfUnchanged]), so
   /// that no write can land between them (flows-1). When this returns false,
