@@ -1765,8 +1765,8 @@ void main() {
     await _tapVisible(tester, find.text('Condition group'));
     expect(find.byType(DropdownButton<GroupKind>), findsNWidgets(2));
 
-    // The nested group's remove (close) button.
-    await _tapVisible(tester, find.byIcon(Icons.close).last);
+    // The nested group's remove (minus-circle) button.
+    await _tapVisible(tester, find.byIcon(Icons.remove_circle_outline).last);
     expect(find.byType(DropdownButton<GroupKind>), findsOneWidget);
   });
 

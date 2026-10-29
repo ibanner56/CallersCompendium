@@ -443,7 +443,7 @@ void main() {
         expect(host.passes, isEmpty);
         expect(
           find.text(
-            'You are on a mobile-data connection and Sync only on WiFi is '
+            'You are on a mobile-data connection and Sync only on Wi-Fi is '
             'on. Turn that setting off in Settings to sync now.',
           ),
           findsOneWidget,
@@ -525,7 +525,7 @@ void main() {
         (
           'metered',
           SyncNetworkKind.metered,
-          'You are on a mobile-data connection and Sync only on WiFi is on. '
+          'You are on a mobile-data connection and Sync only on Wi-Fi is on. '
               'Turn that setting off in Settings to sync now.',
         ),
       ]) {

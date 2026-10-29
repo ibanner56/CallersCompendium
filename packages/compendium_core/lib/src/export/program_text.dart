@@ -57,9 +57,11 @@ import 'export_labels.dart';
 /// Notes:
 /// <program notes>
 /// ```
-/// Primaries are numbered `1..n`; alternates (via [Program.grouped]) are
-/// indented under their primary with an `ALT:` prefix. A leading/orphaned alt
-/// still renders (grouping keeps it as a degenerate primary). Absent metadata
+/// Planned dances ([ProgramSlot.isPlannedDance]) are numbered `1..n`, so the
+/// last number is [Program.plannedDanceCount]; the break is printed without a
+/// number. Alternates (via [Program.grouped]) are indented under their primary
+/// with an `ALT:` prefix. A leading/orphaned alt still renders, unnumbered with
+/// an `ALT:` prefix (grouping keeps it as a degenerate primary). Absent metadata
 /// parts are omitted. An empty program renders the header only.
 String programToPlainText(
   Program program, {
@@ -89,7 +91,7 @@ String programToPlainText(
   final groups = program.outputGrouped;
   if (groups.isNotEmpty) {
     lines.add('');
-    var n = 1;
+    var n = 0;
     for (final group in groups) {
       final primary = programSlotLine(
         group.primary,
@@ -100,7 +102,7 @@ String programToPlainText(
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: authorNamesFor,
       );
-      lines.add('$n. $primary');
+      lines.add(setListPrimaryLine(group.primary, primary, labels, () => ++n));
       for (final alt in group.alternates) {
         final alternate = programSlotLine(
           alt,
@@ -113,7 +115,6 @@ String programToPlainText(
         );
         lines.add('   ${labels.alt}: $alternate');
       }
-      n++;
     }
   }
 
@@ -131,6 +132,25 @@ String programToPlainText(
   }
 
   return lines.join('\n');
+}
+
+/// The set-list line for a group's [primary] slot, whose rendered content is
+/// [line]: numbered with [nextNumber] when it is a planned dance
+/// ([ProgramSlot.isPlannedDance]), so the numbers count dances only (GIG-10).
+/// The break is printed unnumbered, and a leading alternate with no primary
+/// before it keeps its `ALT:` prefix rather than taking a dance number.
+///
+/// Shared by [programToPlainText] and the program PDF; [nextNumber] is called
+/// only for a numbered line.
+String setListPrimaryLine(
+  ProgramSlot primary,
+  String line,
+  ProgramExportLabels labels,
+  int Function() nextNumber,
+) {
+  if (primary.isPlannedDance) return '${nextNumber()}. $line';
+  if (primary.isAlt) return '${labels.alt}: $line';
+  return line;
 }
 
 void _requireCanonicalizationDeps(

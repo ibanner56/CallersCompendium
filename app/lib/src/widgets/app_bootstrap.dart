@@ -240,7 +240,7 @@ class AppBootstrap extends StatelessWidget {
       case SnapshotFailureCause.unwritableBackupsDir:
         return Icons.folder_off_outlined;
       case SnapshotFailureCause.unknown:
-        return Icons.warning_amber_rounded;
+        return Icons.warning_amber_outlined;
     }
   }
 }
@@ -390,11 +390,6 @@ class _BootstrapErrorScreenState extends State<_BootstrapErrorScreen> {
                 const Icon(Icons.error_outline, size: 48),
                 const SizedBox(height: 8),
                 Text(l10n.appBootstrapError, textAlign: TextAlign.center),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.appBootstrapErrorType(widget.errorType),
-                  textAlign: TextAlign.center,
-                ),
                 const SizedBox(height: 8),
                 Text(
                   l10n.appBootstrapLogHint,

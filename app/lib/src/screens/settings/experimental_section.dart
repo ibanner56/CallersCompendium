@@ -9,6 +9,7 @@ import '../../data/show_custom_figures_scope.dart';
 import '../../data/show_glossary_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
+import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../glossary/custom_figures_screen.dart';
 import 'developer_options_section.dart';
@@ -26,7 +27,7 @@ class ExperimentalSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return ListView(
+    return ReadableListView(
       children: [
         SectionHeader(title: l10n.settingsExperimentalTitle),
         Padding(

@@ -19,7 +19,8 @@ import 'share_sanitization.dart';
 /// since #874, for one picked manually through Import too. (A JSON file that
 /// is not an archive still routes to the dance-only `GenericJsonAdapter`.)
 ///
-/// [danceFor] resolves a slot's `danceId` to its full [Dance]; a referenced id
+/// [danceFor] resolves a slot's `danceId` to its full [Dance], including one in
+/// Recently deleted, which is bundled without its `deletedAt`; a referenced id
 /// that can't be resolved is skipped (best-effort, never fatal — mirrors the
 /// codec's partial-failure tolerance). Repeated `danceId`s are de-duplicated so
 /// each dance appears once. Slot order and note-only slots are preserved by the
@@ -119,7 +120,14 @@ String buildProgramShareBundle(
     final danceId = slot.danceId;
     if (danceId == null || !seen.add(danceId)) continue;
     final dance = danceFor(danceId);
-    if (dance != null) dances.add(dance);
+    // A dance in the sender's Recently deleted is still part of the evening,
+    // so it travels (GIG-11), but as a live dance: what the owner deleted is
+    // not shared.
+    if (dance != null) {
+      dances.add(
+        dance.isDeleted ? dance.copyWith(clearDeletedAt: true) : dance,
+      );
+    }
   }
 
   final choreographers = <Choreographer>[];
