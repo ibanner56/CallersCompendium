@@ -272,8 +272,8 @@ class UpdateManifest {
   /// [expectedChannel] (the channel whose file was fetched — `stable.json` →
   /// [UpdateChannel.stable]).
   ///
-  /// Throws [UpdateManifestFormatException] — which callers treat as a silent
-  /// no-op — when the JSON is malformed/partial, when
+  /// Throws [UpdateManifestFormatException] — a failed check, silent in the
+  /// automatic check and reported by the manual one — when the JSON is malformed/partial, when
   /// `manifestSchemaVersion` is not [kSupportedManifestSchemaVersion], when
   /// `channel` disagrees with [expectedChannel], when any required field is
   /// missing or the wrong type, or when an optional `retirements` list is
@@ -404,7 +404,7 @@ class UpdateManifest {
 }
 
 /// Reads a required string field, throwing [UpdateManifestFormatException]
-/// (a silent-no-op signal) when it is absent or not a string.
+/// (a failed-check signal) when it is absent or not a string.
 String _requireString(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is! String || value.isEmpty) {

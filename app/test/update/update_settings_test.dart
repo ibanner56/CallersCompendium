@@ -22,7 +22,7 @@ import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 /// Builds a controller with a fetcher that records the requested channel and
-/// returns no update (so checks are fast, silent no-ops).
+/// returns null (an unreachable manifest), so checks are fast and fail.
 UpdateController _controller(
   CompendiumRepositories repos,
   List<UpdateChannel> fetched,

@@ -8,7 +8,8 @@
 /// files; this controller only holds state, persists prefs, and calls
 /// [UpdateService]. Honors the ADR-002 §5 privacy contract: auto-check is
 /// opt-in (default off), the banner is gated by a stored dismissed version, and
-/// every failure is a silent no-op.
+/// the automatic check's failures are silent (the manual check reports them
+/// in its status line).
 ///
 /// It also keeps the running build's announced end-of-life date
 /// ([retirementNotice]): found by whichever check runs (manual, or the opt-in
@@ -46,7 +47,8 @@ enum UpdateCheckStatus {
   checking,
 
   /// A check completed and found no newer version. The *automatic* check also
-  /// lands here when it fails, silently (ADR-002 §5, erratum 2026-10-29); the
+  /// only reaches here by reading a manifest. A failed *automatic* check leaves
+  /// the status as it was, silently (ADR-002 §5, erratum 2026-10-29); the
   /// manual check reports a failure as [couldNotCheck] or [newerFormat].
   noUpdate,
 
@@ -857,6 +859,9 @@ class UpdateController extends ChangeNotifier {
 
   Future<void> _check({required bool manual}) async {
     if (_status == UpdateCheckStatus.checking) return;
+    // What the status line said before this check, for an automatic check that
+    // fails: it must leave the line as it found it, not claim "No update found".
+    final statusBefore = _status;
     _status = UpdateCheckStatus.checking;
     notifyListeners();
 
@@ -890,8 +895,9 @@ class UpdateController extends ChangeNotifier {
     _status = switch ((result, outcome)) {
       (UpdateAvailable(), _) => UpdateCheckStatus.updateAvailable,
       (_, UpdateChecked()) => UpdateCheckStatus.noUpdate,
-      // The automatic check never speaks up about a failure (ADR-002 §5).
-      _ when !manual => UpdateCheckStatus.noUpdate,
+      // The automatic check never speaks up about a failure (ADR-002 §5), and
+      // "No update found" would be a claim that no check completed to make.
+      _ when !manual => statusBefore,
       (_, UpdateCheckFailed(failure: UpdateCheckFailure.unsupportedFormat)) =>
         UpdateCheckStatus.newerFormat,
       (_, UpdateCheckFailed()) => UpdateCheckStatus.couldNotCheck,

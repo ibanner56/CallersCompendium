@@ -166,15 +166,19 @@ void main() {
         expect(c.foundUpdate, isNull);
       });
 
-      test('automatic check, ${entry.key}: stays silent (noUpdate)', () async {
-        final repos = openTestRepositories();
-        await repos.settings.set('update_auto_check', true);
-        final c = _controller(repos, _service(body, authentic: authentic));
-        addTearDown(c.dispose);
-        await c.load();
-        await c.maybeAutoCheck();
-        expect(c.status, UpdateCheckStatus.noUpdate);
-      });
+      test(
+        'automatic check, ${entry.key}: stays silent (status untouched)',
+        () async {
+          final repos = openTestRepositories();
+          await repos.settings.set('update_auto_check', true);
+          final c = _controller(repos, _service(body, authentic: authentic));
+          addTearDown(c.dispose);
+          await c.load();
+          await c.maybeAutoCheck();
+          // Not "No update found": no check completed to make that claim.
+          expect(c.status, UpdateCheckStatus.idle);
+        },
+      );
     }
 
     test('a manual check that finds the app current says noUpdate', () async {
