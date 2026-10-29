@@ -12,7 +12,7 @@
   },
   "core": {
     "added": [
-      "`ProgramSlot.isPlannedDance`, `Program.plannedDanceCountOf`, `Program.danceNumbersForSlots`, `Program.removeSlotPromotingAlternate`, `Program.alternatePromotedByRemoving` and `setListPrimaryLine`."
+      "`ProgramSlot.isPlannedDance`, `Program.plannedDanceCountOf`, `Program.danceNumbersForSlots`, `Program.removeSlotPromotingAlternate`, `Program.moveSlotPromotingAlternate`, `Program.alternatePromotedByRemoving` and `setListPrimaryLine`."
     ],
     "changed": [
       "`programToPlainText` numbers planned dances only: the break is unnumbered and a leading alternate keeps its `ALT:` prefix without a number."
