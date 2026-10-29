@@ -404,7 +404,7 @@ menu becomes a grouped menu, with dividers between:
 4. *Delete* (error colour).
 
 If *Select all* does not fit it moves to the top of the ⋮ menu. The width test
-follows `_glyphsThatFit` (`:2037`), which already moves bar glyphs into the menu
+follows `_glyphsThatFit` (`:2052`), which already moves bar glyphs into the menu
 when the width runs out, so the PR reuses that mechanism instead of inventing
 one.
 
