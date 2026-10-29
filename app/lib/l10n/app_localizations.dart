@@ -5407,6 +5407,30 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get commonCancel;
 
+  /// Title of the prompt shown when the user leaves an editor (Back, a tap outside a sheet) with unsaved changes. Shared by the editors that have no editor-specific wording: shorthands, themes, venues and custom fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get commonDiscardChangesTitle;
+
+  /// Body of the shared 'Discard changes?' prompt shown when leaving an editor with unsaved changes.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes.'**
+  String get commonDiscardChangesBody;
+
+  /// Button in the shared 'Discard changes?' prompt that closes the prompt and returns to the editor, keeping the unsaved changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get commonKeepEditing;
+
+  /// Button in the shared 'Discard changes?' prompt that leaves the editor and throws the unsaved changes away.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get commonDiscard;
+
   /// Generic confirm button that proceeds with the current action. Used wherever a dialog needs a neutral forward-motion label that is not specific to any one workflow.
   ///
   /// In en, this message translates to:

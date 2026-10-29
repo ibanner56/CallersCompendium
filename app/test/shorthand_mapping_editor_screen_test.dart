@@ -196,4 +196,73 @@ void main() {
     expect(find.byKey(const ValueKey('figure-beats-warning')), findsNothing);
     expect(find.textContaining('Under by'), findsNothing);
   });
+
+  // UX2-1a: backing out of an edited mapping asks before losing it.
+  group('leaving with unsaved changes', () {
+    ShorthandMapping existing() =>
+        ShorthandMapping(token: 'sw', figures: [_swing()]);
+
+    testWidgets('an untouched mapping leaves on Back without asking', (
+      tester,
+    ) async {
+      await _pumpEditor(tester, initial: existing());
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('shorthand-token-field')), findsNothing);
+    });
+
+    testWidgets('a blank row added and left blank is not a change', (
+      tester,
+    ) async {
+      await _pumpEditor(tester);
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      final figureItem = find.byKey(const ValueKey('figure-add-figure'));
+      if (figureItem.evaluate().isNotEmpty) {
+        await tester.tap(figureItem);
+        await tester.pumpAndSettle();
+      }
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('shorthand-token-field')), findsNothing);
+    });
+
+    testWidgets('an edited token asks on Back; Keep editing keeps it', (
+      tester,
+    ) async {
+      await _pumpEditor(tester, initial: existing());
+      await tester.enterText(
+        find.byKey(const ValueKey('shorthand-token-field')),
+        'swg',
+      );
+      await tester.pump();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.text('swg'), findsOneWidget);
+    });
+
+    testWidgets('a removed figure asks on the back arrow; Discard leaves '
+        'with nothing saved', (tester) async {
+      final read = await _pumpEditor(tester, initial: existing());
+      await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('figure-0-summary')), findsNothing);
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('shorthand-token-field')), findsNothing);
+      expect(read(), isNull);
+    });
+  });
 }

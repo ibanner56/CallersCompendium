@@ -9,6 +9,7 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
+import '../widgets/confirm_discard_changes.dart';
 import 'settings/settings_keys.dart';
 
 /// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
@@ -133,6 +134,9 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
     final result = await showModalBottomSheet<CustomFieldDef>(
       context: context,
       isScrollControlled: true,
+      // A swipe would close the form without asking about unsaved changes: it
+      // pops the route directly, past the form's [DiscardChangesGuard].
+      enableDrag: false,
       builder: (_) => _CustomFieldForm(
         existing: existing,
         inUse: inUse,
@@ -402,6 +406,9 @@ class _FieldTile extends StatelessWidget {
 // Create / edit form (modal bottom sheet)
 // ---------------------------------------------------------------------------
 
+/// Closing the form with unsaved changes (Back, or a tap above it) asks first
+/// ([DiscardChangesGuard]); its Cancel button closes it without asking.
+
 class _CustomFieldForm extends StatefulWidget {
   const _CustomFieldForm({
     this.existing,
@@ -448,6 +455,28 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
     _showInList = def?.showInList ?? false;
     _searchable = def?.searchable ?? true;
     _shareable = def?.shareable ?? true;
+    _initialChoices = List.of(_choices);
+    _textFields = Listenable.merge([_labelController, _keyController]);
+  }
+
+  /// The choices as the form opened, for [_dirty]. The other values compare
+  /// against [widget.existing] or the new-field defaults set above.
+  late final List<String> _initialChoices;
+
+  /// Notifies on an edit to the label or key, so the back guard is rebuilt;
+  /// every other value changes through `setState`.
+  late final Listenable _textFields;
+
+  /// Whether closing now would lose a change to any value Save keeps.
+  bool get _dirty {
+    final def = widget.existing;
+    return _labelController.text != (def?.label ?? '') ||
+        _keyController.text != (def?.key ?? '') ||
+        _type != (def?.type ?? CustomFieldType.text) ||
+        !listEquals(_choices, _initialChoices) ||
+        _showInList != (def?.showInList ?? false) ||
+        _searchable != (def?.searchable ?? true) ||
+        _shareable != (def?.shareable ?? true);
   }
 
   @override
@@ -531,137 +560,142 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final insets = MediaQuery.viewInsetsOf(context);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + insets.bottom),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _isNew
-                    ? l10n.customFieldsEditorNewTitle
-                    : l10n.customFieldsEditorEditTitle,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const ValueKey('cf-label'),
-                controller: _labelController,
-                decoration: InputDecoration(
-                  labelText: l10n.customFieldsLabelLabel,
-                  border: const OutlineInputBorder(),
+    return ListenableBuilder(
+      listenable: _textFields,
+      builder: (context, child) =>
+          DiscardChangesGuard(dirty: _dirty, child: child!),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + insets.bottom),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _isNew
+                      ? l10n.customFieldsEditorNewTitle
+                      : l10n.customFieldsEditorEditTitle,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? l10n.customFieldsLabelRequired
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('cf-key'),
-                controller: _keyController,
-                enabled: _keyEditable,
-                decoration: InputDecoration(
-                  labelText: l10n.customFieldsKeyLabel,
-                  helperText: _keyEditable
-                      ? l10n.customFieldsKeyHelper
-                      : l10n.customFieldsKeyLocked,
-                  border: const OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const ValueKey('cf-label'),
+                  controller: _labelController,
+                  decoration: InputDecoration(
+                    labelText: l10n.customFieldsLabelLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? l10n.customFieldsLabelRequired
+                      : null,
                 ),
-                validator: (v) {
-                  final trimmed = v?.trim() ?? '';
-                  if (trimmed.isEmpty) return l10n.customFieldsKeyRequired;
-                  if (!isValidCustomFieldKey(trimmed)) {
-                    return l10n.customFieldsKeyInvalid;
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<CustomFieldType>(
-                key: const ValueKey('cf-type'),
-                initialValue: _type,
-                decoration: InputDecoration(
-                  labelText: l10n.customFieldsTypeFieldLabel,
-                  border: const OutlineInputBorder(),
-                  helperText: _typeEditable
-                      ? null
-                      : l10n.customFieldsTypeLocked,
-                ),
-                items: [
-                  for (final t in CustomFieldType.values)
-                    DropdownMenuItem(
-                      value: t,
-                      child: Text(customFieldTypeLabel(l10n, t)),
-                    ),
-                ],
-                onChanged: _typeEditable
-                    ? (v) {
-                        if (v != null) setState(() => _type = v);
-                      }
-                    : null,
-              ),
-              if (_type == CustomFieldType.choice) ...[
                 const SizedBox(height: 12),
-                _ChoicesEditor(
-                  choices: _choices,
-                  usedChoices: widget.usedChoiceValues,
-                  error: _choicesError,
-                  onAdd: _addChoice,
-                  onRemove: _removeChoice,
-                  onReorder: (oldIndex, newIndex) {
-                    setState(() {
-                      final item = _choices.removeAt(oldIndex);
-                      _choices.insert(newIndex, item);
-                    });
+                TextFormField(
+                  key: const ValueKey('cf-key'),
+                  controller: _keyController,
+                  enabled: _keyEditable,
+                  decoration: InputDecoration(
+                    labelText: l10n.customFieldsKeyLabel,
+                    helperText: _keyEditable
+                        ? l10n.customFieldsKeyHelper
+                        : l10n.customFieldsKeyLocked,
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (v) {
+                    final trimmed = v?.trim() ?? '';
+                    if (trimmed.isEmpty) return l10n.customFieldsKeyRequired;
+                    if (!isValidCustomFieldKey(trimmed)) {
+                      return l10n.customFieldsKeyInvalid;
+                    }
+                    return null;
                   },
                 ),
-              ],
-              const SizedBox(height: 12),
-              SwitchListTile(
-                key: const ValueKey('cf-show-in-list'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.customFieldsShowInList),
-                subtitle: Text(l10n.customFieldsShowInListSubtitle),
-                value: _showInList,
-                onChanged: (v) => setState(() => _showInList = v),
-              ),
-              SwitchListTile(
-                key: const ValueKey('cf-searchable'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.customFieldsSearchable),
-                subtitle: Text(l10n.customFieldsSearchableSubtitle),
-                value: _searchable,
-                onChanged: (v) => setState(() => _searchable = v),
-              ),
-              SwitchListTile(
-                key: const ValueKey('cf-shareable'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.customFieldsShareable),
-                subtitle: Text(l10n.customFieldsShareableSubtitle),
-                value: _shareable,
-                onChanged: (v) => setState(() => _shareable = v),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    key: const ValueKey('cf-form-cancel'),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(l10n.commonCancel),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<CustomFieldType>(
+                  key: const ValueKey('cf-type'),
+                  initialValue: _type,
+                  decoration: InputDecoration(
+                    labelText: l10n.customFieldsTypeFieldLabel,
+                    border: const OutlineInputBorder(),
+                    helperText: _typeEditable
+                        ? null
+                        : l10n.customFieldsTypeLocked,
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    key: const ValueKey('cf-form-save'),
-                    onPressed: _save,
-                    child: Text(l10n.commonSave),
+                  items: [
+                    for (final t in CustomFieldType.values)
+                      DropdownMenuItem(
+                        value: t,
+                        child: Text(customFieldTypeLabel(l10n, t)),
+                      ),
+                  ],
+                  onChanged: _typeEditable
+                      ? (v) {
+                          if (v != null) setState(() => _type = v);
+                        }
+                      : null,
+                ),
+                if (_type == CustomFieldType.choice) ...[
+                  const SizedBox(height: 12),
+                  _ChoicesEditor(
+                    choices: _choices,
+                    usedChoices: widget.usedChoiceValues,
+                    error: _choicesError,
+                    onAdd: _addChoice,
+                    onRemove: _removeChoice,
+                    onReorder: (oldIndex, newIndex) {
+                      setState(() {
+                        final item = _choices.removeAt(oldIndex);
+                        _choices.insert(newIndex, item);
+                      });
+                    },
                   ),
                 ],
-              ),
-            ],
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  key: const ValueKey('cf-show-in-list'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.customFieldsShowInList),
+                  subtitle: Text(l10n.customFieldsShowInListSubtitle),
+                  value: _showInList,
+                  onChanged: (v) => setState(() => _showInList = v),
+                ),
+                SwitchListTile(
+                  key: const ValueKey('cf-searchable'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.customFieldsSearchable),
+                  subtitle: Text(l10n.customFieldsSearchableSubtitle),
+                  value: _searchable,
+                  onChanged: (v) => setState(() => _searchable = v),
+                ),
+                SwitchListTile(
+                  key: const ValueKey('cf-shareable'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.customFieldsShareable),
+                  subtitle: Text(l10n.customFieldsShareableSubtitle),
+                  value: _shareable,
+                  onChanged: (v) => setState(() => _shareable = v),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      key: const ValueKey('cf-form-cancel'),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(l10n.commonCancel),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      key: const ValueKey('cf-form-save'),
+                      onPressed: _save,
+                      child: Text(l10n.commonSave),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

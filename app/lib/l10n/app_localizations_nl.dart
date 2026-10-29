@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3499,6 +3500,18 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get commonCancel => 'Annuleren';
+
+  @override
+  String get commonDiscardChangesTitle => 'Wijzigingen verwerpen?';
+
+  @override
+  String get commonDiscardChangesBody => 'Je hebt niet-opgeslagen wijzigingen.';
+
+  @override
+  String get commonKeepEditing => 'Doorgaan met bewerken';
+
+  @override
+  String get commonDiscard => 'Verwerpen';
 
   @override
   String get commonContinue => 'Doorgaan';

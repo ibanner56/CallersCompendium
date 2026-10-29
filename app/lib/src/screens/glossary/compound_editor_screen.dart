@@ -14,8 +14,8 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
-import '../../theme/destructive_button_style.dart';
 import '../../widgets/app_bar_text_action.dart';
+import '../../widgets/confirm_discard_changes.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/user_figure_argument_editor.dart';
 import '../../widgets/wording_condition_notes.dart';
@@ -940,28 +940,15 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
 
   Future<bool> _confirmDiscard() async {
     final l10n = AppLocalizations.of(context);
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.danceEditorDiscardChangesTitle),
-        content: Text(l10n.compoundEditorDiscardBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(
-              Theme.of(dialogContext).colorScheme,
-            ),
-            key: const ValueKey('compound-discard'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.danceEditorDiscard),
-          ),
-        ],
-      ),
+    final choice = await confirmDiscardChanges(
+      context,
+      title: l10n.danceEditorDiscardChangesTitle,
+      message: l10n.compoundEditorDiscardBody,
+      keepEditingLabel: l10n.commonCancel,
+      discardLabel: l10n.danceEditorDiscard,
+      discardKey: const ValueKey('compound-discard'),
     );
-    return discard == true;
+    return choice == DiscardChangesChoice.discard;
   }
 
   // ---------------------------------------------------------------- build --

@@ -14,11 +14,13 @@ import '../widgets/compound_argument_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
 import '../widgets/user_figure_use_editor.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../widgets/confirm_discard_changes.dart';
 
 /// Creates or edits one shorthand for one of the user's own figures: a token
 /// that stands for a compound (#709) or a new figure (#1023) with the values
 /// chosen here. Pops the edited [CompoundShorthand] or [UserFigureShorthand],
-/// whichever kind of figure was chosen, or nothing when cancelled.
+/// whichever kind of figure was chosen, or nothing when cancelled. Backing out
+/// with unsaved changes asks first ([DiscardChangesGuard]).
 ///
 /// Only figures this build can use are offered: compounds it can expand, and
 /// new figures whose definition decodes. Each argument is chosen within what
@@ -53,8 +55,10 @@ class _CompoundShorthandEditorScreenState
     extends State<CompoundShorthandEditorScreen> {
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
+  late final String _initialToken =
+      widget.initial?.token ?? widget.initialUserFigure?.token ?? '';
   late final TextEditingController _token = TextEditingController(
-    text: widget.initial?.token ?? widget.initialUserFigure?.token ?? '',
+    text: _initialToken,
   );
   StreamSubscription<List<UserGlossaryEntry>>? _sub;
   CompendiumRepositories? _repos;
@@ -77,6 +81,14 @@ class _CompoundShorthandEditorScreenState
   /// beats. Seeded when the figures are first read.
   Map<String, Object?>? _useParams;
   String? _error;
+
+  /// The choices as the editor opened, for [_dirty], beside the token's
+  /// [_initialToken]. [_initialUseParams] is filled in when the figures are
+  /// first read, alongside [_useParams].
+  late final String? _initialCompoundId = widget.initial?.compoundId;
+  late final String? _initialFigureId = widget.initialUserFigure?.figureId;
+  late final Map<String, Object?> _initialArgs = {...?widget.initial?.args};
+  Map<String, Object?>? _initialUseParams;
 
   @override
   void didChangeDependencies() {
@@ -125,6 +137,7 @@ class _CompoundShorthandEditorScreenState
               args: initial.args,
               beats: initial.beats,
             );
+            _initialUseParams = _useParams;
           }
         }
       });
@@ -137,6 +150,26 @@ class _CompoundShorthandEditorScreenState
     _token.dispose();
     super.dispose();
   }
+
+  /// Whether leaving now would lose a change: the token, the figure chosen,
+  /// or its values.
+  bool get _dirty =>
+      _token.text != _initialToken ||
+      _compoundId != _initialCompoundId ||
+      _figureId != _initialFigureId ||
+      !_sameValue(_args, _initialArgs) ||
+      !_sameValue(_useParams, _initialUseParams);
+
+  /// Deep equality over the JSON-shaped values a figure's arguments hold.
+  static bool _sameValue(Object? a, Object? b) => switch ((a, b)) {
+    (final Map<Object?, Object?> a, final Map<Object?, Object?> b) =>
+      a.length == b.length &&
+          a.keys.every((k) => b.containsKey(k) && _sameValue(a[k], b[k])),
+    (final List<Object?> a, final List<Object?> b) =>
+      a.length == b.length &&
+          Iterable<int>.generate(a.length).every((i) => _sameValue(a[i], b[i])),
+    _ => a == b,
+  };
 
   /// Whether this makes a new shorthand rather than editing one of either
   /// kind.
@@ -302,134 +335,142 @@ class _CompoundShorthandEditorScreenState
             CompoundPlaceholder(id: picked.entry.id, name: '', args: _args),
             (id) => compounds?[id]?.definition,
           );
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _isNew ? l10n.shorthandEditorTitleNew : l10n.shorthandEditorTitleEdit,
+    return DiscardChangesGuard(
+      dirty: _dirty,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            _isNew
+                ? l10n.shorthandEditorTitleNew
+                : l10n.shorthandEditorTitleEdit,
+          ),
+          actions: [
+            AppBarTextAction(
+              key: const ValueKey('compound-shorthand-save'),
+              label: l10n.commonSave,
+              icon: Icons.check,
+              onPressed: compounds == null || figures == null ? null : _save,
+            ),
+          ],
         ),
-        actions: [
-          AppBarTextAction(
-            key: const ValueKey('compound-shorthand-save'),
-            label: l10n.commonSave,
-            icon: Icons.check,
-            onPressed: compounds == null || figures == null ? null : _save,
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                _error!,
-                key: const ValueKey('compound-shorthand-error'),
-                style: TextStyle(color: theme.colorScheme.error),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  _error!,
+                  key: const ValueKey('compound-shorthand-error'),
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
               ),
-            ),
-          TextField(
-            key: const ValueKey('compound-shorthand-token'),
-            controller: _token,
-            maxLength: maxShorthandTokenLength,
-            autofocus: _isNew,
-            onChanged: (_) {
-              if (_error != null) setState(() => _error = null);
-            },
-            decoration: InputDecoration(
-              labelText: l10n.shorthandEditorTokenLabel,
-              helperText: l10n.shorthandEditorTokenHelper,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          // Warns, never blocks (#1827), for both kinds this editor saves.
-          ShorthandShadowWarning(
-            warningKey: const ValueKey('compound-shorthand-shadow-warning'),
-            controller: _token,
-          ),
-          const SizedBox(height: 16),
-          if (compounds != null && figures != null && choices.isEmpty)
-            Text(
-              l10n.compoundShorthandEditorNoCompounds,
-              key: const ValueKey('compound-shorthand-none'),
-            )
-          else if (compounds != null && figures != null) ...[
-            DropdownButtonFormField<String>(
-              key: const ValueKey('compound-shorthand-compound'),
-              initialValue: pickedValue,
-              isExpanded: true,
+            TextField(
+              key: const ValueKey('compound-shorthand-token'),
+              controller: _token,
+              maxLength: maxShorthandTokenLength,
+              autofocus: _isNew,
+              // Always rebuilds, so the back guard sees the edited token.
+              onChanged: (_) => setState(() => _error = null),
               decoration: InputDecoration(
-                labelText: l10n.compoundShorthandEditorFigureLabel,
+                labelText: l10n.shorthandEditorTokenLabel,
+                helperText: l10n.shorthandEditorTokenHelper,
                 border: const OutlineInputBorder(),
               ),
-              items: [
-                for (final choice in choices)
-                  DropdownMenuItem(
-                    key: ValueKey('compound-shorthand-choice-${choice.value}'),
-                    value: choice.value,
-                    child: Text(_renderer.renderFreeText(choice.name, dialect)),
-                  ),
-              ],
-              onChanged: _pick,
             ),
-            if (pickedFigure != null && useParams != null) ...[
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: UserFigureUseEditor(
-                  keyPrefix: 'user-figure-shorthand-arg',
-                  params: useParams,
-                  dialect: dialect,
-                  onChanged: (next) => setState(() {
-                    _useParams = next;
-                    _error = null;
-                  }),
+            // Warns, never blocks (#1827), for both kinds this editor saves.
+            ShorthandShadowWarning(
+              warningKey: const ValueKey('compound-shorthand-shadow-warning'),
+              controller: _token,
+            ),
+            const SizedBox(height: 16),
+            if (compounds != null && figures != null && choices.isEmpty)
+              Text(
+                l10n.compoundShorthandEditorNoCompounds,
+                key: const ValueKey('compound-shorthand-none'),
+              )
+            else if (compounds != null && figures != null) ...[
+              DropdownButtonFormField<String>(
+                key: const ValueKey('compound-shorthand-compound'),
+                initialValue: pickedValue,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: l10n.compoundShorthandEditorFigureLabel,
+                  border: const OutlineInputBorder(),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  l10n.userFigureEditorPreview(
-                    UserFiguresScope.rendererOf(context).render(
-                      Figure(move: customMove, params: useParams),
-                      dialect,
+                items: [
+                  for (final choice in choices)
+                    DropdownMenuItem(
+                      key: ValueKey(
+                        'compound-shorthand-choice-${choice.value}',
+                      ),
+                      value: choice.value,
+                      child: Text(
+                        _renderer.renderFreeText(choice.name, dialect),
+                      ),
                     ),
-                  ),
-                  key: const ValueKey('user-figure-shorthand-reads-as'),
-                  style: theme.textTheme.bodySmall,
-                ),
+                ],
+                onChanged: _pick,
               ),
-            ],
-            if (picked != null) ...[
-              for (final param in picked.definition.params)
+              if (pickedFigure != null && useParams != null) ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: CompoundArgumentEditor(
-                    keyPrefix: 'compound-shorthand-arg',
-                    definition: picked.definition,
-                    param: param,
-                    value: _args[param.key],
+                  child: UserFigureUseEditor(
+                    keyPrefix: 'user-figure-shorthand-arg',
+                    params: useParams,
                     dialect: dialect,
-                    onChanged: (value) => setState(() {
-                      _args[param.key] = value;
+                    onChanged: (next) => setState(() {
+                      _useParams = next;
                       _error = null;
                     }),
                   ),
                 ),
-              if (expanded != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: Text(
-                    l10n.danceEditorCompoundExpandsTo(
-                      expanded.length,
-                      CompoundDefinition.beatsOf(expanded, contraTaxonomy),
+                    l10n.userFigureEditorPreview(
+                      UserFiguresScope.rendererOf(context).render(
+                        Figure(move: customMove, params: useParams),
+                        dialect,
+                      ),
                     ),
-                    key: const ValueKey('compound-shorthand-expands'),
+                    key: const ValueKey('user-figure-shorthand-reads-as'),
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
+              ],
+              if (picked != null) ...[
+                for (final param in picked.definition.params)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: CompoundArgumentEditor(
+                      keyPrefix: 'compound-shorthand-arg',
+                      definition: picked.definition,
+                      param: param,
+                      value: _args[param.key],
+                      dialect: dialect,
+                      onChanged: (value) => setState(() {
+                        _args[param.key] = value;
+                        _error = null;
+                      }),
+                    ),
+                  ),
+                if (expanded != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      l10n.danceEditorCompoundExpandsTo(
+                        expanded.length,
+                        CompoundDefinition.beatsOf(expanded, contraTaxonomy),
+                      ),
+                      key: const ValueKey('compound-shorthand-expands'),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+              ],
             ],
           ],
-        ],
+        ),
       ),
     );
   }
