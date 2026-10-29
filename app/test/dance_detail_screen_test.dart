@@ -1,3 +1,6 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:compendium_core/compendium_core.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -149,6 +152,10 @@ Future<ValueNotifier<bool>> _pumpDetail(
   await tester.pumpAndSettle();
   return requirePerformedNotifier;
 }
+
+/// The System date format (PLAT-12): the device region's numeric date.
+String _systemDate(DateTime d) =>
+    DateFormat.yMd(PlatformDispatcher.instance.locale.toString()).format(d);
 
 void main() {
   // Pin the platform seam so these tests do not depend on the host OS.
@@ -2437,9 +2444,7 @@ void main() {
 
       await _pumpDetail(tester, repos, 'd1');
 
-      final expectedDate = MaterialLocalizations.of(
-        tester.element(find.byKey(const ValueKey('calling-history-s1'))),
-      ).formatShortDate(DateTime.utc(2026, 10, 3));
+      final expectedDate = _systemDate(DateTime.utc(2026, 10, 3));
       expect(find.textContaining(expectedDate), findsWidgets);
     });
 
@@ -2554,9 +2559,7 @@ void main() {
       );
       // The announced date must come from performedAt (2026), not the program's
       // scheduled eventDate (2025).
-      final performedDate = MaterialLocalizations.of(
-        tester.element(rowFinder),
-      ).formatShortDate(DateTime.utc(2026, 10, 3, 20));
+      final performedDate = _systemDate(DateTime.utc(2026, 10, 3, 20));
       expect(
         label,
         contains(performedDate),
