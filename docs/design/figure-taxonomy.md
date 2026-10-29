@@ -238,11 +238,12 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   (`ParamKind.dancerSet`, default `unspecified`) to `hey`, finally encoding
   ContraDB's deferred `dancer%%N` meeting *target* — WHICH pair you run a partial
   hey until you meet. The value domain is ContraDB `chooser_pairz`
-  (extended at v24 with five mixer partner-series tokens, issue #732)
+  (extended at v24 with five mixer partner-series tokens, issue #732, and at
+  v38 with `thirdCorners` and `opposites`, #1975)
   (`_heyMeetTargetChoices`: `role1s`/`role2s`/`ones`/`twos`/`partners`/
   `neighbors`/`sameRoles`/`firstCorners`/`secondCorners`/`shadows`/
   `secondShadows`/`prevNeighbors`/`nextNeighbors`/`thirdNeighbors`/
-  `fourthNeighbors`/`prevPartners`/`nextPartners`/`thirdPartners`/
+  `fourthNeighbors`/`thirdCorners`/`opposites`/`prevPartners`/`nextPartners`/`thirdPartners`/
   `fourthPartners`/`fifthPartners` + `unspecified`) — **pairs only** (single
   dancers, `everyone`, and `centers` are excluded, as ContraDB does). Our
   `length` already carries the meeting *count*
@@ -1711,6 +1712,19 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     what the editor actually offers, and changing `balance` there records the
     matching `beats` too (the same +/-4 rule), because a saved default is
     applied to a new figure as plain values.
+  v38 also adds two `pairDancerSets` tokens, `thirdCorners` and `opposites`
+    (#1975, maintainer decisions), and moves the corners after the neighbour
+    series, so the picker reads ... `fourthNeighbors`, `firstCorners`,
+    `secondCorners`, `thirdCorners`, `opposites`, then the mixer partner series.
+    A square's corner is a contra first corner, and The Caller's Box's square
+    corners C1, C2 and C3 are the first corners, the opposites and the third
+    corners. Both tokens are added to `_heyMeetTargetChoices` (and so to the mad
+    robin and butterfly whirl pairs), beyond ContraDB's `chooser_pairz`, as v24
+    did for the partner series. Neither has a pair inverse or a compound
+    opposite, the author's call: `invertPairDancerSet` mirrors ContraDB, which
+    has neither token. Purely additive for stored data: no figure's meaning or
+    canonical text changes, and the order of `pairDancerSets` is display order
+    only.
 
 ## Open questions (to resolve during implementation, with user input)
 

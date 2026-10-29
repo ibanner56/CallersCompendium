@@ -1,0 +1,18 @@
+{
+  "id": "1975-third-corners-opposites",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "\"Third corners\" and \"opposites\" are new dancers you can pick for a figure. In the list, the corners and opposites now come after the fourth neighbors."
+    ],
+    "fixed": [
+      "Squares imported from The Caller's Box keep the corners in their pass lists: C1, C2 and C3 come in as first corners, opposites and third corners instead of turning the figure into text. Caller's Companion's \"Corner 1\", \"Corner 2\" and \"Corner 3\", \"third corner\" and \"opposite\" are read the same way, in imports and in figures you type."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Taxonomy v38 adds the pairDancerSets tokens thirdCorners and opposites, and moves firstCorners and secondCorners after fourthNeighbors; the hey meeting target (and mad robin and butterfly whirl pairs) accept both new tokens.",
+      "tcbPassPeople maps c1, c2 and c3 to firstCorners, opposites and thirdCorners; the shared recognizer reads \"Corner 1/2/3\", \"third corner\" and \"opposite(s)\" (not before role, side, direction, way or hand)."
+    ]
+  }
+}

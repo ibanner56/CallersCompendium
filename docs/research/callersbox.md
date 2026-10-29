@@ -166,9 +166,12 @@ and `pull by direction`.
   English Country Dance. First corners are man one and woman two. Second corners
   are woman one and man two."
 
-The last two entries are why `C1`–`C3` are **not** mapped: `ParamVocab`'s
+The last two entries are why `C1`–`C3` were long **not** mapped: `ParamVocab`'s
 `firstCorners`/`secondCorners` model the ECD *First/second corners*, a different
-relationship from TCB's square corners. Mapping them would fabricate.
+relationship from TCB's square corners. Since taxonomy v38 they are mapped
+(#1975): the maintainer ruled that a square's corner is a contra first corner,
+and added `opposites` and `thirdCorners`, so C1, C2 and C3 are `firstCorners`,
+`opposites` and `thirdCorners`. `C4`+ is still declined.
 `P0`, `P2`–`P5` have vocabulary tokens (taxonomy v24, issue #732) and the
 importer now maps them (issue #732, PR E). `P6`+, every `P-n`,
 `N5`+/`N-1`/`S3`+ have no token, and `Ph*` (phantoms) / `TB*`

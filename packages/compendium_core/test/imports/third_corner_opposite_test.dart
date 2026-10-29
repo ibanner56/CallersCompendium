@@ -44,6 +44,8 @@ void main() {
           read('Corner 1 allemande Left 1.5').single.params['travel'],
           1.5,
         );
+        // Any other number after a corner names no dancer set.
+        expect(read('Corner 5 swing').single.isCustom, isTrue);
       });
 
       test('"opposite" is the opposites', () {

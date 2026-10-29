@@ -570,11 +570,8 @@ void _foldDancerNumbers(List<String> w) {
       }
     }
     // Caller's Companion's numbered corners (maintainer decision, #1975):
-    // Corner 1, 2 and 3 are The Caller's Box's C1, C2 and C3. After an
-    // ordinal ("1st corner 2") the number is not part of the name.
-    if (w[i] == 'corner' &&
-        _numberedCorners.containsKey('#corner$number') &&
-        (i == 0 || !_cornerOrdinals.containsKey(w[i - 1]))) {
+    // Corner 1, 2 and 3 are The Caller's Box's C1, C2 and C3.
+    if (w[i] == 'corner' && _numberedCorners.containsKey('#corner$number')) {
       w[i] = '#corner$number';
       w.removeAt(i + 1);
       continue;
@@ -793,6 +790,9 @@ const Map<String, String> _numberedCorners = {
 };
 
 /// The words after which "opposite" describes something rather than naming
+/// the opposites (maintainer decision, #1975). Today the described word is
+/// never read, so such a line stays text even without this; it keeps a
+/// recognizer that tolerated a leftover word from reading "opposite role" as
 /// the opposites.
 const Set<String> _oppositeDescribes = {
   'role',

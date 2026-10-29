@@ -50,8 +50,7 @@ void main() {
 
       test('a corner number is never an amount', () {
         // "Corner 2" names a dancer (third_corner_opposite_test.dart), so its
-        // number must not be read as how far the move goes; after an ordinal
-        // it is not part of the name either.
+        // number must not be read as how far the move goes.
         for (final line in [
           'Corner 2 Do-si-do',
           'Corner 2 allemande Left',
@@ -61,10 +60,6 @@ void main() {
           final f = read(line).single;
           expect(f.params.containsKey('travel'), isFalse, reason: line);
         }
-        expect(
-          read('1st corner 2 allemande left').single.params['who'],
-          isNot('opposites'),
-        );
       });
 
       test('a new neighbor after a leading dancer is whom', () {

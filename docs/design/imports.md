@@ -803,13 +803,12 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   approximated — what that costs depends on the decoder: the line goes custom
   where the run IS its structure, as in a hey or a grand right and left, but
   merely keeps the taxonomy's defaults where the run only ADDS params, as in
-  `square_through` since #799 and every side-slot move since #843): `C1`–`C3` — TCB's *"Corners (square)"* ("the non-partner next
-  to you… the person across from you… the remaining person") are a **different
-  concept** from its separate *"First/second corners"* entry, which is what
-  `firstCorners`/`secondCorners` model (the maintainer has since ruled, on
-  #1975, that a square's corner is the same dancer as a contra first corner;
-  revisiting C1–C3 waits on third corners and opposites becoming dancer sets);
-  `P6`+/`P-n` (mixer partners beyond the
+  `square_through` since #799 and every side-slot move since #843): `C4`+
+  (TCB's *"Corners (square)"* `C1`–`C3` map, since taxonomy v38, to
+  `firstCorners`, `opposites` and `thirdCorners`: a square's corner is a contra
+  first corner, maintainer decisions on #1975); `O` (the glossary's opposite,
+  which in the corpus sits in side runs such as `(OR)` where "opposite" does not
+  read); `P6`+/`P-n` (mixer partners beyond the
   modelled depth); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
   `TB*` (trail buddy), `SR*`; and a bare `R`/`L` cell, which states a hand but
   no dancer.
@@ -925,7 +924,7 @@ exactly `square through <n>` (modulo filler), or `square through <n> without
 hands` for the circular hey below, `n` in 2..10; the cell count must
 equal `n`; every cell must be `<people-code><R|L>` with the code in
 `tcbPassPeople`. A second parenthetical, an `interrupted`/`modified` qualifier, a
-trailing clause, an unmappable code (`C1`–`C3`, out-of-range neighbors, a bare
+trailing clause, an unmappable code (`C4`+, out-of-range neighbors, a bare
 `R`/`L`), an inconsistent dancer or a non-alternating hand all return `null`, so
 the line falls through to the shared recognizer's bare, defaulted reading rather
 than being half-structured. The one exception is a Caller's Companion comma list
@@ -1615,7 +1614,7 @@ has to be judged in its own context.
   owner ruling: a note on that many figures is a visible change at corpus
   scale, so it is recorded here as an open question rather than a settled one.
   *Declines (→ the ordinary annotation-stripped reading):* any unmapped people
-  code (`O`, `Ph`, `SRN`, `C1`–`C3`, out-of-range neighbours/shadows); a run
+  code (`O`, `Ph`, `SRN`, `C4`+, out-of-range neighbours/shadows); a run
   whose sides do not alternate by position parity; a run stating more passes
   than the move models — a `square_through` cell count that disagrees with
   `places` (which is #799's ruling, and this decoder must not undo it by the
@@ -1640,24 +1639,28 @@ has to be judged in its own context.
 
   **Caller's Companion dancer names (#1975):** `_takeDancer` (and
   `_takeLeadingDancer`) read `new neighbor(s)` as `nextNeighbors` and a
-  singular `corner` as `firstCorners`, with `1st`/`first` and `2nd`/`second`
-  corner(s) naming either corner. They do so for every source, not only
-  Caller's Companion: the maintainer ruled (2026-10-29) that a first corner is
-  the same in contra and squares, so a square's `Allemande left your corner`
-  from The Caller's Box reads the same way. `resolveDancerSetPhrase` shares
-  the reader, so a Caller's Box `[with corner]` bracket on a balance-the-wave
-  line now keeps the note `with firstCorners`, as `[with partner]` keeps `with
-  partners`, where it was dropped before. The bare `Corner` and the ordinal
-  readings are the maintainer's decisions (#1975; the ordinals and the scope
-  on 2026-10-29). A bare plural (`allemande left the corners`, ContraDB's
-  contra-corners text) may mean both corners in turn, so it is not read. A
-  numbered corner (`Corner 2 swing`, `Corner 3 Right Shoulder Round`) is not
-  read either: like TCB's C1–C3 pass-list codes it numbers a square's corners,
-  and third corners and opposites are not yet dancer sets.
-  `_foldDancerNumbers` marks its number as it does a dancer number's, so the
-  line stays custom rather than reading the number as an amount. These are
-  context-dependent two-word names, so they live in the reader rather than in
-  `dancerWords`.
+  singular `corner` as `firstCorners`, with `1st`/`first`, `2nd`/`second` and
+  `3rd`/`third` corner(s) naming each one. They do so for every source, not
+  only Caller's Companion: the maintainer ruled (2026-10-29) that a first
+  corner is the same in contra and squares, so a square's `Allemande left your
+  corner` from The Caller's Box reads the same way. `resolveDancerSetPhrase`
+  shares the reader, so a Caller's Box `[with corner]` bracket on a
+  balance-the-wave line now keeps the note `with firstCorners`, as `[with
+  partner]` keeps `with partners`, where it was dropped before. The bare
+  `Corner` and the ordinal readings are the maintainer's decisions (#1975; the
+  ordinals and the scope on 2026-10-29). A bare plural (`allemande left the
+  corners`, ContraDB's contra-corners text) may mean both corners in turn, so
+  it is not read. Since taxonomy v38 a numbered corner is read like TCB's
+  C1–C3 (maintainer decision): `_foldDancerNumbers` turns `Corner 1`, `2` and
+  `3` into the first corners, the opposites and the third corners, even though
+  the tester's own `Corner 3 (next to you)` disagrees, and still marks any
+  other number after a corner word, so `Corner 5 swing` stays custom rather
+  than reading the number as an amount. `third`/`3rd corner` is the third
+  corners, and `opposite(s)` is the opposites unless the next word is role,
+  side, direction, way or hand (`opposite role pull by L` stays text; today
+  that word is never read, so the line would stay text anyway, and the check
+  is a safeguard). These are context-dependent two-word names, so they live in
+  the reader rather than in `dancerWords`.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on
