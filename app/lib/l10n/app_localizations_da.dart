@@ -4625,6 +4625,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMarkedAllPerformed => 'Markerede alle danse som fremført.';
 
   @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Markerede alle danse som fremført undtagen alternativer. Markér selv et alternativ, hvis du kaldte det.';
+
+  @override
   String programsSavedSnack(String title) {
     return '„$title“ gemt.';
   }

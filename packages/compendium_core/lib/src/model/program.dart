@@ -91,6 +91,28 @@ class ProgramSlot {
   /// (which is derived by query, never stored on the dance).
   final DateTime? performedAt;
 
+  /// Whether this slot counts toward its dance's calling history ("called
+  /// ×N", the Called filter, history rows, last-called, venue repeats and half
+  /// stats), before the "Require mark performed" setting is applied.
+  ///
+  /// A primary dance slot counts as soon as its program contains it (#583's
+  /// documented default). An alternate counts only once that slot is marked
+  /// performed: listing a dance as a fallback is not calling it (maintainer
+  /// ruling, 2026-10-28). The SQL side of the same rule is
+  /// `callingHistoryAlternateClause`; the two must agree.
+  bool get countsTowardCallingHistory =>
+      danceId != null && (!isAlt || performedAt != null);
+
+  /// Whether a bulk mark — **Mark all performed**, or the stamp when a program's
+  /// status becomes performed ([Program.stampDanceSlotsPerformed]) — stamps
+  /// this slot: an unperformed primary dance slot.
+  ///
+  /// Alternates are skipped because a bulk stamp would make every unused
+  /// alternate count as called (see [countsTowardCallingHistory]); a caller
+  /// marks the alternate they actually used by hand.
+  bool get isBulkMarkPerformedTarget =>
+      danceId != null && !isAlt && performedAt == null;
+
   /// Whether this slot is a **break** — the divider the program's first/second
   /// section is derived from ([Program.sectionAtIndex]).
   ///
@@ -583,8 +605,9 @@ class Program {
     updatedAt: now,
   );
 
-  /// Returns a copy in which every **dance-linked** slot (`danceId != null`)
-  /// that has no [ProgramSlot.performedAt] is stamped performed at the first
+  /// Returns a copy in which every **primary dance-linked** slot (`danceId !=
+  /// null`, not an alternate) that has no [ProgramSlot.performedAt] is stamped
+  /// performed at the first
   /// unused stored timestamp at or after this program's [eventDate] when set,
   /// else at [fallback].
   ///
@@ -595,6 +618,12 @@ class Program {
   ///
   /// - **Dance-linked only:** free-text/note/break slots aren't dances and can
   ///   never contribute to calling history, so they're left untouched.
+  /// - **Primaries only:** alternate slots are left unstamped, as **Mark all
+  ///   performed** leaves them ([ProgramSlot.isBulkMarkPerformedTarget]). The
+  ///   maintainer ruled that an alternate counts only once marked performed and
+  ///   that Mark all performed skips alternates (2026-10-28); applying the same
+  ///   skip here is an inference from that ruling, because this is the same bulk
+  ///   stamp reached through the status, not a separately ruled behaviour.
   /// - **Idempotent:** a slot that already has a `performedAt` (e.g. a
   ///   manually-set date) is never overwritten.
   /// - **Pure:** callers choose the timestamp — typically the program's
@@ -611,7 +640,7 @@ class Program {
     var changed = false;
     final next = <ProgramSlot>[];
     for (final s in slots) {
-      if (s.danceId != null && s.performedAt == null) {
+      if (s.isBulkMarkPerformedTarget) {
         next.add(s.copyWith(performedAt: stamp));
         changed = true;
       } else {

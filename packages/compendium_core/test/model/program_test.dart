@@ -936,5 +936,93 @@ void main() {
       );
       expect(identical(p.stampDanceSlotsPerformed(fallback: now), p), isTrue);
     });
+
+    // F5: an unused alternate stamped by the status transition would count as
+    // called. Skipping alternates here is inferred from the maintainer's
+    // ruling that Mark all performed skips them; this is the same bulk stamp.
+    test('stamps primaries only, leaving alternates for a hand mark', () {
+      final eventDate = DateTime.utc(2026, 3, 15);
+      final handMarked = DateTime.utc(2026, 3, 16);
+      final p = program(
+        eventDate: eventDate,
+        slots: [
+          ProgramSlot(id: 'chorus', position: 0, danceId: 'chorus-jig'),
+          ProgramSlot(
+            id: 'hulls',
+            position: 1,
+            danceId: 'hulls-victory',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'marked-alt',
+            position: 2,
+            danceId: 'd3',
+            isAlt: true,
+            performedAt: handMarked,
+          ),
+        ],
+      );
+      final stamped = p.stampDanceSlotsPerformed(fallback: now);
+      expect(stamped.slots.map((s) => s.performedAt), [
+        eventDate,
+        null,
+        handMarked,
+      ]);
+    });
+
+    test('returns the same instance when only alternates are unmarked', () {
+      final p = program(
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            performedAt: DateTime.utc(2025, 1, 1),
+          ),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+        ],
+      );
+      expect(identical(p.stampDanceSlotsPerformed(fallback: now), p), isTrue);
+    });
+  });
+
+  group('ProgramSlot calling-history predicates', () {
+    final stamp = DateTime.utc(2026, 3, 15);
+    ProgramSlot slot({
+      String? danceId = 'd1',
+      bool isAlt = false,
+      DateTime? performedAt,
+    }) => ProgramSlot(
+      id: 's1',
+      position: 0,
+      danceId: danceId,
+      text: danceId == null ? 'Waltz' : null,
+      isAlt: isAlt,
+      performedAt: performedAt,
+    );
+
+    test('a primary counts whether or not it is marked', () {
+      expect(slot().countsTowardCallingHistory, isTrue);
+      expect(slot(performedAt: stamp).countsTowardCallingHistory, isTrue);
+    });
+
+    test('an alternate counts only once it is marked performed', () {
+      expect(slot(isAlt: true).countsTowardCallingHistory, isFalse);
+      expect(
+        slot(isAlt: true, performedAt: stamp).countsTowardCallingHistory,
+        isTrue,
+      );
+    });
+
+    test('a text slot never counts', () {
+      expect(slot(danceId: null).countsTowardCallingHistory, isFalse);
+    });
+
+    test('a bulk mark targets unmarked primary dance slots only', () {
+      expect(slot().isBulkMarkPerformedTarget, isTrue);
+      expect(slot(performedAt: stamp).isBulkMarkPerformedTarget, isFalse);
+      expect(slot(isAlt: true).isBulkMarkPerformedTarget, isFalse);
+      expect(slot(danceId: null).isBulkMarkPerformedTarget, isFalse);
+    });
   });
 }

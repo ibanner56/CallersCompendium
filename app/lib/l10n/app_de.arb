@@ -4696,6 +4696,10 @@
   "@programsMarkedAllPerformed": {
     "x-sourceSha256": "a0e7b24dff1bf9be7eefcb614d794bcdd53eab1576cf977fe3070ccdbf76762b"
   },
+  "programsMarkedAllPerformedExceptAlternates": "Alle Tänze außer Alternativen als aufgeführt markiert. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.",
+  "@programsMarkedAllPerformedExceptAlternates": {
+    "x-sourceSha256": "08a8256620a4cffa6d30dd9cab22983d46fe20c5f9d9024d3780368cb60d0017"
+  },
   "programsSavedSnack": "„{title}“ gespeichert.",
   "@programsSavedSnack": {
     "x-sourceSha256": "85c0b6df8f1e4d9391ec79a51940c1a00a83a46320b7799ffc412d8d0e9615bb"

@@ -453,10 +453,18 @@ There are two ways to think about "called," and a setting lets you choose:
   performed" for calling history** in
   [Settings › Program › Calling history](./settings.md#calling-history).
 
+An [alternate](./glossary.md#alt) counts only once you mark that slot
+performed, whichever way you choose. Listing a dance as a fallback is not
+calling it: if Hull's Victory is the alternate to Chorus Jig and you call Chorus
+Jig, only Chorus Jig's count goes up. Mark Hull's Victory performed too if you
+called it instead, or as well.
+
 To mark one slot, choose **Mark performed** from its **…** menu, or mark it
 from [Perform mode](./perform.md#adjust-on-the-fly) while you call. To mark
-every unperformed dance slot at once, use **Mark all performed** in the program
-editor or on a saved program's summary; it offers a one-tap **Undo**.
+every unperformed dance at once, use **Mark all performed** in the program
+editor or on a saved program's summary; it offers a one-tap **Undo**. Mark all
+performed skips alternates, and so does setting a program's status to
+**Performed**: mark the alternates you used yourself.
 
 The same settings section can also limit calling history to programs you called
 yourself, and control the repeated-venues summary.
