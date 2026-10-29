@@ -117,9 +117,7 @@ class _ShorthandMappingEditorScreenState
     Navigator.of(context).pop(ShorthandMapping(token: token, figures: figures));
   }
 
-  void _onFiguresChanged() {
-    if (_figuresError != null) setState(() => _figuresError = null);
-  }
+  void _onFiguresChanged() => setState(() => _figuresError = null);
 
   void _addFigure() {
     setState(() {
