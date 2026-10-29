@@ -3072,10 +3072,12 @@ class DanceRepository {
   /// count and the dance-detail history (`ProgramRepository`'s
   /// `_programDerivedRows` / `_callingHistoryRows`): non-deleted programs, the
   /// host-caller scope [caller], the alternate rule, when [performedOnly]
-  /// performed slots only, and when [requireEventDate] dated programs only. Each slot's date is the one the history list
-  /// orders by, `COALESCE(performed_at, event_date, updated_at)`; under
-  /// [performedOnly] every counted slot has a `performed_at`, so that reduces
-  /// to the performed stamp. A dance the count would show as never called
+  /// performed slots only, and when [requireEventDate] dated programs only.
+  /// Each slot's date is the one the history list orders by,
+  /// `COALESCE(event_date, performed_at, updated_at)`
+  /// ([callingHistoryDateSql], `DanceCallingRecord.effectiveDate`; GIG-2): the
+  /// program's event date when it has one, so a slot marked performed days
+  /// later still sorts by the night it was called. A dance the count would show as never called
   /// sorts last regardless of direction (FIND-2).
   Future<List<String>> _sortByLastCalled(
     List<String> ids, {
@@ -3096,8 +3098,8 @@ class DanceRepository {
       final rows = await _db
           .customSelect(
             'SELECT program_slots.dance_id AS dance_id, '
-            'MAX(COALESCE(program_slots.performed_at, programs.event_date, '
-            'programs.updated_at)) AS last_called '
+            'MAX(${callingHistoryDateSql(slotTable: 'program_slots', programTable: 'programs')}) '
+            'AS last_called '
             'FROM program_slots '
             'JOIN programs ON programs.id = program_slots.program_id '
             'WHERE program_slots.dance_id IS NOT NULL '

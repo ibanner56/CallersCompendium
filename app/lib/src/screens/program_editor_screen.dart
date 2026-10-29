@@ -156,6 +156,12 @@ class ProgramEditorScreen extends StatefulWidget {
   /// as a persistent right pane instead of a modal sheet.
   static const double twoPaneBreakpoint = 820;
 
+  /// Window width (logical pixels) below which Mark all performed, Duplicate
+  /// and Delete move into a "⋮" menu, leaving Perform and Export on the bar.
+  /// Matches `DanceDetailScreen.compactActionsBreakpoint` (Material 3's
+  /// compact window-size-class cutoff).
+  static const double compactActionsBreakpoint = 600;
+
   bool get isNew => programId == null;
   bool get isEmbedded =>
       onSaved != null || onDeleted != null || onNavigateTo != null;
@@ -3239,6 +3245,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _lookUpDeletedSlotDances();
     final hasPersistedProgram = _existing != null;
     final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
+    // Below [ProgramEditorScreen.compactActionsBreakpoint] the bar keeps
+    // Perform and Export; Mark all performed, Duplicate and Delete fold into
+    // [_secondaryActionsMenu], as on dance detail. At 360dp the full row left
+    // the title 32dp. The builder is always a full-screen route, so the window
+    // width is the bar's width.
+    final compact =
+        MediaQuery.sizeOf(context).width <
+        ProgramEditorScreen.compactActionsBreakpoint;
     final tabBar = TabBar(
       controller: _tabController,
       tabs: [
@@ -3326,7 +3340,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ),
                 ),
               ),
-            if (hasPersistedProgram && _loadError == null) ...[
+            if (hasPersistedProgram && _loadError == null && compact)
+              _secondaryActionsMenu()
+            else if (hasPersistedProgram && _loadError == null) ...[
               if (_slots.any((s) => s.danceId != null))
                 IconButton(
                   key: const ValueKey('mark-all-performed'),
@@ -3369,6 +3385,51 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               )
             : null,
       ),
+    );
+  }
+
+  /// The narrow bar's "⋮" menu: Mark all performed, Duplicate and Delete, under
+  /// the keys, labels and enabled rules of the buttons they replace.
+  Widget _secondaryActionsMenu() {
+    final l10n = AppLocalizations.of(context);
+    return PopupMenuButton<void>(
+      key: const ValueKey('program-actions-overflow'),
+      tooltip: l10n.programsMoreActions,
+      icon: const Icon(Icons.more_vert),
+      enabled: !_pickerImporting,
+      itemBuilder: (context) => [
+        if (_slots.any((s) => s.danceId != null))
+          PopupMenuItem<void>(
+            key: const ValueKey('mark-all-performed'),
+            enabled: !_saving && !_pickerImporting,
+            onTap: _markAllPerformed,
+            child: ListTile(
+              leading: const Icon(Icons.done_all),
+              title: Text(l10n.programsMarkAllPerformedTooltip),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        PopupMenuItem<void>(
+          key: const ValueKey('duplicate-program'),
+          enabled: !_pickerImporting,
+          onTap: _duplicate,
+          child: ListTile(
+            leading: const Icon(Icons.copy_all_outlined),
+            title: Text(l10n.commonDuplicate),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
+          key: const ValueKey('delete-program'),
+          enabled: !_pickerImporting && !_deleting,
+          onTap: _delete,
+          child: ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: Text(l10n.commonDelete),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
     );
   }
 

@@ -409,4 +409,203 @@ void main() {
       expect(announcements, ['Removed Dance d2.']);
     });
   });
+
+  // Maintainer decision D-2 (quoted and linked in docs/design/ux.md §4): below the 600dp breakpoint a row keeps only its
+  // drag handle and "…" menu, and View details, move up/down and cut become
+  // menu items, up and down first. Every path stays reachable without a drag.
+  group('compact rows (360dp)', () {
+    late List<(int, int)> reorders;
+    late List<int> removals;
+    late List<String> viewed;
+
+    List<ProgramSlot> phoneSlots() => [
+      ProgramSlot(id: 'p1', position: 0, danceId: 'd1'),
+      ProgramSlot(id: 'a1', position: 1, danceId: 'd2', isAlt: true),
+      ProgramSlot(id: 'p2', position: 2, danceId: 'd3'),
+    ];
+
+    Future<void> pumpPhone(
+      WidgetTester tester, {
+      Size size = const Size(360, 800),
+      double? listWidth,
+    }) async {
+      reorders = [];
+      removals = [];
+      viewed = [];
+      // The view, not setSurfaceSize: the window rule reads MediaQuery, which
+      // setSurfaceSize leaves at 800x600.
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: listWidth,
+                  child: ProgramSlotListEditor(
+                    slots: phoneSlots(),
+                    danceTitles: (id) => 'Dance $id',
+                    formationFor: (_) => null,
+                    mixerFor: (_) => false,
+                    onReorder: (from, to) => reorders.add((from, to)),
+                    onSlotChanged: (_, _) {},
+                    onPromoteAlternate: (_, _) {},
+                    onRemove: removals.add,
+                    onCreateDance: (_) {},
+                    onViewDanceDetails: viewed.add,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Future<void> chooseFromMenu(
+      WidgetTester tester,
+      int index,
+      String action,
+    ) async {
+      await tester.tap(find.byKey(ValueKey('slot-$index-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('slot-$index-$action')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the row shows only the drag handle and the menu', (
+      tester,
+    ) async {
+      await pumpPhone(tester);
+      for (final i in [0, 1, 2]) {
+        for (final action in ['view-details', 'move-up', 'move-down']) {
+          expect(find.byKey(ValueKey('slot-$i-$action')), findsNothing);
+        }
+        expect(find.byKey(ValueKey('slot-$i-remove')), findsNothing);
+        expect(find.byKey(ValueKey('slot-$i-menu')), findsOneWidget);
+      }
+      expect(find.byIcon(Icons.drag_handle), findsNWidgets(3));
+    });
+
+    testWidgets('the menu lists move up and move down first, then View '
+        'details and the cut wording', (tester) async {
+      await pumpPhone(tester);
+      await tester.tap(find.byKey(const ValueKey('slot-1-menu')));
+      await tester.pumpAndSettle();
+      final items = tester
+          .widgetList<PopupMenuItem<String>>(
+            find.byWidgetPredicate((w) => w is PopupMenuItem<String>),
+          )
+          .map((item) => item.value)
+          .toList();
+      expect(items.take(4), ['move_up', 'move_down', 'view_details', 'remove']);
+      // #1270 / #1385: the scissors item still reads "Cut" and the slot.
+      expect(find.text('Cut Dance d2'), findsOneWidget);
+      expect(find.byIcon(Icons.content_cut), findsOneWidget);
+      // The existing items are still there, alternate toggle included.
+      expect(find.text('Edit slot'), findsOneWidget);
+      expect(find.text('Make primary'), findsOneWidget);
+    });
+
+    testWidgets('a primary row moves up, moves down and is cut from the menu', (
+      tester,
+    ) async {
+      await pumpPhone(tester);
+      await chooseFromMenu(tester, 2, 'move-up');
+      await chooseFromMenu(tester, 0, 'move-down');
+      await chooseFromMenu(tester, 2, 'remove');
+      expect(reorders, [(2, 1), (0, 1)]);
+      expect(removals, [2]);
+    });
+
+    testWidgets('an alternate row moves up, moves down and is cut from the '
+        'menu', (tester) async {
+      await pumpPhone(tester);
+      await chooseFromMenu(tester, 1, 'move-up');
+      await chooseFromMenu(tester, 1, 'move-down');
+      await chooseFromMenu(tester, 1, 'remove');
+      expect(reorders, [(1, 0), (1, 2)]);
+      expect(removals, [1]);
+    });
+
+    testWidgets('View details opens from the menu', (tester) async {
+      await pumpPhone(tester);
+      await chooseFromMenu(tester, 1, 'view-details');
+      expect(viewed, ['d2']);
+    });
+
+    testWidgets('the ends of the list disable the move they cannot make', (
+      tester,
+    ) async {
+      await pumpPhone(tester);
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+      PopupMenuItem<String> item(String key) =>
+          tester.widget<PopupMenuItem<String>>(find.byKey(ValueKey(key)));
+      expect(item('slot-0-move-up').enabled, isFalse);
+      expect(item('slot-0-move-down').enabled, isTrue);
+      await tester.tap(find.byKey(const ValueKey('slot-0-move-up')));
+      await tester.pumpAndSettle();
+      expect(reorders, isEmpty);
+      // A disabled item ignores the tap, so the menu is still open.
+      expect(find.byKey(const ValueKey('slot-0-move-down')), findsOneWidget);
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('slot-2-menu')));
+      await tester.pumpAndSettle();
+      expect(item('slot-2-move-up').enabled, isTrue);
+      expect(item('slot-2-move-down').enabled, isFalse);
+    });
+
+    testWidgets('a narrow program pane on a wide window also compacts', (
+      tester,
+    ) async {
+      // The builder's two-pane layout halves the window: at 820dp the program
+      // pane is about 380dp, where the full row overflowed an alternate.
+      await pumpPhone(tester, size: const Size(820, 800), listWidth: 378);
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('slot-1-move-up')), findsNothing);
+      expect(find.byKey(const ValueKey('slot-1-menu')), findsOneWidget);
+    });
+
+    testWidgets('a window under 600dp compacts even when the row would fit', (
+      tester,
+    ) async {
+      // 590dp leaves the list 558dp, wider than minFullRowWidth: only the
+      // window breakpoint (decision D-2) makes this a compact row.
+      await pumpPhone(tester, size: const Size(590, 800));
+      expect(find.byKey(const ValueKey('slot-1-move-up')), findsNothing);
+      expect(find.byKey(const ValueKey('slot-1-menu')), findsOneWidget);
+    });
+
+    testWidgets('exactly 600dp of window and 520dp of list keep the full row', (
+      tester,
+    ) async {
+      await pumpPhone(tester, size: const Size(600, 800), listWidth: 520);
+      expect(find.byKey(const ValueKey('slot-1-move-up')), findsOneWidget);
+    });
+
+    testWidgets('519dp of list on a 600dp window compacts', (tester) async {
+      await pumpPhone(tester, size: const Size(600, 800), listWidth: 519);
+      expect(find.byKey(const ValueKey('slot-1-move-up')), findsNothing);
+    });
+
+    testWidgets('a wide window keeps the inline buttons', (tester) async {
+      await pumpPhone(tester, size: const Size(800, 800));
+      expect(find.byKey(const ValueKey('slot-1-move-up')), findsOneWidget);
+      expect(find.byKey(const ValueKey('slot-1-move-down')), findsOneWidget);
+      expect(find.byKey(const ValueKey('slot-1-remove')), findsOneWidget);
+      expect(find.byKey(const ValueKey('slot-1-view-details')), findsOneWidget);
+    });
+  });
 }

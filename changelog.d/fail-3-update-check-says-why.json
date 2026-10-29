@@ -1,0 +1,9 @@
+{
+  "id": "fail-3-update-check-says-why",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Check for updates now says \"Couldn't check for updates right now\" when it can't reach or verify the update service, instead of \"No update found\". If the update service has a release in a form this version can't read, it says a newer version is available from the Releases page. The automatic check on start-up still stays quiet."
+    ]
+  }
+}

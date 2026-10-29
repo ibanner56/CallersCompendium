@@ -2605,9 +2605,10 @@ void main() {
         program(
           id: 'p1',
           title: 'Autumn Ball',
-          // A scheduled event date in a DIFFERENT year from performedAt, so the
-          // assertions below fail if the UI ever prefers eventDate over the
-          // actual performance date.
+          // An event date in a DIFFERENT year from performedAt, so the
+          // assertions below fail if the row ever prefers the performed stamp
+          // over the program's event date (GIG-2, maintainer decision
+          // 2026-10-29: the stamp only dates an undated program).
           eventDate: DateTime.utc(2025, 1, 15),
           venue: 'Grange Hall',
           slots: [
@@ -2636,20 +2637,20 @@ void main() {
         contains('Open program: Autumn Ball'),
         reason: 'the row label must name the program it opens',
       );
-      // The announced date must come from performedAt (2026), not the program's
-      // scheduled eventDate (2025).
-      final performedDate = MaterialLocalizations.of(
+      // The announced date must come from the event date (2025), not when
+      // the slot was marked performed (2026).
+      final eventDate = MaterialLocalizations.of(
         tester.element(rowFinder),
-      ).formatShortDate(DateTime.utc(2026, 10, 3, 20));
+      ).formatShortDate(DateTime.utc(2025, 1, 15));
       expect(
         label,
-        contains(performedDate),
-        reason: 'the row label must announce the performedAt date',
+        contains(eventDate),
+        reason: 'the row label must announce the event date',
       );
       expect(
         label,
-        isNot(contains('2025')),
-        reason: 'the row must not announce the scheduled eventDate',
+        isNot(contains('2026')),
+        reason: 'the row must not announce the performed stamp',
       );
       handle.dispose();
     });

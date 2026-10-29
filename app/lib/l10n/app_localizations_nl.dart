@@ -1850,6 +1850,15 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsUpdatesStatusCouldNotCheck(String version) {
+    return 'Kon nu niet op updates controleren. Je gebruikt versie $version.';
+  }
+
+  @override
+  String get settingsUpdatesStatusNewerFormat =>
+      'Er is een nieuwere versie beschikbaar op de Releases-pagina.';
+
+  @override
   String settingsUpdatesStatusAvailable(String version) {
     return 'Versie $version is beschikbaar. Zie de banner om het te bekijken.';
   }
@@ -3846,8 +3855,18 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get collectionEmpty =>
-      'Je collectie is leeg. Voeg een dans toe of importeer er een om te beginnen — of schakel Onlinezoeken hierboven in om te importeren vanuit een onlinebron.';
+  String get collectionEmptyBody =>
+      'Voeg een dans toe of importeer er een om te beginnen — of schakel Onlinezoeken hierboven in om te importeren vanuit een onlinebron.';
+
+  @override
+  String get collectionEmptyTitle => 'Je collectie is leeg';
+
+  @override
+  String get collectionImportCardTitle => 'Haal je dansen binnen';
+
+  @override
+  String get collectionImportCardBody =>
+      'Importeer dansen die je al hebt, of schrijf je eerste. „The Baby Rose” staat er als voorbeeld om rond te kijken.';
 
   @override
   String get collectionFiltersTitle => 'Filters';
@@ -3875,14 +3894,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String searchToolActiveCount(String tool, int count) {
     return '$tool · $count';
   }
-
-  @override
-  String get collectionUseAdvancedQuery =>
-      'Geavanceerde zoekopdracht gebruiken';
-
-  @override
-  String get collectionUseAdvancedQuerySubtitle =>
-      'Combineer figuren en reeksen met alle / een van / geen groepen.';
 
   @override
   String collectionDanceCount(int count) {
@@ -4449,6 +4460,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceMoreActions => 'Meer acties';
+
+  @override
+  String get programsMoreActions => 'Meer acties';
 
   @override
   String get danceSectionFigures => 'Figuren';
@@ -8938,14 +8952,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionPickerAdvanced => 'Geavanceerd';
 
   @override
-  String get collectionPickerUseAdvancedQuery =>
-      'Geavanceerde zoekopdracht gebruiken';
-
-  @override
-  String get collectionPickerAdvancedQueryHelp =>
-      'Combineer figuren en reeksen met alle / een van / geen groepen.';
-
-  @override
   String collectionPickerAddSemantic(String title) {
     return '$title aan programma toevoegen';
   }
@@ -9727,6 +9733,9 @@ class AppLocalizationsNl extends AppLocalizations {
       'Niets in de prullenbak. Verwijderde dansen worden hier bewaard totdat je ze verwijdert.';
 
   @override
+  String get recentlyDeletedEmptyTitle => 'Niets verwijderd';
+
+  @override
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'Niets in de prullenbak. Verwijderde dansen verschijnen hier voor $days dagen voordat ze worden verwijderd.';
   }
@@ -9766,8 +9775,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get venueManagerClearSearchTooltip => 'Zoekopdracht wissen';
 
   @override
-  String get venueManagerEmpty =>
-      'Nog geen locaties. Voeg er een toe via de knop hieronder, of vanuit een programma wanneer herbruikbare locaties zijn ingeschakeld.';
+  String get venueManagerEmptyBody =>
+      'Voeg er hier een toe, of vanuit een programma wanneer herbruikbare locaties zijn ingeschakeld.';
+
+  @override
+  String get venueManagerEmptyTitle => 'Nog geen locaties';
 
   @override
   String get venueManagerNoMatches =>
@@ -10157,6 +10169,9 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get customFiguresEmpty =>
       'Je hebt nog geen eigen figuren gemaakt. Kies + om er een toe te voegen.';
+
+  @override
+  String get customFiguresEmptyTitle => 'Nog geen eigen figuren';
 
   @override
   String get glossaryAddCustomFigure => 'Eigen figuur toevoegen';

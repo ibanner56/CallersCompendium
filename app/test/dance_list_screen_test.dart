@@ -15,6 +15,7 @@ import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/collection_filter_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/seed_service.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
@@ -26,6 +27,7 @@ import 'package:compendium_app/src/widgets/skeleton.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/panel_chip.dart';
 
 Dance _dance({
   required String id,
@@ -77,6 +79,7 @@ Future<void> _pumpScreen(
   ValueNotifier<Set<String>>? hiddenFacets,
   ValueNotifier<String>? defaultProgramCaller,
   ValueNotifier<bool>? requireEventDate,
+  VoidCallback? onImport,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -138,6 +141,7 @@ Future<void> _pumpScreen(
       home: DanceListScreen(
         callersBoxOnline: callersBoxOnline,
         contraDbOnline: contraDbOnline,
+        onImport: onImport,
       ),
     ),
   );
@@ -221,16 +225,76 @@ void main() {
     expect(find.text('Chase the Squirrel'), findsOneWidget);
   });
 
-  testWidgets('shows an empty-collection message with no dances', (
+  testWidgets('empty collection leads with the brand mark, copy and actions', (
     tester,
   ) async {
     final repos = openTestRepositories();
+    var imports = 0;
+    await _pumpScreen(tester, repos, onImport: () => imports++);
+    await tester.pumpAndSettle();
+
+    // The title says it once; the body must not open by repeating it.
+    expect(find.textContaining('collection is empty'), findsOneWidget);
+    expect(find.text('Your collection is empty'), findsOneWidget);
+    expect(find.textContaining('Add or import a dance'), findsOneWidget);
+    // The empty-collection state leads with the brand mark above the copy (§4.4).
+    expect(find.byType(BrandMark), findsOneWidget);
+    expect(find.byKey(const ValueKey('collection-import-card')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('collection-empty-import')));
+    expect(imports, 1);
+    expect(
+      find.byKey(const ValueKey('collection-empty-new-dance')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the sample dance alone is accompanied by an import card', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: kBabyRoseSeedDanceId, title: 'The Baby Rose'),
+    );
+    var imports = 0;
+    await _pumpScreen(tester, repos, onImport: () => imports++);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('collection-import-card')),
+      findsOneWidget,
+    );
+    expect(find.text('Bring your dances in'), findsOneWidget);
+    expect(find.text('The Baby Rose'), findsOneWidget);
+    expect(find.byKey(const ValueKey('collection-empty')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('collection-empty-import')));
+    expect(imports, 1);
+  });
+
+  testWidgets('the import card goes once another dance is present', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: kBabyRoseSeedDanceId, title: 'The Baby Rose'),
+    );
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
     await _pumpScreen(tester, repos);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('collection is empty'), findsOneWidget);
-    // The empty-collection state leads with the brand mark above the copy (§4.4).
-    expect(find.byType(BrandMark), findsOneWidget);
+    expect(find.byKey(const ValueKey('collection-import-card')), findsNothing);
+  });
+
+  testWidgets('a lone dance that is not the sample gets no import card', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('collection-import-card')), findsNothing);
   });
 
   testWidgets(
@@ -1110,8 +1174,6 @@ void main() {
     await tester.tap(find.text('Figure').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
     expect(
@@ -1149,8 +1211,6 @@ void main() {
     await tester.tap(find.text('Figure').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
     expect(
@@ -1210,8 +1270,6 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('online-search-enable')));
       await tester.pumpAndSettle();
       expect(
@@ -1282,8 +1340,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
@@ -1342,8 +1398,6 @@ void main() {
         callersBoxOnline: callers,
         contraDbOnline: contraDb,
       );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('advanced-panel')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('online-search-enable')));
       await tester.pumpAndSettle();
@@ -1651,7 +1705,6 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has figure'));
 
@@ -1671,16 +1724,19 @@ void main() {
     expect(find.text('Advanced (on)'), findsOneWidget);
     expect(_titles(tester), ['Has Petronella']);
 
-    // Online results are not narrowed by the query, so the button stops
-    // saying it is on, though the query is kept for local search.
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    // Online results are not narrowed by the query, so Advanced is greyed out
+    // while online, but the query is kept for local search.
     await _tapVisible(
       tester,
       find.byKey(const ValueKey('online-search-enable')),
     );
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    expect(find.text('Advanced (on)'), findsNothing);
-    expect(find.text('Advanced'), findsOneWidget);
+    expectPanelDisabled(tester, 'advanced-panel');
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    expect(find.text('Advanced (on)'), findsOneWidget);
+    expect(_titles(tester), ['Has Petronella']);
   });
 
   testWidgets('advanced builder: add and remove a condition group', (
@@ -1693,7 +1749,6 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
 
     // Root group only.
     expect(find.byType(DropdownButton<GroupKind>), findsOneWidget);
@@ -1729,7 +1784,6 @@ void main() {
       await tester.pumpAndSettle();
 
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-      await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
 
       final tagDropdowns = find.byWidgetPredicate((w) {
         final key = w.key;
@@ -1757,7 +1811,6 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Sequence (then)'));
 
@@ -1953,6 +2006,12 @@ void main() {
 
     expect(find.text('No dances match your search.'), findsOneWidget);
     expect(find.text('0 dances'), findsOneWidget);
+
+    // Offers a way back, worded like the search field's clear button.
+    await tester.tap(find.byKey(const ValueKey('collection-no-results-clear')));
+    await tester.pumpAndSettle();
+    expect(find.text('No dances match your search.'), findsNothing);
+    expect(find.text('Chase the Squirrel'), findsOneWidget);
   });
 
   testWidgets('surfaces a search error without crashing', (tester) async {
