@@ -84,7 +84,10 @@ instead of one move at a time. Type `neighbor balance & swing` and you get one
 figure, a swing with a balance; type `16 circle left 3/4` and you get a
 sixteen-beat circle left three-quarters. A line that states no count starts
 with the figure's usual beats, and they follow the figure if you change its
-options. A line under the
+options. Your [Move defaults](#start-new-dances-the-way-you-work) apply as they
+do when you pick the move, but only to what the line leaves out: with a Move
+default of a full hey, `hey` gives a full hey and `half hey` still a half hey.
+A line under the
 box tells you how many figures it added and invites you to type another (a
 screen reader announces the count too); it goes away when you start typing.
 
@@ -92,9 +95,18 @@ The same works on a figure that is already in the dance. Open it, type a line
 into its move over what is there, and press Enter: if the line is not simply the
 name of a move, it is read the same way and the figure is replaced by what you
 typed, in its place. A line that reads as several figures replaces the one
-figure with all of them. Typing a move's name and choosing it still works as
-before. With **Free-text entry** off, a line typed there is kept as a custom
-figure holding your text.
+figure with all of them. The figure's note, its walkthrough step and its
+progression mark are kept, as they are when you pick a new move: the note and
+the step go on the first of the new figures (after any note you typed with the
+line) and the progression mark on the last. Typing a move's name and choosing
+it still works as before. With **Free-text entry** off, a line typed there is
+kept as a custom figure holding your text.
+
+Pressing Enter in a figure's **Move** box chooses, in this order: the move (or
+your own figure) whose name is exactly what you typed, so `star` is a star and
+not a star through; then, with **Free-text entry** on, your shorthand with that
+token, so a short token such as `rl` is not taken for the first move whose name
+contains it; and only then the first suggestion offered.
 
 With **Free-text entry** on, a new dance starts with no figures, so there are no
 placeholders to delete first, unless you have saved your own
@@ -106,8 +118,9 @@ swing`, `half hey, ladies start by the right` and
 as a figure, the rest of the line becomes that figure's note
 (`neighbors swing slowly` is a swing with the note "slowly"). That happens only
 when the rest cannot change what the figure is. If the rest is `and back`, a bare
-number (`neighbors swing 16`), a turn amount (`petronella twice`,
-`circle left 3/4 and pass through`), or another move after a comma, `and` or
+number (`neighbors swing 16`), a turn amount, in figures or in words
+(`petronella twice`, `petronella two times`, `circle left 3/4 and pass through`,
+`allemande left three quarters`), or another move after a comma, `and` or
 `then` (`partners balance and swing, end facing down`), the whole line is kept
 as a custom figure, marked unparsed. Otherwise you would get a figure with the
 wrong beats or turn, with the rest hidden in its note. Use the leading
@@ -402,7 +415,11 @@ undone.
 Some dances have two things happening at once — the ones on the ends do one
 thing while the middles do another. Choose **Group with next as meanwhile** and
 the two figures become a [meanwhile](./glossary.md#meanwhile) group, labelled
-with how many sides it has and sharing one set of beats.
+with how many sides it has and sharing one set of beats. Until you type a count
+for the group, its beats follow its sides: the longest side's, since the sides
+are danced at the same time. A modifier group follows its **Core**. This holds
+however the group was made: grouped, added from the **Add** menu, typed with
+`||` or `while`, or in a shorthand.
 
 You can also choose **Add meanwhile** from the list's **Add** menu to create the
 group first. It starts with your **Meanwhile defaults** (see
@@ -634,8 +651,9 @@ as:
   [meanwhile](#meanwhile-figures) or [modifier](#modifier-figures) group starts
   with.
 - **Move defaults** — your preferred parameter values, applied whenever you insert
-  that move. These override the move's built-in defaults, and you can still change
-  any parameter on the figure afterwards.
+  that move, whether you pick it or type it. These override the move's built-in
+  defaults, but not a value you type in the line, and you can still change any
+  parameter on the figure afterwards.
 - **Aggressively recompute figure beats** — off by default, so a beat count you
   typed yourself is left alone, except that switching a balance option on or off
   adds or removes 4 beats. Turn it on and changing a figure's

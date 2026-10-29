@@ -92,7 +92,8 @@ bool isNewDanceEditorDraftKey(String key) {
 /// Added without a version bump, because a build that ignores them still
 /// restores the draft without losing anything (AUTH-5, AUTH-10, AUTH-17):
 /// - per-figure `beatsTouched` (bool). A draft without it reads each figure as
-///   touched when it carries a `beats` count, as opening a saved dance does.
+///   touched when it carries a `beats` count, except a group whose count is 0,
+///   which follows its sides (AUTH-11).
 /// - `savedAt` and `baseUpdatedAt` (ISO-8601 UTC timestamps, omitted when
 ///   unknown): when the draft was written, and the stored dance's `updatedAt`
 ///   it was edited from.
@@ -612,10 +613,14 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     progression: progression,
     schemaVersion: sv,
     // Additive/tolerant (AUTH-5): a draft from before the flag was written
-    // reads a stored count as the caller's, as `FigureDraft.fromFigure` does.
+    // reads a stored count as the caller's, except a group's 0, which
+    // follows its sides (AUTH-11).
     beatsTouched: switch (m['beatsTouched']) {
       final bool touched => touched,
-      _ => (normalized?.params ?? parsedParams).containsKey('beats'),
+      _ => _legacyBeatsTouched(
+        normalized?.params ?? parsedParams,
+        isContainer: containerKind != null,
+      ),
     },
     // Additive/tolerant (#460): absent or non-bool → not assumed.
     assumedSubject: m['assumedSubject'] == true,
@@ -709,4 +714,15 @@ String? _optSnippet(Object? raw) {
   return raw.length > kMaxWalkthroughSnippetLength
       ? raw.substring(0, kMaxWalkthroughSnippetLength)
       : raw;
+}
+
+/// [FigureDraftSnapshot.beatsTouched] for a draft written before the flag
+/// was: a stored count is the caller's, except a group's 0 (AUTH-11).
+bool _legacyBeatsTouched(
+  Map<String, Object?> params, {
+  required bool isContainer,
+}) {
+  if (!params.containsKey('beats')) return false;
+  final beats = params['beats'];
+  return !isContainer || (beats is int && beats > 0);
 }

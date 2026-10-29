@@ -10384,6 +10384,19 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vos figures par défaut dans les Réglages l\'utilisent et conservent sa formulation actuelle en texte simple.';
 
   @override
+  String glossaryCustomDeleteShorthands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Vos $count abréviations pour celle-ci sont conservées, et les saisir donnera des lignes ordinaires.',
+      one:
+          'Votre abréviation pour celle-ci est conservée, et la saisir donnera une ligne ordinaire.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String glossaryCustomDeleteUses(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

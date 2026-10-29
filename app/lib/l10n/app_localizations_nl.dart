@@ -10321,6 +10321,19 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je standaardfiguren in Instellingen gebruiken hem en behouden zijn huidige formulering als platte tekst.';
 
   @override
+  String glossaryCustomDeleteShorthands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Je $count afkortingen ervoor blijven, en als je die typt, worden ze als gewone regels gelezen.',
+      one:
+          'Je afkorting ervoor blijft, en als je die typt, wordt hij als een gewone regel gelezen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String glossaryCustomDeleteUses(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
