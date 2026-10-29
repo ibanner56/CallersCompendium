@@ -6,6 +6,10 @@
 /// print-job `name:` must reduce it to a safe, uniform character set first
 /// (issue #468). This is the single source of truth for that idiom, previously
 /// duplicated inline across the export and update-download paths.
+///
+/// Two character sets are in play: print-job names and update downloads stay
+/// ASCII ([sanitizeExportName], [replaceUnsafeNameChars]), while the names of
+/// shared dance and program files keep Unicode letters ([shareFileBaseName]).
 library;
 
 import 'package:compendium_core/compendium_core.dart' show isoDate;
@@ -25,9 +29,9 @@ final RegExp _hasAlphanumeric = RegExp(r'[A-Za-z0-9]');
 
 /// Replaces every character outside `[A-Za-z0-9._-]` in [value] with `_`.
 ///
-/// Low-level building block shared by [sanitizeExportName] and by the
-/// program-share-bundle / update-download file-name derivations, so every path
-/// applies the identical canonical idiom.
+/// Low-level building block shared by [sanitizeExportName] and the
+/// update-download file-name derivation, so both apply the identical ASCII
+/// idiom. Shared dance and program files use [shareFileBaseName] instead.
 String replaceUnsafeNameChars(String value) =>
     value.replaceAll(_unsafeNameChars, '_');
 
@@ -127,7 +131,11 @@ String programPdfJobName(
   DateTime? eventDate,
 }) {
   final base = sanitizeExportName(title, fallback: fallback);
-  final sanitizedSuffix = suffix == null ? null : sanitizeExportName(suffix);
+  // A suffix with no ASCII letter (the Japanese "Programming matrix") would
+  // otherwise collapse to the generic `export`, which names nothing.
+  final sanitizedSuffix = suffix == null
+      ? null
+      : sanitizeExportName(suffix, fallback: 'Programming_matrix');
   return [
     base,
     // An untitled program already fell back to the suffix's own words.

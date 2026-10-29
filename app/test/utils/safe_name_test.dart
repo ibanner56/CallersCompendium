@@ -176,6 +176,18 @@ void main() {
       expect(matrix, isNot(setList));
     });
 
+    test('a non-Latin suffix still names the matrix', () {
+      expect(
+        programPdfJobName(
+          'Night',
+          fallback: 'program',
+          suffix: 'プログラミングマトリックス',
+          eventDate: DateTime(2026, 10, 31),
+        ),
+        'Night_Programming_matrix_2026-10-31',
+      );
+    });
+
     test('an untitled matrix is not named twice', () {
       expect(
         programPdfJobName(

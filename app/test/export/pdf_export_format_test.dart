@@ -15,7 +15,7 @@ import '../support/pdf_probe.dart';
 /// page carries "Page x of y" and (after the first) a running title.
 ///
 /// The builders take a plain Helvetica theme here so each page's text is a
-/// literal `(…) Tj` string in a deflated content stream that [_pdfText] can
+/// literal `[(…)]TJ` string in a deflated content stream that [pdfText] can
 /// read back, with no font subsetting in the way.
 
 final _now = DateTime.utc(2026, 7, 13);
