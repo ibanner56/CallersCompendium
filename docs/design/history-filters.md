@@ -60,13 +60,19 @@ These come from `decided-work-plan.md` ("Design notes" and N1) on
    event date when there is one, and the tap time only for undated programs. B1
    carries it out as `COALESCE(event_date, performed_at, updated_at)`. The last
    fallback, `updated_at`, is B1's own choice, not part of the decision. Today the
-   old order, with `performed_at` first, is written out in five places:
+   old order, with `performed_at` first, is written out in four places:
    - history order in SQL, `program_repository.dart:1199-1201`;
    - `DanceCallingRecord.effectiveDate` in Dart, `program_repository.dart:74`.
      It still orders the detail page's rows;
    - the detail page's display date, `calling_history_section.dart:398-416`;
-   - `last_called` in the bulk counts, `program_repository.dart:1049`;
    - the Last-called sort, `dance_repository.dart:3099-3100`.
+
+   A fifth date, `last_called` in the bulk counts
+   (`program_repository.dart:1049`), is not this order: it is `MAX(performed_at)`
+   alone. B1 moves it to the call date, which is a change of meaning rather than
+   a reordering. Unperformed primary slots gain a last-called date, so with the
+   default settings Collection's `lastCalled` changes for most called dances
+   (see Q4).
 3. **The venue key that already exists.** The repeated-venues summary groups a
    dance's history by `id:<venueId>` when the program links a venue record, and
    otherwise by `text:<typed venue>`. The typed text is trimmed, its whitespace
@@ -223,7 +229,7 @@ all read it.
   sites in `decided-work-plan.md` leave out the sort's copy at
   `dance_repository.dart:3099-3100`. If B1 flips history order but not the sort,
   the two disagree. **Recommendation:** B1 adds this helper and uses it at the
-  three SQL sites. It updates the two Dart copies by hand under the lockstep
+  three SQL sites: history order, `last_called` and the sort. It updates the two Dart copies by hand under the lockstep
   test. H1 then only adds the recency variant.
 
 ## Q3. Should the picker exclude or flag dances called at this venue?
