@@ -371,7 +371,7 @@ void main() {
     expect(didReturn, isTrue);
   });
 
-  testWidgets('sections use uppercase expansion headers and action colors', (
+  testWidgets('sections keep case in expansion headers and use action colors', (
     tester,
   ) async {
     await tester.pumpWidget(
