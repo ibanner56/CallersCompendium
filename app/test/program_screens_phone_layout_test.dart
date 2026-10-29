@@ -1,6 +1,6 @@
 // The program summary and builder at a 360dp phone width (UX4-4, and the
-// builder's slot rows under maintainer decision D-2, recorded in the October
-// 2026 audit's maintainer-decisions-2026-10-29.md). Below the 600dp compact
+// builder's slot rows under maintainer decision D-2; see docs/design/ux.md §4
+// for the decision's wording and where it is recorded). Below the 600dp compact
 // breakpoint the toolbars keep Perform and Export and fold Mark all performed,
 // Duplicate and Delete into "⋮"; each slot row keeps only its drag handle and
 // "⋮". Before this, the builder's title got 32dp, a slot title 8dp, and an

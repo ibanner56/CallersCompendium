@@ -410,7 +410,7 @@ void main() {
     });
   });
 
-  // Maintainer decision D-2: below the 600dp breakpoint a row keeps only its
+  // Maintainer decision D-2 (quoted and linked in docs/design/ux.md §4): below the 600dp breakpoint a row keeps only its
   // drag handle and "…" menu, and View details, move up/down and cut become
   // menu items, up and down first. Every path stays reachable without a drag.
   group('compact rows (360dp)', () {
