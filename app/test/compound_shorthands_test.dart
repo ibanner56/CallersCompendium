@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -408,6 +409,53 @@ void main() {
       expect(
         [for (final f in figures) f.move],
         ['swing', 'pull_by', 'pull_by', 'pull_by', 'pull_by', 'turn_alone'],
+      );
+    });
+
+    testWidgets('Ctrl+Enter on a token left in a row\'s Move box applies it '
+        'and opens the row that came after it (AUTH-1)', (tester) async {
+      final repos = await pump(
+        tester,
+        figureShorthands: [
+          ShorthandMapping(
+            token: 'bs',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 4}),
+              Figure(move: 'swing', params: const {'beats': 12}),
+            ],
+          ),
+        ],
+      );
+      await typeLine(tester, 'neighbors swing');
+      for (final seed in ['partners swing', 'turn alone']) {
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-free-text-field')),
+          seed,
+        );
+        await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const ValueKey('figure-1-summary')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-1-move-input')));
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-1-move-input')),
+        'bs',
+      );
+      await tester.pumpAndSettle();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
+      await tester.pumpAndSettle();
+
+      // The token's two rows replace row 1; turn alone, after it, is open.
+      final open = find.byKey(const ValueKey('figure-3-move-input'));
+      expect(open, findsOneWidget);
+      expect(tester.widget<TextField>(open).controller!.text, 'turn alone');
+      final figures = await saved(tester, repos);
+      expect(
+        [for (final f in figures) f.move],
+        ['swing', 'balance', 'swing', 'turn_alone'],
       );
     });
 

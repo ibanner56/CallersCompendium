@@ -208,17 +208,23 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
     }
   }
 
-  /// Settles the box as leaving it does, and stops serving the scope.
+  /// Settles the box as leaving it does. A box that has lost focus stops
+  /// serving the scope; one the scope settled while it still has focus (Save
+  /// on a touch screen, which can leave focus in the box) keeps serving it.
   void _settle() {
     if (!mounted) return;
-    final pending = _pending;
-    _pending = null;
     final text = _controller.text;
     if (!_isSettled(text) && !_applyOnBlur(text)) {
       _controller.value = TextEditingValue(text: widget.initialText);
       _settledKey = _labelKey(widget.initialText);
     }
-    pending?.detach(_settle);
+    if (_focusNode.hasFocus) {
+      _reportPendingText();
+    } else {
+      final pending = _pending;
+      _pending = null;
+      pending?.detach(_settle);
+    }
   }
 
   /// Settles text typed into the phone sheet and left without a choice: the
@@ -463,16 +469,20 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
           onSubmitted: (text) {
             final q = text.trim();
             final options = _optionsFor(q);
+            final custom = widget.onCustomSubmitted;
+            final applied =
+                options.isNotEmpty || (q.isNotEmpty && custom != null);
             if (options.isNotEmpty) {
               _select(options.first);
             } else if (q.isNotEmpty) {
-              widget.onCustomSubmitted?.call(q);
+              custom?.call(q);
             }
             onSubmit();
             // Enter takes focus from the box next; what it just applied is
-            // the row's now, not text for that blur to apply again. (The
-            // phone sheet's own field closes the sheet instead.)
-            if (identical(controller, _controller)) {
+            // the row's now, not text for that blur to apply again. Text it
+            // applied nothing for is still put back. (The phone sheet's own
+            // field closes the sheet instead.)
+            if (applied && identical(controller, _controller)) {
               _settledKey = _labelKey(controller.text);
             }
           },

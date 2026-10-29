@@ -3,8 +3,8 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Leaving a figure's Move box without pressing Enter now uses what you typed when it is exactly a move's name, or one of your shorthands. Anything else goes back to the figure's move. Save, closing the figure and opening another one do the same, and going back with a move name still in the box asks before discarding it.",
-      "A meanwhile or modifier group that is not complete enough to be saved now says so on its row and under Warnings, instead of being left out of the saved dance without a word."
+      "Leaving a figure's Move box without pressing Enter now uses what you typed when it is exactly a move's name, or one of your shorthands. Anything else goes back to the figure's move. In the dance editor, Save, closing the figure and opening another one do the same, and going back with such a name or shorthand still in the box asks before discarding it.",
+      "A figure row that is not complete enough to be saved, such as a meanwhile group with one side filled in, now says so on the row and under Warnings in the dance editor, instead of being left out of the saved dance without a word."
     ]
   }
 }

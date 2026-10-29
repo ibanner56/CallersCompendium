@@ -64,7 +64,8 @@ class PendingMoveTextController extends ChangeNotifier {
 
 /// Puts a [PendingMoveTextController] within reach of every Move box below it
 /// that settles on blur (`MoveAutocomplete.commitOnBlur`), however deeply the
-/// figure rows and their groups' sides are nested.
+/// figure rows and their groups' sides are nested: the list a group draws for
+/// a group inside it serves its boxes through the enclosing list's scope.
 class PendingMoveTextScope extends InheritedWidget {
   const PendingMoveTextScope({
     super.key,

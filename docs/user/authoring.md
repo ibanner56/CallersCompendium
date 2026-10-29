@@ -108,14 +108,14 @@ not a star through; then, with **Free-text entry** on, your shorthand with that
 token, so a short token such as `rl` is not taken for the first move whose name
 contains it; and only then the first suggestion offered.
 
-If you leave a figure's **Move** box without pressing Enter, by clicking or
-tapping somewhere else, saving, or closing the figure, what you typed is used
-only when it is exactly a move's name (or one of your own figures' names) or,
-with **Free-text entry** on, one of your shorthands. Anything else, such as
-part of a name, goes back to the move the figure had: leaving the box never
-picks a suggestion for you or makes a custom figure. On a phone the same goes
-for closing the list of moves without choosing one. Going back with an exact
-name still in the box asks before discarding it.
+If you leave a figure's **Move** box without pressing Enter, by moving to
+another box, saving the dance, or closing the figure or opening another one,
+what you typed is used only when it is exactly a move's name (or one of your
+own figures' names) or, with **Free-text entry** on, one of your shorthands.
+Anything else, such as part of a name, goes back to the move the figure had:
+leaving the box never picks a suggestion for you or makes a custom figure. On a
+phone the same goes for closing the list of moves without choosing one. Going
+back with such a name or shorthand still in the box asks before discarding it.
 
 With **Free-text entry** on, a new dance starts with no figures, so there are no
 placeholders to delete first, unless you have saved your own
@@ -510,10 +510,11 @@ such as a meanwhile group with one side filled in, is left out, and so is a row
 with no move. A row with no move but a note is saved as a custom figure holding
 the note, so the note is not lost.
 
-A group that Save would leave out says so on its row, **Not complete, so Save
-leaves it out**, and is listed under **Warnings** by its figure number. That is
-a meanwhile group with fewer than two sides filled in, a modifier group with no
-**Core**, or a group holding such a group. Fill it in, or remove it, and the
+A row that Save would leave out says so, **Not complete, so Save leaves it
+out**, and is listed under **Warnings** by its figure number. That is a meanwhile
+group with fewer than two sides filled in, a modifier group with no **Core**, a
+group holding such a group, or a row with no move that still holds something
+other than a note, such as a walkthrough step. Fill it in, or remove it, and the
 warning goes. A blank row, with nothing chosen or typed, is not listed: there is
 nothing in it to lose.
 

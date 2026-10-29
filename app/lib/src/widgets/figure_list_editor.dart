@@ -353,11 +353,16 @@ class _FigureListEditorState extends State<FigureListEditor>
   final Set<String> _pendingMeanwhileDraftIds = {};
 
   /// Serves the Move boxes when the screen passes no
-  /// [FigureListEditor.pendingMoveTextController].
+  /// [FigureListEditor.pendingMoveTextController] and no list encloses this
+  /// one.
   PendingMoveTextController? _ownPendingMoveText;
 
+  /// The screen's controller; else, for the list a group draws for a group
+  /// inside it, the enclosing list's, so Save and Back reach its Move boxes
+  /// too; else this list's own.
   PendingMoveTextController get _pendingMoveText =>
       widget.pendingMoveTextController ??
+      PendingMoveTextScope.maybeOf(context) ??
       (_ownPendingMoveText ??= PendingMoveTextController());
 
   /// Per-row focus nodes (keyed by draft id) so the collapsed summary is
@@ -592,9 +597,14 @@ class _FigureListEditorState extends State<FigureListEditor>
   void _commitAndOpenNext(String id) {
     final i = widget.drafts.indexWhere((d) => d.id == id);
     if (i == -1) return;
+    // The next row is the one after this row as it stands: settling the Move
+    // box can apply a shorthand that replaces this row with several.
+    final nextId = i < widget.drafts.length - 1
+        ? widget.drafts[i + 1].id
+        : null;
     _pendingMoveText.settle();
-    if (i < widget.drafts.length - 1) {
-      _openDraft(widget.drafts[i + 1].id);
+    if (nextId != null) {
+      _openDraft(nextId);
     } else {
       _addFigure();
     }

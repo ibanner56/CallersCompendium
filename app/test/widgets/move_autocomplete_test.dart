@@ -332,6 +332,7 @@ void main() {
       WidgetTester tester, {
       String rowMove = 'balance',
       bool commitOnBlur = true,
+      bool allowCustom = true,
       bool Function(String text)? submitsAsText,
     }) async {
       final picked = <MoveOption>[];
@@ -357,10 +358,12 @@ void main() {
                         picked.add(o);
                         setState(() => current = o.displayName);
                       },
-                      onCustomSubmitted: (text) {
-                        custom.add(text);
-                        setState(() => current = text);
-                      },
+                      onCustomSubmitted: allowCustom
+                          ? (text) {
+                              custom.add(text);
+                              setState(() => current = text);
+                            }
+                          : null,
                     ),
                     const TextField(key: ValueKey('elsewhere')),
                   ],
@@ -449,6 +452,35 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('elsewhere')));
       await tester.pumpAndSettle();
       expect(row.custom, ['rl']);
+    });
+
+    testWidgets('after Enter that applies nothing, leaving still puts the '
+        'text back', (tester) async {
+      final row = await pumpRow(tester, allowCustom: false);
+      await tester.enterText(box(), 'zzz');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(row.picked, isEmpty);
+      expect(boxText(tester), 'balance');
+    });
+
+    testWidgets('settled by the scope while it keeps focus, it still tells '
+        'the scope about what is typed next', (tester) async {
+      final row = await pumpRow(tester);
+      await tester.tap(box());
+      await tester.enterText(box(), 'star');
+      await tester.pumpAndSettle();
+      row.pending.settle();
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(box()).focusNode!.hasFocus, isTrue);
+
+      await tester.enterText(box(), 'swing');
+      await tester.pumpAndSettle();
+      expect(row.pending.hasPendingText, isTrue);
+      row.pending.settle();
+      await tester.pumpAndSettle();
+      expect([for (final o in row.picked) o.id], ['star', 'swing']);
     });
 
     testWidgets('a choice from the options wins over the exact name typed', (
