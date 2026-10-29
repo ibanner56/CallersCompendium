@@ -4342,6 +4342,22 @@
   "@commonCancel": {
     "description": "Generic dialog dismiss button that discards the pending action."
   },
+  "commonDiscardChangesTitle": "Discard changes?",
+  "@commonDiscardChangesTitle": {
+    "description": "Title of the prompt shown when the user leaves an editor (Back, a tap outside a sheet) with unsaved changes. Shared by the editors that have no editor-specific wording: shorthands, themes, venues and custom fields."
+  },
+  "commonDiscardChangesBody": "You have unsaved changes.",
+  "@commonDiscardChangesBody": {
+    "description": "Body of the shared 'Discard changes?' prompt shown when leaving an editor with unsaved changes."
+  },
+  "commonKeepEditing": "Keep editing",
+  "@commonKeepEditing": {
+    "description": "Button in the shared 'Discard changes?' prompt that closes the prompt and returns to the editor, keeping the unsaved changes."
+  },
+  "commonDiscard": "Discard",
+  "@commonDiscard": {
+    "description": "Button in the shared 'Discard changes?' prompt that leaves the editor and throws the unsaved changes away."
+  },
   "commonContinue": "Continue",
   "@commonContinue": {
     "description": "Generic confirm button that proceeds with the current action. Used wherever a dialog needs a neutral forward-motion label that is not specific to any one workflow."

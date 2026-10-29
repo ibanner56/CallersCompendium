@@ -768,6 +768,50 @@ void main() {
       );
     });
 
+    // UX2-1b: backing out of an edited shorthand asks before losing it.
+    testWidgets('leaving one untouched does not ask', (tester) async {
+      await pump(tester, compounds: [shorthand()]);
+      await tester.tap(find.text('GRL'));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('compound-shorthand-token')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('leaving an edited one asks; Discard keeps it as it was', (
+      tester,
+    ) async {
+      final controller = await pump(tester, compounds: [shorthand()]);
+      await tester.tap(find.text('GRL'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-shorthand-token')),
+        'GRL2',
+      );
+      await tester.pump();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.text('GRL2'), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('compound-shorthand-token')),
+        findsNothing,
+      );
+      expect(controller.compoundShorthands.single.token, 'GRL');
+    });
+
     testWidgets('says when one can no longer be used', (tester) async {
       await pump(
         tester,

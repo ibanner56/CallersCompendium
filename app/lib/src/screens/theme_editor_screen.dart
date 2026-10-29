@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -6,6 +7,7 @@ import '../data/custom_theme.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../widgets/confirm_discard_changes.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 
@@ -16,6 +18,7 @@ import '../theme/app_spacing.dart';
 /// AA is **warn-but-allow**: failing pairs are flagged clearly but never block
 /// saving (the caller decided some palettes are intentionally low-contrast).
 /// Returns the edited [CustomTheme] via [Navigator.pop], or `null` if canceled.
+/// Backing out with unsaved changes asks first ([DiscardChangesGuard]).
 class ThemeEditorScreen extends StatefulWidget {
   const ThemeEditorScreen({super.key, required this.initial});
 
@@ -67,12 +70,23 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     }
   }
 
-  void _save() {
+  /// The name [_save] would keep: the typed one, or the theme's own when the
+  /// field is blank.
+  String get _savedName {
     final name = _nameController.text.trim();
-    Navigator.of(
-      context,
-    ).pop(_theme.copyWith(name: name.isEmpty ? _theme.name : name));
+    return name.isEmpty ? _theme.name : name;
   }
+
+  void _save() {
+    Navigator.of(context).pop(_theme.copyWith(name: _savedName));
+  }
+
+  /// Whether leaving now would lose a change Save would have kept: a colour,
+  /// or the name. Colours compare by what Save stores, so picking a stored
+  /// role's current colour again is not a change.
+  bool get _dirty =>
+      _savedName != widget.initial.name ||
+      !mapEquals(_theme.roles, widget.initial.roles);
 
   int get _failingPairs => CustomThemeRoles.allPairs
       .where(
@@ -89,58 +103,63 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final failing = _failingPairs;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.themeEditorTitle),
-        actions: [
-          AppBarTextAction(
-            label: l10n.commonSave,
-            icon: Icons.check,
-            onPressed: _save,
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        children: [
-          _PreviewCard(scheme: _theme.toScheme()),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _nameController,
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              labelText: l10n.themeEditorNameLabel,
-              border: const OutlineInputBorder(),
+    return DiscardChangesGuard(
+      dirty: _dirty,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.themeEditorTitle),
+          actions: [
+            AppBarTextAction(
+              label: l10n.commonSave,
+              icon: Icons.check,
+              onPressed: _save,
             ),
-          ),
-          const SizedBox(height: 12),
-          if (failing > 0)
-            _AaWarningBanner(failing: failing)
-          else
-            Row(
-              children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.themeEditorContrastAllPass,
-                    style: theme.textTheme.bodySmall,
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          children: [
+            _PreviewCard(scheme: _theme.toScheme()),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _nameController,
+              textInputAction: TextInputAction.done,
+              // Rebuilds, so the back guard sees the edited name.
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: l10n.themeEditorNameLabel,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (failing > 0)
+              _AaWarningBanner(failing: failing)
+            else
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 18,
+                    color: theme.colorScheme.primary,
                   ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 8),
-          for (final group in CustomThemeRoles.groups)
-            _RoleGroupSection(
-              group: group,
-              colorOf: _colorOf,
-              onEdit: _editRole,
-            ),
-        ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.themeEditorContrastAllPass,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 8),
+            for (final group in CustomThemeRoles.groups)
+              _RoleGroupSection(
+                group: group,
+                colorOf: _colorOf,
+                onEdit: _editRole,
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -16,11 +16,11 @@ import '../data/shorthand_mappings_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../editor/editor_snapshot.dart';
 import '../search/dance_editor_reference_data.dart';
-import '../theme/destructive_button_style.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/choreographer_details_dialog.dart';
+import '../widgets/confirm_discard_changes.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/published_source_details_dialog.dart';
 import 'dance_editor/dance_editor_controller.dart';
@@ -660,38 +660,19 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   /// Prompts before discarding unsaved edits when the user backs out of a dirty
   /// editor. Returns `true` when it is safe to leave (no unsaved changes, or the
-  /// user confirmed the discard). Mirrors `_confirmDiscard` in the program
-  /// editor (`program_editor_screen.dart`) so the two editors share the same
-  /// 'Discard changes?' affordance. Named in prose because it is a private
-  /// member of a private `State` class in another library, which a bracketed
-  /// reference cannot resolve to.
+  /// user confirmed the discard). Uses the shared [confirmDiscardChanges]
+  /// prompt, with this editor's own wording.
   Future<bool> _confirmDiscard() async {
     if (!_controller.dirty) return true;
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(
-          AppLocalizations.of(context).danceEditorDiscardChangesTitle,
-        ),
-        content: Text(
-          AppLocalizations.of(context).danceEditorDiscardChangesMessage,
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('discard-cancel'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(AppLocalizations.of(context).danceEditorKeepEditing),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
-            key: const ValueKey('discard-confirm'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(AppLocalizations.of(context).danceEditorDiscard),
-          ),
-        ],
-      ),
+    final l10n = AppLocalizations.of(context);
+    final choice = await confirmDiscardChanges(
+      context,
+      title: l10n.danceEditorDiscardChangesTitle,
+      message: l10n.danceEditorDiscardChangesMessage,
+      keepEditingLabel: l10n.danceEditorKeepEditing,
+      discardLabel: l10n.danceEditorDiscard,
     );
-    return discard ?? false;
+    return choice == DiscardChangesChoice.discard;
   }
 
   /// Mints (or, on a natural-key match, revives) a [Choreographer] for [name],
