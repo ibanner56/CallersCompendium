@@ -1772,6 +1772,22 @@
   "@settingsUpdatesMacosReadySubtitle": {
     "x-sourceSha256": "005d5b6d4026d34cd4bb0a4ede76c2fd391bd3598b5fcfd2b21103f543100223"
   },
+  "settingsUpdatesStoreTitle": "Les mises à jour viennent de votre boutique d'applications",
+  "@settingsUpdatesStoreTitle": {
+    "x-sourceSha256": "53e9be4c9dadaca5e7677a817a615dd6d698146fe548efd09d346ebfa4afc5ad"
+  },
+  "settingsUpdatesStoreSubtitle": "Cette copie a été installée depuis une boutique d'applications, qui se charge donc de la mettre à jour. L'application ne recherche pas elle-même les mises à jour.",
+  "@settingsUpdatesStoreSubtitle": {
+    "x-sourceSha256": "093623a78644306c458f20a6b289c8584a9e6f3f5f5b6277cf10c3301a43c618"
+  },
+  "settingsUpdatesPortableTitle": "Copie portable : téléchargez la nouvelle archive",
+  "@settingsUpdatesPortableTitle": {
+    "x-sourceSha256": "47aa3322aff392868cd8336d0caa2bcf41e7f1bc6d13b0ece461f5408f4c00ae"
+  },
+  "settingsUpdatesPortableSubtitle": "Cette copie s'exécute depuis une archive décompressée ; l'application ne peut donc pas installer la mise à jour à votre place. Téléchargez le nouveau zip ou tar.gz depuis la version publiée et décompressez-le.",
+  "@settingsUpdatesPortableSubtitle": {
+    "x-sourceSha256": "e81b7be2d5f5dea10b985580086853594ffb5da78c8fbaeb9ffc55c926863fb7"
+  },
   "settingsUpdatesDownloadTitle": "Télécharger et installer la mise à jour",
   "@settingsUpdatesDownloadTitle": {
     "x-sourceSha256": "46bd75a84bf0657814b6e6812de9cce6446dfa4a736892b587440a4ba1d69882"
@@ -8557,6 +8573,10 @@
   "updateBannerAvailable": "Une nouvelle version de {appName} ({version}) est disponible.",
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"
+  },
+  "updateBannerPortable": "Une version plus récente de {appName} ({version}) est disponible. Il s'agit d'une copie portable : téléchargez le nouveau zip ou tar.gz depuis la version publiée.",
+  "@updateBannerPortable": {
+    "x-sourceSha256": "aadaf3b38beb0a611010e02e3994fad057ac5a933a5b3d1d22674d2d167ceba0"
   },
   "retirementNoticeUpcoming": "La prise en charge de cette version de {appName} ({version}) prend fin le {date}. Passez à une version plus récente d'ici là.",
   "@retirementNoticeUpcoming": {

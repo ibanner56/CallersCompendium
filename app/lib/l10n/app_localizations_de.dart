@@ -1932,6 +1932,21 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ihr Update ist bereit. Binden Sie das Disk-Image ein und schließen Sie die App, damit Sie sie im Ordner „Programme“ ersetzen können.';
 
   @override
+  String get settingsUpdatesStoreTitle => 'Updates kommen aus Ihrem App-Store';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Diese Kopie wurde aus einem App-Store installiert, der sie daher auch aktualisiert. Die App sucht nicht selbst nach Updates.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Portable Kopie: neues Archiv herunterladen';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Diese Kopie läuft aus einem entpackten Archiv, daher kann die App das Update nicht für Sie installieren. Laden Sie das neue zip oder tar.gz vom Release herunter und entpacken Sie es.';
+
+  @override
   String get settingsUpdatesDownloadTitle =>
       'Update herunterladen & installieren';
 
@@ -8865,6 +8880,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'Eine neuere Version von $appName ($version) ist verfügbar.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'Eine neuere Version von $appName ($version) ist verfügbar. Dies ist eine portable Kopie – laden Sie das neue zip oder tar.gz vom Release herunter.';
   }
 
   @override

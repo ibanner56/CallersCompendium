@@ -2392,6 +2392,22 @@
   "@settingsUpdatesMacosReadySubtitle": {
     "description": "Subtitle of the macOS update row that resumes installation after the user deferred the post-download prompt."
   },
+  "settingsUpdatesStoreTitle": "Updates come from your app store",
+  "@settingsUpdatesStoreTitle": {
+    "description": "Title of the only row in Settings > Updates on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy never checks for updates itself."
+  },
+  "settingsUpdatesStoreSubtitle": "This copy was installed from an app store, so the store updates it. The app does not check for updates itself.",
+  "@settingsUpdatesStoreSubtitle": {
+    "description": "Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action."
+  },
+  "settingsUpdatesPortableTitle": "Portable copy: download the new archive",
+  "@settingsUpdatesPortableTitle": {
+    "description": "Title of the Settings > Updates row shown when a newer version is found on a portable copy (the Windows zip or the Linux tar.gz). Tapping it opens the release page."
+  },
+  "settingsUpdatesPortableSubtitle": "This copy runs from an unpacked archive, so the app can't install the update for you. Download the new zip or tar.gz from the release and unpack it.",
+  "@settingsUpdatesPortableSubtitle": {
+    "description": "Subtitle of the portable-copy row in Settings > Updates. zip is the Windows archive and tar.gz the Linux one; both are file formats, not translated."
+  },
   "settingsUpdatesDownloadTitle": "Download & install update",
   "@settingsUpdatesDownloadTitle": {
     "description": "Title of the assisted-download tile in its idle and failed states, offering to download the update."
@@ -11432,6 +11448,18 @@
   "updateBannerAvailable": "A newer version of {appName} ({version}) is available.",
   "@updateBannerAvailable": {
     "description": "Update banner message when a newer version is available (idle/cancelled state).",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateBannerPortable": "A newer version of {appName} ({version}) is available. This is a portable copy, so download the new zip or tar.gz from the release.",
+  "@updateBannerPortable": {
+    "description": "Update banner message on a portable copy (the Windows zip or the Linux tar.gz) when a newer version is available. The app can't install it, so the message sends the user to the release page. zip and tar.gz are file formats, not translated.",
     "placeholders": {
       "appName": {
         "type": "String"

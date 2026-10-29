@@ -1941,6 +1941,22 @@ class AppLocalizationsFr extends AppLocalizations {
       'Votre mise à jour est prête. Montez l’image disque et fermez l’application afin de pouvoir la remplacer dans Applications.';
 
   @override
+  String get settingsUpdatesStoreTitle =>
+      'Les mises à jour viennent de votre boutique d\'applications';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Cette copie a été installée depuis une boutique d\'applications, qui se charge donc de la mettre à jour. L\'application ne recherche pas elle-même les mises à jour.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Copie portable : téléchargez la nouvelle archive';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Cette copie s\'exécute depuis une archive décompressée ; l\'application ne peut donc pas installer la mise à jour à votre place. Téléchargez le nouveau zip ou tar.gz depuis la version publiée et décompressez-le.';
+
+  @override
   String get settingsUpdatesDownloadTitle =>
       'Télécharger et installer la mise à jour';
 
@@ -8885,6 +8901,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'Une nouvelle version de $appName ($version) est disponible.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'Une version plus récente de $appName ($version) est disponible. Il s\'agit d\'une copie portable : téléchargez le nouveau zip ou tar.gz depuis la version publiée.';
   }
 
   @override

@@ -1910,6 +1910,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your update is ready. Mount the disk image and close the app so you can replace it in Applications.';
 
   @override
+  String get settingsUpdatesStoreTitle => 'Updates come from your app store';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'This copy was installed from an app store, so the store updates it. The app does not check for updates itself.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Portable copy: download the new archive';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'This copy runs from an unpacked archive, so the app can\'t install the update for you. Download the new zip or tar.gz from the release and unpack it.';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'Download & install update';
 
   @override
@@ -8732,6 +8747,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'A newer version of $appName ($version) is available.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'A newer version of $appName ($version) is available. This is a portable copy, so download the new zip or tar.gz from the release.';
   }
 
   @override

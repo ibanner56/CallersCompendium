@@ -1923,6 +1923,22 @@ class AppLocalizationsDa extends AppLocalizations {
       'Din opdatering er klar. Monter diskaftrykket, og luk appen, så du kan erstatte den i Programmer.';
 
   @override
+  String get settingsUpdatesStoreTitle =>
+      'Opdateringer kommer fra din appbutik';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Denne kopi blev installeret fra en appbutik, så butikken opdaterer den. Appen søger ikke selv efter opdateringer.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Bærbar kopi: download det nye arkiv';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Denne kopi kører fra et udpakket arkiv, så appen kan ikke installere opdateringen for dig. Download den nye zip eller tar.gz fra udgivelsen, og pak den ud.';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'Hent og installer opdatering';
 
   @override
@@ -8765,6 +8781,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'En nyere version af $appName ($version) er tilgængelig.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'En nyere version af $appName ($version) er tilgængelig. Dette er en bærbar kopi, så download den nye zip eller tar.gz fra udgivelsen.';
   }
 
   @override

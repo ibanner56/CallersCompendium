@@ -1931,6 +1931,21 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je update is klaar. Koppel de schijfkopie aan en sluit de app zodat je deze in Programma\'s kunt vervangen.';
 
   @override
+  String get settingsUpdatesStoreTitle => 'Updates komen uit je appstore';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Deze kopie is geïnstalleerd vanuit een appstore, dus de store werkt hem bij. De app zoekt zelf niet naar updates.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Draagbare kopie: download het nieuwe archief';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Deze kopie draait vanuit een uitgepakt archief, dus de app kan de update niet voor je installeren. Download de nieuwe zip of tar.gz van de release en pak hem uit.';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'Update downloaden en installeren';
 
   @override
@@ -8827,6 +8842,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'Een nieuwere versie van $appName ($version) is beschikbaar.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'Er is een nieuwere versie van $appName ($version) beschikbaar. Dit is een draagbare kopie, dus download de nieuwe zip of tar.gz van de release.';
   }
 
   @override

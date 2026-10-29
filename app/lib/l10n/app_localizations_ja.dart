@@ -1832,6 +1832,20 @@ class AppLocalizationsJa extends AppLocalizations {
       'アップデートの準備ができました。ディスクイメージをマウントしてアプリを閉じると、「アプリケーション」フォルダ内で置き換えられます。';
 
   @override
+  String get settingsUpdatesStoreTitle => 'アップデートはアプリストアから届きます';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'このコピーはアプリストアからインストールされているため、ストアが更新します。アプリ自身はアップデートを確認しません。';
+
+  @override
+  String get settingsUpdatesPortableTitle => 'ポータブル版：新しいアーカイブをダウンロード';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'このコピーは展開したアーカイブから実行されているため、アプリが代わりにアップデートをインストールすることはできません。リリースから新しい zip または tar.gz をダウンロードして展開してください。';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'アップデートをダウンロードしてインストール';
 
   @override
@@ -8426,6 +8440,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return '$appNameの新しいバージョン（$version）が利用可能です。';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return '$appName の新しいバージョン（$version）があります。これはポータブル版のため、リリースから新しい zip または tar.gz をダウンロードしてください。';
   }
 
   @override

@@ -31,6 +31,7 @@ import 'artifact_downloader.dart';
 import 'artifact_handoff.dart';
 import 'artifact_verifier.dart';
 import 'current_platform.dart';
+import 'install_kind.dart';
 import 'semver.dart';
 import 'update_config.dart';
 import 'update_manifest.dart';
@@ -165,6 +166,7 @@ class UpdateController extends ChangeNotifier {
     SemVer? currentVersion,
     UpdatePlatform? platform,
     UpdateArch? arch,
+    InstallKind? installKind,
     ArtifactDownloader? downloader,
     ArtifactVerifier? verifier,
     ArtifactHandoff? handoff,
@@ -181,6 +183,14 @@ class UpdateController extends ChangeNotifier {
                const SemVer(major: 0, minor: 0, patch: 0)),
        _platform = platform ?? currentUpdatePlatform(),
        _arch = arch ?? currentUpdateArch(),
+       // Detection reads the real process, so it only means something for the
+       // real platform: a test that fakes [platform] gets the standard channel
+       // unless it names an [installKind].
+       installKind =
+           installKind ??
+           (platform == null
+               ? detectInstallKind(platform: currentUpdatePlatform())
+               : InstallKind.standard),
        _downloader = downloader ?? downloadArtifact,
        _verifier = verifier ?? verifyArtifactSha256,
        _handoff = handoff ?? handoffArtifactToOs,
@@ -211,6 +221,15 @@ class UpdateController extends ChangeNotifier {
 
   final UpdatePlatform _platform;
   final UpdateArch _arch;
+
+  /// How this copy was installed (PLAT-5, PLAT-6). A [InstallKind.store] copy
+  /// never checks; a [InstallKind.portable] copy checks but is pointed at the
+  /// release instead of being handed an installer it cannot use.
+  final InstallKind installKind;
+
+  /// Whether this copy checks for updates at all: a store copy is updated by
+  /// its store, so it neither fetches the manifest nor shows a banner.
+  bool get checksForUpdates => installKind != InstallKind.store;
 
   bool _betaChannel = false;
   bool _autoCheck = false;
@@ -327,6 +346,8 @@ class UpdateController extends ChangeNotifier {
   /// "Download & install" exactly when this is non-null.
   UpdateArtifact? get downloadableArtifact {
     if (!isDesktopUpdatePlatform(_platform)) return null;
+    // A portable copy cannot take the installer the manifest names.
+    if (installKind != InstallKind.standard) return null;
     return _available?.artifact;
   }
 
@@ -850,14 +871,16 @@ class UpdateController extends ChangeNotifier {
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
 
-  /// Runs a check now (the manual "Check for updates" action, always
-  /// available). Concurrent presses are ignored while one is in flight. Never
+  /// Runs a check now (the manual "Check for updates" action, available on
+  /// every build but a store one, which does nothing: [checksForUpdates]).
+  /// Concurrent presses are ignored while one is in flight. Never
   /// throws — a failure resolves to [UpdateCheckStatus.couldNotCheck] or, for
   /// an authentic manifest this build cannot read,
   /// [UpdateCheckStatus.newerFormat].
   Future<void> checkNow() => _check(manual: true);
 
   Future<void> _check({required bool manual}) async {
+    if (!checksForUpdates) return;
     if (_status == UpdateCheckStatus.checking) return;
     // What the status line said before this check, for an automatic check that
     // fails: it must leave the line as it found it, not claim "No update found".

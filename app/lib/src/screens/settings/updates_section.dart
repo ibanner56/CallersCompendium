@@ -5,11 +5,13 @@ import '../../app_metadata.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../update/artifact_handoff.dart';
+import '../../update/install_kind.dart';
 import '../../update/macos_update_prompt.dart';
 import '../../update/retirement_banner.dart';
 import '../../update/update_controller.dart';
 import '../../update/update_failure_labels.dart';
 import '../../update/update_scope.dart';
+import '../../utils/launch_external_url.dart';
 import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 
@@ -19,7 +21,9 @@ import '../../widgets/section_header.dart';
 /// **desktop**, once a newer version with a downloadable artifact is found, it
 /// also offers an assisted "Download & install" flow (download → sha256 verify →
 /// OS-handoff) with progress, cancel, and a clear error; **mobile** never shows
-/// it (the banner's "View release" link is mobile's only path).
+/// it (the banner's "View release" link is mobile's only path). A **store**
+/// copy shows only a note that its store updates it, and a **portable** copy is
+/// pointed at the release for the new archive (PLAT-5, PLAT-6).
 ///
 /// Reads the [UpdateController] via [UpdateScope.of] so it rebuilds live as a
 /// check progresses or a pref flips; mutations go through the controller, which
@@ -36,6 +40,22 @@ class UpdatesSection extends StatelessWidget {
     final status = controller.status;
     final checking = status == UpdateCheckStatus.checking;
     final retirement = controller.retirementNotice;
+
+    // A store copy is updated by its store and never checks (PLAT-5): no
+    // check, channel or auto-check controls, which would all do nothing.
+    if (!controller.checksForUpdates) {
+      return ReadableListView(
+        children: [
+          SectionHeader(title: l10n.settingsUpdatesHeader),
+          ListTile(
+            key: const ValueKey('updates-store'),
+            leading: const Icon(Icons.storefront_outlined),
+            title: Text(l10n.settingsUpdatesStoreTitle),
+            subtitle: Text(l10n.settingsUpdatesStoreSubtitle),
+          ),
+        ],
+      );
+    }
 
     return ReadableListView(
       children: [
@@ -72,6 +92,19 @@ class UpdatesSection extends StatelessWidget {
         ),
         if (controller.canAssistDownload)
           _downloadTile(context, controller, theme),
+        if (controller.installKind == InstallKind.portable &&
+            controller.foundUpdate != null)
+          ListTile(
+            key: const ValueKey('updates-portable'),
+            leading: const Icon(Icons.folder_zip_outlined),
+            title: Text(l10n.settingsUpdatesPortableTitle),
+            subtitle: Text(l10n.settingsUpdatesPortableSubtitle),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => launchExternalUrl(
+              context,
+              controller.foundUpdate!.releaseNotesUrl,
+            ),
+          ),
         SectionHeader(title: l10n.settingsUpdatesChannelHeader),
         SwitchListTile(
           key: const ValueKey('updates-beta-toggle'),
