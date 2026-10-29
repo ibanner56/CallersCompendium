@@ -151,7 +151,7 @@ Future<void> _pumpDefaults(
   ValueNotifier<Set<String>>? hiddenFacets,
   // Tall enough for the whole expanded pane to build; the two sort-direction
   // rows (issue #1841) pushed the move-defaults editor past the old 4500.
-  Size surface = const Size(1200, 4800),
+  Size surface = const Size(1200, 6400),
   double textScale = 1,
 }) async {
   await setScreenSize(tester, surface);
@@ -1396,7 +1396,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4800));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
@@ -1419,7 +1419,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4800));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
@@ -1521,7 +1521,7 @@ void main() {
     await repos.settings.set(kDefaultDancePhraseStructureKey, '8*8*1');
 
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4800));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
     await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
 
@@ -1565,7 +1565,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4800));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     expect(find.text('Starting figures'), findsOneWidget);
@@ -1582,7 +1582,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       expect(find.text('Meanwhile defaults'), findsOneWidget);
@@ -1622,7 +1622,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4800));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     for (var i = 0; i < 4; i++) {
@@ -1649,7 +1649,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.settings.set(kFreeTextEntryKey, true);
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4800));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
@@ -1682,7 +1682,7 @@ void main() {
   testWidgets('Starting figures can add a meanwhile template', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4800));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -1702,7 +1702,7 @@ void main() {
   testWidgets('editing the template figure persists it', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4800));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
@@ -1729,7 +1729,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       // Delete one of the eight seeded figures: the shortened list persists.
@@ -1769,7 +1769,7 @@ void main() {
       ]),
     );
     await _pumpDefaults(tester, repos);
-    await tester.binding.setSurfaceSize(const Size(1200, 4800));
+    await tester.binding.setSurfaceSize(const Size(1200, 6400));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
@@ -1794,7 +1794,7 @@ void main() {
         ]),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
@@ -1817,7 +1817,7 @@ void main() {
     testWidgets('editor renders with an add affordance', (tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       expect(find.text('Move defaults'), findsOneWidget);
@@ -1829,7 +1829,7 @@ void main() {
     ) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('move-defaults-add')));
@@ -1874,7 +1874,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       expect(find.text('backing up'), findsOneWidget);
@@ -1891,7 +1891,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       // The saved override renders its card on reload; reset beats to 8.
@@ -1924,7 +1924,7 @@ void main() {
           }),
         );
         await _pumpDefaults(tester, repos);
-        await tester.binding.setSurfaceSize(const Size(1200, 4800));
+        await tester.binding.setSurfaceSize(const Size(1200, 6400));
         await tester.pumpAndSettle();
 
         // box_the_gnat's entry beats are 8 (balanced), not its plain default of
@@ -1955,7 +1955,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
       // The key sits on the editor wrapper and on the switch inside it.
       final balanceSwitch = find.byWidgetPredicate(
@@ -2001,7 +2001,7 @@ void main() {
         }),
       );
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(
@@ -2032,7 +2032,7 @@ void main() {
       await repos.settings.set(kDefaultDanceFiguresTemplateKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -2066,7 +2066,7 @@ void main() {
       await repos.settings.set(kFreeTextEntryKey, true);
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('figure-0-summary')), findsNothing);
@@ -2089,7 +2089,7 @@ void main() {
       );
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
@@ -2128,7 +2128,7 @@ void main() {
       );
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
@@ -2162,7 +2162,7 @@ void main() {
       );
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(
@@ -2192,7 +2192,7 @@ void main() {
       await repos.settings.set(kDefaultDanceFiguresTemplateKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -2219,7 +2219,7 @@ void main() {
       await repos.settings.set(kDefaultMeanwhileSideFiguresKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
@@ -2248,7 +2248,7 @@ void main() {
       await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
@@ -2278,7 +2278,7 @@ void main() {
       await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
@@ -2312,7 +2312,7 @@ void main() {
         await repos.settings.set(kDefaultModifierFiguresKey, '[]');
 
         await _pumpDefaults(tester, repos);
-        await tester.binding.setSurfaceSize(const Size(1200, 4800));
+        await tester.binding.setSurfaceSize(const Size(1200, 6400));
         await tester.pumpAndSettle();
         await _scrollTo(tester, const ValueKey('modifier-default-add'));
 
@@ -2917,7 +2917,7 @@ void main() {
         });
 
         await _pumpDefaults(tester, repos);
-        await tester.binding.setSurfaceSize(const Size(1200, 4800));
+        await tester.binding.setSurfaceSize(const Size(1200, 6400));
         await tester.pumpAndSettle();
 
         await c.edit(tester);
@@ -2958,7 +2958,7 @@ void main() {
       );
 
       await _pumpDefaults(tester, repos);
-      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
       await tester.pumpAndSettle();
 
       expect(

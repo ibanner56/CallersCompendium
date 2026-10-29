@@ -31,7 +31,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   CompendiumRepositories repos, {
   bool initialExactBeatCollision = true,
   bool initialAutoCommit = false,
-  Size surface = const Size(1200, 1400),
+  Size surface = const Size(1200, 2000),
   double textScale = 1,
   void Function(ValueNotifier<bool> autoCommit, ValueNotifier<int> venueCalls)?
   onScopeNotifiers,
