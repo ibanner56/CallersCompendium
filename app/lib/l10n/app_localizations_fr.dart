@@ -3552,6 +3552,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commonCancel => 'Annuler';
 
   @override
+  String get commonDiscardChangesTitle => 'Abandonner les modifications ?';
+
+  @override
+  String get commonDiscardChangesBody =>
+      'Vous avez des modifications non enregistrées.';
+
+  @override
+  String get commonKeepEditing => 'Continuer la modification';
+
+  @override
+  String get commonDiscard => 'Abandonner';
+
+  @override
   String get commonContinue => 'Continuer';
 
   @override

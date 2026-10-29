@@ -8,6 +8,7 @@ import '../data/validation_issue_labels.dart';
 import '../search/facet_labels.dart' show humanizeToken;
 import '../theme/destructive_button_style.dart';
 import '../widgets/collapsible_section.dart';
+import '../widgets/confirm_discard_changes.dart';
 import '../widgets/section_header.dart';
 import '../widgets/wording_condition_notes.dart';
 import '../widgets/app_bar_text_action.dart';
@@ -789,35 +790,25 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
 
   Future<void> _confirmExit() async {
     final l10n = AppLocalizations.of(context);
-    final save = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        key: const ValueKey('dialect-exit-dialog'),
-        title: Text(l10n.dialectEditorExitTitle),
-        content: Text(l10n.dialectEditorExitBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.commonCancel),
-          ),
-          TextButton(
-            key: const ValueKey('dialect-exit-without-saving'),
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.dialectEditorExitWithoutSaving),
-          ),
-          FilledButton(
-            key: const ValueKey('dialect-exit-save'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.dialectEditorSaveAndExit),
-          ),
-        ],
-      ),
+    final choice = await confirmDiscardChanges(
+      context,
+      dialogKey: const ValueKey('dialect-exit-dialog'),
+      title: l10n.dialectEditorExitTitle,
+      message: l10n.dialectEditorExitBody,
+      keepEditingLabel: l10n.commonCancel,
+      discardLabel: l10n.dialectEditorExitWithoutSaving,
+      discardKey: const ValueKey('dialect-exit-without-saving'),
+      saveLabel: l10n.dialectEditorSaveAndExit,
+      saveKey: const ValueKey('dialect-exit-save'),
     );
     if (!mounted) return;
-    if (save == true) {
-      await _save();
-    } else if (save == false) {
-      Navigator.of(context).pop();
+    switch (choice) {
+      case DiscardChangesChoice.save:
+        await _save();
+      case DiscardChangesChoice.discard:
+        Navigator.of(context).pop();
+      case DiscardChangesChoice.keepEditing:
+        break;
     }
   }
 

@@ -3496,6 +3496,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonCancel => 'Annuller';
 
   @override
+  String get commonDiscardChangesTitle => 'Kassér ændringer?';
+
+  @override
+  String get commonDiscardChangesBody => 'Du har ugemte ændringer.';
+
+  @override
+  String get commonKeepEditing => 'Fortsæt redigering';
+
+  @override
+  String get commonDiscard => 'Kassér';
+
+  @override
   String get commonContinue => 'Fortsæt';
 
   @override

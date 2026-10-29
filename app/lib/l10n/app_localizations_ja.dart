@@ -3326,6 +3326,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonCancel => 'キャンセル';
 
   @override
+  String get commonDiscardChangesTitle => '変更を破棄しますか？';
+
+  @override
+  String get commonDiscardChangesBody => '未保存の変更があります。';
+
+  @override
+  String get commonKeepEditing => '編集を続ける';
+
+  @override
+  String get commonDiscard => '破棄';
+
+  @override
   String get commonContinue => '続ける';
 
   @override

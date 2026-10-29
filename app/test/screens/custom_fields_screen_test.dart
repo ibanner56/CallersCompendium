@@ -825,4 +825,116 @@ void main() {
       expect(saved.single.shareable, isFalse);
     });
   });
+
+  // UX2-1e: the form must not close over unsaved changes. A swipe pops the
+  // route directly, past `PopScope`, so the form must not be draggable.
+  group('CustomFieldsScreen form, leaving with unsaved changes', () {
+    const aboveForm = Offset(600, 10);
+    final formTitle = find.text('New custom field');
+
+    testWidgets('the form cannot be dragged and shows no drag handle', (
+      tester,
+    ) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      final sheet = tester.widget<BottomSheet>(find.byType(BottomSheet));
+      expect(sheet.enableDrag, isFalse);
+      expect(sheet.showDragHandle ?? false, isFalse);
+    });
+
+    testWidgets('an untouched form closes on a tap above it', (tester) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      await tester.tapAt(aboveForm);
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(formTitle, findsNothing);
+    });
+
+    testWidgets('a typed label asks on a tap above; Keep editing stays', (
+      tester,
+    ) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      await tester.enterText(find.byKey(const ValueKey('cf-label')), 'Key');
+      await tester.pump();
+      await tester.tapAt(aboveForm);
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(formTitle, findsOneWidget);
+      expect(find.text('Key'), findsOneWidget);
+    });
+
+    testWidgets('a flipped switch asks on Back; Discard creates nothing', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await tester.tap(find.byKey(const ValueKey('cf-show-in-list')));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(formTitle, findsNothing);
+      expect(await repos.customFieldDefs.listAll(), isEmpty);
+    });
+
+    testWidgets('editing a field and putting it back is not a change', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await _fillAndSave(tester, label: 'Key', key: 'key');
+      await _openEditForm(tester, 'Key');
+      await tester.tap(find.byKey(const ValueKey('cf-searchable')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('cf-searchable')));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('cf-label')), findsNothing);
+    });
+
+    testWidgets('choices added to a field set back to Text are not a change', (
+      tester,
+    ) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      await tester.tap(find.byKey(const ValueKey('cf-type')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Choice').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('choice-input')), 'a');
+      await tester.tap(find.byKey(const ValueKey('add-choice')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('cf-type')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Text').last);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(formTitle, findsNothing);
+    });
+
+    testWidgets('a swipe down does not close an edited form', (tester) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      await tester.enterText(find.byKey(const ValueKey('cf-label')), 'Key');
+      await tester.pump();
+      await tester.fling(formTitle, const Offset(0, 800), 2000);
+      await tester.pumpAndSettle();
+      expect(formTitle, findsOneWidget);
+      expect(find.text('Key'), findsOneWidget);
+    });
+  });
 }

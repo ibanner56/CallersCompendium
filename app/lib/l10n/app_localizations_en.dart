@@ -3467,6 +3467,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCancel => 'Cancel';
 
   @override
+  String get commonDiscardChangesTitle => 'Discard changes?';
+
+  @override
+  String get commonDiscardChangesBody => 'You have unsaved changes.';
+
+  @override
+  String get commonKeepEditing => 'Keep editing';
+
+  @override
+  String get commonDiscard => 'Discard';
+
+  @override
   String get commonContinue => 'Continue';
 
   @override

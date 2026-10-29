@@ -658,6 +658,12 @@ If you try to leave with unsaved changes, the app asks **Discard changes?** —
 **Keep editing** returns you to the dance, **Discard** leaves it as it was last
 saved.
 
+The editors for [figure shorthands](#figure-shorthands), custom themes,
+[venues](./settings.md#venues) and [custom fields](./collection.md#make-your-own-fields)
+ask the same question when you leave one with changes: by Back, the back arrow,
+or a tap outside the venue or custom-field sheet. Those two sheets do not close
+when swiped down, and their **Cancel** button closes them without asking.
+
 ### Save and delete
 
 **Save** writes the dance and returns you to where you came from; the change shows

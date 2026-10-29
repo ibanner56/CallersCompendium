@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
@@ -9,6 +10,7 @@ import '../utils/scroll_to_error.dart';
 import '../widgets/figure_list_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../widgets/confirm_discard_changes.dart';
 
 /// Full-screen editor for a single shorthand → figure(s) mapping (issue #420),
 /// modeled on `dialect_editor_screen.dart`. A shorthand [token] (left) is typed
@@ -22,7 +24,8 @@ import '../widgets/app_bar_text_action.dart';
 /// case-insensitively against [existingTokens]) and the drafts are committed to
 /// figures. A token that already reads as a figure when typed is warned about
 /// under the field but still saves (#1827). The edited [ShorthandMapping] is
-/// returned via [Navigator.pop] (or `null` on cancel / back).
+/// returned via [Navigator.pop] (or `null` on cancel / back). Backing out with
+/// unsaved changes asks first ([DiscardChangesGuard]).
 class ShorthandMappingEditorScreen extends StatefulWidget {
   const ShorthandMappingEditorScreen({
     super.key,
@@ -66,6 +69,12 @@ class _ShorthandMappingEditorScreenState
   final _scroll = ScrollController();
   final _figuresErrorKey = GlobalKey();
 
+  /// The token and figures as the editor opened, for [_dirty]. The figures are
+  /// read back through the drafts, so a mapping that does not round-trip
+  /// exactly through [FigureDraft] still opens clean.
+  late final String _initialToken;
+  late final List<Figure> _initialFigures;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +83,8 @@ class _ShorthandMappingEditorScreenState
       for (final figure in widget.initial?.figures ?? const <Figure>[])
         FigureDraft.fromFigure(figure),
     ];
+    _initialToken = _tokenController.text;
+    _initialFigures = _figures();
   }
 
   @override
@@ -117,6 +128,13 @@ class _ShorthandMappingEditorScreenState
     Navigator.of(context).pop(ShorthandMapping(token: token, figures: figures));
   }
 
+  /// Whether leaving now would lose anything Save would have kept: a changed
+  /// token, or a changed figure list. A blank row added and left blank is not
+  /// a change, because Save drops it too.
+  bool get _dirty =>
+      _tokenController.text.trim() != _initialToken.trim() ||
+      !listEquals(_figures(), _initialFigures);
+
   void _onFiguresChanged() => setState(() => _figuresError = null);
 
   void _addFigure() {
@@ -150,7 +168,7 @@ class _ShorthandMappingEditorScreenState
     final group = FigureDraft(sequenceFigures: [FigureDraft(), FigureDraft()]);
     setState(() {
       _drafts.add(group);
-      _error = null;
+      _figuresError = null;
     });
     return group.id;
   }
@@ -184,100 +202,104 @@ class _ShorthandMappingEditorScreenState
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final isNew = widget.initial == null;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isNew ? l10n.shorthandEditorTitleNew : l10n.shorthandEditorTitleEdit,
+    return DiscardChangesGuard(
+      dirty: _dirty,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            isNew
+                ? l10n.shorthandEditorTitleNew
+                : l10n.shorthandEditorTitleEdit,
+          ),
+          actions: [
+            AppBarTextAction(
+              key: const ValueKey('shorthand-editor-save'),
+              label: l10n.commonSave,
+              icon: Icons.check,
+              onPressed: _save,
+            ),
+          ],
         ),
-        actions: [
-          AppBarTextAction(
-            key: const ValueKey('shorthand-editor-save'),
-            label: l10n.commonSave,
-            icon: Icons.check,
-            onPressed: _save,
-          ),
-        ],
-      ),
-      body: ListView(
-        controller: _scroll,
-        // An error is scrolled to by its key, and a lazily built list has no
-        // element for a child far outside the viewport. Enough to keep the
-        // whole form built; an infinite extent breaks semantics.
-        scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
-              key: const ValueKey('shorthand-token-field'),
-              controller: _tokenController,
-              maxLength: maxShorthandTokenLength,
-              autofocus: isNew,
-              textInputAction: TextInputAction.done,
-              onChanged: (_) {
-                if (_tokenError != null) setState(() => _tokenError = null);
-              },
-              decoration: InputDecoration(
-                labelText: l10n.shorthandEditorTokenLabel,
-                helperText: l10n.shorthandEditorTokenHelper,
-                errorText: _tokenError,
-                errorMaxLines: 3,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-          ),
-          ShorthandShadowWarning(
-            warningKey: const ValueKey('shorthand-shadow-warning'),
-            controller: _tokenController,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text(
-              l10n.shorthandEditorExpandsTo,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-            child: Text(
-              l10n.shorthandEditorExpandsToHelp,
-              style: theme.textTheme.bodySmall,
-            ),
-          ),
-          if (_figuresError != null)
+        body: ListView(
+          controller: _scroll,
+          // An error is scrolled to by its key, and a lazily built list has no
+          // element for a child far outside the viewport. Enough to keep the
+          // whole form built; an infinite extent breaks semantics.
+          scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
+          children: [
             Padding(
-              key: _figuresErrorKey,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                _figuresError!,
-                key: const ValueKey('shorthand-validation-error'),
-                style: TextStyle(color: theme.colorScheme.error),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: TextField(
+                key: const ValueKey('shorthand-token-field'),
+                controller: _tokenController,
+                maxLength: maxShorthandTokenLength,
+                autofocus: isNew,
+                textInputAction: TextInputAction.done,
+                // Always rebuilds, so the back guard sees the edited token.
+                onChanged: (_) => setState(() => _tokenError = null),
+                decoration: InputDecoration(
+                  labelText: l10n.shorthandEditorTokenLabel,
+                  helperText: l10n.shorthandEditorTokenHelper,
+                  errorText: _tokenError,
+                  errorMaxLines: 3,
+                  border: const OutlineInputBorder(),
+                ),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: FigureListEditor(
-              drafts: _drafts,
-              taxonomy: contraTaxonomy,
-              phraseStructure: PhraseStructure.standard,
-              // A shorthand expands to a snippet, not a whole dance: phrase
-              // labels and the beat total belong to dances only (#1830).
-              showPhraseStructure: false,
-              dialect: ActiveDialectScope.of(context),
-              onChanged: _onFiguresChanged,
-              onAdd: _addFigure,
-              onAddMeanwhile: _addMeanwhile,
-              onAddModifier: _addModifier,
-              onAddSequence: _addSequence,
-              onDelete: _deleteFigure,
-              onDuplicate: _duplicateFigure,
-              onReorder: _reorderFigure,
-              allowModifierSelection: true,
+            ShorthandShadowWarning(
+              warningKey: const ValueKey('shorthand-shadow-warning'),
+              controller: _tokenController,
             ),
-          ),
-          const SizedBox(height: 24),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(
+                l10n.shorthandEditorExpandsTo,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Text(
+                l10n.shorthandEditorExpandsToHelp,
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+            if (_figuresError != null)
+              Padding(
+                key: _figuresErrorKey,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  _figuresError!,
+                  key: const ValueKey('shorthand-validation-error'),
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: FigureListEditor(
+                drafts: _drafts,
+                taxonomy: contraTaxonomy,
+                phraseStructure: PhraseStructure.standard,
+                // A shorthand expands to a snippet, not a whole dance: phrase
+                // labels and the beat total belong to dances only (#1830).
+                showPhraseStructure: false,
+                dialect: ActiveDialectScope.of(context),
+                onChanged: _onFiguresChanged,
+                onAdd: _addFigure,
+                onAddMeanwhile: _addMeanwhile,
+                onAddModifier: _addModifier,
+                onAddSequence: _addSequence,
+                onDelete: _deleteFigure,
+                onDuplicate: _duplicateFigure,
+                onReorder: _reorderFigure,
+                allowModifierSelection: true,
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }

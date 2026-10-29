@@ -3537,6 +3537,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonCancel => 'Abbrechen';
 
   @override
+  String get commonDiscardChangesTitle => 'Änderungen verwerfen?';
+
+  @override
+  String get commonDiscardChangesBody =>
+      'Sie haben nicht gespeicherte Änderungen.';
+
+  @override
+  String get commonKeepEditing => 'Weiter bearbeiten';
+
+  @override
+  String get commonDiscard => 'Verwerfen';
+
+  @override
   String get commonContinue => 'Weiter';
 
   @override

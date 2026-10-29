@@ -66,4 +66,74 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Published collections'), findsWidgets);
   });
+
+  // UX4-3a: trailing buttons took their natural width from the row and left
+  // the title a sliver at large text on a phone.
+  testWidgets('Import dances keeps its title readable at 360px, 2x text', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.binding.setSurfaceSize(const Size(360, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final repos = openTestRepositories();
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
+    final customThemes = CustomThemesController(repos.settings);
+    await customThemes.load();
+    addTearDown(dialect.dispose);
+    addTearDown(theme.dispose);
+    addTearDown(customThemes.dispose);
+
+    await tester.pumpWidget(
+      RepositoriesScope(
+        repositories: repos,
+        child: AppThemeScope(
+          notifier: theme,
+          child: CustomThemesScope(
+            controller: customThemes,
+            child: ActiveDialectScope(
+              notifier: dialect,
+              child: MaterialApp(
+                localizationsDelegates: testLocalizationsDelegates,
+                supportedLocales: testSupportedLocales,
+                home: const SettingsScreen(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+    await tester.pumpAndSettle();
+
+    final button = find.byKey(const ValueKey('import-dances-button'));
+    await tester.scrollUntilVisible(
+      button,
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    final title = tester.getRect(find.text('Import dances').last);
+    expect(title.width, greaterThan(150), reason: 'title keeps its width');
+    expect(tester.getRect(button).top, greaterThanOrEqualTo(title.bottom));
+    for (final key in [
+      'reparse-custom-figures-button',
+      'backup-export-button',
+      'backup-restore-button',
+    ]) {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(key)),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(
+        tester.getRect(find.byKey(ValueKey(key))).right,
+        lessThanOrEqualTo(360),
+        reason: key,
+      );
+    }
+  });
 }
