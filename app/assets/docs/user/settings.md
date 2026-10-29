@@ -442,7 +442,8 @@ open this group. You can override any of them per dance, and
   a different position; renaming keeps existing dances attached to that level.
   A level can't be removed while any dance uses it — including a dance waiting
   in **Recently deleted**. Once no dance uses it, you can remove any level, including
-  the ones that ship with the app.
+  the ones that ship with the app. Removing a level asks nothing first and shows
+  **Undo** for a few seconds, which puts the level back in its place.
 - **Type**, **Formation**, and **Progression** — the starting choices for a new
   dance.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
