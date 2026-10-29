@@ -3385,6 +3385,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'Es ist nicht genug Speicherplatz frei, um diese Sicherung zu ersetzen ($neededMb MB benötigt; $freeMb MB frei), daher wurde nichts gespeichert. Ihre frühere Sicherung bleibt unverändert.';
+  }
+
+  @override
   String get backupExportInProgress => 'Sicherung wird vorbereitet…';
 
   @override

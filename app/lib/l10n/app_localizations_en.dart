@@ -3319,6 +3319,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'There isn\'t enough free space to replace this backup ($neededMb MB needed; $freeMb MB free), so nothing was saved. Your earlier backup is unchanged.';
+  }
+
+  @override
   String get backupExportInProgress => 'Preparing your backup…';
 
   @override

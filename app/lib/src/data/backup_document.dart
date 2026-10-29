@@ -16,17 +16,54 @@ import 'custom_theme.dart';
 /// replace restore refuses it (`BackupService.restoreFromJson`).
 ///
 /// v2 (#709) adds `app.glossary`: the user's own glossary entries and their
-/// notes on shipped figures. It is stamped only when that section has
-/// something in it, so a backup without them still writes v1 byte for byte,
-/// and an older build refuses to replace-restore one that has them rather
-/// than silently dropping them.
+/// notes on shipped figures. A backup is also stamped v2 when a program in it
+/// has pay or a Perform dialect ([backupSchemaVersionProgramPay]). Each is
+/// stamped only when present ([requiredBackupVersion]), so a backup with none
+/// of them still writes v1 byte for byte, and an older build refuses to
+/// replace-restore one that has them rather than silently dropping them.
 const int backupSchemaVersion = backupSchemaVersionGlossary;
 
-/// The envelope version every backup without glossary data is written under.
+/// The envelope version every backup carrying none of the conditional data
+/// in [requiredBackupVersion] is written under.
 const int backupSchemaVersionBase = 1;
 
 /// The envelope version a backup carrying `app.glossary` is written under.
 const int backupSchemaVersionGlossary = 2;
+
+/// The envelope version a backup is written under when a program in it has
+/// pay (`payMinorUnits`, `payCurrency`) or a Perform dialect (`dialectName`).
+///
+/// Those keys arrived in 0.6.0 with no archive version bump, so 0.5.2 to 0.5.4,
+/// which already refuse a newer backup, would restore such a backup and drop
+/// them without a word. The bump lives in this envelope rather than the core
+/// archive because the core version also stamps share files, and a bump there
+/// would make 0.7.0 and older refuse them at the share sheet (#1885).
+///
+/// The same number as [backupSchemaVersionGlossary] on purpose. 0.8.0, the
+/// first build that reads envelope v2, already reads these keys, so it and
+/// every later build restore such a backup as before; a new number would make
+/// them refuse it too. The cost falls on 0.6.0 and 0.7.0: they read these keys
+/// but also refuse v2, and no version number can tell them from 0.5.x.
+const int backupSchemaVersionProgramPay = 2;
+
+/// The envelope version [doc] must be written under so that no build that
+/// would silently drop part of it restores it: the highest version any of its
+/// conditional data needs, otherwise [backupSchemaVersionBase].
+///
+/// Each case is gated on the data actually being present, so a backup without
+/// it keeps the version older builds accept. Keep new cases in descending
+/// version order. `tools/ci/check_archive_key_versions.py` fails when an
+/// archive entity gains a key that names no case here or in the core
+/// `requiredSchemaVersion`.
+int requiredBackupVersion(BackupDocument doc) {
+  if (doc.hasGlossary) return backupSchemaVersionGlossary;
+  // `Program` keeps the two pay keys set together, so one stands for both.
+  final hasProgramPay = doc.core.programs.any(
+    (p) => p.payMinorUnits != null || p.dialectName != null,
+  );
+  if (hasProgramPay) return backupSchemaVersionProgramPay;
+  return backupSchemaVersionBase;
+}
 
 /// Current version of the backup **container** envelope (issue #536).
 ///
@@ -79,8 +116,7 @@ class BackupDocument {
 
   /// The `backupVersion` the file this document was read from carries. Only
   /// decoding sets it: [backupToJson] ignores it and stamps
-  /// [backupSchemaVersionGlossary] or [backupSchemaVersionBase] by whether the
-  /// document has glossary data.
+  /// [requiredBackupVersion].
   final int schemaVersion;
 
   /// When the backup was produced (UTC).
@@ -335,9 +371,7 @@ bool _hexEquals(String a, String b) {
 
 /// The JSON object for [doc].
 Map<String, Object?> backupToJson(BackupDocument doc) => {
-  'backupVersion': doc.hasGlossary
-      ? backupSchemaVersionGlossary
-      : backupSchemaVersionBase,
+  'backupVersion': requiredBackupVersion(doc),
   'createdAt': doc.createdAt.toUtc().toIso8601String(),
   'core': archiveToJson(doc.core, mode: ArchiveSerializationMode.backup),
   'app': {

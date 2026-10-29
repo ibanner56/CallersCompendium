@@ -3384,6 +3384,10 @@
   "@backupExportTooLarge": {
     "x-sourceSha256": "1416959a2f449b0558cc843bfa3dbd39209ae1069307cb905582625594368e3e"
   },
+  "backupExportDiskFull": "このバックアップを置き換えるための空き容量が足りません（必要 {neededMb} MB、空き {freeMb} MB）。何も保存されておらず、以前のバックアップは変更されていません。",
+  "@backupExportDiskFull": {
+    "x-sourceSha256": "891f8cc1f6aa387d25f0ac96f04536ea5ef0d34348c4e4e344d9f86a90220382"
+  },
   "backupExportInProgress": "バックアップを準備しています…",
   "@backupExportInProgress": {
     "x-sourceSha256": "9174795f8bf8199c1a9f40bd555b24c33361d0c752e5f0d07215277151a36101"

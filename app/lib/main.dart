@@ -18,12 +18,8 @@ import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
-import 'src/data/backup_io.dart'
-    show
-        BackupExportTooLargeException,
-        BackupSaver,
-        backupMegabytes,
-        saveBackupToFile;
+import 'src/data/backup_export_labels.dart';
+import 'src/data/backup_io.dart' show BackupSaver, saveBackupToFile;
 import 'src/data/backup_reminder.dart';
 import 'src/data/backup_service.dart' show exportBackupNow;
 import 'src/data/sync_writer_lifecycle_scope.dart';
@@ -2309,21 +2305,11 @@ class _CompendiumAppState extends State<CompendiumApp>
       if (!delivered || !mounted) return;
       _backupReminderBanner?.close();
       messenger?.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
-    } on BackupExportTooLargeException catch (e, st) {
-      logCaughtError(e, st, source: 'main.backupReminderExport');
-      messenger?.showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.backupExportTooLarge(
-              backupMegabytes(e.sizeBytes),
-              backupMegabytes(e.maxBytes),
-            ),
-          ),
-        ),
-      );
     } on Object catch (e, st) {
       logCaughtError(e, st, source: 'main.backupReminderExport');
-      messenger?.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
+      messenger?.showSnackBar(
+        SnackBar(content: Text(backupExportFailureMessage(l10n, e))),
+      );
     } finally {
       _backupReminderExporting = false;
     }

@@ -16,6 +16,11 @@ List<String> _entryNames(Directory dir) => dir
     .toList();
 
 void main() {
+  // The production free-space seam, captured before any test replaces it. A
+  // local, not a top-level final: those initialise on first read, which would
+  // be after a test had already replaced the seam.
+  final realAvailableBytes = backupVolumeAvailableBytes;
+
   group('readBackupFile size cap', () {
     test('reads a file that is within the size cap', () async {
       const contents = '{"backupVersion":1,"core":{}}';
@@ -212,8 +217,9 @@ void main() {
     });
 
     tearDown(() async {
-      // Restore the seam so routing never leaks between tests.
+      // Restore the seams so routing never leaks between tests.
       isMacOsPlatform = () => Platform.isMacOS;
+      backupVolumeAvailableBytes = realAvailableBytes;
       if (await dir.exists()) await dir.delete(recursive: true);
     });
 
@@ -265,6 +271,7 @@ void main() {
       'macOS routes to the in-place write, bypassing the atomic seam',
       () async {
         isMacOsPlatform = () => true;
+        backupVolumeAvailableBytes = (_) async => null;
         final target = File('${dir.path}/backup.json');
         await target.writeAsString('GOOD');
 
@@ -282,6 +289,100 @@ void main() {
         expect(await target.readAsString(), 'NEW');
       },
     );
+  });
+
+  // FAIL-16: the sandbox forces macOS to write in place, so on a full disk
+  // the write would truncate the backup it replaces. The free-space query is
+  // native; these drive it through its seam. What it answers on a real Mac is
+  // covered by the RunnerTests XCTest suite, not here.
+  group('writeDesktopBackup on macOS checks free space first', () {
+    late Directory dir;
+    late List<String> queried;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('backup_io_disk_full_test');
+      isMacOsPlatform = () => true;
+      queried = [];
+    });
+
+    tearDown(() async {
+      isMacOsPlatform = () => Platform.isMacOS;
+      backupVolumeAvailableBytes = realAvailableBytes;
+      if (await dir.exists()) await dir.delete(recursive: true);
+    });
+
+    void reportFree(int? bytes) {
+      backupVolumeAvailableBytes = (path) async {
+        queried.add(path);
+        return bytes;
+      };
+    }
+
+    test('refuses before touching an existing backup it has no room to '
+        'replace', () async {
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('GOOD');
+      const contents = 'NEW-BACKUP-é';
+      final needed = utf8.encode(contents).length + kInPlaceBackupHeadroomBytes;
+      reportFree(needed - 1);
+
+      await expectLater(
+        writeDesktopBackup(target.path, contents),
+        throwsA(
+          isA<BackupDiskFullException>()
+              .having((e) => e.requiredBytes, 'requiredBytes', needed)
+              .having((e) => e.availableBytes, 'availableBytes', needed - 1),
+        ),
+      );
+      expect(await target.readAsString(), 'GOOD');
+      expect(queried, [target.path]);
+    });
+
+    test('writes when the volume has exactly the room it needs', () async {
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('GOOD');
+      reportFree(utf8.encode('NEW').length + kInPlaceBackupHeadroomBytes);
+
+      await writeDesktopBackup(target.path, 'NEW');
+
+      expect(await target.readAsString(), 'NEW');
+    });
+
+    test('an unknown answer lets the write go ahead, as before', () async {
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('GOOD');
+      reportFree(null);
+
+      await writeDesktopBackup(target.path, 'NEW');
+
+      expect(await target.readAsString(), 'NEW');
+      expect(queried, [target.path]);
+    });
+
+    test(
+      'a new file is written without asking: there is no backup to lose',
+      () async {
+        final target = File('${dir.path}/backup.json');
+        reportFree(0);
+
+        await writeDesktopBackup(target.path, 'NEW');
+
+        expect(await target.readAsString(), 'NEW');
+        expect(queried, isEmpty);
+      },
+    );
+
+    test('Windows and Linux never ask: their write is atomic', () async {
+      isMacOsPlatform = () => false;
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('GOOD');
+      reportFree(0);
+
+      await writeDesktopBackup(target.path, 'NEW');
+
+      expect(await target.readAsString(), 'NEW');
+      expect(queried, isEmpty);
+    });
   });
 
   group('writeStringToUserSelectedPath', () {

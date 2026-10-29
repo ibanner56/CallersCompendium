@@ -4149,6 +4149,20 @@
       }
     }
   },
+  "backupExportDiskFull": "There isn't enough free space to replace this backup ({neededMb} MB needed; {freeMb} MB free), so nothing was saved. Your earlier backup is unchanged.",
+  "@backupExportDiskFull": {
+    "description": "Snackbar shown on macOS when saving a backup over an existing backup file is refused because the disk does not have room for the new one; the existing file is left as it was. 'MB' is the megabyte unit.",
+    "placeholders": {
+      "neededMb": {
+        "type": "String",
+        "example": "31.4"
+      },
+      "freeMb": {
+        "type": "String",
+        "example": "12.0"
+      }
+    }
+  },
   "backupExportInProgress": "Preparing your backup…",
   "@backupExportInProgress": {
     "description": "Text in the progress dialog shown while a backup is being built and saved. No percentage is shown."

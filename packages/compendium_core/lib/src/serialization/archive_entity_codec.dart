@@ -15,6 +15,12 @@ import '../model/venue.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
 
+// Every key the `archive*ToJson` functions below write is classified in
+// `tools/ci/archive_key_versions.json` by the version case that stamps it,
+// and `tools/ci/check_archive_key_versions.py` fails on a key that has none:
+// an older reader drops a key it does not know without a word unless the
+// file's version tells it the file is newer.
+
 /// Builds the archive-shaped body for a choreographer.
 Map<String, Object?> archiveChoreographerToJson(
   Choreographer c, {
@@ -236,7 +242,9 @@ Map<String, Object?> archiveProgramToJson(
   // wire hash of every program that has no dialect.
   if (p.dialectName != null) 'dialectName': p.dialectName,
   // Same rule, same reason: only when set, so a program without pay keeps its
-  // wire hash. The two keys travel together.
+  // wire hash. The two keys travel together. Neither raises the archive
+  // version; a backup carrying them is stamped by the app's backup envelope
+  // instead (`requiredBackupVersion`), and a share file not at all (#1885).
   if (p.payMinorUnits != null) 'payMinorUnits': p.payMinorUnits,
   if (p.payCurrency != null) 'payCurrency': p.payCurrency,
   'slots': [

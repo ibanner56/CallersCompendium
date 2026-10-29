@@ -825,6 +825,29 @@ void main() {
     );
   });
 
+  testWidgets('an export with no room to replace the old backup says so, '
+      'with the sizes', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpGeneral(
+      tester,
+      repos,
+      saver: (json, name) async => throw const BackupDiskFullException(
+        requiredBytes: 31 * 1024 * 1024,
+        availableBytes: 12 * 1024 * 1024,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-export-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('export-progress')), findsNothing);
+    expect(
+      find.text(AppLocalizationsEn().backupExportDiskFull('31.0', '12.0')),
+      findsOneWidget,
+    );
+    expect(find.text(AppLocalizationsEn().backupExportFailed), findsNothing);
+  });
+
   testWidgets('choosing a large file shows a summary, not the pasted file', (
     tester,
   ) async {
