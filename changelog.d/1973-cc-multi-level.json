@@ -3,12 +3,13 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A Caller's Companion dance with more than one level checked, such as Easy and Intermediate, now comes in with a level of its own named \"Easy/Intermediate\", placed between Beginner and Intermediate in your list of levels, instead of with no level. A level you already have with that name is used, and undoing the import removes a level it added unless one of your dances uses it."
+      "A Caller's Companion dance with more than one level checked, such as Easy and Intermediate, now comes in with a level of its own named \"Easy/Intermediate\", placed between Beginner and Intermediate in your list of levels, instead of with no level. A level you already have with that name is used, and undoing the import removes a level it added unless one of your dances uses it. The import review says which level will be added."
     ]
   },
   "core": {
     "changed": [
-      "The Caller's Companion mapper reads a multi-line Level into a combined name (ccLevelScale order) with a cc_new_level issue; ImportPipeline reuses a configured level of that name (ccLevelNameKey), and CallersCompanionUsrImporter creates or restores the rest, placed by ccLevelScaleKey, and records them on CcUsrImportResult for undo.",
+      "The Caller's Companion mapper reads a multi-line Level into a combined name (ccLevelScale order) with a cc_new_level issue carrying the name; ImportPipeline reuses a configured level of that name (ccLevelNameKey), and CallersCompanionUsrImporter reuses, restores or creates the rest, places the ones it kept by ccLevelScaleKey once the import has otherwise succeeded, and records them on CcUsrImportResult for undo.",
+      "DifficultyLevelRepository.setPositions moves only the named levels, leaving every other level row untouched.",
       "CallersCompanionUsrImporter now requires difficultyLevels:.",
       "A cc_unmapped_level message no longer contains a line break."
     ]
