@@ -184,6 +184,54 @@ void main() {
       expect(texts, isNot(contains('Carol Ormand')));
     });
 
+    group('a dance with no structured figures (OUT-10)', () {
+      Dance figureless() => Dance(
+        id: 'd2',
+        title: 'Notes Only Reel',
+        callingNotes: 'Watch the slide.',
+        walkthrough: 'Circle left.',
+        figures: const [],
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      test('still gets its card when notes or a walkthrough are selected', () {
+        final d = figureless();
+        final texts = textsOf(
+          appendix(
+            d,
+            withContent: true,
+            fields: DanceShareField.allExceptTunes,
+          ),
+        );
+        expect(texts, contains('Notes Only Reel'));
+        expect(texts, contains('Watch the slide.'));
+        expect(texts, contains('Circle left.'));
+      });
+
+      test('gets no card when neither field is selected', () {
+        final texts = textsOf(
+          appendix(
+            figureless(),
+            withContent: true,
+            fields: {DanceShareField.formation},
+          ),
+        );
+        expect(texts, isEmpty);
+      });
+
+      test('gets no card in the figures-only appendix (no card content)', () {
+        final texts = textsOf(
+          appendix(
+            figureless(),
+            withContent: false,
+            fields: DanceShareField.all,
+          ),
+        );
+        expect(texts, isEmpty);
+      });
+    });
+
     test('a deselected field is absent and a selected one present', () {
       final d = dance();
       final only = textsOf(

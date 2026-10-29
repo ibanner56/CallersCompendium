@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart' show PdfPageFormat;
+import 'package:printing/printing.dart' show LayoutCallback;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -32,6 +34,7 @@ import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
 
 import 'support/fake_url_launcher.dart';
+import 'support/pdf_probe.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'figures_support.dart';
@@ -771,6 +774,31 @@ void main() {
         expect(sink.sources, ['dance_export_actions.exportPdf']);
       },
     );
+
+    testWidgets('the overflow PDF export lays out the paper the print dialog '
+        'chose, not A4 (OUT-4)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+      LayoutCallback? captured;
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        pdfLayouter: ({required name, required onLayout}) async =>
+            captured = onLayout,
+      );
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-export-pdf')));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      expect(pdfMediaBox(await captured!(PdfPageFormat.letter)), (612, 792));
+    });
 
     testWidgets(
       'the compact overflow Copy respects a deselected DanceShareFieldsScope '

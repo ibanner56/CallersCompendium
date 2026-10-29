@@ -3455,7 +3455,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       messenger,
       l10n.exportSetListError,
       () => layoutPdf(
-        name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
+        name: programPdfJobName(
+          title,
+          fallback: l10n.exportMatrixPdfFilename,
+          suffix: l10n.exportMatrixPdfFilename,
+          eventDate: eventDate,
+        ),
         onLayout: (format) => buildProgramMatrixPdf(
           matrix,
           taxonomy: taxonomy,
@@ -3475,6 +3480,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
           config: config,
+          pageFormat: format,
         ),
       ),
       source: 'program_editor_screen._exportMatrixPdf',

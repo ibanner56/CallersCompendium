@@ -5891,6 +5891,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String exportPageOfPages(int page, int pages) {
+    return 'Side $page af $pages';
+  }
+
+  @override
   String get exportLabelVenue => 'Spillested';
 
   @override

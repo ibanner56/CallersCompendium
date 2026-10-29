@@ -38,7 +38,7 @@ While the backup is prepared, a progress bar shows that the app is
 working. It closes once you have finished with the save or share sheet.
 
 The app creates a single dated file — something like
-`callers-compendium-backup-2026-07-15.json` — and hands it to your
+`callers-compendium-backup-2026-07-15.json`, dated by your device's clock — and hands it to your
 device's normal share or save sheet. From there you decide where it
 goes: a cloud drive, your Files area, an email to yourself, or a folder
 of your choosing. When it's done, you'll see a **Backup exported.**

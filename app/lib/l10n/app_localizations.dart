@@ -9035,6 +9035,12 @@ abstract class AppLocalizations {
   /// **'{count} min'**
   String exportMinutesLabel(int count);
 
+  /// Page footer on every exported PDF (dance card, set list, programming matrix), e.g. 'Page 2 of 3'.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page} of {pages}'**
+  String exportPageOfPages(int page, int pages);
+
   /// Heading for the venue detail block on an exported set-list PDF.
   ///
   /// In en, this message translates to:

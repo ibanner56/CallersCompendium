@@ -5933,6 +5933,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String exportPageOfPages(int page, int pages) {
+    return 'Pagina $page van $pages';
+  }
+
+  @override
   String get exportLabelVenue => 'Locatie';
 
   @override
