@@ -746,7 +746,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     if (first.isMeanwhileGroup || second.isMeanwhileGroup) return;
     final group = FigureDraft(meanwhileSides: [first, second]);
     group.params['beats'] = first.beats;
-    group.beatsTouched = first.beatsTouched;
+    // The group follows its sides, as in the dance editor (AUTH-11).
+    group.syncContainerBeats();
     setState(() {
       _defaultDanceFigureDrafts
         ..removeAt(index + 1)

@@ -10050,6 +10050,10 @@
   "@glossaryCustomDeleteDefaults": {
     "x-sourceSha256": "60f9d9b3c005db0b184ac777d688e5bdae100ee989fa1418bf1490b7f9475e7e"
   },
+  "glossaryCustomDeleteShorthands": "{count, plural, =1{Je afkorting ervoor blijft, en als je die typt, wordt hij als een gewone regel gelezen.} other{Je {count} afkortingen ervoor blijven, en als je die typt, worden ze als gewone regels gelezen.}}",
+  "@glossaryCustomDeleteShorthands": {
+    "x-sourceSha256": "57cf5fa1c84c84032888ea8146381ebd3fd2c18fac1f6a427cf526e2c915d5af"
+  },
   "glossaryCustomDeleteUses": "{count, plural, =0{Geen dans in je collectie gebruikt hem. Hij wordt uit je woordenlijst verwijderd.} =1{1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.} other{{count} dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.}}",
   "@glossaryCustomDeleteUses": {
     "x-sourceSha256": "c26dae9673781a119531b3beaa3e8435e9dc2cce5a817010d981d67553f28cbc"

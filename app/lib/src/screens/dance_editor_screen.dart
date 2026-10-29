@@ -350,6 +350,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         // diagnostics: silent — per-move param defaults read failed; falls back to empty map.
         _moveParamDefaults = {};
       }
+      _controller.moveParamDefaults = _moveParamDefaults;
 
       // Load the opt-in "Free-text entry" toggle (#419). A read/parse failure
       // falls back to off, so the Add flow keeps its structured behaviour.

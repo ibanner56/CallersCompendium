@@ -48,6 +48,7 @@ class MoveAutocomplete extends StatefulWidget {
     this.fieldKey,
     this.onCleared,
     this.onCustomSubmitted,
+    this.submitsAsText,
     this.includeAliases = true,
     this.includeModifier = false,
     this.compoundOptions = const [],
@@ -83,6 +84,13 @@ class MoveAutocomplete extends StatefulWidget {
   /// Called when the user submits free text that matches no move — the hook the
   /// editor uses to spin up a custom figure. Null disables custom entry.
   final ValueChanged<String>? onCustomSubmitted;
+
+  /// Whether Enter on this text goes to [onCustomSubmitted] even though it
+  /// matches an option by part of a name: the editor's shorthand tokens, so
+  /// `rl` reaches the user's shorthand rather than butterfly whirl. Such text
+  /// is offered no options. An option named exactly by the text still wins.
+  /// Null treats no text that way.
+  final bool Function(String text)? submitsAsText;
 
   final bool includeAliases;
 
@@ -120,7 +128,26 @@ class MoveAutocomplete extends StatefulWidget {
 class _MoveAutocompleteState extends State<MoveAutocomplete> {
   static String _labelKey(String label) => label.trim().toLowerCase();
 
+  /// The options offered for [query], first the one Enter takes (AUTH-8):
+  /// the option named exactly by it (`star` is star, not star through, and
+  /// `hey` is the app's hey, not your "Hey with a twist"); else, when it is a
+  /// shorthand ([MoveAutocomplete.submitsAsText]), none, so Enter sends it to
+  /// [MoveAutocomplete.onCustomSubmitted]; else every option it finds, in
+  /// their usual order.
   List<MoveOption> _optionsFor(String query) {
+    final q = _labelKey(query);
+    final options = _matchingOptions(q);
+    final exact = options.indexWhere((o) => _namesExactly(o, q));
+    if (exact > 0) {
+      options.insert(0, options.removeAt(exact));
+    } else if (exact == -1 && (widget.submitsAsText?.call(q) ?? false)) {
+      return const [];
+    }
+    return options.take(8).toList();
+  }
+
+  /// Every option [query] finds, in the order they are offered.
+  List<MoveOption> _matchingOptions(String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const [];
     final dialect = widget.dialect ?? Dialect.canonical;
@@ -187,7 +214,19 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
         }
       }
     }
-    return options.take(8).toList();
+    return options;
+  }
+
+  /// Whether [option] is named [q]: its label, or for a move or alias, its
+  /// own name or its id with spaces.
+  bool _namesExactly(MoveOption option, String q) {
+    if (_labelKey(option.displayName) == q) return true;
+    if (option.kind != MoveOptionKind.move) return false;
+    final name =
+        widget.taxonomy.moves[option.id]?.displayName ??
+        widget.taxonomy.aliases[option.id]?.displayName;
+    return (name != null && _labelKey(name) == q) ||
+        option.id.replaceAll('_', ' ') == q;
   }
 
   @override

@@ -453,8 +453,10 @@ open this group. You can override any of them per dance, and
   dance editor offers them for a dance's form. A list keeps a figure it
   already holds when you change the form.
 - **Move defaults** — preferred parameter values applied automatically when you
-  insert a [move](./glossary.md#move) while writing. These override that move's
-  built-in defaults, and you can still change any parameter afterwards. While
+  insert a [move](./glossary.md#move) while writing, whether you pick it or type
+  it with **Free-text entry**. These override that move's built-in defaults, but
+  not a value you type in the line (`half hey`), and you can still change any
+  parameter afterwards. While
   Custom Figures is on, **Your figures' defaults** lists each of your new
   figures that can be used (not one marked **Needs repair**): a figure keeps its own defaults, the values it starts with and its
   beats, so choosing one opens it to change them.
@@ -708,7 +710,10 @@ The Glossary lists them too, when it is shown. While it is on:
   Trash use it, which keep the line each last stored, and whether your default
   figures use it; they keep its current wording as plain text, like the
   dances. Each dialect's name and wording for it, and its column's place, name
-  and hiding in **Matrix columns**, are removed too. A figure that can no longer be used
+  and hiding in **Matrix columns**, are removed too. Deleting a combination or
+  a new figure also says how many of your shorthands are for it: they stay,
+  and once the figure is gone, typing one is read as an ordinary line (see
+  [Figure shorthands](./authoring.md#figure-shorthands)). A figure that can no longer be used
   is marked **Needs repair**; one whose name is also another figure's is
   marked **Rename needed**.
 - If a later version of the app comes with a figure that has the name of one
