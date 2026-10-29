@@ -790,11 +790,11 @@ const Map<String, String> _numberedCorners = {
   '#corner3': 'thirdCorners',
 };
 
-/// The words after which "opposite" describes something rather than naming
-/// the opposites (maintainer decision, #1975; the plurals are the author's). Today the described word is
-/// never read, so such a line stays text even without this; it keeps a
-/// recognizer that tolerated a leftover word from reading "opposite role" as
-/// the opposites.
+/// The words after which "opposite" describes something rather than naming the
+/// opposites (maintainer decision, #1975; the plurals are the author's). Today
+/// the described word is never read, so such a line stays text even without
+/// this; it keeps a recognizer that tolerated a leftover word from reading
+/// "opposite role" as the opposites.
 const Set<String> _oppositeDescribes = {
   'role',
   'roles',

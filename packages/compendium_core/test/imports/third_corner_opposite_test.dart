@@ -104,12 +104,26 @@ void main() {
 
     test('a corner a slot cannot hold is not approximated', () {
       // `form_long_waves.who` is an invertible pair; opposites are not one,
-      // so the run declines and the defaults stay, as before v38.
-      for (final line in ['Form long waves (C2R)', 'Form long waves (C3L)']) {
+      // so the dancer is not written, but the side reads and the run stays
+      // as the note.
+      for (final (line, code) in [
+        ('Form long waves (C2R)', 'C2R'),
+        ('Form long waves (C3L)', 'C3L'),
+      ]) {
         final f = tcb(line)!;
         expect(f.move, 'form_long_waves', reason: line);
         expect(f.params.containsKey('who'), isFalse, reason: line);
+        expect(f.params['whomHand'], isNotNull, reason: line);
+        expect(f.note, code, reason: line);
       }
+    });
+
+    test('a side run keeps its hand when the line names who', () {
+      // The run's dancer is not written, so it is not checked against the
+      // slot either.
+      final f = tcb('Robins form long waves (NR)')!;
+      expect(f.params['who'], 'role2s');
+      expect(f.params['whomHand'], 'right');
     });
   });
 }

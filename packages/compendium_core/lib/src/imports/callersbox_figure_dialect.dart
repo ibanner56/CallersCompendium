@@ -2525,9 +2525,10 @@ bool _isSquareRoleSetDescriptor(String body) =>
 ///     (`Pass through along (NR) (optional)`, #1971);
 ///   * the annotation is not entirely `<people-code><R|L>` cells, or any
 ///     people code is absent from [tcbPassPeople] (`O`, `Ph`, `SRN`, `C4`+,
-///     out-of-range neighbors/shadows), or names a dancer the move's slot does
-///     not accept (`Form long waves (C2R)`: opposites are not an invertible
-///     pair) — never approximated onto a token that means something else;
+///     out-of-range neighbors/shadows) — never approximated onto a token that
+///     means something else. A dancer the slot it would fill does not accept
+///     (`Form long waves (C2R)`: opposites are not an invertible pair) is not
+///     written either; the side still reads and the run is kept as the note;
 ///   * the sides do not alternate by position parity, which is the model both
 ///     two-pass renderers implement;
 ///   * a `square_through` 4-code list is not periodic (`code[2] == code[0]`,
@@ -2566,11 +2567,13 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   if (close == -1) return null;
   final List<_SideCell> decoded;
   final String sideBase;
+  final String runText;
   String? prose;
   if (lower.indexOf('(', close + 1) == -1) {
     final run = _decodeSideCells(_boundedPassListCellsIn(lower, open, close));
     if (run == null) return null;
     (cells: decoded, base: sideBase) = run;
+    runText = scrubbed.substring(open + 1, close).trim();
   } else {
     // More than one parenthetical: one side run plus prose, which becomes the
     // note (`Pass through along (NR) (optional)`, #1971). Anything else is
@@ -2578,6 +2581,7 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
     final split = _sideRunAndProse(scrubbed);
     if (split == null) return null;
     (cells: decoded, base: sideBase) = split.run;
+    runText = split.runText.trim();
     prose = _joinAnnotations(split.prose);
   }
 
@@ -2613,22 +2617,29 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   final who1 = _consistentWho(decoded, odd: true);
   final who2 = _consistentWho(decoded, odd: false);
   if (who1 == null) return null; // positions disagree -> ambiguous -> decline.
-  // A dancer the slot does not accept is not approximated either: since
-  // taxonomy v38 (#1975) a square corner decodes to `opposites`, which a
-  // `form_long_waves.who` (an invertible pair) cannot hold.
+  final writesWho =
+      def.params.containsKey('who') && !match.params.containsKey('who');
+  final writesWho2 =
+      who2 != null &&
+      def.params.containsKey('who2') &&
+      !match.params.containsKey('who2');
+  // A dancer the slot it would fill does not accept is not approximated:
+  // since taxonomy v38 (#1975) a square corner decodes to `opposites`, which a
+  // `form_long_waves.who` (an invertible pair) cannot hold. The side still
+  // reads, and the run is kept as the note so the dancer it names is not lost.
   bool fits(String slotName, String who) =>
       def.params[slotName]?.validate(who) ?? true;
-  if (!fits('who', who1) || (who2 != null && !fits('who2', who2))) {
-    return null;
+  if ((writesWho && !fits('who', who1)) ||
+      (writesWho2 && !fits('who2', who2))) {
+    return FigureMatch(
+      match.moveId,
+      params: params,
+      note: combineFigureNotes(combineFigureNotes(match.note, prose), runText),
+      assumedSubject: match.assumedSubject,
+    );
   }
-  if (def.params.containsKey('who') && !match.params.containsKey('who')) {
-    params['who'] = who1;
-  }
-  if (who2 != null &&
-      def.params.containsKey('who2') &&
-      !match.params.containsKey('who2')) {
-    params['who2'] = who2;
-  }
+  if (writesWho) params['who'] = who1;
+  if (writesWho2) params['who2'] = who2;
 
   return FigureMatch(
     match.moveId,
@@ -2683,7 +2694,11 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
 /// Splits [scrubbed]'s parentheticals into exactly one decodable side run and
 /// one or more prose annotations, or returns `null` when they are anything
 /// else. Lets a side run share its line with prose (#1971).
-({({List<_SideCell> cells, String base}) run, List<String> prose})?
+({
+  ({List<_SideCell> cells, String base}) run,
+  String runText,
+  List<String> prose,
+})?
 _sideRunAndProse(String scrubbed) {
   final annotations = _parenAnnotations(scrubbed);
   final prose = <String>[];
@@ -2700,7 +2715,7 @@ _sideRunAndProse(String scrubbed) {
   }
   if (shorthand == null || prose.isEmpty) return null;
   final run = _decodeSideCells(_boundedPassListCells(shorthand.toLowerCase()));
-  return run == null ? null : (run: run, prose: prose);
+  return run == null ? null : (run: run, runText: shorthand, prose: prose);
 }
 
 /// One decoded `<people-code><R|L>` cell: the dancer it names and the side.
@@ -3176,8 +3191,8 @@ FigureMatch? _circulate(String scrubbed) {
 ///   * any cell is not `<people-code><R|L>` with the people code present in
 ///     [tcbPassPeople] (square corners past `C3`, mixer partner series,
 ///     out-of-range neighbors/shadows, phantoms and bare `R`/`L` therefore stay
-///     custom rather
-///     than being approximated onto a token that means something else);
+///     custom rather than being approximated onto a token that means something
+///     else);
 ///   * the odd/even dancers are not internally consistent, or the hands do not
 ///     alternate (an ambiguous list is never partially structured).
 ///
