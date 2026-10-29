@@ -278,10 +278,15 @@ often open the file directly:
 
 - **Mac, iPhone, or iPad:** open the `.ccshare` file wherever it arrives, or
   send it by AirDrop.
-- **Android:** open a `.json` bundle with **Open with**, or send it to the app
-  from another app's **Share** menu.
+- **Android:** open a `.ccshare` or `.json` file with **Open with**, or send it
+  to the app from another app's **Share** menu. Android doesn't know the
+  `.ccshare` type, so the app also appears for other files of unknown type;
+  if you open something that isn't a share file, the app says so and imports
+  nothing.
 - **Any device**, including Linux and Windows: go to **Settings › General** and
   choose **Import…**, then pick the file.
+  On Android the file picker lists every file of unknown type as well as share
+  files, so choose the one you saved.
 
 Opened directly, the app launches and takes you straight to the same review
 screen a manual import uses, already loaded with what the file contains — the
