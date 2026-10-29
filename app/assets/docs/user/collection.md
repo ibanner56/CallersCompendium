@@ -45,7 +45,9 @@ To change the order, open the **Sort** control at the top of the list. You can
 sort by:
 
 - **Title** — alphabetical, ignoring a leading "The," "A," or "An," so *The
-  Nice Combination* sorts under **N**, where you would look for it.
+  Nice Combination* sorts under **N**, where you would look for it. Accents
+  are ignored, so *École* sorts with **E**. This is not full language-aware
+  sorting: letters such as Æ and Ø still sort after Z.
 - **Author** — grouped by who wrote the dances.
 - **Recently added** — newest additions first, handy just after an
   [import](./glossary.md#import).

@@ -2818,7 +2818,8 @@ class DanceRepository {
       }
     }
     previews.sort(
-      (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      (a, b) =>
+          foldForTitleMatch(a.title).compareTo(foldForTitleMatch(b.title)),
     );
     return previews;
   }
@@ -2949,10 +2950,13 @@ class DanceRepository {
   /// "called ×N" count (issue #583's "in lockstep"; FIND-2): pass the same
   /// values. They have no effect on any other sort.
   ///
-  /// When [ignoreLeadingArticles] is `true`, [SearchSort.title] alphabetizes
-  /// with a leading article ("the"/"a"/"an") ignored (see [titleSortKey]) —
-  /// e.g. "The Nice Combination" files under **N**. This is applied as a stable
-  /// Dart post-sort over the SQL base order; other sorts are unaffected.
+  /// [SearchSort.title] and [SearchSort.author] compare accent-folded keys
+  /// ([foldForTitleMatch]), so "École" files with **E**. When
+  /// [ignoreLeadingArticles] is `true`, [SearchSort.title] also ignores a
+  /// leading article ("the"/"a"/"an", see [titleSortKey]) — e.g. "The Nice
+  /// Combination" files under **N**. Both are a stable Dart post-sort over the
+  /// SQL base order (which is ASCII-case-only, `COLLATE NOCASE`); other sorts
+  /// are unaffected.
   ///
   /// [direction] flips the ordering; when omitted it resolves to the sort key's
   /// [SearchSortDirectionX.defaultDirection], preserving the historical order.
@@ -2997,9 +3001,13 @@ class DanceRepository {
           requireEventDate: requireEventDate,
         );
       case SearchSort.title:
-        return ignoreLeadingArticles
-            ? _sortByTitleIgnoringArticles(ids, descending: descending)
-            : ids;
+        // Always a Dart post-pass: SQL `COLLATE NOCASE` folds only ASCII case,
+        // so "École" would file after Z. [titleSortKey] folds accents.
+        return _sortByTitle(
+          ids,
+          descending: descending,
+          ignoreLeadingArticles: ignoreLeadingArticles,
+        );
       case SearchSort.recentlyAdded:
       case SearchSort.recentlyEdited:
       case SearchSort.composedOn:
@@ -3009,16 +3017,18 @@ class DanceRepository {
     }
   }
 
-  /// Alphabetizes [ids] by title with a leading article ignored (see
+  /// Alphabetizes [ids] by accent-folded title (see [foldForTitleMatch]), with
+  /// a leading article ignored when [ignoreLeadingArticles] (see
   /// [titleSortKey]). [ids] arrive in SQL title (base) order, kept as a stable
   /// tiebreak for equal keys (e.g. "Rose" vs "The Rose" both key to "rose").
   ///
   /// Only the `(id, title)` of the already-filtered [ids] is fetched (via an
   /// `id IN (...)` restriction), so this scales with the result size rather
   /// than the whole library.
-  Future<List<String>> _sortByTitleIgnoringArticles(
+  Future<List<String>> _sortByTitle(
     List<String> ids, {
     bool descending = false,
+    required bool ignoreLeadingArticles,
   }) async {
     if (ids.isEmpty) return ids;
     // Chunked (see [_chunkIds]) so a result past SQLite's bound-variable limit
@@ -3031,9 +3041,10 @@ class DanceRepository {
                 ..where(_db.dances.id.isIn(chunk)))
               .get();
       for (final row in rows) {
-        keys[row.read(_db.dances.id)!] = titleSortKey(
-          row.read(_db.dances.title)!,
-        );
+        final title = row.read(_db.dances.title)!;
+        keys[row.read(_db.dances.id)!] = ignoreLeadingArticles
+            ? titleSortKey(title)
+            : foldForTitleMatch(title).trim();
       }
     }
     final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
@@ -3074,9 +3085,9 @@ class DanceRepository {
           )
           .get();
       for (final r in rows) {
-        names[r.read<String>('dance_id')] = r
-            .read<String>('name')
-            .toLowerCase();
+        names[r.read<String>('dance_id')] = foldForTitleMatch(
+          r.read<String>('name'),
+        );
       }
     }
     // `ids` arrives in title (base) order; keep it as a stable tiebreak since
