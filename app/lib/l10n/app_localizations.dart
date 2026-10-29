@@ -11789,6 +11789,12 @@ abstract class AppLocalizations {
   /// **'A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).'**
   String validationSequenceExceedsPhrase(int position, int actual, int limit);
 
+  /// Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} is not complete, so Save leaves it out.'**
+  String validationIncompleteFigure(int position);
+
   /// Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds).
   ///
   /// In en, this message translates to:
@@ -12386,6 +12392,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.'**
   String get danceEditorCompoundUnavailable;
+
+  /// Shown on a dance's figure row (AUTH-2) that saving would leave out because it is not complete: a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, a group holding such a group, or a row with no move that holds something other than a note. Matches the Warnings entry validationIncompleteFigure. 'Save' is the editor's Save button (commonSave).
+  ///
+  /// In en, this message translates to:
+  /// **'Not complete, so Save leaves it out.'**
+  String get danceEditorIncompleteFigure;
 
   /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.
   ///

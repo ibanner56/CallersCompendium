@@ -7895,6 +7895,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'Figuur $position is niet compleet, dus Opslaan laat hem weg.';
+  }
+
+  @override
   String get validationPhraseInvalid => 'Die fraseopbouw is ongeldig.';
 
   @override
@@ -8322,6 +8327,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'Deze eigen figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijven alleen de naam, de beats, de notitie en de progressie bewaard.';
+
+  @override
+  String get danceEditorIncompleteFigure =>
+      'Niet compleet, dus Opslaan laat hem weg.';
 
   @override
   String danceEditorFigureSummarySemantic(

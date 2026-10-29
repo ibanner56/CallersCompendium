@@ -7929,6 +7929,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'Figur $position ist nicht vollständig, daher lässt Speichern sie weg.';
+  }
+
+  @override
   String get validationPhraseInvalid =>
       'Diese Phrasierungsstruktur ist ungültig.';
 
@@ -8357,6 +8362,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'Diese eigene Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleiben nur Name, Takte, Notiz und Progression erhalten.';
+
+  @override
+  String get danceEditorIncompleteFigure =>
+      'Nicht vollständig, daher lässt Speichern sie weg.';
 
   @override
   String danceEditorFigureSummarySemantic(

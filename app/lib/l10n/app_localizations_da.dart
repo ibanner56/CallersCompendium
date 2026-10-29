@@ -7837,6 +7837,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'Figur $position er ikke færdig, så Gem udelader den.';
+  }
+
+  @override
   String get validationPhraseInvalid => 'Den frastruktur er ugyldig.';
 
   @override
@@ -8262,6 +8267,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'Denne egen figur kan ikke udvides: den er slettet eller ændret, eller den accepterer ikke disse værdier. Når du gemmer, bevares kun navn, slag, note og progression.';
+
+  @override
+  String get danceEditorIncompleteFigure => 'Ikke færdig, så Gem udelader den.';
 
   @override
   String danceEditorFigureSummarySemantic(

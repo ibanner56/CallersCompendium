@@ -7946,6 +7946,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'La figure $position n’est pas complète : Enregistrer la laisse de côté.';
+  }
+
+  @override
   String get validationPhraseInvalid =>
       'Cette structure de phrase n\'est pas valide.';
 
@@ -8376,6 +8381,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'Cette figure ne peut pas être développée : elle a été supprimée ou modifiée, ou n’accepte pas ces valeurs. À l’enregistrement, seuls son nom, ses temps, sa note et la marque de progression sont conservés.';
+
+  @override
+  String get danceEditorIncompleteFigure =>
+      'Pas complète : Enregistrer la laisse de côté.';
 
   @override
   String danceEditorFigureSummarySemantic(
