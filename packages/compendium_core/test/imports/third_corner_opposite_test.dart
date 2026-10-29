@@ -124,6 +124,7 @@ void main() {
       final f = tcb('Robins form long waves (NR)')!;
       expect(f.params['who'], 'role2s');
       expect(f.params['whomHand'], 'right');
+      expect(f.note, isNull);
     });
   });
 }
