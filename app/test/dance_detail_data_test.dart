@@ -1,3 +1,4 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:flutter/widgets.dart';
@@ -83,12 +84,12 @@ void main() {
       expect(data!.dance.title, 'Midwest Folklore');
       expect(data.authorNames, ['Gene Hubert']);
       expect(data.tagNames, ['smooth']);
-      // Booleans render as Yes/No; other values via toString().
+      // The stored value is kept raw; the screen formats it for the language.
       expect(
         data.customFields,
         contains((label: 'Notes', value: 'a lovely tune')),
       );
-      expect(data.customFields, contains((label: 'Featured', value: 'Yes')));
+      expect(data.customFields, contains((label: 'Featured', value: true)));
     },
   );
 
@@ -183,4 +184,18 @@ void main() {
       expect(rendered, isNot(contains('[d1:')));
     },
   );
+
+  test('formatCustomFieldValue shows Yes/No in the active language', () async {
+    final en = await AppLocalizations.delegate.load(const Locale('en'));
+    final ja = await AppLocalizations.delegate.load(const Locale('ja'));
+
+    expect(formatCustomFieldValue(en, true), 'Yes');
+    expect(formatCustomFieldValue(en, false), 'No');
+    expect(formatCustomFieldValue(ja, true), ja.commonYes);
+    expect(formatCustomFieldValue(ja, false), ja.commonNo);
+    expect(formatCustomFieldValue(ja, true), isNot('Yes'));
+    // Anything else is shown as stored.
+    expect(formatCustomFieldValue(ja, 'a lovely tune'), 'a lovely tune');
+    expect(formatCustomFieldValue(ja, 12.5), '12.5');
+  });
 }

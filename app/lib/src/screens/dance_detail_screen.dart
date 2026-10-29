@@ -1372,12 +1372,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.xxs),
-          for (final field in detail.customFields)
+          for (final field in detail.customFields.map(
+            (f) =>
+                (label: f.label, text: formatCustomFieldValue(l10n, f.value)),
+          ))
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
-                '${field.label}: ${canonicalDiscouragedTerms ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(field.value, dialect) : field.value}',
+                '${field.label}: ${canonicalDiscouragedTerms ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(field.text, dialect) : field.text}',
               ),
             ),
         ],

@@ -92,16 +92,6 @@
   "@appBootstrapError": {
     "description": "Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button."
   },
-  "appBootstrapErrorType": "Error: {errorType}",
-  "@appBootstrapErrorType": {
-    "description": "Detail line on the startup error screen naming the kind of failure (the error's type name only, never its message).",
-    "placeholders": {
-      "errorType": {
-        "type": "String",
-        "example": "StateError"
-      }
-    }
-  },
   "appBootstrapCopyDetails": "Copy details",
   "@appBootstrapCopyDetails": {
     "description": "Button on the startup error screen that copies the error type and stack trace (not the message) to the clipboard."
@@ -246,6 +236,10 @@
   "migrationBelowFloorResetConfirmBody": "A backup has been saved. Resetting will replace your current data with a fresh, empty database.",
   "@migrationBelowFloorResetConfirmBody": {
     "description": "Body of the confirmation dialog shown before a Back Up + Reset action once the backup has been written successfully."
+  },
+  "migrationBelowFloorResetConfirmAction": "Reset",
+  "@migrationBelowFloorResetConfirmAction": {
+    "description": "Confirm button of the reset dialog on the below-floor recovery screen, shown after a backup has been saved. Plain \"Reset\", not the \"Back Up + Reset\" button that opened the flow: the backup is already done."
   },
   "migrationBelowFloorBackupSavedAt": "Backup saved to: {backupPath}",
   "@migrationBelowFloorBackupSavedAt": {
@@ -517,7 +511,7 @@
   "@glossaryCustomRenameMine": {
     "description": "Button on one of the user's own figures whose name a figure of the app's now has (#1023): opens the editor to rename theirs."
   },
-  "glossaryCustomSwitchToShipped": "Switch to the app's",
+  "glossaryCustomSwitchToShipped": "Switch to the app's figure",
   "@glossaryCustomSwitchToShipped": {
     "description": "Button on one of the user's own figures whose name a figure of the app's now has (#1023): opens a screen that maps the user's figure onto the app's, then switches the dances using it to the app's figure and removes the user's."
   },
@@ -696,13 +690,13 @@
   "@settingsSyncEnableSubtitle": {
     "description": "Subtitle of the Device Sync enable switch."
   },
-  "settingsSyncWifiOnlyTitle": "Sync only on WiFi",
+  "settingsSyncWifiOnlyTitle": "Sync only on Wi-Fi",
   "@settingsSyncWifiOnlyTitle": {
     "description": "Title of the switch limiting automatic sync to unmetered connections."
   },
-  "settingsSyncWifiOnlySubtitle": "On by default. On a mobile-data connection sync waits until you are on WiFi.",
+  "settingsSyncWifiOnlySubtitle": "On by default. On a mobile-data connection sync waits until you are on Wi-Fi.",
   "@settingsSyncWifiOnlySubtitle": {
-    "description": "Subtitle of the sync-only-on-WiFi switch."
+    "description": "Subtitle of the sync-only-on-Wi-Fi switch."
   },
   "settingsSyncExcludeImportsTitle": "Skip unused imported dances",
   "@settingsSyncExcludeImportsTitle": {
@@ -872,7 +866,7 @@
   "@settingsSyncQuotaNearlyFull": {
     "description": "Warning on the Device Sync status surface when the store has used 80% or more of the space or record count the sync server allows. 'Store' is the shared place devices sync through, as elsewhere in Device Sync."
   },
-  "settingsSyncQuotaExcludeImports": "Stop syncing imported dances",
+  "settingsSyncQuotaExcludeImports": "Skip unused imported dances",
   "@settingsSyncQuotaExcludeImports": {
     "description": "Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off."
   },
@@ -1836,9 +1830,9 @@
   "@settingsSyncWipeDetachFailedTitle": {
     "description": "Title of the dialog for SyncAdminOutcome.wipedButStillAttached; the body is settingsSyncWipeDetachFailed. Must not read as a failure to delete."
   },
-  "settingsSyncMeteredRouted": "You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off below to sync now.",
+  "settingsSyncMeteredRouted": "You are on a mobile-data connection and Sync only on Wi-Fi is on. Turn that setting off below to sync now.",
   "@settingsSyncMeteredRouted": {
-    "description": "Message shown when a manual sync is attempted on a metered connection, pointing at the WiFi-only setting."
+    "description": "Message shown when a manual sync is attempted on a metered connection, pointing at the Wi-Fi-only setting."
   },
   "settingsSyncOffline": "No connection right now. Sync will run at the next opportunity.",
   "@settingsSyncOffline": {
@@ -1852,7 +1846,7 @@
   "@commonSyncNowTooltip": {
     "description": "Tooltip of the toolbar button on the Collection, Programs and Glossary pages that starts a manual Device Sync pass. Shown only while Device Sync is on and paired."
   },
-  "commonSyncMeteredBlocked": "You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off in Settings to sync now.",
+  "commonSyncMeteredBlocked": "You are on a mobile-data connection and Sync only on Wi-Fi is on. Turn that setting off in Settings to sync now.",
   "@commonSyncMeteredBlocked": {
     "description": "Snackbar shown when the toolbar Sync now button is tapped on a metered connection. Unlike settingsSyncMeteredRouted it must not say the setting is 'below': the button lives outside Settings, so nothing is below it."
   },
@@ -2022,7 +2016,7 @@
   "@settingsSyncPairingCompleteFailed": {
     "description": "Body of the pairing-complete dialog when the first sync pass ran and ended at any status other than completed. Pairing itself succeeded — the phrase and server are persisted — so the title still reports a connection; only the pass failed."
   },
-  "settingsSyncPairingCompleteMetered": "Your library is connected. The first sync is waiting for WiFi, because Sync only on WiFi is on.",
+  "settingsSyncPairingCompleteMetered": "Your library is connected. The first sync is waiting for Wi-Fi, because Sync only on Wi-Fi is on.",
   "@settingsSyncPairingCompleteMetered": {
     "description": "Body of the pairing-complete dialog when the §6.12 gate suppressed the first pass as metered. Names the setting responsible, because that is the one thing the user can act on."
   },
@@ -2352,9 +2346,9 @@
   "@settingsUpdatesVerifyingTitle": {
     "description": "Title of the assisted-download tile while verifying the downloaded file."
   },
-  "settingsUpdatesVerifyingSubtitle": "Checking the sha256 integrity of the download…",
+  "settingsUpdatesVerifyingSubtitle": "Checking that the download is complete and unchanged…",
   "@settingsUpdatesVerifyingSubtitle": {
-    "description": "Subtitle shown while verifying the download's sha256 integrity. 'sha256' is a technical term kept verbatim."
+    "description": "Subtitle shown while the app checks that the downloaded update is complete and unchanged (a checksum comparison, described in plain words)."
   },
   "settingsUpdatesHandoffTitle": "Preparing the installer",
   "@settingsUpdatesHandoffTitle": {
@@ -2636,7 +2630,7 @@
   "@appThemeDescriptionAyuMirage": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
-  "appThemeDescriptionCutiePro": "Cute af dark pastel, pink-forward",
+  "appThemeDescriptionCutiePro": "Playful dark pastel, pink-forward",
   "@appThemeDescriptionCutiePro": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
@@ -3211,7 +3205,7 @@
   "@settingsDefaultsFreeTextEntryTitle": {
     "description": "Title of the opt-in setting that lets a new figure be typed as one line instead of built field by field (#419)."
   },
-  "settingsDefaultsFreeTextEntrySubtitle": "When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure's move and pressing Enter replaces that figure. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.",
+  "settingsDefaultsFreeTextEntrySubtitle": "When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure's move and pressing Enter replaces that figure. The line is turned into figures; anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.",
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "description": "Explanatory subtitle for the free-text-entry setting, describing what turning it on does."
   },
@@ -3788,7 +3782,7 @@
   "@syncReviewEmpty": {
     "description": "Empty state shown when the persisted sync decision queue has no rows."
   },
-  "syncReviewIntro": "These records need a decision before the peer change can be applied.",
+  "syncReviewIntro": "These items need a decision before a change from another device can be applied.",
   "@syncReviewIntro": {
     "description": "Introductory copy above persisted sync decision rows."
   },
@@ -3858,7 +3852,7 @@
       }
     }
   },
-  "syncReviewLocalRecord": "Local record: {id}",
+  "syncReviewLocalRecord": "On this device: {id}",
   "@syncReviewLocalRecord": {
     "description": "Safe identity line for the local record in a sync decision.",
     "placeholders": {
@@ -3868,7 +3862,7 @@
       }
     }
   },
-  "syncReviewPeerRecord": "Peer record: {identity}",
+  "syncReviewPeerRecord": "From the other device: {identity}",
   "@syncReviewPeerRecord": {
     "description": "Safe identity line for the peer candidate in a sync decision.",
     "placeholders": {
@@ -3878,7 +3872,7 @@
       }
     }
   },
-  "syncReviewTombstoneReason": "A peer deleted a matching record that this device created.",
+  "syncReviewTombstoneReason": "Another device deleted a matching item that this device created.",
   "@syncReviewTombstoneReason": {
     "description": "Reason shown for the W14-supported baseline-absence tombstone decision."
   },
@@ -3906,7 +3900,7 @@
   "@syncReviewUnsupportedReason": {
     "description": "Reason/status shown for persisted sync conflicts outside the W14 action contract."
   },
-  "syncReviewUnsupportedAction": "Keep this item until a later sync pass or a supported review flow can handle it.",
+  "syncReviewUnsupportedAction": "Keep this item for now; a later sync or app update may be able to handle it.",
   "@syncReviewUnsupportedAction": {
     "description": "Explanation shown instead of mutating actions for unsupported persisted sync conflicts."
   },
@@ -3934,11 +3928,11 @@
   "@syncReviewNameNotDistinct": {
     "description": "Validation or action error shown when the keep-both name is unchanged or occupied."
   },
-  "syncReviewCandidateInvalid": "The saved peer change is not valid, so it was kept.",
+  "syncReviewCandidateInvalid": "The saved change from another device is not valid, so it was kept.",
   "@syncReviewCandidateInvalid": {
     "description": "Action error shown when a persisted sync candidate fails integrity validation."
   },
-  "syncReviewCandidateChanged": "The saved peer change is no longer current, so it was kept.",
+  "syncReviewCandidateChanged": "The saved change from another device is no longer current, so it was kept.",
   "@syncReviewCandidateChanged": {
     "description": "Action error shown when a persisted sync candidate or target changed."
   },
@@ -3946,7 +3940,7 @@
   "@syncReviewTargetMissing": {
     "description": "Action error shown when a supported sync decision's local target disappeared."
   },
-  "syncReviewCandidateAlreadyPresent": "The peer record is already present, so the decision was kept.",
+  "syncReviewCandidateAlreadyPresent": "The item from the other device is already here, so the decision was kept.",
   "@syncReviewCandidateAlreadyPresent": {
     "description": "Action error shown when a persisted sync decision would duplicate an existing target."
   },
@@ -3966,7 +3960,7 @@
   "@settingsGeneralReparseCustomFiguresTitle": {
     "description": "Title of the General settings row that re-parses imported custom-only figures."
   },
-  "settingsGeneralReparseCustomFiguresSubtitle": "Re-parse imported dances whose figures were kept as custom only because they could not be recognised at import time. Improved parsing upgrades them in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.",
+  "settingsGeneralReparseCustomFiguresSubtitle": "Re-check imported dances whose figures were kept as custom only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.",
   "@settingsGeneralReparseCustomFiguresSubtitle": {
     "description": "Subtitle explaining the re-check custom figures action."
   },
@@ -4592,7 +4586,7 @@
       }
     }
   },
-  "importGapMessage": "Couldn't parse this call — kept verbatim as a custom figure.",
+  "importGapMessage": "Couldn't recognize this call — kept exactly as written as a custom figure.",
   "@importGapMessage": {
     "description": "Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label."
   },
@@ -4600,7 +4594,7 @@
   "@importGapDialogTitle": {
     "description": "Title of the dialog explaining an unrecognized (import-gap or free-text) custom figure (shown when the badge is tapped)."
   },
-  "importGapSemanticLabel": "Unrecognized figure. Couldn't parse this call — kept verbatim as a custom figure.",
+  "importGapSemanticLabel": "Unrecognized figure. Kept exactly as written as a custom figure.",
   "@importGapSemanticLabel": {
     "description": "Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments."
   },
@@ -6068,9 +6062,9 @@
   "@programsMarkAllPerformedTooltip": {
     "description": "Tooltip for the app-bar action that marks every dance in the program as performed."
   },
-  "programsSaveDirty": "Save *",
+  "programsSaveDirty": "Save changes",
   "@programsSaveDirty": {
-    "description": "Label of the save button when the program has unsaved changes; the asterisk marks the dirty state."
+    "description": "Label of the save button when the program has unsaved changes; it replaces the plain Save label so the dirty state is readable by screen readers too."
   },
   "commonSave": "Save",
   "@commonSave": {
@@ -7990,7 +7984,7 @@
       }
     }
   },
-  "onlineImportVariationDialogBody": "This dance's title and caller match \"{existingTitle}\", but its figures are different. How do you want to import it?",
+  "onlineImportVariationDialogBody": "This dance's title and author match \"{existingTitle}\", but its figures are different. How do you want to import it?",
   "@onlineImportVariationDialogBody": {
     "description": "Body text in the resolution dialog shown when a confident title+author match with differing figures is found during a single-dance online import (issue #797). existingTitle is an untrusted local value rendered as plain text.",
     "placeholders": {
@@ -8411,6 +8405,26 @@
   "importSourceLabelGenericJson": "a Caller's Compendium JSON file",
   "@importSourceLabelGenericJson": {
     "description": "Name of the generic Caller's Compendium JSON import source, shown in the import-source dropdown and in the 'Import from {source}.' heading."
+  },
+  "fileDialogTypeBackupJson": "Backup (JSON)",
+  "@fileDialogTypeBackupJson": {
+    "description": "Name of the .json filter in the native backup save/restore file dialogs."
+  },
+  "fileDialogTypeCompendiumShare": "Compendium share",
+  "@fileDialogTypeCompendiumShare": {
+    "description": "Name of the share-file filter (.ccshare / .json) in the native import file dialog."
+  },
+  "fileDialogTypeCompanionUsr": "Caller's Companion .USR",
+  "@fileDialogTypeCompanionUsr": {
+    "description": "Name of the Caller's Companion .USR filter in the native import file dialog. Product and file-type names; not translated."
+  },
+  "fileDialogTypeDiagnosticsLog": "Diagnostics log",
+  "@fileDialogTypeDiagnosticsLog": {
+    "description": "Name of the diagnostics-log filter in the native save dialog."
+  },
+  "fileDialogTypeMacosUpdate": "Caller's Compendium update",
+  "@fileDialogTypeMacosUpdate": {
+    "description": "Name of the update-installer filter (.dmg / .zip) in the macOS native save dialog."
   },
   "importSourceLabelCallersBox": "The Caller's Box",
   "@importSourceLabelCallersBox": {
@@ -8984,7 +8998,7 @@
   "@importIssueProgressionUnmapped": {
     "description": "Import note: a progression value wasn't a standard tier and was recorded as 'other'."
   },
-  "importIssueMetadataOnlyStub": "This dance is available as metadata only (no figures); imported as a stub.",
+  "importIssueMetadataOnlyStub": "Only the dance's details were available (no figures), so it was imported without figures.",
   "@importIssueMetadataOnlyStub": {
     "description": "Import note: the source served only metadata (no figures), so the dance was imported as a metadata-only stub."
   },
@@ -9070,7 +9084,7 @@
   "@importIssueBeatsUnreadable": {
     "description": "Import note: a beat count couldn't be parsed and 0 was used."
   },
-  "importIssueNoFiguresTable": "The page had no figures; imported as a metadata-only stub.",
+  "importIssueNoFiguresTable": "The page had no figures, so the dance was imported without figures.",
   "@importIssueNoFiguresTable": {
     "description": "Import note: an imported page had no figures table, so a metadata-only stub was created."
   },
@@ -9088,11 +9102,11 @@
       }
     }
   },
-  "importIssueParamUnmapped": "A figure parameter couldn't be mapped; a taxonomy default was used.",
+  "importIssueParamUnmapped": "One of a figure's settings couldn't be matched, so its default value was used.",
   "@importIssueParamUnmapped": {
     "description": "Import note (generic fallback): a figure parameter couldn't be mapped and a taxonomy default was used."
   },
-  "importIssueParamValueUnmapped": "The {param} parameter couldn't be converted; a taxonomy default was used.",
+  "importIssueParamValueUnmapped": "The {param} setting couldn't be converted, so its default value was used.",
   "@importIssueParamValueUnmapped": {
     "description": "Import note: a figure's value for the named taxonomy parameter couldn't be converted, so the taxonomy default was used. {param} is a taxonomy parameter name (a safe internal identifier, e.g. “hand”), not untrusted external text.",
     "placeholders": {
@@ -9102,7 +9116,7 @@
       }
     }
   },
-  "importIssueParamCountUnmapped": "A figure had {provided} parameter values but only {mapped} are mapped; the extras were ignored.",
+  "importIssueParamCountUnmapped": "A figure had {provided} settings but only {mapped} could be matched; the extras were ignored.",
   "@importIssueParamCountUnmapped": {
     "description": "Import note: a figure supplied more positional parameter values than the taxonomy maps; the surplus was ignored. Both values are the app's own counts.",
     "placeholders": {
@@ -9493,7 +9507,7 @@
       }
     }
   },
-  "importReviewProgramNotes": "{count, plural, =1{{count} program note(s):} other{{count} program note(s):}}",
+  "importReviewProgramNotes": "{count, plural, =1{{count} program note:} other{{count} program notes:}}",
   "@importReviewProgramNotes": {
     "description": "Import result heading listing program-level notes.",
     "placeholders": {
@@ -9511,7 +9525,7 @@
       }
     }
   },
-  "importReviewRecordsFailed": "{count, plural, =1{{count} record(s) failed to import:} other{{count} record(s) failed to import:}}",
+  "importReviewRecordsFailed": "{count, plural, =1{{count} record failed to import:} other{{count} records failed to import:}}",
   "@importReviewRecordsFailed": {
     "description": "Import result heading listing records that failed to import.",
     "placeholders": {
@@ -9520,7 +9534,7 @@
       }
     }
   },
-  "importReviewBatchErrors": "{count, plural, =1{{count} record(s) couldn't be read (the rest can still be imported):} other{{count} record(s) couldn't be read (the rest can still be imported):}}",
+  "importReviewBatchErrors": "{count, plural, =1{{count} record couldn't be read (the rest can still be imported):} other{{count} records couldn't be read (the rest can still be imported):}}",
   "@importReviewBatchErrors": {
     "description": "Heading above the list of records that could not be parsed from the import batch.",
     "placeholders": {
@@ -9581,7 +9595,7 @@
       }
     }
   },
-  "importReviewVariationBody": "This dance's title and caller match \"{title}\", but its figures are different. Review how they differ, then choose how to import it.",
+  "importReviewVariationBody": "This dance's title and author match \"{title}\", but its figures are different. Review how they differ, then choose how to import it.",
   "@importReviewVariationBody": {
     "description": "Explanatory body text under the issue #686 variation-diff heading. The title is an untrusted local value rendered as plain text.",
     "placeholders": {
@@ -9678,7 +9692,7 @@
   "@danceEditorFiguresSection": {
     "description": "Section heading for the editable figure list in the dance editor."
   },
-  "danceEditorFiguresHelp": "Type a move (e.g. \"sw\" → swing) and press Enter to add it with default params; unmatched text becomes a custom figure.",
+  "danceEditorFiguresHelp": "Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; unmatched text becomes a custom figure.",
   "@danceEditorFiguresHelp": {
     "description": "Helper text above the figure list explaining type-ahead figure entry."
   },
@@ -10706,7 +10720,7 @@
       },
       "importGapText": {
         "type": "String",
-        "example": "Couldn't parse this call — kept verbatim as a custom figure."
+        "example": "Couldn't recognize this call — kept exactly as written as a custom figure."
       },
       "progression": {
         "type": "String",
@@ -11084,7 +11098,7 @@
   "@danceEditorCustomFigureTextLabel": {
     "description": "Text field label for editing a custom figure description."
   },
-  "danceEditorLingoStylingHelper": "Move names dotted·underline, role terms underlined, discouraged terms struck through",
+  "danceEditorLingoStylingHelper": "Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough",
   "@danceEditorLingoStylingHelper": {
     "description": "Helper text explaining lingo-aware styling in a custom figure text field."
   },
@@ -11297,9 +11311,9 @@
   "@updateDownloadFailureUnwritable": {
     "description": "Update download error shown when the downloaded file could not be created or written because of permissions."
   },
-  "updateDownloadFailureChecksumMismatch": "The downloaded update failed its security (sha256) check and was deleted. Try again, or use \"View release\" to download it manually.",
+  "updateDownloadFailureChecksumMismatch": "The downloaded update failed its security check and was deleted. Try again, or use \"View release\" to download it manually.",
   "@updateDownloadFailureChecksumMismatch": {
-    "description": "Assisted-download error shown when the downloaded file's sha256 did not match the manifest, so the file was deleted. \"sha256\" is the literal checksum name and stays as-is. \"View release\" must match the translation of updateBannerViewRelease."
+    "description": "Assisted-download error shown when the downloaded file did not match the manifest's checksum, so the file was deleted. Keep the wording plain; do not name the hash algorithm. \"View release\" must match the translation of updateBannerViewRelease."
   },
   "updateDownloadFailureHandoffFailed": "The update was downloaded and verified, but could not be opened automatically. Use \"View release\" to finish installing.",
   "@updateDownloadFailureHandoffFailed": {
@@ -12024,7 +12038,7 @@
   "@reparseConfirmTitle": {
     "description": "Title of the confirm dialog before re-parsing custom figures."
   },
-  "reparseConfirmBody": "This will re-parse {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.",
+  "reparseConfirmBody": "This will re-check {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.",
   "@reparseConfirmBody": {
     "description": "Body of the confirm dialog before upgrading custom figures.",
     "placeholders": {
@@ -12061,7 +12075,7 @@
   "@reparseScreenTitle": {
     "description": "App-bar title for the re-check custom figures screen."
   },
-  "reparseIntro": "Improved figure parsing can upgrade {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Review below, then confirm — nothing changes until you do, and all your tags, ratings, and notes are preserved.",
+  "reparseIntro": "Improved figure recognition can upgrade {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Review below, then confirm — nothing changes until you do, and all your tags, ratings, and notes are preserved.",
   "@reparseIntro": {
     "description": "Intro paragraph on the re-check custom figures screen.",
     "placeholders": {
@@ -12095,7 +12109,7 @@
   "@reparseEmptyTitle": {
     "description": "Title of the empty state when no custom figures can be upgraded."
   },
-  "reparseEmptyBody": "None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure parsing.",
+  "reparseEmptyBody": "None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.",
   "@reparseEmptyBody": {
     "description": "Body of the empty state when no custom figures can be upgraded."
   },
@@ -12191,7 +12205,7 @@
   "@customFieldsTypeNumber": {
     "description": "Custom-field type: number."
   },
-  "customFieldsTypeBoolean": "Boolean",
+  "customFieldsTypeBoolean": "Yes/No",
   "@customFieldsTypeBoolean": {
     "description": "Custom-field type: yes/no boolean."
   },
@@ -12232,9 +12246,9 @@
   "@customFieldsKeyLabel": {
     "description": "Label for the custom-field machine-key input (required)."
   },
-  "customFieldsKeyHelper": "Stable machine key (letters, digits, underscores; must start with a letter or underscore)",
+  "customFieldsKeyHelper": "A short ID for this field. Letters, digits and underscores only; must start with a letter or underscore. Can't be changed once the field is used on dances.",
   "@customFieldsKeyHelper": {
-    "description": "Helper text describing the machine-key format."
+    "description": "Helper text under the Key field of a custom field: what the key is (a short, permanent ID) and which characters it may use."
   },
   "customFieldsKeyLocked": "Key is locked — field is in use on dances",
   "@customFieldsKeyLocked": {
@@ -12778,9 +12792,9 @@
   "@danceReimport": {
     "description": "Action label for replacing one saved dance's choreography from another source."
   },
-  "danceReimportJson": "Callers Compendium JSON",
+  "danceReimportJson": "Caller's Compendium JSON",
   "@danceReimportJson": {
-    "description": "Source option for choosing a Callers Compendium JSON file for re-import."
+    "description": "Source option for choosing a Caller's Compendium JSON file for re-import."
   },
   "danceReimportLinkOrId": "Link or ID",
   "@danceReimportLinkOrId": {

@@ -1069,7 +1069,7 @@ void main() {
 
       expect(_titleText(tester), 'Second title');
       expect(find.text(Program.breakSlotText), findsOneWidget);
-      expect(find.text('Save *'), findsOneWidget);
+      expect(find.text('Save changes'), findsOneWidget);
 
       delayed.settings.releaseRemove();
       await tester.pumpAndSettle();
@@ -1206,7 +1206,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(await failing.repos.programs.listAll(), isEmpty);
-        expect(find.text('Save *'), findsOneWidget);
+        expect(find.text('Save changes'), findsOneWidget);
         expect(failing.programs.attempts, 1);
 
         failing.programs.failWrites = false;
