@@ -7623,6 +7623,18 @@
       }
     }
   },
+  "exportPageOfPages": "Page {page} of {pages}",
+  "@exportPageOfPages": {
+    "description": "Page footer on every exported PDF (dance card, set list, programming matrix), e.g. 'Page 2 of 3'.",
+    "placeholders": {
+      "page": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "int"
+      }
+    }
+  },
   "exportLabelVenue": "Venue",
   "@exportLabelVenue": {
     "description": "Heading for the venue detail block on an exported set-list PDF."

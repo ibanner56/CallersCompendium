@@ -218,14 +218,13 @@ class ProgramExportMenu extends StatelessWidget {
     return result;
   }
 
-  /// Returns `true` if any dance reachable via [danceFor] in this program has
-  /// at least one figure. When `false` the "Include figures?" prompt is skipped
-  /// and all text/PDF paths proceed as set-list-only.
-  bool _hasFigures() => _orderedExportDances().any(
-    (e) => switch (e.dance.figuresSource) {
-      DecodedFigures(:final figures) => figures,
-      UnreadableFigures() => const <Figure>[],
-    }.isNotEmpty,
+  /// Returns `true` if any dance reachable via [danceFor] in this program has a
+  /// card body to append ([DanceCardContent.hasBody]): figures, or calling
+  /// notes or a walkthrough among the selected fields. When `false` the
+  /// "Include figures?" prompt is skipped and all text/PDF paths proceed as
+  /// set-list-only.
+  bool _hasFigures(Set<DanceShareField> fields) => _orderedExportDances().any(
+    (e) => DanceCardContent.hasBody(e.dance, fields),
   );
 
   /// Asks whether to include figures in the current export.
@@ -235,7 +234,7 @@ class ProgramExportMenu extends StatelessWidget {
   /// figures are available the prompt is skipped and `false` is returned
   /// immediately.
   Future<bool?> _figuresConsent(BuildContext context) async {
-    if (!_hasFigures()) return false;
+    if (!_hasFigures(DanceShareFieldsScope.of(context))) return false;
     return ProgramFiguresPromptDialog.show(context);
   }
 
@@ -292,13 +291,10 @@ class ProgramExportMenu extends StatelessWidget {
     final renderer = UserFiguresScope.rendererOf(context);
     final buf = StringBuffer(setList);
     final alternate = l10n.exportIncludeFiguresAlternate;
+    final shareFields = DanceShareFieldsScope.of(context);
     for (final entry in _orderedExportDances()) {
       final dance = entry.dance;
-      final danceFigures = switch (dance.figuresSource) {
-        DecodedFigures(:final figures) => figures,
-        UnreadableFigures() => const <Figure>[],
-      };
-      if (danceFigures.isEmpty) continue;
+      if (!DanceCardContent.hasBody(dance, shareFields)) continue;
       buf.writeln();
       // Mark alternates on the separator line so the title from
       // danceToPlainText appears exactly once (ruling 8: mark, not duplicate).
@@ -322,7 +318,7 @@ class ProgramExportMenu extends StatelessWidget {
           ),
           renderer: renderer,
           labels: danceLabels,
-          fields: DanceShareFieldsScope.of(context),
+          fields: shareFields,
         ),
       );
     }
@@ -433,6 +429,7 @@ class ProgramExportMenu extends StatelessWidget {
     final fileName = programShareBundleFileName(
       program.title,
       extension: extension,
+      eventDate: program.eventDate,
     );
     return (json: json, fileName: fileName);
   }
@@ -539,7 +536,11 @@ class ProgramExportMenu extends StatelessWidget {
 
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
-      name: sanitizeExportName(program.title, fallback: 'program'),
+      name: programPdfJobName(
+        program.title,
+        fallback: 'program',
+        eventDate: program.eventDate,
+      ),
       onLayout: (format) => buildProgramPdf(
         program,
         titleFor: titleFor,
@@ -557,6 +558,8 @@ class ProgramExportMenu extends StatelessWidget {
             ? null
             : (dance) => cardLabelsById[dance.id]!,
         fields: shareFields,
+        // The paper the print dialog chose, not the builder's A4 default.
+        pageFormat: format,
       ),
     );
   }

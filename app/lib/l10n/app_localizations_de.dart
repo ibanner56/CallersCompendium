@@ -5942,6 +5942,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String exportPageOfPages(int page, int pages) {
+    return 'Seite $page von $pages';
+  }
+
+  @override
   String get exportLabelVenue => 'Veranstaltungsort';
 
   @override

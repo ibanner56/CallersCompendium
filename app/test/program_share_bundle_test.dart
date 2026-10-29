@@ -573,9 +573,50 @@ void main() {
     test('sanitizes illegal characters to underscores and keeps .ccshare', () {
       expect(
         programShareBundleFileName('Friday Contra: 3/9 <Town Hall>'),
-        'Friday_Contra__3_9__Town_Hall_.ccshare',
+        'Friday_Contra__3_9__Town_Hall.ccshare',
       );
     });
+
+    test(
+      'strips a trailing underscore left by trailing punctuation (OUT-8)',
+      () {
+        expect(
+          programShareBundleFileName("Ain't She Sweet?"),
+          'Ain_t_She_Sweet.ccshare',
+        );
+      },
+    );
+
+    test('keeps Unicode letters in the title (OUT-8)', () {
+      expect(
+        programShareBundleFileName('Contredanse à la française'),
+        'Contredanse_à_la_française.ccshare',
+      );
+      expect(programShareBundleFileName('春のコントラ'), '春のコントラ.ccshare');
+    });
+
+    test(
+      'appends the event date so weekly programs do not collide (OUT-8)',
+      () {
+        final saturday = DateTime(2026, 10, 31);
+        expect(
+          programShareBundleFileName('Saturday Contra', eventDate: saturday),
+          'Saturday_Contra_2026-10-31.ccshare',
+        );
+        expect(
+          programShareBundleFileName(
+            'Saturday Contra',
+            extension: programShareJsonExtension,
+            eventDate: saturday,
+          ),
+          'Saturday_Contra_2026-10-31.json',
+        );
+        expect(
+          programShareBundleFileName('///', eventDate: saturday),
+          'program_2026-10-31.ccshare',
+        );
+      },
+    );
 
     test('preserves safe characters', () {
       expect(
@@ -592,12 +633,8 @@ void main() {
     test('does not allow path traversal through the title', () {
       final name = programShareBundleFileName('../../etc/passwd');
       expect(name.contains('/'), isFalse);
-      expect(
-        name.contains('..'),
-        isTrue,
-        reason: 'dots are safe; separators are not',
-      );
-      expect(name, endsWith('.ccshare'));
+      expect(name, 'etc_passwd.ccshare');
+      expect(name.startsWith('.'), isFalse, reason: 'never a hidden file');
     });
   });
 

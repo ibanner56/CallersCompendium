@@ -5955,6 +5955,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String exportPageOfPages(int page, int pages) {
+    return 'Page $page sur $pages';
+  }
+
+  @override
   String get exportLabelVenue => 'Lieu';
 
   @override

@@ -77,6 +77,20 @@ class DanceCardContent {
     );
   }
 
+  /// Whether [dance] has anything to lay out beneath its title and meta lines
+  /// under [fields]: structured figures, or calling notes or a walkthrough that
+  /// are selected and non-blank. A set-list export appends a card for exactly
+  /// these dances (a dance with only a title would add nothing).
+  static bool hasBody(Dance dance, Set<DanceShareField> fields) =>
+      switch (dance.figuresSource) {
+        DecodedFigures(:final figures) => figures.isNotEmpty,
+        UnreadableFigures() => false,
+      } ||
+      (fields.contains(DanceShareField.callingNotes) &&
+          dance.callingNotes.trim().isNotEmpty) ||
+      (fields.contains(DanceShareField.walkthrough) &&
+          dance.walkthrough.trim().isNotEmpty);
+
   /// The trimmed dance title.
   final String title;
 

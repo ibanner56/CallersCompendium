@@ -20,6 +20,7 @@ import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/pdf_probe.dart';
 import 'support/test_repositories.dart';
 import 'figures_support.dart';
 
@@ -2022,6 +2023,98 @@ void main() {
       },
     );
 
+    group('a dance with notes or a walkthrough but no figures (OUT-10)', () {
+      final notesOnly = Dance(
+        id: 'd3',
+        title: 'Notes Only Reel',
+        figures: const [],
+        callingNotes: 'Watch the neighbour slide.',
+        walkthrough: 'Circle left, then pass through.',
+        createdAt: _now,
+        updatedAt: _now,
+      );
+
+      /// Shares the set list as text with [fields] selected; returns the
+      /// shared text, or `null` when the figures prompt never let it through.
+      Future<({String? text, bool prompted})> shareText(
+        WidgetTester tester,
+        Set<DanceShareField> fields, {
+        bool chooseCards = true,
+      }) async {
+        ShareParams? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceShareFieldsScope(
+              notifier: ValueNotifier(fields),
+              child: Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    ProgramExportMenu(
+                      program: _program(
+                        slots: [
+                          ProgramSlot(id: 's1', position: 0, danceId: 'd3'),
+                        ],
+                      ),
+                      titleFor: (_) => notesOnly.title,
+                      danceFor: (_) => notesOnly,
+                      shareInvoker: (params) async => captured = params,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+        final prompted = find
+            .byKey(const ValueKey('program-figures-prompt-dialog'))
+            .evaluate()
+            .isNotEmpty;
+        if (prompted) {
+          await tester.tap(
+            find.byKey(
+              const ValueKey('program-figures-prompt-set-list-and-figures'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('program-figures-prompt-confirm')),
+          );
+          await tester.pumpAndSettle();
+        }
+        return (text: captured?.text, prompted: prompted);
+      }
+
+      testWidgets('gets a card in "Set list and figures"', (tester) async {
+        final result = await shareText(tester, DanceShareField.allExceptTunes);
+        expect(result.prompted, isTrue);
+        expect(result.text, contains('---'));
+        expect(result.text, contains('Watch the neighbour slide.'));
+        expect(result.text, contains('Circle left, then pass through.'));
+      });
+
+      testWidgets('is not asked about when both fields are deselected', (
+        tester,
+      ) async {
+        final result = await shareText(tester, {DanceShareField.formation});
+        expect(result.prompted, isFalse);
+        expect(result.text, isNot(contains('---')));
+      });
+
+      testWidgets('shows only the selected field on its card', (tester) async {
+        final result = await shareText(tester, {DanceShareField.walkthrough});
+        expect(result.prompted, isTrue);
+        expect(result.text, contains('Circle left, then pass through.'));
+        expect(result.text, isNot(contains('Watch the neighbour slide.')));
+      });
+    });
+
     testWidgets('Cancel on prompt aborts the share — captured stays null', (
       tester,
     ) async {
@@ -2329,6 +2422,41 @@ void main() {
         );
       },
     );
+
+    testWidgets('PDF path: the set-list PDF is laid out on the paper the print '
+        'dialog chose, not A4 (OUT-4)', (tester) async {
+      final prog = _program(
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      );
+      LayoutCallback? captured;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                ProgramExportMenu(
+                  program: prog,
+                  titleFor: _titles,
+                  pdfLayouter: ({required name, required onLayout}) async =>
+                      captured = onLayout,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      expect(pdfMediaBox(await captured!(PdfPageFormat.letter)), (612, 792));
+      expect(pdfMediaBox(await captured!(PdfPageFormat.a4)), (595, 842));
+    });
 
     testWidgets(
       'PDF path: onLayout still lays out the PDF after the export menu has '

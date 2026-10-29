@@ -237,6 +237,8 @@ class DanceExportActions {
         labels: labels,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         fields: fields,
+        // The paper the print dialog chose, not the builder's A4 default.
+        pageFormat: format,
       ),
     );
   }, source: 'dance_export_actions.exportPdf');

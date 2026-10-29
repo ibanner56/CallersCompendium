@@ -266,15 +266,19 @@ const String programShareJsonExtension = 'json';
 /// plain [programShareJsonExtension]. The base name is derived identically
 /// either way, so a crafted program title cannot construct a different path
 /// through the `.json` action than it could through the `.ccshare` one.
+///
+/// [eventDate] is appended as `_yyyy-MM-dd`, so a weekly "Saturday Contra"
+/// does not export under the same name every week. The base falls back to
+/// `program` when the title has no letter or digit.
 String programShareBundleFileName(
   String title, {
   String extension = programShareBundleExtension,
+  DateTime? eventDate,
 }) {
-  final sanitized = replaceUnsafeNameChars(title.trim());
-  // Fall back when the title has no alphanumeric content (empty, all
-  // whitespace, or only illegal/punctuation characters) so the file always has
-  // a meaningful, path-safe name.
-  final hasContent = sanitized.contains(RegExp(r'[A-Za-z0-9]'));
-  final base = hasContent ? sanitized : 'program';
+  final base = shareFileBaseName(
+    title,
+    fallback: 'program',
+    eventDate: eventDate,
+  );
   return '$base.$extension';
 }

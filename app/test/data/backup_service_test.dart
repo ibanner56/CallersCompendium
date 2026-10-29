@@ -1124,4 +1124,28 @@ void main() {
       await expectLiveIntact(repos);
     });
   });
+
+  group('backupFileName (OUT-8)', () {
+    String dayOf(DateTime d) =>
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+
+    test('is dated in local time, not UTC', () {
+      // 11:30 pm on the 15th wherever the device is: a UTC date would roll to
+      // the 16th for any zone west of Greenwich.
+      final lateEvening = DateTime(2026, 7, 15, 23, 30);
+      expect(
+        backupFileName(lateEvening),
+        'callers-compendium-backup-2026-07-15.json',
+      );
+    });
+
+    test('names the local day of an instant given in UTC', () {
+      final instant = DateTime.utc(2026, 7, 16, 3, 0);
+      expect(
+        backupFileName(instant),
+        'callers-compendium-backup-${dayOf(instant.toLocal())}.json',
+      );
+    });
+  });
 }

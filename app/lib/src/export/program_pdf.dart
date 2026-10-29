@@ -6,8 +6,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'share_sanitization.dart';
+import 'pdf_page_furniture.dart';
 import 'program_figure_widgets.dart';
+import 'share_sanitization.dart';
 
 /// Loads the bundled Unicode font (Roboto, SIL OFL-1.1) used for PDF export.
 ///
@@ -231,6 +232,8 @@ Future<Uint8List> buildProgramPdf(
   doc.addPage(
     pw.MultiPage(
       pageFormat: pageFormat,
+      header: (context) => pdfRunningHeader(context, program.title.trim()),
+      footer: (context) => pdfPageFooter(context, labels.pageOf),
       build: (context) => [
         pw.Header(
           level: 0,
@@ -315,11 +318,16 @@ List<pw.Widget> programAppendixWidgets(
   for (final entry in cards) {
     final dance = entry.dance;
     final content = entry.content;
-    final danceFigures = switch (dance.figuresSource) {
-      DecodedFigures(:final figures) => figures,
-      UnreadableFigures() => const <Figure>[],
-    };
-    if (danceFigures.isEmpty) continue;
+    // A card needs something beneath its title: figures, or (with a built
+    // card) the selected calling notes or walkthrough. Without `content` this
+    // is the pre-#1434 figures-only appendix.
+    final hasBody = switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures.isNotEmpty,
+          UnreadableFigures() => false,
+        } ||
+        (content != null &&
+            (content.callingNotes != null || content.walkthrough != null));
+    if (!hasBody) continue;
     final titlePrefix = entry.isAlternate ? '${labels.alternate}: ' : '';
     widgets.add(pw.SizedBox(height: 10));
     widgets.add(

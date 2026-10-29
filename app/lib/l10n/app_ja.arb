@@ -5910,6 +5910,10 @@
   "@exportMinutesLabel": {
     "x-sourceSha256": "1829c58ba472520fd39e61f9e337a1b7da27e86299332dde5bfdea355c3895a8"
   },
+  "exportPageOfPages": "{page} / {pages} ページ",
+  "@exportPageOfPages": {
+    "x-sourceSha256": "240ab6d8dc2cbb5ede8e1e708f5812d1129644348c3a28d3aaf8d5b97a4cfaef"
+  },
   "exportLabelVenue": "会場",
   "@exportLabelVenue": {
     "x-sourceSha256": "aea1b15df626f337de5eb359dd6f7651b9f25a39ddb515b6ab765e1167456d87"

@@ -8,6 +8,8 @@
 /// duplicated inline across the export and update-download paths.
 library;
 
+import 'package:compendium_core/compendium_core.dart' show isoDate;
+
 /// Every character *outside* the safe set `[A-Za-z0-9._-]` (ASCII letters,
 /// digits, dot, underscore, hyphen). Anything else — path separators,
 /// whitespace, control characters — is replaced with `_`.
@@ -66,3 +68,58 @@ String sanitizeExportName(String raw, {String fallback = 'export'}) {
 String _stripToSafeName(String value) => replaceUnsafeNameChars(
   value.trim(),
 ).replaceAll(_leadingTrailingSeparators, '');
+
+/// Letters, digits and combining marks in any script, plus `. _ -`. The share
+/// file name keeps a title's own letters ("Contredanse à la française", an
+/// all-Japanese title); it still replaces separators, whitespace, control and
+/// format characters (bidi overrides included) and punctuation.
+final RegExp _unsafeShareNameChars = RegExp(
+  r'[^\p{L}\p{N}\p{M}._-]',
+  unicode: true,
+);
+
+final RegExp _hasLetterOrDigit = RegExp(r'[\p{L}\p{N}]', unicode: true);
+
+/// The base (extension-less) file name for a shared dance or program: [title]
+/// with every character outside [_unsafeShareNameChars]'s safe set replaced by
+/// `_`, leading/trailing dots and underscores stripped, or [fallback] when no
+/// letter or digit remains.
+///
+/// Unlike [sanitizeExportName] this keeps Unicode letters, because a share file
+/// is named by the title the user sees and an all-Japanese title would
+/// otherwise collapse to the fallback. It is still path-safe: separators and
+/// control characters never survive, and the result can never be `.`, `..` or a
+/// dotfile. [fallback] is trusted (a code constant), not user input.
+///
+/// [eventDate], when given, is appended as `_yyyy-MM-dd` so weekly programs
+/// with the same title export under distinct names.
+String shareFileBaseName(
+  String title, {
+  required String fallback,
+  DateTime? eventDate,
+}) {
+  final cleaned = title
+      .trim()
+      .replaceAll(_unsafeShareNameChars, '_')
+      .replaceAll(_leadingTrailingSeparators, '');
+  final base = cleaned.contains(_hasLetterOrDigit) ? cleaned : fallback;
+  return eventDate == null ? base : '${base}_${isoDate(eventDate)}';
+}
+
+/// The print-job name (the file name "Save as PDF" proposes) for a program PDF:
+/// [sanitizeExportName] of [title], then `_`[suffix] (the matrix PDF passes its
+/// localized "Programming matrix" so it never shares a name with the set-list
+/// PDF) and `_yyyy-MM-dd` of [eventDate] when each is given.
+String programPdfJobName(
+  String title, {
+  required String fallback,
+  String? suffix,
+  DateTime? eventDate,
+}) {
+  final parts = [
+    sanitizeExportName(title, fallback: fallback),
+    if (suffix != null) sanitizeExportName(suffix),
+    if (eventDate != null) isoDate(eventDate),
+  ];
+  return parts.join('_');
+}
