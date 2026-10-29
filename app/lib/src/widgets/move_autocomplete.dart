@@ -215,7 +215,12 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
     if (!mounted) return;
     final text = _controller.text;
     if (!_isSettled(text) && !_applyOnBlur(text)) {
-      _controller.value = TextEditingValue(text: widget.initialText);
+      // The box can keep focus (Save on a touch screen), so the caret goes
+      // somewhere valid: the end, as after a choice.
+      _controller.value = TextEditingValue(
+        text: widget.initialText,
+        selection: TextSelection.collapsed(offset: widget.initialText.length),
+      );
       _settledKey = _labelKey(widget.initialText);
     }
     if (_focusNode.hasFocus) {
