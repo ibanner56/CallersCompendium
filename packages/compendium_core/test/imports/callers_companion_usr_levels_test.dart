@@ -76,19 +76,21 @@ void main() {
     String nextId() => 'id-${++n}';
     final now = DateTime.utc(2026, 7, 15);
 
-    CallersCompanionUsrImporter importerWith(ProgramRepository programs) =>
-        CallersCompanionUsrImporter(
-          ImportPipeline(
-            dances,
-            ChoreographerRepository(db),
-            difficultyLevels: levels,
-          ),
-          programs,
-          VenueRepository(db),
-          CustomFieldDefRepository(db),
-          publishedSources: PublishedSourceRepository(db),
-          difficultyLevels: levels,
-        );
+    CallersCompanionUsrImporter importerWith(
+      ProgramRepository programs, {
+      DifficultyLevelRepository? levelRepository,
+    }) => CallersCompanionUsrImporter(
+      ImportPipeline(
+        dances,
+        ChoreographerRepository(db),
+        difficultyLevels: levels,
+      ),
+      programs,
+      VenueRepository(db),
+      CustomFieldDefRepository(db),
+      publishedSources: PublishedSourceRepository(db),
+      difficultyLevels: levelRepository ?? levels,
+    );
 
     setUp(() {
       db = openTestDatabase();
@@ -356,6 +358,71 @@ void main() {
       expect(await labels(), ['Beginner', 'Intermediate', 'Advanced']);
     });
 
+    test('a gap elsewhere is kept, not closed', () async {
+      // A level the user deleted leaves a gap at 1; placing a level near the
+      // end must not renumber the levels before it.
+      final party = await levels.createCustom(label: 'Party', position: 1);
+      await levels.reorder([
+        DifficultyLevel.beginnerId,
+        party.id,
+        DifficultyLevel.intermediateId,
+        DifficultyLevel.advancedId,
+      ]);
+      await levels.delete(party.id, at: now);
+      final before = await rows();
+      await import(usr(['Intermediate\nAdvanced']));
+      final after = await rows();
+      expect(
+        after[DifficultyLevel.beginnerId],
+        before[DifficultyLevel.beginnerId],
+      );
+      expect(
+        after[DifficultyLevel.intermediateId],
+        before[DifficultyLevel.intermediateId],
+      );
+      expect(after[DifficultyLevel.advancedId]!.$1, 4);
+      expect(await labels(), [
+        'Beginner',
+        'Intermediate',
+        'Intermediate/Advanced',
+        'Advanced',
+      ]);
+    });
+
+    test('a placement that fails undoes the whole import', () async {
+      final before = await rows();
+      final failing = importerWith(
+        ProgramRepository(db),
+        levelRepository: _FailingPlacement(db),
+      );
+      await expectLater(
+        failing.import(
+          usr(['Easy\nIntermediate']),
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(await dances.listAll(includeDeleted: true), isEmpty);
+      expect(await rows(), before);
+    });
+
+    test('a placement that fails undoes the per-row Edit', () async {
+      final before = await rows();
+      final failing = importerWith(
+        ProgramRepository(db),
+        levelRepository: _FailingPlacement(db),
+      );
+      final batch = await failing.plan(usr(['Easy\nIntermediate']));
+      await expectLater(
+        failing.commitDances(batch, now: now, newId: nextId),
+        throwsA(isA<StateError>()),
+      );
+      expect(await dances.listAll(includeDeleted: true), isEmpty);
+      expect(await rows(), before);
+    });
+
     test('a batch after an Edit reuses the level the Edit made', () async {
       // Planned together, so neither row's plan saw the other's level.
       final batch = await importer.plan(
@@ -440,4 +507,12 @@ class _FailingProgramRepository extends ProgramRepository {
   @override
   Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async =>
       throw StateError('simulated program persist failure');
+}
+
+class _FailingPlacement extends DifficultyLevelRepository {
+  _FailingPlacement(super.db);
+
+  @override
+  Future<void> setPositions(Map<String, int> positions, {DateTime? at}) async =>
+      throw StateError('simulated placement failure');
 }

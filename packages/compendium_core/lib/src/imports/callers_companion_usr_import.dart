@@ -610,7 +610,7 @@ class CallersCompanionUsrImporter {
         }
       }
       // Last: only an import that otherwise succeeded moves any level.
-      await _placeLevels([...keptLevelsInserted, ...keptLevelsRestored], now);
+      await _placeLevels([...keptLevelsInserted, ...keptLevelsRestored]);
     } catch (_) {
       await _programs.hardDelete(insertedIds);
       for (final prior in priorStates) {
@@ -684,7 +684,7 @@ class CallersCompanionUsrImporter {
       await _placeLevels([
         ...committed.insertedLevelIds,
         ...committed.restoredLevelIds,
-      ], now);
+      ]);
     } catch (_) {
       await _pipeline.undo(committed.session);
       await _revertUserFieldDefinitions(
@@ -1041,12 +1041,14 @@ class CallersCompanionUsrImporter {
           idByKey[key] = match.level.id;
           continue;
         }
-        // Created last for now: [_placeLevels] moves it once the import has
-        // kept it, so nothing else is rewritten for an import that fails,
-        // skips the dance, or is undone.
+        // Created after every level for now: [_placeLevels] moves it once
+        // the import has kept it, so an import that fails or skips the dance
+        // rewrites no other level.
         final created = await _levels.createCustom(
           label: label,
-          position: (await _levels.listAll()).length,
+          position: [
+            for (final level in await _levels.listAll()) level.position + 1,
+          ].fold(0, (a, b) => a > b ? a : b),
         );
         inserted.add(created.id);
         idByKey[key] = created.id;
@@ -1084,9 +1086,13 @@ class CallersCompanionUsrImporter {
   }
 
   /// Places the levels [ids] this import kept (created or restored) among
-  /// the user's levels by CC's scale (maintainer decision, #1973), writing only
-  /// the levels whose position changes.
-  Future<void> _placeLevels(List<String> ids, DateTime now) async {
+  /// the user's levels by CC's scale (maintainer decision, #1973).
+  ///
+  /// The other levels keep their positions, gaps included: a placed level
+  /// takes the position after the level before it, and a level after it moves
+  /// up only while it would collide. So only the levels that have to move are
+  /// written, stamped now rather than with the import's start time.
+  Future<void> _placeLevels(List<String> ids) async {
     if (ids.isEmpty) return;
     final moving = ids.toSet();
     final order = [
@@ -1098,10 +1104,16 @@ class CallersCompanionUsrImporter {
       if (level == null) continue;
       order.insert(_levelInsertIndex(order, level), level);
     }
-    await _levels.setPositions({
-      for (final (position, level) in order.indexed)
-        if (level.position != position) level.id: position,
-    }, at: now);
+    final positions = <String, int>{};
+    var last = -1;
+    for (final level in order) {
+      final position = !moving.contains(level.id) && level.position > last
+          ? level.position
+          : last + 1;
+      if (position != level.position) positions[level.id] = position;
+      last = position;
+    }
+    await _levels.setPositions(positions);
   }
 
   /// Where [level] goes in [order] (the live levels, by position): after the
