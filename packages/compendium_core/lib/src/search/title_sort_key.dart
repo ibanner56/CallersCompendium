@@ -7,9 +7,14 @@ import 'package:unorm_dart/unorm_dart.dart';
 /// comparison in [titleSortKey] is case-insensitive.
 const List<String> kIgnoredLeadingArticles = ['the', 'a', 'an'];
 
+final RegExp _ascii = RegExp(r'^[\x00-\x7F]*$');
+
 /// Lowercases [text] and strips combining marks, so "École" and "ecole" compare
 /// equal, as they do in the Collection's FTS index (`remove_diacritics`).
 String foldForTitleMatch(String text) {
+  // ASCII has no combining marks; skipping NFD keeps the title sort (run over
+  // every result of the default sort) cheap on large libraries.
+  if (_ascii.hasMatch(text)) return text.toLowerCase();
   final decomposed = nfd(text.toLowerCase());
   final buf = StringBuffer();
   for (final unit in decomposed.runes) {

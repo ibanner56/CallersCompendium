@@ -3001,8 +3001,12 @@ class DanceRepository {
           requireEventDate: requireEventDate,
         );
       case SearchSort.title:
-        // Always a Dart post-pass: SQL `COLLATE NOCASE` folds only ASCII case,
-        // so "École" would file after Z. [titleSortKey] folds accents.
+        // SQL `COLLATE NOCASE` folds only ASCII case, so "École" would file
+        // after Z; [titleSortKey] folds accents in a Dart post-pass. That pass
+        // costs a second query over every result of the default sort, so
+        // without the articles setting it is skipped while no title is
+        // non-ASCII (the SQL order is already the folded order then).
+        if (!ignoreLeadingArticles && !await _anyNonAsciiTitle(ids)) return ids;
         return _sortByTitle(
           ids,
           descending: descending,
@@ -3015,6 +3019,22 @@ class DanceRepository {
       case SearchSort.relevance:
         return ids;
     }
+  }
+
+  /// Whether any dance among [ids] has a non-ASCII title (character count
+  /// differs from byte count). Scans `dances` once in SQL rather than fetching
+  /// the result's titles; the non-ASCII set is normally empty or tiny.
+  Future<bool> _anyNonAsciiTitle(List<String> ids) async {
+    if (ids.isEmpty) return false;
+    final rows = await _db
+        .customSelect(
+          'SELECT id FROM dances '
+          'WHERE length(title) <> length(CAST(title AS BLOB))',
+        )
+        .get();
+    if (rows.isEmpty) return false;
+    final wanted = ids.toSet();
+    return rows.any((r) => wanted.contains(r.read<String>('id')));
   }
 
   /// Alphabetizes [ids] by accent-folded title (see [foldForTitleMatch]), with
