@@ -1361,7 +1361,10 @@ has to be judged in its own context.
   Companion (#1975):** `ring balance` is balance the ring, and a ring balance
   then a spin to the right (`Ring balance, spin to the right`, `balance the
   ring and spin right`) is one petronella with `balance: true`; the words must
-  come in that order and the spin must be to the right. **Enriched for CallersBox
+  come in that order and the spin must be to the right. The stated balance is
+  kept even in a 4-beat line (only an unstated one is withheld, #1969). A note
+  that only names the figure's own move (`(petronella)`) is not a leftover for
+  free-text entry's note-tail demotion. **Enriched for CallersBox
   (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
   (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
   outside (→ down/up the hall `moving`), circulate (→ box circulate with the

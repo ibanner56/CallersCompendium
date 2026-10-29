@@ -6091,7 +6091,7 @@
 {"in":"Neighbor Right hand balance, box the gnat","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor Right hand balance, box the gnat\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Partner Right-shoulder and swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Partner Right-shoulder and swing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Ring balance, spin to the right, face new Neighbors","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Ring balance, spin to the right, face new Neighbors\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Balance the ring and spin to the right (petronella)","fanOut":"[{\"schemaVersion\":1,\"move\":\"petronella\",\"params\":{\"balance\":true},\"note\":\"petronella\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"balance_the_ring\",\"note\":\"and spin to the right (petronella)\"}]"}
+{"in":"Balance the ring and spin to the right (petronella)","fanOut":"[{\"schemaVersion\":1,\"move\":\"petronella\",\"params\":{\"balance\":true},\"note\":\"petronella\"}]"}
 {"in":"Ring balance and California Twirl","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Ring balance and California Twirl\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"New Neighbor balance and swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"New Neighbor balance and swing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Partner allemande Right 1.5","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"partners\",\"hand\":\"right\",\"travel\":1.5}}]"}

@@ -10,6 +10,16 @@ void main() {
     'free-text entry': (String line) => parseFreeTextFigureEntry(line),
   };
 
+  test('a stated balance is kept in 4 beats', () {
+    // The line says it; only an unstated balance is withheld on import (#1969).
+    final f = parseFigureLinesFanOut(
+      'Ring balance, spin to the right',
+      beats: 4,
+    ).single;
+    expect(f.move, 'petronella');
+    expect(f.params['balance'], isTrue);
+  });
+
   for (final MapEntry(key: path, value: read) in readers.entries) {
     group(path, () {
       Figure single(String line) {
@@ -35,6 +45,14 @@ void main() {
         final f = single('Ring balance, spin to the right (look for Partner)');
         expect(f.move, 'petronella');
         expect(f.note, 'look for Partner');
+      });
+
+      test('a gloss naming the petronella is not unread text', () {
+        // Free-text entry demotes a note that names a move; naming the
+        // figure's own move only repeats it.
+        final f = single('Ring balance, spin to the right (petronella)');
+        expect(f.move, 'petronella');
+        expect(f.params['balance'], isTrue);
       });
 
       test('a bare ring balance is balance the ring', () {

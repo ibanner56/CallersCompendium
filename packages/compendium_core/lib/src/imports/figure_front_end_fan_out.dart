@@ -146,7 +146,12 @@ _AttemptTier _classify(
     // Descendants count too: a ContraDB `while` builds a noteless container
     // whose first child carries the tail (`neighbors swing 16 while partners
     // swing`), which would otherwise rank clean.
-    final notes = _allNotes(result).toList();
+    // A note that only names the figure's own move (`(petronella)` on a
+    // petronella) repeats it rather than leaving text unread (#1975).
+    final notes = _allNotes(
+      result,
+      exceptOwnName: taxonomy ?? contraTaxonomy,
+    ).toList();
     if (notes.isNotEmpty &&
         notes.any(
           (n) => _noteIsLeftover(n, vocabulary ?? _LeftoverVocabulary.none),
@@ -217,11 +222,26 @@ int _unexplainedChars(List<Figure> figures) {
 final RegExp _notLetterOrDigit = RegExp(r'[^A-Za-z0-9]');
 
 /// Every non-null note on [figures] and, recursively, their sub-figures.
-Iterable<String> _allNotes(Iterable<Figure> figures) sync* {
+Iterable<String> _allNotes(
+  Iterable<Figure> figures, {
+  Taxonomy? exceptOwnName,
+}) sync* {
   for (final f in figures) {
-    if (f.note != null) yield f.note!;
-    if (f.isContainer) yield* _allNotes(f.subFigures);
+    final note = f.note;
+    if (note != null &&
+        !(exceptOwnName != null && _namesOwnMove(note, f, exceptOwnName))) {
+      yield note;
+    }
+    if (f.isContainer) {
+      yield* _allNotes(f.subFigures, exceptOwnName: exceptOwnName);
+    }
   }
+}
+
+/// Whether [note] is nothing but [figure]'s own move name.
+bool _namesOwnMove(String note, Figure figure, Taxonomy taxonomy) {
+  final name = taxonomy.resolve(figure.move)?.displayName;
+  return name != null && note.trim().toLowerCase() == name.trim().toLowerCase();
 }
 
 /// The whole-line import-gap custom a demoted line falls to when no front-end
