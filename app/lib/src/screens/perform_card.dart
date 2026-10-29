@@ -1078,7 +1078,9 @@ class _Figures extends StatelessWidget {
 ///
 /// Maintainer decision D-7 (cap the label's scale vs. stack it under the figure
 /// on narrow screens) is still open; this is the planning document's default.
-/// Swapping to the stacked layout means replacing the label in [_FigureRow]'s
+/// The cap applies to the card's composed scale (system text times the large-print
+/// A−/A+ size), which is the point: that composed scale is what narrows the
+/// figure column. Swapping to the stacked layout means replacing the label in [_FigureRow]'s
 /// `Row`, and this constant goes away with it.
 const double kBeatsLabelMaxTextScale = 1.3;
 

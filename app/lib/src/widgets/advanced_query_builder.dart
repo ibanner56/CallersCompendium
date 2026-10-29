@@ -98,6 +98,7 @@ class _GroupView extends StatelessWidget {
                   child: Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: 8,
+                    runSpacing: 4,
                     children: [
                       Semantics(
                         label: l10n.collectionQueryMatchLabel,
@@ -598,6 +599,7 @@ class _FigureGroupEditor extends StatelessWidget {
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 8,
+          runSpacing: 4,
           children: [
             Semantics(
               label: l10n.collectionQueryFigureGroupMatch,
