@@ -6,6 +6,8 @@ import '../data/custom_theme.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/app_bar_text_action.dart';
+import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
 
 /// Full-role editor for a [CustomTheme] (`docs/design/ux-modernization.md`
 /// §4B). Lets the user rename the theme and edit every major color role, with
@@ -208,7 +210,10 @@ class _RoleGroupSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 20, bottom: 8),
+          padding: const EdgeInsets.only(
+            top: AppSpacing.md,
+            bottom: AppSpacing.xs,
+          ),
           child: Text(
             themeEditorGroupLabel(l10n, group),
             style: theme.textTheme.titleSmall?.copyWith(
@@ -315,7 +320,7 @@ class _RoleTile extends StatelessWidget {
         height: 36,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppShapes.borderRadiusSmall,
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
       ),
@@ -338,7 +343,7 @@ class _PreviewCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppShapes.borderRadiusMedium,
         border: Border.all(color: scheme.outlineVariant),
       ),
       padding: const EdgeInsets.all(16),
@@ -364,21 +369,25 @@ class _PreviewCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _swatch(
+                context,
                 l10n.themeEditorSwatchPrimary,
                 scheme.primary,
                 scheme.onPrimary,
               ),
               _swatch(
+                context,
                 l10n.themeEditorSwatchSecondary,
                 scheme.secondary,
                 scheme.onSecondary,
               ),
               _swatch(
+                context,
                 l10n.themeEditorSwatchTertiary,
                 scheme.tertiary,
                 scheme.onTertiary,
               ),
               _swatch(
+                context,
                 l10n.themeEditorSwatchError,
                 scheme.error,
                 scheme.onError,
@@ -390,7 +399,7 @@ class _PreviewCard extends StatelessWidget {
     );
   }
 
-  Widget _swatch(String label, Color bg, Color fg) {
+  Widget _swatch(BuildContext context, String label, Color bg, Color fg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -399,7 +408,7 @@ class _PreviewCard extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 12),
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: fg),
       ),
     );
   }

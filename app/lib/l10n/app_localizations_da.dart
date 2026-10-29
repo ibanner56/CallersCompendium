@@ -20,6 +20,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Et modifier-element blev tilføjet.';
 
   @override
+  String get danceEditorAddedSequenceAnnouncement =>
+      'Et sekvens-element blev tilføjet.';
+
+  @override
   String get navCollection => 'Samling';
 
   @override
@@ -1251,6 +1255,10 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get settingsSyncConflictsCheckFailed =>
+      'Kunne ikke tjekke for konflikter.';
+
+  @override
   String commonSyncNowConflictsTooltip(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1459,6 +1467,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsSyncWipeDetachFailed =>
       'Lageret blev slettet fra serveren, men denne enhed kunne ikke afbryde forbindelsen til det. Lageret er væk og kan ikke hentes tilbage. Brug Afbryd forbindelsen på denne enhed for at gøre det færdigt.';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'Lageret er slettet, men denne enhed er stadig forbundet';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -2422,6 +2434,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Sværhedsniveauerne kunne ikke gemmes. Prøv igen.';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '„$label“ slettet.';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standardband';
 
   @override
@@ -2938,6 +2955,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
       'Når aktiveret viser en dans\' kaldshistorik kun programmer, hvis slot for den dans er markeret som fremført. Når deaktiveret vises et program, så snart det indeholder dansen.';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesTitle =>
+      'Vis knapper til markering som fremført';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'Når aktiveret har hver dans i programvisningen en knap til at markere den som fremført eller ej, uden at åbne editoren. Når deaktiveret viser rækkerne kun, om en dans er fremført.';
 
   @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
@@ -4371,6 +4396,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceNotFound => 'Dans ikke fundet.';
 
   @override
+  String get danceLoadError => 'Kunne ikke indlæse denne dans.';
+
+  @override
   String get danceEditFab => 'Rediger';
 
   @override
@@ -5009,6 +5037,44 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => 'Markeret som fremført.';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title: fremført';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title: ikke fremført';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return 'Markér $title som fremført';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return 'Ryd fremført-markeringen på $title';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$title markeret som fremført.';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return 'Fremført-markeringen på $title er ryddet.';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      'Fremført-markeringen kunne ikke opdateres. Prøv igen.';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      'Ændringen af fremført-markeringen kunne ikke fortrydes.';
 
   @override
   String get programsPerformedCleared => 'Fremført-markering ryddet.';
@@ -5888,6 +5954,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String exportMinutesLabel(int count) {
     return '$count min';
+  }
+
+  @override
+  String exportPageOfPages(int page, int pages) {
+    return 'Side $page af $pages';
   }
 
   @override
@@ -7710,6 +7781,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String validationSequenceExceedsPhrase(int position, int actual, int limit) {
+    return 'En sekvens i figur $position er $actual slag, længere end én frase ($limit slag).';
+  }
+
+  @override
   String get validationPhraseInvalid => 'Den frastruktur er ugyldig.';
 
   @override
@@ -8073,6 +8149,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorAddModifier => 'Tilføj modifikator';
 
   @override
+  String get danceEditorAddSequence => 'Tilføj sekvens';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Indsæt i slutningen af figurlisten';
 
@@ -8207,16 +8286,98 @@ class AppLocalizationsDa extends AppLocalizations {
       'Gruppér med næste som modifikator';
 
   @override
+  String get danceEditorGroupWithNextAsSequence =>
+      'Gruppér med næste som sekvens';
+
+  @override
   String get danceEditorConvertToMeanwhile => 'Konvertér til meanwhile';
 
   @override
   String get danceEditorConvertToModifier => 'Konvertér til modifier';
 
   @override
+  String get danceEditorConvertToSequence => 'Konvertér til sekvens';
+
+  @override
   String get danceEditorUngroupMeanwhile => 'Ophæv meanwhile-gruppering';
 
   @override
   String get danceEditorUngroupModifier => 'Ophæv modifier-gruppering';
+
+  @override
+  String get danceEditorUngroupSequence => 'Ophæv sekvens-gruppering';
+
+  @override
+  String get danceEditorSequenceOptionLabel => 'sekvens';
+
+  @override
+  String danceEditorSequenceGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sekvens ($count figurer)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurer',
+      one: '1 figur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats slag',
+      one: '1 slag',
+    );
+    return 'Sekvensgruppe, $_temp0 i rækkefølge, $_temp1 i alt.';
+  }
+
+  @override
+  String danceEditorSequenceTotalBeats(int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats slag i alt',
+      one: '1 slag i alt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceOverPhrase(int beats, int limit) {
+    return 'Denne sekvens er $beats slag, længere end én frase ($limit slag).';
+  }
+
+  @override
+  String danceEditorSequencePhraseFull(int limit) {
+    return 'Disse figurer fylder én frase ($limit slag).';
+  }
+
+  @override
+  String danceEditorSequenceStepsCapReached(int max) {
+    return 'Maksimalt $max figurer i en sekvens.';
+  }
+
+  @override
+  String danceEditorSequenceStepLabel(int number) {
+    return 'Figur $number';
+  }
+
+  @override
+  String danceEditorSequenceStepSemantic(int number, int total) {
+    return 'Figur $number af $total i sekvensen.';
+  }
+
+  @override
+  String get danceEditorAddSequenceStep => 'Tilføj næste figur';
+
+  @override
+  String get danceEditorRemoveSequenceStep => 'Fjern denne figur';
 
   @override
   String danceEditorModifierGroupLabel(num count) {
@@ -9154,6 +9315,11 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 dans',
     );
     return 'Kan ikke slette „$label“: bruges stadig af $_temp0. Fjern værdien fra alle danse først.';
+  }
+
+  @override
+  String customFieldsDeleteFailed(String label) {
+    return 'Kunne ikke slette „$label“. Prøv igen.';
   }
 
   @override

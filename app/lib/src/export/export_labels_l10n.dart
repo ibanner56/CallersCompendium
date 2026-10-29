@@ -21,6 +21,7 @@ DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   walkthrough: l10n.exportLabelWalkthrough,
   tunes: l10n.exportLabelTunes,
   beats: l10n.exportBeatsLabel,
+  pageOf: l10n.exportPageOfPages,
 );
 
 ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
@@ -42,6 +43,7 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       figures: l10n.exportLabelFigures,
       alternate: l10n.exportIncludeFiguresAlternate,
       by: l10n.exportSlotAuthorSuffix,
+      pageOf: l10n.exportPageOfPages,
     );
 
 ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
@@ -56,4 +58,5 @@ ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
       legendCollisionBeats: l10n.exportMatrixLegendCollisionBeats,
       legendCollisionPhrase: l10n.exportMatrixLegendCollision,
       omittedCaption: l10n.exportMatrixOmittedCaption,
+      pageOf: l10n.exportPageOfPages,
     );

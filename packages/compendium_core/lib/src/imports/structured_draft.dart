@@ -83,7 +83,7 @@ class ParseQuality {
 
   /// Computes the quality of an already-built figure list recursively: a
   /// top-level figure counts as custom if it is directly custom, or if any
-  /// descendant of either structural container kind is custom.
+  /// descendant of any structural container kind is custom.
   factory ParseQuality.ofFigures(List<Figure> figures) => ParseQuality(
     totalFigures: figures.length,
     customFigures: figures.where((f) => _containsCustomFigure(f)).length,

@@ -26,6 +26,8 @@ String _englishMinutes(int minutes) => '$minutes min';
 
 String _englishBy(String names) => 'by $names';
 
+String _englishPageOf(int page, int pages) => 'Page $page of $pages';
+
 String _englishOmittedCaption(int count) =>
     '$count free-text ${count == 1 ? 'slot' : 'slots'} '
     '(breaks, notes) omitted — the matrix shows dances only.';
@@ -45,6 +47,7 @@ class DanceExportLabels {
     this.walkthrough = 'Walkthrough',
     this.tunes = 'Tunes',
     this.beats = _englishBeats,
+    this.pageOf = _englishPageOf,
   });
 
   final String formation;
@@ -63,6 +66,9 @@ class DanceExportLabels {
   /// section before that field existed.
   final String tunes;
   final String Function(int beats) beats;
+
+  /// Page footer of the dance PDF, e.g. `"Page 2 of 3"`.
+  final String Function(int page, int pages) pageOf;
 }
 
 /// Field-name labels for the set-list export ([programToPlainText] and the
@@ -89,6 +95,7 @@ class ProgramExportLabels {
     this.figures = 'Figures',
     this.alternate = 'Alternate',
     this.by = _englishBy,
+    this.pageOf = _englishPageOf,
   });
 
   final String band;
@@ -119,6 +126,9 @@ class ProgramExportLabels {
   /// guest/minutes/performed suffixes, only when the caller resolves at
   /// least one non-blank author name for that slot's dance.
   final String Function(String names) by;
+
+  /// Page footer of the set-list PDF, e.g. `"Page 2 of 3"`.
+  final String Function(int page, int pages) pageOf;
 }
 
 /// Labels and fixed captions for the Programming Matrix PDF
@@ -144,6 +154,7 @@ class ProgramMatrixExportLabels {
     this.legendCollisionBeats = 'Shares beats with an adjacent dance',
     this.legendCollisionPhrase = 'Same phrase as adjacent dance',
     this.omittedCaption = _englishOmittedCaption,
+    this.pageOf = _englishPageOf,
   });
 
   final String defaultTitle;
@@ -162,4 +173,7 @@ class ProgramMatrixExportLabels {
   /// behaviour, now opt-in).
   final String legendCollisionPhrase;
   final String Function(int count) omittedCaption;
+
+  /// Page footer of the matrix PDF, e.g. `"Page 2 of 3"`.
+  final String Function(int page, int pages) pageOf;
 }

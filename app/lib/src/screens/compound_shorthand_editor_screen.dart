@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
@@ -10,6 +11,7 @@ import '../data/user_figures_scope.dart';
 import '../editor/figure_draft.dart';
 import '../editor/user_figure_draft.dart';
 import '../glossary/custom_figures.dart';
+import '../utils/scroll_to_error.dart';
 import '../widgets/compound_argument_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
 import '../widgets/user_figure_use_editor.dart';
@@ -76,7 +78,16 @@ class _CompoundShorthandEditorScreenState
   /// A new figure's use, as a dance-editor row holds it: its arguments and
   /// beats. Seeded when the figures are first read.
   Map<String, Object?>? _useParams;
-  String? _error;
+
+  /// The token's validation error, shown on the token field, or `null`.
+  String? _tokenErrorText;
+
+  /// The error about the chosen figure or its values, shown under them, or
+  /// `null`.
+  String? _figureError;
+
+  final _scroll = ScrollController();
+  final _figureErrorKey = GlobalKey();
 
   @override
   void didChangeDependencies() {
@@ -135,6 +146,7 @@ class _CompoundShorthandEditorScreenState
   void dispose() {
     unawaited(_sub?.cancel());
     _token.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -157,7 +169,7 @@ class _CompoundShorthandEditorScreenState
         _useParams = figure == null
             ? null
             : userFigureDraftParams(figure.entry, figure.definition);
-        _error = null;
+        _figureError = null;
       });
       return;
     }
@@ -174,12 +186,12 @@ class _CompoundShorthandEditorScreenState
               ? const {}
               : previewArguments(picked.definition, contraTaxonomy) ?? const {},
         );
-      _error = null;
+      _figureError = null;
     });
   }
 
   /// The token's problem, or null: shared by both kinds.
-  String? _tokenError(AppLocalizations l10n, String token) {
+  String? _tokenProblem(AppLocalizations l10n, String token) {
     if (token.isEmpty) return l10n.shorthandEditorErrorEmpty;
     if (token.length > maxShorthandTokenLength) {
       return l10n.shorthandEditorErrorTooLong(maxShorthandTokenLength);
@@ -196,9 +208,12 @@ class _CompoundShorthandEditorScreenState
     final token = _token.text.trim();
     String? error;
     final picked = _compoundId == null ? null : _compounds?[_compoundId];
-    if (_tokenError(l10n, token) case final tokenError?) {
-      error = tokenError;
-    } else if (picked == null) {
+    final tokenError = _tokenProblem(l10n, token);
+    if (tokenError != null) {
+      _showError(tokenError: tokenError);
+      return;
+    }
+    if (picked == null) {
       error = l10n.compoundShorthandEditorNoFigure;
     } else if (expandCompound(picked.definition, _args, contraTaxonomy) ==
         null) {
@@ -221,10 +236,24 @@ class _CompoundShorthandEditorScreenState
       error = l10n.compoundEditorTooLong;
     }
     if (error != null) {
-      setState(() => _error = error);
+      _showError(figureError: error);
       return;
     }
     Navigator.of(context).pop(shorthand);
+  }
+
+  /// Shows a token error on the token field or a figure error under the figure
+  /// choice, and scrolls to it.
+  void _showError({String? tokenError, String? figureError}) {
+    setState(() {
+      _tokenErrorText = tokenError;
+      _figureError = figureError;
+    });
+    if (tokenError != null) {
+      scrollToTopForError(context, _scroll);
+    } else {
+      scrollToError(context, _figureErrorKey);
+    }
   }
 
   /// Saves a shorthand for a new figure (#1023): its arguments, and its beats
@@ -236,8 +265,13 @@ class _CompoundShorthandEditorScreenState
     final figure = _figures?[_figureId];
     final params = _useParams;
     UserFigureShorthand? shorthand;
-    var error = _tokenError(l10n, token);
-    if (error == null && (figure == null || params == null)) {
+    final tokenError = _tokenProblem(l10n, token);
+    if (tokenError != null) {
+      _showError(tokenError: tokenError);
+      return;
+    }
+    String? error;
+    if (figure == null || params == null) {
       error = l10n.compoundShorthandEditorNoFigure;
     }
     if (error == null) {
@@ -266,7 +300,7 @@ class _CompoundShorthandEditorScreenState
       }
     }
     if (error != null) {
-      setState(() => _error = error);
+      _showError(figureError: error);
       return;
     }
     Navigator.of(context).pop(shorthand);
@@ -317,28 +351,28 @@ class _CompoundShorthandEditorScreenState
         ],
       ),
       body: ListView(
+        controller: _scroll,
+        // An error is scrolled to by its key, and a lazily built list has no
+        // element for a child far outside the viewport. Enough to keep the
+        // whole form built; an infinite extent breaks semantics.
+        scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
         padding: const EdgeInsets.all(16),
         children: [
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                _error!,
-                key: const ValueKey('compound-shorthand-error'),
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-            ),
           TextField(
             key: const ValueKey('compound-shorthand-token'),
             controller: _token,
             maxLength: maxShorthandTokenLength,
             autofocus: _isNew,
             onChanged: (_) {
-              if (_error != null) setState(() => _error = null);
+              if (_tokenErrorText != null) {
+                setState(() => _tokenErrorText = null);
+              }
             },
             decoration: InputDecoration(
               labelText: l10n.shorthandEditorTokenLabel,
               helperText: l10n.shorthandEditorTokenHelper,
+              errorText: _tokenErrorText,
+              errorMaxLines: 3,
               border: const OutlineInputBorder(),
             ),
           ),
@@ -381,7 +415,7 @@ class _CompoundShorthandEditorScreenState
                   dialect: dialect,
                   onChanged: (next) => setState(() {
                     _useParams = next;
-                    _error = null;
+                    _figureError = null;
                   }),
                 ),
               ),
@@ -411,7 +445,7 @@ class _CompoundShorthandEditorScreenState
                     dialect: dialect,
                     onChanged: (value) => setState(() {
                       _args[param.key] = value;
-                      _error = null;
+                      _figureError = null;
                     }),
                   ),
                 ),
@@ -429,6 +463,16 @@ class _CompoundShorthandEditorScreenState
                 ),
             ],
           ],
+          if (_figureError != null)
+            Padding(
+              key: _figureErrorKey,
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                _figureError!,
+                key: const ValueKey('compound-shorthand-error'),
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ),
         ],
       ),
     );

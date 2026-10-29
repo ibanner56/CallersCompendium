@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'pdf_page_furniture.dart';
 import 'program_figure_widgets.dart';
 import 'program_pdf.dart';
 
@@ -71,6 +72,8 @@ Future<Uint8List> buildDancePdf(
   doc.addPage(
     pw.MultiPage(
       pageFormat: pageFormat,
+      header: (context) => pdfRunningHeader(context, content.title),
+      footer: (context) => pdfPageFooter(context, labels.pageOf),
       build: (context) => danceCardWidgets(
         dance,
         content,

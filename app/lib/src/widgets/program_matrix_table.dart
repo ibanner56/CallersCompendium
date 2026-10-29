@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/reduce_motion_scope.dart';
 import '../search/facet_labels.dart' show formationIcon, formationLabel;
+import '../theme/app_shapes.dart';
 
 /// Read-only **programming matrix** (moves × dances) for the Program builder's
 /// Matrix tab (`docs/design/ux.md` §4).
@@ -1379,7 +1380,7 @@ class _DanceChip extends StatelessWidget {
               : first
               ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.3)
               : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppShapes.borderRadiusSmall,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

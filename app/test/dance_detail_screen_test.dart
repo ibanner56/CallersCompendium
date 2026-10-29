@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart' show PdfPageFormat;
+import 'package:printing/printing.dart' show LayoutCallback;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -33,6 +35,7 @@ import 'package:compendium_app/src/widgets/program_status_chip.dart';
 import 'package:compendium_app/src/widgets/readable_width.dart';
 
 import 'support/fake_url_launcher.dart';
+import 'support/pdf_probe.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'figures_support.dart';
@@ -788,6 +791,31 @@ void main() {
         expect(sink.sources, ['dance_export_actions.exportPdf']);
       },
     );
+
+    testWidgets('the overflow PDF export lays out the paper the print dialog '
+        'chose, not A4 (OUT-4)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+      LayoutCallback? captured;
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        pdfLayouter: ({required name, required onLayout}) async =>
+            captured = onLayout,
+      );
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-export-pdf')));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      expect(pdfMediaBox(await captured!(PdfPageFormat.letter)), (612, 792));
+    });
 
     testWidgets(
       'the compact overflow Copy respects a deselected DanceShareFieldsScope '
@@ -3009,12 +3037,10 @@ void main() {
     // nothing. Discarding it would leave a screen that silently keeps its last
     // state with nothing logged and nothing shown.
     //
-    // Rendering is deliberately unchanged — the previous builder never read
-    // `snapshot.error`, so a failure already rendered as "not found" — and that
-    // is exactly why the log matters: on screen, a broken query and an absent
-    // dance are the same thing.
+    // A failed read renders its own "couldn't load" body with Retry, apart from
+    // "not found", and is still logged so the cause reaches the diagnostic log.
 
-    testWidgets('is logged, and still renders the not-found body', (
+    testWidgets('is logged, and says it could not load rather than not found', (
       tester,
     ) async {
       final sink = _RecordingSink();
@@ -3038,7 +3064,29 @@ void main() {
         contains('dance_detail_screen._subscribe'),
         reason: 'a failing record read must reach the diagnostic log',
       );
-      expect(find.text('Dance not found.'), findsOneWidget);
+      expect(find.text("Couldn't load this dance."), findsOneWidget);
+      expect(
+        find.text('Dance not found.'),
+        findsNothing,
+        reason: 'a read failure must not tell the caller their dance is gone',
+      );
+    });
+
+    testWidgets('Retry reads the dance again', (tester) async {
+      final db = openWidgetTestDatabase();
+      final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
+      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+
+      await _pumpDetail(tester, repos, 'd1');
+      expect(dances.fired, isTrue);
+      expect(find.text("Couldn't load this dance."), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't load this dance."), findsNothing);
+      expect(find.text('Alpha'), findsWidgets);
     });
 
     testWidgets('recovers on the next write rather than staying failed', (
@@ -3054,14 +3102,14 @@ void main() {
 
       await _pumpDetail(tester, repos, 'd1');
       expect(dances.fired, isTrue);
-      expect(find.text('Dance not found.'), findsOneWidget);
+      expect(find.text("Couldn't load this dance."), findsOneWidget);
 
       final stored = await repos.dances.getById('d1');
       await repos.dances.update(stored!.copyWith(title: 'Renamed'));
       await tester.pumpAndSettle();
 
       expect(find.text('Renamed'), findsWidgets);
-      expect(find.text('Dance not found.'), findsNothing);
+      expect(find.text("Couldn't load this dance."), findsNothing);
     });
   });
 

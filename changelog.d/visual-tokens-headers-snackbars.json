@@ -1,0 +1,9 @@
+{
+  "id": "visual-tokens-headers-snackbars",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Section headings in Settings and the dialect editor now keep their capitalisation instead of being forced to upper case, and screen readers announce them as headings. Snackbar messages now float above the screen's controls everywhere, as the Undo messages already did."
+    ]
+  }
+}

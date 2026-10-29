@@ -17,6 +17,7 @@ import '../data/contradb_online.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/set_list_color_coding_scope.dart';
+import '../data/show_performed_toggles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
@@ -35,6 +36,10 @@ import 'dance_reimport_flow.dart';
 import '../widgets/command_palette.dart';
 import 'perform_program_screen.dart';
 import 'program_editor_screen.dart';
+
+/// How many times a row toggle re-reads and retries after losing a race with
+/// another writer before it gives up and says so.
+const int _kTogglePerformedAttempts = 3;
 
 /// Full-screen, read-focused summary of a saved program, pushed on **narrow**
 /// (phone / tablet-portrait) layouts when the user taps a program in the
@@ -249,6 +254,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     BuildContext routeContext,
     DanceDetailData detail,
   ) => _reimport.open(routeContext, detail);
+
+  /// The slots whose toggle write is in flight. A second tap on the same row
+  /// while its write is in flight is ignored (it would set the same state).
+  /// Other rows are never blocked: their writes serialise through
+  /// [ProgramRepository.replaceIfUnchanged] and its retry.
+  final Set<String> _togglingSlots = {};
 
   void _invalidateBulkUndo() {
     _bulkUndoSnackBar?.close();
@@ -917,6 +928,181 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // stream re-emits for it.
   }
 
+  /// The per-row mark-performed toggle (shown while "Show mark-performed
+  /// toggles" is on). A plain button in the row, so it needs no swipe or long
+  /// press; the semantics name the dance and its state, and the 48dp target is
+  /// the [IconButton] default.
+  Widget _performedToggle(ProgramSlot slot, String title) {
+    final l10n = AppLocalizations.of(context);
+    final performed = slot.performedAt != null;
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      button: true,
+      toggled: performed,
+      label: performed
+          ? l10n.programsSummaryPerformedToggleOn(title)
+          : l10n.programsSummaryPerformedToggleOff(title),
+      onTap: () => unawaited(_setPerformed(slot.id, title, !performed)),
+      child: IconButton(
+        key: ValueKey('summary-slot-${slot.id}-performed-toggle'),
+        tooltip: performed
+            ? l10n.programsSummaryClearPerformedTooltip(title)
+            : l10n.programsSummaryMarkPerformedTooltip(title),
+        isSelected: performed,
+        icon: const Icon(Icons.radio_button_unchecked),
+        selectedIcon: const Icon(Icons.check_circle_outline),
+        onPressed: () => unawaited(_setPerformed(slot.id, title, !performed)),
+      ),
+    );
+  }
+
+  /// Sets one slot's performed mark to [marking] — what the tapped row
+  /// showed, flipped — and offers Undo. A slot already in that state in the
+  /// store (another device synced the same mark in, or a double tap) is left
+  /// alone rather than flipped back, so a tap never does the opposite of what
+  /// the caller saw.
+  ///
+  /// Marking stamps with [nextStoredTimestamp]; clearing removes the stamp —
+  /// the same per-slot behaviour as the builder. The write is computed from the
+  /// *stored* program, never [_program] (this pane's possibly stale loaded
+  /// copy), and lands through [ProgramRepository.replaceIfUnchanged], so an edit
+  /// or sync apply that landed since the read is neither overwritten nor
+  /// silently dropped: the compare fails and the toggle re-reads and retries.
+  Future<void> _setPerformed(String slotId, String title, bool marking) async {
+    final programId = _program?.id;
+    if (programId == null || !_togglingSlots.add(slotId)) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    _invalidateBulkUndo();
+    try {
+      for (var attempt = 0; attempt < _kTogglePerformedAttempts; attempt++) {
+        final stored = await _repos.programs.getById(programId);
+        final before = stored?.slots.where((s) => s.id == slotId).firstOrNull;
+        // The program or the row is gone (deleted, or removed elsewhere).
+        if (stored == null || before == null) return;
+        if ((before.performedAt != null) == marking) return;
+        final updatedSlots = [
+          for (final s in stored.slots)
+            if (s.id != slotId)
+              s
+            else if (marking)
+              s.copyWith(
+                performedAt: nextStoredTimestamp(
+                  now: DateTime.now().toUtc(),
+                  current: stored.slots.map((x) => x.performedAt),
+                ),
+              )
+            else
+              s.copyWith(clearPerformedAt: true),
+        ];
+        final wrote = await _repos.programs.replaceIfUnchanged(
+          expected: stored,
+          replacement: stored.copyWith(slots: updatedSlots),
+          updatedAt: DateTime.now().toUtc(),
+        );
+        if (!wrote) continue;
+        // The Undo token is the program as the write stored it. Read back now;
+        // if something else already changed this slot there is nothing of ours
+        // left to undo, so no Undo is offered.
+        final after = await _repos.programs.getById(programId);
+        final afterSlot = after?.slots.where((s) => s.id == slotId).firstOrNull;
+        final message = marking
+            ? l10n.programsSummaryMarkedPerformedSnack(title)
+            : l10n.programsSummaryClearedPerformedSnack(title);
+        if (!mounted) return;
+        if (after == null ||
+            afterSlot == null ||
+            (afterSlot.performedAt == null) == marking) {
+          messenger.showSnackBar(SnackBar(content: Text(message)));
+          return;
+        }
+        showUndoSnackBar(
+          messenger,
+          message: message,
+          undoLabel: l10n.commonUndo,
+          undoFailedMessage: l10n.commonUndoFailed,
+          accessibleNavigation: accessibleNavigation,
+          onUndo: () => unawaited(
+            _undoTogglePerformed(
+              token: after,
+              slotId: slotId,
+              restore: before,
+              messenger: messenger,
+              errorMessage: l10n.programsSummaryUndoPerformedToggleError,
+            ),
+          ),
+        );
+        return;
+      }
+      // Every attempt lost a race with another writer.
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.programsSummaryPerformedToggleError)),
+        );
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_summary_screen._setPerformed',
+      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.programsSummaryPerformedToggleError)),
+        );
+      }
+    } finally {
+      _togglingSlots.remove(slotId);
+    }
+  }
+
+  /// Puts one slot back to [restore]'s performed state, but only while the
+  /// stored program is still [token] (what the toggle's write stored). The
+  /// replacement is [token] with just that slot reverted, so nothing else is
+  /// rewritten from an older snapshot.
+  Future<void> _undoTogglePerformed({
+    required Program token,
+    required String slotId,
+    required ProgramSlot restore,
+    required ScaffoldMessengerState messenger,
+    required String errorMessage,
+  }) async {
+    var restored = false;
+    try {
+      restored = await _repos.programs.replaceIfUnchanged(
+        expected: token,
+        replacement: token.copyWith(
+          slots: [
+            for (final s in token.slots)
+              if (s.id != slotId)
+                s
+              else if (restore.performedAt == null)
+                s.copyWith(clearPerformedAt: true)
+              else
+                s.copyWith(performedAt: restore.performedAt),
+          ],
+        ),
+        updatedAt: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_summary_screen._undoTogglePerformed',
+      );
+    }
+    if (restored) return;
+    messenger
+      ..clearSnackBars()
+      ..removeCurrentSnackBar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!messenger.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
+    });
+  }
+
   static bool _isUnmarkedAlternate(ProgramSlot s) =>
       s.danceId != null && s.isAlt && s.performedAt == null;
 
@@ -1055,6 +1241,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       final dance = _dances[danceId];
       final title = dance?.title ?? _danceTitles[danceId];
       final performed = slot.performedAt != null;
+      final showToggle = title != null && ShowPerformedTogglesScope.of(context);
       if (title == null) {
         // The dance no longer resolves (deleted/tombstoned). Render a graceful,
         // non-interactive fallback rather than a broken tappable row.
@@ -1137,88 +1324,97 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             ),
           ),
         if (dance != null && dance.mixer) l10n.commonMixer,
-        if (performed) l10n.programsPerformed,
+        // The toggle announces the state itself, so the row does not repeat it.
+        if (performed && !showToggle) l10n.programsPerformed,
       ].join('. ');
 
-      return Padding(
-        padding: EdgeInsets.only(left: indented ? 32 : 0, top: 2, bottom: 2),
-        child: MergeSemantics(
-          child: Semantics(
-            button: true,
-            label: semanticsLabel,
-            child: InkWell(
-              key: ValueKey('summary-slot-${slot.id}'),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (routeContext) => DanceDetailScreen(
-                    danceId: danceId,
-                    onReimport: (detail) =>
-                        _beginReimport(routeContext, detail),
-                  ),
+      final rowBody = MergeSemantics(
+        child: Semantics(
+          button: true,
+          label: semanticsLabel,
+          child: InkWell(
+            key: ValueKey('summary-slot-${slot.id}'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (routeContext) => DanceDetailScreen(
+                  danceId: danceId,
+                  onReimport: (detail) => _beginReimport(routeContext, detail),
                 ),
               ),
-              child: ExcludeSemantics(
-                child: Container(
-                  key: accent != null
-                      ? ValueKey('summary-slot-${slot.id}-accent')
-                      : null,
-                  decoration: accent != null
-                      ? BoxDecoration(
-                          border: Border(
-                            left: BorderSide(color: accent, width: 4),
-                          ),
-                        )
-                      : null,
-                  padding: EdgeInsets.only(
-                    left: accent != null ? 8 : 0,
-                    top: 8,
-                    bottom: 8,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      leading,
-                      Icon(
-                        Icons.music_note_outlined,
-                        size: 20,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ?altBadge,
-                            Text(title, style: theme.textTheme.bodyLarge),
-                            if (secondary.isNotEmpty)
-                              Text(
-                                secondary,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
+            ),
+            child: ExcludeSemantics(
+              child: Container(
+                key: accent != null
+                    ? ValueKey('summary-slot-${slot.id}-accent')
+                    : null,
+                decoration: accent != null
+                    ? BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: accent, width: 4),
+                        ),
+                      )
+                    : null,
+                padding: EdgeInsets.only(
+                  left: accent != null ? 8 : 0,
+                  top: 8,
+                  bottom: 8,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    leading,
+                    Icon(
+                      Icons.music_note_outlined,
+                      size: 20,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ?altBadge,
+                          Text(title, style: theme.textTheme.bodyLarge),
+                          if (secondary.isNotEmpty)
+                            Text(
+                              secondary,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
-                      if (performed) ...[
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
+                    ),
+                    if (performed && !showToggle) ...[
                       Icon(
-                        Icons.chevron_right,
-                        color: theme.colorScheme.onSurfaceVariant,
+                        Icons.check_circle_outline,
+                        size: 20,
+                        color: theme.colorScheme.primary,
                       ),
+                      const SizedBox(width: 4),
                     ],
-                  ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
         ),
+      );
+      return Padding(
+        padding: EdgeInsets.only(left: indented ? 32 : 0, top: 2, bottom: 2),
+        child: showToggle
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: rowBody),
+                  _performedToggle(slot, title),
+                ],
+              )
+            : rowBody,
       );
     }
 

@@ -35,6 +35,18 @@ including Linux.
 A PDF can print Japanese text (hiragana, katakana and the everyday kanji). Rarer
 kanji, Chinese-only characters and Korean may still show as empty boxes.
 
+A PDF is laid out on the paper size you pick in the print dialog — Letter, A4,
+or another size — and every page carries "Page 1 of 3" at the bottom. From the
+second page on, the dance's or program's title also runs along the top.
+
+**File names.** A dance or program you share as a file (`.ccshare` or `.json`)
+is named after its title, keeping its letters in any script ("Contredanse à la
+française" stays that way) and replacing characters that can't go in a file name
+with `_`, and shortening a very long title. A program's file name and its PDF's suggested name end with the event
+date — `Saturday_Contra_2026-10-31` — so a weekly program doesn't export under
+the same name every time. Backups are named for the day you took them on your
+device's clock.
+
 ### Which words a dance export uses
 
 Text you share or copy, and a PDF you print, are written in your **active
@@ -111,10 +123,14 @@ list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
 - **Set list and figures** — appends a full card for each dance after the set
   list, showing every dance field you've selected alongside its figures. The
   cards use your app language for field labels; the figure text uses your
-  active dialect. Alternate dances are marked "Alternate".
+  active dialect. Alternate dances are marked "Alternate". A dance with no
+  structured figures still gets its card when it has calling notes or a
+  walkthrough and you've selected that field; a dance with nothing to show
+  beneath its title gets no card.
 
-If none of the program's dances have any structured figures, the question is
-skipped and the export proceeds as set-list-only automatically.
+If none of the program's dances have anything to put on a card — no structured
+figures, and no selected calling notes or walkthrough — the question is skipped
+and the export proceeds as set-list-only automatically.
 
 Cancelling the dialog (or dismissing it) stops the export — nothing is shared or
 copied.
@@ -236,8 +252,12 @@ own PDF — it is not in the **Export** menu. Open a program's **Matrix** tab an
 **Export or print matrix as PDF**. The button is unavailable while the matrix is
 empty.
 
-The matrix PDF is laid out in landscape, uses your active dialect for the move
-column headings, and prints a legend above the grid:
+The matrix PDF is laid out in landscape on the paper you choose in the print
+dialog, uses your active dialect for the move column headings, and prints a
+legend above the grid. When the grid runs onto more than one page, its heading
+row repeats at the top of each page. It is saved under its own name — your
+program's title followed by "Programming matrix" — so it never overwrites the
+set-list PDF:
 
 | Mark | Meaning |
 |---|---|

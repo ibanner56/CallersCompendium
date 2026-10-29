@@ -763,11 +763,11 @@ List<Figure> _figuresFromJson(Object? raw) {
 /// spoofing characters (issue #444). The structural `move` key and non-string
 /// params (e.g. numeric `beats`) are left untouched.
 ///
-/// For a structural container (`meanwhile` or `modifier`) this **recurses** into
+/// For a structural container (any of [containerMoves]) this **recurses** into
 /// each nested child in `params['figures']` so a nested child cannot smuggle
 /// unsanitized free text past the one-level scrub, and enforces the structural
 /// caps defensively against untrusted recursive input (OWASP): the child count
-/// is clamped to [kMaxMeanwhileSides] and recursion is bounded by
+/// is clamped to the kind's [maxContainerChildren] and recursion is bounded by
 /// [kMaxContainerDepth], with any pathologically deep remainder dropped.
 /// Parse-never-fails: it clamps/scrubs, it never throws.
 Map<String, Object?> _sanitizeFigureJson(
@@ -817,17 +817,17 @@ Map<String, Object?> _sanitizeFigureJson(
     // Recurse into nested structural children (untrusted recursive structure):
     // scrub each child's free text, cap the child count, and bound depth so a
     // deeply-nested payload cannot exhaust the stack. `figures` is reserved for
-    // the two structural container moves; a future taxonomy move that happens
-    // to use a `figures` param must not be rewritten.
+    // the structural container moves; a future taxonomy move that happens to
+    // use a `figures` param must not be rewritten.
     final sides = sanitizedParams['figures'];
     final move = out['move'];
-    if ((move == meanwhileMove || move == modifierMove) && sides is List) {
+    if (move is String && isContainerMove(move) && sides is List) {
       if (depth >= kMaxContainerDepth) {
         sanitizedParams['figures'] = const <Object?>[];
       } else {
         final scrubbed = <Object?>[];
         for (final side in sides) {
-          if (scrubbed.length >= kMaxMeanwhileSides) break;
+          if (scrubbed.length >= maxContainerChildren(move)) break;
           if (side is Map) {
             scrubbed.add(
               _sanitizeFigureJson(side.cast<String, Object?>(), depth + 1),

@@ -369,11 +369,11 @@ class _ThemePreviewCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Row(
             children: [
-              _chip(scheme.primary, scheme.onPrimary),
+              _chip(context, scheme.primary, scheme.onPrimary),
               const SizedBox(width: AppSpacing.xs),
-              _chip(scheme.secondary, scheme.onSecondary),
+              _chip(context, scheme.secondary, scheme.onSecondary),
               const SizedBox(width: AppSpacing.xs),
-              _chip(scheme.tertiary, scheme.onTertiary),
+              _chip(context, scheme.tertiary, scheme.onTertiary),
               const Spacer(),
               // Focus-ring demo: a control with the palette's focus outline.
               Container(
@@ -392,7 +392,7 @@ class _ThemePreviewCard extends StatelessWidget {
     );
   }
 
-  Widget _chip(Color bg, Color fg) {
+  Widget _chip(BuildContext context, Color bg, Color fg) {
     return Container(
       width: 26,
       height: 18,
@@ -403,7 +403,7 @@ class _ThemePreviewCard extends StatelessWidget {
       ),
       child: Text(
         'A', // i18n-ignore: single-glyph font specimen, not translatable
-        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: fg),
       ),
     );
   }
@@ -679,11 +679,11 @@ class _CustomThemeCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Row(
             children: [
-              _chip(scheme.primary, scheme.onPrimary),
+              _chip(context, scheme.primary, scheme.onPrimary),
               const SizedBox(width: AppSpacing.xs),
-              _chip(scheme.secondary, scheme.onSecondary),
+              _chip(context, scheme.secondary, scheme.onSecondary),
               const SizedBox(width: AppSpacing.xs),
-              _chip(scheme.tertiary, scheme.onTertiary),
+              _chip(context, scheme.tertiary, scheme.onTertiary),
             ],
           ),
         ],
@@ -691,7 +691,7 @@ class _CustomThemeCard extends StatelessWidget {
     );
   }
 
-  Widget _chip(Color bg, Color fg) {
+  Widget _chip(BuildContext context, Color bg, Color fg) {
     return Container(
       width: 26,
       height: 18,
@@ -702,7 +702,7 @@ class _CustomThemeCard extends StatelessWidget {
       ),
       child: Text(
         'A', // i18n-ignore: single-glyph font specimen, not translatable
-        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: fg),
       ),
     );
   }

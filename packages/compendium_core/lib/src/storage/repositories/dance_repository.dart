@@ -1046,6 +1046,7 @@ class DanceRepository {
         ? detachUserFigureUse(part).params
         : part.params;
     var idx = 0;
+    var groupIdx = 0;
     for (var i = 0; i < danceFigures.length; i++) {
       final figure = danceFigures[i];
       final section = sectioned[i].label;
@@ -1059,38 +1060,65 @@ class DanceRepository {
       //
       // `groupIdx` is the correlation group used by the `Then` operator (#748):
       // every leaf flattened from this one top-level figure — including leaves
-      // below an opposite nested container — shares `groupIdx = i`, which is
+      // below a nested container — shares one group, and groups are
       // monotonic across top-level figures. Because simultaneous leaves share a
       // group, the `a.group_idx < b.group_idx` correlation never treats them as
       // one-before-the-other, while a genuine sequence of top-level figures
       // (distinct, increasing groups) still matches.
       //
+      // The one exception is a top-level `sequence`, whose children are danced
+      // in order: each child takes the next group, so "balance and swing" kept
+      // as one sequence matches `Then(balance, swing)` exactly as two adjacent
+      // figures would. A sequence nested in a meanwhile or modifier keeps its
+      // parent's single group, because its children are concurrent with the
+      // other side and one integer cannot order them against both.
+      //
       final subFigures = figure.subFigures;
       if (figure.isContainer && subFigures.isNotEmpty) {
         canonicalTexts.add(renderer.renderCanonical(figure));
       }
-      final constituents = figure.isContainer && subFigures.isNotEmpty
-          ? _leafFigures(figure)
-          : <Figure>[figure];
-      for (final part in constituents) {
-        final canonicalText = renderer.renderCanonical(part);
-        canonicalTexts.add(canonicalText);
-        await _db
-            .into(_db.danceFigures)
-            .insert(
-              DanceFiguresCompanion.insert(
-                danceId: dance.id,
-                idx: idx,
-                groupIdx: Value(i),
-                move: part.move,
-                beats: Value(part.beats),
-                progression: Value(part.progression),
-                paramsJson: Value(jsonEncode(indexedParams(part))),
-                canonicalText: Value(canonicalText),
-                section: Value(section),
-              ),
-            );
-        idx++;
+      // A top-level sequence's steps also take the section they start in, as
+      // the same figures in separate rows would.
+      final groups = <({List<Figure> leaves, String section})>[];
+      if (figure.isSequence && subFigures.isNotEmpty) {
+        var beat = sectioned[i].startBeat;
+        for (final child in subFigures) {
+          groups.add((
+            leaves: _leafFigures(child),
+            section: labelForFigure(beat, child.beats, dance.phraseStructure),
+          ));
+          beat += child.beats;
+        }
+      } else {
+        groups.add((
+          leaves: figure.isContainer && subFigures.isNotEmpty
+              ? _leafFigures(figure)
+              : <Figure>[figure],
+          section: section,
+        ));
+      }
+      for (final (:leaves, :section) in groups) {
+        for (final part in leaves) {
+          final canonicalText = renderer.renderCanonical(part);
+          canonicalTexts.add(canonicalText);
+          await _db
+              .into(_db.danceFigures)
+              .insert(
+                DanceFiguresCompanion.insert(
+                  danceId: dance.id,
+                  idx: idx,
+                  groupIdx: Value(groupIdx),
+                  move: part.move,
+                  beats: Value(part.beats),
+                  progression: Value(part.progression),
+                  paramsJson: Value(jsonEncode(indexedParams(part))),
+                  canonicalText: Value(canonicalText),
+                  section: Value(section),
+                ),
+              );
+          idx++;
+        }
+        groupIdx++;
       }
     }
 

@@ -5,6 +5,7 @@ import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
+import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
 import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
 
 void main() {
@@ -359,6 +360,56 @@ void main() {
           builder: (context) {
             expect(
               () => SetListColorCodingScope.notifierOf(context),
+              throwsFlutterError,
+            );
+            return const SizedBox();
+          },
+        ),
+      );
+    });
+  });
+
+  group('ShowPerformedTogglesScope', () {
+    testWidgets('defaults to true (on) with no ancestor', (tester) async {
+      late bool value;
+      await tester.pumpWidget(
+        Builder(
+          builder: (context) {
+            value = ShowPerformedTogglesScope.of(context);
+            return const SizedBox();
+          },
+        ),
+      );
+      expect(value, isTrue);
+    });
+
+    testWidgets('changing the notifier rebuilds dependents', (tester) async {
+      final notifier = ValueNotifier<bool>(true);
+      addTearDown(notifier.dispose);
+      final observed = <bool>[];
+      await tester.pumpWidget(
+        ShowPerformedTogglesScope(
+          notifier: notifier,
+          child: Builder(
+            builder: (context) {
+              observed.add(ShowPerformedTogglesScope.of(context));
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      expect(observed, [true]);
+      notifier.value = false;
+      await tester.pump();
+      expect(observed, [true, false]);
+    });
+
+    testWidgets('notifierOf throws without an ancestor', (tester) async {
+      await tester.pumpWidget(
+        Builder(
+          builder: (context) {
+            expect(
+              () => ShowPerformedTogglesScope.notifierOf(context),
               throwsFlutterError,
             );
             return const SizedBox();

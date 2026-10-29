@@ -8,6 +8,7 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/color_edit_dialog.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/section_header.dart';
 import '../widgets/tag_chip.dart';
 
@@ -52,6 +53,15 @@ class _TagColorsScreenState extends State<TagColorsScreen> {
     if (_started) return;
     _started = true;
     _repos = RepositoriesScope.of(context);
+    _subscribe();
+  }
+
+  void _retry() {
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    unawaited(_tagsSub?.cancel());
     _subscribe();
   }
 
@@ -133,11 +143,9 @@ class _TagColorsScreenState extends State<TagColorsScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _loadError != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Text(l10n.settingsTagColoursLoadError),
-              ),
+          ? LoadErrorView(
+              message: l10n.settingsTagColoursLoadError,
+              onRetry: _retry,
             )
           : ListView(
               children: [

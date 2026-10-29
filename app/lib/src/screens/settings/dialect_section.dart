@@ -11,6 +11,7 @@ import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
 import 'dance_details_section.dart';
+import '../../theme/app_shapes.dart';
 
 /// The Dialect settings section: reads the live dialect library controller
 /// from [DialectLibraryScope] and renders the library manager.
@@ -306,7 +307,7 @@ class _DialectRow extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Text(
         l10n.settingsDialectPresetBadge,

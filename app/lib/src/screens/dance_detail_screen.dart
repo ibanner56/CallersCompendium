@@ -36,6 +36,7 @@ import '../widgets/dialect_quick_switch.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_status_chip.dart';
 import '../widgets/readable_width.dart';
 import '../widgets/skeleton.dart';
@@ -203,6 +204,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   DanceDetailData? _data;
   bool _loaded = false;
 
+  /// Whether the last read failed, as opposed to finding no such dance.
+  /// Only meaningful once [_loaded]; a data event clears it.
+  bool _loadFailed = false;
+
   /// Re-entrancy guard for [_delete]; see the note there.
   bool _deleting = false;
 
@@ -305,9 +310,18 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // which is worse than either staleness or churn.
     if (!_isPreview && _started && widget.danceId != oldWidget.danceId) {
       _loaded = false;
+      _loadFailed = false;
       _data = null;
       _subscribe();
     }
+  }
+
+  void _retryLoad() {
+    setState(() {
+      _loaded = false;
+      _loadFailed = false;
+    });
+    _subscribe();
   }
 
   /// Seeds the rendering preference, then opens the live subscription.
@@ -381,16 +395,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         setState(() {
           _data = data;
           _loaded = true;
+          _loadFailed = false;
         });
       },
       // A stream error means the record could not be re-read — a failing query,
-      // a database closed under us. Rendered exactly as a failed one-shot load
-      // was: the not-found body. That is deliberately unchanged (the previous
-      // `FutureBuilder` never read `snapshot.error`, so an error and an absent
-      // dance already looked alike here), but it is precisely why this has to
-      // be logged rather than discarded: on screen the two are
-      // indistinguishable, so "the dance won't open" arrives as a bug report
-      // with nothing behind it unless the failure reaches the diagnostic log
+      // a database closed under us. Rendered as its own "couldn't load" body
+      // with Retry, apart from the not-found body: telling the caller their
+      // dance is gone when it merely failed to read would be wrong. It is
+      // still logged, so "the dance won't open" reaches the diagnostic log
       // (issue #963).
       //
       // `logCaughtError` rather than the type-only variant: this is our own
@@ -411,6 +423,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         setState(() {
           _data = null;
           _loaded = true;
+          _loadFailed = true;
         });
       },
       cancelOnError: false,
@@ -963,7 +976,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             body: !_loaded
                 ? const SkeletonDetailView()
                 : detail == null
-                ? Center(child: Text(l10n.danceNotFound))
+                ? (_loadFailed
+                      ? LoadErrorView(
+                          message: l10n.danceLoadError,
+                          onRetry: _retryLoad,
+                        )
+                      : Center(child: Text(l10n.danceNotFound)))
                 : _buildBody(detail),
             // Edit mirrors the program preview's builder affordance: a bottom-right
             // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
