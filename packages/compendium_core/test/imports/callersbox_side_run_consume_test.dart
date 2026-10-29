@@ -353,9 +353,31 @@ void main() {
       },
     );
 
-    test('a second parenthetical declines rather than guessing', () async {
-      final f = await _importTcbLine('(2) Pass through along (NR) (optional)');
+    test('a second parenthetical that is not prose declines', () async {
+      final f = await _importTcbLine('(2) Pass through along (NR) (OR)');
       expect(f.params.containsKey('shoulder'), isFalse);
+    });
+
+    test('prose beside a run the decoder declines keeps its note', () async {
+      // The run cannot be placed on a swing, so the prose reader keeps the
+      // line, as before #1971; deferring to the run would drop both.
+      final f = await _importTcbLine('(8) Swing (NR) (in the center)');
+      expect(f.move, 'swing');
+      expect(f.note, 'in the center');
+    });
+
+    test('a dancer tag beside a run is the note (#1971)', () async {
+      final f = await _importTcbLine('(2) Pass through along (N2) (NR)');
+      expect(f.params['shoulder'], 'right');
+      expect(f.note, 'N2');
+    });
+
+    test('a prose second parenthetical becomes the note (#1971)', () async {
+      // Before #1971 the run was dropped: the shoulder went unset and only
+      // "optional" survived.
+      final f = await _importTcbLine('(2) Pass through along (NR) (optional)');
+      expect(f.params['shoulder'], 'right');
+      expect(f.note, 'optional');
     });
   });
 
