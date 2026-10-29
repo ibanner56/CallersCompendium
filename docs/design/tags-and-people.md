@@ -276,6 +276,13 @@ the spec. I did not run them.
     the alias exists for.
   - The same happens briefly, on any peer, if the survivor's rename is
     applied before the loser's tombstone.
+  - **Two other operations have the same exposure.** An Undo of a merge
+    renames the survivor away and revives the loser under the old name, so a
+    peer that applies the revival first queues it too. A rename that frees a
+    name held by a tombstone (see [Rename](#rename)) collides on a peer
+    holding that tombstone's deletion pending. T1 tests both, and also
+    whether an unheld peer takes a name edit to a tombstone it has already
+    applied.
   - T1 must settle this before it builds anything else. The candidate fixes
     are: apply a held row's name from its tombstone while keeping the row
     live, or order natural-key tombstones before renames. Both are spec
@@ -560,7 +567,7 @@ unchanged. The registry's note on `choreographers.email`
 
 | Operation | What peers receive | Spec text it rests on |
 | --- | --- | --- |
-| Rename | An edit of the row | §6.3; §6.6 step 1 if a peer independently holds the new name |
+| Rename | An edit of the row, plus a renamed tombstone when a tombstone held the name | §6.3; §6.6 step 1 if a peer independently holds the new name, or holds that tombstone's deletion pending |
 | Merge | The survivor's edit, the loser's renamed tombstone, and the bumped dances | §6.5 I1; §6.8 pending deletion; §6.6 survivor rule and "The remap" (amended) |
 | Delete (tags) | The tombstone, plus the bumped dances | §6.5 I1; §6.8 |
 | Undo | A revival, plus the bumped dances | §6.4 |
