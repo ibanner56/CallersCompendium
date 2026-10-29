@@ -92,6 +92,10 @@ void main() {
         expect(theme.navigationRailTheme.useIndicator, isTrue);
         expect(theme.navigationRailTheme.indicatorShape, isA<StadiumBorder>());
       });
+
+      test('snackbars float rather than dock to the bottom edge', () {
+        expect(theme.snackBarTheme.behavior, SnackBarBehavior.floating);
+      });
     });
   });
 

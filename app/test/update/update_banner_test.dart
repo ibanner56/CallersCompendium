@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:compendium_app/l10n/app_localizations.dart';
 
 import 'package:compendium_app/src/update/artifact_downloader.dart';

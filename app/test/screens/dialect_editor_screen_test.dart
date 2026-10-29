@@ -389,16 +389,16 @@ void main() {
     );
 
     for (final entry in [
-      ('dialect-roles-toggle', 'ROLE TERMS'),
-      ('dialect-moves-toggle', 'MOVE SUBSTITUTIONS'),
-      ('dialect-dancers-toggle', 'DANCER SUBSTITUTIONS'),
-      ('dialect-wordings-toggle', 'MOVE WORDING TEMPLATES'),
-      ('dialect-discouraged-toggle', 'DISCOURAGED TERMS'),
+      ('dialect-roles-toggle', 'Role terms'),
+      ('dialect-moves-toggle', 'Move substitutions'),
+      ('dialect-dancers-toggle', 'Dancer substitutions'),
+      ('dialect-wordings-toggle', 'Move wording templates'),
+      ('dialect-discouraged-toggle', 'Discouraged terms'),
     ]) {
       expect(find.byKey(ValueKey(entry.$1)), findsOneWidget);
       expect(find.text(entry.$2), findsOneWidget);
     }
-    expect(find.text('PREVIEW'), findsOneWidget);
+    expect(find.text('Preview'), findsOneWidget);
     expect(find.byType(ExpansionTile), findsNWidgets(5));
 
     final wordingsToggle = find.byKey(

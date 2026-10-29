@@ -718,9 +718,8 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               widget.error!,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.error,
-                fontSize: 12,
               ),
             ),
           ),

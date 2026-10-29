@@ -1,6 +1,7 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+
 import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../../l10n/app_localizations.dart';
@@ -10,6 +11,7 @@ import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
 import 'dance_details_section.dart';
+import '../../theme/app_shapes.dart';
 
 /// The Dialect settings section: reads the live dialect library controller
 /// from [DialectLibraryScope] and renders the library manager.
@@ -305,7 +307,7 @@ class _DialectRow extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Text(
         l10n.settingsDialectPresetBadge,

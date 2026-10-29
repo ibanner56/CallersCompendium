@@ -22,6 +22,7 @@ import 'lingo_discouraged_hint.dart';
 import 'links_editor.dart';
 import 'name_picker.dart';
 import 'source_citations_editor.dart';
+import '../../theme/app_shapes.dart';
 
 /// The dance editor's scrolling metadata form. Presentational only: it reads
 /// the working draft from [controller] and routes edits back through the
@@ -633,7 +634,7 @@ class DanceEditorForm extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context);
     final sectionShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppShapes.borderRadiusMedium,
       side: BorderSide(color: colorScheme.outlineVariant),
     );
     return ExpansionTile(
