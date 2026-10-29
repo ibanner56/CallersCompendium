@@ -134,7 +134,10 @@ re-importing is always allowed if you want a fresh copy.
 
 Either way, the app reads the event's running order and lays it out as a program:
 each dance ContraDB lists is matched to your collection or imported for you, and
-anything it can't place is kept as a note, in the exact order of the event.
+anything it can't place is kept as a note, in the exact order of the event. A
+dance you already have with the same figures is used as it is, not copied,
+whether you imported it or typed it in; one whose figures differ from yours is
+imported as a dance of its own.
 Review the preview, then choose **Import** — with the same **Undo** safety net as
 every other import: Undo removes the program and the dances it imported, and
 leaves the ones you already had, as well as any you have since added to another

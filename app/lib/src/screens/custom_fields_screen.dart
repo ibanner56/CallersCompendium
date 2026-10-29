@@ -680,7 +680,14 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                   key: const ValueKey('cf-searchable'),
                   contentPadding: EdgeInsets.zero,
                   title: Text(l10n.customFieldsSearchable),
-                  subtitle: Text(l10n.customFieldsSearchableSubtitle),
+                  // A yes/no value is never text-indexed
+                  // (`customFieldIndexesValueText`), so its subtitle does not
+                  // promise the search bar.
+                  subtitle: Text(
+                    _type == CustomFieldType.boolean
+                        ? l10n.customFieldsSearchableSubtitleYesNo
+                        : l10n.customFieldsSearchableSubtitle,
+                  ),
                   value: _searchable,
                   onChanged: (v) => setState(() => _searchable = v),
                 ),

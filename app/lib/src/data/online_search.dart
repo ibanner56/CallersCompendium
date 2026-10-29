@@ -148,9 +148,9 @@ enum OnlineImportKind {
   needsConfirmation,
 
   /// A confident title+author match exists in the collection with **canonically
-  /// identical** figures (same moves and order; beats and notes may differ) from
-  /// a **confirmed different source** (both provenance sources are non-null and
-  /// unequal); nothing was written. The caller must show a resolution dialog and
+  /// identical** figures (same moves and order; beats and notes may differ)
+  /// that came from a **different source**, or that the user **entered by
+  /// hand** (no provenance source, INTAKE-5); nothing was written. The caller must show a resolution dialog and
   /// retry [OnlineSearchService.import] with [ambiguousResolution] set (issue
   /// #811). [OnlineImportResult.danceId] holds the existing dance's id so the
   /// dialog can display its title. Distinct from [needsConfirmation] (differing
@@ -300,8 +300,8 @@ abstract interface class OnlineSearchService {
 ///   [ambiguousResolution] yet returns [OnlineImportKind.needsConfirmation]
 ///   (figures differ or cannot be compared) or
 ///   [OnlineImportKind.needsConfirmationIdentical] (canonically identical
-///   figures from a confirmed different source), writing nothing (issues #797,
-///   #811);
+///   figures from a different source, or matching a hand-entered dance),
+///   writing nothing (issues #797, #811; INTAKE-5);
 /// - otherwise, with no [ambiguousResolution] and a non-empty
 ///   [DedupeVerdict.possibleMatchIds], returns
 ///   [OnlineImportKind.needsPossibleMatchChoice], writing nothing (#1907);
@@ -363,27 +363,7 @@ Future<OnlineImportResult> commitPreviewedOnlinePlan(
         .danceId;
     final existing = await repos.dances.getById(candidateId);
     if (existing != null) {
-      // Mapping an undecodable side to an empty list was wrong: when the
-      // incoming dance legitimately has no figures, BOTH sides compare as
-      // empty, `figuresCanonicallyIdentical` returns true, and the flow skips
-      // confirmation on the strength of a comparison that was never possible.
-      // "Cannot read it" must never become "it is empty".
-      final oldFigures = switch (existing.figuresSource) {
-        DecodedFigures(:final figures) => figures,
-        UnreadableFigures() => null,
-      };
-      final newFigures = switch (plan.draft.dance.figuresSource) {
-        DecodedFigures(:final figures) => figures,
-        UnreadableFigures() => null,
-      };
-      final identical =
-          oldFigures != null &&
-          newFigures != null &&
-          figuresCanonicallyIdentical(
-            oldFigures: oldFigures,
-            newFigures: newFigures,
-            taxonomy: contraTaxonomy,
-          );
+      final identical = _figuresComparablyIdentical(existing, plan.draft.dance);
       if (!identical) {
         return OnlineImportResult(
           kind: OnlineImportKind.needsConfirmation,
@@ -391,17 +371,15 @@ Future<OnlineImportResult> commitPreviewedOnlinePlan(
           danceId: candidateId,
           danceCount: 1,
         );
-      } else if (existing.provenance?.source != null &&
+      } else if (existing.provenance?.source == null ||
           plan.draft.raw.source != existing.provenance!.source) {
         // Canonically identical figures (same moves and order; beats and
-        // notes may differ) from a confirmed different source: prompt the
-        // user instead of silently creating a second copy (issue #811).
-        // Condition guards are:
-        //   - existing.provenance.source != null: skip hand-entered dances
-        //     (null provenance) so we never claim they are "from a different
-        //     source".
-        //   - sources differ: a same-source re-import with a drifted
-        //     externalId stays silent (DedupeResolution.duplicate() below).
+        // notes may differ) from a different source (issue #811), or matching
+        // a dance the user entered by hand (null provenance, INTAKE-5): prompt
+        // the user instead of silently creating a second copy. The dialog's
+        // wording names no source, so it is true of both. Only a same-source
+        // re-import with a drifted externalId stays silent
+        // (DedupeResolution.duplicate() below).
         return OnlineImportResult(
           kind: OnlineImportKind.needsConfirmationIdentical,
           title: title,
@@ -479,4 +457,62 @@ Future<OnlineImportResult> commitPreviewedOnlinePlan(
     danceCount: session.committedCount,
     session: session,
   );
+}
+
+/// Whether [existing] and [incoming] have canonically identical figures (same
+/// moves and order; beats and notes may differ).
+///
+/// An undecodable transcription on either side is never identical (#1347).
+/// Mapping it to an empty list was wrong: when the incoming dance legitimately
+/// has no figures, both sides would compare as empty and be called identical on
+/// the strength of a comparison that was never possible. "Cannot read it" must
+/// never become "it is empty".
+bool _figuresComparablyIdentical(Dance existing, Dance incoming) {
+  final oldFigures = switch (existing.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => null,
+  };
+  final newFigures = switch (incoming.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    UnreadableFigures() => null,
+  };
+  return oldFigures != null &&
+      newFigures != null &&
+      figuresCanonicallyIdentical(
+        oldFigures: oldFigures,
+        newFigures: newFigures,
+        taxonomy: contraTaxonomy,
+      );
+}
+
+/// The id of a dance [plan] confidently matches whose figures are canonically
+/// identical to its own, or `null` when there is no such dance. Every confident
+/// candidate is checked, in verdict order.
+///
+/// For an unattended import that must not prompt but must not duplicate either
+/// (the #685 rule): the ContraDB program import links its slot to this dance
+/// instead of importing a second copy (INTAKE-3). Only an ambiguous verdict
+/// with a confident title+author candidate qualifies; an exact re-import is the
+/// caller's [OnlineImportKind.alreadyInCollection] path. A candidate that
+/// cannot be loaded, or whose figures cannot be read on either side, is not a
+/// match, so the caller falls back to whatever it did before.
+Future<String?> confidentIdenticalMatchId(
+  CompendiumRepositories repos,
+  ImportRecordPlan plan,
+) async {
+  if (plan.verdict.kind != DedupeKind.ambiguous ||
+      !plan.verdict.hasConfidentMatch) {
+    return null;
+  }
+  // Every confident candidate, not just the first: two dances with the same
+  // title and author tie on score and keep collection order, so the identical
+  // one can sort behind a variation that kept the title.
+  for (final candidate in plan.verdict.candidates.where((c) => c.confident)) {
+    final existing = await repos.dances.getById(candidate.danceId);
+    if (existing != null &&
+        _figuresComparablyIdentical(existing, plan.draft.dance)) {
+      return candidate.danceId;
+    }
+  }
+  return null;
 }

@@ -13,6 +13,7 @@ import '../taxonomy/dance_vocabulary.dart';
 import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
 import 'author_tokenizer.dart';
+import 'beat_implied_balance.dart';
 import 'callers_companion_user_fields.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
@@ -492,7 +493,10 @@ CcDanceMapping mapCallersCompanionDance(
       final first = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
       final produced =
           _retryHyphenatedHand(prefix.text, prefix.beats, first) ?? first;
-      final allocated = _allocateCompoundBeats(produced, prefix.parts);
+      final allocated = withBeatImpliedBalance(
+        prefix.text,
+        _allocateCompoundBeats(produced, prefix.parts),
+      );
       lineCache?.remember(line, allocated);
       figures.addAll(allocated);
     }

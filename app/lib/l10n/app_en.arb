@@ -8024,6 +8024,16 @@
       }
     }
   },
+  "onlineImportUndoKeptChanged": "\"{title}\" has changed since you imported it, so Undo left it as it is.",
+  "@onlineImportUndoKeptChanged": {
+    "description": "Snackbar shown when the user taps Undo on an online import, but the dance was edited after the import, so undoing would throw those edits away and nothing was undone (INTAKE-5). The title is the dance's title, an untrusted value rendered as plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Money Musk"
+      }
+    }
+  },
   "onlineImportAlreadyInCollection": "\"{title}\" is already in your collection.",
   "@onlineImportAlreadyInCollection": {
     "description": "Snackbar shown when the online dance being imported was already in the collection. The title is an untrusted external value rendered as plain text.",
@@ -8064,11 +8074,11 @@
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "You already have this dance",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
-    "description": "Title of the resolution dialog shown when a confident title+author match with identical figures is found from a different source during a single-dance online import (issue #811)."
+    "description": "Title of the resolution dialog shown during a single-dance online import when a confident title+author match with identical figures is already in the collection, from a different source (issue #811) or entered by hand (INTAKE-5)."
   },
-  "onlineImportCrossSourceDuplicateDialogBody": "Your collection already has \"{existingTitle}\" from a different source. Both versions have the same sequence of moves.",
+  "onlineImportCrossSourceDuplicateDialogBody": "Your collection already has \"{existingTitle}\". Both versions have the same sequence of moves.",
   "@onlineImportCrossSourceDuplicateDialogBody": {
-    "description": "Body text in the issue #811 resolution dialog for a cross-source duplicate with canonically identical figures (same moves and order; beats and notes may differ). existingTitle is an untrusted local value rendered as plain text.",
+    "description": "Body text in the resolution dialog for a duplicate with canonically identical figures (same moves and order; beats and notes may differ), shown when the existing dance came from a different source (issue #811) or was entered by hand (INTAKE-5), so it names no source. existingTitle is an untrusted local value rendered as plain text.",
     "placeholders": {
       "existingTitle": {
         "type": "String",
@@ -10150,6 +10160,16 @@
       }
     }
   },
+  "validationIncompleteFigure": "Figure {position} is not complete, so Save leaves it out.",
+  "@validationIncompleteFigure": {
+    "description": "Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "validationPhraseInvalid": "That phrase structure isn't valid.",
   "@validationPhraseInvalid": {
     "description": "Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds)."
@@ -10755,6 +10775,10 @@
   "danceEditorCompoundUnavailable": "This figure of yours can't be expanded: it has been deleted or changed, or doesn't accept these values. Saving keeps only its name, beats, note and progression mark.",
   "@danceEditorCompoundUnavailable": {
     "description": "Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name."
+  },
+  "danceEditorIncompleteFigure": "Not complete, so Save leaves it out.",
+  "@danceEditorIncompleteFigure": {
+    "description": "Shown on a dance's figure row (AUTH-2) that saving would leave out because it is not complete: a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, a group holding such a group, or a row with no move that holds something other than a note. Matches the Warnings entry validationIncompleteFigure. 'Save' is the editor's Save button (commonSave)."
   },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.",
   "@danceEditorFigureSummarySemantic": {
@@ -12320,9 +12344,13 @@
   "@customFieldsShowInListSubtitle": {
     "description": "Subtitle for the 'Show in list' toggle."
   },
-  "customFieldsSearchableSubtitle": "Expose this field as a filter in the search panel",
+  "customFieldsSearchableSubtitle": "Offer this field in the Filters panel, and let the search bar find its values",
   "@customFieldsSearchableSubtitle": {
-    "description": "Subtitle for the 'Searchable' toggle."
+    "description": "Subtitle for the 'Searchable' toggle. Turning it off hides the field from both the Filters panel and the search bar's text search (a private note stays unfindable)."
+  },
+  "customFieldsSearchableSubtitleYesNo": "Offer this field in the Filters panel",
+  "@customFieldsSearchableSubtitleYesNo": {
+    "description": "Subtitle for the 'Searchable' toggle on a yes/no field. A yes/no value is never found by the search bar, only by its filter, so this omits the search-bar half of customFieldsSearchableSubtitle."
   },
   "customFieldsChoicesLabel": "Choices *",
   "@customFieldsChoicesLabel": {

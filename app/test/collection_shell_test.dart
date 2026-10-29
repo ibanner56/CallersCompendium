@@ -999,6 +999,65 @@ void main() {
     });
   });
 
+  // 2026-10 behaviour audit, INTAKE-5: the split view's import snackbar offers
+  // Undo, which also clears the detail pane it landed the dance in.
+  testWidgets('wide: Undo on the online import snackbar removes the dance and '
+      'clears the pane', (tester) async {
+    final repos = openTestRepositories();
+    final callers = CallersBoxOnline(
+      searchFetcher: (_) async => '''
+        <html><body>
+        <p>Of 1 dances in the database, your query matches 1.</p>
+        <table><tr>
+          <td>&#x24bb;</td><td></td><td></td>
+          <td><a href='dance.php?id=10600' target='_blank'>Money Musk</a></td>
+          <td>Traditional</td><td>Triple Minor - Proper</td>
+        </tr></table>
+        </body></html>
+      ''',
+      jsonFetcher: (_) async => '''
+        {
+          "ID":"10600","Name":"Money Musk","Authors":["Traditional"],
+          "InterpretedBy":[],"Permission":"full",
+          "FormationBase":"Triple Minor - Proper","FormationDetail":"",
+          "Progression":"Single","PhraseStructure":"","CallingNotes":[],
+          "OtherNames":[],"Music":[],"Tunes":[],"Appearances":[],
+          "phrases":[{"name":"A1","figures":["Actives balance and swing"]}]
+        }
+      ''',
+    );
+    await _pumpShell(
+      tester,
+      repos,
+      size: const Size(1400, 900),
+      callersBoxOnline: callers,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Money Musk');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    final row = find.byKey(const ValueKey('online-result-10600'));
+    await tester.ensureVisible(row);
+    await tester.pumpAndSettle();
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('import-dance')));
+    await tester.pumpAndSettle();
+
+    expect(await repos.dances.listAll(), hasLength(1));
+    expect(find.byType(DanceDetailScreen), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('online-import-undo')));
+    await tester.pumpAndSettle();
+
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(find.byType(DanceDetailScreen), findsNothing);
+  });
+
   group('rotation across the split-pane breakpoint (issue #895)', () {
     /// Same hazard as `programs_shell_test.dart`'s rotation group: the narrow
     /// branch builds a bare `DanceListScreen` (`collection_shell.dart:362`)
