@@ -374,6 +374,32 @@ void main() {
     },
   );
 
+  testWidgets('a dance id that resolves to nothing renders a non-tappable '
+      '"Dance unavailable" fallback', (tester) async {
+    final repos = openTestRepositories();
+    // A slot whose dance id names no row at all: only reachable with the
+    // foreign key off, as from an older or damaged database.
+    await repos.db.customStatement('PRAGMA foreign_keys = OFF');
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'gone')],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+    await repos.db.customStatement('PRAGMA foreign_keys = ON');
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dance unavailable'), findsOneWidget);
+    expect(find.byKey(const ValueKey('summary-slot-s0')), findsNothing);
+  });
+
   testWidgets('an empty program shows the teaching empty state', (
     tester,
   ) async {

@@ -1894,6 +1894,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         data,
       ).then((resolved) {
         if (!mounted || generation != _deletedSlotLookupGeneration) return;
+        // A failed read resolves nothing; keep what earlier lookups found
+        // rather than turning those slots back into tombstones. The next
+        // snapshot asks again.
+        if (resolved.lookupFailed) return;
         setState(() {
           _deletedSlotDances = {
             for (final entry in _deletedSlotDances.entries)
@@ -2364,10 +2368,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   void _reorderSlot(int oldIndex, int newIndex) {
     if (oldIndex == newIndex) return;
     setState(() {
-      final item = _slots[oldIndex];
-      final list = Program.removeSlotPromotingAlternate(_slots, oldIndex);
-      list.insert(newIndex.clamp(0, list.length), item);
-      _slots = _renumber(list);
+      _slots = _renumber(
+        Program.moveSlotPromotingAlternate(_slots, oldIndex, newIndex),
+      );
     });
     _markDirty();
   }

@@ -1612,7 +1612,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
 /// What [resolveDeletedSlotDances] resolved for Perform's override parameters.
 class DeletedSlotDances {
-  const DeletedSlotDances({required this.dances, required this.authorNames});
+  const DeletedSlotDances({
+    required this.dances,
+    required this.authorNames,
+    this.lookupFailed = false,
+  });
 
   /// For [PerformProgramScreen.danceOverrides].
   final Map<String, Dance> dances;
@@ -1620,6 +1624,10 @@ class DeletedSlotDances {
   /// For [PerformProgramScreen.authorNameOverrides]: names of the authors of
   /// [dances], including choreographers that are soft-deleted themselves.
   final Map<String, String> authorNames;
+
+  /// Whether the dance read failed, so [dances] is empty because nothing was
+  /// read rather than because every id was purged.
+  final bool lookupFailed;
 }
 
 /// Soft-deleted dances behind [slots], keyed by id, with the names of their
@@ -1663,7 +1671,11 @@ Future<DeletedSlotDances> resolveDeletedSlotDances(
     }
   } on Object catch (e, st) {
     logCaughtError(e, st, source: source);
-    return const DeletedSlotDances(dances: {}, authorNames: {});
+    return const DeletedSlotDances(
+      dances: {},
+      authorNames: {},
+      lookupFailed: true,
+    );
   }
   final authorNames = <String, String>{};
   final missingAuthors = {

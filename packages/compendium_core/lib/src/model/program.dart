@@ -414,6 +414,34 @@ class Program {
     return next;
   }
 
+  /// [slots] with the slot at [oldIndex] moved to [newIndex], where
+  /// [newIndex] is the insertion index after the removal (Flutter's
+  /// `onReorderItem` convention). A moved primary leaves its alternates behind
+  /// with the first promoted in its place, as [removeSlotPromotingAlternate]
+  /// does; a drop inside that promoted group's alternates lands after them,
+  /// so the group stays whole rather than its later alternates joining the
+  /// moved slot. Positions are left for the caller to renumber.
+  static List<ProgramSlot> moveSlotPromotingAlternate(
+    List<ProgramSlot> slots,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final item = slots[oldIndex];
+    final promoted = alternatePromotedByRemoving(slots, oldIndex);
+    final next = removeSlotPromotingAlternate(slots, oldIndex);
+    var target = newIndex.clamp(0, next.length);
+    if (promoted != null && target > oldIndex) {
+      // The promoted slot now sits at oldIndex; its alternates follow it.
+      var groupEnd = oldIndex + 1;
+      while (groupEnd < next.length && next[groupEnd].isAlt) {
+        groupEnd++;
+      }
+      if (target < groupEnd) target = groupEnd;
+    }
+    next.insert(target, item);
+    return next;
+  }
+
   /// Index into [slots] of the alternate that
   /// [removeSlotPromotingAlternate] would promote when removing [index], or
   /// `null` when nothing would be promoted: the slot is itself an alternate,

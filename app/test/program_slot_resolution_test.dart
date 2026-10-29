@@ -236,6 +236,29 @@ void main() {
         );
       });
 
+      testWidgets('moving down keeps the promoted group whole', (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance('d1', 'Petronella'));
+        await repos.dances.create(_dance('d2', 'Chorus Jig'));
+        await repos.dances.create(_dance('d3', 'Rory O\'More'));
+        await repos.dances.create(_dance('d4', 'Hull\'s Victory'));
+        await _createProgram(repos, [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+          ProgramSlot(id: 's3', position: 2, danceId: 'd3', isAlt: true),
+          ProgramSlot(id: 's4', position: 3, danceId: 'd4'),
+        ]);
+        await _pumpEditor(tester, repos);
+        expect(_ordinals(tester, 4), ['1', 'ALT', 'ALT', '2']);
+
+        await tester.tap(find.byKey(const ValueKey('slot-0-move-down')));
+        await tester.pumpAndSettle();
+
+        // Chorus Jig leads with Rory O'More still its alternate, and
+        // Petronella follows the group rather than splitting it.
+        expect(_ordinals(tester, 4), ['1', 'ALT', '2', '3']);
+      });
+
       testWidgets('move', (tester) async {
         final announcements = _recordAnnouncements();
         final repos = openTestRepositories();

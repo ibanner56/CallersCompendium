@@ -501,6 +501,23 @@ void main() {
       expect(Program.alternatePromotedByRemoving(slots, 1), 2);
     });
 
+    test('a moved primary leaves its alternate group whole', () {
+      // Down one: the drop lands inside the promoted group, so it moves past
+      // the group instead of taking b-alt2 with it.
+      final down = Program.moveSlotPromotingAlternate(slots, 1, 2);
+      expect(down.map((s) => s.id), ['brk', 'b-alt1', 'b-alt2', 'b', 'c']);
+      expect(Program.alternateGroupsForSlots(down), [0, 1, 1, 2, 3]);
+
+      // Up one: the group stays where it was.
+      final up = Program.moveSlotPromotingAlternate(slots, 1, 0);
+      expect(up.map((s) => s.id), ['b', 'brk', 'b-alt1', 'b-alt2', 'c']);
+      expect(Program.alternateGroupsForSlots(up), [0, 1, 2, 2, 3]);
+
+      // An alternate moves as itself.
+      final alt = Program.moveSlotPromotingAlternate(slots, 3, 4);
+      expect(alt.map((s) => s.id), ['brk', 'b', 'b-alt1', 'c', 'b-alt2']);
+    });
+
     test('promotes nothing when an alternate or a lone primary is removed', () {
       final withoutAlt = Program.removeSlotPromotingAlternate(slots, 2);
       expect(withoutAlt.map((s) => s.id), ['brk', 'b', 'b-alt2', 'c']);
