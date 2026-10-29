@@ -372,6 +372,10 @@ final Map<String, DataClassification> settingsClassifications = {
   '__taxonomy_v35_figure_normalization_done__': _installState,
   '__callersbox_roll_away_role_repair_done__': _installState,
   '__normalisation_derived_index_repair_done__': _installState,
+  // Added with its pass (maintainer decision search-index (a), 2026-10-29).
+  // Like its siblings it says the pass ran over *this* database's index, which
+  // a restore onto another install would make false; its value is `"done"`.
+  '__custom_field_index_repair_done__': _installState,
 };
 
 /// Classification for settings keys that are *built at runtime* from a known

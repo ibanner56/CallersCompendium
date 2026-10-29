@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/validation_issue_labels.dart';
 import 'package:compendium_app/src/screens/dance_editor/dance_editor_controller.dart';
 
 import 'support/test_repositories.dart';
@@ -2790,6 +2791,83 @@ void main() {
           );
         },
       );
+    });
+  });
+
+  // October behaviour audit, AUTH-2, maintainer decision
+  // AUTH-2-incomplete-rows = (b): a row Save leaves out is listed under
+  // Warnings, read from the drafts, since the built figures no longer hold it.
+  group('rows Save leaves out are warned about (AUTH-2)', () {
+    List<int?> incompletePositions(DanceEditorController controller) => [
+      for (final w in controller.warnings)
+        if (w.code == incompleteFigureValidationCode)
+          w.data['position'] as int?,
+    ];
+
+    Future<DanceEditorController> withRows(List<FigureDraft> rows) async {
+      final controller = await newDanceController(openTestRepositories());
+      addTearDown(controller.dispose);
+      controller.figureDrafts
+        ..clear()
+        ..addAll(rows);
+      controller.onFiguresChanged();
+      return controller;
+    }
+
+    FigureDraft swing() => FigureDraft.fromFigure(
+      testFigure(move: 'swing', params: const {'who': 'neighbors', 'beats': 8}),
+    );
+
+    test('a meanwhile with one side filled in, until both are', () async {
+      final group = FigureDraft(meanwhileSides: [swing(), FigureDraft()]);
+      final controller = await withRows([swing(), group]);
+      expect(incompletePositions(controller), [2]);
+      expect(controller.builtFigures, hasLength(1));
+
+      group.meanwhileSides![1].move = 'balance';
+      controller.onFiguresChanged();
+      expect(incompletePositions(controller), isEmpty);
+    });
+
+    test('a modifier group with no Core, though its other figure is filled '
+        'in', () async {
+      final controller = await withRows([
+        FigureDraft(modifierFigures: [FigureDraft(), swing()]),
+      ]);
+      expect(incompletePositions(controller), [1]);
+    });
+
+    test('a phrase warning numbers the same rows, not the figures Save '
+        'builds', () async {
+      FigureDraft step() => FigureDraft.fromFigure(
+        testFigure(move: 'swing', params: const {'beats': 16}),
+      );
+      final controller = await withRows([
+        FigureDraft(meanwhileSides: [swing(), FigureDraft()]),
+        FigureDraft(sequenceFigures: [step(), step()]),
+      ]);
+      final long = controller.warnings.singleWhere(
+        (w) => w.code == 'sequence_exceeds_phrase',
+      );
+      expect(incompletePositions(controller), [1]);
+      expect(long.data['position'], 2);
+    });
+
+    test('not a blank row, which has nothing to lose', () async {
+      final controller = await withRows([swing(), FigureDraft()]);
+      expect(incompletePositions(controller), isEmpty);
+    });
+
+    test('even while the phrase structure does not parse', () async {
+      final group = FigureDraft(meanwhileSides: [swing(), swing()]);
+      final controller = await withRows([group]);
+      controller.phraseController.text = 'not a phrase';
+      controller.recomputeWarnings();
+      expect(incompletePositions(controller), isEmpty);
+
+      group.meanwhileSides![1] = FigureDraft();
+      controller.onFiguresChanged();
+      expect(incompletePositions(controller), [1]);
     });
   });
 }
