@@ -485,8 +485,9 @@ bool _figuresComparablyIdentical(Dance existing, Dance incoming) {
       );
 }
 
-/// The id of the dance [plan] confidently matches when the two have
-/// canonically identical figures, or `null` when there is no such dance.
+/// The id of a dance [plan] confidently matches whose figures are canonically
+/// identical to its own, or `null` when there is no such dance. Every confident
+/// candidate is checked, in verdict order.
 ///
 /// For an unattended import that must not prompt but must not duplicate either
 /// (the #685 rule): the ContraDB program import links its slot to this dance
@@ -503,12 +504,15 @@ Future<String?> confidentIdenticalMatchId(
       !plan.verdict.hasConfidentMatch) {
     return null;
   }
-  final candidateId = plan.verdict.candidates
-      .firstWhere((c) => c.confident)
-      .danceId;
-  final existing = await repos.dances.getById(candidateId);
-  if (existing == null) return null;
-  return _figuresComparablyIdentical(existing, plan.draft.dance)
-      ? candidateId
-      : null;
+  // Every confident candidate, not just the first: two dances with the same
+  // title and author tie on score and keep collection order, so the identical
+  // one can sort behind a variation that kept the title.
+  for (final candidate in plan.verdict.candidates.where((c) => c.confident)) {
+    final existing = await repos.dances.getById(candidate.danceId);
+    if (existing != null &&
+        _figuresComparablyIdentical(existing, plan.draft.dance)) {
+      return candidate.danceId;
+    }
+  }
+  return null;
 }

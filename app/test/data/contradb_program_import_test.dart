@@ -21,6 +21,7 @@ class _FakeService implements OnlineSearchService {
     this.rowsByTitle = const {},
     this.confidentTitles = const {},
     this.planFigures = const [],
+    this.extraConfidentIds = const [],
     this.loadErrors = const {},
     this.searchError,
   });
@@ -46,6 +47,10 @@ class _FakeService implements OnlineSearchService {
 
   /// The figures every previewed plan carries.
   final List<Figure> planFigures;
+
+  /// Further confident candidates, after 'local-existing', in a confident
+  /// plan's verdict.
+  final List<String> extraConfidentIds;
 
   final loadedIds = <String>[];
   final searchedTitles = <String>[];
@@ -143,6 +148,8 @@ class _FakeService implements OnlineSearchService {
                   score: 0.8,
                   confident: true,
                 ),
+                for (final id in extraConfidentIds)
+                  DedupeCandidate(danceId: id, score: 0.8, confident: true),
               ])
             : DedupeVerdict.isNew(),
       );
@@ -470,9 +477,10 @@ void main() {
     Future<void> seedExisting(
       CompendiumRepositories repos, {
       required List<Figure> figures,
+      String id = 'local-existing',
     }) => repos.dances.create(
       Dance(
-        id: 'local-existing',
+        id: id,
         title: 'Tangled Yarns',
         form: DanceForm.contra,
         formation: const Formation(FormationShape.dupleImproper),
@@ -521,6 +529,33 @@ void main() {
       expect(resolved.single.text, 'slow walk-through');
       expect(contraDb.importedTitles, isEmpty, reason: 'no second copy');
       expect(rollback.isEmpty, isTrue, reason: 'nothing written to undo');
+    });
+
+    // Two confident matches tie on score and keep collection order, so the
+    // identical dance can come second, behind a variation that kept the title.
+    test('is found behind a confident match with other figures', () async {
+      final repos = openTestRepositories();
+      await seedExisting(
+        repos,
+        figures: [customFigure('partners balance and swing')],
+      );
+      await seedExisting(repos, figures: swing, id: 'typed-in');
+      final contraDb = _FakeService(
+        OnlineSource.contraDb,
+        confidentTitles: {'tangled yarns'},
+        planFigures: swing,
+        extraConfidentIds: ['typed-in'],
+      );
+
+      final resolved = await resolveContraDbProgram(
+        program,
+        contraDb: contraDb,
+        callersBox: _FakeService(OnlineSource.callersBox),
+        repos: repos,
+      );
+
+      expect(resolved.single.danceId, 'typed-in');
+      expect(contraDb.importedTitles, isEmpty, reason: 'no third copy');
     });
 
     test('with different figures is still imported as its own dance', () async {
