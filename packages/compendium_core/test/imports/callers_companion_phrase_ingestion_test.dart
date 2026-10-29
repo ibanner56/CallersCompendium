@@ -159,6 +159,7 @@ void main() {
         programs,
         venues,
         customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
       );
     });
 

@@ -1501,7 +1501,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // batch Import button's responsibility, but its dance goes through the
     // `.USR` importer, which creates the definitions behind the file's user
     // fields first — the repository refuses a value for a field that does not
-    // exist, so a plain pipeline commit failed every dance that had one.
+    // exist, so a plain pipeline commit failed every dance that had one — and
+    // the published sources its book references cite (#1974).
     final pipeline = ImportPipeline(
       _repos.dances,
       _repos.choreographers,
@@ -1521,6 +1522,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               _repos.programs,
               _repos.venues,
               _repos.customFieldDefs,
+              publishedSources: _repos.publishedSources,
             ).commitDances(
               rowBatch,
               now: now,
@@ -1641,6 +1643,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           _repos.programs,
           _repos.venues,
           _repos.customFieldDefs,
+          publishedSources: _repos.publishedSources,
         );
         // Read up front: a BuildContext must not be used across an async gap,
         // and the commit below is one.
