@@ -697,7 +697,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                     return write;
                   }),
             );
-            performWrites = queued.then<void>((_) {}, onError: (_) {});
+            performWrites = queued.then<void>(
+              (_) {},
+              // diagnostics: silent — the failure is logged below, where this write is awaited; the next write only needs the queue to move on.
+              onError: (_) {},
+            );
             final PerformAdjustmentWrite write;
             try {
               write = await queued;
