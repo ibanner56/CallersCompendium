@@ -1615,12 +1615,6 @@ class _LinkRow extends StatelessWidget {
   }
 }
 
-/// One entry in the dance's calling history: a program the dance is included
-/// in. A single merged-semantics button exposing the program title, its
-/// effective date (the slot's `performedAt` when set, else the program's
-/// `eventDate`, else its last-updated time), and the venue if present; tapping
-/// opens the program. Mirrors the row-as-button a11y pattern used by [_LinkRow]
-/// and the set-list rows in `programs_shell.dart`.
 /// A single cited published source: title (+ author/year), the citation's
 /// page/number, and the source's URL if present. Read-only display mirroring
 /// [_LinkRow]. A [Semantics] label collapses the multi-line content into one
