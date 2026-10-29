@@ -504,7 +504,10 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
     (`SearchEnrichment.moveSynonyms`), map through the reverse move map to the
     taxonomy display name the figure text stores, so "buzz" in a dialect that
     calls the swing "buzz" finds the swing (2026-10-29, FIND-4). A dialect's
-    name wins over a role word inside it and over a taxonomy keyword;
+    name wins over a role word inside it and over a taxonomy keyword. It adds
+    a meaning rather than replacing one: the word also matches its canonical
+    form as typed, ORed, so a dialect that calls the balance the ring
+    "balance" still finds a plain balance by "balance";
   - taxonomy move names and keywords map to their display names
     (`canonicalizeMoveSearchText`), as before.
 

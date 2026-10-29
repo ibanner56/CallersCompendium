@@ -3158,6 +3158,41 @@ FROM seq
         );
       });
 
+      test('a dialect name that is also a word of other moves still finds '
+          'them', () async {
+        await dances.create(
+          _dance(
+            id: 'ring',
+            title: 'Circle',
+            figures: [
+              Figure(move: 'balance_the_ring', params: const {'beats': 4}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'plain-balance',
+            title: 'Lines',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 4}),
+            ],
+          ),
+        );
+        final ringIsBalance = Dialect(
+          name: 'Ring',
+          moves: const {'balance_the_ring': 'balance'},
+        );
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          expect(
+            await dances.search(
+              FullTextFilter('balance', scope: scope),
+              dialect: ringIsBalance,
+            ),
+            containsAll(['ring', 'plain-balance']),
+          );
+        }
+      });
+
       test('without the dialect the word is only a word', () async {
         await seed();
         expect(await dances.search(const FullTextFilter('buzz')), ['titled']);

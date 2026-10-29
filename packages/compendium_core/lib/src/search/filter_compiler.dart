@@ -45,8 +45,9 @@ const _rawTextColumns = 'title authors sources custom_values hook notes';
 String _rawColumnsMatch(String query) => '{$_rawTextColumns} : ($query)';
 
 /// One word of a free-text query, as typed and in canonical form
-/// (`FilterCompiler._searchWords`).
-typedef _SearchWord = ({String raw, String canonical});
+/// (`FilterCompiler._searchWords`). `asTyped` is the canonical form without
+/// the dialect's move names, set only when it differs from `canonical`.
+typedef _SearchWord = ({String raw, String canonical, String? asTyped});
 
 /// A run of whitespace, where a free-text query splits into words.
 final _whitespace = RegExp(r'\s+');
@@ -449,10 +450,10 @@ class FilterCompiler {
     // Nothing to search for (no words, or only short punctuation): one empty
     // word, which matches nothing.
     if (words.isEmpty) {
-      return _compileFullTextWord(scope, (raw: '', canonical: ''), binds);
+      return _compileFullTextWord(scope, '', '', binds);
     }
     final predicates = [
-      for (final word in words) _compileFullTextWord(scope, word, binds),
+      for (final word in words) _compileWordForms(scope, word, binds),
     ];
     return predicates.length == 1
         ? predicates.single
@@ -507,11 +508,13 @@ class FilterCompiler {
     bool inDialectMove(int start, int end) =>
         dialectMoves.any((m) => start < m.end && m.start < end);
 
-    String canonical(int start, int end) {
+    String canonical(int start, int end, {bool dialectNames = true}) {
       final out = StringBuffer();
       var i = start;
       while (i < end) {
-        final move = dialectMoves.where((m) => m.start == i).firstOrNull;
+        final move = dialectNames
+            ? dialectMoves.where((m) => m.start == i).firstOrNull
+            : null;
         if (move != null) {
           out.write(
             _dialectMoveNames!.apply(text.substring(move.start, move.end)),
@@ -527,7 +530,7 @@ class FilterCompiler {
                   r.start == i &&
                   r.kind == RoleSpanKind.role &&
                   r.canonical != null &&
-                  !inDialectMove(r.start, r.end),
+                  !(dialectNames && inDialectMove(r.start, r.end)),
             )
             .firstOrNull;
         if (role != null) {
@@ -559,7 +562,13 @@ class FilterCompiler {
         // "-") has no token for the prefix index, so it would match no row
         // and empty the whole AND; it constrains nothing, so it is dropped.
         if (ftsQueryScalarLength(raw) > 2 || _letterOrDigit.hasMatch(raw)) {
-          words.add((raw: raw, canonical: canonical(wordStart, i)));
+          final mapped = canonical(wordStart, i);
+          final unmapped = canonical(wordStart, i, dialectNames: false);
+          words.add((
+            raw: raw,
+            canonical: mapped,
+            asTyped: unmapped == mapped ? null : unmapped,
+          ));
         }
         wordStart = null;
       }
@@ -567,7 +576,29 @@ class FilterCompiler {
     return words;
   }
 
-  /// One word of a free-text search ([_compileFullText]).
+  /// A [word] whose dialect move names changed its canonical form matches
+  /// that form **or** its canonical form as typed, so a dialect that calls the
+  /// balance the ring "balance" still finds a plain balance by "balance"
+  /// (FIND-4 adds the dialect's meaning; it takes none away). Title and Author
+  /// read only the typed word, so they compile it once.
+  String _compileWordForms(
+    FullTextScope scope,
+    _SearchWord word,
+    List<Object?> binds,
+  ) {
+    final asTyped = word.asTyped;
+    final mapped = _compileFullTextWord(scope, word.raw, word.canonical, binds);
+    if (asTyped == null ||
+        scope == FullTextScope.title ||
+        scope == FullTextScope.author) {
+      return mapped;
+    }
+    final typed = _compileFullTextWord(scope, word.raw, asTyped, binds);
+    return '($mapped OR $typed)';
+  }
+
+  /// One word of a free-text search ([_compileFullText]): [raw] as typed and
+  /// [canonicalSearchText] in canonical form.
   ///
   /// In All fields the word matches its canonical form in any column **or** its
   /// typed form in the verbatim columns ([_rawTextColumns]), so a title such as
@@ -579,17 +610,17 @@ class FilterCompiler {
   /// substring rather than falling back to unicode61 token semantics.
   String _compileFullTextWord(
     FullTextScope scope,
-    _SearchWord word,
+    String raw,
+    String canonicalSearchText,
     List<Object?> binds,
   ) {
-    final isPrefix = ftsQueryScalarLength(word.raw) <= 2;
+    final isPrefix = ftsQueryScalarLength(raw) <= 2;
     final table = isPrefix ? 'dance_fts' : 'dance_substring_fts';
     final queryBuilder = isPrefix
         ? toFtsPrefixMatchQuery
         : toFtsSubstringMatchQuery;
-    final canonicalSearchText = word.canonical;
     final canonicalQuery = queryBuilder(canonicalSearchText);
-    final rawTextQuery = queryBuilder(word.raw);
+    final rawTextQuery = queryBuilder(raw);
 
     String columnMatch(String column, String query) {
       binds.add(query);
@@ -604,7 +635,8 @@ class FilterCompiler {
       case FullTextScope.figure:
         return columnMatch('figures_text', canonicalQuery);
       case FullTextScope.omni:
-        final raw = 'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
+        final rawMatch =
+            'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
         if (!_hasInternalRoleTokenFragment(
           canonicalSearchText,
           prefix: isPrefix,
@@ -613,7 +645,7 @@ class FilterCompiler {
           binds.add(_rawColumnsMatch(rawTextQuery));
           final canonical =
               'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
-          return '($canonical OR $raw)';
+          return '($canonical OR $rawMatch)';
         }
         // The word is only a fragment of an internal role token (see
         // [_hasInternalRoleTokenFragment]), so `figures_text` is matched only
@@ -625,7 +657,7 @@ class FilterCompiler {
         final canonicalColumns =
             'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
         final figures = _figureMatchWithoutRoleTokens(table, prefix: isPrefix);
-        return '($canonicalColumns OR $raw OR $figures)';
+        return '($canonicalColumns OR $rawMatch OR $figures)';
     }
   }
 

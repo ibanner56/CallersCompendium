@@ -924,16 +924,23 @@ void main() {
         contraTaxonomy,
       ).compile(const FullTextFilter('buzz'));
       // Canonical side: the taxonomy name the figure text holds; raw side:
-      // the word as typed.
-      expect(c.binds, ['"swing"', '$raw : ("buzz")']);
+      // the word as typed. Then the same word without the dialect's meaning,
+      // ORed, so "buzz" still finds what it found before (FIND-4 adds).
+      expect(c.binds, [
+        '"swing"',
+        '$raw : ("buzz")',
+        '"buzz"',
+        '$raw : ("buzz")',
+      ]);
+      expect(c.sql, contains(') OR ('));
     });
 
-    test('a dialect move name of several words is one word, and a role '
-        'word inside it is not a role', () {
+    test('a dialect move name of several words is one word; a role word '
+        'inside it is a role only in the as-typed form', () {
       final c = FilterCompiler(buzz, null, contraTaxonomy).compile(
         const FullTextFilter('dizzy robin Kaynor', scope: FullTextScope.figure),
       );
-      expect(c.binds, ['"mad robin"', '"Kaynor"']);
+      expect(c.binds, ['"mad robin"', '"dizzy role2"', '"Kaynor"']);
     });
 
     test('the Figure scope maps it too', () {
@@ -942,7 +949,7 @@ void main() {
         null,
         contraTaxonomy,
       ).compile(const FullTextFilter('buzz', scope: FullTextScope.figure));
-      expect(c.binds, ['"swing"']);
+      expect(c.binds, ['"swing"', '"buzz"']);
     });
 
     test("a saved dialect's move name (enrichment) is read too", () {
@@ -956,7 +963,7 @@ void main() {
           ).compile(
             const FullTextFilter('gypsy dance', scope: FullTextScope.figure),
           );
-      expect(c.binds, ['"shoulder round"']);
+      expect(c.binds, ['"shoulder round"', '"shoulder round dance"']);
     });
 
     test('without a taxonomy the word is searched as typed', () {
