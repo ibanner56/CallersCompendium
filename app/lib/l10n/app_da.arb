@@ -6982,6 +6982,10 @@
   "@importIssueUnmappedLevel": {
     "x-sourceSha256": "c67c87215f761056ad09b0b93662684a17946b9701707ae76de07e7d8da9d300"
   },
+  "importIssueNewLevel": "Niveauet \"{level}\" føjes til dine sværhedsgrader.",
+  "@importIssueNewLevel": {
+    "x-sourceSha256": "729544c1bfa2d5d65bce4fe453728cb6f2c605c6550c4d4f1f45b1eb8f45ff77"
+  },
   "importIssueUnmappedProgression": "En progression blev ikke genkendt; standard til enkelt.",
   "@importIssueUnmappedProgression": {
     "x-sourceSha256": "bf5c9c7e01441d77b244f2143ddb4265dcef50ce141739fb57d062a139cdba86"

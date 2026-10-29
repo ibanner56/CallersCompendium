@@ -3732,9 +3732,10 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// application dialect. A soft reference by **name** — dialects are
   /// identified only by name (`Dialect.resolveByName`) — and deliberately not
   /// validated at write time: a name that no longer resolves (the dialect was
-  /// renamed or deleted, or has not synced to this device yet) falls back to
-  /// the application dialect when Perform resolves it, so dialect rename and
-  /// delete never write to programs.
+  /// deleted, or has not synced to this device yet) falls back to the
+  /// application dialect when Perform resolves it, so a dialect delete never
+  /// writes to programs. A dialect rename is carried to the programs that name
+  /// it by `ProgramRepository.renameDialect`.
   final String? dialectName;
 
   /// What the caller is paid for this program, in the currency's minor units

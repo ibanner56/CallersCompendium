@@ -160,6 +160,7 @@ void main() {
         venues,
         customFieldDefs,
         publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
       );
     });
 

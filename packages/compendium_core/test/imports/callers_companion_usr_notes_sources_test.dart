@@ -133,6 +133,7 @@ void main() {
         VenueRepository(db),
         CustomFieldDefRepository(db),
         publishedSources: sources,
+        difficultyLevels: DifficultyLevelRepository(db),
       );
     });
     tearDown(() => db.close());
@@ -368,6 +369,7 @@ void main() {
         VenueRepository(db),
         CustomFieldDefRepository(db),
         publishedSources: sources,
+        difficultyLevels: DifficultyLevelRepository(db),
       );
       final bytes = buildFmp12Fixture([
         FmpFixtureTable(
@@ -406,6 +408,7 @@ void main() {
           VenueRepository(db),
           CustomFieldDefRepository(db),
           publishedSources: sources,
+          difficultyLevels: DifficultyLevelRepository(db),
         );
         final bytes = usr([
           {1: '4', 2: 'A', 3: 'Zesty Contras'},

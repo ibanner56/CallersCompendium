@@ -7066,6 +7066,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Et niveau blev ikke genkendt; ikke angivet.';
 
   @override
+  String importIssueNewLevel(String level) {
+    return 'Niveauet \"$level\" føjes til dine sværhedsgrader.';
+  }
+
+  @override
   String get importIssueUnmappedProgression =>
       'En progression blev ikke genkendt; standard til enkelt.';
 

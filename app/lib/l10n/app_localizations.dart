@@ -10619,6 +10619,12 @@ abstract class AppLocalizations {
   /// **'A level wasn\'t recognized; left unspecified.'**
   String get importIssueUnmappedLevel;
 
+  /// Import note: a Caller's Companion dance had several levels checked, so a level named after them is added to the user's difficulty levels. {level} is that name, built from Caller's Companion's own level words.
+  ///
+  /// In en, this message translates to:
+  /// **'The level \"{level}\" is added to your difficulty levels.'**
+  String importIssueNewLevel(String level);
+
   /// Import note: a progression string wasn't recognized and defaulted to single progression.
   ///
   /// In en, this message translates to:
