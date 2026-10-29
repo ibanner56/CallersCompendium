@@ -544,13 +544,16 @@ declines the collapse.
   read hardest first). So the tester's levels read Beginner, Beginner/Easy,
   Easy/Intermediate, Intermediate, Intermediate/Advanced, Advanced (placement
   is the maintainer's decision). Levels the scale says nothing about keep
-  their places, and `DifficultyLevelRepository.setPositions` writes only the
-  levels whose position changes, so a skipped, failed or undone import
-  rewrites none and a kept one restamps only the levels it moves. Created and
-  restored levels are reverted with a failed commit, dropped straight after
-  the commit when no dance uses them, and on `undo` removed (restored ones
-  tombstoned again) unless a dance, tombstoned ones included, uses them
-  (maintainer decision). Undo does not move the other levels back, so their
+  their places, and the other levels keep their positions, gaps included: a
+  placed level takes the position after the level before it, and a later level
+  moves up only while it would collide.
+  `DifficultyLevelRepository.setPositions` writes only those levels, so a
+  skipped or failed import rewrites none, and a kept one restamps only the
+  levels it had to move. Created and restored levels are reverted with a
+  failed commit, dropped straight after the commit when no dance uses them,
+  and on `undo` removed (restored ones tombstoned again) unless a dance,
+  tombstoned ones included, uses them (maintainer decision). Undo keeps the
+  moves the commit made rather than moving the other levels back, so their
   positions keep a gap. A value outside the scale still raises
   `cc_unmapped_level`, and its message joins the values with `/` rather than
   printing a line break. The text export has one-line levels, so it never
