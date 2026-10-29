@@ -304,6 +304,8 @@ From the detail view you can:
   dance from **Programs**, from search, or from the results of an import.
 - **Duplicate** it as a starting point for a variation.
 - **Add to program** — drop it into a [program](./programs.md) you are building.
+  An **Undo** option takes the dance back out again, and keeps any other change
+  made to the program since.
 - **Export** it — share it as text or as a dance file, copy it, or print it as a
   PDF. The export follows your active dialect, so what you hand someone matches
   how they speak — see [Share, print & export](./sharing.md#share-a-dance).

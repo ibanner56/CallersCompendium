@@ -32,6 +32,11 @@ const String kNewProgramDraftIdPrefix = '$kLegacyNewProgramDraftId:';
 
 /// Whether [key] holds the draft of a program not yet saved, under either the
 /// per-editor form or the legacy shared id.
+///
+/// An older build looks for a new program's draft under the shared key
+/// `program_editor_draft:new` only, so after a downgrade it does not offer a
+/// draft written under a per-editor key. The draft is not deleted, and is
+/// offered again once the newer build is back.
 bool isNewProgramEditorDraftKey(String key) {
   if (!key.startsWith(kProgramEditorDraftKeyPrefix)) return false;
   final id = key.substring(kProgramEditorDraftKeyPrefix.length);

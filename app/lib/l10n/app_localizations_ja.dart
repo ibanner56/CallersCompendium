@@ -4520,12 +4520,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String programsDraftAnotherNewProgramBody(String title) {
-    return 'You have an unsaved draft of another new program, “$title”. Would you like to restore it instead of starting a new one?';
+    return '別の新しいプログラム「$title」の未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？';
   }
 
   @override
   String get programsDraftAnotherNewProgramUntitledBody =>
-      'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?';
+      'まだタイトルのない、別の新しいプログラムの未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？';
 
   @override
   String get programsDraftRestore => '復元';
@@ -5348,7 +5348,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get performProgramChangedElsewhere =>
-      'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.';
+      'パフォームを開いた後に、このプログラムが別の場所で変更されていました。パフォームには、あなたの変更を含む最新の版が表示されています。';
 
   @override
   String get performProgramAdjustedSnack => 'プログラムを調整しました。';

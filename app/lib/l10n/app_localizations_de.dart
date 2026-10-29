@@ -4780,12 +4780,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String programsDraftAnotherNewProgramBody(String title) {
-    return 'You have an unsaved draft of another new program, “$title”. Would you like to restore it instead of starting a new one?';
+    return 'Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Programms, „$title“. Möchten Sie ihn wiederherstellen, statt ein neues zu beginnen?';
   }
 
   @override
   String get programsDraftAnotherNewProgramUntitledBody =>
-      'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?';
+      'Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Programms, noch ohne Titel. Möchten Sie ihn wiederherstellen, statt ein neues zu beginnen?';
 
   @override
   String get programsDraftRestore => 'Wiederherstellen';
@@ -5632,7 +5632,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get performProgramChangedElsewhere =>
-      'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.';
+      'Dieses Programm wurde an anderer Stelle geändert, seit Perform geöffnet wurde. Perform zeigt jetzt die neueste Fassung, mit Ihrer Änderung.';
 
   @override
   String get performProgramAdjustedSnack => 'Programm angepasst.';

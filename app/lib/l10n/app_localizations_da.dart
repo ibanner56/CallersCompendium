@@ -4728,12 +4728,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String programsDraftAnotherNewProgramBody(String title) {
-    return 'You have an unsaved draft of another new program, “$title”. Would you like to restore it instead of starting a new one?';
+    return 'Du har en ugemt kladde til et andet nyt program, „$title“. Vil du gendanne den i stedet for at starte et nyt?';
   }
 
   @override
   String get programsDraftAnotherNewProgramUntitledBody =>
-      'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?';
+      'Du har en ugemt kladde til et andet nyt program, der endnu ikke har en titel. Vil du gendanne den i stedet for at starte et nyt?';
 
   @override
   String get programsDraftRestore => 'Gendan';
@@ -5572,7 +5572,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get performProgramChangedElsewhere =>
-      'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.';
+      'Programmet var ændret et andet sted, siden Fremfør åbnede. Fremfør viser nu den nyeste version, med din ændring.';
 
   @override
   String get performProgramAdjustedSnack => 'Program justeret.';

@@ -4763,12 +4763,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String programsDraftAnotherNewProgramBody(String title) {
-    return 'You have an unsaved draft of another new program, “$title”. Would you like to restore it instead of starting a new one?';
+    return 'Je hebt een niet-opgeslagen concept van een ander nieuw programma, ‘$title’. Wil je het herstellen in plaats van een nieuw te beginnen?';
   }
 
   @override
   String get programsDraftAnotherNewProgramUntitledBody =>
-      'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?';
+      'Je hebt een niet-opgeslagen concept van een ander nieuw programma, nog zonder titel. Wil je het herstellen in plaats van een nieuw te beginnen?';
 
   @override
   String get programsDraftRestore => 'Herstellen';
@@ -5612,7 +5612,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get performProgramChangedElsewhere =>
-      'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.';
+      'Dit programma was elders gewijzigd sinds Uitvoeren werd geopend. Uitvoeren toont nu de nieuwste versie, met jouw wijziging.';
 
   @override
   String get performProgramAdjustedSnack => 'Programma aangepast.';
