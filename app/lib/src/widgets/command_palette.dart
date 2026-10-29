@@ -1,3 +1,4 @@
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/repositories_scope.dart';
+import '../data/sort_ignore_articles_scope.dart';
 import '../search/facet_labels.dart';
 import 'skeleton.dart';
 
@@ -142,17 +144,43 @@ class _CommandPaletteState extends State<CommandPalette> {
   }
 
   void _applyFilter(String raw) {
-    final q = raw.trim().toLowerCase();
+    // Same matching as the other title surfaces: diacritics folded, a leading
+    // article ignored for the ordering (per "Ignore leading articles when
+    // sorting"), and an exact or prefix hit ahead of a mid-title one, so
+    // typing "hey" lists "Hey" before "Cheyenne" however many titles there are.
+    final ignoreArticles = SortIgnoreArticlesScope.of(context);
+    final ranked =
+        <({int rank, String key, int index, CommandResult result})>[];
+    for (var i = 0; i < _all.length; i++) {
+      final r = _all[i];
+      final rank = rankTitleMatch(
+        r.title,
+        raw,
+        ignoreLeadingArticles: ignoreArticles,
+      );
+      if (rank == null) continue;
+      final folded = foldForTitleMatch(r.title);
+      ranked.add((
+        rank: rank.index,
+        key: ignoreArticles ? titleSortKey(folded) : folded,
+        index: i,
+        result: r,
+      ));
+    }
+    ranked.sort((a, b) {
+      final byRank = a.rank.compareTo(b.rank);
+      if (byRank != 0) return byRank;
+      final byKey = a.key.compareTo(b.key);
+      return byKey != 0 ? byKey : a.index.compareTo(b.index);
+    });
     final dances = <CommandResult>[];
     final programs = <CommandResult>[];
-    var matches = 0;
-    for (final r in _all) {
-      if (q.isNotEmpty && !r.title.toLowerCase().contains(q)) continue;
-      matches++;
+    for (final entry in ranked) {
+      final r = entry.result;
       final bucket = r.kind == CommandResultKind.dance ? dances : programs;
       if (bucket.length < CommandPalette.perGroupLimit) bucket.add(r);
     }
-    _matchCount = matches;
+    _matchCount = ranked.length;
     _results = [...dances, ...programs];
     _rowKeys = [for (var i = 0; i < _results.length; i++) GlobalKey()];
     _highlighted = _results.isEmpty
