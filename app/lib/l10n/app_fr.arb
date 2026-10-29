@@ -9158,9 +9158,13 @@
   "@customFieldsShowInListSubtitle": {
     "x-sourceSha256": "8900c324c019893322e4aa86d5d01bbb3c6b69487a63ae59a208e43c7ad98ce0"
   },
-  "customFieldsSearchableSubtitle": "Exposer ce champ comme filtre dans le panneau de recherche",
+  "customFieldsSearchableSubtitle": "Proposer ce champ dans le panneau Filtres et laisser la barre de recherche trouver ses valeurs",
   "@customFieldsSearchableSubtitle": {
-    "x-sourceSha256": "aa1b1d3c301410ef4d64d389b82a08aa2fe1e4ca6bf4a22b9ea9a647cc3b95c9"
+    "x-sourceSha256": "0a64c91f696b3be303fa87eceddd659a5632dd657fff9af5ba077acc794c6f33"
+  },
+  "customFieldsSearchableSubtitleYesNo": "Proposer ce champ dans le panneau Filtres",
+  "@customFieldsSearchableSubtitleYesNo": {
+    "x-sourceSha256": "b6cbc3e64325fe848e181ad80b67bb44885158e8e622916a949d0aede4691a7a"
   },
   "customFieldsChoicesLabel": "Choix *",
   "@customFieldsChoicesLabel": {

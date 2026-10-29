@@ -88,6 +88,7 @@ void main() {
       taxonomyV38CanonicalRebuildDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
       normalisationDerivedIndexRepairDoneKey,
+      customFieldIndexRepairDoneKey,
       'sync_last_used_fingerprint',
       'sync_enabled',
       'sync_endpoint',

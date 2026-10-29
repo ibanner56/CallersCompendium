@@ -9561,7 +9561,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Dieses Feld als Filter im Suchbereich verfügbar machen';
+      'Dieses Feld im Bereich „Filter“ anbieten und seine Werte über die Suchleiste finden lassen';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Dieses Feld im Bereich „Filter“ anbieten';
 
   @override
   String get customFieldsChoicesLabel => 'Auswahlmöglichkeiten *';

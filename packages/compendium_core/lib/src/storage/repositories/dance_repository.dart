@@ -1004,7 +1004,7 @@ class DanceRepository {
   /// after a one-shot clear instead of a per-dance delete+insert.
   ///
   /// [authorNames] (choreographer id → name), [sources] (published-source id
-  /// → row) and [liveFieldIds] (custom-field definition ids) let the bulk
+  /// → row) and [indexedFieldIds] (custom-field definition ids) let the bulk
   /// rebuild pass prefetched lookups so author/source/definition resolution
   /// doesn't fan out into a per-dance N+1 of single-row selects; when omitted
   /// (the single-write path) they are resolved on demand.
@@ -1012,7 +1012,9 @@ class DanceRepository {
   /// All three prefetches are **live-only**: a soft-deleted author, source or
   /// field definition must contribute no searchable text (#898, #1358). The
   /// on-demand counterparts filter the same way, so the two paths cannot
-  /// disagree about what a tombstoned parent contributes.
+  /// disagree about what a tombstoned parent contributes. [indexedFieldIds]
+  /// is narrower still: only the definitions whose values the text index
+  /// carries ([customFieldIndexesValueText]).
   ///
   /// [userFigures] is the user's own figures (#1023), prefetched by the bulk
   /// rebuild; when omitted, the ones this dance uses are read on demand. A
@@ -1024,7 +1026,7 @@ class DanceRepository {
     Dance dance, {
     Map<String, String>? authorNames,
     Map<String, PublishedSourceRow>? sources,
-    Set<String>? liveFieldIds,
+    Set<String>? indexedFieldIds,
     UserFigureCatalog? userFigures,
   }) async {
     final canonicalTexts = <String>[];
@@ -1125,7 +1127,7 @@ class DanceRepository {
     final resolvedAuthors = await _resolveAuthorNames(dance, authorNames);
     final customValueText = (await _resolveCustomValueTexts(
       dance,
-      liveFieldIds,
+      indexedFieldIds,
     )).join(' ');
     final sourceTexts = await _resolveSourceTexts(dance, sources);
     final values = [
@@ -1346,7 +1348,7 @@ class DanceRepository {
           dance,
           authorNames: lookups.authorNames,
           sources: lookups.sources,
-          liveFieldIds: lookups.liveFieldIds,
+          indexedFieldIds: lookups.indexedFieldIds,
           userFigures: lookups.userFigures,
         );
         rebuilt++;
@@ -1555,34 +1557,57 @@ class DanceRepository {
   }
 
   /// Searchable custom-field text for [dance], in the model's value order,
-  /// excluding any value whose definition is tombstoned (#1358).
+  /// excluding any value whose definition is tombstoned (#1358) or does not
+  /// index its values ([customFieldIndexesValueText]).
   ///
-  /// [prefetchedLiveIds] is the set of live definition ids when the caller has
-  /// one (the bulk rebuild); otherwise exactly the cited definitions are
-  /// batch-read live-only. Matching the filter that hydration already applies
-  /// (`_customFieldsForMany` inner-joins `custom_field_defs` on
-  /// `deleted_at IS NULL`) is what keeps the index and the detail view
-  /// agreeing about which values exist.
+  /// [prefetchedIndexedIds] is the set of indexed definition ids when the
+  /// caller has one (the bulk rebuild); otherwise exactly the cited
+  /// definitions are batch-read live-only. Matching hydration's live-only
+  /// filter (`_customFieldsForMany` inner-joins `custom_field_defs` on
+  /// `deleted_at IS NULL`) keeps the index and the detail view agreeing about
+  /// which values exist; the index then leaves out, deliberately, the ones the
+  /// detail view still shows but [customFieldIndexesValueText] rejects.
   Future<List<String>> _resolveCustomValueTexts(
     Dance dance,
-    Set<String>? prefetchedLiveIds,
+    Set<String>? prefetchedIndexedIds,
   ) async {
     if (dance.customFields.isEmpty) return const [];
-    final Set<String> liveIds;
-    if (prefetchedLiveIds != null) {
-      liveIds = prefetchedLiveIds;
+    final Set<String> indexedIds;
+    if (prefetchedIndexedIds != null) {
+      indexedIds = prefetchedIndexedIds;
     } else {
       final fieldIds = dance.customFields.map((v) => v.fieldId).toList();
       final rows = await (_db.select(
         _db.customFieldDefs,
       )..where((t) => t.id.isIn(fieldIds) & t.deletedAt.isNull())).get();
-      liveIds = {for (final r in rows) r.id};
+      indexedIds = {
+        for (final r in rows)
+          if (customFieldIndexesValueText(r)) r.id,
+      };
     }
     return [
       for (final value in dance.customFields)
-        if (liveIds.contains(value.fieldId)) value.value.toString(),
+        if (indexedIds.contains(value.fieldId)) value.value.toString(),
     ];
   }
+
+  /// Rebuilds the derived rows of every dance, in the Trash or not, holding a
+  /// value for one of the custom fields [fieldIds], and returns how many it
+  /// rebuilt.
+  ///
+  /// For a write that changes whether a field's values are indexed
+  /// ([customFieldIndexesValueText]): a local edit of the Searchable setting, and the
+  /// one-shot repair of indexes written before that rule. An inbound sync
+  /// write needs nothing of its own, since the apply reindexes the dances
+  /// holding a value for every definition it wrote ([danceIdsDerivingFrom],
+  /// #1920). Trashed dances are included for the reason
+  /// [danceIdsDerivingFrom] gives.
+  Future<int> reindexDancesHoldingCustomFields(Iterable<String> fieldIds) =>
+      _db.transaction(() async {
+        final ids = await danceIdsDerivingFrom(customFieldIds: fieldIds);
+        if (ids.isEmpty) return 0;
+        return _reindexDerived(ids.toList()..sort());
+      });
 
   /// The lookups [_insertDerivedRows] resolves besides the dance itself, read
   /// once for a pass over many dances ([rebuildAllDerived], [reindexDerived]).
@@ -1606,7 +1631,7 @@ class DanceRepository {
     ({
       Map<String, String> authorNames,
       Map<String, PublishedSourceRow> sources,
-      Set<String> liveFieldIds,
+      Set<String> indexedFieldIds,
       UserFigureCatalog userFigures,
     })
   >
@@ -1623,11 +1648,11 @@ class DanceRepository {
       )..where((t) => t.deletedAt.isNull())).get())
         row.id: row,
     },
-    liveFieldIds: {
+    indexedFieldIds: {
       for (final row in await (_db.select(
         _db.customFieldDefs,
       )..where((t) => t.deletedAt.isNull())).get())
-        row.id,
+        if (customFieldIndexesValueText(row)) row.id,
     },
     userFigures: await _liveUserFigures(),
   );
@@ -1701,7 +1726,7 @@ class DanceRepository {
             dance,
             authorNames: lookups.authorNames,
             sources: lookups.sources,
-            liveFieldIds: lookups.liveFieldIds,
+            indexedFieldIds: lookups.indexedFieldIds,
             userFigures: lookups.userFigures,
           );
         }

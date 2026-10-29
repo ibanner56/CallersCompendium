@@ -121,7 +121,9 @@ Use **Search in**, beside the search bar (above it on a narrow screen or with
 large text), to choose where your words are looked for: **All fields**,
 **Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
 sources, custom field values, hooks and notes, and finds your words exactly as
-they were typed; it also looks at figures, which are matched by meaning, so a
+they were typed. It skips yes/no fields, which you find with their filter, and
+any custom field with **Searchable** turned off (see
+[Make your own fields](#make-your-own-fields)). It also looks at figures, which are matched by meaning, so a
 role word finds the figure however the role was worded when the dance was
 entered. (Custom figure text saved before role words were rewritten may not
 match a role word until you save the dance again; see
@@ -348,7 +350,12 @@ Once you define one, it:
 
 - appears in the dance editor, ready to fill in;
 - can show in the dance list, if you turn that on; and
-- becomes a filter in the **Filters** panel.
+- while **Searchable** is on, becomes a filter in the **Filters** panel, and the
+  search bar finds its values.
+
+Turn **Searchable** off to keep a field out of both, for example a private note
+about a venue that you do not want turning up in a search. A yes/no field is
+found through its filter, never by typing "yes" or "true" in the search bar.
 
 A **choice** field is a handy home for a reusable pick-list you build up over
 time — for example the **band adjectives** you like to reach for (driving,

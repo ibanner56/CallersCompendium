@@ -9082,7 +9082,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customFieldsShowInListSubtitle => 'ダンスリストのタイルにこのフィールドの値を表示します';
 
   @override
-  String get customFieldsSearchableSubtitle => '検索パネルのフィルターとしてこのフィールドを公開します';
+  String get customFieldsSearchableSubtitle =>
+      'このフィールドを「フィルター」パネルに表示し、検索バーでその値を検索できるようにします';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo => 'このフィールドを「フィルター」パネルに表示します';
 
   @override
   String get customFieldsChoicesLabel => '選択肢 *';

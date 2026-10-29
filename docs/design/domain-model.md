@@ -241,6 +241,9 @@ CC's biggest weakness).
 ### CustomFieldDef / CustomFieldValue
 User-defined: `key, label, type (text|number|boolean|choice), choices?,
 showInList, searchable`. Values attach to dances. Typed to keep search sane.
+`searchable` off hides the field's facet *and* keeps its values out of the
+search bar's text index; `boolean` values are never text-indexed (maintainer
+decision search-index (a), 2026-10-29).
 
 ### Tag / DanceTag
 Flat user tags with optional color. (System tags like "verified" not needed

@@ -13898,11 +13898,17 @@ abstract class AppLocalizations {
   /// **'Display this field value in the dance list tile'**
   String get customFieldsShowInListSubtitle;
 
-  /// Subtitle for the 'Searchable' toggle.
+  /// Subtitle for the 'Searchable' toggle. Turning it off hides the field from both the Filters panel and the search bar's text search (a private note stays unfindable).
   ///
   /// In en, this message translates to:
-  /// **'Expose this field as a filter in the search panel'**
+  /// **'Offer this field in the Filters panel, and let the search bar find its values'**
   String get customFieldsSearchableSubtitle;
+
+  /// Subtitle for the 'Searchable' toggle on a yes/no field. A yes/no value is never found by the search bar, only by its filter, so this omits the search-bar half of customFieldsSearchableSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer this field in the Filters panel'**
+  String get customFieldsSearchableSubtitleYesNo;
 
   /// Section label for the list of choices on a choice-type field (required).
   ///

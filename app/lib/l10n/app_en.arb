@@ -12288,9 +12288,13 @@
   "@customFieldsShowInListSubtitle": {
     "description": "Subtitle for the 'Show in list' toggle."
   },
-  "customFieldsSearchableSubtitle": "Expose this field as a filter in the search panel",
+  "customFieldsSearchableSubtitle": "Offer this field in the Filters panel, and let the search bar find its values",
   "@customFieldsSearchableSubtitle": {
-    "description": "Subtitle for the 'Searchable' toggle."
+    "description": "Subtitle for the 'Searchable' toggle. Turning it off hides the field from both the Filters panel and the search bar's text search (a private note stays unfindable)."
+  },
+  "customFieldsSearchableSubtitleYesNo": "Offer this field in the Filters panel",
+  "@customFieldsSearchableSubtitleYesNo": {
+    "description": "Subtitle for the 'Searchable' toggle on a yes/no field. A yes/no value is never found by the search bar, only by its filter, so this omits the search-bar half of customFieldsSearchableSubtitle."
   },
   "customFieldsChoicesLabel": "Choices *",
   "@customFieldsChoicesLabel": {
