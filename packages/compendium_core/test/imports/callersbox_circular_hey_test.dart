@@ -99,6 +99,12 @@ void main() {
       final f = _parse('Square through 4 without hands (optional)').single;
       expect(f.move, 'square_through');
       expect(f.note, 'without hands; optional');
+      // A short word ending in r or l is not a pass cell either.
+      for (final word in ['all', 'over', 'pull']) {
+        final g = _parse('Square through 4 without hands ($word)').single;
+        expect(g.move, 'square_through', reason: word);
+        expect(g.params['places'], 4, reason: word);
+      }
     });
 
     test('"thru" with an undecodable list stays custom too', () {

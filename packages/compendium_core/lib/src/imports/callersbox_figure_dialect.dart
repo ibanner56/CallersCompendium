@@ -3168,10 +3168,15 @@ final RegExp _squareThroughWord = RegExp(r'\bsquare\s+thr(?:ough|u)\b');
 final RegExp _bracketBody = RegExp(r'[(\[]([^()\[\]]{0,120})[)\]]');
 
 /// A body made only of pass cells (`NR;PL;NR`, `NR, PL, NR`, `N1R;P1L~`),
-/// whether or not each code is one this file can decode.
+/// whether or not each code is one this file can decode (such as P6R or
+/// P-1L). A cell is shaped like a [tcbPassPeople] code, one letter with an
+/// optional number or a bare number, then the side, so a word such as `(all)`
+/// or `(over)` is not a pass list (#1971 review).
 final RegExp _passListShape = RegExp(
-  r'^\s*[a-z][a-z0-9-]{0,4}[rl]~?\s*(?:[;,]\s*[a-z][a-z0-9-]{0,4}[rl]~?\s*)*$',
+  r'^\s*' + _passCellShape + r'\s*(?:[;,]\s*' + _passCellShape + r'\s*)*$',
 );
+
+const String _passCellShape = r'(?:[a-z]-?[0-9]{0,2}|[0-9]{1,2})[rl]~?';
 
 FigureMatch? _decodeSquareThroughPassList(String scrubbed) {
   final lower = scrubbed.toLowerCase();
