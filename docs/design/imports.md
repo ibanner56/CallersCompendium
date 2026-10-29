@@ -1416,8 +1416,8 @@ has to be judged in its own context.
   relationship before `roll away` (`Neighbor Roll Away`, `Partner roll away`,
   `N2 neighbor roll away`) is `whom`, the pair the roll away is with; `who` is
   left to the taxonomy default and marked assumed. Before this it was `who`,
-  which says the neighbors roll one another away. A role, a couple or
-  everyone there still rolls (`Larks roll away`), and a dancer named after `roll away`
+  which says the neighbors roll one another away. A role, a couple or everyone
+  there still rolls (`Larks roll away`), and a dancer named after `roll away`
   still makes the one before it `who` (`Ones roll away neighbors`). The #1192
   annotation then states the roller and clears the assumption; the repair of
   stored figures is unchanged. `rollaway` and `w/ half sashay` read too.
