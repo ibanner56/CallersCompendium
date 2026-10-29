@@ -4695,6 +4695,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'You have an unsaved draft for this program. Would you like to restore it?';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'You have an unsaved draft of another new program, “$title”. Would you like to restore it instead of starting a new one?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?';
+
+  @override
   String get programsDraftRestore => 'Restore';
 
   @override
@@ -5528,6 +5537,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get performUndoNoLongerAvailable =>
       'Can\'t undo: the program has changed since.';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.';
 
   @override
   String get performProgramAdjustedSnack => 'Program adjusted.';

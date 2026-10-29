@@ -31,6 +31,7 @@ import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
 
 import '../editor/pay_currency.dart';
+import '../editor/perform_adjustment_write.dart';
 import '../editor/program_editor_draft_codec.dart';
 import '../editor/program_slot_rebase.dart';
 import '../export/export_labels_l10n.dart';
@@ -269,11 +270,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// post-exit Undo restores only while the stored program still equals this.
   Program? _performStored;
 
-  /// The program Perform last showed: what it was opened with, then each
-  /// program it handed to `onProgramChanged`. Each adjustment is the change
-  /// from this to the new program, applied to the stored program and to the
-  /// working slots ([rebaseSlotEdits]).
-  Program? _performBase;
   int _collectionDataGeneration = 0;
 
   bool get _pickerImporting => _pickerImportOwners.isNotEmpty;
@@ -617,6 +613,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   void initState() {
     super.initState();
+    if (widget.isNew) _openDraftKeys.add(_newProgramDraftKey);
     _tabController = TabController(length: 2, vsync: this);
     // Rebuild so the save FAB can hide on the read-only Matrix tab.
     _tabController.addListener(() {
@@ -1065,6 +1062,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   @override
   void dispose() {
+    _releaseOfferedDraftKey();
+    _openDraftKeys.remove(_newProgramDraftKey);
     _unregisterShutdownFlush?.call();
     _autosaveTimer?.cancel();
     _autoCommitTimer?.cancel();
@@ -1092,10 +1091,38 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   // --- Autosave / draft persistence (issue #436) ----------------------------
 
-  /// Settings-table key for this editor's draft, keyed by program id (or `new`
-  /// for an unsaved program), mirroring the dance editor's `editor_draft:<id>`.
-  String get _draftKey =>
-      '$kProgramEditorDraftKeyPrefix${_existing?.id ?? widget.programId ?? 'new'}';
+  /// Settings-table key for this editor's draft, keyed by program id,
+  /// mirroring the dance editor's `editor_draft:<id>`; for an unsaved program,
+  /// [_newProgramDraftKey].
+  String get _draftKey => switch (_existing?.id ?? widget.programId) {
+    final id? => programEditorDraftKey(id),
+    null => _newProgramDraftKey,
+  };
+
+  /// The draft key of the program this editor creates, until it is saved: one
+  /// made for this editor, so two new programs never share a draft (as for
+  /// new dances, AUTH-10). Restoring another new program's draft adopts its
+  /// key.
+  late String _newProgramDraftKey = programEditorDraftKey(
+    '$kNewProgramDraftIdPrefix${uuidV4()}',
+  );
+
+  /// The draft keys of the editors open in this process, and of the drafts
+  /// they are offering, so a new-program editor never offers, or discards, a
+  /// draft another editor is writing or may take up.
+  static final Set<String> _openDraftKeys = {};
+
+  /// The key [_pendingDraft] was read from, which a discard removes and a
+  /// restore adopts.
+  String? _pendingDraftKey;
+
+  /// Gives back the key of another new program's draft this editor offered
+  /// and did not take up, so a later editor can offer it again.
+  void _releaseOfferedDraftKey() {
+    if (_pendingDraftKey case final key? when key != _draftKey) {
+      _openDraftKeys.remove(key);
+    }
+  }
 
   /// Debounces autosave writes (500 ms after the last change), matching the
   /// dance editor. No-op before the initial load completes or while restoring a
@@ -1392,23 +1419,60 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Reads any autosaved draft for this program, decodes it (silently
   /// discarding a corrupt/unrecognised one), and stages a restore/discard
   /// prompt after the first frame.
+  ///
+  /// A new program's own key is new, so what it can find is a draft another
+  /// new-program editor left: offered as that program, never as this one.
+  /// Of several, the first by key is offered; the rest wait for the next new
+  /// program.
   Future<void> _maybeStageDraft() async {
     if (!mounted) return;
-    ProgramEditorDraft? draft;
+    final List<String> candidates;
     try {
-      if (await _repos.settings.contains(_draftKey)) {
-        draft = decodeProgramDraft(await _repos.settings.get(_draftKey));
-      }
+      candidates = _existing != null || widget.programId != null
+          ? [_draftKey]
+          : ([
+              for (final key in await _repos.settings.keysWithPrefix(
+                kProgramEditorDraftKeyPrefix,
+              ))
+                if (isNewProgramEditorDraftKey(key) &&
+                    !_openDraftKeys.contains(key))
+                  key,
+            ]..sort());
     } catch (_) {
-      // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
-      await _clearDraft();
-      draft = null;
+      // diagnostics: silent — the draft lookup is best-effort; the editor loads without one.
+      return;
     }
-    if (draft == null || !mounted) return;
-    _pendingDraft = draft;
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _maybeShowRestoreDialog(),
-    );
+    for (final key in candidates) {
+      if (!mounted) return;
+      ProgramEditorDraft? draft;
+      try {
+        if (await _repos.settings.contains(key)) {
+          draft = decodeProgramDraft(await _repos.settings.get(key));
+        }
+      } catch (_) {
+        // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
+        if (key == _draftKey) {
+          await _clearDraft();
+        } else {
+          try {
+            await _repos.settings.remove(key, permanent: true);
+          } catch (_) {
+            // diagnostics: silent — draft removal best-effort; non-fatal.
+          }
+        }
+        draft = null;
+      }
+      if (draft == null || !mounted) continue;
+      // Another editor may have taken it up during the reads above.
+      if (key != _draftKey && _openDraftKeys.contains(key)) continue;
+      _pendingDraft = draft;
+      _pendingDraftKey = key;
+      _openDraftKeys.add(key);
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeShowRestoreDialog(),
+      );
+      return;
+    }
   }
 
   /// Shows the restore/discard dialog for a staged draft. Restoring applies the
@@ -1418,12 +1482,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (draft == null || !mounted) return;
     _pendingDraft = null;
     final l10n = AppLocalizations.of(context);
+    final title = draft.title.trim();
+    final body = _pendingDraftKey == _draftKey
+        ? l10n.programsDraftBody
+        : title.isEmpty
+        ? l10n.programsDraftAnotherNewProgramUntitledBody
+        : l10n.programsDraftAnotherNewProgramBody(title);
     final restore = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.programsDraftTitle),
-        content: Text(l10n.programsDraftBody),
+        content: Text(body),
         actions: [
           TextButton(
             key: const ValueKey('program-draft-discard'),
@@ -1438,11 +1508,30 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ],
       ),
     );
-    if (!mounted) return;
+    final key = _pendingDraftKey;
+    _pendingDraftKey = null;
+    if (!mounted) {
+      if (key != null && key != _draftKey) _openDraftKeys.remove(key);
+      return;
+    }
     if (restore == true) {
+      // Restoring another new program's draft continues that program: this
+      // editor autosaves under its key from now on, so the draft is replaced
+      // rather than left behind, and cleared when the program is saved.
+      if (key != null && key != _draftKey) {
+        _openDraftKeys.remove(_newProgramDraftKey);
+        _newProgramDraftKey = key;
+      }
       _applyRestoredDraft(draft);
-    } else {
+    } else if (key == null || key == _draftKey) {
       await _clearDraft();
+    } else {
+      _openDraftKeys.remove(key);
+      try {
+        await _repos.settings.remove(key, permanent: true);
+      } catch (_) {
+        // diagnostics: silent — draft removal best-effort; non-fatal.
+      }
     }
   }
 
@@ -2013,7 +2102,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // Resolved before the push: the route may rebuild after this screen has
     // gone, when its context can no longer be read.
     final renderer = UserFiguresScope.rendererOf(context);
-    _performBase = program;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         // Ctrl-K is suppressed while this route is on top ([performRouteName]).
@@ -2054,16 +2142,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           // stored (GIG-4): Perform was opened with the builder's working copy,
           // and any other unsaved edit in it stays unsaved here, for the caller
           // to save or discard. Applying the change rather than writing
-          // Perform's copy also keeps stamps that copy never had (GIG-3).
+          // Perform's copy also keeps stamps that copy never had (GIG-3). The
+          // write is a compare-and-replace, and when the stored program had
+          // changed since this builder last read or wrote it (Device Sync,
+          // typically), Perform is handed the newer program to show (GIG-6).
           //
           // A brand-new, still-unsaved program has nothing to update in the DB
           // yet, so its adjustments stay in the working slots to be saved
           // explicitly; a failed write falls back the same way rather than
           // dropping the change.
-          onProgramChanged: (updated) async {
-            if (!mounted) return;
-            final before = _performBase ?? updated;
-            _performBase = updated;
+          onProgramChanged: (before, updated) async {
+            if (!mounted) return null;
             final previousSlots = _slots;
             setState(() {
               _slots = _renumber(
@@ -2081,26 +2170,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               final keepDirty = _dirty || _parsedPay().isInvalid;
               _autoCommitTimer?.cancel();
               final generation = ++_editGeneration;
-              // Serialized behind any queued commit, and the stored program is
-              // read once that commit has landed, so the change is applied to
-              // what it wrote.
+              // Serialized behind any queued commit, so the change is applied
+              // to what that commit wrote, and compared with the program as
+              // this builder last knew it once that commit has landed.
               final operation = _commitQueueTail.then((_) async {
-                final current = await _repos.programs.getById(existing.id);
-                if (current == null) {
-                  throw StateError('program "${existing.id}" is gone');
-                }
-                final stored = await _repos.programs.updateAndReadBack(
-                  current.copyWith(
-                    slots: _renumber(
-                      rebaseSlotEdits(
-                        before: before.slots,
-                        after: updated.slots,
-                        onto: current.slots,
-                      ),
-                    ),
-                    updatedAt: DateTime.now().toUtc(),
-                  ),
+                final write = await writePerformAdjustment(
+                  _repos.programs,
+                  programId: existing.id,
+                  expected: _existing,
+                  before: before.slots,
+                  after: updated.slots,
                 );
+                // The next queued write compares with this one.
+                _existing = write.stored;
                 if (keepDirty || generation != _editGeneration) {
                   await _saveDraft();
                 } else {
@@ -2109,7 +2191,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     resetEditorState: false,
                   );
                 }
-                return stored;
+                return write;
               });
               // Keep later commits usable if this live-gig write fails, while
               // still surfacing the failure to this callback. With other edits
@@ -2130,8 +2212,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 },
               );
               try {
-                final stored = await operation;
-                if (!mounted) return;
+                final write = await operation;
+                final stored = write.stored;
+                if (!mounted) return null;
                 setState(() {
                   _existing = stored;
                   // No edit since: with nothing else unsaved, the working copy
@@ -2149,7 +2232,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 // times" badge and any mounted dance detail's calling history.
                 // Both watch `program_slots` directly now, so the write is the
                 // whole notification (issue #768).
-                return;
+                if (!write.changedUnderneath) return null;
+                // Perform shows the builder's working copy. Without other
+                // unsaved edits that is now the stored program; with them,
+                // Perform's copy takes what changed elsewhere, and the
+                // builder's unsaved edits stay as they were.
+                if (!keepDirty) return stored;
+                return updated.copyWith(
+                  slots: _renumber(
+                    rebaseSlotEdits(
+                      before: existing.slots,
+                      after: stored.slots,
+                      onto: updated.slots,
+                    ),
+                  ),
+                );
               } on Object catch (_) {
                 // export-guard: exempt — mark-performed stamp, not an export
                 // diagnostics: silent — logged by the commit queue above; the
@@ -2157,11 +2254,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 // a program deleted meanwhile fails with a StateError.
               }
             }
-            if (!mounted) return;
+            if (!mounted) return null;
             _markDirty();
             _performAdjusted = updated;
             _performAdjustedGeneration = _editGeneration;
             _performStored = null;
+            return null;
           },
           // The "Program adjusted" Undo after leaving Perform reverses the
           // adjustment's own change (other unsaved edits stay). It may run only while this builder's working
@@ -2802,8 +2900,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  Program? get _draftProgram {
-    final title = _titleController.text.trim();
+  Program? get _draftProgram =>
+      _draftProgramTitled(_titleController.text.trim());
+
+  /// The working copy as a [Program] titled [title], or `null` when it cannot
+  /// be one: an empty [title], or an invalid field combination.
+  Program? _draftProgramTitled(String title) {
     if (title.isEmpty) return null;
     final now = _existing?.createdAt ?? DateTime.now().toUtc();
     String? nn(TextEditingController c) {
@@ -3011,7 +3113,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_pickerImporting || _deleting) return;
     final source = _existing;
     if (source == null) return;
-    final title = source.title;
+    // The title on screen, which a delete saves first (LIFE-14); a blank one
+    // keeps the stored title.
+    final title = switch (_titleController.text.trim()) {
+      '' => source.title,
+      final typed => typed,
+    };
     // Re-entrancy guard (same pattern as `_saving`): a second tap that lands
     // while the queue tail or the soft-delete is still awaiting would run the
     // whole method again — a second write and a second `pop()`/`onDeleted`,
@@ -3028,6 +3135,32 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _editGeneration++;
       await _commitQueueTail;
       if (!mounted) return;
+      // Save what is on screen first (LIFE-14), so the program in Recently
+      // deleted, and the one Undo brings back, is the one being edited rather
+      // than its last-saved version. A blank title keeps the stored one, and
+      // an amount that does not parse keeps the stored pay, as auto-save does.
+      // If that save fails, nothing is deleted: the edits stay on screen.
+      final deleting = _dirty ? _draftProgramTitled(title) : null;
+      if (deleting != null) {
+        try {
+          await _persistDraft(deleting);
+        } catch (error, stackTrace) {
+          logCaughtError(
+            error,
+            stackTrace,
+            source: 'program_editor_screen._delete',
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(AppLocalizations.of(context).programsSaveError),
+              ),
+            );
+          }
+          return;
+        }
+        if (!mounted) return;
+      }
       await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
       if (!mounted) return;
       // Drop the autosave draft so it can't resurface for a deleted program.

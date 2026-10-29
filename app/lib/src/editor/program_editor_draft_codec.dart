@@ -5,7 +5,9 @@ import 'package:flutter/foundation.dart';
 
 /// Settings-table key prefix for the program editor's transient autosave drafts.
 ///
-/// Draft keys are dynamic (`program_editor_draft:<programId|new>`) and hold
+/// Draft keys are dynamic ([programEditorDraftKey]:
+/// `program_editor_draft:<programId>`, or `program_editor_draft:new:<editor id>`
+/// for a program not yet saved) and hold
 /// unsaved, device-local in-progress edits — not user content or preferences.
 /// They must never travel in a backup, so `backup_service.dart` excludes this
 /// prefix from both export and restore (see `kBackupSettingsDenylistPrefixes`).
@@ -13,6 +15,29 @@ import 'package:flutter/foundation.dart';
 /// both the editor screen and `BackupService` can share it without a data→UI
 /// dependency.
 const String kProgramEditorDraftKeyPrefix = 'program_editor_draft:';
+
+/// The draft key for [id] under [kProgramEditorDraftKeyPrefix]: a program's
+/// id, or for a program not yet saved, an id made from
+/// [kNewProgramDraftIdPrefix].
+String programEditorDraftKey(String id) => '$kProgramEditorDraftKeyPrefix$id';
+
+/// The draft id every new program shared before each new program got its own,
+/// as each new dance did (AUTH-10). A draft still stored under it is read as
+/// one more new program's.
+const String kLegacyNewProgramDraftId = 'new';
+
+/// How the draft id of a program not yet saved starts: each new-program editor
+/// writes under this plus its own id, so two new programs never share a draft.
+const String kNewProgramDraftIdPrefix = '$kLegacyNewProgramDraftId:';
+
+/// Whether [key] holds the draft of a program not yet saved, under either the
+/// per-editor form or the legacy shared id.
+bool isNewProgramEditorDraftKey(String key) {
+  if (!key.startsWith(kProgramEditorDraftKeyPrefix)) return false;
+  final id = key.substring(kProgramEditorDraftKeyPrefix.length);
+  return id == kLegacyNewProgramDraftId ||
+      id.startsWith(kNewProgramDraftIdPrefix);
+}
 
 /// Draft schema version. Increment if the JSON shape changes in a
 /// backward-incompatible way; [decodeProgramDraft] checks this and rejects

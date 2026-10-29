@@ -162,3 +162,10 @@ ProgramSlot _mergeFields(ProgramSlot was, ProgramSlot now, ProgramSlot onto) {
     );
   }
 }
+
+/// [slots] with positions renumbered contiguously (0..n-1) in list order, as
+/// [rebaseSlotEdits] leaves them for its caller to do.
+List<ProgramSlot> renumberSlots(List<ProgramSlot> slots) => [
+  for (var i = 0; i < slots.length; i++)
+    slots[i].position == i ? slots[i] : slots[i].copyWith(position: i),
+];

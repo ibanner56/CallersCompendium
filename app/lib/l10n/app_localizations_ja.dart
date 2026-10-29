@@ -4519,6 +4519,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsDraftBody => 'このプログラムに未保存の下書きがあります。復元しますか？';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'You have an unsaved draft of another new program, “$title”. Would you like to restore it instead of starting a new one?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?';
+
+  @override
   String get programsDraftRestore => '復元';
 
   @override
@@ -5336,6 +5345,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get performUndoNoLongerAvailable => '元に戻せません。その後プログラムが変更されています。';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.';
 
   @override
   String get performProgramAdjustedSnack => 'プログラムを調整しました。';

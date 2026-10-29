@@ -4793,6 +4793,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vous avez un brouillon non enregistré pour ce programme. Voulez-vous le restaurer ?';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'You have an unsaved draft of another new program, “$title”. Would you like to restore it instead of starting a new one?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?';
+
+  @override
   String get programsDraftRestore => 'Restaurer';
 
   @override
@@ -5636,6 +5645,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get performUndoNoLongerAvailable =>
       'Annulation impossible : le programme a été modifié depuis.';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.';
 
   @override
   String get performProgramAdjustedSnack => 'Programme ajusté.';

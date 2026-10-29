@@ -7331,6 +7331,18 @@ abstract class AppLocalizations {
   /// **'You have an unsaved draft for this program. Would you like to restore it?'**
   String get programsDraftBody;
 
+  /// Dialog body when the caller starts a new program and a draft of a different new program, never saved, is waiting from an earlier session. Restoring continues that program; discarding deletes it.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new program, “{title}”. Would you like to restore it instead of starting a new one?'**
+  String programsDraftAnotherNewProgramBody(String title);
+
+  /// Dialog body when the caller starts a new program and an untitled draft of a different new program, never saved, is waiting from an earlier session.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?'**
+  String get programsDraftAnotherNewProgramUntitledBody;
+
   /// Button that restores the autosaved program draft into the editor.
   ///
   /// In en, this message translates to:
@@ -8534,6 +8546,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can\'t undo: the program has changed since.'**
   String get performUndoNoLongerAvailable;
+
+  /// Snackbar shown in Perform when saving a live program adjustment found that the program had been changed elsewhere (for example by Device Sync) since Perform opened it. The adjustment was saved on top of that change instead of overwriting it, and Perform now shows the updated program.
+  ///
+  /// In en, this message translates to:
+  /// **'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.'**
+  String get performProgramChangedElsewhere;
 
   /// Snackbar message shown after applying a live program adjustment.
   ///
