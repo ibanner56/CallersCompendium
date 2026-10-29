@@ -456,7 +456,7 @@ void main() {
 
     await controller.flushPendingAutosave();
     expect(
-      await repos.settings.contains('editor_draft:new'),
+      await repos.settings.contains(controller.draftKey),
       isFalse,
       reason: 'nothing was waiting on the debounce, so nothing is written',
     );
@@ -466,7 +466,7 @@ void main() {
     // Awaited directly, with no time for the debounce to fire.
     await controller.flushPendingAutosave();
     expect(
-      decodeDraft(await repos.settings.get('editor_draft:new')).title,
+      decodeDraft(await repos.settings.get(controller.draftKey)).title,
       'Backgrounded title',
     );
 
@@ -475,7 +475,7 @@ void main() {
     controller.onTextEdited();
     await settleDebounce();
     expect(
-      decodeDraft(await repos.settings.get('editor_draft:new')).title,
+      decodeDraft(await repos.settings.get(controller.draftKey)).title,
       'Resumed title',
     );
   });
