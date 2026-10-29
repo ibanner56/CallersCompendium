@@ -6216,6 +6216,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '„$title“ wurde seit dem Import geändert, daher hat Rückgängig ihn unverändert gelassen.';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '„$title“ ist bereits in Ihrer Sammlung.';
   }
@@ -6244,7 +6249,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Ihre Sammlung enthält „$existingTitle“ bereits aus einer anderen Quelle. Beide Versionen haben dieselbe Abfolge von Bewegungen.';
+    return 'Ihre Sammlung enthält „$existingTitle“ bereits. Beide Versionen haben dieselbe Abfolge von Bewegungen.';
   }
 
   @override
@@ -7929,6 +7934,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'Figur $position ist nicht vollständig, daher lässt Speichern sie weg.';
+  }
+
+  @override
   String get validationPhraseInvalid =>
       'Diese Phrasierungsstruktur ist ungültig.';
 
@@ -8357,6 +8367,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'Diese eigene Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleiben nur Name, Takte, Notiz und Progression erhalten.';
+
+  @override
+  String get danceEditorIncompleteFigure =>
+      'Nicht vollständig, daher lässt Speichern sie weg.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9572,7 +9586,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Dieses Feld als Filter im Suchbereich verfügbar machen';
+      'Dieses Feld im Bereich „Filter“ anbieten und seine Werte über die Suchleiste finden lassen';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Dieses Feld im Bereich „Filter“ anbieten';
 
   @override
   String get customFieldsChoicesLabel => 'Auswahlmöglichkeiten *';

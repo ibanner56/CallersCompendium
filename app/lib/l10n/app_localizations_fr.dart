@@ -6230,6 +6230,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '« $title » a été modifiée depuis son importation, donc Annuler l’a laissée telle quelle.';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '« $title » est déjà dans votre collection.';
   }
@@ -6258,7 +6263,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Votre collection contient déjà « $existingTitle » provenant d’une autre source. Les deux versions ont la même séquence de mouvements.';
+    return 'Votre collection contient déjà « $existingTitle ». Les deux versions ont la même séquence de mouvements.';
   }
 
   @override
@@ -7946,6 +7951,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'La figure $position n’est pas complète : Enregistrer la laisse de côté.';
+  }
+
+  @override
   String get validationPhraseInvalid =>
       'Cette structure de phrase n\'est pas valide.';
 
@@ -8376,6 +8386,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'Cette figure ne peut pas être développée : elle a été supprimée ou modifiée, ou n’accepte pas ces valeurs. À l’enregistrement, seuls son nom, ses temps, sa note et la marque de progression sont conservés.';
+
+  @override
+  String get danceEditorIncompleteFigure =>
+      'Pas complète : Enregistrer la laisse de côté.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9591,7 +9605,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Exposer ce champ comme filtre dans le panneau de recherche';
+      'Proposer ce champ dans le panneau Filtres et laisser la barre de recherche trouver ses valeurs';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Proposer ce champ dans le panneau Filtres';
 
   @override
   String get customFieldsChoicesLabel => 'Choix *';

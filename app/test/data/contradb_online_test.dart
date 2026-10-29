@@ -721,11 +721,12 @@ void main() {
     );
 
     test(
-      'confident match + identical figures + null provenance (hand-entered): falls through to duplicate (no prompt)',
+      'confident match + identical figures + null provenance (hand-entered): prompts, writes nothing',
       () async {
-        // A hand-entered dance has null provenance. Triggering the cross-source
-        // dialog for it would falsely assert "from a different source". Guard:
-        // existing.provenance == null → falls through to duplicate().
+        // A hand-entered dance has null provenance. It used to fall through to
+        // a silent second copy, because the dialog then said "from a different
+        // source". Its wording now names no source, so a hand-entered match
+        // asks like any other (INTAKE-5).
         final repos = openTestRepositories();
         final existing = Dance(
           id: 'existing-id-hand-entered',
@@ -767,10 +768,10 @@ void main() {
 
         final result = await ContraDbOnline().import(repos, plan);
 
-        expect(result.kind, isNot(OnlineImportKind.needsConfirmationIdentical));
-        expect(result.kind, isNot(OnlineImportKind.needsConfirmation));
+        expect(result.kind, OnlineImportKind.needsConfirmationIdentical);
+        expect(result.danceId, existing.id);
         final saved = await repos.dances.listAll();
-        expect(saved, hasLength(2));
+        expect(saved, hasLength(1), reason: 'nothing written without consent');
       },
     );
 

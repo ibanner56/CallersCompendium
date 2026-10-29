@@ -350,6 +350,21 @@ const String shareableTextNormalisationScopeKey =
 const String normalisationDerivedIndexRepairDoneKey =
     '__normalisation_derived_index_repair_done__';
 
+/// Settings key for the one-time custom-field index repair (maintainer
+/// decision search-index (a), 2026-10-29). Since that change the search bar's
+/// text index leaves out the values of a field whose Searchable setting is off
+/// and of every yes/no field (`customFieldIndexesValueText`); an index written
+/// before it still carries them. The pass reindexes exactly the dances holding
+/// a value for such a field, so a library with none pays nothing but the
+/// lookup.
+///
+/// Owed by the RULE CHANGE, not by any row change, like
+/// [gripSingleFileCanonicalInclusionDoneKey]. Written after a successful pass
+/// so it runs at most once per database; an interrupted pass retries on the
+/// next open.
+const String customFieldIndexRepairDoneKey =
+    '__custom_field_index_repair_done__';
+
 /// The `(table, column)` address of a column both writers of
 /// `normalisation_skips` can record against.
 ///

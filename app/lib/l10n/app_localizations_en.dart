@@ -6117,6 +6117,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '\"$title\" has changed since you imported it, so Undo left it as it is.';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '\"$title\" is already in your collection.';
   }
@@ -6145,7 +6150,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Your collection already has \"$existingTitle\" from a different source. Both versions have the same sequence of moves.';
+    return 'Your collection already has \"$existingTitle\". Both versions have the same sequence of moves.';
   }
 
   @override
@@ -7807,6 +7812,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'Figure $position is not complete, so Save leaves it out.';
+  }
+
+  @override
   String get validationPhraseInvalid => 'That phrase structure isn\'t valid.';
 
   @override
@@ -8227,6 +8237,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.';
+
+  @override
+  String get danceEditorIncompleteFigure =>
+      'Not complete, so Save leaves it out.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9428,7 +9442,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Expose this field as a filter in the search panel';
+      'Offer this field in the Filters panel, and let the search bar find its values';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Offer this field in the Filters panel';
 
   @override
   String get customFieldsChoicesLabel => 'Choices *';

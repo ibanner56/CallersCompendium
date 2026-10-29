@@ -9407,6 +9407,12 @@ abstract class AppLocalizations {
   /// **'Imported \"{title}\".'**
   String onlineImportCreated(String title);
 
+  /// Snackbar shown when the user taps Undo on an online import, but the dance was edited after the import, so undoing would throw those edits away and nothing was undone (INTAKE-5). The title is the dance's title, an untrusted value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" has changed since you imported it, so Undo left it as it is.'**
+  String onlineImportUndoKeptChanged(String title);
+
   /// Snackbar shown when the online dance being imported was already in the collection. The title is an untrusted external value rendered as plain text.
   ///
   /// In en, this message translates to:
@@ -9437,16 +9443,16 @@ abstract class AppLocalizations {
   /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.'**
   String onlineImportVariationDialogLinkWarning(String existingTitle);
 
-  /// Title of the resolution dialog shown when a confident title+author match with identical figures is found from a different source during a single-dance online import (issue #811).
+  /// Title of the resolution dialog shown during a single-dance online import when a confident title+author match with identical figures is already in the collection, from a different source (issue #811) or entered by hand (INTAKE-5).
   ///
   /// In en, this message translates to:
   /// **'You already have this dance'**
   String get onlineImportCrossSourceDuplicateDialogTitle;
 
-  /// Body text in the issue #811 resolution dialog for a cross-source duplicate with canonically identical figures (same moves and order; beats and notes may differ). existingTitle is an untrusted local value rendered as plain text.
+  /// Body text in the resolution dialog for a duplicate with canonically identical figures (same moves and order; beats and notes may differ), shown when the existing dance came from a different source (issue #811) or was entered by hand (INTAKE-5), so it names no source. existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Your collection already has \"{existingTitle}\" from a different source. Both versions have the same sequence of moves.'**
+  /// **'Your collection already has \"{existingTitle}\". Both versions have the same sequence of moves.'**
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle);
 
   /// Action button in the cross-source duplicate dialog (#811) that lets the user import the dance anyway, creating a second copy alongside the existing one.
@@ -11789,6 +11795,12 @@ abstract class AppLocalizations {
   /// **'A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).'**
   String validationSequenceExceedsPhrase(int position, int actual, int limit);
 
+  /// Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} is not complete, so Save leaves it out.'**
+  String validationIncompleteFigure(int position);
+
   /// Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds).
   ///
   /// In en, this message translates to:
@@ -12386,6 +12398,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.'**
   String get danceEditorCompoundUnavailable;
+
+  /// Shown on a dance's figure row (AUTH-2) that saving would leave out because it is not complete: a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, a group holding such a group, or a row with no move that holds something other than a note. Matches the Warnings entry validationIncompleteFigure. 'Save' is the editor's Save button (commonSave).
+  ///
+  /// In en, this message translates to:
+  /// **'Not complete, so Save leaves it out.'**
+  String get danceEditorIncompleteFigure;
 
   /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.
   ///
@@ -13916,11 +13934,17 @@ abstract class AppLocalizations {
   /// **'Display this field value in the dance list tile'**
   String get customFieldsShowInListSubtitle;
 
-  /// Subtitle for the 'Searchable' toggle.
+  /// Subtitle for the 'Searchable' toggle. Turning it off hides the field from both the Filters panel and the search bar's text search (a private note stays unfindable).
   ///
   /// In en, this message translates to:
-  /// **'Expose this field as a filter in the search panel'**
+  /// **'Offer this field in the Filters panel, and let the search bar find its values'**
   String get customFieldsSearchableSubtitle;
+
+  /// Subtitle for the 'Searchable' toggle on a yes/no field. A yes/no value is never found by the search bar, only by its filter, so this omits the search-bar half of customFieldsSearchableSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer this field in the Filters panel'**
+  String get customFieldsSearchableSubtitleYesNo;
 
   /// Section label for the list of choices on a choice-type field (required).
   ///

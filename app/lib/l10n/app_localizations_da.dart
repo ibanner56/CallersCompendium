@@ -6148,6 +6148,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '„$title“ er ændret, siden du importerede den, så Fortryd lod den være som den er.';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '„$title“ er allerede i din samling.';
   }
@@ -6176,7 +6181,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Din samling har allerede „$existingTitle“ fra en anden kilde. Begge versioner har den samme rækkefølge af bevægelser.';
+    return 'Din samling har allerede „$existingTitle“. Begge versioner har den samme rækkefølge af bevægelser.';
   }
 
   @override
@@ -7837,6 +7842,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'Figur $position er ikke færdig, så Gem udelader den.';
+  }
+
+  @override
   String get validationPhraseInvalid => 'Den frastruktur er ugyldig.';
 
   @override
@@ -8262,6 +8272,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'Denne egen figur kan ikke udvides: den er slettet eller ændret, eller den accepterer ikke disse værdier. Når du gemmer, bevares kun navn, slag, note og progression.';
+
+  @override
+  String get danceEditorIncompleteFigure => 'Ikke færdig, så Gem udelader den.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9464,7 +9477,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Eksponér dette felt som et filter i søgepanelet';
+      'Vis dette felt i panelet Filtre, og lad søgefeltet finde dets værdier';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Vis dette felt i panelet Filtre';
 
   @override
   String get customFieldsChoicesLabel => 'Valg *';

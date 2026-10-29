@@ -38,6 +38,26 @@ class CustomFieldInUseException implements Exception {
       '$danceCount dance(s)';
 }
 
+/// Whether the search bar's text index (`dance_fts.custom_values`) carries the
+/// values of the custom field [def], assuming the definition is live
+/// (maintainer decision search-index (a), 2026-10-29).
+///
+/// * **Searchable off** keeps the field's values out of the search bar as well
+///   as out of the Filters panel: the setting is how a caller keeps a private
+///   note from turning up in an "All fields" search.
+/// * **Yes/no fields** are never indexed. Their stored value would index as the
+///   word "true" or "false", which no caller types for a field and which
+///   matched every dance with any yes/no field set. The field's own facet in
+///   the Filters panel is how a yes/no value is found.
+///
+/// `DanceRepository` applies this when it writes a dance's index rows;
+/// [CustomFieldDefRepository.onIndexedValuesChanged] reindexes the dances
+/// holding a value when a local edit changes the answer, and the one-shot pass
+/// behind `customFieldIndexRepairDoneKey` repairs indexes written before the
+/// rule existed.
+bool customFieldIndexesValueText(CustomFieldDefRow def) =>
+    def.searchable && def.type != CustomFieldType.boolean;
+
 /// CRUD for [CustomFieldDef] rows (the user-defined field schema).
 ///
 /// Value storage/reconstruction ([CustomFieldValue]) lives in
@@ -46,9 +66,19 @@ class CustomFieldInUseException implements Exception {
 ///
 /// Definitions are **soft-deleted** as of schema v25 (issue #898).
 class CustomFieldDefRepository {
-  CustomFieldDefRepository(this._db);
+  CustomFieldDefRepository(this._db, {this.onIndexedValuesChanged});
 
   final CompendiumDatabase _db;
+
+  /// Called, inside the write's transaction, after [upsert] changes whether
+  /// the search bar's text index carries the field's values
+  /// ([customFieldIndexesValueText], for a live row): in practice, when its
+  /// Searchable setting is switched. The dance index holds those values, so
+  /// the dances holding one are reindexed. An inbound sync apply needs nothing of
+  /// its own: after each batch it reindexes the dances holding a value for
+  /// every definition it wrote (#1920,
+  /// `CompendiumSyncStorage.reindexDerivedAfterApply`).
+  final Future<void> Function(String id)? onIndexedValuesChanged;
 
   /// Writes [def], reviving it if a tombstone holds its UNIQUE key. See
   /// `TagRepository.upsert`.
@@ -163,6 +193,7 @@ class CustomFieldDefRepository {
                 ) ??
                 def.id;
       final heldBefore = fromSync ? null : await _publishesValues(id);
+      final indexedBefore = fromSync ? null : await _indexesValues(id);
       await _db
           .into(_db.customFieldDefs)
           .insertOnConflictUpdate(
@@ -198,6 +229,9 @@ class CustomFieldDefRepository {
         // The upsert leaves the row live, so it publishes values exactly when
         // it is shareable.
         if (heldBefore != def.shareable) await _restampDancesHolding(id, now);
+        if (indexedBefore != await _indexesValues(id)) {
+          await onIndexedValuesChanged?.call(id);
+        }
       }
       if (localUserEdit) {
         await cancelPendingSyncDeletionForLocalEdit(
@@ -221,6 +255,17 @@ class CustomFieldDefRepository {
       _db.customFieldDefs,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
     return row != null && row.deletedAt == null && row.shareable;
+  }
+
+  /// Whether definition [id] currently lets its values into the search bar's
+  /// text index: a live row that [customFieldIndexesValueText] admits.
+  Future<bool> _indexesValues(String id) async {
+    final row = await (_db.select(
+      _db.customFieldDefs,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    return row != null &&
+        row.deletedAt == null &&
+        customFieldIndexesValueText(row);
   }
 
   /// Advances `updated_at` on every dance holding a value for [fieldId], live or

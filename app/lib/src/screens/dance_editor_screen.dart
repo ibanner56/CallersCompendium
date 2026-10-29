@@ -431,6 +431,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   }
 
   Future<void> _save() async {
+    // Text typed into a Move box and not yet applied is settled as leaving the
+    // box settles it (AUTH-1): a move name or shorthand is applied, anything
+    // else put back. Tapping Save does not always take focus from the box.
+    _controller.pendingMoveText.settle();
     // A line still in the free-text composer is added as Enter would add it,
     // so the dance saves with the figure the caller just typed. A line that
     // could not be added stays in the box and the save waits.

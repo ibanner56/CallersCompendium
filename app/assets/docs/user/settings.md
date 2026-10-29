@@ -403,7 +403,9 @@ Choose which filters appear in the **Filters** panel on the Collection screen an
 when you pick dances for a program. Every filter is shown until you untick it,
 and each of your searchable custom fields has its own checkbox. Hiding a filter
 only removes it from the panel: it does not delete anything, and the Advanced
-search can still use the same properties. If you hide a filter that is currently
+search can still use the same properties. This differs from a custom field's own
+**Searchable** setting, which also keeps the field's values out of the search
+bar (see [Make your own fields](./collection.md#make-your-own-fields)). If you hide a filter that is currently
 narrowing the list, its selection is cleared. A filter that is narrowing the
 list when you open a dance's tag from its detail page stays visible until you
 clear it.
