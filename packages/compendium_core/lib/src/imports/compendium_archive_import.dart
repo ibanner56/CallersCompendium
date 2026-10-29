@@ -69,10 +69,15 @@ class _DifficultyLevelImportPlan {
 /// pipeline just minted/matched, or the existing dance a skipped re-import row
 /// already points at), then persists the returned programs.
 ///
-/// Fidelity: every program is imported **verbatim** — title, event metadata,
-/// slot order, note-only slots ([ProgramSlot.text] with no dance), alternates,
-/// guest callers, planned minutes and performed timestamps are preserved as
-/// authored. Nothing is fabricated.
+/// Fidelity: a program is imported as a **plan**, the way
+/// [Program.duplicate] copies one (maintainer decision, 2026-10-28). The
+/// sender's calling history stays theirs: status becomes
+/// [ProgramStatus.draft], every slot's performed mark is cleared (including
+/// the marks a Performed status stamped on its own), and the event date is
+/// cleared. Everything else — title, venue, band, host caller, notes, slot
+/// order, note-only slots ([ProgramSlot.text] with no dance), alternates,
+/// guest callers and planned minutes — is preserved as authored. Nothing is
+/// fabricated.
 ///
 /// **Parse-never-fails:** a slot whose referenced dance has no entry in
 /// [danceIdByOriginalId] (a skipped row with no local dance, a failed record,
@@ -150,7 +155,8 @@ ArchiveProgramsResult buildArchivePrograms(
           guestCaller: slot.guestCaller,
           walkthroughMinutes: slot.walkthroughMinutes,
           danceMinutes: slot.danceMinutes,
-          performedAt: slot.performedAt,
+          // The sender's performed mark is their calling history, not the
+          // receiver's; see "Fidelity" above.
         ),
       );
     }
@@ -159,14 +165,15 @@ ArchiveProgramsResult buildArchivePrograms(
       Program(
         id: mintId(),
         title: program.title,
-        eventDate: program.eventDate,
+        // The event date is cleared, as [Program.duplicate] clears it: the
+        // sender's date would put their gig into the receiver's history.
         venue: program.venue,
         venueId: _resolveVenueId(program, venueIdByOriginalId, issues),
         band: program.band,
         caller: program.caller,
         dancerLevel: program.dancerLevel,
         notes: program.notes,
-        status: program.status,
+        status: ProgramStatus.draft,
         hideAlternates: program.hideAlternates,
         dialectName: program.dialectName,
         payMinorUnits: program.payMinorUnits,
@@ -174,10 +181,10 @@ ArchiveProgramsResult buildArchivePrograms(
         slots: slots,
         createdAt: timestamp,
         updatedAt: timestamp,
-        // Provenance keyed on the *original* program id, so re-receiving the
-        // same bundle dedupes onto this program instead of creating a
-        // duplicate. Mirrors the dance provenance the pipeline stamps
-        // (`source: json`).
+        // Provenance keyed on the *original* program id records where the
+        // program came from. It is not a dedupe key: re-receiving the program
+        // imports a new copy (see [CompendiumArchiveImporter.commit]).
+        // Mirrors the dance provenance the pipeline stamps (`source: json`).
         provenance: Provenance(
           source: ProvenanceSource.json,
           externalId: program.id,
@@ -242,9 +249,6 @@ class CompendiumArchiveImportResult {
     required List<ImportIssue> programIssues,
     this.metadata,
     List<String> insertedProgramIds = const [],
-    List<Program> updatedProgramPriorStates = const [],
-    List<String> restoredProgramIds = const [],
-    this.programRestoreAt,
     List<String> insertedVenueIds = const [],
     List<String> restoredVenueIds = const [],
     List<String> insertedDifficultyLevelIds = const [],
@@ -253,8 +257,6 @@ class CompendiumArchiveImportResult {
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
-       updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
-       restoredProgramIds = List.unmodifiable(restoredProgramIds),
        insertedVenueIds = List.unmodifiable(insertedVenueIds),
        restoredVenueIds = List.unmodifiable(restoredVenueIds),
        insertedDifficultyLevelIds = List.unmodifiable(
@@ -272,26 +274,14 @@ class CompendiumArchiveImportResult {
   /// callers that supplied an archive importer without metadata repositories.
   final ShareMetadataImportResult? metadata;
 
-  /// Every program this import persisted — both newly inserted and updated
-  /// (re-imported) — carrying its final id. Ordered as the archive listed them.
+  /// Every program this import persisted, carrying its final id. Ordered as
+  /// the archive listed them. Each one is new: a shared file never updates a
+  /// program the receiver already had.
   final List<Program> programs;
 
-  /// Ids of the programs **inserted** by this import (no prior existed); these
-  /// are hard-deleted on [undo].
+  /// Ids of the programs **inserted** by this import — every program it
+  /// persisted. These are hard-deleted on [undo].
   final List<String> insertedProgramIds;
-
-  /// Prior snapshots of the programs this import **updated in place** because a
-  /// re-import matched their `(json, externalId)` provenance key. Restored
-  /// verbatim on [undo].
-  final List<Program> updatedProgramPriorStates;
-
-  /// Ids of tombstoned programs restored by an exact provenance match. Soft-deleted
-  /// again on [undo] so the rollback records a later existence transition.
-  final List<String> restoredProgramIds;
-
-  /// Import timestamp used for causal restore and failed-commit compensation.
-  /// [undo] takes a fresh timestamp instead.
-  final DateTime? programRestoreAt;
 
   /// Ids of the venues this import **inserted** (one freshly-minted id per
   /// bundled venue). Hard-deleted on [undo] once the referencing programs have
@@ -319,11 +309,10 @@ class CompendiumArchiveImportResult {
   /// persisted program, or `null` when the archive carried no program.
   String? get primaryProgramId => programs.isEmpty ? null : programs.first.id;
 
-  /// Every persisted program id (inserted or updated), in archive order.
+  /// Every persisted program id, in archive order.
   List<String> get importedProgramIds => [for (final p in programs) p.id];
 
   int get insertedProgramCount => insertedProgramIds.length;
-  int get updatedProgramCount => updatedProgramPriorStates.length;
   int get insertedVenueCount => insertedVenueIds.length;
   int get importedMetadataCount =>
       (metadata?.tagIdByArchiveId.length ?? 0) +
@@ -427,11 +416,6 @@ class CompendiumArchiveImporter {
   }) async {
     final mintId = newId ?? uuidV4;
     final insertedIds = <String>[];
-    final insertedIdSet = <String>{};
-    final priorCapturedFor = <String>{};
-    final priorStates = <Program>[];
-    final restoredProgramIds = <String>[];
-    final restoredProgramIdSet = <String>{};
     final insertedVenueIds = <String>[];
     final restoredVenueIds = <String>[];
     final difficultyLevels = _DifficultyLevelImportLedger();
@@ -465,15 +449,13 @@ class CompendiumArchiveImporter {
         archive,
       );
 
-      final existingByExternalId = await _programs.externalIdToProgramId(
-        ProvenanceSource.json,
-      );
-      // Working copy that also absorbs ids inserted during *this* commit, so a
-      // duplicate externalId appearing twice in a single (untrusted) archive
-      // updates the row in place instead of inserting it twice.
-      final resolvedByExternalId = Map<String, String>.from(
-        existingByExternalId,
-      );
+      // Programs this commit inserted, by their original archive id, so a
+      // duplicate id appearing twice in a single (untrusted) archive updates
+      // the row in place instead of inserting it twice. Programs the receiver
+      // already had are never looked up: re-receiving a program imports a new
+      // copy alongside theirs rather than overwriting their date, marks and
+      // edits (maintainer decision, 2026-10-28; INTAKE-1 scenario B).
+      final insertedByExternalId = <String, String>{};
       // Keyed by final program id so repeated externalIds collapse to one entry
       // carrying the final persisted state, preserving first-seen archive order.
       final persisted = <String, Program>{};
@@ -624,18 +606,6 @@ class CompendiumArchiveImporter {
         now: now,
       );
 
-      // A pre-venue archive cannot express `venueId` at all, so on a
-      // provenance-matched re-import its programs carry a null one; honoring that
-      // would silently drop a link the user established after the original
-      // import. Only a venue-aware archive has *explicit* venue semantics whose
-      // (remapped-or-nulled) value should overwrite the matched program — see
-      // [_rebuildProgramWithId]. Keyed on [requiredSchemaVersion] (the archive's
-      // actual venue content, exactly what the encoder stamps the wire version
-      // from) rather than the passed object's `schemaVersion`, so the decision is
-      // correct regardless of how that field was set.
-      final archiveCarriesVenueLinks =
-          requiredSchemaVersion(archive) >= archiveSchemaVersionVenues;
-
       // Load live venue ids only if a program write needs them, and reuse the
       // immutable snapshot for every linked program instead of issuing N+1
       // existence queries.
@@ -647,50 +617,27 @@ class CompendiumArchiveImporter {
       for (final program in built.programs) {
         final externalId = program.provenance?.externalId;
         final hasExternalId = externalId != null && externalId.isNotEmpty;
-        final mappedId = hasExternalId
-            ? resolvedByExternalId[externalId]
+        final repeatOf = hasExternalId
+            ? insertedByExternalId[externalId]
             : null;
-        final existing = mappedId == null
-            ? null
-            : await _programs.getById(mappedId, includeDeleted: true);
-        if (mappedId == null || existing == null) {
-          final knownVenueIds = program.venueId == null
-              ? LiveVenueIds.empty
-              : await ensureLiveVenueIds();
-          await _programs.create(program, knownVenueIds: knownVenueIds);
-          insertedIds.add(program.id);
-          insertedIdSet.add(program.id);
-          if (hasExternalId) resolvedByExternalId[externalId] = program.id;
-          persisted[program.id] = program;
+        final target = repeatOf == null
+            ? program
+            : _rebuildProgramWithId(
+                program,
+                id: repeatOf,
+                createdAt: persisted[repeatOf]!.createdAt,
+              );
+        final knownVenueIds = target.venueId == null
+            ? LiveVenueIds.empty
+            : await ensureLiveVenueIds();
+        if (repeatOf == null) {
+          await _programs.create(target, knownVenueIds: knownVenueIds);
+          insertedIds.add(target.id);
+          if (hasExternalId) insertedByExternalId[externalId] = target.id;
         } else {
-          final target = _rebuildProgramWithId(
-            program,
-            id: mappedId,
-            createdAt: existing.createdAt,
-            priorVenueId: existing.venueId,
-            archiveCarriesVenueLinks: archiveCarriesVenueLinks,
-          );
-          // Capture the true pre-import state exactly once per existing id, and
-          // never for a row this commit inserted (its prior state is "absent",
-          // handled by hardDelete on undo) — so undo restores the real
-          // pre-import state, not an intermediate one.
-          if (!insertedIdSet.contains(mappedId) &&
-              priorCapturedFor.add(mappedId)) {
-            priorStates.add(existing);
-          }
-          if (existing.deletedAt != null) {
-            await _programs.restore(mappedId, at: now);
-            if (restoredProgramIdSet.add(mappedId)) {
-              restoredProgramIds.add(mappedId);
-            }
-          }
-          final venueId = target.venueId;
-          final knownVenueIds = venueId == null
-              ? LiveVenueIds.empty
-              : await ensureLiveVenueIds();
           await _programs.update(target, knownVenueIds: knownVenueIds);
-          persisted[mappedId] = target;
         }
+        persisted[target.id] = target;
       }
 
       // This writer is merge-like: it changes only the records carried by the
@@ -721,25 +668,16 @@ class CompendiumArchiveImporter {
         programIssues: built.issues,
         metadata: metadata,
         insertedProgramIds: insertedIds,
-        updatedProgramPriorStates: priorStates,
-        restoredProgramIds: restoredProgramIds,
-        programRestoreAt: restoredProgramIds.isEmpty ? null : now,
         insertedVenueIds: insertedVenueIds,
         restoredVenueIds: restoredVenueIds,
         insertedDifficultyLevelIds: difficultyLevels.insertedIds,
         difficultyLevelPriorStates: difficultyLevels.priorStates,
       );
     } catch (_) {
-      // Compensate in reverse-dependency order: remove inserted programs and
-      // restore updated ones first so no program still references a venue, then
-      // remove the venues this import inserted, then undo the dances.
+      // Compensate in reverse-dependency order: remove inserted programs first
+      // so no program still references a venue, then remove the venues this
+      // import inserted, then undo the dances.
       await _programs.hardDelete(insertedIds);
-      for (final prior in priorStates) {
-        await _programs.update(prior);
-      }
-      for (final id in restoredProgramIds) {
-        await _programs.softDelete(id, at: now);
-      }
       await _venues.hardDelete(insertedVenueIds);
       for (final id in restoredVenueIds) {
         try {
@@ -1033,14 +971,6 @@ class CompendiumArchiveImporter {
     if (result.isUndone) return;
     final undoAt = (now?.call() ?? DateTime.now()).toUtc();
     await _programs.hardDelete(result.insertedProgramIds);
-    for (final prior in result.updatedProgramPriorStates) {
-      await _programs.update(prior);
-    }
-    if (result.programRestoreAt != null) {
-      for (final id in result.restoredProgramIds) {
-        await _programs.softDelete(id, at: undoAt);
-      }
-    }
     // Erasing for the same reason the dances/programs above are hard-deleted:
     // a rollback must leave nothing behind to publish. `hardDelete` owns both
     // exceptions to that — a published venue is tombstoned instead, and a venue
@@ -1106,32 +1036,20 @@ class CompendiumArchiveImporter {
     return byOriginalId;
   }
 
-  /// Rebuilds [src] under an existing program [id] and [createdAt] (preserving
-  /// the matched program's identity/creation stamp on a re-import) while keeping
-  /// every other field from the freshly built program.
-  ///
-  /// [priorVenueId] is the matched program's current `venueId`, and
-  /// [archiveCarriesVenueLinks] is whether the incoming archive is venue-aware
-  /// (its [requiredSchemaVersion] reaches [archiveSchemaVersionVenues]). A
-  /// venue-aware archive has *explicit* venue semantics, so [src]'s
-  /// already-remapped-or-nulled `venueId` overwrites the match (an explicit null
-  /// clears the link). A pre-venue archive cannot express `venueId` at all, so
-  /// [src]'s is necessarily null; overwriting with it would silently drop a link
-  /// the user established after the original import, so [priorVenueId] is
-  /// preserved instead (like [id]/[createdAt]) — mirroring the `.USR` re-import's
-  /// venue-link preservation for a source that likewise cannot reconstruct it.
+  /// Rebuilds [src] under the [id] and [createdAt] of the program this commit
+  /// already inserted for the same original archive id, keeping every other
+  /// field from the later occurrence, so a malformed archive that repeats a
+  /// program id yields one program carrying its last-seen content.
   Program _rebuildProgramWithId(
     Program src, {
     required String id,
     required DateTime createdAt,
-    required String? priorVenueId,
-    required bool archiveCarriesVenueLinks,
   }) => Program(
     id: id,
     title: src.title,
     eventDate: src.eventDate,
     venue: src.venue,
-    venueId: archiveCarriesVenueLinks ? src.venueId : priorVenueId,
+    venueId: src.venueId,
     band: src.band,
     caller: src.caller,
     dancerLevel: src.dancerLevel,

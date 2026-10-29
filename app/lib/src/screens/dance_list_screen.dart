@@ -20,6 +20,7 @@ import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
+import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
@@ -207,6 +208,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Whether calling-history filters use performed slots only.
   bool _requirePerformedForHistory = false;
+
+  /// Whether calling-history filters leave out programs with no event date.
+  bool _requireEventDateForHistory = false;
 
   /// The live default caller from [DefaultProgramCallerScope], or `null` when
   /// no scope is wired (then [_boot] reads the setting). While
@@ -414,6 +418,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final requirePerformedChanged =
         _started && newRequirePerformed != _requirePerformedForHistory;
     _requirePerformedForHistory = newRequirePerformed;
+    final newRequireEventDate = RequireEventDateForHistoryScope.of(context);
+    final requireEventDateChanged =
+        _started && newRequireEventDate != _requireEventDateForHistory;
+    _requireEventDateForHistory = newRequireEventDate;
 
     // A section hidden while it holds a selection would keep narrowing the list
     // with no control to clear it, so hiding it clears it (issue #1419). Only
@@ -439,7 +447,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _callerRefreshTimer?.cancel();
         _callerRefreshTimer = Timer(_callerRefreshDelay, _boot);
       }
-      if (requirePerformedChanged && !_onlineEnabled && _data != null) {
+      if ((requirePerformedChanged || requireEventDateChanged) &&
+          !_onlineEnabled &&
+          _data != null) {
         _runSearch();
       } else if (dialectChanged ||
           ignoreArticlesChanged ||
@@ -826,6 +836,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -838,6 +849,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         // Called filter above (FIND-2).
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
       );
       if (!mounted || seq != _searchSeq) return;
       setState(() {
@@ -2633,7 +2645,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
       hasMixer: data.hasMixer,
       hasRating: data.hasRating,
       hasCallingHistory: data.callCounts.values.any(
-        (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+        (counts) =>
+            counts.countFor(
+              _requirePerformedForHistory,
+              requireEventDate: _requireEventDateForHistory,
+            ) >
+            0,
       ),
       authors: data.authors,
       tags: data.tags,

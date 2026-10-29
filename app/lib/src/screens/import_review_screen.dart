@@ -2118,7 +2118,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ? null
           : (
               programs: result.programs,
-              updated: result.updatedProgramCount,
+              // A shared file never updates a program in place: a program the
+              // caller already has arrives as a new copy beside theirs (F6).
+              updated: 0,
               issues: result.programIssues,
             ),
       figuresAdded: figures?.count ?? 0,

@@ -2976,6 +2976,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn aktiviert, listet der Calling-Verlauf eines Tanzes nur Programme auf, deren Slot für diesen Tanz als aufgeführt markiert wurde. Wenn deaktiviert, erscheint ein Programm, sobald es den Tanz enthält.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Veranstaltungsdatum für Calling-Verlauf erfordern';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Wenn aktiviert, zählt ein Programm ohne Veranstaltungsdatum erst dann zum Calling-Verlauf, wenn du ihm eines gibst. Duplizierte und empfangene Programme kommen ohne Datum an. Wenn deaktiviert, zählt ein Programm unabhängig davon, ob es ein Datum hat.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Calling-Verlauf für alle Caller erfassen';
 

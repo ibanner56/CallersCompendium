@@ -47,7 +47,9 @@ direction the list opens with, see
   Sync](./settings.md#device-sync) is on and a store is connected, and shows a
   spinner while a sync is running.
 - **Duplicate** a program from its row's **…** menu to reuse last month's shape
-  as a starting point.
+  as a starting point. The copy starts as a **Draft** with no performed marks,
+  no pay and no event date, so it doesn't put a second entry on last month's
+  date into your calling history. Give it the new date when you know it.
 - **Delete** a program from the same menu, or by swiping its row. An **Undo**
   option appears, and the program moves to **Recently deleted** (in the **More actions** menu in the
   **Programs** toolbar), where you can
@@ -465,6 +467,14 @@ every unperformed dance at once, use **Mark all performed** in the program
 editor or on a saved program's summary; it offers a one-tap **Undo**. Mark all
 performed skips alternates, and so does setting a program's status to
 **Performed**: mark the alternates you used yourself.
+
+A program with no event date counts too, by default. A duplicated program, or
+one another caller [sent you](./sharing.md#share-a-program-with-its-dances),
+arrives without a date. To keep undated programs out of calling history until
+you date them, turn on **Require an event date for calling history** in the
+same settings section. It applies everywhere history is read: the "called ×N"
+count, the **Called** filter, the dance's history list, the **Last called**
+sort, and the repeated-venues and half summaries.
 
 The same settings section can also limit calling history to programs you called
 yourself, and control the repeated-venues summary.

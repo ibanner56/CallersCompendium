@@ -10,6 +10,7 @@ import '../../data/matrix_collision_mode_scope.dart';
 import '../../data/program_auto_commit_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/require_event_date_for_history_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
 import '../../data/venue_call_count_scope.dart';
@@ -191,6 +192,14 @@ class _ProgramSectionState extends State<ProgramSection> {
     await persistSetting(repos.settings, kRequirePerformedForHistoryKey, value);
   }
 
+  Future<void> _onRequireEventDateForHistoryChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as "Require mark performed":
+    // every surface reading calling history follows the flip immediately.
+    RequireEventDateForHistoryScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kRequireEventDateForHistoryKey, value);
+  }
+
   Future<void> _onTrackHistoryForAllCallersChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: flip the live notifier so
     // every dependent (an open Collection list or dance-detail screen)
@@ -228,6 +237,8 @@ class _ProgramSectionState extends State<ProgramSection> {
       onAutoCommitChanged: _onAutoCommitChanged,
       requirePerformedForHistory: RequirePerformedForHistoryScope.of(context),
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
+      requireEventDateForHistory: RequireEventDateForHistoryScope.of(context),
+      onRequireEventDateForHistoryChanged: _onRequireEventDateForHistoryChanged,
       trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
       onTrackHistoryForAllCallersChanged: _onTrackHistoryForAllCallersChanged,
       venueCallCount: VenueCallCountScope.of(context),
@@ -257,6 +268,8 @@ class _ProgramView extends StatelessWidget {
     required this.onAutoCommitChanged,
     required this.requirePerformedForHistory,
     required this.onRequirePerformedForHistoryChanged,
+    required this.requireEventDateForHistory,
+    required this.onRequireEventDateForHistoryChanged,
     required this.trackHistoryForAllCallers,
     required this.onTrackHistoryForAllCallersChanged,
     required this.venueCallCount,
@@ -288,6 +301,8 @@ class _ProgramView extends StatelessWidget {
 
   final bool requirePerformedForHistory;
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
+  final bool requireEventDateForHistory;
+  final ValueChanged<bool> onRequireEventDateForHistoryChanged;
   final bool trackHistoryForAllCallers;
   final ValueChanged<bool> onTrackHistoryForAllCallersChanged;
   final int venueCallCount;
@@ -371,6 +386,16 @@ class _ProgramView extends StatelessWidget {
           title: Text(l10n.settingsGeneralRequirePerformedForHistoryTitle),
           subtitle: Text(
             l10n.settingsGeneralRequirePerformedForHistorySubtitle,
+          ),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-require-event-date-for-history'),
+          value: requireEventDateForHistory,
+          onChanged: onRequireEventDateForHistoryChanged,
+          title: Text(l10n.settingsGeneralRequireEventDateForHistoryTitle),
+          subtitle: Text(
+            l10n.settingsGeneralRequireEventDateForHistorySubtitle,
           ),
           isThreeLine: true,
         ),

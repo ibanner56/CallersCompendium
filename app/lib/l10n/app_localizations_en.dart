@@ -2917,6 +2917,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Require an event date for calling history';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Track calling history for all callers';
 

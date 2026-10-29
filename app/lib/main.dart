@@ -53,6 +53,7 @@ import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
+import 'src/data/require_event_date_for_history_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/default_program_caller_scope.dart';
 import 'src/data/track_history_for_all_callers_scope.dart';
@@ -100,6 +101,7 @@ import 'src/screens/settings_screen.dart'
         kMatrixExactBeatCollisionKey,
         kProgramDanceShareFieldsKey,
         kProgramMatrixColumnsKey,
+        kRequireEventDateForHistoryKey,
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
         kTrackHistoryForAllCallersKey,
@@ -511,6 +513,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     defaultValue: const <String>{},
     decode: CollectionFacetsScope.decodeStored,
     encode: CollectionFacetsScope.encode,
+  );
+  final _requireEventDateForHistoryNotifier = PreferenceNotifier<bool>(
+    key: kRequireEventDateForHistoryKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
   );
   final _trackHistoryForAllCallersNotifier = PreferenceNotifier<bool>(
     key: kTrackHistoryForAllCallersKey,
@@ -1057,6 +1065,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// settings key.)
   late final List<PreferenceNotifier<Object?>> _preferences = [
     _requirePerformedForHistoryNotifier,
+    _requireEventDateForHistoryNotifier,
     _trackHistoryForAllCallersNotifier,
     _defaultProgramCallerNotifier,
     _sortIgnoreArticlesNotifier,
@@ -1856,6 +1865,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
+    _requireEventDateForHistoryNotifier.dispose();
     _collectionTileFieldsNotifier.dispose();
     _danceShareFieldsNotifier.dispose();
     _collectionHiddenFacetsNotifier.dispose();
@@ -2422,6 +2432,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     (child) => ActiveDialectScope(notifier: _dialectNotifier, child: child),
     (child) => RequirePerformedForHistoryScope(
       notifier: _requirePerformedForHistoryNotifier,
+      child: child,
+    ),
+    (child) => RequireEventDateForHistoryScope(
+      notifier: _requireEventDateForHistoryNotifier,
       child: child,
     ),
     (child) => CollectionTileFieldsScope(

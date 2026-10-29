@@ -2965,6 +2965,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als ingeschakeld, toont de callerhistorie van een dans alleen programma’s waarvan het slot voor die dans als uitgevoerd is gemarkeerd. Als uitgeschakeld, verschijnt een programma zodra het de dans bevat.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Eventdatum vereisen voor callerhistorie';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Als ingeschakeld, telt een programma zonder eventdatum pas mee voor de callerhistorie als je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Callerhistorie voor alle callers bijhouden';
 

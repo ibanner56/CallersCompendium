@@ -2956,6 +2956,14 @@
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "x-sourceSha256": "1848996e206cb4e46920d0bbc3310cb92d75a955a7a5042e6c91c27de09f0d7d"
   },
+  "settingsGeneralRequireEventDateForHistoryTitle": "コーリング履歴にはイベント日が必要",
+  "@settingsGeneralRequireEventDateForHistoryTitle": {
+    "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
+  },
+  "settingsGeneralRequireEventDateForHistorySubtitle": "オンにすると、イベント日のないプログラムは、日付を設定するまでコーリング履歴に含まれません。複製したプログラムや受け取ったプログラムは日付なしで追加されます。オフにすると、日付の有無にかかわらずプログラムが含まれます。",
+  "@settingsGeneralRequireEventDateForHistorySubtitle": {
+    "x-sourceSha256": "8bfbd2c15d3c1f7cedf4be79c03362ef0ba2dd836f800f1e8591a777352889ca"
+  },
   "settingsGeneralTrackHistoryForAllCallersTitle": "すべてのコーラーのコーリング履歴を記録する",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
     "x-sourceSha256": "e2a17c48a924c46655d80157c23b97a219699dc1321f4afa460c2b3c56e3f72e"

@@ -2796,6 +2796,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、ダンスのコーリング履歴には、そのダンスのスロットが「実施済み」とマークされたプログラムのみが表示されます。オフにすると、ダンスを含むプログラムがすぐに表示されます。';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'コーリング履歴にはイベント日が必要';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'オンにすると、イベント日のないプログラムは、日付を設定するまでコーリング履歴に含まれません。複製したプログラムや受け取ったプログラムは日付なしで追加されます。オフにすると、日付の有無にかかわらずプログラムが含まれます。';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'すべてのコーラーのコーリング履歴を記録する';
 

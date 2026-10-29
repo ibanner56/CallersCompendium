@@ -193,6 +193,13 @@ details are handled when you export.
   [alternate](./glossary.md#alt) counts only once you mark that slot performed;
   **Mark all performed** and the **Performed** status skip alternates, so mark
   the ones you used yourself.
+- **Require an event date for calling history** (off) — when on, a program with
+  no event date counts nowhere calling history is read (the "called ×N" count,
+  the **Called** filter, a dance's history list, the **Last called** sort, and
+  the repeated-venues and half summaries) until you give it a date. Duplicated
+  programs and programs another caller sends you arrive without a date. When
+  off, a program counts whether or not it has a date. It applies on top of the
+  other calling-history settings (all must pass).
 - **Track calling history for all callers** (off) — when off *and* you've set a
   [default caller for new programs](#program-defaults), a dance's calling history
   and "called ×N" counts include only programs led by that caller (plus any

@@ -4549,6 +4549,18 @@ abstract class AppLocalizations {
   /// **'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
   String get settingsGeneralRequirePerformedForHistorySubtitle;
 
+  /// Title of the calling-history settings toggle that leaves programs with no event date out of calling history.
+  ///
+  /// In en, this message translates to:
+  /// **'Require an event date for calling history'**
+  String get settingsGeneralRequireEventDateForHistoryTitle;
+
+  /// Subtitle explaining the require-an-event-date calling history toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.'**
+  String get settingsGeneralRequireEventDateForHistorySubtitle;
+
   /// Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs).
   ///
   /// In en, this message translates to:

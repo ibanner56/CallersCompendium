@@ -308,6 +308,7 @@ final Map<String, DataClassification> settingsClassifications = {
         "arm's length is wrong on a laptop driving a projector, but it may "
         'travel in a user-controlled local backup.',
   ),
+  'require_event_date_for_history': _preference,
   'require_performed_for_history': _preference,
   'track_history_for_all_callers': _preference,
   'venue_call_count': _preference,

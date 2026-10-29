@@ -564,7 +564,8 @@ class Program {
   );
 
   /// Deep copy for "duplicate program": fresh ids everywhere, draft status,
-  /// performance history cleared. [newSlotId] mints an id per copied slot.
+  /// performance history and event date cleared. [newSlotId] mints an id per
+  /// copied slot.
   /// Provenance is dropped (the copy is the user's own record, not an import),
   /// mirroring [Dance.duplicate].
   Program duplicate({
@@ -575,7 +576,9 @@ class Program {
   }) => Program(
     id: newId,
     title: newTitle ?? title,
-    eventDate: eventDate,
+    // The event date is deliberately not copied, for the same reason as pay
+    // below: a duplicate is for a different event. Copying it would put a
+    // second calling-history entry on the original's date (LIFE-7).
     venue: venue,
     venueId: venueId,
     band: band,
