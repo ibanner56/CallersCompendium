@@ -53,9 +53,9 @@ sort by:
   same rules as the "called ×N" count: the
   [calling history settings](./settings.md#calling-history) decide which
   programs count, and an alternate counts only once marked performed. Each
-  dance is dated by when its slot was marked performed, else its program's event
-  date, else when the program was last changed. Dances you have not called come
-  last.
+  dance is dated by its program's event date, else when its slot was marked
+  performed, else when the program was last changed. Dances you have not called
+  come last.
 - **Best match** — how well each dance matches your words. This one is offered
   only for a short search — one or two characters — in **All fields**, with no
   **Filters**, **Advanced** or **By phrase** choices set. If Best match is
