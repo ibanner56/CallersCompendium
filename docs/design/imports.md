@@ -1357,7 +1357,14 @@ has to be judged in its own context.
 - **First-cut coverage (in):** swing (+balance/meltdown prefix), balance,
   balance the ring, do si do / see saw, shoulder round (+gypsy), box the gnat /
   swat the flea, allemande, circle, star, chain, long lines, right left
-  through, pass through, promenade, petronella. **Enriched for CallersBox
+  through, pass through, promenade, petronella. **Enriched for Caller's
+  Companion (#1975):** `ring balance` is balance the ring, and a ring balance
+  then a spin to the right (`Ring balance, spin to the right`, `balance the
+  ring and spin right`) is one petronella with `balance: true`; the words must
+  come in that order and the spin must be to the right. The stated balance is
+  kept even in a 4-beat line (only an unstated one is withheld, #1969). A note
+  that only names the figure's own move (`(petronella)`) is not a leftover for
+  free-text entry's note-tail demotion. **Enriched for CallersBox
   (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
   (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
   outside (→ down/up the hall `moving`), circulate (→ box circulate with the
@@ -1570,6 +1577,19 @@ has to be judged in its own context.
   CONTRADICTING a prose-stated side falls through with the PROSE value intact
   rather than declining to custom — forcing custom would regress a line that
   structures today.
+
+  **Hey starts (#1975):** besides `half hey, ladies start by the right`, the
+  shared `_heyStartBy` reads Caller's Companion's `Half Hey, Robins start right
+  shoulder(s)` (or `starts`) into `pass1`, `shoulder` and `length`; this
+  wording must state a length, since the half-hey default could contradict the
+  line's beats. Lengths are half (`1/2`)
+  and full, plus `1/4` → `lessThanHalf` and `3/4` → `betweenHalfAndFull`, as the
+  TCB pass-list decoder maps them. A leading `left/right diagonal` is `where`.
+  A trailing `<role> ricochet` sets a ricochet flag only on a half hey started
+  by a role: the flags count the same-role passes through the centre, so the
+  starting role's is `rico1` and the other role's `rico2` (maintainer
+  decision); any other ricochet keeps the line custom. A bracketed pass list,
+  which this reader does not decode, is the note.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on

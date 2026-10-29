@@ -1612,7 +1612,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
 /// What [resolveDeletedSlotDances] resolved for Perform's override parameters.
 class DeletedSlotDances {
-  const DeletedSlotDances({required this.dances, required this.authorNames});
+  const DeletedSlotDances({
+    required this.dances,
+    required this.authorNames,
+    this.lookupFailed = false,
+  });
 
   /// For [PerformProgramScreen.danceOverrides].
   final Map<String, Dance> dances;
@@ -1620,16 +1624,25 @@ class DeletedSlotDances {
   /// For [PerformProgramScreen.authorNameOverrides]: names of the authors of
   /// [dances], including choreographers that are soft-deleted themselves.
   final Map<String, String> authorNames;
+
+  /// Whether the dance read failed, so [dances] is empty because nothing was
+  /// read rather than because every id was purged.
+  final bool lookupFailed;
 }
 
-/// Soft-deleted dances behind [program]'s slots, keyed by id, with the names of
-/// their authors, for [PerformProgramScreen.danceOverrides] and
+/// Soft-deleted dances behind [slots], keyed by id, with the names of their
+/// authors, for [PerformProgramScreen.danceOverrides] and
 /// [PerformProgramScreen.authorNameOverrides]. [CollectionData] excludes
 /// deleted dances, so without this a slot whose dance sits in Recently deleted
 /// would lose its figures mid-program; and it excludes deleted choreographers,
 /// so a deleted dance's deleted author would lose their credit line. Ids
 /// already in [data] are not duplicated, and purged ids are absent from the
 /// result. Authors already named by [data] are left to it.
+///
+/// Every program surface that resolves a slot's dance uses this, so a trashed
+/// dance reads the same in Perform, the builder's slot list and matrix
+/// (GIG-11). The summary, which loads its dances by id rather than from
+/// [CollectionData], reads them with the same `includeDeleted` lookup.
 ///
 /// Never throws: Perform opened without this lookup before CS-06, and a caller
 /// mid-gig must still reach it. A failed dance read gives no overrides (the
@@ -1638,14 +1651,14 @@ class DeletedSlotDances {
 Future<DeletedSlotDances> resolveDeletedSlotDances(
   DanceRepository dances,
   ChoreographerRepository choreographers,
-  Program program,
+  Iterable<ProgramSlot> slots,
   CollectionData data,
 ) async {
   const source = 'perform_program_screen.resolveDeletedSlotDances';
   final resolved = <String, Dance>{};
   final attempted = <String>{};
   try {
-    for (final slot in program.slots) {
+    for (final slot in slots) {
       final id = slot.danceId;
       if (id == null || data.dancesById.containsKey(id)) continue;
       if (!attempted.add(id)) continue;
@@ -1658,7 +1671,11 @@ Future<DeletedSlotDances> resolveDeletedSlotDances(
     }
   } on Object catch (e, st) {
     logCaughtError(e, st, source: source);
-    return const DeletedSlotDances(dances: {}, authorNames: {});
+    return const DeletedSlotDances(
+      dances: {},
+      authorNames: {},
+      lookupFailed: true,
+    );
   }
   final authorNames = <String, String>{};
   final missingAuthors = {

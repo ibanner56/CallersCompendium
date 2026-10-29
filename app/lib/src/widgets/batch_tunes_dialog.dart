@@ -84,7 +84,7 @@ class _BatchTunesDialogState extends State<_BatchTunesDialog> {
                         trailing: IconButton(
                           key: ValueKey('batch-tunes-remove-$tune'),
                           tooltip: l10n.collectionBatchTunesRemove(tune),
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(Icons.remove_circle_outline),
                           onPressed: () => _removeTune(tune),
                         ),
                       ),

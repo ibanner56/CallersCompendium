@@ -1,0 +1,10 @@
+{
+  "id": "u12-notice-card",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Warnings and errors in the dance and program editors, the import review and the theme editor now share one flat notice style, and warnings use the same outlined warning icon throughout.",
+      "Buttons that take an item out of a list show a minus-circle icon, the bin is kept for deleting a record, and the copy button in the figure menu uses the outlined copy icon."
+    ]
+  }
+}

@@ -54,7 +54,7 @@ class ShorthandShadowWarning extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  Icons.warning_amber_rounded,
+                  Icons.warning_amber_outlined,
                   size: 20,
                   color: theme.colorScheme.tertiary,
                 ),
