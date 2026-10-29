@@ -27,5 +27,24 @@ void main() {
         greaterThanOrEqualTo(Wcag.aaText),
       );
     });
+
+    // The red-text variant (D-1) sits on the dialog surface, not on its own
+    // fill, so its contrast is error against that surface.
+    test('the red text button clears AA on the dialog surface ($name)', () {
+      final scheme = theme.colorScheme;
+      expect(
+        destructiveTextButtonStyle(
+          scheme,
+        ).foregroundColor!.resolve(<WidgetState>{}),
+        scheme.error,
+      );
+      expect(
+        Wcag.contrastRatio(
+          scheme.error,
+          theme.dialogTheme.backgroundColor ?? scheme.surfaceContainerHigh,
+        ),
+        greaterThanOrEqualTo(Wcag.aaText),
+      );
+    });
   }
 }

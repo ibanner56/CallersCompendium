@@ -1,14 +1,16 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'coalesce_trailing.dart';
 
 /// A resolved custom-field row for display: the definition's [label] paired
-/// with its already-formatted [value].
-typedef CustomFieldDisplay = ({String label, String value});
+/// with its stored [value], which the screen formats for the active language
+/// with [formatCustomFieldValue].
+typedef CustomFieldDisplay = ({String label, Object value});
 
 /// Fully-hydrated data for the dance detail screen (`docs/design/ux.md` §2):
-/// the [dance] plus the resolved author/tag names, formatted custom fields,
+/// the [dance] plus the resolved author/tag names, custom-field values,
 /// related-dance titles, cited sources, and the cross-reference
 /// [DanceTitleLinker] used to link mentions of other dances.
 ///
@@ -280,7 +282,7 @@ class DanceDetailData {
       customFields: [
         for (final value in dance.customFields)
           if (defsById[value.fieldId] case final def?)
-            (label: def.label, value: _formatFieldValue(value.value)),
+            (label: def.label, value: value.value),
       ],
       relatedDanceTitles: relatedDanceTitles,
       tombstonedRelatedDanceIds: tombstonedRelatedDanceIds,
@@ -290,8 +292,11 @@ class DanceDetailData {
   }
 }
 
-String _formatFieldValue(Object value) {
-  if (value is bool) return value ? 'Yes' : 'No';
+/// The text shown for a custom field's stored [value] on the dance detail
+/// screen: booleans read Yes/No in the app's language, anything else via
+/// `toString()`.
+String formatCustomFieldValue(AppLocalizations l10n, Object value) {
+  if (value is bool) return value ? l10n.commonYes : l10n.commonNo;
   return value.toString();
 }
 

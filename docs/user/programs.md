@@ -22,10 +22,12 @@ lay of the land first. To fill your library before you build a program, see
 Open **Programs** to see the programs you have built. It starts with a short
 prompt and a **New program** button until you make your first one.
 
-Each program in the list shows its title, event date, venue, slot count, and a
-status label (**Draft**, **Finalized**, or **Performed**). The slot count is
+Each program in the list shows its title, event date, venue, dance count, and a
+status label (**Draft**, **Finalized**, or **Performed**). The dance count is
 the number of dances the evening is planned for, so alternates and breaks are
-not counted. Use the sort button to order the list by **Title**, **Recently
+not counted; a free-text slot such as a waltz counts, because it stands in for
+a dance. The same count appears in the builder beside **Slots**, in the
+summary's **Set list** heading, and on the **Add to program** sheet. Use the sort button to order the list by **Title**, **Recently
 updated**, or **Event date**, and the arrow beside it to flip the direction. To choose which sort and
 direction the list opens with, see
 [Settings › Defaults](./settings.md#display-defaults).
@@ -223,6 +225,26 @@ To remove a slot, choose the **scissors** button on its row (its tooltip reads
 it move up, and the removal is announced to screen readers. Removing a slot from
 a program never deletes the dance from your collection.
 
+When you cut or move a dance that has alternates, its first alternate takes its
+place as the primary, and any other alternates stay with that one. They never
+become alternates of the slot above. Screen readers announce which alternate
+took its place.
+
+The builder numbers the dances the way the set list does: alternates show
+**ALT**, and a break has no number.
+
+### When a dance in a program is deleted
+
+A deleted dance stays in
+[Recently deleted](./collection.md#keep-your-collection-tidy) for a while, and
+every view of the program keeps showing it. Its slot shows the
+dance's title followed by "(deleted dance)" in the builder, the matrix and the
+summary, as in [Perform mode](./perform.md). Its figures stay in the matrix.
+The set list you print, copy or share shows the plain title, and **Share
+(program + dances)** includes the dance itself. Restore the dance from Recently
+deleted to use it normally again. Once the dance is gone for good, the slot
+keeps its title as text.
+
 ### Event details
 
 A program carries the details of its event:
@@ -303,7 +325,9 @@ Here is how to read it:
   To flag any repeat that lands in the same **named phrase** (A1, A2, B1, B2…),
   even when the beats themselves don't overlap, turn off **Flag exact beat
   overlap only** in [Settings › Program](./settings.md#programs).
-- **Show phrase labels** with the text-fields icon above the matrix. This
+- **Show phrase labels** with the text-fields button above the matrix (it shows
+  shapes while labels are off, and text fields with a highlight while they are
+  on). This
   replaces the markers with every phrase where that move starts, in order (A1,
   A2, B1, B2…). Compound columns and the column for free-text figures keep their
   markers; a column for one of your own figures shows phrase labels, and is
@@ -320,7 +344,9 @@ Here is how to read it:
   beside the PDF button — it is available only while something is hidden. The
   pinned **Formation** column cannot be hidden, since it is part of each dance's
   identity rather than a move.
-- **Hide alternate rows** with the alternate-route icon above the matrix. This
+- **Hide alternate rows** with the alternate-route button above the matrix (it
+  shows a forked route with a highlight while alternate rows are shown, and a
+  straight arrow while they are hidden). This
   is a view-only filter: it stays on while you switch tabs or resize the window,
   resets when you close the program, and does not change the saved program, the
   alert markers, or anything you print or export. It is separate from the

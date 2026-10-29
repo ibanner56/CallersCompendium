@@ -77,11 +77,14 @@ void main() {
     final result = await resolveDeletedSlotDances(
       _ThrowingDances(),
       repos.choreographers,
-      program,
+      program.slots,
       data,
     );
     expect(result.dances, isEmpty);
     expect(result.authorNames, isEmpty);
+    // Told apart from "every id was purged", so the builder keeps what it
+    // resolved before.
+    expect(result.lookupFailed, isTrue);
     expect(sink.sources, ['perform_program_screen.resolveDeletedSlotDances']);
   });
 
@@ -91,11 +94,12 @@ void main() {
       final result = await resolveDeletedSlotDances(
         _DeletedDance(),
         _ThrowingChoreographers(),
-        program,
+        program.slots,
         data,
       );
       expect(result.dances.keys, ['d1']);
       expect(result.authorNames, isEmpty);
+      expect(result.lookupFailed, isFalse);
       expect(sink.sources, ['perform_program_screen.resolveDeletedSlotDances']);
     },
   );

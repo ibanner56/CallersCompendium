@@ -7,6 +7,8 @@ import 'package:drift/native.dart' show NativeDatabase;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemChannels, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart' as sql;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/main.dart';
@@ -518,8 +520,10 @@ void main() {
       find.byKey(const ValueKey('bootstrap-copy-details')),
       findsOneWidget,
     );
-    // The type is shown; the message is withheld (#1469, CWE-209).
-    expect(find.textContaining('StateError'), findsOneWidget);
+    // Neither the type name nor the message is on the screen: the type is
+    // developer jargon, and it travels with Copy details (#1469, CWE-209).
+    expect(find.textContaining('StateError'), findsNothing);
+    expect(find.textContaining('Error:'), findsNothing);
     expect(find.textContaining('open failed'), findsNothing);
 
     // Copy details puts the type and stack on the clipboard, never the message
@@ -2077,6 +2081,68 @@ void main() {
       // This is not the generic failure path.
       expect(
         find.textContaining('Could not prepare the collection'),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'after Back Up + Reset saves the backup, the confirm button just says Reset',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final dir = Directory.systemTemp.createTempSync('below-floor-confirm');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+      final fixture = sql.sqlite3.open(dbFile.path)
+        ..execute('CREATE TABLE t (id INTEGER PRIMARY KEY)')
+        ..execute('PRAGMA user_version = 5');
+      fixture.close();
+
+      const error = DatabaseBelowFloorError(
+        fileVersion: 5,
+        minSupportedVersion: 11,
+        bridgeTag: 'v0.1.0-beta.6',
+      );
+      final appData = openTestAppData();
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          migrationPreflight: (_) async => throw error,
+          integrityCheck: () async => true,
+          databaseFileResolver: () async => dbFile,
+          databaseResetter: (_) async => const ResetComplete(),
+          appDataFactory: () => openTestAppData(),
+          windowServiceFactory: (settings) => NoopWindowService(settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The snapshot is real file I/O, which FakeAsync would never complete.
+      await tester.tap(find.text('Back Up + Reset'));
+      for (var i = 0; i < 20; i++) {
+        await tester.pump();
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        if (find.text('Reset app data?').evaluate().isNotEmpty) break;
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reset app data?'), findsOneWidget);
+      final dialog = find.byType(AlertDialog);
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.widgetWithText(FilledButton, 'Reset'),
+        ),
+        findsOneWidget,
+      );
+      // The backup is already done, so the confirm no longer repeats it.
+      expect(
+        find.descendant(of: dialog, matching: find.text('Back Up + Reset')),
         findsNothing,
       );
     },

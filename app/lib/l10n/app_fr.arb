@@ -80,10 +80,6 @@
   "@appBootstrapError": {
     "x-sourceSha256": "4c6db492b2ae5913888a1822b01dfe0ea7da9c0d85da2cb746e260b410f159c4"
   },
-  "appBootstrapErrorType": "Erreur : {errorType}",
-  "@appBootstrapErrorType": {
-    "x-sourceSha256": "fa82b1e0dcd1f6fd18ce1944824c75cfc31d6744e7d9a14026f29e2e478f919f"
-  },
   "appBootstrapCopyDetails": "Copier les détails",
   "@appBootstrapCopyDetails": {
     "x-sourceSha256": "ec7ee2826c849564576c1de2ff4bb666e39c191c746d2325d0ab110921491a96"
@@ -195,6 +191,10 @@
   "migrationBelowFloorResetConfirmBody": "Une sauvegarde a été enregistrée. La réinitialisation remplacera vos données actuelles par une base de données vierge.",
   "@migrationBelowFloorResetConfirmBody": {
     "x-sourceSha256": "380245670b11bff5a6dc169f52e1b22fda1a6cdc5ecc8efd7c69be982cd57f43"
+  },
+  "migrationBelowFloorResetConfirmAction": "Réinitialiser",
+  "@migrationBelowFloorResetConfirmAction": {
+    "x-sourceSha256": "daee7606b339f3c339076fe2c9f372a3ff40c8ee896005d829c7481b64ca5303"
   },
   "migrationBelowFloorBackupSavedAt": "Sauvegarde enregistrée dans : {backupPath}",
   "@migrationBelowFloorBackupSavedAt": {
@@ -404,9 +404,9 @@
   "@glossaryCustomRenameMine": {
     "x-sourceSha256": "92774acac46a395771b8567a51b62d7c7caaf01153e8fb950a2eff9cb729bb7e"
   },
-  "glossaryCustomSwitchToShipped": "Passer à celle de l'application",
+  "glossaryCustomSwitchToShipped": "Passer à la figure de l'application",
   "@glossaryCustomSwitchToShipped": {
-    "x-sourceSha256": "dc4bcea65689cb824ea7bbec5b0ee15145743c7b5ca807de1e3d1e4b84fbcd72"
+    "x-sourceSha256": "6147f09122fd06528ccfe760859e2fe55d76d26c2cd990183fc635e5c2ac94e7"
   },
   "userFigureSwitchTitle": "Passer à {name}",
   "@userFigureSwitchTitle": {
@@ -508,13 +508,13 @@
   "@settingsSyncEnableSubtitle": {
     "x-sourceSha256": "3982985012de05654896a7ea98ff8e886711ebe060bd24cc7562d07705b2992d"
   },
-  "settingsSyncWifiOnlyTitle": "Synchroniser uniquement en WiFi",
+  "settingsSyncWifiOnlyTitle": "Synchroniser uniquement en Wi-Fi",
   "@settingsSyncWifiOnlyTitle": {
-    "x-sourceSha256": "b4860c1a82e38e5b5c2a0214fd48858147978aa1c0bc433e65aa70897f942824"
+    "x-sourceSha256": "bdfe15672469bce9b4ed8de210cedac87b810f593737872e4eb19ec0155fa728"
   },
-  "settingsSyncWifiOnlySubtitle": "Activé par défaut. Avec les données mobiles, la synchronisation attend que vous soyez en WiFi.",
+  "settingsSyncWifiOnlySubtitle": "Activé par défaut. Avec les données mobiles, la synchronisation attend que vous soyez en Wi-Fi.",
   "@settingsSyncWifiOnlySubtitle": {
-    "x-sourceSha256": "281c955643110d523c1f0e6616ac917e4c1eb62c95d3c9f7fe25e6e875e6dc4c"
+    "x-sourceSha256": "0ef7e2c9df618b2a36c7fe9e2e4a62d8a119eb484532edf06dceb50202f4ccf5"
   },
   "settingsSyncExcludeImportsTitle": "Ignorer les danses importées inutilisées",
   "@settingsSyncExcludeImportsTitle": {
@@ -660,9 +660,9 @@
   "@settingsSyncQuotaNearlyFull": {
     "x-sourceSha256": "ee9eeab2d4546db0aff91e5d1a4ac537b1e9e94b19418e1797d5f6e318445d29"
   },
-  "settingsSyncQuotaExcludeImports": "Ne plus synchroniser les danses importées",
+  "settingsSyncQuotaExcludeImports": "Ignorer les danses importées inutilisées",
   "@settingsSyncQuotaExcludeImports": {
-    "x-sourceSha256": "57f9dc81543868c93b67c796229b979d9d5d2ed0e78ffacf318e6df67f043f0c"
+    "x-sourceSha256": "13a7925e9cdd2fc7f1329229f1ad3416bdd1f24f9edba254e9c3bd209e576ccb"
   },
   "settingsSyncNoticeNewerVersionItems": "Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir {items}.",
   "@settingsSyncNoticeNewerVersionItems": {
@@ -1280,9 +1280,9 @@
   "@settingsSyncWipeDetachFailedTitle": {
     "x-sourceSha256": "a1e6faaeb955586b38a8e45f33a2c7b866a4dcb781aa7b753901759684ba357f"
   },
-  "settingsSyncMeteredRouted": "Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage ci-dessous pour synchroniser maintenant.",
+  "settingsSyncMeteredRouted": "Vous utilisez les données mobiles et « Synchroniser uniquement en Wi-Fi » est activé. Désactivez ce réglage ci-dessous pour synchroniser maintenant.",
   "@settingsSyncMeteredRouted": {
-    "x-sourceSha256": "213bed8509f57aef35ba73781fca3267d5e5f7d16ef7b46f83b28c82ee833777"
+    "x-sourceSha256": "83a798e0960f1880344ee365f71ac3395e151c6302af1bfa6d0ec35464deaf77"
   },
   "settingsSyncOffline": "Pas de connexion pour le moment. La synchronisation aura lieu à la prochaine occasion.",
   "@settingsSyncOffline": {
@@ -1296,9 +1296,9 @@
   "@commonSyncNowTooltip": {
     "x-sourceSha256": "885e8f48bd70af10c21ee1046c5762dae06945145bf5c95885648e4ac308c0bf"
   },
-  "commonSyncMeteredBlocked": "Vous utilisez les données mobiles et « Synchroniser uniquement en WiFi » est activé. Désactivez ce réglage dans les Paramètres pour synchroniser maintenant.",
+  "commonSyncMeteredBlocked": "Vous utilisez les données mobiles et « Synchroniser uniquement en Wi-Fi » est activé. Désactivez ce réglage dans les Paramètres pour synchroniser maintenant.",
   "@commonSyncMeteredBlocked": {
-    "x-sourceSha256": "0c76efe0c32d396ac2dd46104a137f2943bb1ace796a7c11744db533ffb3d178"
+    "x-sourceSha256": "58892feca557fbd402da6e0e5a9b296ef98bd8f25852d66f29e32b1976923881"
   },
   "settingsSyncConnectTitle": "Connecter",
   "@settingsSyncConnectTitle": {
@@ -1460,9 +1460,9 @@
   "@settingsSyncPairingCompleteFailed": {
     "x-sourceSha256": "1abc3b5435e39c84d478f9ab0395745767d18473438a089c378be1ca21083163"
   },
-  "settingsSyncPairingCompleteMetered": "Votre bibliothèque est connectée. La première synchronisation attend le WiFi, car « Synchroniser uniquement en WiFi » est activé.",
+  "settingsSyncPairingCompleteMetered": "Votre bibliothèque est connectée. La première synchronisation attend le Wi-Fi, car « Synchroniser uniquement en Wi-Fi » est activé.",
   "@settingsSyncPairingCompleteMetered": {
-    "x-sourceSha256": "d6a175eb28ce65a72ad075ed71f53cfdea9b5d9bdff3b91f84fa74a826490d31"
+    "x-sourceSha256": "cefd471a86d08c40b9c776ae0db7fdcb3263a41c150d6ceb33481ca1f3b53e2c"
   },
   "settingsSyncPairingCompleteOffline": "Votre bibliothèque est connectée. La première synchronisation aura lieu dès que vous serez de nouveau en ligne.",
   "@settingsSyncPairingCompleteOffline": {
@@ -1732,9 +1732,9 @@
   "@settingsUpdatesVerifyingTitle": {
     "x-sourceSha256": "73d7eb8822057077006a45735ad403bf122f894cf1222c13046b8fdc84137601"
   },
-  "settingsUpdatesVerifyingSubtitle": "Vérification de l’intégrité sha256 du téléchargement…",
+  "settingsUpdatesVerifyingSubtitle": "Vérification que le téléchargement est complet et intact…",
   "@settingsUpdatesVerifyingSubtitle": {
-    "x-sourceSha256": "98baa9abb59fcf0128e5c66532dfe9799ff602c09ff33227f2d8a16f09c007ee"
+    "x-sourceSha256": "92e98c8042b7c4070645871bb15ed00c8551013e2b46fcba7521dddeaf371b25"
   },
   "settingsUpdatesHandoffTitle": "Préparation du programme d’installation",
   "@settingsUpdatesHandoffTitle": {
@@ -2006,7 +2006,7 @@
   },
   "appThemeDescriptionCutiePro": "Pastel sombre ultra mignon, dominante rose",
   "@appThemeDescriptionCutiePro": {
-    "x-sourceSha256": "061d6ce8faa75b2d5c38cc20c632c5d33e8fe15a8fab401e1e1eec08a8a719a3"
+    "x-sourceSha256": "9bfa109c980213572f8c068bb63446e88be7a0da796d57b32fa08764b10bb548"
   },
   "appThemeDescriptionPinkAsHeck": "Rose vif sans complexe sur fond baie",
   "@appThemeDescriptionPinkAsHeck": {
@@ -2544,9 +2544,9 @@
   "@settingsDefaultsFreeTextEntryTitle": {
     "x-sourceSha256": "bbb4d246761e2b71f24e54ea73f6b4ce05eba3a244080456a1546573b669b9d1"
   },
-  "settingsDefaultsFreeTextEntrySubtitle": "Activé : l’ajout d’une nouvelle figure vous permet de la saisir sur une seule ligne (ex. « neighbor balance & swing ») au lieu de la construire champ par champ, et une ligne saisie dans le mouvement d’une figure existante la remplace lorsque vous appuyez sur Entrée. La ligne est analysée en figure(s) ; tout ce qui n’est pas reconnu est conservé comme figure personnalisée à corriger ultérieurement. Les nouvelles danses commencent sans figures, sauf si vous avez enregistré des figures de départ.",
+  "settingsDefaultsFreeTextEntrySubtitle": "Activé : l’ajout d’une nouvelle figure vous permet de la saisir sur une seule ligne (ex. « neighbor balance & swing ») au lieu de la construire champ par champ, et une ligne saisie dans le mouvement d’une figure existante la remplace lorsque vous appuyez sur Entrée. La ligne est transformée en figures ; tout ce qui n’est pas reconnu est conservé comme figure personnalisée à corriger ultérieurement. Les nouvelles danses commencent sans figures, sauf si vous avez enregistré des figures de départ.",
   "@settingsDefaultsFreeTextEntrySubtitle": {
-    "x-sourceSha256": "54175784a5f3ac5d3c2e680de7e1395f1f77dee0d71595359d6c9a096078ee70"
+    "x-sourceSha256": "7ce45913e600a61a763026ceb578ca9bae732dd38cf98eb5085d0255fe6eb049"
   },
   "settingsDefaultsAggressiveBeatsUpdateTitle": "Recalculer agressivement les temps de la figure",
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
@@ -3092,9 +3092,9 @@
   "@syncReviewEmpty": {
     "x-sourceSha256": "4832be6fe93f4bc3ef78e59480b67e620112a8fca34cd96e5e4a954f4b8f6db9"
   },
-  "syncReviewIntro": "Ces éléments nécessitent une décision avant l’application de la modification du pair.",
+  "syncReviewIntro": "Ces éléments nécessitent une décision avant qu’une modification venant d’un autre appareil puisse être appliquée.",
   "@syncReviewIntro": {
-    "x-sourceSha256": "e98bdbc672a6a7f21b51bcec4ebb6f89761dba6affc0c6a33afc16a8f7db065a"
+    "x-sourceSha256": "a2adac756b32d3c7da3cff1ff3d817b312c2ae2f2f9329160217e6d92263227f"
   },
   "syncReviewLoadFailed": "Impossible de charger les décisions de synchronisation.",
   "@syncReviewLoadFailed": {
@@ -3156,17 +3156,17 @@
   "@syncConflictFigureNoteTitle": {
     "x-sourceSha256": "57808c2e61dfdc04f48d7e10a927ab545ca45e9abffcab7f5706090f807eea66"
   },
-  "syncReviewLocalRecord": "Élément local : {id}",
+  "syncReviewLocalRecord": "Sur cet appareil : {id}",
   "@syncReviewLocalRecord": {
-    "x-sourceSha256": "487c85b7e0023045582a0a723cdcfa96169b944fb4b33f311b167ec57e2b9731"
+    "x-sourceSha256": "99f1aabaf2cac51acf96135ee6d8f075347884506b727e4708370350762f4620"
   },
-  "syncReviewPeerRecord": "Élément du pair : {identity}",
+  "syncReviewPeerRecord": "Depuis l’autre appareil : {identity}",
   "@syncReviewPeerRecord": {
-    "x-sourceSha256": "ab724df1f6a66da1e8ceebf61123a2a38f96452ade782477eaec06248d6983cd"
+    "x-sourceSha256": "fa68df1b2e83e087d26a97039cf2f7ca9f0d6b3deeee55c41a268b683d29da55"
   },
-  "syncReviewTombstoneReason": "Un pair a supprimé un élément correspondant créé sur cet appareil.",
+  "syncReviewTombstoneReason": "Un autre appareil a supprimé un élément correspondant créé sur cet appareil.",
   "@syncReviewTombstoneReason": {
-    "x-sourceSha256": "ac87524ab23e20de4fcf3ac40762448894682b47a7857256547cd309e9bd33be"
+    "x-sourceSha256": "c4b0272effc8c2e4334c65ffa0b2c6647fc82cd1e93b4a8bac667bf8d681ce3a"
   },
   "syncReviewDanceAmbiguityReason": "Les danses actives portent le même titre, mais ont une chorégraphie différente.",
   "@syncReviewDanceAmbiguityReason": {
@@ -3192,9 +3192,9 @@
   "@syncReviewUnsupportedReason": {
     "x-sourceSha256": "ff23640ff27c44ed369dfadd363b690079e5b87a56f3aac19f9bec8c5bdbf2e3"
   },
-  "syncReviewUnsupportedAction": "Conservez cet élément jusqu’à ce qu’une synchronisation ultérieure ou un flux de vérification pris en charge puisse le traiter.",
+  "syncReviewUnsupportedAction": "Conservez cet élément pour l’instant ; une synchronisation ultérieure ou une mise à jour de l’app pourra peut-être le traiter.",
   "@syncReviewUnsupportedAction": {
-    "x-sourceSha256": "e6a39ae290b341186aadb8951b93035876c95fcc7f0cb0148fd3805dd886158c"
+    "x-sourceSha256": "229410af63847eec83b5f8a39502627aae733172cf333e8c8dd56de43b6cc84a"
   },
   "syncReviewMergeAction": "Fusionner",
   "@syncReviewMergeAction": {
@@ -3220,21 +3220,21 @@
   "@syncReviewNameNotDistinct": {
     "x-sourceSha256": "4f06af701050ef15f0a8f0c291a53772ed3da3651d7d8c9d602e10440f61e9e1"
   },
-  "syncReviewCandidateInvalid": "La modification enregistrée du pair n’est pas valide ; elle a donc été conservée.",
+  "syncReviewCandidateInvalid": "La modification enregistrée depuis un autre appareil n’est pas valide ; elle a donc été conservée.",
   "@syncReviewCandidateInvalid": {
-    "x-sourceSha256": "4f98277ea00e74a6b0f8a29f4394825ffbd8693b709cfc64aaa9759e113b1b38"
+    "x-sourceSha256": "7b1f08d72749ed066eb084a5f23950d164f29b35be4a19a2c3afd69f1ade917d"
   },
-  "syncReviewCandidateChanged": "La modification enregistrée du pair n’est plus actuelle ; elle a donc été conservée.",
+  "syncReviewCandidateChanged": "La modification enregistrée depuis un autre appareil n’est plus actuelle ; elle a donc été conservée.",
   "@syncReviewCandidateChanged": {
-    "x-sourceSha256": "8c3228746fa3583107e0e7f636c6e4780034c36336afed564437f8556117b715"
+    "x-sourceSha256": "ade54d15c00809365c0b41f37d0e5b7f19da8de4692e393c71f443358f0757e7"
   },
   "syncReviewTargetMissing": "L’élément local n’est plus disponible ; la décision a été conservée.",
   "@syncReviewTargetMissing": {
     "x-sourceSha256": "fb096aaa02c9d5faee68bfe176228795da1edcdd01516d9eacaa5f26e41a6b5e"
   },
-  "syncReviewCandidateAlreadyPresent": "L’élément du pair est déjà présent ; la décision a été conservée.",
+  "syncReviewCandidateAlreadyPresent": "L’élément de l’autre appareil est déjà présent ; la décision a été conservée.",
   "@syncReviewCandidateAlreadyPresent": {
-    "x-sourceSha256": "bba646806a3431dcd23e81c94983ccdc672cdacb2f23b620c8857c56a243ee89"
+    "x-sourceSha256": "a4094f1504a97d0c8dd5ae02e8f42e3001bdee21629bfcb7037a22a1ec81431f"
   },
   "settingsGeneralImportHeader": "Importation",
   "@settingsGeneralImportHeader": {
@@ -3252,9 +3252,9 @@
   "@settingsGeneralReparseCustomFiguresTitle": {
     "x-sourceSha256": "052ae8077a73f730509348bee8e4afc3e09ecb9e0e8beb3ece772196f84ecd32"
   },
-  "settingsGeneralReparseCustomFiguresSubtitle": "Réanalysez les danses importées dont les figures ont été conservées comme personnalisées uniquement parce qu’elles ne pouvaient pas être reconnues à l’importation. L’analyse améliorée les met à jour sur place — vos tags, évaluations et notes sont préservés. Vous prévisualisez et confirmez avant tout changement.",
+  "settingsGeneralReparseCustomFiguresSubtitle": "Revérifiez les danses importées dont les figures ont été conservées comme personnalisées uniquement parce qu’elles ne pouvaient pas être reconnues à l’importation. Si l’app peut désormais les reconnaître, elles sont mises à jour sur place — vos tags, évaluations et notes sont préservés. Vous prévisualisez et confirmez avant tout changement.",
   "@settingsGeneralReparseCustomFiguresSubtitle": {
-    "x-sourceSha256": "7fde44671f1d04a8cddbfbdce404575b4063bdacba501db3c27c7d5f9e0ce2f2"
+    "x-sourceSha256": "8ff47617c05225d7e59c29f793dc40ca7b7329619f4c689b8e2d0dc263a94f85"
   },
   "settingsGeneralReparseCustomFiguresAction": "Revérifier…",
   "@settingsGeneralReparseCustomFiguresAction": {
@@ -3776,17 +3776,17 @@
   "@commonDeletedSnack": {
     "x-sourceSha256": "5f38a45b4a00f67a9d235d7065a8b3d2ecda59f0802d76dccfd504692fc36adb"
   },
-  "importGapMessage": "Impossible d’analyser cet appel — conservé tel quel comme figure personnalisée.",
+  "importGapMessage": "Impossible de reconnaître cet appel — conservé tel quel comme figure personnalisée.",
   "@importGapMessage": {
-    "x-sourceSha256": "0134e49655e2eae8b41af97a7fbf8d7a9c82bc443a2a2083853ddc0552c169d6"
+    "x-sourceSha256": "9ac30a70ce39e36e7d06a5f6c2e0458069641059481bb1dcf1af2bbc524397bc"
   },
   "importGapDialogTitle": "Figure non reconnue",
   "@importGapDialogTitle": {
     "x-sourceSha256": "40c9fa51157047c4c812c3343c465ecf0e0d770b363875750dcf9f3af3b18f5e"
   },
-  "importGapSemanticLabel": "Figure non reconnue. Impossible d’analyser cet appel — conservé tel quel comme figure personnalisée.",
+  "importGapSemanticLabel": "Figure non reconnue. Conservée telle quelle comme figure personnalisée.",
   "@importGapSemanticLabel": {
-    "x-sourceSha256": "c5d62a0cb1d9141a211e0d2d0290bb22babf97b52f086ddf1b52f8687785dd72"
+    "x-sourceSha256": "b1ae4592423c0f129194da94e9f1239db9b9fc98d0c576dee3b7bc574dc8df78"
   },
   "collectionScreenTitle": "Collection",
   "@collectionScreenTitle": {
@@ -4836,9 +4836,9 @@
   "@programsMarkAllPerformedTooltip": {
     "x-sourceSha256": "384c666be328ca6375f010475f1589a3238c0507f4043a54104ed3f412105da2"
   },
-  "programsSaveDirty": "Enregistrer *",
+  "programsSaveDirty": "Enregistrer les modifications",
   "@programsSaveDirty": {
-    "x-sourceSha256": "cb026f22a61296467e1a4d6336348e1181b2cfa291248bd53fa9325ea6ca43cb"
+    "x-sourceSha256": "dd0ae7a5cbcf233968657563dce34639e681861e2df6d3f845c08d49981c0999"
   },
   "commonSave": "Enregistrer",
   "@commonSave": {
@@ -5102,9 +5102,9 @@
   "@programsSummaryPay": {
     "x-sourceSha256": "edb750f88d3e102e12c717b828d27067d77e472f20bd2854687d637c09d4df1d"
   },
-  "programsSetListHeader": "Liste de sets ({count})",
+  "programsSetListHeader": "Liste de sets ({count, plural, =1{1 danse} other{{count} danses}})",
   "@programsSetListHeader": {
-    "x-sourceSha256": "454f8099ebe3e022a0dca4d7cfa7950af044b0756f6c41a4adda530de848b750"
+    "x-sourceSha256": "2bdbaeaf4dad5019b3e017aae262fab73e2b630c3e675a2e8fcf0beb5daf11e8"
   },
   "programsSummaryEmptySetList": "Aucun créneau pour l’instant — ouvrez le constructeur pour ajouter des danses.",
   "@programsSummaryEmptySetList": {
@@ -5138,9 +5138,9 @@
   "@programsPerformed": {
     "x-sourceSha256": "ea15100e35349e59fe49158944d163a3b870118a2a893a797ff3a05bb806b388"
   },
-  "programsSlotCount": "{count, plural, =1{1 créneau} other{{count} créneaux}}",
-  "@programsSlotCount": {
-    "x-sourceSha256": "caa898d6da7283b1c6390e2d3c4bc26411578269d37aff2208672d7bc25efc30"
+  "programsDanceCount": "{count, plural, =1{1 danse} other{{count} danses}}",
+  "@programsDanceCount": {
+    "x-sourceSha256": "494f9853fc3774e0f786711a47fd9eadd58c8bb7368cc1b789ad71cb16de9db3"
   },
   "programsSlotNoteFallback": "Note",
   "@programsSlotNoteFallback": {
@@ -5209,6 +5209,10 @@
   "programsRemovedSlot": "« {name} » supprimé.",
   "@programsRemovedSlot": {
     "x-sourceSha256": "a1a2461156e4b83d78d6616d10f71ef9e3d805dc96b8195dbc44c696b948e279"
+  },
+  "programsAlternatePromoted": "{name} prend sa place.",
+  "@programsAlternatePromoted": {
+    "x-sourceSha256": "8fd3844581800cadbfd3ddf3f0fdbd84728d04cc2c71dbb276f6573a3c95ace1"
   },
   "programsAltOrdinal": "ALT",
   "@programsAltOrdinal": {
@@ -6158,9 +6162,9 @@
   "@onlineImportAlreadyInCollection": {
     "x-sourceSha256": "1f09833ffab5f1b87829b3eddd2c3c82d5e5bfb6a71e01d6f29831d749d221f6"
   },
-  "onlineImportVariationDialogBody": "Le titre et le caller de cette danse correspondent à « {existingTitle} », mais ses figures sont différentes. Comment voulez-vous l’importer ?",
+  "onlineImportVariationDialogBody": "Le titre et l’auteur de cette danse correspondent à « {existingTitle} », mais ses figures sont différentes. Comment voulez-vous l’importer ?",
   "@onlineImportVariationDialogBody": {
-    "x-sourceSha256": "3bd5cfc781512dc8e1f1e3b94ccd060e5b01b6319b1215ed81b21d898a2c5d54"
+    "x-sourceSha256": "5ef033841d0f53a2e975dbc01478c2ca04f2fa4ea20427bf735f2430a80c618c"
   },
   "onlineImportVariationDialogActionVariation": "Importer comme variante",
   "@onlineImportVariationDialogActionVariation": {
@@ -6469,6 +6473,26 @@
   "importSourceLabelGenericJson": "un fichier JSON Caller's Compendium",
   "@importSourceLabelGenericJson": {
     "x-sourceSha256": "2d9615d6f7f00d0fdc7600750bfde9f4da7d401efbf9fed603fe8937eb75354b"
+  },
+  "fileDialogTypeBackupJson": "Sauvegarde (JSON)",
+  "@fileDialogTypeBackupJson": {
+    "x-sourceSha256": "2f5598fc207db690a1ab59dab1e9200dcbfc975762c4e02d61724bb848db5308"
+  },
+  "fileDialogTypeCompendiumShare": "Fichier de partage Compendium",
+  "@fileDialogTypeCompendiumShare": {
+    "x-sourceSha256": "329b4fa51e491e433856a73f529749c1c540fd4712ab8b983012036ae35c2584"
+  },
+  "fileDialogTypeCompanionUsr": "Caller’s Companion .USR",
+  "@fileDialogTypeCompanionUsr": {
+    "x-sourceSha256": "b2ce336e9fe2cae14103c5a112ba0b9e0779fde39bbef3608debdc9a484ca7f7"
+  },
+  "fileDialogTypeDiagnosticsLog": "Journal de diagnostic",
+  "@fileDialogTypeDiagnosticsLog": {
+    "x-sourceSha256": "b360224c51bbe0794b72d16f15a777cf23c2ee71a7978f68f81b4173411d7ecf"
+  },
+  "fileDialogTypeMacosUpdate": "Mise à jour de Caller’s Compendium",
+  "@fileDialogTypeMacosUpdate": {
+    "x-sourceSha256": "d102e2c62eb82c1d9834753a6a16aceda0e147365178ce73a0fbb9a8ef588383"
   },
   "importSourceLabelCallersBox": "The Caller's Box",
   "@importSourceLabelCallersBox": {
@@ -6890,9 +6914,9 @@
   "@importIssueProgressionUnmapped": {
     "x-sourceSha256": "40834a5e2b73f34b6b3870a196161f410e14fc97442679b84f31bbb4e5c8449f"
   },
-  "importIssueMetadataOnlyStub": "Cette danse n'est disponible que sous forme de métadonnées (aucune figure) ; importée comme ébauche.",
+  "importIssueMetadataOnlyStub": "Seules les informations de la danse étaient disponibles (aucune figure) ; elle a donc été importée sans figures.",
   "@importIssueMetadataOnlyStub": {
-    "x-sourceSha256": "e9a49326cf50922d78d2672c94bd14a9b1c86ff4df667b37b9374a702a50933e"
+    "x-sourceSha256": "5a60316081b41b8afcdd70d18ae8a9e14d103f49ecffd272391c429b6a80c852"
   },
   "importIssueDateAssumedMdy": "Une date {field} ambiguë a été lue comme mois/jour (ordre américain) ; vérifiez-la si la source utilisait l'ordre jour d'abord.",
   "@importIssueDateAssumedMdy": {
@@ -6954,9 +6978,9 @@
   "@importIssueBeatsUnreadable": {
     "x-sourceSha256": "e0de3c1018f463211f526a6983043b4981125d87afd95fd4d17e4d1cf4686994"
   },
-  "importIssueNoFiguresTable": "La page n'avait aucune figure ; importée comme ébauche de métadonnées uniquement.",
+  "importIssueNoFiguresTable": "La page ne contenait aucune figure ; la danse a donc été importée sans figures.",
   "@importIssueNoFiguresTable": {
-    "x-sourceSha256": "f7d5d45c49d428d1d2b919400e2b3a297839ad3422e8873b8d8abfe8cc848b84"
+    "x-sourceSha256": "a7815aeb7d7e1a5b6f259d9eba54183440572ba343a6a37c28c340b4cd044181"
   },
   "importIssueMoveFallback": "Une figure n'a pas pu être associée à un mouvement connu ; importée comme personnalisée.",
   "@importIssueMoveFallback": {
@@ -6966,17 +6990,17 @@
   "@importIssueMoveFallbackAt": {
     "x-sourceSha256": "7e6391496a76c69c17c4c1576bad0976795e4811f9daa374451fea369ccada1a"
   },
-  "importIssueParamUnmapped": "Un paramètre de figure n'a pas pu être associé ; une valeur par défaut de la taxonomie a été utilisée.",
+  "importIssueParamUnmapped": "Un réglage d’une figure n’a pas pu être associé ; la valeur par défaut a donc été utilisée.",
   "@importIssueParamUnmapped": {
-    "x-sourceSha256": "b602ecdd7bb918a7412c6f7c9397e54d8c26785c5e05e44dd8823410e86f95c3"
+    "x-sourceSha256": "b398473e8da9cab8575d3da62b3d528d53ff54f483282d930801f1f7fccbd080"
   },
-  "importIssueParamValueUnmapped": "Le paramètre {param} n'a pas pu être converti ; une valeur par défaut de la taxonomie a été utilisée.",
+  "importIssueParamValueUnmapped": "Le réglage {param} n’a pas pu être converti ; la valeur par défaut a donc été utilisée.",
   "@importIssueParamValueUnmapped": {
-    "x-sourceSha256": "78219e33fc0a45500f8046bfd3da35e7999cf16a1f1a568ff6d54b882021b1e2"
+    "x-sourceSha256": "e605364bf7746bafc71324823cbd56bd4f0399f41aa84be353aba2b28cdb8bd2"
   },
-  "importIssueParamCountUnmapped": "Une figure avait {provided} valeurs de paramètre mais seulement {mapped} sont associées ; les valeurs en trop ont été ignorées.",
+  "importIssueParamCountUnmapped": "Une figure avait {provided} réglages mais seulement {mapped} ont pu être associés ; les réglages en trop ont été ignorés.",
   "@importIssueParamCountUnmapped": {
-    "x-sourceSha256": "63934d114778fe3c2da62daefd2f17caffd6360fc72dd4dea859e21d7945fac1"
+    "x-sourceSha256": "b6d47b54100bc64b2bb2182934c8129f87e04b6d65577847e20813147c6780cc"
   },
   "importIssueRelatedDanceUnresolved": "Un lien vers une danse associée pointait vers une danse non importée ; le lien a été ignoré.",
   "@importIssueRelatedDanceUnresolved": {
@@ -7242,21 +7266,21 @@
   "@importReviewProgramsUpdated": {
     "x-sourceSha256": "d276d2253d5c3596bcd2d40ae1952182fdb05658e37d7b7d0bcfa067132c8e9e"
   },
-  "importReviewProgramNotes": "{count, plural, =1{{count} note(s) de programme :} other{{count} note(s) de programme :}}",
+  "importReviewProgramNotes": "{count, plural, =1{{count} note de programme :} other{{count} notes de programme :}}",
   "@importReviewProgramNotes": {
-    "x-sourceSha256": "07c7e17959f23f779d1edb246f618b91ffd73b304673c024cda04b007aeb9193"
+    "x-sourceSha256": "f0d200093b45fbc3d9ec78cdcca8ee9337de0ccabec50527c532c3f2f3f6673b"
   },
   "importReviewNotes": "{count, plural, =1{1 remarque :} other{{count} remarques :}}",
   "@importReviewNotes": {
     "x-sourceSha256": "024bca658e563e09d66070ddee25f4c452159aaef5acb22a0028f6d85accd77e"
   },
-  "importReviewRecordsFailed": "{count, plural, =1{{count} enregistrement(s) n’a pas pu être importé :} other{{count} enregistrement(s) n’ont pas pu être importés :}}",
+  "importReviewRecordsFailed": "{count, plural, =1{{count} enregistrement n’a pas pu être importé :} other{{count} enregistrements n’ont pas pu être importés :}}",
   "@importReviewRecordsFailed": {
-    "x-sourceSha256": "92822bd09ebe18f9df1ee2c0371b4345b385ef08cc6e31ddd717fd2157a31db5"
+    "x-sourceSha256": "77e664c3a3baa24416c98c7367788f331590945ef9bd6bbfccdf741fd9bae6a9"
   },
-  "importReviewBatchErrors": "{count, plural, =1{{count} enregistrement(s) n’a pas pu être lu (les autres peuvent toujours être importés) :} other{{count} enregistrement(s) n’ont pas pu être lus (les autres peuvent toujours être importés) :}}",
+  "importReviewBatchErrors": "{count, plural, =1{{count} enregistrement n’a pas pu être lu (les autres peuvent toujours être importés) :} other{{count} enregistrements n’ont pas pu être lus (les autres peuvent toujours être importés) :}}",
   "@importReviewBatchErrors": {
-    "x-sourceSha256": "2375fad155b66aec44a72ba49aecc579c6edf3254dbec81e56935d65c779dff7"
+    "x-sourceSha256": "7367256a7ffed72e18be3e39fccfecee5b4979920de0765e43181fa65f9d87b7"
   },
   "importReviewUntitledProgram": "Programme sans titre",
   "@importReviewUntitledProgram": {
@@ -7298,9 +7322,9 @@
   "@importReviewVariationTitle": {
     "x-sourceSha256": "0b9ceabc623a8abffd9c3fbd508493c3c34e693c60857a3275a296823a7a3709"
   },
-  "importReviewVariationBody": "Le titre et le caller de cette danse correspondent à « {title} », mais les figures sont différentes. Consultez les différences, puis choisissez comment l'importer.",
+  "importReviewVariationBody": "Le titre et l'auteur de cette danse correspondent à « {title} », mais les figures sont différentes. Consultez les différences, puis choisissez comment l'importer.",
   "@importReviewVariationBody": {
-    "x-sourceSha256": "24f2f26df00a016af7ffd3250483ef9003648b7e3003584081a85a71e59eb71d"
+    "x-sourceSha256": "a3e53911450c13e7fdafc93bc37575569c6f6a9d79e95f5e97efc7d87da19fe6"
   },
   "importReviewOptionVariation": "Importer comme variante de « {title} »",
   "@importReviewOptionVariation": {
@@ -7366,9 +7390,9 @@
   "@danceEditorFiguresSection": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
   },
-  "danceEditorFiguresHelp": "Saisissez un mouvement (ex. « sw » → swing) et appuyez sur Entrée pour l’ajouter avec les paramètres par défaut ; le texte non reconnu devient une figure personnalisée.",
+  "danceEditorFiguresHelp": "Saisissez un mouvement (ex. « sw » → swing) et appuyez sur Entrée pour l’ajouter avec les valeurs par défaut ; le texte non reconnu devient une figure personnalisée.",
   "@danceEditorFiguresHelp": {
-    "x-sourceSha256": "5f0ace86fd77201b34845a80d2db45bb43497ae3037fdebaccaae155ff4338c6"
+    "x-sourceSha256": "a4ceded2bbfa7d94335041140b892ba5e6417810570d1eaa458ff753fd0b0670"
   },
   "danceEditorFiguresHelpFreeText": "Ajoutez une figure en saisissant une ligne entière (ex. « neighbor balance & swing ») puis en appuyant sur Entrée. Une ligne saisie dans le mouvement d’une figure existante remplace cette figure. Tout ce qui n’est pas reconnu devient une figure personnalisée.",
   "@danceEditorFiguresHelpFreeText": {
@@ -8338,9 +8362,9 @@
   "@danceEditorCustomFigureTextLabel": {
     "x-sourceSha256": "5016aedf1a0dd0bda23360d885df4bd1c46e9991b7c3cb6dfb7e7de07f96f41c"
   },
-  "danceEditorLingoStylingHelper": "Noms de mouvements soulignés en pointillés, termes de rôles soulignés, termes déconseillés barrés",
+  "danceEditorLingoStylingHelper": "Les noms de mouvements sont soulignés en pointillés, les termes de rôles soulignés et les termes déconseillés barrés",
   "@danceEditorLingoStylingHelper": {
-    "x-sourceSha256": "176860e62cc380017c1d3d3727291725955ead408a41054fd071edf745c2fdaf"
+    "x-sourceSha256": "dad9477c721781411e575d8ab7388d8d97b37402d9399db55fad5096e3c992ca"
   },
   "danceEditorBeatTotal": "Total : {total} / {expected} temps",
   "@danceEditorBeatTotal": {
@@ -8458,9 +8482,9 @@
   "@updateDownloadFailureUnwritable": {
     "x-sourceSha256": "69d9b3ec764ae6d45e0a00b084db3375138a8f12a58130d9903fdc98f8f32289"
   },
-  "updateDownloadFailureChecksumMismatch": "La mise à jour téléchargée a échoué à la vérification de sécurité (sha256) et a été supprimée. Réessayez ou utilisez « Voir la version » pour la télécharger manuellement.",
+  "updateDownloadFailureChecksumMismatch": "La mise à jour téléchargée a échoué à la vérification de sécurité et a été supprimée. Réessayez ou utilisez « Voir la version » pour la télécharger manuellement.",
   "@updateDownloadFailureChecksumMismatch": {
-    "x-sourceSha256": "9b45db38ce784fbb8fe3c676b1a9f3f344ef746368f97db1c8ac5f1201b43ea7"
+    "x-sourceSha256": "fd5ee9a51a1cfa972b2e7d7d4639983d9c280f09e012ad3228186c819fa08e8f"
   },
   "updateDownloadFailureHandoffFailed": "La mise à jour a été téléchargée et vérifiée, mais n’a pas pu être ouverte automatiquement. Utilisez « Voir la version » pour terminer l’installation.",
   "@updateDownloadFailureHandoffFailed": {
@@ -8966,9 +8990,9 @@
   "@reparseConfirmTitle": {
     "x-sourceSha256": "a9887110e4858088272c6c9cd7f49161e93beb6d06aae97b4532e1e0637bd082"
   },
-  "reparseConfirmBody": "Cette action va réanalyser {figureCount, plural, =1{1 figure} other{{figureCount} figures}} dans {danceCount, plural, =1{1 danse} other{{danceCount} danses}}. Vos tags, notes, évaluations et tout le reste sur chaque danse sont conservés exactement tels quels. Seules les figures reconnaissant désormais un mouvement connu sont remplacées.",
+  "reparseConfirmBody": "Cette action va revérifier {figureCount, plural, =1{1 figure} other{{figureCount} figures}} dans {danceCount, plural, =1{1 danse} other{{danceCount} danses}}. Vos tags, notes, évaluations et tout le reste sur chaque danse sont conservés exactement tels quels. Seules les figures reconnaissant désormais un mouvement connu sont remplacées.",
   "@reparseConfirmBody": {
-    "x-sourceSha256": "70843e88b33a1ee124cb9c47576c010a77ba6525c630a7f4c33d7a68a560865b"
+    "x-sourceSha256": "389ef2d1138a806e293ebce64c7cc485084975cf2061b4a6e140f16865f9f965"
   },
   "reparseConfirmUpgrade": "Mettre à niveau",
   "@reparseConfirmUpgrade": {
@@ -8990,9 +9014,9 @@
   "@reparseScreenTitle": {
     "x-sourceSha256": "052ae8077a73f730509348bee8e4afc3e09ecb9e0e8beb3ece772196f84ecd32"
   },
-  "reparseIntro": "L’analyse améliorée des figures peut mettre à niveau {figureCount, plural, =1{1 figure} other{{figureCount} figures}} dans {danceCount, plural, =1{1 danse} other{{danceCount} danses}}. Passez en revue ci-dessous, puis confirmez — rien ne change tant que vous ne le faites pas, et tous vos tags, évaluations et notes sont préservés.",
+  "reparseIntro": "La reconnaissance améliorée des figures peut mettre à niveau {figureCount, plural, =1{1 figure} other{{figureCount} figures}} dans {danceCount, plural, =1{1 danse} other{{danceCount} danses}}. Passez en revue ci-dessous, puis confirmez — rien ne change tant que vous ne le faites pas, et tous vos tags, évaluations et notes sont préservés.",
   "@reparseIntro": {
-    "x-sourceSha256": "9eed0dca45aa067857ecbe236f4b3cc8f7dd57725fcaa5c8f3170095d2a6156e"
+    "x-sourceSha256": "737df52db51313372af2268e3830207a5c447a3c16a05beebb547dc4dea57eb7"
   },
   "reparsePreviewCount": "{count, plural, =1{1 figure} other{{count} figures}} à mettre à niveau",
   "@reparsePreviewCount": {
@@ -9006,9 +9030,9 @@
   "@reparseEmptyTitle": {
     "x-sourceSha256": "9910cf9819c9274188fb2439654fd7e87eaa19ad256978bbd5f0fbf76af06ea8"
   },
-  "reparseEmptyBody": "Aucune de vos figures personnalisées issues d’imports ne peut être reconnue comme mouvement connu pour l’instant. Revenez après une prochaine mise à jour améliorant l’analyse des figures.",
+  "reparseEmptyBody": "Aucune de vos figures personnalisées issues d’imports ne peut être reconnue comme mouvement connu pour l’instant. Revenez après une prochaine mise à jour améliorant la reconnaissance des figures.",
   "@reparseEmptyBody": {
-    "x-sourceSha256": "87af3e3d35407b6a2344faed1321b88bbd2e93785b3916ea41b57a3f1674e954"
+    "x-sourceSha256": "258f50bc489a3eee2aeb30d628bc5162a3bf9e81030a64ef8ea498ab20449ce7"
   },
   "reparseErrorTitle": "Impossible de vérifier vos figures",
   "@reparseErrorTitle": {
@@ -9074,9 +9098,9 @@
   "@customFieldsTypeNumber": {
     "x-sourceSha256": "bd82cf16699be29ec05cbb763199c12f0dced428dde8381dbdd31c1d5dd0e8d4"
   },
-  "customFieldsTypeBoolean": "Booléen",
+  "customFieldsTypeBoolean": "Oui/Non",
   "@customFieldsTypeBoolean": {
-    "x-sourceSha256": "a066ff921096d0f99b5f985b7e37a9c703bcc0db4d3409cdabf31cf6a22b5556"
+    "x-sourceSha256": "05b6da17768da87dfc41abdc7072f1a0081293b2481cef3ec28be0045269835e"
   },
   "customFieldsTypeChoice": "Choix",
   "@customFieldsTypeChoice": {
@@ -9110,9 +9134,9 @@
   "@customFieldsKeyLabel": {
     "x-sourceSha256": "20b3e01cf54f06d35aeeca9b51b47452e2a4eb436cab16259e25d692b3a43a40"
   },
-  "customFieldsKeyHelper": "Clé machine stable (lettres, chiffres, tirets bas ; doit commencer par une lettre ou un tiret bas)",
+  "customFieldsKeyHelper": "Un court identifiant pour ce champ. Uniquement des lettres, chiffres et tirets bas ; doit commencer par une lettre ou un tiret bas. Ne peut plus être modifié une fois le champ utilisé dans des danses.",
   "@customFieldsKeyHelper": {
-    "x-sourceSha256": "65ec348d3dc60c1d235fcc99f66fe191dae6d24236b7816edbe91d46d29bfc6c"
+    "x-sourceSha256": "13ba1a7e20edddb97f6e7a1aae325c44d30ffcec1467de1654ab065988b2cdef"
   },
   "customFieldsKeyLocked": "Clé verrouillée — le champ est utilisé sur des danses",
   "@customFieldsKeyLocked": {
@@ -9574,9 +9598,9 @@
   "@danceReimport": {
     "x-sourceSha256": "a421d81d5302fb71ab3107203740f95cda92b17f3b214b5b9016faa7fe81b31b"
   },
-  "danceReimportJson": "JSON de Callers Compendium",
+  "danceReimportJson": "JSON de Caller’s Compendium",
   "@danceReimportJson": {
-    "x-sourceSha256": "9e6528ee0a52cc61df154ec1ba8318a7b06bc0ffaa5ad64d249418687723193e"
+    "x-sourceSha256": "cde854fb2c1d68fad80d747b9c1a9898664a2f35cdec2676fcda80d90e440d15"
   },
   "danceReimportLinkOrId": "Lien ou identifiant",
   "@danceReimportLinkOrId": {

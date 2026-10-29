@@ -864,7 +864,7 @@ server to run against" as the point of it rather than a side effect.
   pairing flow, which must work for a user reading an ID aloud over the phone;
   an explicit offer to export a backup before first connection, with no
   automatic export on either acceptance or refusal;
-  *Sync only on WiFi* defaulting to on, with a manual attempt on a metered
+  *Sync only on Wi-Fi* defaulting to on, with a manual attempt on a metered
   connection routing to the setting; the status surface;
   **`sync_exclude_imports`** and the publish-set filter it drives, including the
   §6.9 citation closure that keeps a cited imported dance published and the

@@ -72,7 +72,7 @@ Future<void> _fillAndSave(
     final typeLabel = switch (type) {
       CustomFieldType.text => 'Text',
       CustomFieldType.number => 'Number',
-      CustomFieldType.boolean => 'Boolean',
+      CustomFieldType.boolean => 'Yes/No',
       CustomFieldType.choice => 'Choice',
     };
     await tester.tap(find.text(typeLabel).last);

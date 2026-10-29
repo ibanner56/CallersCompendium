@@ -37,6 +37,7 @@ import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
 import 'src/data/ecd_conversion.dart';
 import 'src/data/editor_draft_shutdown_scope.dart';
+import 'src/data/file_dialog_labels.dart';
 import 'src/data/first_day_of_week_scope.dart';
 import 'src/data/formation_colors_controller.dart';
 import 'src/data/formation_colors_scope.dart';
@@ -1585,7 +1586,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       builder: (context) => PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationSnapshotConsentTitle),
           content: Text(l10n.migrationSnapshotConsentBody(causeBlock)),
           actions: [
@@ -2092,7 +2093,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationBelowFloorBackupFailedTitle),
           content: Text(
             causeText.isEmpty
@@ -2133,7 +2134,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       builder: (ctx) => PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationBelowFloorResetConfirmTitle),
           content: Text(pathLines.toString()),
           actions: [
@@ -2145,7 +2146,7 @@ class _CompendiumAppState extends State<CompendiumApp>
             FilledButton(
               style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(l10n.migrationBelowFloorBackUpAndReset),
+              child: Text(l10n.migrationBelowFloorResetConfirmAction),
             ),
           ],
         ),
@@ -2173,7 +2174,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       builder: (ctx) => PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationBelowFloorResetConfirmTitle),
           content: Text(l10n.migrationBelowFloorResetOnlyConfirmBody),
           actions: [
@@ -2777,6 +2778,9 @@ class _CompendiumAppState extends State<CompendiumApp>
               ? AnimationStyle.noAnimation
               : null,
           builder: (context, child) {
+            // The data layer opens native file dialogs without a context; give
+            // it the strings for the language now showing.
+            FileDialogLabels.bind(AppLocalizations.of(context));
             final override = _reduceMotionNotifier.value;
             final scoped = _appScopeWrappers().reversed.fold<Widget>(
               child!,
