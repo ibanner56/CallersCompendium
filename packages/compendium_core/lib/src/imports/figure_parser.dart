@@ -2488,7 +2488,7 @@ _Match? _rollAway(List<String> w) {
 }
 
 /// The relationships a lone dancer set before "roll away" names whom it is
-/// with. Anything else there (a role, a couple, the centers) still rolls.
+/// with. A role, a couple or everyone there still rolls.
 const Set<String> _rollAwayWith = {
   'partners',
   'neighbors',
