@@ -105,8 +105,11 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
   - The default `idByName` skips tombstones (`tag_repository.dart:260-266`).
     A rename onto a name a tombstone holds would then reach `upsert` and
     throw `DuplicateNaturalKeyError` (`existence.dart:368-383`).
-  - **Recommendation:** when only a tombstone holds the name, free it first
-    with the name-only tombstone write described under Merge, then rename.
+  - **Recommendation:** free **every** tombstone the lookup finds before
+    anything writes the name, using the name-only tombstone write described
+    under Merge. This applies whether or not a live match also exists: a
+    folded match may hold different bytes from the name being written, but
+    freeing it is harmless and saves working out which bytes collide.
     Rejected alternative: refuse, which would block a name the user can no
     longer see anywhere.
   - That write must not go through `upsert`. `applyUpsertExistence` clears
@@ -117,6 +120,15 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
 - **On a collision, offer a merge.** Don't refuse. The dialog says:
   "'Flowy' already exists. Merge 'Flowing' into it?", with **Keep editing**
   and **Merge**.
+  - **More than one live match.** This can happen because the index compares
+    bytes, so "flowy" and "FLOWY" can both be live. The dialog then lists
+    every match, and **Merge** merges all of them and the renamed entry into
+    one entry under the typed name.
+  - Merging only one of them would leave a second live entry that the app
+    treats as the same name.
+  - A merge of more than two entries runs the pairwise merge below once per
+    loser, in one transaction and with one Undo. The smaller-UUID rule picks
+    the surviving id across all of them.
   - This is a question, not a destructive-action confirm. The user may not
     know the name is taken. `ux.md:201-202` limits *confirms* to actions with
     no Undo, and a merge has an Undo (below).
@@ -700,6 +712,7 @@ tests included: S < 150, M 150–400, L 400+.
   - every step of each operation, and its Undo;
   - Undo after a merge whose loser had a prior alias chain, and one whose
     loser had retained sync fields;
+  - a rename whose lookup finds two live matches and a tombstone;
   - the two-device cases listed under [Merge](#merge): an offline peer's
     new citation, opposite merges, rename versus merge, apply order, and a
     rewritten tombstone;
