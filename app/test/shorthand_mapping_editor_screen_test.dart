@@ -56,6 +56,12 @@ Future<ShorthandMapping? Function()> _pumpEditor(
   return () => popped ? result : null;
 }
 
+/// The error text the token field is showing, or null.
+String? _tokenFieldError(WidgetTester tester) => tester
+    .widget<TextField>(find.byKey(const ValueKey('shorthand-token-field')))
+    .decoration
+    ?.errorText;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -65,11 +71,12 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
     await tester.pumpAndSettle();
 
+    // On the token field, not in a banner at the top of the page.
+    expect(_tokenFieldError(tester), 'Enter a shorthand token.');
     expect(
       find.byKey(const ValueKey('shorthand-validation-error')),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('Enter a shorthand token.'), findsOneWidget);
     // Editor did not pop.
     expect(read(), isNull);
     expect(find.byKey(const ValueKey('shorthand-token-field')), findsOneWidget);
@@ -85,11 +92,46 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const ValueKey('shorthand-validation-error')),
-      findsOneWidget,
-    );
+    expect(_tokenFieldError(tester), isNotNull);
     expect(read(), isNull);
+  });
+
+  testWidgets('editing the token clears its error', (tester) async {
+    await _pumpEditor(tester);
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+    expect(_tokenFieldError(tester), isNotNull);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'b',
+    );
+    await tester.pump();
+
+    expect(_tokenFieldError(tester), isNull);
+  });
+
+  testWidgets('a token with no target figures says so beside the figure list, '
+      'in view', (tester) async {
+    // A short window so the figure list's error is below the fold unless the
+    // editor scrolls to it.
+    await tester.binding.setSurfaceSize(const Size(600, 420));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpEditor(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'bns',
+    );
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+
+    final error = find.byKey(const ValueKey('shorthand-validation-error'));
+    expect(error, findsOneWidget);
+    expect(_tokenFieldError(tester), isNull);
+    final view = tester.view.physicalSize / tester.view.devicePixelRatio;
+    final rect = tester.getRect(error);
+    expect(rect.top, greaterThanOrEqualTo(0));
+    expect(rect.bottom, lessThanOrEqualTo(view.height));
   });
 
   testWidgets('rejects a token with no target figures', (tester) async {
