@@ -1,0 +1,18 @@
+{
+  "id": "plain-language-copy",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Notes on imported dances, update checks, Device Sync decisions and custom-field setup now use plain words instead of developer terms such as \"stub\", \"taxonomy default\", \"sha256\", \"peer record\" and \"machine key\". A custom field's Boolean type is now called Yes/No.",
+      "The program editor's Save button reads \"Save changes\" instead of \"Save *\" when there are unsaved changes, and \"Wi-Fi\" is spelled the same way throughout Device Sync."
+    ],
+    "fixed": [
+      "The import review now says a dance matches an existing one by title and author, which is what it actually compares, instead of title and caller.",
+      "The Device Sync storage warning's button now carries the same name as the setting it turns on, Skip unused imported dances.",
+      "After Back Up + Reset saves your backup, the final confirmation button says Reset rather than repeating Back Up + Reset.",
+      "The startup error screen no longer shows an internal error type name; Copy details still includes it.",
+      "A custom number field's \"Enter a number\" message, Yes/No custom-field values on a dance's page and the file-type names in the system open and save dialogs now follow the app's language.",
+      "Import review counts for program notes, failed records and unreadable records now read correctly for one item and for several, in every language, instead of \"(s)\"."
+    ]
+  }
+}

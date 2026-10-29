@@ -1213,8 +1213,9 @@ final List<_Recognizer> _recognizers = [
   // ContraDB lines are recognized by `contradb_figure_dialect.dart` instead.
   _madRobin,
   _butterflyWhirl,
-  // Free-text phrasing "half hey, ladies start by the right": anchors on the
-  // `hey` word plus a `start by` clause that no other recognizer consumes.
+  // Free-text phrasing "half hey, ladies start by the right", and Caller's
+  // Companion's "Half Hey, Robins start right shoulder" (#1975): anchors on the
+  // `hey` word plus a `start (by)` clause that no other recognizer consumes.
   _heyStartBy,
   // `circular_hey` (taxonomy v36): the renderer's own sentence, "3/4 circular
   // hey, neighbors pass right across", and its "square hey" alias.
@@ -1283,6 +1284,11 @@ _Match? _swing(List<String> w) {
 }
 
 _Match? _petronella(List<String> w) {
+  // A ring balance followed by a spin to the right is the petronella, balance
+  // included (#1975): Caller's Companion's "Ring balance, spin to the right".
+  if (_isRingBalanceThenSpinRight(w)) {
+    return const _Match('petronella', {'balance': true});
+  }
   // Optional leading "balance and" (petronella's balance flag defaults true).
   _consumePhrase(w, ['balance', 'and']);
   if (!_consumePhrase(w, ['petronella'])) return null;
@@ -1294,10 +1300,41 @@ _Match? _petronella(List<String> w) {
   return w.isEmpty ? const _Match('petronella') : null;
 }
 
+/// Whether [w] is exactly a ring balance and then a spin to the right, in
+/// that order: `ring balance` or `balance (the) ring`, an optional `and`, then
+/// `spin (to the) right` (#1975).
+bool _isRingBalanceThenSpinRight(List<String> w) {
+  final rest = [...w];
+  if (!_takeRingBalance(rest)) return false;
+  _consumeLeading(rest, ['and']);
+  if (!_consumeLeading(rest, ['spin'])) return false;
+  _consumeLeading(rest, ['to', 'the']) || _consumeLeading(rest, ['to']);
+  return _consumeLeading(rest, ['right']) && rest.isEmpty;
+}
+
+/// Consumes a ring balance at the start of [w]: `balance the ring`, TCB's
+/// `balance ring`, or Caller's Companion's `ring balance` (#1975).
+bool _takeRingBalance(List<String> w) =>
+    _consumeLeading(w, ['balance', 'the', 'ring']) ||
+    _consumeLeading(w, ['balance', 'ring']) ||
+    _consumeLeading(w, ['ring', 'balance']);
+
+/// Consumes [phrase] only when [w] starts with it.
+bool _consumeLeading(List<String> w, List<String> phrase) {
+  if (w.length < phrase.length) return false;
+  for (var i = 0; i < phrase.length; i++) {
+    if (w[i] != phrase[i]) return false;
+  }
+  w.removeRange(0, phrase.length);
+  return true;
+}
+
 _Match? _balanceTheRing(List<String> w) {
-  // Accept "balance the ring" and TCB's "balance ring" (no "the").
+  // Accept "balance the ring", TCB's "balance ring" (no "the") and Caller's
+  // Companion's "ring balance" (#1975).
   if (!_consumePhrase(w, ['balance', 'the', 'ring']) &&
-      !_consumePhrase(w, ['balance', 'ring'])) {
+      !_consumePhrase(w, ['balance', 'ring']) &&
+      !_consumePhrase(w, ['ring', 'balance'])) {
     return null;
   }
   _dropFiller(w);
@@ -2234,36 +2271,97 @@ _Match? _butterflyWhirl(List<String> w) {
 }
 
 /// Free-text phrasing of a hey with a starting position: "half hey, ladies start
-/// by the right", "full hey, ones start by the left". Maps onto the taxonomy's
-/// existing hey params — `length` (`half`/`full`), `pass1` (the pair that starts)
-/// and `shoulder` (the shoulder of the first pass) — and nothing else.
+/// by the right", "full hey, ones start by the left", and Caller's Companion's
+/// "Half Hey, Robins start right shoulder" (#1975). Maps onto the taxonomy's
+/// existing hey params: `length`, `pass1` (the pair that starts), `shoulder`
+/// (the shoulder of the first pass), and from Caller's Companion's wording
+/// `where` (a leading "left/right diagonal") and a ricochet flag.
 ///
 /// Both the starting pair and the shoulder are REQUIRED: a bare "half hey" is
 /// not matched here (an import keeps it custom; free-text entry reads it as a
 /// name, see `typed_figure_names.dart`), and any leftover token yields null so
 /// the line degrades to a faithful custom figure.
+///
+/// The "start" wording (also "starts") must state a length.
+///
+/// Lengths: half (`1/2`) and full, and the partial `1/4` → `lessThanHalf` and
+/// `3/4` → `betweenHalfAndFull`, as the Caller's Box pass-list decoder maps
+/// them. A trailing "`role` ricochet" is read only on a half hey started by a
+/// role: the ricochet flags count the same-role passes through the centre, so
+/// the starting role's is `rico1` and the other role's `rico2` (maintainer
+/// decision, #1975). Any other ricochet keeps the line custom.
 _Match? _heyStartBy(List<String> w) {
+  // A dash may stand between the hey and its start ("3/4 Hey - Neighbor
+  // start Right shoulder").
+  w.removeWhere(_standaloneDashes.contains);
+  String? where;
+  if (w.length >= 2 &&
+      (w[0] == 'left' || w[0] == 'right') &&
+      w[1] == 'diagonal') {
+    where = w[0] == 'left' ? 'leftDiagonal' : 'rightDiagonal';
+    w.removeRange(0, 2);
+  }
+  String? ricochetBy;
+  if (w.length >= 2 && w.last == 'ricochet') {
+    ricochetBy = dancerWords[w[w.length - 2]];
+    if (ricochetBy == null) return null;
+    w.removeRange(w.length - 2, w.length);
+  }
   String? length;
-  if (_consumePhrase(w, ['half', 'hey'])) {
-    length = 'half';
-  } else if (_consumePhrase(w, ['full', 'hey'])) {
-    length = 'full';
-  } else if (!_consumePhrase(w, ['hey'])) {
+  for (final MapEntry(key: word, value: named) in _heyLengths.entries) {
+    if (_consumePhrase(w, [word, 'hey'])) {
+      length = named;
+      break;
+    }
+  }
+  if (length == null && !_consumePhrase(w, ['hey'])) return null;
+  final startBy = _consumePhrase(w, ['start', 'by']);
+  if (!startBy &&
+      !_consumePhrase(w, ['start']) &&
+      !_consumePhrase(w, ['starts'])) {
     return null;
   }
-  if (!_consumePhrase(w, ['start', 'by'])) return null;
+  // Caller's Companion always states the length; without one, the half-hey
+  // default could contradict the line's beats (a 16-beat hey is a full one),
+  // so only the older "start by" phrasing may leave it out.
+  if (length == null && !startBy) return null;
   final pass1 = _takeDancer(w);
   if (pass1 == null) return null;
   final shoulder = _takeSide(w);
   if (shoulder == null) return null;
+  _consumePhrase(w, ['shoulders']) || _consumePhrase(w, ['shoulder']);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
+  String? rico;
+  if (ricochetBy != null) {
+    const roles = {'role1s', 'role2s'};
+    if (length != 'half' ||
+        !roles.contains(pass1) ||
+        !roles.contains(ricochetBy)) {
+      return null;
+    }
+    rico = ricochetBy == pass1 ? 'rico1' : 'rico2';
+  }
   return _Match('hey', {
     'pass1': pass1,
     'length': ?length,
     'shoulder': shoulder,
+    'where': ?where,
+    ?rico: true,
   });
 }
+
+const Set<String> _standaloneDashes = {'-', '\u2013', '\u2014'};
+
+/// The hey lengths [_heyStartBy] reads before "hey" (#1975 adds `1/2` and the
+/// partial lengths).
+const Map<String, String> _heyLengths = {
+  'half': 'half',
+  '1/2': 'half',
+  'full': 'full',
+  '1/4': 'lessThanHalf',
+  '3/4': 'betweenHalfAndFull',
+};
 
 /// Extent words of a circular hey -> number of changes (quarters of a full
 /// four-change circuit). `1/2` is the only non-quarter spelling accepted.

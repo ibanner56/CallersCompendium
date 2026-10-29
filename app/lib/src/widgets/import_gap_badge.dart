@@ -2,17 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
-/// The canonical English explanation for an import-gap custom figure.
-///
-/// [ImportGapBadge] itself renders this through `l10n.importGapMessage` (L5
-/// localization). The const is retained as the English source for the one
-/// remaining not-yet-localized consumer — the screen-reader composite in
-/// `figure_list_editor.dart`, which is deferred to L6. Its value must stay in
-/// sync with the `importGapMessage` ARB message; L6 removes this const when it
-/// localizes that composite.
-const String importGapMessage =
-    "Couldn't parse this call — kept verbatim as a custom figure.";
-
 /// Accessible affordance flagging a figure the parser could not map to a
 /// structured move and kept verbatim (a [CustomOrigin.importGap] custom) —
 /// whether it arrived from an import or was typed locally in free-text entry

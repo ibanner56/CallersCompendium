@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../sync/sync_scope.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/confirm_discard_changes.dart';
+import '../widgets/notice_card.dart';
 
 /// A modal bottom sheet for creating or editing a reusable [Venue].
 ///
@@ -455,26 +456,17 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
   /// *fields* that stay on this device — it must not say "contact details
   /// stay on this device", because Notes is shareable and free text, so a
   /// user's own contact info typed there does travel (requirement 3).
-  Widget _partialVenueHint(ThemeData theme, AppLocalizations l10n) => Card(
-    key: const ValueKey('venue-partial-sync-hint'),
-    color: theme.colorScheme.surfaceContainerHighest,
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              l10n.venueEditorPartialSyncHint,
-              style: theme.textTheme.bodySmall,
-            ),
+  Widget _partialVenueHint(ThemeData theme, AppLocalizations l10n) =>
+      NoticeCard(
+        key: const ValueKey('venue-partial-sync-hint'),
+        kind: NoticeKind.info,
+        child: Text(
+          l10n.venueEditorPartialSyncHint,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSecondaryContainer,
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   Widget _field({
     required String keyName,

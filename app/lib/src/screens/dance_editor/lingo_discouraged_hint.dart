@@ -38,7 +38,7 @@ class LingoDiscouragedHint extends StatelessWidget {
           padding: const EdgeInsets.only(top: 2),
           child: Row(
             children: [
-              Icon(Icons.warning_outlined, size: 13, color: scheme.error),
+              Icon(Icons.warning_amber_outlined, size: 13, color: scheme.error),
               const SizedBox(width: AppSpacing.xxs),
               Flexible(
                 child: Semantics(
