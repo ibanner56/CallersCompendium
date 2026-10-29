@@ -17,6 +17,7 @@ import '../../glossary/custom_figures.dart';
 import '../../glossary/figure_titles.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/sync_now_action.dart';
 import 'compound_editor_screen.dart';
 import 'custom_figure_detail.dart';
@@ -867,8 +868,12 @@ class _NotesDialogState extends State<_NotesDialog> {
     // Nothing closes the dialog while a save is in flight (Cancel, the barrier,
     // Escape or back): the save would finish into a route that is already
     // leaving and pop the one beneath it, and the note would be stored anyway.
-    return PopScope(
-      canPop: !_saving,
+    // Once the text differs from what the dialog opened with, the barrier,
+    // Escape and back do nothing either, so a stray tap does not lose it.
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text != widget.initial,
+      blocked: _saving,
       child: AlertDialog(
         title: Text(l10n.glossaryNotesEditTitle),
         content: TextField(

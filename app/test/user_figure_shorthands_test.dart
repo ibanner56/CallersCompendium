@@ -788,8 +788,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('compound-shorthand-save')));
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey('compound-shorthand-error')),
-        findsOneWidget,
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('compound-shorthand-token')),
+            )
+            .decoration
+            ?.errorText,
+        isNotNull,
       );
       expect(controller.userFigureShorthands, hasLength(1));
     });

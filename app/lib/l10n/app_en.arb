@@ -3038,6 +3038,15 @@
   "@settingsDefaultsDifficultyLevelActionFailed": {
     "description": "Generic fallback snackbar when adding, renaming, deleting or reordering a difficulty level fails for a reason with no specific message. The raw exception is logged, never shown (CWE-209)."
   },
+  "settingsDefaultsDifficultyLevelDeleted": "Deleted {label}.",
+  "@settingsDefaultsDifficultyLevelDeleted": {
+    "description": "Snackbar after a difficulty level is deleted from Settings > Defaults, shown with an Undo action. {label} is the level's display name, plain text.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "settingsDefaultsBandLabel": "Default band",
   "@settingsDefaultsBandLabel": {
     "description": "Text-field label for the default band prefilled into new programs."

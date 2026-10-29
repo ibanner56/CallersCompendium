@@ -3679,6 +3679,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save the difficulty levels. Try again.'**
   String get settingsDefaultsDifficultyLevelActionFailed;
 
+  /// Snackbar after a difficulty level is deleted from Settings > Defaults, shown with an Undo action. {label} is the level's display name, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {label}.'**
+  String settingsDefaultsDifficultyLevelDeleted(String label);
+
   /// Text-field label for the default band prefilled into new programs.
   ///
   /// In en, this message translates to:

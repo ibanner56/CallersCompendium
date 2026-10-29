@@ -15,6 +15,7 @@ import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/figure_param_editors.dart';
 
 /// Editor surface for the program matrix's built-in (and custom-bucket) columns.
@@ -657,29 +658,33 @@ class _RenameDialogState extends State<_RenameDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.settingsMatrixColumnsRenameTitle),
-      content: TextField(
-        key: const ValueKey('matrix-column-rename-field'),
-        controller: _controller,
-        autofocus: true,
-        decoration: InputDecoration(
-          labelText: l10n.settingsMatrixColumnsRenameLabel,
-          hintText: widget.defaultLabel,
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text != widget.initialValue,
+      child: AlertDialog(
+        title: Text(l10n.settingsMatrixColumnsRenameTitle),
+        content: TextField(
+          key: const ValueKey('matrix-column-rename-field'),
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: l10n.settingsMatrixColumnsRenameLabel,
+            hintText: widget.defaultLabel,
+          ),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
         ),
-        onSubmitted: (value) => Navigator.of(context).pop(value),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            key: const ValueKey('matrix-column-rename-confirm'),
+            onPressed: () => Navigator.of(context).pop(_controller.text),
+            child: Text(l10n.commonSave),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        TextButton(
-          key: const ValueKey('matrix-column-rename-confirm'),
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 }

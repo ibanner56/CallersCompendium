@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/walkthrough_snippet_library_scope.dart';
 import '../theme/destructive_button_style.dart';
+import '../widgets/dirty_dialog_guard.dart';
 
 /// Manager for the user's personal walkthrough snippet library (#411), reached
 /// from Settings › Defaults. Lists each saved per-figure snippet (a readable
@@ -178,28 +179,32 @@ class _EditSnippetDialogState extends State<_EditSnippetDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.settingsWalkthroughSnippetEditTitle),
-      content: TextField(
-        key: const ValueKey('walkthrough-snippet-edit-field'),
-        controller: _controller,
-        autofocus: true,
-        minLines: 2,
-        maxLines: 6,
-        maxLength: kMaxWalkthroughSnippetLength,
-        decoration: const InputDecoration(border: OutlineInputBorder()),
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text != widget.initial,
+      child: AlertDialog(
+        title: Text(l10n.settingsWalkthroughSnippetEditTitle),
+        content: TextField(
+          key: const ValueKey('walkthrough-snippet-edit-field'),
+          controller: _controller,
+          autofocus: true,
+          minLines: 2,
+          maxLines: 6,
+          maxLength: kMaxWalkthroughSnippetLength,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+          ),
+          FilledButton(
+            key: const ValueKey('walkthrough-snippet-edit-save'),
+            onPressed: () => Navigator.of(context).pop(_controller.text),
+            child: Text(MaterialLocalizations.of(context).saveButtonLabel),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
-        ),
-        FilledButton(
-          key: const ValueKey('walkthrough-snippet-edit-save'),
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(MaterialLocalizations.of(context).saveButtonLabel),
-        ),
-      ],
     );
   }
 }

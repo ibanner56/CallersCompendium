@@ -2312,6 +2312,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '難易度を保存できませんでした。もう一度お試しください。';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '「$label」を削除しました。';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'デフォルトバンド';
 
   @override

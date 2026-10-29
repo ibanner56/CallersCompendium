@@ -2456,6 +2456,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Schwierigkeitsgrade konnten nicht gespeichert werden. Versuche es erneut.';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '„$label“ gelöscht.';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standard-Band';
 
   @override
