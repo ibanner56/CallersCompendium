@@ -91,6 +91,11 @@ the full picture.
 - **Published collections** — browse signed collections from the trusted catalog
   and send one through the review flow. See
   [Imports & migration](./imports.md#import-a-published-collection).
+- **Convert ECD dances?** is a question the app asks when it opens, not a
+  setting here. Choosing **Don't show this again** in it stops the question;
+  answering **Not now** without it asks again next time. A conversion can be
+  undone straight after. See
+  [Imports & migration](./imports.md#dances-tagged-ecd).
 - **Re-check custom figures** — re-reads imported dances whose figures were kept
   as plain custom text only because the app couldn't recognise them at the time.
   You preview and confirm before anything changes, and your tags, ratings, and
@@ -198,6 +203,13 @@ details are handled when you export.
   dance performed (or clear the mark) without opening the editor. Marking or
   clearing offers an **Undo**. Turn it off and rows only show a check on dances
   already marked performed. The change applies straight away.
+- **Require an event date for calling history** (off) — when on, a program with
+  no event date counts nowhere calling history is read (the "called ×N" count,
+  the **Called** filter, a dance's history list, the **Last called** sort, and
+  the repeated-venues and half summaries) until you give it a date. Duplicated
+  programs and programs another caller sends you arrive without a date. When
+  off, a program counts whether or not it has a date. It applies on top of the
+  other calling-history settings (all must pass).
 - **Track calling history for all callers** (off) — when off *and* you've set a
   [default caller for new programs](#program-defaults), a dance's calling history
   and "called ×N" counts include only programs led by that caller (plus any
@@ -574,7 +586,9 @@ says **No diagnostics to export** instead of producing an empty file.
 ### Clear log
 
 - **Clear log** — deletes the local crash log from this device. The app asks first
-  and is blunt about it: this cannot be undone.
+  and is blunt about it: this cannot be undone. If the log can't be cleared (for
+  example, another program has the file open), the app says so and the entries
+  stay listed.
 
 Filing a bug? A scrubbed log attached to a
 [GitHub issue](https://github.com/ibanner56/CallersCompendium/issues) is the most
@@ -775,6 +789,11 @@ Sync is off and open while it is on.
   A pass that was skipped runs the next time sync is triggered — when you
   change something, open the app, or come back to it — and you do not need
   to do anything.
+- **Closing the app during a sync.** The app says **Closing…**, saves any
+  open editor's draft first, and then gives a sync that is still running up to
+  ten seconds to finish before it closes anyway. Your changes are already saved
+  on this device; a sync cut short this way runs again the next time you open
+  the app.
 - **Skip unused imported dances** is off by default. If you have a large
   imported collection, turning it on cuts what this device uploads — but a
   dance that's actually used in one of your programs, or linked from another

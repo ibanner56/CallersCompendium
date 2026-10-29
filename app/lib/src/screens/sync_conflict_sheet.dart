@@ -60,6 +60,7 @@ Future<void> showSyncConflictSheet(
     actionKey: const ValueKey('sync-conflict-undo'),
     message: l10n.syncConflictSaved,
     undoLabel: l10n.syncConflictUndo,
+    undoFailedMessage: l10n.commonUndoFailed,
     accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
     duration: const Duration(seconds: 10),
     onUndo: () {

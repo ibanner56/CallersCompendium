@@ -2984,6 +2984,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn aktiviert, hat jeder Tanz in der Programmansicht einen Schalter, um ihn als aufgeführt zu markieren oder nicht – ohne den Editor zu öffnen. Wenn deaktiviert, zeigen die Zeilen nur an, ob ein Tanz aufgeführt wurde.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Veranstaltungsdatum für Calling-Verlauf erfordern';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Wenn aktiviert, zählt ein Programm ohne Veranstaltungsdatum erst dann zum Calling-Verlauf, wenn du ihm eines gibst. Duplizierte und empfangene Programme kommen ohne Datum an. Wenn deaktiviert, zählt ein Programm unabhängig davon, ob es ein Datum hat.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Calling-Verlauf für alle Caller erfassen';
 
@@ -3427,6 +3435,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diagnoseprotokoll konnte nicht exportiert werden.';
 
   @override
+  String get diagnosticsClearFailed =>
+      'Diagnoseprotokoll konnte nicht gelöscht werden.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Diagnoseprotokoll löschen?';
 
   @override
@@ -3514,6 +3526,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get commonUndo => 'Rückgängig';
+
+  @override
+  String get commonUndoFailed =>
+      'Das konnte nicht rückgängig gemacht werden. Bitte das Ergebnis prüfen und es erneut versuchen.';
 
   @override
   String get commonRetry => 'Erneut versuchen';
@@ -7432,10 +7448,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importReviewUndone => 'Import rückgängig gemacht.';
 
   @override
-  String get importReviewUndoFailed =>
-      'Der Import konnte nicht rückgängig gemacht werden. Prüfe deine Sammlung und versuche es dann noch einmal mit „Rückgängig“.';
-
-  @override
   String get importReviewEditError =>
       'Dieser Tanz konnte nicht zum Bearbeiten importiert werden.';
 
@@ -8652,6 +8664,22 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze wurden zurückgesetzt.',
+      one: '1 Tanz wurde zurückgesetzt.',
+      zero:
+          'Kein Tanz wurde zurückgesetzt: Bei jedem wurden seitdem Typ oder Tags geändert.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Wird geschlossen…';
 
   @override
   String updateBannerAvailable(String appName, String version) {

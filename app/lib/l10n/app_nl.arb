@@ -2964,6 +2964,14 @@
   "@settingsGeneralShowPerformedTogglesSubtitle": {
     "x-sourceSha256": "c72198d2bb64ea770c17a1f45239591d056d391a276ee7c416ddba46d5e53c48"
   },
+  "settingsGeneralRequireEventDateForHistoryTitle": "Eventdatum vereisen voor callerhistorie",
+  "@settingsGeneralRequireEventDateForHistoryTitle": {
+    "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
+  },
+  "settingsGeneralRequireEventDateForHistorySubtitle": "Als ingeschakeld, telt een programma zonder eventdatum pas mee voor de callerhistorie als je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet.",
+  "@settingsGeneralRequireEventDateForHistorySubtitle": {
+    "x-sourceSha256": "8bfbd2c15d3c1f7cedf4be79c03362ef0ba2dd836f800f1e8591a777352889ca"
+  },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Callerhistorie voor alle callers bijhouden",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
     "x-sourceSha256": "e2a17c48a924c46655d80157c23b97a219699dc1321f4afa460c2b3c56e3f72e"
@@ -3428,6 +3436,10 @@
   "@diagnosticsExportFailed": {
     "x-sourceSha256": "7a4bc94bc88c3750a70e7afa82ad0573ef674a2baad7c1f34ec0418a39347620"
   },
+  "diagnosticsClearFailed": "Het diagnosticslog kon niet worden gewist.",
+  "@diagnosticsClearFailed": {
+    "x-sourceSha256": "50ce27d1bce5db751b69e08e7ddbf3573dc466a5c04aefbdd637f5e11e7e4857"
+  },
   "diagnosticsClearLogTitle": "Diagnosticslog wissen?",
   "@diagnosticsClearLogTitle": {
     "x-sourceSha256": "0a9b465b72b0b9539a23e5e44494ee4b1769ffb663ed14bbb6cb92bfdc28374a"
@@ -3531,6 +3543,10 @@
   "commonUndo": "Ongedaan maken",
   "@commonUndo": {
     "x-sourceSha256": "a8283ade31856f71220db0e6f60a257c6889dc4dad0f275f66ad44b9ed9bf8d5"
+  },
+  "commonUndoFailed": "Dat kon niet ongedaan worden gemaakt. Controleer het resultaat en probeer het opnieuw.",
+  "@commonUndoFailed": {
+    "x-sourceSha256": "64cb613fabf9e2b50bffb15126b715f3b0c14864606feab0fb1c7cf39226199e"
   },
   "commonRetry": "Opnieuw proberen",
   "@commonRetry": {
@@ -7214,10 +7230,6 @@
   "@importReviewUndone": {
     "x-sourceSha256": "0f526ab50a3ca2a66650ef99fd743de2dbf64d38d995f4c521cde940c3abc4da"
   },
-  "importReviewUndoFailed": "De import kon niet ongedaan worden gemaakt. Controleer je collectie en probeer ‘Ongedaan maken’ daarna opnieuw.",
-  "@importReviewUndoFailed": {
-    "x-sourceSha256": "b7f07770fb150f9491bc822d2b8fcc5348a2a5a4357cee7642b1f12c34a349e7"
-  },
   "importReviewEditError": "Die dans kon niet worden geïmporteerd om te bewerken.",
   "@importReviewEditError": {
     "x-sourceSha256": "efa938acdf31d4dcd903bb981c6319d8b7a56f59d2922faf6078d2826413c32f"
@@ -8377,6 +8389,14 @@
   "startupEcdConvertSnackbar": "{count, plural, one{1 dans geconverteerd naar Engels (ECD).} other{{count} dansen geconverteerd naar Engels (ECD).}}",
   "@startupEcdConvertSnackbar": {
     "x-sourceSha256": "eeac5cbd9f6ed8ecf6dde0028562b4784e4bb60d89a2a74630e423c760473b31"
+  },
+  "startupEcdConvertUndoneSnackbar": "{count, plural, =0{Er zijn geen dansen teruggezet: van elke dans zijn sindsdien het type of de tags gewijzigd.} one{1 dans teruggezet.} other{{count} dansen teruggezet.}}",
+  "@startupEcdConvertUndoneSnackbar": {
+    "x-sourceSha256": "a9e605173e6dcecccc485febe0250d6f99b6d4253045b1dbed890c92f21cdc55"
+  },
+  "appClosingMessage": "Bezig met sluiten…",
+  "@appClosingMessage": {
+    "x-sourceSha256": "abdb0cfdd8ace143929beef96d31ef863fc62904fc7e9bef546330b8594eedaa"
   },
   "updateBannerAvailable": "Een nieuwere versie van {appName} ({version}) is beschikbaar.",
   "@updateBannerAvailable": {

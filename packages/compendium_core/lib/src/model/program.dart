@@ -335,9 +335,11 @@ class Program {
   final DateTime updatedAt;
   final DateTime? deletedAt;
 
-  /// Import provenance: where this program came from (CC `.USR`), keyed on
-  /// `(source, externalId)` so a re-import dedupes onto the same program rather
-  /// than creating a duplicate. `null` for user-created programs, which never
+  /// Import provenance: where this program came from, keyed on
+  /// `(source, externalId)`. For a CC `.USR` import the key makes a re-import
+  /// dedupe onto the same program rather than create a duplicate. A program
+  /// received in a shared file (`json`) records its origin only: re-receiving
+  /// it adds a new program (F6). `null` for user-created programs, which never
   /// dedupe. Mirrors [Dance.provenance]; like Dance, it is metadata *about the
   /// import* and is deliberately excluded from value equality (`==`/[hashCode]).
   final Provenance? provenance;
@@ -564,7 +566,8 @@ class Program {
   );
 
   /// Deep copy for "duplicate program": fresh ids everywhere, draft status,
-  /// performance history cleared. [newSlotId] mints an id per copied slot.
+  /// performance history and event date cleared. [newSlotId] mints an id per
+  /// copied slot.
   /// Provenance is dropped (the copy is the user's own record, not an import),
   /// mirroring [Dance.duplicate].
   Program duplicate({
@@ -575,7 +578,9 @@ class Program {
   }) => Program(
     id: newId,
     title: newTitle ?? title,
-    eventDate: eventDate,
+    // The event date is deliberately not copied, for the same reason as pay
+    // below: a duplicate is for a different event. Copying it would put a
+    // second calling-history entry on the original's date (LIFE-7).
     venue: venue,
     venueId: venueId,
     band: band,

@@ -384,6 +384,7 @@ DanceFilter buildCollectionFilter({
   BuilderGroup? advancedRoot,
   String? callerFilter,
   bool performedOnly = false,
+  bool requireEventDate = false,
 }) {
   final branches = <DanceFilter>[];
 
@@ -414,6 +415,7 @@ DanceFilter buildCollectionFilter({
         called: facets.callStatuses.single,
         callerFilter: callerFilter,
         performedOnly: performedOnly,
+        requireEventDate: requireEventDate,
       ),
     ]);
   }

@@ -15,6 +15,7 @@ import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/collection_filter_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
@@ -75,6 +76,7 @@ Future<void> _pumpScreen(
   CollectionFilterController? filterController,
   ValueNotifier<Set<String>>? hiddenFacets,
   ValueNotifier<String>? defaultProgramCaller,
+  ValueNotifier<bool>? requireEventDate,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -117,12 +119,15 @@ Future<void> _pumpScreen(
                   // test still runs without it.
                   child: _maybeWrapDefaultCaller(
                     defaultProgramCaller,
-                    hiddenFacets == null
-                        ? child!
-                        : CollectionFacetsScope(
-                            notifier: hiddenFacets,
-                            child: child!,
-                          ),
+                    _maybeWrapRequireEventDate(
+                      requireEventDate,
+                      hiddenFacets == null
+                          ? child!
+                          : CollectionFacetsScope(
+                              notifier: hiddenFacets,
+                              child: child!,
+                            ),
+                    ),
                   ),
                 ),
               ),
@@ -144,6 +149,15 @@ Widget _maybeWrapDefaultCaller(ValueNotifier<String>? notifier, Widget child) =>
     notifier == null
     ? child
     : DefaultProgramCallerScope(notifier: notifier, child: child);
+
+/// Mounts [RequireEventDateForHistoryScope] only when a test supplies a
+/// notifier; without it the setting reads as off.
+Widget _maybeWrapRequireEventDate(
+  ValueNotifier<bool>? notifier,
+  Widget child,
+) => notifier == null
+    ? child
+    : RequireEventDateForHistoryScope(notifier: notifier, child: child);
 
 /// Enters full-text search and lets the 250 ms debounce + async query resolve.
 Future<void> _search(WidgetTester tester, String text) async {
@@ -938,6 +952,85 @@ void main() {
 
       expect(badge('Zed Mine'), findsNothing);
       expect(badge('Alpha Guest'), findsOneWidget);
+    });
+  });
+
+  group('Require an event date follows live (F6)', () {
+    // 'Alpha Undated' was called later, but only in an undated program (a
+    // fresh duplicate or a received program); 'Zed Dated' in a dated one.
+    Future<CompendiumRepositories> seed() async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'undated', title: 'Alpha Undated'));
+      await repos.dances.create(_dance(id: 'dated', title: 'Zed Dated'));
+      Program program(
+        String id,
+        String danceId,
+        DateTime at, {
+        bool dated = true,
+      }) => Program(
+        id: id,
+        title: id,
+        eventDate: dated ? at : null,
+        slots: [
+          ProgramSlot(
+            id: '$id-s',
+            position: 0,
+            danceId: danceId,
+            performedAt: at,
+          ),
+        ],
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      await repos.programs.create(
+        program('p-dated', 'dated', DateTime.utc(2026, 3, 1)),
+      );
+      await repos.programs.create(
+        program('p-undated', 'undated', DateTime.utc(2026, 5, 1), dated: false),
+      );
+      return repos;
+    }
+
+    testWidgets('the Last-called sort re-runs when the setting flips', (
+      tester,
+    ) async {
+      final repos = await seed();
+      final requireEventDate = ValueNotifier<bool>(false);
+      addTearDown(requireEventDate.dispose);
+      await _pumpScreen(tester, repos, requireEventDate: requireEventDate);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Last called').last);
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha Undated', 'Zed Dated']);
+
+      requireEventDate.value = true;
+      await tester.pumpAndSettle();
+      // The undated call no longer counts, so that dance sorts as never called.
+      expect(_titles(tester), ['Zed Dated', 'Alpha Undated']);
+    });
+
+    testWidgets('the Called filter re-runs when the setting flips', (
+      tester,
+    ) async {
+      final repos = await seed();
+      final requireEventDate = ValueNotifier<bool>(false);
+      addTearDown(requireEventDate.dispose);
+      await _pumpScreen(tester, repos, requireEventDate: requireEventDate);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('call-status-called')),
+      );
+      expect(_titles(tester), ['Alpha Undated', 'Zed Dated']);
+
+      requireEventDate.value = true;
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Zed Dated']);
     });
   });
 

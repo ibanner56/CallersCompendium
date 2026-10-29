@@ -69,6 +69,8 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'program_dance_share_fields' => l10n.settingsDefaultsShareFieldsHeader,
   'program_matrix_columns' => l10n.settingsMatrixColumnsHeader,
   'reduce_motion' => l10n.settingsGeneralReduceMotionTitle,
+  'require_event_date_for_history' =>
+    l10n.settingsGeneralRequireEventDateForHistoryTitle,
   'require_performed_for_history' =>
     l10n.settingsGeneralRequirePerformedForHistoryTitle,
   'show_performed_toggles' => l10n.settingsGeneralShowPerformedTogglesTitle,

@@ -3002,6 +3002,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Activé : chaque danse de la vue d’un programme a un commutateur pour la marquer comme jouée ou non, sans ouvrir l’éditeur. Désactivé : les lignes indiquent seulement si une danse a été jouée.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Exiger une date d’événement pour l’historique d’appel';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Activé : un programme sans date d’événement ne compte pas dans l’historique d’appel tant que vous ne lui en donnez pas une. Les programmes dupliqués et reçus arrivent sans date. Désactivé : un programme compte, qu’il ait une date ou non.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Suivre l’historique d’appel pour tous les callers';
 
@@ -3442,6 +3450,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’exporter le journal de diagnostic.';
 
   @override
+  String get diagnosticsClearFailed =>
+      'Impossible d’effacer le journal de diagnostic.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Effacer le journal de diagnostic ?';
 
   @override
@@ -3529,6 +3541,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get commonUndo => 'Annuler';
+
+  @override
+  String get commonUndoFailed =>
+      'Impossible d’annuler. Vérifiez le résultat et réessayez.';
 
   @override
   String get commonRetry => 'Réessayer';
@@ -7447,10 +7463,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importReviewUndone => 'Import annulé.';
 
   @override
-  String get importReviewUndoFailed =>
-      'Impossible d\'annuler l\'import. Vérifiez votre collection, puis réessayez « Annuler ».';
-
-  @override
   String get importReviewEditError =>
       'Impossible d’importer cette danse à modifier.';
 
@@ -8672,6 +8684,22 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danses rétablies.',
+      one: '1 danse rétablie.',
+      zero:
+          'Aucune danse n\'a été rétablie : le type ou les tags de chacune ont changé depuis.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Fermeture…';
 
   @override
   String updateBannerAvailable(String appName, String version) {

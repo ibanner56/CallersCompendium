@@ -38,6 +38,7 @@ import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/program_matrix_column_config_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
@@ -73,6 +74,7 @@ const _expectedAppScopeTypes = <Type>[
   WalkthroughSnippetLibraryScope,
   ActiveDialectScope,
   RequirePerformedForHistoryScope,
+  RequireEventDateForHistoryScope,
   CollectionTileFieldsScope,
   DanceShareFieldsScope,
   TrackHistoryForAllCallersScope,

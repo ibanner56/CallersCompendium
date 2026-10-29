@@ -617,6 +617,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (shutdownController != null) {
         _unregisterShutdownFlush = shutdownController.register(
           _prepareShutdownFlush,
+          flushPending: _flushPendingAutosave,
         );
       }
     }
@@ -1156,6 +1157,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final generation = _editGeneration;
     final future = _commitQueueTail.then((_) => _autoCommit(generation));
     _commitQueueTail = future;
+  }
+
+  /// Writes the draft the autosave debounce is waiting to write, now, for the
+  /// app being paused or hidden (PLAT-19). Unlike [_prepareShutdownFlush] this
+  /// is not final: it leaves autosave and auto-commit running. A no-op when no
+  /// autosave is pending.
+  Future<void> _flushPendingAutosave() {
+    final timer = _autosaveTimer;
+    if (timer == null || !timer.isActive) return Future<void>.value();
+    timer.cancel();
+    return _saveDraft();
   }
 
   /// Prepares the final shutdown write without reading this State after the
@@ -2460,6 +2472,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       messenger,
       message: message ?? _markedAllPerformedMessage(l10n),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () {
         if (undoGeneration != _bulkUndoGeneration || _saving) return;
@@ -2936,6 +2949,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         messenger,
         message: l10n.programsDeletedSnack(title),
         undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
         accessibleNavigation: accessibleNavigation,
         onUndo: () async {
           // The restore is the notification: every view of a program watches

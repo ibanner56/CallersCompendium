@@ -83,6 +83,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // non-bool must be dropped (never coerced) to keep the safe default.
   for (final key in const <String>[
     kRequirePerformedForHistoryKey,
+    kRequireEventDateForHistoryKey,
     kTrackHistoryForAllCallersKey,
     kAutoSizePerformKey,
     kShowIndividualPerformTimerKey,

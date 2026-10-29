@@ -357,11 +357,15 @@ class FilterCompiler {
         :final called,
         :final callerFilter,
         :final performedOnly,
+        :final requireEventDate,
       ):
         final caller = normalizeCallingHistoryCaller(callerFilter);
         if (caller != null) binds.add(caller);
         final performed = performedOnly
             ? ' AND ps.performed_at IS NOT NULL'
+            : '';
+        final eventDate = requireEventDate
+            ? ' ${callingHistoryEventDateClause(requireEventDate: true, programTable: 'p').trimRight()}'
             : '';
         final callerClause = caller == null
             ? ''
@@ -371,7 +375,7 @@ class FilterCompiler {
             'JOIN programs p ON p.id = ps.program_id '
             'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL'
             ' ${callingHistoryAlternateClause(slotTable: 'ps').trimRight()}'
-            '$performed$callerClause)';
+            '$performed$eventDate$callerClause)';
         return called ? exists : 'NOT ($exists)';
       case RatingFilter(:final minimum):
         // Defensive: construction already asserts this, but never trust the

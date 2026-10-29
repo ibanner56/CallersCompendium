@@ -1103,6 +1103,55 @@ void main() {
     });
   });
 
+  group('duplicate (title and transitive links)', () {
+    test('applies newTitle in the one write that creates the copy', () async {
+      await dances.create(sampleDance(id: 'src', title: 'Original'));
+
+      final copy = await dances.duplicate(
+        id: 'src',
+        newId: 'src-copy',
+        now: DateTime.utc(2026, 5, 1),
+        newTitle: 'Original (copy)',
+      );
+
+      expect(copy.title, 'Original (copy)');
+      expect((await dances.getById('src-copy'))!.title, 'Original (copy)');
+      expect((await dances.getById('src'))!.title, 'Original');
+    });
+
+    test('keeps the transitive flag on copied related links', () async {
+      await dances.create(sampleDance(id: 'peer'));
+      await dances.create(
+        sampleDance(
+          id: 'src',
+          links: [
+            DanceLink(
+              id: 'l1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'peer',
+              transitive: true,
+            ),
+            DanceLink(
+              id: 'l2',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'peer',
+            ),
+          ],
+        ),
+      );
+
+      final copy = await dances.duplicate(
+        id: 'src',
+        newId: 'src-copy',
+        now: DateTime.utc(2026, 5, 1),
+      );
+
+      expect(copy.links.map((l) => l.transitive), [true, false]);
+      final loaded = (await dances.getById('src-copy'))!;
+      expect(loaded.links.map((l) => l.transitive), [true, false]);
+    });
+  });
+
   group('full-text search', () {
     test('finds a dance by title token', () async {
       await dances.create(sampleDance(id: 'd1', title: 'Chase the Squirrel'));

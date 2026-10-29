@@ -12,7 +12,9 @@ import '../data/dance_share_fields_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/formation_colors_scope.dart';
+import '../data/related_dance_links.dart';
 import '../data/repositories_scope.dart';
+import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/venue_call_count_scope.dart';
@@ -228,6 +230,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// calling history when the setting is toggled while this screen is open.
   bool _requirePerformedForHistory = false;
 
+  /// The last-seen value of the "require an event date" calling-history
+  /// setting, tracked like [_requirePerformedForHistory].
+  bool _requireEventDateForHistory = false;
+
   /// The last-seen value of the "track calling history for all callers" setting
   /// (issue #583). Tracked so [didChangeDependencies] can reload the calling
   /// history when the setting is toggled while this screen is open.
@@ -268,12 +274,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       }
       return;
     }
-    // The two calling-history settings are passed straight down to
-    // [CallingHistorySection], which rebuilds its query when either changes.
+    // The calling-history settings are passed straight down to
+    // [CallingHistorySection], which rebuilds its query when any changes.
     // didChangeDependencies is always followed by a build, so keeping the
     // fields current is all that is needed — toggling a setting no longer
     // reloads this whole screen to re-run one query (issue #768).
     _requirePerformedForHistory = RequirePerformedForHistoryScope.of(context);
+    _requireEventDateForHistory = RequireEventDateForHistoryScope.of(context);
     _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
     _venueCallCount = VenueCallCountScope.of(context);
     if (!_started) {
@@ -500,21 +507,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _duplicate() async {
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
-    final copy = await _repos.dances.duplicate(
+    // The "(copy)" suffix is persisted into the copy's title so the duplicate
+    // is visually distinct in the list. It is applied in the same write that
+    // creates the copy, not by a second update afterwards.
+    final copy = await duplicateDanceWithRelatedLinks(
+      _repos,
       id: widget.danceId!,
       newId: uuidV4(),
       now: now,
-    );
-    // Append the localized " (copy)" suffix so the duplicate is visually
-    // distinct in the list. This wording is persisted into the copy's title.
-    //
-    // No `localUserEdit`: the copy carries a freshly minted id, so no peer can
-    // hold a tombstone for it and there is nothing for §6.8 to cancel.
-    await _repos.dances.update(
-      copy.copyWith(
-        title: l10n.commonDuplicateTitleSuffix(copy.title),
-        updatedAt: now,
-      ),
+      copyTitle: l10n.commonDuplicateTitleSuffix,
     );
     if (!mounted) return;
     if (widget.onNavigateTo != null) {
@@ -575,6 +576,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         key: const ValueKey('deleted-snackbar'),
         message: l10n.commonDeletedSnack(title),
         undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
         accessibleNavigation: accessibleNavigation,
         onUndo: () async {
           await _repos.dances.restore(
@@ -1370,6 +1372,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             repositories: _repos,
             danceId: widget.danceId!,
             performedOnly: _requirePerformedForHistory,
+            requireEventDate: _requireEventDateForHistory,
             trackAllCallers: _trackHistoryForAllCallers,
             venueCallCount: _venueCallCount,
             onOpenProgram: _openProgram,

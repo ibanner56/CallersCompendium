@@ -14,12 +14,11 @@ import '../../editor/figure_draft.dart';
 import '../../editor/free_text_composer_controller.dart';
 import '../../editor/user_figure_draft.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
+import 'choice_option.dart';
 import 'link_draft.dart';
 import 'source_citation_draft.dart';
 
-/// Result of an inline [DanceEditorController.addChoiceOption] attempt, so the
-/// editor UI can report why an add did nothing.
-enum AddChoiceResult { added, empty, duplicate, notFound }
+export 'choice_option.dart' show AddChoiceResult;
 
 /// Owns the dance editor's mutable working draft, its bounded [EditorUndoStack],
 /// and the debounced undo/autosave machinery.
@@ -1129,6 +1128,17 @@ class DanceEditorController extends ChangeNotifier {
     _autosaveTimer = Timer(_debounce, _saveDraft);
   }
 
+  /// Writes the draft the autosave debounce is waiting to write, now, for the
+  /// app being paused or hidden (PLAT-19). Unlike [prepareShutdownFlush] this
+  /// is not final: later edits schedule autosave as usual. A no-op when no
+  /// autosave is pending.
+  Future<void> flushPendingAutosave() {
+    final timer = _autosaveTimer;
+    if (timer == null || !timer.isActive) return Future<void>.value();
+    timer.cancel();
+    return _saveDraft();
+  }
+
   /// Cancels the pending debounce and queues one immutable final snapshot
   /// synchronously, before shutdown begins awaiting any editor operation.
   EditorDraftShutdownOperation prepareShutdownFlush() {
@@ -1530,32 +1540,13 @@ class DanceEditorController extends ChangeNotifier {
     final def = fieldDefs[index];
     if (def.type != CustomFieldType.choice) return AddChoiceResult.notFound;
 
-    final normalized = normalizeChoiceOption(raw);
-    if (normalized == null) return AddChoiceResult.empty;
-    final existing = def.choices ?? const <String>[];
-    if (existing.contains(normalized)) return AddChoiceResult.duplicate;
-
-    final updated = CustomFieldDef(
-      id: def.id,
-      key: def.key,
-      label: def.label,
-      type: def.type,
-      choices: [...existing, normalized],
-      showInList: def.showInList,
-      searchable: def.searchable,
-      // Preserve the privacy flag: the constructor defaults to `true`, so
-      // omitting it would silently make a private field shareable.
-      shareable: def.shareable,
-    );
-    // Safe discard: `updated` is built from `def.id` (an already-persisted row),
-    // not a fresh UUID. Tombstone adoption requires a minting caller; it cannot
-    // fire here, so the returned id is always identical to updated.id.
-    // ignore: unused_result
-    await _repos.customFieldDefs.upsert(updated, localUserEdit: true);
+    final outcome = await addChoiceOptionToDef(_repos, def, raw);
+    final updated = outcome.def;
+    if (updated == null) return outcome.result;
     if (_disposed) return AddChoiceResult.added;
 
     fieldDefs = [for (final d in fieldDefs) d.id == fieldId ? updated : d];
-    customValues[fieldId] = normalized;
+    customValues[fieldId] = outcome.option!;
     pushUndoNow();
     scheduleAutosave();
     _notify();

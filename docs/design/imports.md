@@ -996,6 +996,16 @@ PR that added this mapping).
     newer archive: the review reads the fields it knows and warns once for the
     file, as the Import screen always did. So a later build can bump for this
     array, and builds from then on warn, as the earlier bumps intended.
+- Received programs (audit F6, maintainer decision 2026-10-28). A program in a
+  shared file is imported the way `Program.duplicate` copies one:
+  `buildArchivePrograms` sets it to Draft and clears every slot's
+  `performedAt` and the program's `eventDate`, so the sender's calling
+  history never becomes the receiver's. Its `(json, externalId)` provenance
+  records where it came from but is not a dedupe key:
+  `CompendiumArchiveImporter.commit` always inserts, so re-receiving an
+  updated program adds a new one beside the caller's copy rather than
+  overwriting their date, marks and edits. Only a program id repeated within
+  one file collapses onto the program that commit inserted.
 - Receive key. A received dance is stored under `(json, externalId)`, where the
   external id is the dance's **upstream** provenance namespaced by its source —
   `contradb:457` — because upstream sources hand out overlapping small integer

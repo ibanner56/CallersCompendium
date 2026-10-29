@@ -171,6 +171,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       if (shutdownController != null) {
         _unregisterShutdownFlush = shutdownController.register(
           _controller.prepareShutdownFlush,
+          flushPending: _controller.flushPendingAutosave,
         );
       }
       _load();
@@ -515,6 +516,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         key: const ValueKey('deleted-snackbar'),
         message: l10n.commonDeletedSnack(title),
         undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
         accessibleNavigation: accessibleNavigation,
         onUndo: () => _repos.dances.restore(id, at: DateTime.now().toUtc()),
       );

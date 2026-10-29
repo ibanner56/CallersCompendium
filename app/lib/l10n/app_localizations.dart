@@ -4561,6 +4561,18 @@ abstract class AppLocalizations {
   /// **'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.'**
   String get settingsGeneralShowPerformedTogglesSubtitle;
 
+  /// Title of the calling-history settings toggle that leaves programs with no event date out of calling history.
+  ///
+  /// In en, this message translates to:
+  /// **'Require an event date for calling history'**
+  String get settingsGeneralRequireEventDateForHistoryTitle;
+
+  /// Subtitle explaining the require-an-event-date calling history toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.'**
+  String get settingsGeneralRequireEventDateForHistorySubtitle;
+
   /// Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs).
   ///
   /// In en, this message translates to:
@@ -5257,6 +5269,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t export the diagnostics log.'**
   String get diagnosticsExportFailed;
 
+  /// Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t clear the diagnostics log.'**
+  String get diagnosticsClearFailed;
+
   /// Title of the confirmation dialog for clearing the local diagnostics log.
   ///
   /// In en, this message translates to:
@@ -5412,6 +5430,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Undo'**
   String get commonUndo;
+
+  /// Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t undo that. Please check the result and try again.'**
+  String get commonUndoFailed;
 
   /// Button that re-attempts a failed load.
   ///
@@ -6637,7 +6661,7 @@ abstract class AppLocalizations {
   /// **'Create tag'**
   String get collectionCreateTagButton;
 
-  /// Snackbar shown when applying a batch tag operation fails.
+  /// Snackbar shown when applying a batch operation (tags, level, rating, tunes, custom field) fails.
   ///
   /// In en, this message translates to:
   /// **'Could not apply batch changes. Try again.'**
@@ -10967,12 +10991,6 @@ abstract class AppLocalizations {
   /// **'Import undone.'**
   String get importReviewUndone;
 
-  /// Snackbar over the import result when its Undo fails (for example, a locked database). The import may not have been reversed; Undo can be tried again.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn’t undo the import. Check your collection, then try Undo again.'**
-  String get importReviewUndoFailed;
-
   /// Snackbar shown when committing a single record so it can be edited fails.
   ///
   /// In en, this message translates to:
@@ -12727,6 +12745,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{Converted 1 dance to English (ECD).} other{Converted {count} dances to English (ECD).}}'**
   String startupEcdConvertSnackbar(int count);
+
+  /// Snackbar after Undo on the ECD-convert snackbar: how many converted dances got their form and "ECD" tag back. A dance whose type or tags changed since the conversion is left alone, so this can be fewer than were converted, or none.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No dances were changed back: each one\'s type or tags have changed since.} one{Changed 1 dance back.} other{Changed {count} dances back.}}'**
+  String startupEcdConvertUndoneSnackbar(int count);
+
+  /// Shown over the app while it closes: open editors' drafts are being saved and a running sync is given a few seconds to finish.
+  ///
+  /// In en, this message translates to:
+  /// **'Closing…'**
+  String get appClosingMessage;
 
   /// Update banner message when a newer version is available (idle/cancelled state).
   ///

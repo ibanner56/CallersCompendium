@@ -3649,6 +3649,14 @@
   "@settingsGeneralShowPerformedTogglesSubtitle": {
     "description": "Subtitle explaining the show mark-performed toggles setting."
   },
+  "settingsGeneralRequireEventDateForHistoryTitle": "Require an event date for calling history",
+  "@settingsGeneralRequireEventDateForHistoryTitle": {
+    "description": "Title of the calling-history settings toggle that leaves programs with no event date out of calling history."
+  },
+  "settingsGeneralRequireEventDateForHistorySubtitle": "When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.",
+  "@settingsGeneralRequireEventDateForHistorySubtitle": {
+    "description": "Subtitle explaining the require-an-event-date calling history toggle."
+  },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Track calling history for all callers",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
     "description": "Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs)."
@@ -4213,6 +4221,10 @@
   "@diagnosticsExportFailed": {
     "description": "Snackbar shown when diagnostics log export fails. Details are not shown in the UI."
   },
+  "diagnosticsClearFailed": "Couldn’t clear the diagnostics log.",
+  "@diagnosticsClearFailed": {
+    "description": "Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI."
+  },
   "diagnosticsClearLogTitle": "Clear diagnostics log?",
   "@diagnosticsClearLogTitle": {
     "description": "Title of the confirmation dialog for clearing the local diagnostics log."
@@ -4316,6 +4328,10 @@
   "commonUndo": "Undo",
   "@commonUndo": {
     "description": "Snackbar action that reverses the action just performed (delete, batch tag/level change)."
+  },
+  "commonUndoFailed": "Couldn’t undo that. Please check the result and try again.",
+  "@commonUndoFailed": {
+    "description": "Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string."
   },
   "commonRetry": "Retry",
   "@commonRetry": {
@@ -5393,7 +5409,7 @@
   },
   "collectionBatchApplyError": "Could not apply batch changes. Try again.",
   "@collectionBatchApplyError": {
-    "description": "Snackbar shown when applying a batch tag operation fails."
+    "description": "Snackbar shown when applying a batch operation (tags, level, rating, tunes, custom field) fails."
   },
   "collectionBatchTagAddConfirm": "Add",
   "@collectionBatchTagAddConfirm": {
@@ -9472,10 +9488,6 @@
   "@importReviewUndone": {
     "description": "Snackbar confirming the import was undone."
   },
-  "importReviewUndoFailed": "Couldn’t undo the import. Check your collection, then try Undo again.",
-  "@importReviewUndoFailed": {
-    "description": "Snackbar over the import result when its Undo fails (for example, a locked database). The import may not have been reversed; Undo can be tried again."
-  },
   "importReviewEditError": "Couldn't import that dance to edit.",
   "@importReviewEditError": {
     "description": "Snackbar shown when committing a single record so it can be edited fails."
@@ -11142,6 +11154,19 @@
         "type": "int"
       }
     }
+  },
+  "startupEcdConvertUndoneSnackbar": "{count, plural, =0{No dances were changed back: each one's type or tags have changed since.} one{Changed 1 dance back.} other{Changed {count} dances back.}}",
+  "@startupEcdConvertUndoneSnackbar": {
+    "description": "Snackbar after Undo on the ECD-convert snackbar: how many converted dances got their form and \"ECD\" tag back. A dance whose type or tags changed since the conversion is left alone, so this can be fewer than were converted, or none.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "appClosingMessage": "Closing…",
+  "@appClosingMessage": {
+    "description": "Shown over the app while it closes: open editors' drafts are being saved and a running sync is given a few seconds to finish."
   },
   "updateBannerAvailable": "A newer version of {appName} ({version}) is available.",
   "@updateBannerAvailable": {

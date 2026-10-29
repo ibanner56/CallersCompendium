@@ -229,6 +229,7 @@ Future<void> _selectProgram(
     key: const ValueKey('added-to-program-snackbar'),
     message: l10n.programsAddedToProgramSnack(danceTitle, fresh.title),
     undoLabel: l10n.commonUndo,
+    undoFailedMessage: l10n.commonUndoFailed,
     accessibleNavigation: accessibleNavigation,
     onUndo: () async {
       final current = await repositories.programs.getById(fresh.id);
