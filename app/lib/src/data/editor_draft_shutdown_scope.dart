@@ -19,11 +19,23 @@ Future<void> flushEditorDraftsThenClose(
 /// Preparing every operation before awaiting any one of them keeps a shutdown
 /// flush independent from widget disposal and makes callback ordering
 /// deterministic for the shared local database.
+///
+/// [flushPending] is the other entry point, for the app going into the
+/// background (PLAT-19): it writes any draft still waiting on its autosave
+/// debounce, and the editors keep working afterwards. [flushAll] is the final
+/// one, and an editor may stop autosaving once it has run.
 class EditorDraftShutdownController {
   final Set<_Registration> _registrations = {};
 
-  void Function() register(EditorDraftShutdownPreparation prepare) {
-    final registration = _Registration(prepare);
+  /// Registers an editor. [prepare] is its final flush, for [flushAll].
+  /// [flushPending], when given, writes the draft its debounce is waiting to
+  /// write, and must leave the editor autosaving as before; an editor without
+  /// one is skipped by [flushPending].
+  void Function() register(
+    EditorDraftShutdownPreparation prepare, {
+    EditorDraftShutdownOperation? flushPending,
+  }) {
+    final registration = _Registration(prepare, flushPending);
     _registrations.add(registration);
     return () {
       if (!registration.active) return;
@@ -59,12 +71,34 @@ class EditorDraftShutdownController {
       }
     }
   }
+
+  /// Writes every draft that is waiting on its autosave debounce, without
+  /// ending any editor's autosave. For the app being paused or hidden, when
+  /// the OS may suspend or kill it before the debounce fires.
+  Future<void> flushPending() async {
+    final flushes = [
+      for (final registration in List<_Registration>.of(_registrations))
+        if (registration.active) ?registration.flushPending,
+    ];
+    for (final flush in flushes) {
+      try {
+        await flush();
+      } catch (error, stackTrace) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'editor_draft_shutdown.flush_pending',
+        );
+      }
+    }
+  }
 }
 
 class _Registration {
-  _Registration(this.prepare);
+  _Registration(this.prepare, this.flushPending);
 
   final EditorDraftShutdownPreparation prepare;
+  final EditorDraftShutdownOperation? flushPending;
   bool active = true;
 }
 

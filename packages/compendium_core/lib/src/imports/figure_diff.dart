@@ -254,7 +254,12 @@ bool figuresCanonicallyIdentical({
 /// figure — a reader on a different dialect never sees a phantom
 /// "variation". [renderer] + [dialect] only control the *display* text of
 /// [FigureDiffEntry.displayText]; they never affect [FigureDiffResult.identical]
-/// or which lines are added/removed.
+/// or which lines are added/removed. The text is [FigureRenderer.renderSummary]
+/// (or its canonical-discouraged-terms variant, when
+/// [canonicalDiscouragedTerms]), with [decimals] applied, so a figure whose only
+/// change is a balance flag, a hall-direction ender or a hey length reads
+/// differently from its counterpart rather than as an identical
+/// removed/added pair.
 ///
 /// Bounded per the module doc of [kMaxFiguresForDiff] (comparison cost) and
 /// [kMaxFigureDiffLines] (rendered output size) — a hostile/huge import can
@@ -271,7 +276,16 @@ FigureDiffResult diffFigures({
   required Taxonomy taxonomy,
   required FigureRenderer renderer,
   required Dialect dialect,
+  bool decimals = false,
+  bool canonicalDiscouragedTerms = false,
 }) {
+  String display(Figure figure) => canonicalDiscouragedTerms
+      ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+          figure,
+          dialect,
+          decimals: decimals,
+        )
+      : renderer.renderSummary(figure, dialect, decimals: decimals);
   final oldKeys = [for (final f in oldFigures) figureCanonicalKey(f, taxonomy)];
   final newKeys = [for (final f in newFigures) figureCanonicalKey(f, taxonomy)];
 
@@ -309,7 +323,7 @@ FigureDiffResult diffFigures({
         allEntries.add(
           FigureDiffEntry(
             kind: FigureDiffKind.removed,
-            displayText: renderer.render(oldFigures[op.oldIndex!], dialect),
+            displayText: display(oldFigures[op.oldIndex!]),
             phraseLabel: oldSections[op.oldIndex!].label,
           ),
         );
@@ -317,7 +331,7 @@ FigureDiffResult diffFigures({
         allEntries.add(
           FigureDiffEntry(
             kind: FigureDiffKind.added,
-            displayText: renderer.render(newFigures[op.newIndex!], dialect),
+            displayText: display(newFigures[op.newIndex!]),
             phraseLabel: newSections[op.newIndex!].label,
           ),
         );

@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/figure_summary.dart';
 
 /// The user's choice for a single seedable shorthand candidate: whether to
 /// include it and, when the button has a distinct alternate call, which
@@ -78,8 +79,9 @@ class _ImportShorthandSeedScreenState extends State<ImportShorthandSeedScreen> {
 
   /// Renders a candidate's expansion into a single-line preview via the active
   /// dialect, e.g. "neighbors swing → circle left ¾".
-  String _preview(List<Figure> figures) =>
-      figures.map((f) => _renderer.render(f, widget.dialect)).join(' → ');
+  String _preview(List<Figure> figures) => figures
+      .map((f) => renderFigureSummary(context, _renderer, f, widget.dialect))
+      .join(' → ');
 
   void _skip() => Navigator.of(context).pop(<ShorthandMapping>[]);
 

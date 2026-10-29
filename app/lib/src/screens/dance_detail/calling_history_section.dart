@@ -67,6 +67,7 @@ class CallingHistorySection extends StatefulWidget {
     required this.repositories,
     required this.danceId,
     required this.performedOnly,
+    this.requireEventDate = false,
     required this.trackAllCallers,
     this.venueCallCount = kVenueCallCountDefault,
     required this.onOpenProgram,
@@ -78,6 +79,10 @@ class CallingHistorySection extends StatefulWidget {
   /// "Require mark-performed for calling history" (ROADMAP G.2). Changing it
   /// changes the query, so the stream is rebuilt.
   final bool performedOnly;
+
+  /// "Require an event date" for calling history. Changing it changes the
+  /// query, so the stream is rebuilt.
+  final bool requireEventDate;
 
   /// "Track calling history for all callers" (issue #583). Resolves to the
   /// caller filter passed to the query, so a change rebuilds the stream.
@@ -140,6 +145,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
     }
     if (oldWidget.danceId != widget.danceId ||
         oldWidget.performedOnly != widget.performedOnly ||
+        oldWidget.requireEventDate != widget.requireEventDate ||
         oldWidget.trackAllCallers != widget.trackAllCallers ||
         oldWidget.repositories != widget.repositories) {
       setState(() => _history = _watch());
@@ -164,6 +170,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
             .watchCallingHistoryForDance(
               widget.danceId,
               performedOnly: widget.performedOnly,
+              requireEventDate: widget.requireEventDate,
               callerFilter: callerFilter,
             )
             .map((history) {
@@ -381,9 +388,10 @@ const Duration _eventDateStampWindow = Duration(minutes: 5);
 
 /// The calendar day a calling-history row shows for [record].
 ///
-/// Programs appear as soon as they include the dance, so `performedAt` is often
-/// null; like [DanceCallingRecord.effectiveDate] this falls back to the
-/// program's event date, then its last-updated time, so a date always shows.
+/// Programs appear as soon as they include the dance in a primary slot, so
+/// `performedAt` is often null; like [DanceCallingRecord.effectiveDate] this
+/// falls back to the program's event date, then its last-updated time, so a
+/// date always shows.
 /// `performedAt` and `programUpdatedAt` are instants stored in UTC, so they are
 /// shown in local time: a dance called at 22:30 in New York is stored as 02:30Z
 /// the next day. `eventDate` is a calendar date stored as UTC midnight, so it

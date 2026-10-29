@@ -2571,7 +2571,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Wird jedem neuen Tanz hinzugefügt, den du einzeln importierst. Tänze, die beim Import eines Programms entstehen, und Tänze, die aus einem Compendium-Archiv wiederhergestellt werden, erhalten keine Tags.';
+      'Wird jedem neuen Tanz hinzugefügt, den ein Import anlegt, auch Tänzen aus einer Datei, die dir jemand geteilt hat. Tänze, die beim Import eines Programms für seine Plätze angelegt werden, erhalten keine Tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -2978,6 +2978,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
       'Wenn aktiviert, listet der Calling-Verlauf eines Tanzes nur Programme auf, deren Slot für diesen Tanz als aufgeführt markiert wurde. Wenn deaktiviert, erscheint ein Programm, sobald es den Tanz enthält.';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Veranstaltungsdatum für Calling-Verlauf erfordern';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Wenn aktiviert, zählt ein Programm ohne Veranstaltungsdatum erst dann zum Calling-Verlauf, wenn du ihm eines gibst. Duplizierte und empfangene Programme kommen ohne Datum an. Wenn deaktiviert, zählt ein Programm unabhängig davon, ob es ein Datum hat.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
@@ -3389,6 +3397,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'Es ist nicht genug Speicherplatz frei, um diese Sicherung zu ersetzen ($neededMb MB benötigt; $freeMb MB frei), daher wurde nichts gespeichert. Ihre frühere Sicherung bleibt unverändert.';
+  }
+
+  @override
   String get backupExportInProgress => 'Sicherung wird vorbereitet…';
 
   @override
@@ -3416,6 +3429,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get diagnosticsExportFailed =>
       'Diagnoseprotokoll konnte nicht exportiert werden.';
+
+  @override
+  String get diagnosticsClearFailed =>
+      'Diagnoseprotokoll konnte nicht gelöscht werden.';
 
   @override
   String get diagnosticsClearLogTitle => 'Diagnoseprotokoll löschen?';
@@ -3505,6 +3522,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get commonUndo => 'Rückgängig';
+
+  @override
+  String get commonUndoFailed =>
+      'Das konnte nicht rückgängig gemacht werden. Bitte das Ergebnis prüfen und es erneut versuchen.';
 
   @override
   String get commonRetry => 'Erneut versuchen';
@@ -4671,6 +4692,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get programsMarkedAllPerformed =>
       'Alle Tänze als aufgeführt markiert.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Alle Tänze außer Alternativen als aufgeführt markiert. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.';
 
   @override
   String programsSavedSnack(String title) {
@@ -6680,6 +6705,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Datei enthielt keine Tänze oder Programme.';
 
   @override
+  String get archiveIntakeRejectedBackup =>
+      'Diese Datei ist eine Sicherung, keine Freigabedatei. Um sie auf dieses Gerät zu bringen, öffne Einstellungen › Allgemein und wähle „Aus einer Sicherung wiederherstellen“.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Importe müssen eine sichere https://-URL verwenden.';
 
@@ -7265,36 +7294,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Elemente importiert.',
-      one: '1 Element importiert.',
-      zero: 'Import abgeschlossen.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportCompleteWithFailures(int count, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Elemente importiert.',
-      one: '1 Element importiert.',
-      zero: 'Nichts wurde importiert.',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed Tänze konnten nicht importiert werden.',
-      one: '1 Tanz konnte nicht importiert werden.',
-    );
-    return '$_temp0 $_temp1';
-  }
-
-  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7341,6 +7340,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return 'Figuren in deinem Glossar hinzugefügt oder aktualisiert: $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count aktualisiert (neu importiert)';
   }
@@ -7352,6 +7356,17 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: '$count Programm-Notizen:',
       one: '$count Programm-Notiz:',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Hinweise:',
+      one: '1 Hinweis:',
     );
     return '$_temp0';
   }
@@ -7406,6 +7421,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importReviewImportError =>
       'Der Import konnte nicht abgeschlossen werden.';
+
+  @override
+  String get importFileNotText =>
+      'Die Datei konnte nicht gelesen werden: Sie ist kein Text, den die App lesen kann. Wenn eine andere App sie gespeichert hat, speichere sie dort erneut als UTF-8-Text und versuche es noch einmal.';
+
+  @override
+  String get importFileUnreadable =>
+      'Die Datei konnte nicht geöffnet werden. Vielleicht verwendet eine andere App sie gerade, oder sie liegt auf einem Laufwerk, das nicht verbunden ist.';
 
   @override
   String importReviewVariationTitle(String title) {
@@ -7923,6 +7946,24 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'Sie haben einen nicht gespeicherten Entwurf für diesen Tanz. Möchten Sie ihn wiederherstellen?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, „$title“. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, noch ohne Titel. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Entwurf gespeichert: $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Dieser Tanz wurde geändert, seit der Entwurf gespeichert wurde. Wenn Sie den Entwurf wiederherstellen, werden diese Änderungen ersetzt.';
 
   @override
   String get danceEditorDiscard => 'Verwerfen';
@@ -8671,6 +8712,22 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze wurden zurückgesetzt.',
+      one: '1 Tanz wurde zurückgesetzt.',
+      zero:
+          'Kein Tanz wurde zurückgesetzt: Bei jedem wurden seitdem Typ oder Tags geändert.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Wird geschlossen…';
 
   @override
   String updateBannerAvailable(String appName, String version) {

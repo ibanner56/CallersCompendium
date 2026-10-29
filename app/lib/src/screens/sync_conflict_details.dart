@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/figure_summary.dart';
 import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
 import '../glossary/figure_titles.dart';
@@ -675,9 +676,9 @@ class SyncConflictComparison extends StatelessWidget {
         );
         final renderer = UserFiguresScope.rendererOf(context);
         final line = renderer.renderUserFigureCanonical(use) != null
-            ? renderer.render(use, dialect)
+            ? renderFigureSummary(context, renderer, use, dialect)
             : compoundShorthandValueText(l10n, value, dialect) ??
-                  renderer.render(use, dialect);
+                  renderFigureSummary(context, renderer, use, dialect);
         final beats = shorthand.beats;
         return beats == null ? line : '$line · ${l10n.danceFigureBeats(beats)}';
       default:

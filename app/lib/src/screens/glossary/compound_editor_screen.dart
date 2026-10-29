@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/dialect_library_scope.dart';
+import '../../data/figure_summary.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/show_glossary_scope.dart';
@@ -1604,7 +1605,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
             Text(
               l10n.compoundEditorFigureN(
                 index + 1,
-                figure == null ? '' : _renderer.render(figure, dialect),
+                figure == null
+                    ? ''
+                    : renderFigureSummary(context, _renderer, figure, dialect),
               ),
               style: Theme.of(context).textTheme.titleSmall,
             ),

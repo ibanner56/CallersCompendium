@@ -170,12 +170,14 @@ void main() {
           defs: defs,
           callerFilter: '  Alice ',
           performedOnly: true,
+          requireEventDate: true,
         );
         expect(f, isA<CalledFilter>());
         final called = f as CalledFilter;
         expect(called.called, isTrue);
         expect(called.callerFilter, '  Alice ');
         expect(called.performedOnly, isTrue);
+        expect(called.requireEventDate, isTrue);
 
         facets.callStatuses.add(false);
         facets.forms.add(DanceForm.contra);

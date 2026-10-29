@@ -2,11 +2,13 @@ import 'package:meta/meta.dart';
 
 import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/dance_link.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/partial_date.dart';
+import '../model/source_citation.dart';
 import '../taxonomy/dance_vocabulary.dart';
 import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
@@ -87,17 +89,34 @@ class CcDanceRecord {
     this.name,
     List<String> authors = const [],
     this.type,
+    this.subType,
     this.formation,
+    this.formationFamily,
+    this.contraForm,
+    this.direction,
+    this.formationOther,
+    this.fromUsrColumns = false,
     this.level,
     this.progression,
+    this.progressionOther,
     this.music,
     this.notes,
+    this.callingNotes,
+    this.otherNotes,
+    this.from,
+    this.reference,
+    this.pageNumber,
+    this.callersBoxId,
+    List<String> sourceUrls = const [],
+    List<String> videoUrls = const [],
     this.composed,
     this.revised,
     this.rating,
     List<CcUserField> userFields = const [],
     List<CcBodySection> body = const [],
-  }) : authors = List.unmodifiable(authors),
+  }) : sourceUrls = List.unmodifiable(sourceUrls),
+       videoUrls = List.unmodifiable(videoUrls),
+       authors = List.unmodifiable(authors),
        userFields = List.unmodifiable(userFields),
        body = List.unmodifiable(body);
 
@@ -112,8 +131,36 @@ class CcDanceRecord {
   /// CC `Type` (e.g. "Contra", "Square").
   final String? type;
 
-  /// CC `Formation`/`ContraForm` (e.g. "Improper", "Becket", "Proper").
+  /// CC `SubType` (e.g. "Keeper, H S H S", "Mixer, H H S S" on a square).
+  final String? subType;
+
+  /// A single formation string (e.g. "Improper", "Becket", "Proper"), as the
+  /// CC text export gives it. Not read for a `.USR` record
+  /// ([fromUsrColumns]), which carries the separate columns below.
   final String? formation;
+
+  /// CC `Formation`: the shape family ("Duple Minor", "Four Facing Four",
+  /// "Triple Minor", "Triplet", "Square", "Other").
+  final String? formationFamily;
+
+  /// CC `ContraForm`: how a duple minor starts ("Improper", "Becket",
+  /// "Proper", "Indecent").
+  final String? contraForm;
+
+  /// CC `Direction`: a Becket's rotation ("CW"/"CCW"), or "Rev" for a
+  /// reverse-progression improper.
+  final String? direction;
+
+  /// CC `FormationOther`: the caller's own description of the start
+  /// ("Long Waves, R-hand to Neighbor", "Five couple horseshoe").
+  final String? formationOther;
+
+  /// Whether this record was read from a `.USR`'s columns
+  /// (`ccDanceRecordFromColumns`), so its formation comes from
+  /// [formationFamily], [contraForm], [direction] and [formationOther] and its
+  /// mixer flag from [type] and [subType] (#1972). The text export's records
+  /// leave it false and keep the single [formation] string.
+  final bool fromUsrColumns;
 
   /// CC `Level` (e.g. "Beginner", "Intermediate", "Advanced", "Mixed").
   final String? level;
@@ -121,12 +168,45 @@ class CcDanceRecord {
   /// CC `Progression` (e.g. "Single", "Double").
   final String? progression;
 
+  /// CC `ProgressionOther` beside a stated [progression]: its detail, which
+  /// the app has no field for, so it goes to the calling notes (#1974).
+  final String? progressionOther;
+
   /// CC `Music` — free-text tune/music note.
   final String? music;
 
   /// Any additional free-text notes (e.g. CC `Credits`), if the source has
   /// them. Folded into the dance's calling notes.
   final String? notes;
+
+  /// CC `CallingNotes`: the caller's own notes, first in the calling notes
+  /// (#1974).
+  final String? callingNotes;
+
+  /// CC `NotesOther`: history, variations, attribution. Added to the calling
+  /// notes under "Other notes:" (#1974).
+  final String? otherNotes;
+
+  /// CC `From`: where the caller found the dance, a source that is not a link.
+  /// Added at the bottom of the calling notes as "Source:" (#1974).
+  final String? from;
+
+  /// CC `Reference`: a published source (book) the dance appears in; cited
+  /// with [pageNumber] (#1974).
+  final String? reference;
+
+  /// CC `PageNumber`: the page of [reference].
+  final String? pageNumber;
+
+  /// CC `CallersBox_id`: the dance's id on The Caller's Box, kept as a source
+  /// link to its page (#1974).
+  final String? callersBoxId;
+
+  /// CC `SourceURL`: source links (#1974).
+  final List<String> sourceUrls;
+
+  /// CC `VideoURL` … `VideoURL5`: video links (#1974).
+  final List<String> videoUrls;
 
   /// CC `DateComposed`, as a raw string (`YYYY`, `YYYY-MM`, or `YYYY-MM-DD`).
   final String? composed;
@@ -293,11 +373,21 @@ CcDanceMapping mapCallersCompanionDance(
   // Level → shipped difficulty-level id (+ mixedLevel), best-effort.
   final (difficultyLevelId, mixedLevel) = _mapLevel(record.level, issues);
 
+  // A `.USR` carries the formation in separate columns, and its formation
+  // types and mixer SubTypes are read into the formation and the mixer flag
+  // (#1972); the text export gives one formation string.
+  final usr = record.fromUsrColumns;
+
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
-  final (form, typeNote) = _mapForm(record.type, issues);
+  final (form, typeNote) = _mapForm(record.type, issues, typeIsFormation: usr);
 
   // Formation → FormationShape, preserving unmapped text as detail.
-  final formation = _mapFormation(record.formation, issues);
+  final formation = usr
+      ? _mapFormationColumns(record, issues)
+      : _mapFormation(record.formation, issues);
+  // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
+  // SubType ("Mixer, H H S S").
+  final mixer = usr && _isCcMixer(record);
 
   // Progression → Progression enum, best-effort.
   final progression = _mapProgression(record.progression, issues);
@@ -324,13 +414,54 @@ CcDanceMapping mapCallersCompanionDance(
   ]);
   issues.addAll(userFieldPlan.issues);
 
-  // Notes: Music + an unmapped-type note + any extra source notes.
+  // Notes: the caller's own calling notes, Music, an unmapped-type note, any
+  // extra source notes, the other notes, and last the non-link source, as the
+  // Caller's Box and ContraDB importers end with "Imported from …" (#1974).
   final notes = _joinNotes([
+    if ((record.callingNotes ?? '').trim().isNotEmpty)
+      record.callingNotes!.trim(),
     if ((record.music ?? '').trim().isNotEmpty)
       'Music: ${record.music!.trim()}',
     ?typeNote,
+    if ((record.progressionOther ?? '').trim().isNotEmpty)
+      'Progression: ${record.progressionOther!.trim()}',
     if ((record.notes ?? '').trim().isNotEmpty) record.notes!.trim(),
+    if ((record.otherNotes ?? '').trim().isNotEmpty)
+      'Other notes: ${record.otherNotes!.trim()}',
+    if ((record.from ?? '').trim().isNotEmpty) 'Source: ${record.from!.trim()}',
   ]);
+
+  // Links: source and video URLs, and the dance's Caller's Box page (#1974).
+  // A URL the file repeats is linked once.
+  final mintLinkId = newId ?? uuidV4;
+  final callersBoxUrl = callersBoxDanceUrl(record.callersBoxId);
+  final linked = <String>{?callersBoxUrl};
+  final links = <DanceLink>[
+    for (final url in record.sourceUrls.map(ccLinkUrl).nonNulls)
+      if (linked.add(url))
+        DanceLink(id: mintLinkId(), kind: LinkKind.source, url: url),
+    if (callersBoxUrl != null)
+      DanceLink(
+        id: mintLinkId(),
+        kind: LinkKind.source,
+        url: callersBoxUrl,
+        label: "The Caller's Box",
+      ),
+    for (final url in record.videoUrls.map(ccLinkUrl).nonNulls)
+      if (linked.add(url))
+        DanceLink(id: mintLinkId(), kind: LinkKind.video, url: url),
+  ];
+
+  // A published source: its id is a placeholder the importer resolves to a
+  // matched or created [PublishedSource] at commit, as for user fields.
+  final reference = _sanitizeLine(record.reference);
+  final citations = [
+    if (reference != null)
+      SourceCitation(
+        sourceId: ccPublishedSourcePlaceholderId(reference),
+        page: _sanitizeLine(record.pageNumber),
+      ),
+  ];
 
   // Body → figures (design §2). Each `(beats) text` line has its leading beats
   // prefix peeled off ([splitCcBeatPrefix], which accepts a lone `(16)` or a
@@ -373,11 +504,14 @@ CcDanceMapping mapCallersCompanionDance(
     form: form,
     formation: formation,
     progression: progression,
+    mixer: mixer,
     figures: figures,
     callingNotes: notes,
     difficultyLevelId: difficultyLevelId,
     mixedLevel: mixedLevel,
     rating: rating,
+    links: links,
+    sourceCitations: citations,
     customFields: [
       for (final field in userFieldPlan.fields)
         CustomFieldValue(
@@ -614,11 +748,20 @@ bool callersCompanionDifficultyLabelMatches(
   };
 }
 
-(DanceForm, String?) _mapForm(String? raw, List<ImportIssue> issues) {
+(DanceForm, String?) _mapForm(
+  String? raw,
+  List<ImportIssue> issues, {
+  bool typeIsFormation = false,
+}) {
   final value = raw?.trim().toLowerCase() ?? '';
   if (value.isEmpty) return (DanceForm.contra, null);
   if (value.contains('contra')) return (DanceForm.contra, null);
   if (value.contains('square')) return (DanceForm.square, null);
+  // Formation types, read into the formation instead when it is built from the
+  // `.USR` columns (#1972); the text export keeps them as a note.
+  if (typeIsFormation && _ccFormationTypes.contains(value)) {
+    return (DanceForm.contra, null);
+  }
   if (value.contains('english') || value == 'ecd') {
     return (DanceForm.ecd, null);
   }
@@ -632,6 +775,103 @@ bool callersCompanionDifficultyLabelMatches(
     ),
   );
   return (DanceForm.contra, 'Type: ${raw.trim()}');
+}
+
+/// CC `Type` values that name a formation rather than a dance form.
+const Set<String> _ccFormationTypes = {
+  'circle mixer',
+  'scatter mixer',
+  'longways',
+};
+
+bool _isCcMixer(CcDanceRecord r) {
+  final type = r.type?.trim().toLowerCase() ?? '';
+  final subType = r.subType?.trim().toLowerCase() ?? '';
+  return type == 'circle mixer' ||
+      type == 'scatter mixer' ||
+      subType.startsWith('mixer');
+}
+
+/// [f] with [detail] appended to its own detail.
+Formation _withDetail(Formation f, String? detail) {
+  if (detail == null) return f;
+  return Formation(
+    f.shape,
+    detail: f.detail == null ? detail : '${f.detail}; $detail',
+  );
+}
+
+/// The formation from a `.USR`'s separate columns (#1972). `Type` and the
+/// `Formation` family decide the shape; a duple minor's `ContraForm` and
+/// `Direction` refine it; `FormationOther` is the detail. A family or start
+/// outside the values CC offers is read as the text export's single string
+/// would be, so it keeps that reading or is preserved as text.
+Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
+  String low(String? v) => v?.trim().toLowerCase() ?? '';
+  final type = low(r.type);
+  final family = low(r.formationFamily);
+  final contraForm = low(r.contraForm);
+  final direction = low(r.direction);
+  final other = _sanitizeLine(r.formationOther);
+  final detail = (other == null || other.isEmpty) ? null : other;
+
+  if (type == 'circle mixer') {
+    return Formation(FormationShape.circleMixer, detail: detail);
+  }
+  if (type == 'scatter mixer') {
+    return Formation(FormationShape.scatterMixer, detail: detail);
+  }
+  if (type == 'longways') {
+    return Formation(FormationShape.longways, detail: detail);
+  }
+  switch (family) {
+    case 'four facing four':
+      return Formation(FormationShape.fourFaceFour, detail: detail);
+    case 'triplet':
+      return Formation(FormationShape.triplet, detail: detail);
+    case 'triple minor':
+      // No triple-minor shape per start, so the start is the detail.
+      final start = _sanitizeLine(r.contraForm);
+      final parts = [?start, ?detail].where((p) => p.isNotEmpty);
+      return Formation(
+        FormationShape.tripleMinor,
+        detail: parts.isEmpty ? null : parts.join('; '),
+      );
+    case 'square':
+      return Formation(
+        FormationShape.other,
+        detail: detail == null ? 'Square' : 'Square; $detail',
+      );
+    case 'other':
+      return Formation(FormationShape.other, detail: detail ?? 'Other');
+    case '' when contraForm.isEmpty && detail != null:
+      // Only the caller's own description: read it as the text export reads
+      // its single string, as before #1972.
+      return _mapFormation(r.formationOther, issues);
+    case '' || 'duple minor':
+      break;
+    default:
+      return _withDetail(_mapFormation(r.formationFamily, issues), detail);
+  }
+  final FormationShape shape;
+  switch (contraForm) {
+    case 'becket':
+      shape = direction == 'ccw'
+          ? FormationShape.becketCcw
+          : FormationShape.becketCw;
+    case 'indecent':
+      shape = FormationShape.dupleIndecent;
+    case 'proper':
+      shape = FormationShape.dupleProper;
+    case 'improper' || '':
+      // No start stated defaults to improper, as the single-string path does.
+      shape = direction == 'rev'
+          ? FormationShape.reverseProgressionImproper
+          : FormationShape.dupleImproper;
+    default:
+      return _withDetail(_mapFormation(r.contraForm, issues), detail);
+  }
+  return Formation(shape, detail: detail);
 }
 
 Formation _mapFormation(String? raw, List<ImportIssue> issues) {
@@ -1046,3 +1286,49 @@ int? _mapRating(String? raw, List<ImportIssue> issues) {
   }
   return parsed;
 }
+
+/// The prefix of the placeholder source id [mapCallersCompanionDance] gives a
+/// CC `Reference`, which `CallersCompanionUsrImporter` resolves at commit.
+const String kCcPublishedSourceIdPrefix = 'cc-published-source:';
+
+/// The placeholder source id for the CC reference titled [title].
+String ccPublishedSourcePlaceholderId(String title) =>
+    '$kCcPublishedSourceIdPrefix$title';
+
+/// The title carried by a placeholder source id, or null for a real id.
+String? ccPublishedSourceTitleOf(String sourceId) =>
+    sourceId.startsWith(kCcPublishedSourceIdPrefix)
+    ? sourceId.substring(kCcPublishedSourceIdPrefix.length)
+    : null;
+
+/// The longest link kept from an imported file; longer is not a real link.
+const int _maxCcLinkLength = 2048;
+
+/// [raw] as a link to keep, or null: only an `http`/`https` URL with a host
+/// and no whitespace, control or invisible characters, so CC's empty `http://`
+/// placeholder and anything that is not a web link are dropped (imported text
+/// is untrusted).
+String? ccLinkUrl(String? raw) {
+  final trimmed = raw?.trim() ?? '';
+  if (trimmed.isEmpty || trimmed.length > _maxCcLinkLength) return null;
+  if (trimmed.contains(RegExp(r'\s')) ||
+      sanitizeImportedText(trimmed, allowLineBreaks: false) != trimmed) {
+    return null;
+  }
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+    return null;
+  }
+  if (uri.host.isEmpty) return null;
+  return trimmed;
+}
+
+/// The Caller's Box page of the dance with the id [raw], or null when [raw] is
+/// not a plain number.
+String? callersBoxDanceUrl(String? raw) {
+  final id = raw?.trim() ?? '';
+  if (!_callersBoxIdRe.hasMatch(id)) return null;
+  return 'https://ibiblio.org/contradance/thecallersbox/dance.php?id=$id';
+}
+
+final RegExp _callersBoxIdRe = RegExp(r'^[0-9]{1,9}$');

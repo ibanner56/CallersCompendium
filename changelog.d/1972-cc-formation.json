@@ -1,0 +1,19 @@
+{
+  "id": "1972-cc-formation",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A Caller's Companion library now brings each dance's formation across as it was recorded: counterclockwise Beckets stay counterclockwise, and four facing four, triplets, triple minors and longways keep their shape instead of becoming duple improper.",
+      "Circle and scatter mixers from Caller's Companion are now marked as mixers, and your own description of a dance's starting position is kept as the formation's detail.",
+      "Alternates in Caller's Companion sets now come across as alternates instead of ordinary dances."
+    ]
+  },
+  "core": {
+    "added": [
+      "CcDanceRecord carries the .USR formation columns separately (subType, formationFamily, contraForm, direction, formationOther) and fromUsrColumns, set by ccDanceRecordFromColumns."
+    ],
+    "changed": [
+      "mapCallersCompanionDance maps a .USR record's formation columns together and sets mixer for CC's Circle Mixer and Scatter Mixer types and mixer SubTypes; a text-export record keeps its single formation string. A .USR SetItem whose AlternateDance is \"ALT\" is an alternate."
+    ]
+  }
+}

@@ -2528,7 +2528,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.';
+      'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -2919,6 +2919,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
       'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Require an event date for calling history';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
@@ -3323,6 +3331,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'There isn\'t enough free space to replace this backup ($neededMb MB needed; $freeMb MB free), so nothing was saved. Your earlier backup is unchanged.';
+  }
+
+  @override
   String get backupExportInProgress => 'Preparing your backup…';
 
   @override
@@ -3348,6 +3361,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get diagnosticsExportFailed => 'Couldn\'t export the diagnostics log.';
+
+  @override
+  String get diagnosticsClearFailed => 'Couldn’t clear the diagnostics log.';
 
   @override
   String get diagnosticsClearLogTitle => 'Clear diagnostics log?';
@@ -3436,6 +3452,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonUndo => 'Undo';
+
+  @override
+  String get commonUndoFailed =>
+      'Couldn’t undo that. Please check the result and try again.';
 
   @override
   String get commonRetry => 'Retry';
@@ -4590,6 +4610,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsMarkedAllPerformed => 'Marked all dances performed.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Marked all dances performed except alternates. Mark an alternate yourself if you called it.';
 
   @override
   String programsSavedSnack(String title) {
@@ -6577,6 +6601,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That file didn\'t contain any dances or programs.';
 
   @override
+  String get archiveIntakeRejectedBackup =>
+      'That file is a backup, not a share file. To bring it into this device, go to Settings › General and choose Restore from a backup.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Imports must use a secure https:// URL.';
 
@@ -7153,36 +7181,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Imported $count items.',
-      one: 'Imported 1 item.',
-      zero: 'Import complete.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportCompleteWithFailures(int count, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Imported $count items.',
-      one: 'Imported 1 item.',
-      zero: 'Nothing was imported.',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed dances couldn\'t be imported.',
-      one: '1 dance couldn\'t be imported.',
-    );
-    return '$_temp0 $_temp1';
-  }
-
-  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7229,6 +7227,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return 'Figures added to or updated in your Glossary: $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count updated (re-imported)';
   }
@@ -7240,6 +7243,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count program note(s):',
       one: '$count program note(s):',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes:',
+      one: '1 note:',
     );
     return '$_temp0';
   }
@@ -7292,6 +7306,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'Couldn\'t complete the import.';
+
+  @override
+  String get importFileNotText =>
+      'Couldn\'t read that file: it isn\'t text the app can read. If another app saved it, save it again as UTF-8 text and try again.';
+
+  @override
+  String get importFileUnreadable =>
+      'Couldn\'t open that file. Another app may be using it, or it may be on a drive that isn\'t connected.';
 
   @override
   String importReviewVariationTitle(String title) {
@@ -7801,6 +7823,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'You have an unsaved draft for this dance. Would you like to restore it?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'You have an unsaved draft of another new dance, “$title”. Would you like to restore it instead of starting a new one?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'You have an unsaved draft of another new dance, not yet titled. Would you like to restore it instead of starting a new one?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Draft saved $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'This dance has been changed since the draft was saved. Restoring the draft replaces those changes.';
 
   @override
   String get danceEditorDiscard => 'Discard';
@@ -8541,6 +8581,22 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Changed $count dances back.',
+      one: 'Changed 1 dance back.',
+      zero:
+          'No dances were changed back: each one\'s type or tags have changed since.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Closing…';
 
   @override
   String updateBannerAvailable(String appName, String version) {

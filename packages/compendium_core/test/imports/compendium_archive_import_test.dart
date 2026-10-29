@@ -422,6 +422,87 @@ void main() {
     },
   );
 
+  test('a received program arrives as a Draft with the sender\'s marks and '
+      'event date cleared (F6)', () {
+    final gig = DateTime.utc(2026, 10, 24, 20);
+    final archive = CompendiumArchive(
+      exportedAt: now,
+      programs: [
+        Program(
+          id: 'orig-performed',
+          title: 'Saturday',
+          eventDate: gig,
+          venue: 'Grange Hall',
+          caller: 'Alice',
+          status: ProgramStatus.performed,
+          slots: [
+            ProgramSlot(
+              id: 'orig-s1',
+              position: 0,
+              danceId: 'orig-d1',
+              performedAt: gig,
+            ),
+            ProgramSlot(
+              id: 'orig-s2',
+              position: 1,
+              danceId: 'orig-d2',
+              isAlt: true,
+              performedAt: gig,
+            ),
+          ],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ],
+    );
+
+    final program = buildArchivePrograms(
+      archive,
+      danceIdByOriginalId: const {'orig-d1': 'd1', 'orig-d2': 'd2'},
+      newId: sequentialIds('program'),
+      newSlotId: sequentialIds('slot'),
+      now: now,
+    ).programs.single;
+
+    expect(program.status, ProgramStatus.draft);
+    expect(program.eventDate, isNull);
+    expect(program.slots.map((s) => s.performedAt), [null, null]);
+    // Everything else about the plan travels.
+    expect(program.venue, 'Grange Hall');
+    expect(program.caller, 'Alice');
+    expect(program.slots.map((s) => s.danceId), ['d1', 'd2']);
+    expect(program.slots[1].isAlt, isTrue);
+  });
+
+  test('a received Performed program adds nothing to the receiver\'s '
+      'performed history (OUT-2)', () async {
+    final archive = _bundle();
+    final performed = archive.programs.single.copyWith(
+      eventDate: DateTime.utc(2026, 10, 24),
+    );
+    final received = CompendiumArchive(
+      exportedAt: archive.exportedAt,
+      dances: archive.dances,
+      programs: [performed],
+    );
+    await importer.import(
+      encodeArchive(received),
+      received,
+      now: now,
+      newId: sequentialIds('new'),
+      newSlotId: sequentialIds('slot'),
+    );
+
+    // Persisting a Performed status would stamp the primaries on create; the
+    // Draft import leaves every slot unmarked and the program undated.
+    final stored = (await programs.listAll()).single;
+    expect(stored.slots.map((s) => s.performedAt), everyElement(isNull));
+    expect(await programs.lastCalledByDance(), isEmpty);
+    final counts = await programs.countByDance();
+    expect(counts.values.map((c) => c.performed), everyElement(0));
+    expect(counts.values.map((c) => c.dated), everyElement(0));
+  });
+
   test('preserves purge markers when rebuilding imported programs', () {
     final archive = CompendiumArchive(
       exportedAt: now,
@@ -486,15 +567,16 @@ void main() {
     final allPrograms = await programs.listAll();
     expect(allPrograms, hasLength(1));
     expect(result.insertedProgramCount, 1);
-    expect(result.updatedProgramCount, 0);
 
     final program = allPrograms.single;
     expect(program.title, 'Spring Fling');
     expect(program.venue, 'Grange Hall');
     expect(program.band, 'The Fiddleheads');
     expect(program.caller, 'Alice');
-    expect(program.status, ProgramStatus.performed);
-    // Provenance keyed on the original program id, for dedupe on re-receive.
+    // The sender's Performed status does not travel (see the F6 tests below).
+    expect(program.status, ProgramStatus.draft);
+    // Provenance keyed on the original program id, recording where it came
+    // from.
     expect(program.provenance?.source, ProvenanceSource.json);
     expect(program.provenance?.externalId, 'orig-p1');
   });
@@ -775,7 +857,8 @@ void main() {
     );
   });
 
-  test('re-importing the same bundle dedupes — no duplicates', () async {
+  test('re-receiving a program adds a new copy and leaves the caller\'s copy '
+      'alone (F6)', () async {
     final archive = _bundle();
     final first = await importer.import(
       encodeArchive(archive),
@@ -784,92 +867,107 @@ void main() {
       newId: sequentialIds('first'),
       newSlotId: sequentialIds('firstslot'),
     );
-    final firstStamp = await programExistenceStamp(first.programs.single.id);
+    final mine = first.programs.single;
+    final firstStamp = await programExistenceStamp(mine.id);
 
-    final result2 = await importer.import(
-      encodeArchive(archive),
-      archive,
-      now: now.add(const Duration(days: 1)),
-      newId: sequentialIds('second'),
-      newSlotId: sequentialIds('secondslot'),
+    // The caller makes the received program their own: dates it, marks a
+    // slot performed, and edits its notes.
+    final gig = DateTime.utc(2026, 8, 1, 20);
+    final edited = mine.copyWith(
+      eventDate: gig,
+      notes: 'my notes',
+      status: ProgramStatus.performed,
+      slots: [
+        mine.slots.first.copyWith(performedAt: gig),
+        ...mine.slots.skip(1),
+      ],
     );
+    await programs.update(edited);
 
-    // Still one program and two dances after the second import.
-    expect(await programs.listAll(), hasLength(1));
-    final titles = (await dances.listAll()).map((d) => d.title).toList();
-    expect(titles.where((t) => t == 'Simplicity Swing'), hasLength(1));
-    expect(titles.where((t) => t == 'Petronella'), hasLength(1));
-    // The program was updated in place, not inserted again.
-    expect(result2.updatedProgramCount, 1);
-    expect(result2.insertedProgramCount, 0);
-    expect(
-      await programExistenceStamp(first.programs.single.id),
-      firstStamp,
-      reason: 'ordinary content re-imports are not existence transitions',
-    );
-  });
-
-  test('re-importing a deleted program restores existence ordering and undo '
-      're-tombstones it', () async {
-    final archive = _bundle();
-    final first = await importer.import(
-      encodeArchive(archive),
-      archive,
-      now: now,
-      newId: sequentialIds('first'),
-      newSlotId: sequentialIds('firstslot'),
-    );
-    final programId = first.programs.single.id;
-    final deletedAt = now.add(const Duration(days: 1));
-    await programs.softDelete(programId, at: deletedAt);
-    final tombstone = await programExistenceStamp(programId);
-
+    // The sender then sends an updated version of the same program.
     final updatedArchive = CompendiumArchive(
       exportedAt: archive.exportedAt,
       dances: archive.dances,
       programs: [archive.programs.single.copyWith(title: 'Updated Fling')],
     );
-    final importedAt = now.add(const Duration(days: 2));
-    final second = await importer.import(
+    final result2 = await importer.import(
       encodeArchive(updatedArchive),
       updatedArchive,
-      now: importedAt,
+      now: now.add(const Duration(days: 1)),
       newId: sequentialIds('second'),
       newSlotId: sequentialIds('secondslot'),
     );
 
-    expect(second.restoredProgramIds, [programId]);
-    final revived = await programs.getById(programId);
-    expect(revived, isNotNull);
-    expect(revived!.title, 'Updated Fling');
-    final revivedStamp = await programExistenceStamp(programId);
-    expect(revivedStamp, greaterThan(tombstone));
+    // Dances still dedupe...
+    final titles = (await dances.listAll()).map((d) => d.title).toList();
+    expect(titles.where((t) => t == 'Simplicity Swing'), hasLength(1));
+    expect(titles.where((t) => t == 'Petronella'), hasLength(1));
+    // ...but the program arrives as a new one beside the caller's.
+    expect(result2.insertedProgramCount, 1);
+    final copy = result2.programs.single;
+    expect(copy.id, isNot(mine.id));
+    expect(copy.title, 'Updated Fling');
+    expect(await programs.listAll(), hasLength(2));
 
-    final undoAt = importedAt.add(const Duration(days: 90));
-    await importer.undo(second, now: () => undoAt);
-    final undone = await programs.getById(programId, includeDeleted: true);
-    expect(undone, isNotNull);
-    expect(undone!.deletedAt, isNotNull);
-    final undoneStamp = await programExistenceStamp(programId);
+    final kept = (await programs.getById(mine.id))!;
+    expect(kept.title, 'Spring Fling');
+    expect(kept.eventDate, gig);
+    expect(kept.notes, 'my notes');
+    expect(kept.status, ProgramStatus.performed);
+    expect(kept.slots.first.performedAt, gig);
     expect(
-      undoneStamp,
-      greaterThan(revivedStamp),
-      reason: 'undo must create a later causal tombstone',
+      await programExistenceStamp(mine.id),
+      firstStamp,
+      reason: 'the caller\'s copy is not written at all',
     );
-    expect(
-      undone.updatedAt,
-      undoAt,
-      reason: 'undo must not move updatedAt back to the import timestamp',
+
+    // Undo removes only the new copy.
+    await importer.undo(result2);
+    expect((await programs.listAll()).map((p) => p.id), [mine.id]);
+  });
+
+  test('re-receiving a program the caller deleted adds a new one and leaves '
+      'the deleted one in Recently deleted', () async {
+    final archive = _bundle();
+    final first = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now,
+      newId: sequentialIds('first'),
+      newSlotId: sequentialIds('firstslot'),
     );
+    final deletedId = first.programs.single.id;
+    await programs.softDelete(deletedId, at: now.add(const Duration(days: 1)));
+    final tombstone = await programExistenceStamp(deletedId);
+
+    final second = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now.add(const Duration(days: 2)),
+      newId: sequentialIds('second'),
+      newSlotId: sequentialIds('secondslot'),
+    );
+
+    final live = await programs.listAll();
+    expect(live.map((p) => p.id), [second.programs.single.id]);
+    expect(second.programs.single.id, isNot(deletedId));
+    final stillDeleted = await programs.getById(
+      deletedId,
+      includeDeleted: true,
+    );
+    expect(stillDeleted!.deletedAt, isNotNull);
+    expect(await programExistenceStamp(deletedId), tombstone);
+
+    await importer.undo(second);
+    expect(await programs.listAll(), isEmpty);
     expect(
-      await programs.purgeDeleted(now: undoAt),
-      0,
-      reason: 'a delayed undo must not make the program immediately purgeable',
+      (await programs.getById(deletedId, includeDeleted: true))!.deletedAt,
+      isNotNull,
     );
   });
 
   test(
-    'a later program failure re-tombstones a program restored earlier',
+    'a later program failure removes the programs inserted before it',
     () async {
       final archive = _bundle();
       final secondProgram = Program(
@@ -884,21 +982,7 @@ void main() {
         dances: archive.dances,
         programs: [archive.programs.single, secondProgram],
       );
-      final first = await importer.import(
-        encodeArchive(twoPrograms),
-        twoPrograms,
-        now: now,
-        newId: sequentialIds('first'),
-        newSlotId: sequentialIds('firstslot'),
-      );
-      final restoredId = first.programs.first.id;
-      await programs.softDelete(
-        restoredId,
-        at: now.add(const Duration(days: 1)),
-      );
-      final tombstone = await programExistenceStamp(restoredId);
-
-      final failing = _FailingSecondProgramUpdateRepository(db);
+      final failing = _FailingSecondProgramCreateRepository(db);
       final rollbackImporter = CompendiumArchiveImporter(
         ImportPipeline(
           DanceRepository(db, contraTaxonomy),
@@ -912,24 +996,15 @@ void main() {
         rollbackImporter.import(
           encodeArchive(twoPrograms),
           twoPrograms,
-          now: now.add(const Duration(days: 2)),
-          newId: sequentialIds('second'),
-          newSlotId: sequentialIds('secondslot'),
+          now: now,
+          newId: sequentialIds('new'),
+          newSlotId: sequentialIds('slot'),
         ),
         throwsA(isA<StateError>()),
       );
 
-      final rolledBack = await programs.getById(
-        restoredId,
-        includeDeleted: true,
-      );
-      expect(rolledBack, isNotNull);
-      expect(rolledBack!.deletedAt, isNotNull);
-      expect(
-        await programExistenceStamp(restoredId),
-        greaterThan(tombstone),
-        reason: 'compensating rollback must leave a later tombstone',
-      );
+      expect(await programs.listAll(includeDeleted: true), isEmpty);
+      expect(await dances.listAll(), isEmpty);
     },
   );
 
@@ -987,17 +1062,16 @@ void main() {
       expect(all.single.title, 'Second');
       expect(result.programs, hasLength(1));
       expect(result.insertedProgramCount, 1);
-      expect(result.updatedProgramCount, 0);
 
       // Undo removes it cleanly (the second occurrence was an in-commit update
-      // of our own insert, so no bogus prior state was captured).
+      // of our own insert).
       await importer.undo(result);
       expect(await programs.listAll(), isEmpty);
     },
   );
 
-  test('undo restores the true pre-import state when a re-import repeats an '
-      'existing externalId', () async {
+  test('a re-import that repeats an existing externalId adds one new program '
+      'and leaves the existing one alone', () async {
     // First import establishes a program in the DB (externalId "orig-dup").
     final d1 = _dance('orig-d1', 'Simplicity Swing');
     Program variant(String title) => Program(
@@ -1022,11 +1096,8 @@ void main() {
       newSlotId: sequentialIds('firstslot'),
     );
     final preImport = (await programs.listAll()).single;
-    expect(preImport.title, 'Original');
-    expect(preImport.notes, 'keep me');
 
-    // Re-import: an (untrusted) archive that repeats the SAME externalId twice
-    // against the pre-existing program.
+    // Re-import: an (untrusted) archive that repeats the SAME externalId twice.
     final second = CompendiumArchive(
       exportedAt: DateTime.utc(2026, 7, 16),
       dances: [d1],
@@ -1040,108 +1111,77 @@ void main() {
       newSlotId: sequentialIds('secondslot'),
     );
 
-    // One program, updated in place; the prior state was captured exactly once
-    // (a single existing id, despite the duplicate in the bundle).
-    expect(await programs.listAll(), hasLength(1));
-    expect(result2.insertedProgramCount, 0);
-    expect(result2.updatedProgramCount, 1);
+    // The repeat collapses to one new program carrying the last-seen state;
+    // the existing program is untouched.
+    expect(result2.insertedProgramCount, 1);
+    expect(result2.programs.single.title, 'Edited B');
+    final all = await programs.listAll();
+    expect(all, hasLength(2));
+    final kept = all.singleWhere((p) => p.id == preImport.id);
+    expect(kept.title, 'Original');
+    expect(kept.notes, 'keep me');
 
-    // Undo restores the TRUE pre-import state, not the intermediate "Edited A".
     await importer.undo(result2);
     final restored = (await programs.listAll()).single;
     expect(restored.id, preImport.id);
     expect(restored.title, 'Original');
-    expect(restored.notes, 'keep me');
   });
 
-  test('imports carry a program dialectName on both the fresh and the '
-      're-import path (issue #1554)', () async {
+  test('imports carry a program dialectName (issue #1554)', () async {
     final d1 = _dance('orig-d1', 'Simplicity Swing');
-    Program variant({String? dialectName}) => Program(
-      id: 'orig-dialect',
-      title: 'Spring Fling',
-      dialectName: dialectName,
-      status: ProgramStatus.draft,
-      slots: [ProgramSlot(id: 'sl-1', position: 0, danceId: 'orig-d1')],
-      createdAt: DateTime.utc(2026, 4, 1),
-      updatedAt: DateTime.utc(2026, 4, 1),
+    final archive = CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 7, 15),
+      dances: [d1],
+      programs: [
+        Program(
+          id: 'orig-dialect',
+          title: 'Spring Fling',
+          dialectName: 'Leads/Follows',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 'sl-1', position: 0, danceId: 'orig-d1')],
+          createdAt: DateTime.utc(2026, 4, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+        ),
+      ],
     );
-    Future<CompendiumArchiveImportResult> run(Program p, String tag, int day) {
-      final archive = CompendiumArchive(
-        exportedAt: DateTime.utc(2026, 7, 15 + day),
-        dances: [d1],
-        programs: [p],
-      );
-      return importer.import(
-        encodeArchive(archive),
-        archive,
-        now: now.add(Duration(days: day)),
-        newId: sequentialIds(tag),
-        newSlotId: sequentialIds('$tag-slot'),
-      );
-    }
-
-    // Fresh import: the program is minted with the archive's dialect.
-    await run(variant(dialectName: 'Leads/Follows'), 'first', 0);
+    await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now,
+      newId: sequentialIds('first'),
+      newSlotId: sequentialIds('first-slot'),
+    );
     expect((await programs.listAll()).single.dialectName, 'Leads/Follows');
-
-    // Re-import onto the same program: the archive's value replaces it, as
-    // every other archive field (hideAlternates, band, ...) does. Only
-    // venueId is preserved for an archive that cannot carry it; there is no
-    // archive-version signal for dialectName, so a re-import of an archive
-    // that carries none clears the local value.
-    final second = await run(variant(dialectName: 'Larks/Robins'), 'second', 1);
-    expect(second.updatedProgramCount, 1);
-    expect((await programs.listAll()).single.dialectName, 'Larks/Robins');
-
-    await run(variant(), 'third', 2);
-    expect((await programs.listAll()).single.dialectName, isNull);
   });
 
-  test('imports carry program pay on both the fresh and the re-import '
-      'path (issue #1418)', () async {
+  test('imports carry program pay (issue #1418)', () async {
     final d1 = _dance('orig-d1', 'Simplicity Swing');
-    Program variant({int? minor, String? currency}) => Program(
-      id: 'orig-pay',
-      title: 'Spring Fling',
-      payMinorUnits: minor,
-      payCurrency: currency,
-      status: ProgramStatus.draft,
-      slots: [ProgramSlot(id: 'sl-1', position: 0, danceId: 'orig-d1')],
-      createdAt: DateTime.utc(2026, 4, 1),
-      updatedAt: DateTime.utc(2026, 4, 1),
+    final archive = CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 7, 15),
+      dances: [d1],
+      programs: [
+        Program(
+          id: 'orig-pay',
+          title: 'Spring Fling',
+          payMinorUnits: 25050,
+          payCurrency: 'USD',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 'sl-1', position: 0, danceId: 'orig-d1')],
+          createdAt: DateTime.utc(2026, 4, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+        ),
+      ],
     );
-    Future<CompendiumArchiveImportResult> run(Program p, String tag, int day) {
-      final archive = CompendiumArchive(
-        exportedAt: DateTime.utc(2026, 7, 15 + day),
-        dances: [d1],
-        programs: [p],
-      );
-      return importer.import(
-        encodeArchive(archive),
-        archive,
-        now: now.add(Duration(days: day)),
-        newId: sequentialIds(tag),
-        newSlotId: sequentialIds('$tag-slot'),
-      );
-    }
-
-    await run(variant(minor: 25050, currency: 'USD'), 'first', 0);
-    var loaded = (await programs.listAll()).single;
+    await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now,
+      newId: sequentialIds('first'),
+      newSlotId: sequentialIds('first-slot'),
+    );
+    final loaded = (await programs.listAll()).single;
     expect(loaded.payMinorUnits, 25050);
     expect(loaded.payCurrency, 'USD');
-
-    await run(variant(minor: 9000, currency: 'JPY'), 'second', 1);
-    loaded = (await programs.listAll()).single;
-    expect(loaded.payMinorUnits, 9000);
-    expect(loaded.payCurrency, 'JPY');
-
-    // Like dialectName, the archive's value replaces the local one, so an
-    // archive without pay clears it.
-    await run(variant(), 'third', 2);
-    loaded = (await programs.listAll()).single;
-    expect(loaded.payMinorUnits, isNull);
-    expect(loaded.payCurrency, isNull);
   });
 
   test('unresolved dance placeholder preserves any existing note', () async {
@@ -1608,6 +1648,106 @@ void main() {
     });
   });
 
+  // INTAKE-1, scenario B: a friend shares program A (dance d1 is new, so it
+  // imports), then program B, which also uses d1. d1 now plans as a re-import
+  // that the review defaults to Skip and leaves out of the commit, passing its
+  // verdict's target instead. B's slot must link to the local d1, not become a
+  // "Dance not imported" placeholder, and d1 must not be rewritten.
+  test('a re-imported dance left out of the commit still links the slot of a '
+      'program that uses it', () async {
+    final now = DateTime.utc(2026, 7, 15);
+    final first = CompendiumArchive(
+      exportedAt: now,
+      dances: [_dance('orig-d1', 'Shared Reel')],
+      programs: [_programRef('orig-d1')],
+    );
+    await importer.import(
+      encodeArchive(first),
+      first,
+      now: now,
+      newId: sequentialIds('a'),
+      newSlotId: sequentialIds('a-slot'),
+    );
+    final local = (await dances.listAll()).single;
+    await dances.update(local.copyWith(title: 'My Shared Reel'));
+
+    final second = CompendiumArchive(
+      exportedAt: now,
+      dances: [_dance('orig-d1', 'Shared Reel')],
+      programs: [
+        Program(
+          id: 'orig-p2',
+          title: 'Summer Social',
+          slots: [ProgramSlot(id: 'orig-sl9', position: 0, danceId: 'orig-d1')],
+          createdAt: DateTime.utc(2026, 5, 1),
+          updatedAt: DateTime.utc(2026, 5, 1),
+        ),
+      ],
+    );
+    final batch = await importer.plan(encodeArchive(second));
+    final row = batch.records.single;
+    expect(row.verdict.targetDanceId, local.id);
+
+    final result = await importer.commit(
+      ImportBatchResult(records: const []),
+      second,
+      now: now,
+      newId: sequentialIds('b'),
+      newSlotId: sequentialIds('b-slot'),
+      existingDanceIdByExternalId: {
+        row.draft.raw.externalId!: row.verdict.targetDanceId!,
+      },
+    );
+
+    final summer = result.programs.singleWhere(
+      (p) => p.title == 'Summer Social',
+    );
+    expect(summer.slots.single.danceId, local.id);
+    expect(summer.slots.single.text, isNull);
+    expect(result.programIssues, isEmpty);
+    expect((await dances.getById(local.id))!.title, 'My Shared Reel');
+  });
+
+  // INTAKE-6: a shared file opened in the review gets the caller's default
+  // import tags on the dances it creates, as every other import screen route
+  // does. A dance it updates keeps the tags it has.
+  test('default import tags go on the dances a commit creates, not on one it '
+      're-imports', () async {
+    final tagId = await TagRepository(
+      db,
+    ).upsert(Tag(id: 'mine', name: 'Imported'));
+    final first = CompendiumArchive(
+      exportedAt: now,
+      dances: [_dance('orig-d1', 'Simplicity Swing')],
+    );
+    await importer.import(
+      encodeArchive(first),
+      first,
+      now: now,
+      newId: sequentialIds('a'),
+      newSlotId: sequentialIds('a-slot'),
+    );
+    final archive = _bundle();
+    final batch = await importer.plan(encodeArchive(archive));
+    expect(
+      batch.records.map((r) => r.verdict.kind),
+      containsAll([DedupeKind.reimport, DedupeKind.isNew]),
+    );
+
+    await importer.commit(
+      batch,
+      archive,
+      now: now,
+      newId: sequentialIds('b'),
+      newSlotId: sequentialIds('b-slot'),
+      defaultTagIds: [tagId],
+    );
+
+    final byTitle = {for (final d in await dances.listAll()) d.title: d};
+    expect(byTitle['Petronella']!.tagIds, [tagId]);
+    expect(byTitle['Simplicity Swing']!.tagIds, isEmpty);
+  });
+
   group('venue wiring (community import path)', () {
     CompendiumArchive bundleWithVenue({
       String? programVenueId,
@@ -1853,46 +1993,55 @@ void main() {
       expect((await programs.listAll()).single.venueId, all.single.id);
     });
 
-    test('re-importing a strong-key venue dedupes — no duplicate (#456)', () async {
-      // Regression for #456: a strong-key venue (name + a locating field) is
-      // matched by content fingerprint on re-import, so the second import mints
-      // ZERO venues and repoints the (provenance-deduped) program at the venue
-      // already imported — no cross-import duplicate.
-      final archive = bundleWithVenue(
-        programVenueId: 'orig-v1',
-        venues: [
-          Venue(id: 'orig-v1', name: 'Guiding Star Grange', city: 'Greenfield'),
-        ],
-      );
-      final result1 = await importer.import(
-        encodeArchive(archive),
-        archive,
-        now: now,
-        newId: sequentialIds('first'),
-        newSlotId: sequentialIds('firstslot'),
-      );
-      expect(result1.insertedVenueCount, 1);
+    test(
+      're-importing a strong-key venue dedupes — no duplicate (#456)',
+      () async {
+        // Regression for #456: a strong-key venue (name + a locating field) is
+        // matched by content fingerprint on re-import, so the second import mints
+        // ZERO venues and points the new program copy at the venue already
+        // imported — no cross-import duplicate.
+        final archive = bundleWithVenue(
+          programVenueId: 'orig-v1',
+          venues: [
+            Venue(
+              id: 'orig-v1',
+              name: 'Guiding Star Grange',
+              city: 'Greenfield',
+            ),
+          ],
+        );
+        final result1 = await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('first'),
+          newSlotId: sequentialIds('firstslot'),
+        );
+        expect(result1.insertedVenueCount, 1);
 
-      final result2 = await importer.import(
-        encodeArchive(archive),
-        archive,
-        now: now.add(const Duration(days: 1)),
-        newId: sequentialIds('second'),
-        newSlotId: sequentialIds('secondslot'),
-      );
+        final result2 = await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now.add(const Duration(days: 1)),
+          newId: sequentialIds('second'),
+          newSlotId: sequentialIds('secondslot'),
+        );
 
-      // The program deduped by provenance (updated in place, not re-inserted)...
-      final programsAfter = await programs.listAll();
-      expect(programsAfter, hasLength(1));
-      expect(result2.insertedProgramCount, 0);
-      expect(result2.updatedProgramCount, 1);
-      // ...and the venue deduped by fingerprint: no new venue, one row total.
-      expect(result2.insertedVenueCount, 0);
-      final venuesAfter = await venues.listAll();
-      expect(venuesAfter, hasLength(1));
-      // The surviving program still links to that single existing venue.
-      expect(programsAfter.single.venueId, venuesAfter.single.id);
-    });
+        // The program arrives as a new copy (F6)...
+        final programsAfter = await programs.listAll();
+        expect(programsAfter, hasLength(2));
+        expect(result2.insertedProgramCount, 1);
+        // ...but the venue deduped by fingerprint: no new venue, one row total.
+        expect(result2.insertedVenueCount, 0);
+        final venuesAfter = await venues.listAll();
+        expect(venuesAfter, hasLength(1));
+        // Both programs link to that single existing venue.
+        expect(
+          programsAfter.map((p) => p.venueId),
+          everyElement(venuesAfter.single.id),
+        );
+      },
+    );
 
     test(
       're-importing a weak-key (name-only) venue dedupes by provenance (#899)',
@@ -2315,11 +2464,8 @@ void main() {
     });
 
     test(
-      'preserves a user-linked venueId when re-importing a pre-venue archive',
+      're-receiving a pre-venue archive leaves a user-linked venueId alone',
       () async {
-        // A program first imported from a pre-venue (venue-less) bundle: its
-        // requiredSchemaVersion is the base version, so the importer treats it as
-        // unable to express `venueId`.
         final preVenue = bundleWithVenue(slotMarker: null);
         await run(preVenue);
         final imported = (await programs.listAll()).single;
@@ -2329,10 +2475,7 @@ void main() {
         await venues.upsert(Venue(id: 'user-v1', name: 'User Hall'));
         await programs.update(imported.copyWith(venueId: 'user-v1'));
 
-        // Re-importing the SAME pre-venue bundle must NOT clobber that link: the
-        // source cannot express `venueId`, so the rebuilt program's null is
-        // "unknown", not "explicitly cleared" — mirroring the `.USR` re-import.
-        await importer.import(
+        final second = await importer.import(
           encodeArchive(preVenue),
           preVenue,
           now: now.add(const Duration(days: 1)),
@@ -2340,42 +2483,15 @@ void main() {
           newSlotId: sequentialIds('secondslot'),
         );
 
-        final after = (await programs.listAll()).single;
-        expect(after.id, imported.id, reason: 'deduped in place, not inserted');
-        expect(after.venueId, 'user-v1', reason: 'app-local link preserved');
+        // The caller's program is never rewritten, so its link survives; the
+        // re-received copy is a separate program with no link.
+        final kept = (await programs.getById(imported.id))!;
+        expect(kept.venueId, 'user-v1', reason: 'app-local link preserved');
+        expect(second.programs.single.id, isNot(imported.id));
+        expect(second.programs.single.venueId, isNull);
         expect(await venues.getById('user-v1'), isNotNull);
       },
     );
-
-    test('a venue-aware re-import honors an explicit cleared venueId', () async {
-      // A program imported from a venue-aware bundle, linked to a venue.
-      final withVenue = bundleWithVenue(
-        programVenueId: 'orig-v1',
-        venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
-      );
-      await run(withVenue);
-      final imported = (await programs.listAll()).single;
-      expect(imported.venueId, isNotNull);
-
-      // Re-import a bundle that is still venue-aware (it carries venue records)
-      // but whose SAME program now has no venue link. Because the source *can*
-      // express venue semantics, the explicit absence overwrites the match —
-      // the link is cleared, unlike the pre-venue case above.
-      final cleared = bundleWithVenue(
-        venues: [Venue(id: 'orig-v2', name: 'Town Hall')],
-      );
-      await importer.import(
-        encodeArchive(cleared),
-        cleared,
-        now: now.add(const Duration(days: 1)),
-        newId: sequentialIds('second'),
-        newSlotId: sequentialIds('secondslot'),
-      );
-
-      final after = (await programs.listAll()).single;
-      expect(after.id, imported.id, reason: 'deduped in place, not inserted');
-      expect(after.venueId, isNull, reason: 'v2 explicit clear honored');
-    });
 
     test('re-importing a shared (address-redacted) bundle dedupes venue by '
         'provenance (#899)', () async {
@@ -2427,26 +2543,28 @@ void main() {
       expect(allVenues, hasLength(1));
       expect(allVenues.single.id, mintedId);
 
-      // The program still links to the single existing venue.
-      final prog = (await programs.listAll()).single;
-      expect(prog.venueId, mintedId);
+      // Both programs (the first import and the re-received copy) link to the
+      // single existing venue.
+      final progs = await programs.listAll();
+      expect(progs, hasLength(2));
+      expect(progs.map((p) => p.venueId), everyElement(mintedId));
     });
   });
 }
 
-/// Lets the first re-import update succeed, then fails the next one so the
-/// importer's compensation must restore and re-tombstone the first program.
-class _FailingSecondProgramUpdateRepository extends ProgramRepository {
-  _FailingSecondProgramUpdateRepository(super.db);
+/// Lets the first program insert succeed, then fails the next one so the
+/// importer's compensation must remove the first program.
+class _FailingSecondProgramCreateRepository extends ProgramRepository {
+  _FailingSecondProgramCreateRepository(super.db);
 
-  var _updateCount = 0;
+  var _createCount = 0;
 
   @override
-  Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) {
-    _updateCount++;
-    if (_updateCount == 2) {
+  Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) {
+    _createCount++;
+    if (_createCount == 2) {
       throw StateError('simulated later program persist failure');
     }
-    return super.update(program, knownVenueIds: knownVenueIds);
+    return super.create(program, knownVenueIds: knownVenueIds);
   }
 }

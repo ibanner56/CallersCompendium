@@ -31,6 +31,11 @@ const _danceCols = [
   'zi_TypeFormLevel_c', //                12  derived
   'A1', //                                13  Dance-row fallback body
   'zz_TestUnstored', //                   14  derived
+  'Type', //                              15
+  'SubType', //                           16
+  'ContraForm', //                        17
+  'Direction', //                         18
+  'FormationOther', //                    19
 ];
 
 // Phrase: the real columns plus the duplicates the real table carries.
@@ -65,6 +70,11 @@ FmpFixtureTable _dances() => FmpFixtureTable(
         12: 'Contra / Improper / Int',
         if (i == 7) 13: '(8) fallback figure',
         14: 'Duple Minor - Improper',
+        15: i % 5 == 0 ? 'Square' : 'Contra',
+        if (i % 5 == 0) 16: 'Mixer, H H S S',
+        17: i % 3 == 0 ? 'Becket' : 'Improper',
+        if (i % 3 == 0) 18: i.isEven ? 'CCW' : 'CW',
+        if (i % 7 == 0) 19: 'Long Waves, R-hand to Neighbor',
       }),
   ],
 );
@@ -142,7 +152,12 @@ Object _canonical(CcUsrArchive a) => {
         'name': d.record.name,
         'authors': d.record.authors,
         'type': d.record.type,
-        'formation': d.record.formation,
+        // The `.USR` formation columns, read separately (#1972).
+        'subType': d.record.subType,
+        'formationFamily': d.record.formationFamily,
+        'contraForm': d.record.contraForm,
+        'direction': d.record.direction,
+        'formationOther': d.record.formationOther,
         'level': d.record.level,
         'progression': d.record.progression,
         'music': d.record.music,

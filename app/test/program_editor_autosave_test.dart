@@ -374,6 +374,42 @@ void main() {
       },
     );
 
+    testWidgets(
+      'a pending-autosave flush writes the edit now and leaves autosave '
+      'running (PLAT-19)',
+      (tester) async {
+        final repos = openTestRepositories();
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(tester, repos, shutdownController: shutdown);
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Backgrounded title',
+        );
+        await shutdown.flushPending();
+        expect(
+          decodeProgramDraft(
+            await repos.settings.get('program_editor_draft:new'),
+          ).title,
+          'Backgrounded title',
+          reason: 'written at once, not 500 ms later',
+        );
+
+        // Not a final flush: an edit after resuming still autosaves.
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Resumed title',
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        expect(
+          decodeProgramDraft(
+            await repos.settings.get('program_editor_draft:new'),
+          ).title,
+          'Resumed title',
+        );
+      },
+    );
+
     testWidgets('structural change (insert break) autosaves the set list', (
       tester,
     ) async {
@@ -718,6 +754,71 @@ void main() {
           shutdownController: shutdown,
         );
 
+        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+        await tester.pumpAndSettle();
+
+        delayed.programs.holdNextWrite();
+        await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-done')));
+        await tester.pumpAndSettle();
+        await delayed.programs.writeStarted;
+
+        final flush = shutdown.flushAll();
+        var completed = false;
+        final observed = flush.whenComplete(() => completed = true);
+        await tester.pump();
+        expect(completed, isFalse);
+
+        delayed.programs.releaseWrite();
+        await observed;
+        await tester.pumpAndSettle();
+
+        final persisted = await delayed.repos.programs.getById('p1');
+        expect(persisted?.title, 'Before');
+        expect(persisted?.slots.single.performedAt, isNotNull);
+        expect(
+          await delayed.repos.settings.contains('program_editor_draft:p1'),
+          isFalse,
+          reason:
+              'a successful Perform update already removed the draft and '
+              'shutdown must not recreate it',
+        );
+      },
+    );
+
+    testWidgets(
+      'shutdown keeps the draft of unsaved edits after a successful Perform '
+      'update (GIG-4)',
+      (tester) async {
+        final delayed = openTestRepositoriesWithDelayedPrograms();
+        await delayed.repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'First Dance',
+            figures: const [],
+            status: DanceStatus.active,
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        await delayed.repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Before',
+            slots: [_danceSlot('s1', 0, 'd1')],
+          ),
+        );
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(
+          tester,
+          delayed.repos,
+          programId: 'p1',
+          shutdownController: shutdown,
+        );
+
         await tester.enterText(
           find.byKey(const ValueKey('program-title')),
           'Pending metadata',
@@ -745,14 +846,96 @@ void main() {
         await tester.pumpAndSettle();
 
         final persisted = await delayed.repos.programs.getById('p1');
-        expect(persisted?.title, 'Pending metadata');
+        expect(
+          persisted?.title,
+          'Before',
+          reason: 'Perform writes only its own change',
+        );
         expect(persisted?.slots.single.performedAt, isNotNull);
         expect(
-          await delayed.repos.settings.contains('program_editor_draft:p1'),
-          isFalse,
+          await delayed.repos.settings.get('program_editor_draft:p1'),
+          contains('Pending metadata'),
+          reason: 'the unsaved title is still unsaved work to recover',
+        );
+        final recovered = decodeProgramDraft(
+          await delayed.repos.settings.get('program_editor_draft:p1'),
+        );
+        expect(
+          recovered.slots.single.performedAt,
+          persisted?.slots.single.performedAt,
           reason:
-              'a successful Perform update already removed the draft and '
-              'shutdown must not recreate it',
+              "restoring the draft and saving must not erase Perform's mark",
+        );
+      },
+    );
+
+    testWidgets(
+      'shutdown during the post-exit Undo keeps a draft without the undone '
+      'adjustment (GIG-4)',
+      (tester) async {
+        final delayed = openTestRepositoriesWithDelayedPrograms();
+        await delayed.repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'First Dance',
+            figures: const [],
+            status: DanceStatus.active,
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        await delayed.repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Before',
+            slots: [_danceSlot('s1', 0, 'd1')],
+          ),
+        );
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(
+          tester,
+          delayed.repos,
+          programId: 'p1',
+          shutdownController: shutdown,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Pending metadata',
+        );
+        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('adjust-done')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+        await tester.pumpAndSettle();
+
+        delayed.programs.holdNextWrite();
+        await tester.tap(find.byType(SnackBarAction));
+        await tester.pump();
+        await delayed.programs.writeStarted;
+        final flush = shutdown.flushAll();
+        await tester.pump();
+        delayed.programs.releaseWrite();
+        await flush;
+        await tester.pumpAndSettle();
+
+        final persisted = await delayed.repos.programs.getById('p1');
+        expect(persisted?.slots.single.performedAt, isNull);
+        final recovered = decodeProgramDraft(
+          await delayed.repos.settings.get('program_editor_draft:p1'),
+        );
+        expect(recovered.title, 'Pending metadata');
+        expect(
+          recovered.slots.single.performedAt,
+          isNull,
+          reason: 'restoring the draft must not bring back the undone mark',
         );
       },
     );

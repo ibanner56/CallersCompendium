@@ -28,6 +28,7 @@ import '../figure_reparse.dart';
 import '../../sync/sync_record_kind.dart';
 import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
+import '../calling_history_scope.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
@@ -2846,18 +2847,23 @@ class DanceRepository {
     );
   }
 
-  /// [Dance.duplicate] (fresh identity, no provenance) and persists it.
+  /// [Dance.duplicate] (fresh identity, no provenance) and persists it in one
+  /// write. [newTitle] is applied to the copy before it is written; see
+  /// [Dance.duplicate]. This does not touch the *other* dances' reverse
+  /// related-dance links; callers that want those maintained go through the
+  /// app layer's `duplicateDanceWithRelatedLinks`.
   Future<Dance> duplicate({
     required String id,
     required String newId,
     required DateTime now,
+    String? newTitle,
   }) async {
     assertUtc(now, 'now');
     final source = await getById(id, includeDeleted: true);
     if (source == null) {
       throw ArgumentError.value(id, 'id', 'no such dance');
     }
-    final copy = source.duplicate(newId: newId, now: now);
+    final copy = source.duplicate(newId: newId, now: now, newTitle: newTitle);
     await create(copy);
     return copy;
   }
@@ -2908,11 +2914,15 @@ class DanceRepository {
   /// [SearchSort.author] and [SearchSort.lastCalled] reuse the Phase 3.1
   /// orderings and are applied in Dart over the fetched id set. Those two keys
   /// are **not** columns on `dances`: the first author's name comes from
-  /// `dance_authors` joined to `choreographers`, and the last-called timestamp
-  /// is a `MAX(performed_at)` aggregate over `program_slots`/`programs` — so
-  /// they can't be an SQL `ORDER BY` here and are computed as a post-fetch
-  /// step. The post-sort is stable, preserving the SQL title base order for
-  /// ties.
+  /// `dance_authors` joined to `choreographers`, and the last-called date is an
+  /// aggregate over `program_slots`/`programs` — so they can't be an SQL
+  /// `ORDER BY` here and are computed as a post-fetch step. The post-sort is
+  /// stable, preserving the SQL title base order for ties.
+  ///
+  /// [callerFilter], [performedOnly] and [requireEventDate] scope
+  /// [SearchSort.lastCalled] exactly as they scope a [CalledFilter] and the
+  /// "called ×N" count (issue #583's "in lockstep"; FIND-2): pass the same
+  /// values. They have no effect on any other sort.
   ///
   /// When [ignoreLeadingArticles] is `true`, [SearchSort.title] alphabetizes
   /// with a leading article ("the"/"a"/"an") ignored (see [titleSortKey]) —
@@ -2932,6 +2942,9 @@ class DanceRepository {
     Dialect? dialect,
     SearchEnrichment? enrichment,
     bool ignoreLeadingArticles = false,
+    String? callerFilter,
+    bool performedOnly = false,
+    bool requireEventDate = false,
   }) async {
     final dir = direction ?? sort.defaultDirection;
     final descending = dir == SortDirection.descending;
@@ -2951,7 +2964,13 @@ class DanceRepository {
       case SearchSort.author:
         return _sortByAuthor(ids, descending: descending);
       case SearchSort.lastCalled:
-        return _sortByLastCalled(ids, descending: descending);
+        return _sortByLastCalled(
+          ids,
+          descending: descending,
+          caller: normalizeCallingHistoryCaller(callerFilter),
+          performedOnly: performedOnly,
+          requireEventDate: requireEventDate,
+        );
       case SearchSort.title:
         return ignoreLeadingArticles
             ? _sortByTitleIgnoringArticles(ids, descending: descending)
@@ -3047,34 +3066,52 @@ class DanceRepository {
     return sorted;
   }
 
+  /// Orders [ids] by each dance's most recent calling-history date.
+  ///
+  /// The slots it reads are exactly the ones that make up the "called ×N"
+  /// count and the dance-detail history (`ProgramRepository`'s
+  /// `_programDerivedRows` / `_callingHistoryRows`): non-deleted programs, the
+  /// host-caller scope [caller], the alternate rule, when [performedOnly]
+  /// performed slots only, and when [requireEventDate] dated programs only. Each slot's date is the one the history list
+  /// orders by, `COALESCE(performed_at, event_date, updated_at)`; under
+  /// [performedOnly] every counted slot has a `performed_at`, so that reduces
+  /// to the performed stamp. A dance the count would show as never called
+  /// sorts last regardless of direction (FIND-2).
   Future<List<String>> _sortByLastCalled(
     List<String> ids, {
     bool descending = true,
+    required String? caller,
+    required bool performedOnly,
+    required bool requireEventDate,
   }) async {
     if (ids.isEmpty) return ids;
-    // Mirrors ProgramRepository.lastCalledByDance(): most-recent performed_at
-    // per dance across non-deleted programs. Never-called dances sort last
-    // regardless of direction. The aggregate is restricted to the incoming
-    // result `ids` (chunked `dance_id IN (…)`, like [listAll]) so a narrowed
-    // result set does not scan every performed slot in the library. Each
-    // dance_id is unique and lands in one chunk, and `GROUP BY dance_id`
-    // computes each dance's MAX fully within its chunk, so merging the chunk
-    // rows equals a single restricted query.
+    // The aggregate is restricted to the incoming result `ids` (chunked
+    // `dance_id IN (…)`, like [listAll]) so a narrowed result set does not scan
+    // every slot in the library. Each dance_id is unique and lands in one
+    // chunk, and `GROUP BY dance_id` computes each dance's MAX fully within its
+    // chunk, so merging the chunk rows equals a single restricted query.
     final lastCalled = <String, DateTime>{};
     for (final chunk in _chunkIds(ids)) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
       final rows = await _db
           .customSelect(
             'SELECT program_slots.dance_id AS dance_id, '
-            'MAX(program_slots.performed_at) AS last_called '
+            'MAX(COALESCE(program_slots.performed_at, programs.event_date, '
+            'programs.updated_at)) AS last_called '
             'FROM program_slots '
             'JOIN programs ON programs.id = program_slots.program_id '
             'WHERE program_slots.dance_id IS NOT NULL '
-            'AND program_slots.performed_at IS NOT NULL '
+            '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
             'AND programs.deleted_at IS NULL '
+            '${callingHistoryAlternateClause(slotTable: 'program_slots')}'
+            '${callingHistoryEventDateClause(requireEventDate: requireEventDate, programTable: 'programs')}'
+            '${callingHistoryCallerClause(caller, callerColumn: 'programs.caller')}'
             'AND program_slots.dance_id IN ($placeholders) '
             'GROUP BY program_slots.dance_id',
-            variables: [for (final id in chunk) Variable(id)],
+            variables: [
+              if (caller != null) Variable<String>(caller),
+              for (final id in chunk) Variable(id),
+            ],
           )
           .get();
       for (final r in rows) {

@@ -64,7 +64,8 @@ shorthand once you know what it means.
 
 The list, on each [dance](#dance), of the [programs](#program) that include it,
 most recent first — so you can see when you last called it. A setting
-decides whether every program counts or only slots you have marked performed.
+decides whether every program counts or only slots you have marked performed;
+an [alt](#alt) counts only once you mark it performed.
 See [Programs & matrix](./programs.md#track-what-you-have-called).
 
 ## Canonical wording

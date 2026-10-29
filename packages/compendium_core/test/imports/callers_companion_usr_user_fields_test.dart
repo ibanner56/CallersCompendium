@@ -58,6 +58,7 @@ void main() {
         programs ?? ProgramRepository(db),
         VenueRepository(db),
         defs,
+        publishedSources: PublishedSourceRepository(db),
         adapter: adapter,
       );
 
@@ -593,6 +594,7 @@ void main() {
           ProgramRepository(db),
           VenueRepository(db),
           _ThrowingInUseDefs(db),
+          publishedSources: PublishedSourceRepository(db),
           adapter: adapter,
         );
         await expectLater(

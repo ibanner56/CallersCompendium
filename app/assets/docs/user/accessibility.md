@@ -159,8 +159,11 @@ A few smaller settings and behaviors round out the experience:
 - **Reduce motion** (**Settings › General**) dampens non-essential animation. If
   you've already turned on *Reduce Motion* (or *Remove animations*) in your
   device's system accessibility settings, the app honors that automatically — you
-  don't have to find this switch first. Flip the in-app switch when you want to
-  override the system setting in either direction.
+  don't have to find this switch first. Turn the in-app switch on to
+  switch off the app's animations and the fade between themes even when your
+  device allows motion. Turning it off stops the app removing its own
+  animations, but cannot restore animations your device's setting has already
+  shortened.
 - **Confirm before delete** (**Settings › General**) adds a prompt before you
   delete a dance or a program. And regardless of this setting, deletes are
   undoable — so a slip is recoverable either way.

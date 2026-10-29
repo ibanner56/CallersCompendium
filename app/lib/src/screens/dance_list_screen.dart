@@ -12,13 +12,16 @@ import '../data/callersbox_online.dart';
 import '../data/collection_facets_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
+import '../data/default_program_caller_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
+import '../data/related_dance_links.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
+import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
@@ -206,6 +209,19 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Whether calling-history filters use performed slots only.
   bool _requirePerformedForHistory = false;
+
+  /// Whether calling-history filters leave out programs with no event date.
+  bool _requireEventDateForHistory = false;
+
+  /// The live default caller from [DefaultProgramCallerScope], or `null` when
+  /// no scope is wired (then [_boot] reads the setting). While
+  /// [_trackHistoryForAllCallers] is off it scopes the per-dance counts, so a
+  /// change re-runs [_boot] — after [_callerRefreshDelay], because the
+  /// Settings field reports every keystroke and each re-boot is a full
+  /// Collection load (PRES-4).
+  String? _defaultProgramCaller;
+  Timer? _callerRefreshTimer;
+  static const Duration _callerRefreshDelay = Duration(milliseconds: 500);
 
   /// Filter sections hidden in Settings → Defaults (issue #1419), mirrored from
   /// [CollectionFacetsScope] in [didChangeDependencies] so a newly hidden
@@ -395,10 +411,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final trackAllCallersChanged =
         _started && newTrackAllCallers != _trackHistoryForAllCallers;
     _trackHistoryForAllCallers = newTrackAllCallers;
+    final newDefaultCaller = DefaultProgramCallerScope.maybeOf(context);
+    final defaultCallerChanged =
+        _started && newDefaultCaller != _defaultProgramCaller;
+    _defaultProgramCaller = newDefaultCaller;
     final newRequirePerformed = RequirePerformedForHistoryScope.of(context);
     final requirePerformedChanged =
         _started && newRequirePerformed != _requirePerformedForHistory;
     _requirePerformedForHistory = newRequirePerformed;
+    final newRequireEventDate = RequireEventDateForHistoryScope.of(context);
+    final requireEventDateChanged =
+        _started && newRequireEventDate != _requireEventDateForHistory;
+    _requireEventDateForHistory = newRequireEventDate;
 
     // A section hidden while it holds a selection would keep narrowing the list
     // with no control to clear it, so hiding it clears it (issue #1419). Only
@@ -419,13 +443,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _boot();
     } else if (trackAllCallersChanged) {
       _boot();
-    } else if (requirePerformedChanged && !_onlineEnabled && _data != null) {
-      _runSearch();
-    } else if (dialectChanged ||
-        ignoreArticlesChanged ||
-        enrichmentChanged ||
-        facetsCleared) {
-      _runSearch();
+    } else {
+      if (defaultCallerChanged && !_trackHistoryForAllCallers) {
+        _callerRefreshTimer?.cancel();
+        _callerRefreshTimer = Timer(_callerRefreshDelay, _boot);
+      }
+      if ((requirePerformedChanged || requireEventDateChanged) &&
+          !_onlineEnabled &&
+          _data != null) {
+        _runSearch();
+      } else if (dialectChanged ||
+          ignoreArticlesChanged ||
+          enrichmentChanged ||
+          facetsCleared) {
+        _runSearch();
+      }
     }
 
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
@@ -501,15 +533,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
     unawaited(_dataSub?.cancel());
     _filterController?.removeListener(_onTagFilterRequested);
     _debounceTimer?.cancel();
+    _callerRefreshTimer?.cancel();
     _ftsController.dispose();
     super.dispose();
   }
 
   Future<void> _boot() async {
+    _callerRefreshTimer?.cancel();
     try {
       final callerFilter = await resolveCallingHistoryCallerFilter(
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
+        defaultCaller: _defaultProgramCaller,
       );
       if (!mounted) return;
       _watchCollectionData(callerFilter);
@@ -571,7 +606,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// performed, say — changes only the per-dance tallies, and re-running the
   /// FTS query for a badge is the thrash issue #340 records; the rows are
   /// re-derived in memory from the dances already loaded instead. The one
-  /// exception is the last-called sort, whose ORDER BY those very tallies feed.
+  /// exception is the last-called sort, whose ORDER BY is derived from the same
+  /// program rows as those tallies (it runs its own query over them in
+  /// `DanceRepository.search`), so a program-side write can reorder it.
   ///
   /// ## What this skip list must be complete with respect to (issue #768)
   ///
@@ -800,6 +837,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -808,6 +846,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dialect: _dialect,
         enrichment: _enrichment,
         ignoreLeadingArticles: _sortIgnoreArticles,
+        // The Last-called sort reads the same history as the count and the
+        // Called filter above (FIND-2).
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
       );
       if (!mounted || seq != _searchSeq) return;
       setState(() {
@@ -1049,6 +1092,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
   }
 
+  /// Preview fetches that have not finished, by source and dance id.
+  ///
+  /// A fetch cannot be aborted, so Cancel only stops waiting for it; it keeps
+  /// running until it answers or times out. Tapping the same result again in
+  /// that window joins the running fetch instead of starting a second one.
+  final Map<String, Future<OnlinePreview>> _previewFetches = {};
+
+  Future<OnlinePreview> _previewFetchFor(OnlineSearchResultRow result) {
+    final key = '${result.source.name}/${result.id}';
+    return _previewFetches[key] ??= _online
+        .loadPreview(_repos, result)
+        // A block body: `remove` returns this very future, which
+        // `whenComplete` would then wait on forever.
+        .whenComplete(() {
+          _previewFetches.remove(key);
+        });
+  }
+
   Future<void> _pushOnlinePreview(OnlineSearchResultRow result) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -1090,7 +1151,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       ),
     );
-    final fetch = _online.loadPreview(_repos, result);
+    final fetch = _previewFetchFor(result);
     // `Future.any` leaves the fetch running after a cancel; it cannot be
     // aborted, so its eventual outcome is dropped (type-only log on failure).
     unawaited(
@@ -1297,6 +1358,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
     });
   }
 
+  /// Says that a batch write failed (the caller has logged it): selection mode
+  /// stays open so the caller can simply try again. Shared by every batch
+  /// handler, so none of them fails silently.
+  void _reportBatchFailure() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('batch-apply-error-snackbar'),
+          content: Text(AppLocalizations.of(context).collectionBatchApplyError),
+        ),
+      );
+  }
+
   /// Applies a batch tag [mode] to the selected dances.
   Future<void> _batchTag(BatchTagMode mode) =>
       _applyTags(mode, Set<String>.of(_selectedIds));
@@ -1389,16 +1465,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       });
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'dance_list_screen._applyTags');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).collectionBatchApplyError,
-            ),
-          ),
-        );
+      _reportBatchFailure();
       return;
     }
 
@@ -1436,6 +1503,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       key: const ValueKey('batch-tag-snackbar'),
       message: message,
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () => _undoBatchTag(priorTags, newlyCreatedTagIds),
     );
@@ -1486,18 +1554,29 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // Capture prior levels so Undo can restore each dance individually (the
     // batch write collapses them to a single target level).
     final priorLevels = <String, String?>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      priorLevels[id] = dance.difficultyLevelId;
-    }
+    final int count;
+    try {
+      for (final id in selectedIds) {
+        final dance = await _repos.dances.getById(id);
+        if (dance == null) continue;
+        priorLevels[id] = dance.difficultyLevelId;
+      }
 
-    final count = await _repos.dances.setLevelForMany(
-      priorLevels.keys,
-      difficultyLevelId: choice.level?.id,
-      clearDifficultyLevel: choice.clear,
-      now: DateTime.now().toUtc(),
-    );
+      count = await _repos.dances.setLevelForMany(
+        priorLevels.keys,
+        difficultyLevelId: choice.level?.id,
+        clearDifficultyLevel: choice.clear,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchSetLevel',
+      );
+      _reportBatchFailure();
+      return;
+    }
 
     // Narrow the captured priors to only the dances that actually changed, so
     // Undo doesn't rewrite (and re-stamp) untouched dances.
@@ -1536,6 +1615,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       key: const ValueKey('batch-level-snackbar'),
       message: message,
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () => _undoBatchLevel(priorLevels),
     );
@@ -1543,20 +1623,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Restores the captured [priorLevels] for each affected dance (app-side undo;
   /// the repository has no batch-undo primitive).
-  Future<void> _undoBatchLevel(Map<String, String?> priorLevels) async {
-    for (final entry in priorLevels.entries) {
-      final dance = await _repos.dances.getById(entry.key);
-      if (dance == null) continue;
-      await _repos.dances.update(
-        dance.copyWith(
-          difficultyLevelId: entry.value,
-          clearDifficultyLevel: entry.value == null,
-          updatedAt: DateTime.now().toUtc(),
-        ),
-        localUserEdit: true,
-      );
-    }
-  }
+  Future<void> _undoBatchLevel(Map<String, String?> priorLevels) =>
+      _repos.transaction(() async {
+        for (final entry in priorLevels.entries) {
+          final dance = await _repos.dances.getById(entry.key);
+          if (dance == null) continue;
+          await _repos.dances.update(
+            dance.copyWith(
+              difficultyLevelId: entry.value,
+              clearDifficultyLevel: entry.value == null,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+            localUserEdit: true,
+          );
+        }
+      });
 
   /// Shared tail of the batch handlers: announces [message] to AT, exits
   /// selection mode, then shows either a plain "no changes" snackbar (when
@@ -1565,7 +1646,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     required int count,
     required String message,
     required ValueKey<String> snackKey,
-    required VoidCallback onUndo,
+    required FutureOr<void> Function() onUndo,
   }) async {
     if (!mounted) return;
     SemanticsService.sendAnnouncement(
@@ -1590,6 +1671,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       key: snackKey,
       message: message,
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: accessibleNavigation,
       onUndo: onUndo,
     );
@@ -1607,18 +1689,29 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (choice == null || !mounted) return;
 
     final priorRatings = <String, int?>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      priorRatings[id] = dance.rating;
-    }
+    final int count;
+    try {
+      for (final id in selectedIds) {
+        final dance = await _repos.dances.getById(id);
+        if (dance == null) continue;
+        priorRatings[id] = dance.rating;
+      }
 
-    final count = await _repos.dances.setRatingForMany(
-      priorRatings.keys,
-      rating: choice.rating,
-      clearRating: choice.clear,
-      now: DateTime.now().toUtc(),
-    );
+      count = await _repos.dances.setRatingForMany(
+        priorRatings.keys,
+        rating: choice.rating,
+        clearRating: choice.clear,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchSetRating',
+      );
+      _reportBatchFailure();
+      return;
+    }
 
     // Narrow the captured priors to only the dances that actually changed.
     final target = choice.clear ? null : choice.rating;
@@ -1640,20 +1733,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   /// Restores the captured [priorRatings] for each affected dance.
-  Future<void> _undoBatchRating(Map<String, int?> priorRatings) async {
-    for (final entry in priorRatings.entries) {
-      final dance = await _repos.dances.getById(entry.key);
-      if (dance == null) continue;
-      await _repos.dances.update(
-        dance.copyWith(
-          rating: entry.value,
-          clearRating: entry.value == null,
-          updatedAt: DateTime.now().toUtc(),
-        ),
-        localUserEdit: true,
-      );
-    }
-  }
+  Future<void> _undoBatchRating(Map<String, int?> priorRatings) =>
+      _repos.transaction(() async {
+        for (final entry in priorRatings.entries) {
+          final dance = await _repos.dances.getById(entry.key);
+          if (dance == null) continue;
+          await _repos.dances.update(
+            dance.copyWith(
+              rating: entry.value,
+              clearRating: entry.value == null,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+            localUserEdit: true,
+          );
+        }
+      });
 
   /// Merges tunes into the selected dances (additive union) via the batched,
   /// single-transaction [DanceRepository.addTunesForMany]. Captures prior
@@ -1667,27 +1761,38 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (chosen == null || chosen.isEmpty || !mounted) return;
 
     final priorTunes = <String, List<String>>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      // Deliberately not captured for an undecodable list. The snapshot is a
-      // `List<String>`, so it would capture `[]` and Undo would write `[]`
-      // back — destroying stored text the batch itself skipped. Omitting the
-      // entry means Undo never touches that dance, which matches the
-      // repository skipping it.
-      final priors = switch (dance.tunesSource) {
-        DecodedTunes(:final tunes) => tunes.toList(),
-        UnreadableTunes() => null,
-      };
-      if (priors == null) continue;
-      priorTunes[id] = priors;
-    }
+    final int count;
+    try {
+      for (final id in selectedIds) {
+        final dance = await _repos.dances.getById(id);
+        if (dance == null) continue;
+        // Deliberately not captured for an undecodable list. The snapshot is a
+        // `List<String>`, so it would capture `[]` and Undo would write `[]`
+        // back — destroying stored text the batch itself skipped. Omitting the
+        // entry means Undo never touches that dance, which matches the
+        // repository skipping it.
+        final priors = switch (dance.tunesSource) {
+          DecodedTunes(:final tunes) => tunes.toList(),
+          UnreadableTunes() => null,
+        };
+        if (priors == null) continue;
+        priorTunes[id] = priors;
+      }
 
-    final count = await _repos.dances.addTunesForMany(
-      priorTunes.keys,
-      tunes: chosen,
-      now: DateTime.now().toUtc(),
-    );
+      count = await _repos.dances.addTunesForMany(
+        priorTunes.keys,
+        tunes: chosen,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchAddTunes',
+      );
+      _reportBatchFailure();
+      return;
+    }
 
     // Keep only dances that actually gained a tune (union grew the set).
     priorTunes.removeWhere((_, prior) => chosen.every(prior.contains));
@@ -1739,26 +1844,37 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
     final selectedIds = Set<String>.of(_selectedIds);
     final priorTunes = <String, List<String>>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      // Deliberately not captured for an undecodable list. The snapshot is a
-      // `List<String>`, so it would capture `[]` and Undo would write `[]`
-      // back — destroying stored text the batch itself skipped. Omitting the
-      // entry means Undo never touches that dance, which matches the
-      // repository skipping it.
-      final priors = switch (dance.tunesSource) {
-        DecodedTunes(:final tunes) => tunes.toList(),
-        UnreadableTunes() => null,
-      };
-      if (priors == null) continue;
-      priorTunes[id] = priors;
-    }
+    final int count;
+    try {
+      for (final id in selectedIds) {
+        final dance = await _repos.dances.getById(id);
+        if (dance == null) continue;
+        // Deliberately not captured for an undecodable list. The snapshot is a
+        // `List<String>`, so it would capture `[]` and Undo would write `[]`
+        // back — destroying stored text the batch itself skipped. Omitting the
+        // entry means Undo never touches that dance, which matches the
+        // repository skipping it.
+        final priors = switch (dance.tunesSource) {
+          DecodedTunes(:final tunes) => tunes.toList(),
+          UnreadableTunes() => null,
+        };
+        if (priors == null) continue;
+        priorTunes[id] = priors;
+      }
 
-    final count = await _repos.dances.clearTunesForMany(
-      priorTunes.keys,
-      now: DateTime.now().toUtc(),
-    );
+      count = await _repos.dances.clearTunesForMany(
+        priorTunes.keys,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchClearTunes',
+      );
+      _reportBatchFailure();
+      return;
+    }
 
     // Keep only dances that actually had tunes to clear.
     priorTunes.removeWhere((_, prior) => prior.isEmpty);
@@ -1776,16 +1892,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   /// Restores the captured [priorTunes] for each affected dance.
-  Future<void> _undoBatchTunes(Map<String, List<String>> priorTunes) async {
-    for (final entry in priorTunes.entries) {
-      final dance = await _repos.dances.getById(entry.key);
-      if (dance == null) continue;
-      await _repos.dances.update(
-        dance.copyWith(tunes: entry.value, updatedAt: DateTime.now().toUtc()),
-        localUserEdit: true,
-      );
-    }
-  }
+  Future<void> _undoBatchTunes(Map<String, List<String>> priorTunes) =>
+      _repos.transaction(() async {
+        for (final entry in priorTunes.entries) {
+          final dance = await _repos.dances.getById(entry.key);
+          if (dance == null) continue;
+          await _repos.dances.update(
+            dance.copyWith(
+              tunes: entry.value,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+            localUserEdit: true,
+          );
+        }
+      });
 
   /// Sets or clears ONE custom field across the selected dances (upsert
   /// per-key) via the batched, single-transaction
@@ -1798,41 +1918,57 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
     final defs = await _repos.customFieldDefs.listAll();
     if (!mounted) return;
-    final choice = await showBatchCustomFieldDialog(context, defs: defs);
+    final choice = await showBatchCustomFieldDialog(
+      context,
+      defs: defs,
+      repos: _repos,
+    );
     if (choice == null || !mounted) return;
 
     final selectedIds = Set<String>.of(_selectedIds);
+    // Only the chosen field's entries are captured: Undo puts back that one
+    // field, so another field edited in the meantime (by hand, or arriving by
+    // sync) is not overwritten with a stale copy of the whole list.
     final priorFields = <String, List<CustomFieldValue>>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      priorFields[id] = dance.customFields.toList();
-    }
-
     final int count;
-    if (choice.clear) {
-      count = await _repos.dances.clearCustomFieldForMany(
-        priorFields.keys,
-        fieldId: choice.def.id,
-        now: DateTime.now().toUtc(),
+    try {
+      for (final id in selectedIds) {
+        final dance = await _repos.dances.getById(id);
+        if (dance == null) continue;
+        priorFields[id] = [
+          for (final f in dance.customFields)
+            if (f.fieldId == choice.def.id) f,
+        ];
+      }
+
+      if (choice.clear) {
+        count = await _repos.dances.clearCustomFieldForMany(
+          priorFields.keys,
+          fieldId: choice.def.id,
+          now: DateTime.now().toUtc(),
+        );
+      } else {
+        count = await _repos.dances.upsertCustomFieldForMany(
+          priorFields.keys,
+          def: choice.def,
+          value: choice.value!,
+          now: DateTime.now().toUtc(),
+        );
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchCustomField',
       );
-    } else {
-      count = await _repos.dances.upsertCustomFieldForMany(
-        priorFields.keys,
-        def: choice.def,
-        value: choice.value!,
-        now: DateTime.now().toUtc(),
-      );
+      _reportBatchFailure();
+      return;
     }
 
     // Keep only dances whose value for the chosen key actually changed.
     priorFields.removeWhere((_, prior) {
-      final existing = prior
-          .where((f) => f.fieldId == choice.def.id)
-          .map((f) => f.value)
-          .toList();
-      if (choice.clear) return existing.isEmpty;
-      return existing.length == 1 && existing.first == choice.value;
+      if (choice.clear) return prior.isEmpty;
+      return prior.length == 1 && prior.first.value == choice.value;
     });
 
     if (!mounted) return;
@@ -1846,26 +1982,32 @@ class _DanceListScreenState extends State<DanceListScreen> {
       count: count,
       message: message,
       snackKey: const ValueKey('batch-custom-field-snackbar'),
-      onUndo: () => _undoBatchCustomField(priorFields),
+      onUndo: () => _undoBatchCustomField(choice.def.id, priorFields),
     );
   }
 
-  /// Restores the captured [priorFields] for each affected dance.
+  /// Restores the chosen field's captured entries ([priorFields], keyed by
+  /// dance id) on each affected dance, leaving every other field as it is now.
   Future<void> _undoBatchCustomField(
+    String fieldId,
     Map<String, List<CustomFieldValue>> priorFields,
-  ) async {
+  ) => _repos.transaction(() async {
     for (final entry in priorFields.entries) {
       final dance = await _repos.dances.getById(entry.key);
       if (dance == null) continue;
       await _repos.dances.update(
         dance.copyWith(
-          customFields: entry.value,
+          customFields: [
+            for (final f in dance.customFields)
+              if (f.fieldId != fieldId) f,
+            ...entry.value,
+          ],
           updatedAt: DateTime.now().toUtc(),
         ),
         localUserEdit: true,
       );
     }
-  }
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2312,6 +2454,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       key: const ValueKey('list-deleted-snackbar'),
       message: l10n.commonDeletedSnack(title),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.dances.restore(danceId, at: DateTime.now().toUtc());
@@ -2326,15 +2469,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Future<void> _duplicateFromList(String danceId) async {
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
-    final copy = await _repos.dances.duplicate(
+    final copy = await duplicateDanceWithRelatedLinks(
+      _repos,
       id: danceId,
       newId: uuidV4(),
       now: now,
+      copyTitle: l10n.commonDuplicateTitleSuffix,
     );
-    final newTitle = l10n.commonDuplicateTitleSuffix(copy.title);
-    // No `localUserEdit`: the copy carries a freshly minted id, so no peer can
-    // hold a tombstone for it and there is nothing for §6.8 to cancel.
-    await _repos.dances.update(copy.copyWith(title: newTitle, updatedAt: now));
+    final newTitle = copy.title;
     if (!mounted) return;
     await _boot();
     if (!mounted) return;
@@ -2603,7 +2745,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
       hasMixer: data.hasMixer,
       hasRating: data.hasRating,
       hasCallingHistory: data.callCounts.values.any(
-        (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+        (counts) =>
+            counts.countFor(
+              _requirePerformedForHistory,
+              requireEventDate: _requireEventDateForHistory,
+            ) >
+            0,
       ),
       authors: data.authors,
       tags: data.tags,

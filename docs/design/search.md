@@ -345,8 +345,10 @@ expressible in that one statement and are
 applied as a **post-fetch pass in Dart** over the returned id set:
 
 - `author` — needs the author-name join/ordering; and
-- `last-called` — needs the separate `ProgramRepository.lastCalledByDance()`
-  query (as in 3.1).
+- `last-called` — needs a per-dance aggregate over `program_slots`/`programs`
+  (`DanceRepository._sortByLastCalled`), scoped by the same caller filter,
+  performed setting and alternate rule as the "called ×N" count, and ordered by
+  `COALESCE(performed_at, event_date, updated_at)`.
 
 So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
 requested sort is `author` or `last-called`, the id set it returns is reordered
@@ -489,6 +491,12 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   so a dialect term ("robins", "gents") maps to the canonical role token stored
   in `dance_fts.figures_text`. FTS operators the user typed (`AND`, `"…"`,
   `*`) are preserved by the term-only, word-boundary substitutor.
+  A term that is only a *fragment* of an internal role token (`ro`, `rol`,
+  `ole`; not `roll`, not a whole `role1s`) would otherwise match the token in
+  nearly every dance, so in the all-fields search `figures_text` is matched
+  only where the text still holds with `role1`/`role2`/`role1s`/`role2s`
+  removed (`filter_compiler.dart`, `_figureMatchWithoutRoleTokens`). The
+  Figure scope is unchanged.
 - **`FigureLeaf.move` / `FigureQuery` moves**: the move name is canonicalized
   to its taxonomy id before binding to `f.move = ?`. A caller who typed a
   dialect/synonym move name resolves to the same canonical `move` stored in

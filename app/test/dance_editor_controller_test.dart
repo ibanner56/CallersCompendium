@@ -8,6 +8,7 @@ import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/screens/dance_editor/dance_editor_controller.dart';
 
 import 'support/test_repositories.dart';
+import 'support/new_dance_draft.dart';
 import 'figures_support.dart';
 
 /// Pure-Dart unit tests for [DanceEditorController]: they construct the
@@ -294,12 +295,12 @@ void main() {
 
     controller.titleController.text = 'Quick';
     controller.onTextEdited();
-    expect(await repos.settings.contains('editor_draft:new'), isFalse);
+    expect(await hasNewDanceDraft(repos), isFalse);
 
     // Well inside the 500 ms default, so only the injected value can have
     // fired the timer.
     await Future<void>.delayed(const Duration(milliseconds: 60));
-    expect(await repos.settings.contains('editor_draft:new'), isTrue);
+    expect(await hasNewDanceDraft(repos), isTrue);
   });
 
   group('initialTitle seed (issue #881 program-slot "create a dance")', () {
@@ -351,23 +352,25 @@ void main() {
     });
 
     test(
-      'a restored autosave draft overrides the seed (draft precedence)',
+      'a seeded new dance is not offered another new dance\'s draft (AUTH-10)',
       () async {
         final repos = openTestRepositories();
 
-        // Stage a pending draft under the shared new-dance draft key, exactly
-        // as a prior abandoned new-dance session would have left it.
-        final seeded = DanceEditorController(
+        // An abandoned new dance leaves its draft behind.
+        final abandoned = DanceEditorController(
           repositories: repos,
           danceId: null,
           dialect: Dialect.larksRobins,
         );
-        await seeded.load(dance: null, fieldDefs: const []);
-        seeded.titleController.text = 'Old Draft Title';
-        seeded.onTextEdited();
-        await draftPersisted(repos, 'editor_draft:new');
-        seeded.dispose();
+        await abandoned.load(dance: null, fieldDefs: const []);
+        abandoned.titleController.text = 'Old Draft Title';
+        abandoned.onTextEdited();
+        expect(await draftPersisted(repos, abandoned.draftKey), isTrue);
+        abandoned.dispose();
 
+        // A dance started from a program slot is that dance, not the
+        // abandoned one: it offers no draft, and leaves the old one stored
+        // for the next plain new dance.
         final controller = DanceEditorController(
           repositories: repos,
           danceId: null,
@@ -377,17 +380,10 @@ void main() {
         addTearDown(controller.dispose);
         await controller.load(dance: null, fieldDefs: const []);
 
-        // Before the restore prompt resolves, the seed is what's showing —
-        // this is the pre-existing shared-key hazard the plan calls out,
-        // not something this change fixes.
         expect(controller.titleController.text, 'New Seed Title');
-        expect(controller.pendingDraft, isNotNull);
-
-        final draft = controller.pendingDraft!;
-        controller.clearPendingDraft();
-        controller.applyRestoredDraft(draft);
-
-        expect(controller.titleController.text, 'Old Draft Title');
+        expect(controller.pendingDraft, isNull);
+        expect(controller.draftKey, isNot(abandoned.draftKey));
+        expect(await repos.settings.contains(abandoned.draftKey), isTrue);
       },
     );
   });
@@ -399,23 +395,23 @@ void main() {
       final controller = await newDanceController(repos);
       addTearDown(controller.dispose);
 
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
 
       controller.titleController.text = 'Autosaved Title';
       controller.onTextEdited();
 
       expect(
-        await draftPersisted(repos, 'editor_draft:new'),
+        await draftPersisted(repos, controller.draftKey),
         isTrue,
         reason: 'the debounced autosave should persist a draft',
       );
 
-      final raw = await repos.settings.get('editor_draft:new');
+      final raw = await newDanceDraft(repos);
       final decoded = decodeDraft(raw);
       expect(decoded.title, 'Autosaved Title');
 
       await controller.clearDraft();
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     },
   );
 
@@ -447,12 +443,42 @@ void main() {
       delayed.settings.releaseWrite();
       await observed;
 
-      final draft = decodeDraft(
-        await delayed.repos.settings.get('editor_draft:new'),
-      );
+      final draft = decodeDraft(await newDanceDraft(delayed.repos));
       expect(draft.title, 'Final title');
     },
   );
+
+  test('a pending-autosave flush writes the edit now and leaves autosave '
+      'running (PLAT-19)', () async {
+    final repos = openTestRepositories();
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    await controller.flushPendingAutosave();
+    expect(
+      await repos.settings.contains(controller.draftKey),
+      isFalse,
+      reason: 'nothing was waiting on the debounce, so nothing is written',
+    );
+
+    controller.titleController.text = 'Backgrounded title';
+    controller.onTextEdited();
+    // Awaited directly, with no time for the debounce to fire.
+    await controller.flushPendingAutosave();
+    expect(
+      decodeDraft(await repos.settings.get(controller.draftKey)).title,
+      'Backgrounded title',
+    );
+
+    // Not a final flush: an edit after resuming still autosaves.
+    controller.titleController.text = 'Resumed title';
+    controller.onTextEdited();
+    await settleDebounce();
+    expect(
+      decodeDraft(await repos.settings.get(controller.draftKey)).title,
+      'Resumed title',
+    );
+  });
 
   test('clearDraft awaits an in-flight autosave so it cannot resurrect the '
       'draft afterwards (issue #616)', () async {
@@ -478,7 +504,7 @@ void main() {
     await clearFuture;
 
     expect(
-      await delayed.repos.settings.contains('editor_draft:new'),
+      await hasNewDanceDraft(delayed.repos),
       isFalse,
       reason:
           'the draft must stay removed even though an autosave write was '
@@ -499,13 +525,12 @@ void main() {
     // Autosave was scheduled before the discard; clearDraft cancels the
     // timer, so waiting past the debounce window must not resurrect it.
     await settleDebounce();
-    expect(await repos.settings.contains('editor_draft:new'), isFalse);
+    expect(await hasNewDanceDraft(repos), isFalse);
   });
 
   test('autosave preserves staged tags for restored drafts', () async {
     final repos = openTestRepositories();
     final controller = await newDanceController(repos);
-    addTearDown(controller.dispose);
 
     controller.stageTag(
       Tag(id: 'provisional', name: 'New tag', color: 0xFFFF0000),
@@ -513,10 +538,12 @@ void main() {
     controller.addTag('provisional');
 
     expect(
-      await draftPersisted(repos, 'editor_draft:new'),
+      await draftPersisted(repos, controller.draftKey),
       isTrue,
       reason: 'the staged tag draft should be persisted',
     );
+    // An editor still open keeps its draft to itself.
+    controller.dispose();
 
     final restored = DanceEditorController(
       repositories: repos,
@@ -572,7 +599,7 @@ void main() {
     await clearFuture;
 
     expect(
-      await delayed.repos.settings.contains('editor_draft:new'),
+      await hasNewDanceDraft(delayed.repos),
       isFalse,
       reason:
           'the draft must stay removed even though an earlier autosave '
@@ -2022,6 +2049,419 @@ void main() {
       expect(
         controller.figureDrafts.every((d) => d.move == 'stand_still'),
         isTrue,
+      );
+    });
+  });
+
+  group('snapshots and drafts round-trip what the editor holds (F2)', () {
+    /// A dialect whose role words are not among the always-on legacy
+    /// synonyms, so text in it canonicalizes only against this dialect.
+    final ravens = Dialect(
+      name: 'Ravens',
+      roles: const {'role1': RoleTerm('raven'), 'role2': RoleTerm('crow')},
+    );
+
+    Dance noteDance() => sampleDance(id: 'd1').copyWith(
+      figures: [
+        Figure(
+          move: 'allemande',
+          params: const {'beats': 8},
+          note: 'role1s go first',
+        ),
+        Figure(move: 'custom', params: const {'text': 'role2s wait'}),
+      ],
+    );
+
+    test('undo keeps a typed beat count protected (AUTH-5)', () async {
+      final controller = DanceEditorController(
+        repositories: openTestRepositories(),
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+        debounce: testDebounce,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(dance: noteDance(), fieldDefs: const []);
+      expect(controller.figureDrafts.first.beatsTouched, isTrue);
+
+      controller.titleController.text = 'Renamed';
+      controller.onTextEdited();
+      await settleDebounce();
+      controller.undo();
+
+      expect(controller.figureDrafts.first.beatsTouched, isTrue);
+    });
+
+    test('a restored draft keeps which counts were typed (AUTH-5)', () async {
+      final repos = openTestRepositories();
+      final first = await newDanceController(repos);
+      first.addFigure();
+      first.figureDrafts.last
+        ..move = 'swing'
+        ..params['beats'] = 12
+        ..beatsTouched = true;
+      first.addFigure();
+      first.figureDrafts.last
+        ..move = 'swing'
+        ..params['beats'] = 8
+        ..beatsTouched = false;
+      first.onFiguresChanged();
+      expect(await draftPersisted(repos, first.draftKey), isTrue);
+      await settleDebounce();
+      first.dispose();
+
+      final second = await newDanceController(repos);
+      addTearDown(second.dispose);
+      second.applyRestoredDraft(second.pendingDraft!);
+      final touched = [
+        for (final d in second.figureDrafts)
+          if (d.move == 'swing') d.beatsTouched,
+      ];
+      expect(touched, [true, false]);
+    });
+
+    test('a draft records when it was saved and the dance version it was '
+        'edited from (AUTH-10)', () async {
+      final repos = openTestRepositories();
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+        debounce: testDebounce,
+      );
+      await controller.load(dance: noteDance(), fieldDefs: const []);
+      final before = DateTime.now().toUtc();
+      controller.titleController.text = 'Draft title';
+      controller.onTextEdited();
+      expect(await draftPersisted(repos, 'editor_draft:d1'), isTrue);
+      controller.dispose();
+
+      final draft = decodeDraft(await repos.settings.get('editor_draft:d1'));
+      expect(draft.baseUpdatedAt, now);
+      expect(draft.savedAt, isNotNull);
+      expect(
+        draft.savedAt!.isBefore(before.subtract(const Duration(seconds: 1))),
+        isFalse,
+      );
+
+      // Reopened unchanged: the draft is for the dance as it still is.
+      final same = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(same.dispose);
+      await same.load(dance: noteDance(), fieldDefs: const []);
+      expect(same.pendingDraft, isNotNull);
+      expect(same.danceChangedSince(same.pendingDraft!), isFalse);
+      expect(same.pendingDraftIsAnotherNewDance, isFalse);
+
+      // Changed since, by a bulk tag, a rating, a sync or a re-check.
+      final changed = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(changed.dispose);
+      await changed.load(
+        dance: noteDance().copyWith(
+          rating: 5,
+          updatedAt: now.add(const Duration(hours: 1)),
+        ),
+        fieldDefs: const [],
+      );
+      expect(changed.danceChangedSince(changed.pendingDraft!), isTrue);
+    });
+
+    test('a draft from before baselines does not claim a change', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        'editor_draft:d1',
+        '{"v":13,"title":"Old","form":"contra",'
+            '"formationShape":"dupleImproper","progression":"single",'
+            '"status":"active","figureDrafts":[]}',
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: noteDance().copyWith(
+          updatedAt: now.add(const Duration(days: 1)),
+        ),
+        fieldDefs: const [],
+      );
+      expect(controller.pendingDraft?.title, 'Old');
+      expect(controller.pendingDraft?.savedAt, isNull);
+      expect(controller.danceChangedSince(controller.pendingDraft!), isFalse);
+    });
+
+    group('each new dance has its own draft (AUTH-10)', () {
+      test('two new dances never share a draft key', () async {
+        final repos = openTestRepositories();
+        final a = await newDanceController(repos);
+        addTearDown(a.dispose);
+        final b = await newDanceController(repos);
+        addTearDown(b.dispose);
+        expect(
+          a.draftKey,
+          startsWith(danceEditorDraftKey(kNewDanceDraftIdPrefix)),
+        );
+        expect(
+          b.draftKey,
+          startsWith(danceEditorDraftKey(kNewDanceDraftIdPrefix)),
+        );
+        expect(a.draftKey, isNot(b.draftKey));
+
+        a.titleController.text = 'First';
+        a.onTextEdited();
+        b.titleController.text = 'Second';
+        b.onTextEdited();
+        expect(await draftPersisted(repos, a.draftKey), isTrue);
+        expect(await draftPersisted(repos, b.draftKey), isTrue);
+        await settleDebounce();
+        expect(
+          decodeDraft(await repos.settings.get(a.draftKey)).title,
+          'First',
+        );
+        expect(
+          decodeDraft(await repos.settings.get(b.draftKey)).title,
+          'Second',
+        );
+      });
+
+      test('an open new dance\'s draft is not offered to another', () async {
+        final repos = openTestRepositories();
+        final open = await newDanceController(repos);
+        addTearDown(open.dispose);
+        open.titleController.text = 'Still editing';
+        open.onTextEdited();
+        expect(await draftPersisted(repos, open.draftKey), isTrue);
+
+        final other = await newDanceController(repos);
+        addTearDown(other.dispose);
+        expect(other.pendingDraft, isNull);
+      });
+
+      test('an abandoned new dance is offered as itself; restoring continues '
+          'it under its own key, and saving clears it', () async {
+        final repos = openTestRepositories();
+        final abandoned = await newDanceController(repos);
+        abandoned.titleController.text = 'Abandoned';
+        abandoned.onTextEdited();
+        expect(await draftPersisted(repos, abandoned.draftKey), isTrue);
+        await settleDebounce();
+        final abandonedKey = abandoned.draftKey;
+        abandoned.dispose();
+
+        final next = await newDanceController(repos);
+        addTearDown(next.dispose);
+        expect(next.pendingDraft?.title, 'Abandoned');
+        expect(next.pendingDraftIsAnotherNewDance, isTrue);
+
+        final draft = next.pendingDraft!;
+        next.clearPendingDraft();
+        next.applyRestoredDraft(draft);
+        expect(next.draftKey, abandonedKey);
+        expect(next.pendingDraftIsAnotherNewDance, isFalse);
+
+        next.titleController.text = 'Abandoned, finished';
+        next.onTextEdited();
+        await settleDebounce();
+        await settleDebounce();
+        expect(await newDanceDraftKeys(repos), [abandonedKey]);
+        expect(
+          decodeDraft(await repos.settings.get(abandonedKey)).title,
+          'Abandoned, finished',
+        );
+
+        await next.clearDraft();
+        expect(await hasNewDanceDraft(repos), isFalse);
+      });
+
+      test('a draft one editor is offering is not offered to another until '
+          'that editor lets it go', () async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          danceEditorDraftKey(kLegacyNewDanceDraftId),
+          '{"v":13,"title":"Legacy","form":"contra",'
+          '"formationShape":"dupleImproper","progression":"single",'
+          '"status":"active","figureDrafts":[]}',
+        );
+        final offering = await newDanceController(repos);
+        expect(offering.pendingDraft?.title, 'Legacy');
+
+        final second = await newDanceController(repos);
+        addTearDown(second.dispose);
+        expect(second.pendingDraft, isNull);
+
+        // Closed without an answer: the draft is free for the next editor.
+        offering.dispose();
+        final third = await newDanceController(repos);
+        addTearDown(third.dispose);
+        expect(third.pendingDraft?.title, 'Legacy');
+      });
+
+      test(
+        'discarding removes the abandoned draft, not this editor\'s',
+        () async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            danceEditorDraftKey(kLegacyNewDanceDraftId),
+            '{"v":13,"title":"Legacy","form":"contra",'
+            '"formationShape":"dupleImproper","progression":"single",'
+            '"status":"active","figureDrafts":[]}',
+          );
+          final controller = await newDanceController(repos);
+          addTearDown(controller.dispose);
+          expect(controller.pendingDraft?.title, 'Legacy');
+          expect(controller.pendingDraftIsAnotherNewDance, isTrue);
+          controller.clearPendingDraft();
+          await controller.discardPendingDraft();
+          expect(await hasNewDanceDraft(repos), isFalse);
+        },
+      );
+
+      test('of several abandoned new dances, the newest is offered', () async {
+        final repos = openTestRepositories();
+        String draftJson(String title, String? savedAt) =>
+            '{"v":13,"title":"$title",'
+            '${savedAt == null ? '' : '"savedAt":"$savedAt",'}'
+            '"form":"contra","formationShape":"dupleImproper",'
+            '"progression":"single","status":"active","figureDrafts":[]}';
+        await repos.settings.set(
+          danceEditorDraftKey(kLegacyNewDanceDraftId),
+          draftJson('Undated', null),
+        );
+        await repos.settings.set(
+          '${danceEditorDraftKey(kNewDanceDraftIdPrefix)}a',
+          draftJson('Newest', '2026-10-28T12:00:00.000Z'),
+        );
+        await repos.settings.set(
+          '${danceEditorDraftKey(kNewDanceDraftIdPrefix)}b',
+          draftJson('Older', '2026-10-27T12:00:00.000Z'),
+        );
+        final controller = await newDanceController(repos);
+        addTearDown(controller.dispose);
+        expect(controller.pendingDraft?.title, 'Newest');
+      });
+    });
+
+    group('figure text follows the dialect it was written in (AUTH-17)', () {
+      test(
+        'a draft restored under another dialect saves the right roles',
+        () async {
+          final repos = openTestRepositories();
+          final first = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialect: ravens,
+            debounce: testDebounce,
+          );
+          await first.load(dance: noteDance(), fieldDefs: const []);
+          expect(first.figureDrafts.first.note, 'ravens go first');
+          first.titleController.text = 'Edited';
+          first.onTextEdited();
+          expect(await draftPersisted(repos, 'editor_draft:d1'), isTrue);
+          await settleDebounce();
+          first.dispose();
+
+          // Crash, change dialect, Restore, Save.
+          final second = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialect: Dialect.larksRobins,
+          );
+          addTearDown(second.dispose);
+          await second.load(dance: noteDance(), fieldDefs: const []);
+          second.applyRestoredDraft(second.pendingDraft!);
+
+          expect(second.figureDrafts.first.note, 'larks go first');
+          expect(second.figureDrafts.last.params['text'], 'robins wait');
+          final saved = figuresOf(second.buildDance());
+          expect(saved.first.note, 'role1s go first');
+          expect(saved.last.params['text'], 'role2s wait');
+        },
+      );
+
+      test(
+        'a draft restored under the same dialect keeps the text as typed',
+        () async {
+          final repos = openTestRepositories();
+          final first = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialect: Dialect.larksRobins,
+            debounce: testDebounce,
+          );
+          await first.load(dance: noteDance(), fieldDefs: const []);
+          // A legacy synonym, which Save would canonicalize to role2s.
+          first.figureDrafts.first.note = 'Ladies wait';
+          first.onFiguresChanged();
+          expect(await draftPersisted(repos, 'editor_draft:d1'), isTrue);
+          await settleDebounce();
+          first.dispose();
+
+          final second = DanceEditorController(
+            repositories: repos,
+            danceId: 'd1',
+            dialect: Dialect.larksRobins,
+          );
+          addTearDown(second.dispose);
+          await second.load(dance: noteDance(), fieldDefs: const []);
+          second.applyRestoredDraft(second.pendingDraft!);
+          expect(second.figureDrafts.first.note, 'Ladies wait');
+        },
+      );
+
+      test(
+        'a dialect change while editing re-renders the figure text',
+        () async {
+          final controller = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialect: ravens,
+            debounce: testDebounce,
+          );
+          addTearDown(controller.dispose);
+          await controller.load(dance: noteDance(), fieldDefs: const []);
+
+          controller.updateDialect(Dialect.leadsFollows);
+
+          expect(controller.figureDrafts.first.note, 'leads go first');
+          expect(controller.figureDrafts.last.params['text'], 'follows wait');
+          final saved = figuresOf(controller.buildDance());
+          expect(saved.first.note, 'role1s go first');
+          expect(saved.last.params['text'], 'role2s wait');
+          expect(controller.dirty, isFalse);
+        },
+      );
+
+      test(
+        'undo across a dialect change shows the text in the new dialect',
+        () async {
+          final controller = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialect: ravens,
+            debounce: testDebounce,
+          );
+          addTearDown(controller.dispose);
+          await controller.load(dance: noteDance(), fieldDefs: const []);
+          controller.titleController.text = 'Renamed';
+          controller.onTextEdited();
+          await settleDebounce();
+
+          controller.updateDialect(Dialect.larksRobins);
+          controller.undo();
+
+          expect(controller.figureDrafts.first.note, 'larks go first');
+          expect(
+            figuresOf(controller.buildDance()).first.note,
+            'role1s go first',
+          );
+        },
       );
     });
   });

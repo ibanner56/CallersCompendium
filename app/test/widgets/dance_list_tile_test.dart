@@ -6,6 +6,7 @@ import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/data/canonical_discouraged_terms_scope.dart';
+import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/models/dance_list_entry.dart';
 import 'package:compendium_app/src/theme/set_list_accents.dart';
@@ -398,6 +399,58 @@ void main() {
 
         // Flip back off — the tile returns to the all-occurrences tally.
         notifier.value = false;
+        await tester.pump();
+        expect(label().data, 'called ×3');
+      },
+    );
+
+    testWidgets(
+      'count follows Require an event date live, combined with Require mark '
+      'performed (F6)',
+      (tester) async {
+        final performed = ValueNotifier<bool>(false);
+        final eventDate = ValueNotifier<bool>(false);
+        addTearDown(performed.dispose);
+        addTearDown(eventDate.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              body: RequirePerformedForHistoryScope(
+                notifier: performed,
+                child: RequireEventDateForHistoryScope(
+                  notifier: eventDate,
+                  child: DanceListTile(
+                    entry: _entry(
+                      callCounts: const DanceCallCounts(
+                        all: 4,
+                        performed: 3,
+                        dated: 2,
+                        performedDated: 1,
+                      ),
+                    ),
+                    onTap: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        Text label() => tester.widget<Text>(
+          find.descendant(of: find.byKey(chipKey), matching: find.byType(Text)),
+        );
+        expect(label().data, 'called ×4');
+
+        eventDate.value = true;
+        await tester.pump();
+        expect(label().data, 'called ×2');
+
+        performed.value = true;
+        await tester.pump();
+        expect(label().data, 'called ×1');
+
+        eventDate.value = false;
         await tester.pump();
         expect(label().data, 'called ×3');
       },

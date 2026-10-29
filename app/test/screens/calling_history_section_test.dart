@@ -32,9 +32,11 @@ void main() {
     String? venue,
     String? venueId,
     DateTime? updatedAt,
+    DateTime? eventDate,
   }) => Program(
     id: id,
     title: title,
+    eventDate: eventDate,
     venue: venue,
     venueId: venueId,
     slots: slots,
@@ -46,6 +48,7 @@ void main() {
     WidgetTester tester,
     CompendiumRepositories repos, {
     bool performedOnly = false,
+    bool requireEventDate = false,
     int venueCallCount = 3,
   }) async {
     await tester.pumpWidget(
@@ -60,6 +63,7 @@ void main() {
               repositories: repos,
               danceId: 'd1',
               performedOnly: performedOnly,
+              requireEventDate: requireEventDate,
               trackAllCallers: true,
               venueCallCount: venueCallCount,
               onOpenProgram: (_) {},
@@ -217,6 +221,38 @@ void main() {
     expect(find.byKey(const ValueKey('calling-history-s-performed')), findsOne);
     expect(
       find.byKey(const ValueKey('calling-history-s-planned')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('flipping requireEventDate re-queries and drops undated programs '
+      '(F6)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('d1', 'Petronella'));
+    await repos.programs.create(
+      program(
+        id: 'p1',
+        title: 'Autumn Ball',
+        eventDate: DateTime.utc(2026, 10, 3),
+        slots: [ProgramSlot(id: 's-dated', position: 0, danceId: 'd1')],
+      ),
+    );
+    await repos.programs.create(
+      program(
+        id: 'p2',
+        title: 'Copy of Autumn Ball',
+        slots: [ProgramSlot(id: 's-undated', position: 0, danceId: 'd1')],
+      ),
+    );
+
+    await pumpSection(tester, repos);
+    expect(find.byKey(const ValueKey('calling-history-s-dated')), findsOne);
+    expect(find.byKey(const ValueKey('calling-history-s-undated')), findsOne);
+
+    await pumpSection(tester, repos, requireEventDate: true);
+    expect(find.byKey(const ValueKey('calling-history-s-dated')), findsOne);
+    expect(
+      find.byKey(const ValueKey('calling-history-s-undated')),
       findsNothing,
     );
   });

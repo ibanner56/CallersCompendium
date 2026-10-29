@@ -2,6 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../screens/dance_editor/choice_option.dart';
+import '../screens/dance_editor/custom_field_editor.dart'
+    show showAddChoiceOptionDialog;
 
 /// The outcome of the batch edit-custom-field dialog: the chosen [def] plus
 /// either a type-respecting [value] to upsert across the selection, or
@@ -33,20 +36,26 @@ class BatchCustomFieldChoice {
 /// informational empty state with the confirm button disabled. Controls expose
 /// role + text labels (dropdowns, switches, labelled text fields) — never color
 /// alone. Returns the [BatchCustomFieldChoice], or `null` if cancelled.
+///
+/// When [repos] is given, a choice field offers the same inline "add an
+/// option" button as the dance editor; the new option is saved to the field
+/// definition at once (as there) and selected. Without it the button is hidden.
 Future<BatchCustomFieldChoice?> showBatchCustomFieldDialog(
   BuildContext context, {
   required List<CustomFieldDef> defs,
+  CompendiumRepositories? repos,
 }) {
   return showDialog<BatchCustomFieldChoice>(
     context: context,
-    builder: (_) => _BatchCustomFieldDialog(defs: defs),
+    builder: (_) => _BatchCustomFieldDialog(defs: defs, repos: repos),
   );
 }
 
 class _BatchCustomFieldDialog extends StatefulWidget {
-  const _BatchCustomFieldDialog({required this.defs});
+  const _BatchCustomFieldDialog({required this.defs, this.repos});
 
   final List<CustomFieldDef> defs;
+  final CompendiumRepositories? repos;
 
   @override
   State<_BatchCustomFieldDialog> createState() =>
@@ -54,6 +63,9 @@ class _BatchCustomFieldDialog extends StatefulWidget {
 }
 
 class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
+  /// The definitions on offer: [widget.defs], with any choice field that gained
+  /// an option here replaced by its saved, updated definition.
+  late List<CustomFieldDef> _defs = widget.defs;
   CustomFieldDef? _selectedDef;
   bool _clear = false;
 
@@ -65,7 +77,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.defs.length == 1) _selectedDef = widget.defs.first;
+    if (_defs.length == 1) _selectedDef = _defs.first;
   }
 
   @override
@@ -118,6 +130,19 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
     );
   }
 
+  /// Saves [raw] as a new option of the selected choice field and selects it.
+  Future<AddChoiceResult> _addOption(CustomFieldDef def, String raw) async {
+    final outcome = await addChoiceOptionToDef(widget.repos!, def, raw);
+    final updated = outcome.def;
+    if (updated == null || !mounted) return outcome.result;
+    setState(() {
+      _defs = [for (final d in _defs) d.id == def.id ? updated : d];
+      _selectedDef = updated;
+      _choiceValue = outcome.option;
+    });
+    return AddChoiceResult.added;
+  }
+
   Widget _valueControl(CustomFieldDef def, AppLocalizations l10n) {
     switch (def.type) {
       case CustomFieldType.text:
@@ -157,8 +182,12 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
           onChanged: (v) => setState(() => _boolValue = v),
         );
       case CustomFieldType.choice:
-        return DropdownButtonFormField<String>(
-          key: ValueKey('batch-custom-field-value-${def.id}'),
+        final dropdown = DropdownButtonFormField<String>(
+          // Keyed by the option count too, so an option added here rebuilds the
+          // field around its new `initialValue` (which is read only once).
+          key: ValueKey(
+            'batch-custom-field-value-${def.id}-${def.choices?.length ?? 0}',
+          ),
           initialValue: _choiceValue,
           decoration: InputDecoration(
             labelText: def.label,
@@ -170,6 +199,24 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
               DropdownMenuItem(value: choice, child: Text(choice)),
           ],
           onChanged: (v) => setState(() => _choiceValue = v),
+        );
+        if (widget.repos == null) return dropdown;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: dropdown),
+            const SizedBox(width: 4),
+            IconButton(
+              key: ValueKey('batch-custom-field-add-option-${def.id}'),
+              icon: const Icon(Icons.add),
+              tooltip: l10n.customFieldsAddOptionTooltip(def.label),
+              onPressed: () => showAddChoiceOptionDialog(
+                context,
+                label: def.label,
+                onAddOption: (raw) => _addOption(def, raw),
+              ),
+            ),
+          ],
         );
     }
   }
@@ -183,7 +230,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
       title: Text(l10n.collectionEditCustomField),
       content: SizedBox(
         width: 360,
-        child: widget.defs.isEmpty
+        child: _defs.isEmpty
             ? Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(l10n.collectionBatchCustomFieldEmpty),
@@ -201,7 +248,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
                       border: const OutlineInputBorder(),
                     ),
                     items: [
-                      for (final d in widget.defs)
+                      for (final d in _defs)
                         DropdownMenuItem(value: d, child: Text(d.label)),
                     ],
                     onChanged: _onDefChanged,

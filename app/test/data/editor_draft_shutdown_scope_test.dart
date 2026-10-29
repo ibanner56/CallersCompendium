@@ -89,4 +89,36 @@ void main() {
       expect(events, ['flush', 'first', 'flush', 'second']);
     },
   );
+  test('flushPending runs each live pending flush and no final flush, '
+      'and continues after one fails (PLAT-19)', () async {
+    final controller = EditorDraftShutdownController();
+    final events = <String>[];
+    controller.register(
+      () {
+        events.add('prepare-1');
+        return () async {};
+      },
+      flushPending: () async {
+        events.add('pending-1');
+        throw StateError('first failure');
+      },
+    );
+    final unregister = controller.register(
+      () => () async {},
+      flushPending: () async => events.add('pending-gone'),
+    );
+    // An editor with no pending flush is skipped.
+    controller.register(() {
+      events.add('prepare-3');
+      return () async {};
+    });
+    controller.register(
+      () => () async {},
+      flushPending: () async => events.add('pending-4'),
+    );
+    unregister();
+
+    await controller.flushPending();
+    expect(events, ['pending-1', 'pending-4']);
+  });
 }

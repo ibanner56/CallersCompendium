@@ -536,6 +536,34 @@ void main() {
     expect(await repos.choreographers.listAll(), isEmpty);
   });
 
+  testWidgets('an Undo whose rollback fails says so', (tester) async {
+    final repos = openTestRepositories();
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => _moneyMuskResultsHtml,
+      jsonFetcher: (_) async => _moneyMuskJson(),
+    );
+    await _pump(tester, repos, online: online, contraDb: emptyContraDb());
+    await resolveMoneyMusk(tester);
+    await tester.tap(find.byKey(const ValueKey('plaintext-import-commit')));
+    await tester.pumpAndSettle();
+    // Taking the imported dances back fails (a full disk, a locked database).
+    for (final event in const ['UPDATE', 'DELETE']) {
+      await repos.db.customStatement(
+        'CREATE TRIGGER fail_dance_$event BEFORE $event ON dances '
+        "BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END",
+      );
+    }
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Couldn’t undo that. Please check the result and try again.'),
+      findsOneWidget,
+    );
+    expect(await repos.dances.listAll(), hasLength(1));
+  });
+
   testWidgets('Undo leaves a dance that was already in the collection', (
     tester,
   ) async {

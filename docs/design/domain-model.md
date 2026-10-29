@@ -67,8 +67,13 @@ history): *Require "mark performed"* restricts it to performed slots (off by
 default, so the base includes unperformed slots), and *Track calling history for
 all callers* (off + a default caller set) restricts it to programs whose host
 caller matches that default caller (trim + case-insensitive; issue #583) or
-whose host caller is unset (#850). Both consumers share the predicate in
-`calling_history_scope.dart`.
+whose host caller is unset (#850). Whatever the settings, an alternate slot
+(`isAlt`) counts only once it is marked performed, while a primary counts as
+soon as its program contains the dance (maintainer ruling, 2026-10-28). The
+count, the Called filter, the detail history, venue repeats and the Last-called
+sort share these SQL predicates from `calling_history_scope.dart`; half stats
+apply the same alternate rule in Dart through
+`ProgramSlot.countsTowardCallingHistory`.
 
 ### Figure (value object, not a table-per-move)
 ```
@@ -227,7 +232,9 @@ combined planned length is the sum of non-null values.
 alongside the free-text `venue` label; the two persist independently (see Venue
 above) so switching venue-entry modes is lossless.
 
-Duplicate-program = deep copy of slots. The programming matrix is a **view**
+Duplicate-program = deep copy of slots, as a Draft with performed marks, pay
+and event date cleared (a copy is for a different event; LIFE-7). The
+programming matrix is a **view**
 computed from structured figures (no manual "elements" checklist — the fix for
 CC's biggest weakness).
 

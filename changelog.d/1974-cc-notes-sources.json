@@ -1,0 +1,19 @@
+{
+  "id": "1974-cc-notes-sources",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A Caller's Companion library now brings across each dance's calling notes, other notes and where it came from, which were lost before.",
+      "Dances you marked with a break in Caller's Companion are now followed by a Break slot in the imported program, and sets that hid their alternates keep them hidden."
+    ],
+    "added": [
+      "Source and video web addresses, a dance's Caller's Box page, and a book reference with its page now come across from Caller's Companion as links and a published-source citation."
+    ]
+  },
+  "core": {
+    "changed": [
+      "CallersCompanionUsrImporter takes a required publishedSources repository; it resolves CC Reference citations to published sources at commit and reverts them with the import (CcUsrImportResult.insertedPublishedSourceIds / restoredPublishedSourceIds).",
+      "mapCallersCompanionDance reads CallingNotes, NotesOther, From, ProgressionOther, SourceURL, VideoURL…VideoURL5, CallersBox_id, Reference and PageNumber; CcSetItem gains breakAfter and CcSet hideAlternates, which buildCcPrograms applies."
+    ]
+  }
+}

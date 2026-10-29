@@ -3892,7 +3892,7 @@ abstract class AppLocalizations {
   /// Explains which imports the default import tags apply to and which they skip.
   ///
   /// In en, this message translates to:
-  /// **'Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.'**
+  /// **'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.'**
   String get settingsDefaultsImportTagsSubtitle;
 
   /// Shown in place of the tag chips when the user has no tags.
@@ -4555,6 +4555,18 @@ abstract class AppLocalizations {
   /// **'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
   String get settingsGeneralRequirePerformedForHistorySubtitle;
 
+  /// Title of the calling-history settings toggle that leaves programs with no event date out of calling history.
+  ///
+  /// In en, this message translates to:
+  /// **'Require an event date for calling history'**
+  String get settingsGeneralRequireEventDateForHistoryTitle;
+
+  /// Subtitle explaining the require-an-event-date calling history toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.'**
+  String get settingsGeneralRequireEventDateForHistorySubtitle;
+
   /// Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs).
   ///
   /// In en, this message translates to:
@@ -5197,6 +5209,12 @@ abstract class AppLocalizations {
   /// **'Your collection is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.'**
   String backupExportTooLarge(String sizeMb, String limitMb);
 
+  /// Snackbar shown on macOS when saving a backup over an existing backup file is refused because the disk does not have room for the new one; the existing file is left as it was. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'There isn\'t enough free space to replace this backup ({neededMb} MB needed; {freeMb} MB free), so nothing was saved. Your earlier backup is unchanged.'**
+  String backupExportDiskFull(String neededMb, String freeMb);
+
   /// Text in the progress dialog shown while a backup is being built and saved. No percentage is shown.
   ///
   /// In en, this message translates to:
@@ -5244,6 +5262,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t export the diagnostics log.'**
   String get diagnosticsExportFailed;
+
+  /// Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t clear the diagnostics log.'**
+  String get diagnosticsClearFailed;
 
   /// Title of the confirmation dialog for clearing the local diagnostics log.
   ///
@@ -5400,6 +5424,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Undo'**
   String get commonUndo;
+
+  /// Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t undo that. Please check the result and try again.'**
+  String get commonUndoFailed;
 
   /// Button that re-attempts a failed load.
   ///
@@ -6625,7 +6655,7 @@ abstract class AppLocalizations {
   /// **'Create tag'**
   String get collectionCreateTagButton;
 
-  /// Snackbar shown when applying a batch tag operation fails.
+  /// Snackbar shown when applying a batch operation (tags, level, rating, tunes, custom field) fails.
   ///
   /// In en, this message translates to:
   /// **'Could not apply batch changes. Try again.'**
@@ -7162,6 +7192,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked all dances performed.'**
   String get programsMarkedAllPerformed;
+
+  /// Confirmation (snackbar and screen-reader announcement) after Mark all performed, shown instead of programsMarkedAllPerformed when the program has an alternate dance that was left unmarked. Mark all performed never marks alternates, because an alternate counts as called only once the caller marks it.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed except alternates. Mark an alternate yourself if you called it.'**
+  String get programsMarkedAllPerformedExceptAlternates;
 
   /// Snackbar confirming the program was saved, quoting its title.
   ///
@@ -9947,6 +9983,12 @@ abstract class AppLocalizations {
   /// **'That file didn\'t contain any dances or programs.'**
   String get archiveIntakeRejectedNoContent;
 
+  /// Snackbar shown when a full backup file is opened with the app (Open with, AirDrop, or a tap in Files) instead of being restored. Names the Settings path to Restore from a backup.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is a backup, not a share file. To bring it into this device, go to Settings › General and choose Restore from a backup.'**
+  String get archiveIntakeRejectedBackup;
+
   /// Error shown when an import URL does not use the https scheme.
   ///
   /// In en, this message translates to:
@@ -10637,7 +10679,7 @@ abstract class AppLocalizations {
   /// **'{importable} of {total} will be imported'**
   String importReviewWillImport(int importable, int total);
 
-  /// Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) carries programs. Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.
+  /// Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) or a Caller's Companion .USR file carries programs (.USR sets). Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.
   ///
   /// In en, this message translates to:
   /// **'Also includes {count, plural, =1{1 program} other{{count} programs}}.'**
@@ -10793,18 +10835,6 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{This import contains 1 item — more than expected for a normal share.} other{This import contains {count} items — more than expected for a normal share.}}'**
   String sharedImportSoftCapWarning(int count);
 
-  /// Transient snackbar message shown after a shared bundle is imported, alongside an Undo action.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0{Import complete.} =1{Imported 1 item.} other{Imported {count} items.}}'**
-  String sharedImportComplete(int count);
-
-  /// Transient snackbar message shown, alongside an Undo action, after a shared bundle is imported when some of its dances failed to import. {count} is what did import (dances, programs and other items); {failed} is the number of dances that failed (always at least 1).
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0{Nothing was imported.} =1{Imported 1 item.} other{Imported {count} items.}} {failed, plural, =1{1 dance couldn\'t be imported.} other{{failed} dances couldn\'t be imported.}}'**
-  String sharedImportCompleteWithFailures(int count, int failed);
-
   /// Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.
   ///
   /// In en, this message translates to:
@@ -10853,6 +10883,12 @@ abstract class AppLocalizations {
   /// **'Programs: {count}'**
   String importReviewSummaryPrograms(int count);
 
+  /// Import result summary line for a shared file: how many of the sender's own figures were added to the Glossary or replaced the user's version.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures added to or updated in your Glossary: {count}'**
+  String importReviewSummaryFigures(int count);
+
   /// Import result detail: how many imported programs updated an existing one.
   ///
   /// In en, this message translates to:
@@ -10864,6 +10900,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{{count} program note(s):} other{{count} program note(s):}}'**
   String importReviewProgramNotes(int count);
+
+  /// Import result heading listing notes about the imported dances, such as a related-dance link that was left out because the related dance was not imported. {count} is how many notes follow.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note:} other{{count} notes:}}'**
+  String importReviewNotes(int count);
 
   /// Import result heading listing records that failed to import.
   ///
@@ -10918,6 +10960,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t complete the import.'**
   String get importReviewImportError;
+
+  /// Snackbar on the import screen when the chosen file is not UTF-8 text (for example a file saved in another encoding, or not a text file at all). Nothing was imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read that file: it isn\'t text the app can read. If another app saved it, save it again as UTF-8 text and try again.'**
+  String get importFileNotText;
+
+  /// Snackbar on the import screen when the chosen file could not be read from disk (locked by another app, on a disconnected drive, or refused by the file system). Nothing was imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open that file. Another app may be using it, or it may be on a drive that isn\'t connected.'**
+  String get importFileUnreadable;
 
   /// Heading of the inline figure-diff block shown when a confidently-matched candidate's figures differ from the incoming record (issue #686). The title is an untrusted local value rendered as plain text.
   ///
@@ -11780,6 +11834,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You have an unsaved draft for this dance. Would you like to restore it?'**
   String get danceEditorUnsavedDraftMessage;
+
+  /// Dialog body when the caller starts a new dance and a draft of a different new dance, never saved, is waiting from an earlier session. Restoring continues that dance; discarding deletes it.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new dance, “{title}”. Would you like to restore it instead of starting a new one?'**
+  String danceEditorUnsavedNewDanceDraftMessage(String title);
+
+  /// Dialog body when the caller starts a new dance and an untitled draft of a different new dance, never saved, is waiting from an earlier session.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new dance, not yet titled. Would you like to restore it instead of starting a new one?'**
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage;
+
+  /// Line in the restore-draft dialog giving when the autosave draft was last written, so the caller can judge how old it is.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft saved {when}.'**
+  String danceEditorUnsavedDraftSavedAt(String when);
+
+  /// Warning in the restore-draft dialog when the saved dance was edited elsewhere (a bulk tag, a rating, a sync, a re-check) after the draft was written; restoring overwrites those later changes.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance has been changed since the draft was saved. Restoring the draft replaces those changes.'**
+  String get danceEditorUnsavedDraftChangedSince;
 
   /// Button label for discarding a draft or unsaved changes.
   ///
@@ -12710,6 +12788,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{Converted 1 dance to English (ECD).} other{Converted {count} dances to English (ECD).}}'**
   String startupEcdConvertSnackbar(int count);
 
+  /// Snackbar after Undo on the ECD-convert snackbar: how many converted dances got their form and "ECD" tag back. A dance whose type or tags changed since the conversion is left alone, so this can be fewer than were converted, or none.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No dances were changed back: each one\'s type or tags have changed since.} one{Changed 1 dance back.} other{Changed {count} dances back.}}'**
+  String startupEcdConvertUndoneSnackbar(int count);
+
+  /// Shown over the app while it closes: open editors' drafts are being saved and a running sync is given a few seconds to finish.
+  ///
+  /// In en, this message translates to:
+  /// **'Closing…'**
+  String get appClosingMessage;
+
   /// Update banner message when a newer version is available (idle/cancelled state).
   ///
   /// In en, this message translates to:
@@ -13286,7 +13376,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Done} =1{Apply 1 change} other{Apply {count} changes}}'**
   String importUserFiguresConfirm(int count);
 
-  /// Snackbar after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.
+  /// Line in the import result after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 figure could not be saved to your Glossary.} other{{count} figures could not be saved to your Glossary.}}'**

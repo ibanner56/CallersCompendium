@@ -46,7 +46,9 @@ The **General** section gathers everyday behavior into small groups.
 
 - **Ignore leading articles when sorting** (on by default) — alphabetizes titles
   by their first meaningful word. With this on, "The Nice Combination" files under
-  **N**, not **T**.
+  **N**, not **T**. It applies to the Collection, the program dance picker, the
+  Programs list, and the order of [quick search](./collection.md#jump-straight-to-a-dance-or-program)
+  results.
 - **Capitalize figures** (off by default) — starts each
   [figure](./glossary.md#figure) in the dance view, [Perform mode](./perform.md) and
   the figure editor with a capital letter. Off, figures are shown as written
@@ -57,7 +59,11 @@ The **General** section gathers everyday behavior into small groups.
 ### Accessibility
 
 - **Reduce motion** — trims animations and movement. Follows your device's system
-  *Reduce Motion* setting by default; flip this switch to override it either way.
+  *Reduce Motion* setting by default; turn this switch on to
+  switch off the app's animations and the fade between themes even when your
+  device allows motion. Turning it off stops the app removing its own
+  animations, but cannot restore animations your device's setting has already
+  shortened.
 - **Always show verbose figure text** — shows the full spoken-style
   [figure](./glossary.md#figure) wording on screen in the dance view, not only to
   screen readers. Turn it off for the terse notation. This affects the dance view;
@@ -85,6 +91,11 @@ the full picture.
 - **Published collections** — browse signed collections from the trusted catalog
   and send one through the review flow. See
   [Imports & migration](./imports.md#import-a-published-collection).
+- **Convert ECD dances?** is a question the app asks when it opens, not a
+  setting here. Choosing **Don't show this again** in it stops the question;
+  answering **Not now** without it asks again next time. A conversion can be
+  undone straight after. See
+  [Imports & migration](./imports.md#dances-tagged-ecd).
 - **Re-check custom figures** — re-reads imported dances whose figures were kept
   as plain custom text only because the app couldn't recognise them at the time.
   You preview and confirm before anything changes, and your tags, ratings, and
@@ -183,14 +194,26 @@ details are handled when you export.
 - **Require "mark performed" for calling history** (off) — when on, a dance's
   calling history lists only the [programs](./glossary.md#program) whose
   [slot](./glossary.md#slot) was actually marked performed, rather than every
-  program the dance appears in.
+  program the dance appears in. Either way, an
+  [alternate](./glossary.md#alt) counts only once you mark that slot performed;
+  **Mark all performed** and the **Performed** status skip alternates, so mark
+  the ones you used yourself.
+- **Require an event date for calling history** (off) — when on, a program with
+  no event date counts nowhere calling history is read (the "called ×N" count,
+  the **Called** filter, a dance's history list, the **Last called** sort, and
+  the repeated-venues and half summaries) until you give it a date. Duplicated
+  programs and programs another caller sends you arrive without a date. When
+  off, a program counts whether or not it has a date. It applies on top of the
+  other calling-history settings (all must pass).
 - **Track calling history for all callers** (off) — when off *and* you've set a
   [default caller for new programs](#program-defaults), a dance's calling history
   and "called ×N" counts include only programs led by that caller (plus any
   programs with no caller recorded, which are treated as your own). Turn it on —
   or leave the default caller blank — to track every program that contains the
   dance. Matching ignores surrounding spaces and letter case, and applies on top
-  of the *Require "mark performed"* setting (both must pass).
+  of the *Require "mark performed"* setting (both must pass). Collection's
+  counts and **Last called** sort follow a change to the default caller straight
+  away.
 - **Repeated venues in calling history** (3) — shows the top venues where a
   dance was called more than once. Set this to 0 to hide the summary, or choose
   up to 10 venues.
@@ -396,12 +419,12 @@ Select **Import defaults** to open this group.
   you import on its own: from the import screen (including a pasted list of
   titles), from an online search (including the one in the program editor's
   dance picker), or from a shared dance link. It applies only
-  to dances the import creates. A dance an import updates in place, a dance
-  created for a program slot while importing a program (from a file, from a
-  title list, or from ContraDB), and dances restored
-  from a Compendium archive keep whatever tags they already have. A program in
-  a Caller's Companion file or a published collection is still imported, but
-  only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
+  to dances the import creates, including those from a file someone shared with
+  you, alongside the tags the sender gave them. A dance an import updates in
+  place, and a dance created for a program slot while importing a program (from
+  a file, from a title list, or from ContraDB), keep whatever tags they already
+  have. A program in a Caller's Companion file, a shared file, or a published
+  collection is still imported, but only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
   survives a sync or a merge restore. If you later delete one of the tags,
   imports simply skip it. Dances you create in the editor are not tagged either.
   Choosing tags here does not change dances already in your collection, and
@@ -558,7 +581,9 @@ says **No diagnostics to export** instead of producing an empty file.
 ### Clear log
 
 - **Clear log** — deletes the local crash log from this device. The app asks first
-  and is blunt about it: this cannot be undone.
+  and is blunt about it: this cannot be undone. If the log can't be cleared (for
+  example, another program has the file open), the app says so and the entries
+  stay listed.
 
 Filing a bug? A scrubbed log attached to a
 [GitHub issue](https://github.com/ibanner56/CallersCompendium/issues) is the most
@@ -759,6 +784,11 @@ Sync is off and open while it is on.
   A pass that was skipped runs the next time sync is triggered — when you
   change something, open the app, or come back to it — and you do not need
   to do anything.
+- **Closing the app during a sync.** The app says **Closing…**, saves any
+  open editor's draft first, and then gives a sync that is still running up to
+  ten seconds to finish before it closes anyway. Your changes are already saved
+  on this device; a sync cut short this way runs again the next time you open
+  the app.
 - **Skip unused imported dances** is off by default. If you have a large
   imported collection, turning it on cuts what this device uploads — but a
   dance that's actually used in one of your programs, or linked from another

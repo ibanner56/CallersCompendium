@@ -308,6 +308,7 @@ final Map<String, DataClassification> settingsClassifications = {
         "arm's length is wrong on a laptop driving a projector, but it may "
         'travel in a user-controlled local backup.',
   ),
+  'require_event_date_for_history': _preference,
   'require_performed_for_history': _preference,
   'track_history_for_all_callers': _preference,
   'venue_call_count': _preference,
@@ -397,7 +398,8 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
     egress: EgressClass.deviceScoped,
     note:
         'Transient dance-editor autosave draft, keyed per dance '
-        '(editor_draft:<id>). Unsaved user-authored choreography text that '
+        '(editor_draft:<id>, or editor_draft:new:<editor id> for a dance not '
+        'yet saved). Unsaved user-authored choreography text that '
         'must never leave this device by any route, including a local '
         'backup file — see backup_service.dart.',
   ),

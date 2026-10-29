@@ -1,0 +1,20 @@
+{
+  "id": "f14-action-failures-visible",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When Undo can't be completed (a full disk, a locked database), the app now says so instead of failing silently. This covers every Undo prompt, including Undo after importing a program.",
+      "Clear log in Diagnostics now tells you when the log can't be cleared, and keeps the entries listed.",
+      "Changing level, rating, tunes or a custom field on many dances at once now says when the change can't be saved. Their Undo is now all-or-nothing, and undoing a custom field puts back only that field.",
+      "The batch Edit custom field dialog now has the same + button as the dance editor for adding a new option to a choice field.",
+      "Duplicating a dance is now a single save, so it can't leave behind a twin with the original title. The copy keeps its related-dance groups, and the dances it relates to link back to it.",
+      "Tapping an online search result again after Cancel no longer starts a second download while the first is still running."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`Dance.duplicate` keeps each link's `transitive` flag, so a copy of a grouped dance stays in its group.",
+      "`Dance.duplicate` and `DanceRepository.duplicate` accept `newTitle`, applied in the same write that creates the copy."
+    ]
+  }
+}

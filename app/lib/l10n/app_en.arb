@@ -3178,7 +3178,7 @@
   "@settingsDefaultsImportTagsTitle": {
     "description": "Title of the Import defaults setting that picks the tags added to newly imported dances."
   },
-  "settingsDefaultsImportTagsSubtitle": "Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.",
+  "settingsDefaultsImportTagsSubtitle": "Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.",
   "@settingsDefaultsImportTagsSubtitle": {
     "description": "Explains which imports the default import tags apply to and which they skip."
   },
@@ -3644,6 +3644,14 @@
   "settingsGeneralRequirePerformedForHistorySubtitle": "When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.",
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "description": "Subtitle explaining the require-mark-performed calling history toggle."
+  },
+  "settingsGeneralRequireEventDateForHistoryTitle": "Require an event date for calling history",
+  "@settingsGeneralRequireEventDateForHistoryTitle": {
+    "description": "Title of the calling-history settings toggle that leaves programs with no event date out of calling history."
+  },
+  "settingsGeneralRequireEventDateForHistorySubtitle": "When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.",
+  "@settingsGeneralRequireEventDateForHistorySubtitle": {
+    "description": "Subtitle explaining the require-an-event-date calling history toggle."
   },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Track calling history for all callers",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
@@ -4153,6 +4161,20 @@
       }
     }
   },
+  "backupExportDiskFull": "There isn't enough free space to replace this backup ({neededMb} MB needed; {freeMb} MB free), so nothing was saved. Your earlier backup is unchanged.",
+  "@backupExportDiskFull": {
+    "description": "Snackbar shown on macOS when saving a backup over an existing backup file is refused because the disk does not have room for the new one; the existing file is left as it was. 'MB' is the megabyte unit.",
+    "placeholders": {
+      "neededMb": {
+        "type": "String",
+        "example": "31.4"
+      },
+      "freeMb": {
+        "type": "String",
+        "example": "12.0"
+      }
+    }
+  },
   "backupExportInProgress": "Preparing your backup…",
   "@backupExportInProgress": {
     "description": "Text in the progress dialog shown while a backup is being built and saved. No percentage is shown."
@@ -4194,6 +4216,10 @@
   "diagnosticsExportFailed": "Couldn't export the diagnostics log.",
   "@diagnosticsExportFailed": {
     "description": "Snackbar shown when diagnostics log export fails. Details are not shown in the UI."
+  },
+  "diagnosticsClearFailed": "Couldn’t clear the diagnostics log.",
+  "@diagnosticsClearFailed": {
+    "description": "Snackbar shown when clearing the local diagnostics log fails (for example, the file is held open by another program). Details are not shown in the UI."
   },
   "diagnosticsClearLogTitle": "Clear diagnostics log?",
   "@diagnosticsClearLogTitle": {
@@ -4298,6 +4324,10 @@
   "commonUndo": "Undo",
   "@commonUndo": {
     "description": "Snackbar action that reverses the action just performed (delete, batch tag/level change)."
+  },
+  "commonUndoFailed": "Couldn’t undo that. Please check the result and try again.",
+  "@commonUndoFailed": {
+    "description": "Snackbar shown when tapping Undo fails (for example, a full disk or a locked database), so the action may not have been reversed. Shared by every Undo prompt; screens whose Undo has a more specific failure (e.g. bulk performed marks) use their own string."
   },
   "commonRetry": "Retry",
   "@commonRetry": {
@@ -5375,7 +5405,7 @@
   },
   "collectionBatchApplyError": "Could not apply batch changes. Try again.",
   "@collectionBatchApplyError": {
-    "description": "Snackbar shown when applying a batch tag operation fails."
+    "description": "Snackbar shown when applying a batch operation (tags, level, rating, tunes, custom field) fails."
   },
   "collectionBatchTagAddConfirm": "Add",
   "@collectionBatchTagAddConfirm": {
@@ -5894,6 +5924,10 @@
   "programsMarkedAllPerformed": "Marked all dances performed.",
   "@programsMarkedAllPerformed": {
     "description": "Confirmation (snackbar and screen-reader announcement) after marking every dance in the program as performed."
+  },
+  "programsMarkedAllPerformedExceptAlternates": "Marked all dances performed except alternates. Mark an alternate yourself if you called it.",
+  "@programsMarkedAllPerformedExceptAlternates": {
+    "description": "Confirmation (snackbar and screen-reader announcement) after Mark all performed, shown instead of programsMarkedAllPerformed when the program has an alternate dance that was left unmarked. Mark all performed never marks alternates, because an alternate counts as called only once the caller marks it."
   },
   "programsSavedSnack": "\"{title}\" saved.",
   "@programsSavedSnack": {
@@ -8527,6 +8561,10 @@
   "@archiveIntakeRejectedNoContent": {
     "description": "Rejection shown when a shared archive decoded successfully but carried neither dances nor programs."
   },
+  "archiveIntakeRejectedBackup": "That file is a backup, not a share file. To bring it into this device, go to Settings › General and choose Restore from a backup.",
+  "@archiveIntakeRejectedBackup": {
+    "description": "Snackbar shown when a full backup file is opened with the app (Open with, AirDrop, or a tap in Files) instead of being restored. Names the Settings path to Restore from a backup."
+  },
   "importErrorInsecureScheme": "Imports must use a secure https:// URL.",
   "@importErrorInsecureScheme": {
     "description": "Error shown when an import URL does not use the https scheme."
@@ -9088,7 +9126,7 @@
   },
   "importReviewWillImportPrograms": "Also includes {count, plural, =1{1 program} other{{count} programs}}.",
   "@importReviewWillImportPrograms": {
-    "description": "Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) carries programs. Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.",
+    "description": "Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) or a Caller's Companion .USR file carries programs (.USR sets). Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.",
     "placeholders": {
       "count": {
         "type": "int"
@@ -9240,27 +9278,6 @@
       }
     }
   },
-  "sharedImportComplete": "{count, plural, =0{Import complete.} =1{Imported 1 item.} other{Imported {count} items.}}",
-  "@sharedImportComplete": {
-    "description": "Transient snackbar message shown after a shared bundle is imported, alongside an Undo action.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "sharedImportCompleteWithFailures": "{count, plural, =0{Nothing was imported.} =1{Imported 1 item.} other{Imported {count} items.}} {failed, plural, =1{1 dance couldn't be imported.} other{{failed} dances couldn't be imported.}}",
-  "@sharedImportCompleteWithFailures": {
-    "description": "Transient snackbar message shown, alongside an Undo action, after a shared bundle is imported when some of its dances failed to import. {count} is what did import (dances, programs and other items); {failed} is the number of dances that failed (always at least 1).",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "failed": {
-        "type": "int"
-      }
-    }
-  },
   "sharedImportProgramsOnly": "{count, plural, =1{This share contains 1 program and no dances.} other{This share contains {count} programs and no dances.}}",
   "@sharedImportProgramsOnly": {
     "description": "Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.",
@@ -9333,6 +9350,15 @@
       }
     }
   },
+  "importReviewSummaryFigures": "Figures added to or updated in your Glossary: {count}",
+  "@importReviewSummaryFigures": {
+    "description": "Import result summary line for a shared file: how many of the sender's own figures were added to the Glossary or replaced the user's version.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "importReviewProgramsUpdated": "{count} updated (re-imported)",
   "@importReviewProgramsUpdated": {
     "description": "Import result detail: how many imported programs updated an existing one.",
@@ -9345,6 +9371,15 @@
   "importReviewProgramNotes": "{count, plural, =1{{count} program note(s):} other{{count} program note(s):}}",
   "@importReviewProgramNotes": {
     "description": "Import result heading listing program-level notes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importReviewNotes": "{count, plural, =1{1 note:} other{{count} notes:}}",
+  "@importReviewNotes": {
+    "description": "Import result heading listing notes about the imported dances, such as a related-dance link that was left out because the related dance was not imported. {count} is how many notes follow.",
     "placeholders": {
       "count": {
         "type": "int"
@@ -9402,6 +9437,14 @@
   "importReviewImportError": "Couldn't complete the import.",
   "@importReviewImportError": {
     "description": "Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209)."
+  },
+  "importFileNotText": "Couldn't read that file: it isn't text the app can read. If another app saved it, save it again as UTF-8 text and try again.",
+  "@importFileNotText": {
+    "description": "Snackbar on the import screen when the chosen file is not UTF-8 text (for example a file saved in another encoding, or not a text file at all). Nothing was imported."
+  },
+  "importFileUnreadable": "Couldn't open that file. Another app may be using it, or it may be on a drive that isn't connected.",
+  "@importFileUnreadable": {
+    "description": "Snackbar on the import screen when the chosen file could not be read from disk (locked by another app, on a disconnected drive, or refused by the file system). Nothing was imported."
   },
   "importReviewVariationTitle": "Variation of \"{title}\"?",
   "@importReviewVariationTitle": {
@@ -10131,6 +10174,34 @@
   "danceEditorUnsavedDraftMessage": "You have an unsaved draft for this dance. Would you like to restore it?",
   "@danceEditorUnsavedDraftMessage": {
     "description": "Dialog body asking whether to restore a pending autosave draft."
+  },
+  "danceEditorUnsavedNewDanceDraftMessage": "You have an unsaved draft of another new dance, “{title}”. Would you like to restore it instead of starting a new one?",
+  "@danceEditorUnsavedNewDanceDraftMessage": {
+    "description": "Dialog body when the caller starts a new dance and a draft of a different new dance, never saved, is waiting from an earlier session. Restoring continues that dance; discarding deletes it.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Lady of the Lake"
+      }
+    }
+  },
+  "danceEditorUnsavedNewDanceDraftUntitledMessage": "You have an unsaved draft of another new dance, not yet titled. Would you like to restore it instead of starting a new one?",
+  "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
+    "description": "Dialog body when the caller starts a new dance and an untitled draft of a different new dance, never saved, is waiting from an earlier session."
+  },
+  "danceEditorUnsavedDraftSavedAt": "Draft saved {when}.",
+  "@danceEditorUnsavedDraftSavedAt": {
+    "description": "Line in the restore-draft dialog giving when the autosave draft was last written, so the caller can judge how old it is.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "Oct 28, 2026 3:15 PM"
+      }
+    }
+  },
+  "danceEditorUnsavedDraftChangedSince": "This dance has been changed since the draft was saved. Restoring the draft replaces those changes.",
+  "@danceEditorUnsavedDraftChangedSince": {
+    "description": "Warning in the restore-draft dialog when the saved dance was edited elsewhere (a bulk tag, a rating, a sync, a re-check) after the draft was written; restoring overwrites those later changes."
   },
   "danceEditorDiscard": "Discard",
   "@danceEditorDiscard": {
@@ -11150,6 +11221,19 @@
       }
     }
   },
+  "startupEcdConvertUndoneSnackbar": "{count, plural, =0{No dances were changed back: each one's type or tags have changed since.} one{Changed 1 dance back.} other{Changed {count} dances back.}}",
+  "@startupEcdConvertUndoneSnackbar": {
+    "description": "Snackbar after Undo on the ECD-convert snackbar: how many converted dances got their form and \"ECD\" tag back. A dance whose type or tags changed since the conversion is left alone, so this can be fewer than were converted, or none.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "appClosingMessage": "Closing…",
+  "@appClosingMessage": {
+    "description": "Shown over the app while it closes: open editors' drafts are being saved and a running sync is given a few seconds to finish."
+  },
   "updateBannerAvailable": "A newer version of {appName} ({version}) is available.",
   "@updateBannerAvailable": {
     "description": "Update banner message when a newer version is available (idle/cancelled state).",
@@ -11699,7 +11783,7 @@
   },
   "importUserFiguresFailed": "{count, plural, =1{1 figure could not be saved to your Glossary.} other{{count} figures could not be saved to your Glossary.}}",
   "@importUserFiguresFailed": {
-    "description": "Snackbar after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.",
+    "description": "Line in the import result after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.",
     "placeholders": {
       "count": {
         "type": "int"

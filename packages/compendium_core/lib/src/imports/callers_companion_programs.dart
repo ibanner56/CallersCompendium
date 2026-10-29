@@ -24,14 +24,16 @@ class CcProgramsResult {
 }
 
 /// Builds [Program]s from a Caller's Companion [CcUsrArchive]'s `Set`/`SetItem`
-/// rows, resolving each item's CC dance reference to an already-committed
-/// Compendium dance id via [danceIdByCcRowId].
+/// rows, resolving each item's CC dance reference to a local Compendium dance
+/// id via [danceIdByCcRowId].
 ///
 /// This is a **pure builder** — it takes no repository and performs no I/O,
 /// mirroring [mapCallersCompanionDance]'s philosophy — so it is trivially
 /// unit-testable and stays Flutter-free in the core. The app layer calls it
 /// *after* the dance import commits (so [danceIdByCcRowId] maps CC `Dance`
-/// record ids → the new Compendium dance ids), then persists the returned
+/// record ids → the Compendium dance ids the commit wrote, plus dances the
+/// review resolved outside the commit: a skipped re-import row's target, or a
+/// row already committed through Import and edit), then persists the returned
 /// programs via `ProgramRepository` and records them for undo. Wiring that
 /// persistence/undo is an app-layer follow-up because [ImportPipeline] is
 /// dance-only; keeping this a pure function avoids a large pipeline refactor in
@@ -62,10 +64,36 @@ CcProgramsResult buildCcPrograms(
 
     final slots = <ProgramSlot>[];
     var position = 0;
+    // A dance flagged `Break` puts the break after it and its alternates
+    // (#1974), so the slot waits for the next item that is not an alternate.
+    var breakPending = false;
+    void addBreak() {
+      slots.add(
+        ProgramSlot(
+          id: mintSlotId(),
+          position: position++,
+          text: Program.breakSlotText,
+        ),
+      );
+      breakPending = false;
+    }
+
     for (final item in set.items) {
       String? danceId;
       String? text;
       final cleanBreakText = _cleanNote(item.breakText);
+      if (breakPending && !item.isAlt) {
+        // Unless the set already has its own break slot here.
+        final isOwnBreak =
+            item.danceRecordId == null &&
+            cleanBreakText?.trim().toLowerCase() ==
+                Program.breakSlotText.toLowerCase();
+        if (isOwnBreak) {
+          breakPending = false;
+        } else {
+          addBreak();
+        }
+      }
       if (item.danceRecordId != null) {
         danceId = danceIdByCcRowId[item.danceRecordId];
         if (danceId == null) {
@@ -113,7 +141,9 @@ CcProgramsResult buildCcPrograms(
           danceMinutes: item.minutes,
         ),
       );
+      if (item.breakAfter) breakPending = true;
     }
+    if (breakPending) addBreak();
 
     programs.add(
       Program(
@@ -125,6 +155,7 @@ CcProgramsResult buildCcPrograms(
         caller: _cleanLine(set.caller),
         dancerLevel: _cleanLine(set.dancerLevel),
         notes: _cleanNote(set.notes) ?? '',
+        hideAlternates: set.hideAlternates,
         slots: slots,
         createdAt: timestamp,
         updatedAt: timestamp,

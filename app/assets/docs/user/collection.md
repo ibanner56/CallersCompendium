@@ -49,7 +49,13 @@ sort by:
 - **Author** — grouped by who wrote the dances.
 - **Recently added** — newest additions first, handy just after an
   [import](./glossary.md#import).
-- **Last called** — the dances you have programmed most recently, first.
+- **Last called** — the dances you have called most recently, first, by the
+  same rules as the "called ×N" count: the
+  [calling history settings](./settings.md#calling-history) decide which
+  programs count, and an alternate counts only once marked performed. Each
+  dance is dated by when its slot was marked performed, else its program's event
+  date, else when the program was last changed. Dances you have not called come
+  last.
 - **Best match** — how well each dance matches your words. This one is offered
   only for a short search — one or two characters — in **All fields**, with no
   **Filters**, **Advanced** or **By phrase** choices set. If Best match is
@@ -278,7 +284,8 @@ The detail view brings together:
 - **Calling history** — which of your [programs](./glossary.md#program) include
   this dance, and the venues where you have called it more than once.
   [Settings](./settings.md#calling-history) decide whether this counts only
-  slots you marked performed, or every program that contains the dance.
+  slots you marked performed, or every program that contains the dance. An
+  alternate counts only once you mark it performed.
 - **Custom fields** you have filled in.
 - **Published-source citation** — the book and page a dance came from, when you
   have recorded it.
@@ -361,6 +368,9 @@ A growing library needs a little housekeeping, and every change here can be
 undone.
 
 - **Duplicate** a dance to spin off a variation without disturbing the original.
+  The copy is titled "(copy)" and is related to the same dances as the original
+  (and joins its group of related dances, if it is in one), with those dances
+  linking back to it.
 - **Add tags** to a single dance from the actions menu on its row (the three
   vertical dots), without entering selection mode. You can pick existing
   tags or create new ones, and the change can be undone.
@@ -387,10 +397,15 @@ across all of them. Tags and level are on the toolbar; the rest are under
 - **Add tunes** — build a short list and add it to every selected dance — or
   **Clear tunes**, which asks you to confirm first.
 - **Edit custom field** — set one of your fields to a value, or choose **Clear
-  this field**.
+  this field**. For a choice field, the **+** button beside the list adds a new
+  option on the spot, just as it does when editing a single dance.
 
 Every batch change is announced to screen readers and can be undone, and the app
-tells you plainly when a change would affect nothing. Selected rows are marked
+tells you plainly when a change would affect nothing. If a change can't be
+saved, the app says so and leaves your selection in place so you can try again;
+if an **Undo** can't be completed, it says that too, and nothing is left
+half-undone. Undoing **Edit custom field** puts back only the field you changed,
+so anything else you have edited in the meantime stays as it is. Selected rows are marked
 with a checkmark and a highlight — never colour alone — so the selection is clear
 however you are reading the screen.
 
@@ -403,7 +418,12 @@ whatever you are doing. Type, and matching **Dances** and **Programs** are liste
 in groups; choose one and you go straight there.
 
 It searches titles across your collection and your programs, so it is the fastest
-way to reach a dance you can name. For searching *inside* dances — by move, by
+way to reach a dance you can name. Accents are ignored (typing `ecole` finds
+"École"), and a title that is exactly what you typed, then one that starts with
+it, is listed ahead of titles that only contain it, so `hey` shows "Hey" before
+"Cheyenne". Within each, titles are alphabetical, and a leading "The", "A" or
+"An" is ignored when [Ignore leading articles when sorting](./settings.md)
+is on. For searching *inside* dances — by move, by
 level, by tag — use the Collection search and filters above.
 
 ## Where to go next

@@ -2516,9 +2516,9 @@
   "@settingsDefaultsImportTagsTitle": {
     "x-sourceSha256": "b1dd2d836caef6fe35201a4a9633de08a139ef06a2d899cf238a707968aff9b3"
   },
-  "settingsDefaultsImportTagsSubtitle": "Wordt toegevoegd aan elke nieuwe dans die je los importeert. Dansen die tijdens het importeren van een programma worden gemaakt en dansen die uit een Compendium-archief worden hersteld, krijgen geen tags.",
+  "settingsDefaultsImportTagsSubtitle": "Wordt toegevoegd aan elke nieuwe dans die een import maakt, ook dansen uit een bestand dat iemand met je heeft gedeeld. Dansen die bij het importeren van een programma voor de plekken ervan worden gemaakt, krijgen geen tags.",
   "@settingsDefaultsImportTagsSubtitle": {
-    "x-sourceSha256": "bd3b68ca22a52c38aa563a2777ac99a8624ec843d438cebd52f12aaec06833db"
+    "x-sourceSha256": "46b3272c3dea055c93ff5cd00a0744ad249390fece3a8e1fdc41014fd5024b00"
   },
   "settingsDefaultsImportTagsEmpty": "Je hebt nog geen tags. Voeg er een toe aan een dans in de editor en kies die dan hier.",
   "@settingsDefaultsImportTagsEmpty": {
@@ -2960,6 +2960,14 @@
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "x-sourceSha256": "1848996e206cb4e46920d0bbc3310cb92d75a955a7a5042e6c91c27de09f0d7d"
   },
+  "settingsGeneralRequireEventDateForHistoryTitle": "Eventdatum vereisen voor callerhistorie",
+  "@settingsGeneralRequireEventDateForHistoryTitle": {
+    "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
+  },
+  "settingsGeneralRequireEventDateForHistorySubtitle": "Als ingeschakeld, telt een programma zonder eventdatum pas mee voor de callerhistorie als je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet.",
+  "@settingsGeneralRequireEventDateForHistorySubtitle": {
+    "x-sourceSha256": "8bfbd2c15d3c1f7cedf4be79c03362ef0ba2dd836f800f1e8591a777352889ca"
+  },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Callerhistorie voor alle callers bijhouden",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
     "x-sourceSha256": "e2a17c48a924c46655d80157c23b97a219699dc1321f4afa460c2b3c56e3f72e"
@@ -3388,6 +3396,10 @@
   "@backupExportTooLarge": {
     "x-sourceSha256": "1416959a2f449b0558cc843bfa3dbd39209ae1069307cb905582625594368e3e"
   },
+  "backupExportDiskFull": "Er is niet genoeg vrije ruimte om deze back-up te vervangen ({neededMb} MB nodig; {freeMb} MB vrij), dus er is niets opgeslagen. Je eerdere back-up is ongewijzigd.",
+  "@backupExportDiskFull": {
+    "x-sourceSha256": "891f8cc1f6aa387d25f0ac96f04536ea5ef0d34348c4e4e344d9f86a90220382"
+  },
   "backupExportInProgress": "Je back-up wordt voorbereid…",
   "@backupExportInProgress": {
     "x-sourceSha256": "9174795f8bf8199c1a9f40bd555b24c33361d0c752e5f0d07215277151a36101"
@@ -3419,6 +3431,10 @@
   "diagnosticsExportFailed": "Het diagnosticslog kon niet worden geëxporteerd.",
   "@diagnosticsExportFailed": {
     "x-sourceSha256": "7a4bc94bc88c3750a70e7afa82ad0573ef674a2baad7c1f34ec0418a39347620"
+  },
+  "diagnosticsClearFailed": "Het diagnosticslog kon niet worden gewist.",
+  "@diagnosticsClearFailed": {
+    "x-sourceSha256": "50ce27d1bce5db751b69e08e7ddbf3573dc466a5c04aefbdd637f5e11e7e4857"
   },
   "diagnosticsClearLogTitle": "Diagnosticslog wissen?",
   "@diagnosticsClearLogTitle": {
@@ -3523,6 +3539,10 @@
   "commonUndo": "Ongedaan maken",
   "@commonUndo": {
     "x-sourceSha256": "a8283ade31856f71220db0e6f60a257c6889dc4dad0f275f66ad44b9ed9bf8d5"
+  },
+  "commonUndoFailed": "Dat kon niet ongedaan worden gemaakt. Controleer het resultaat en probeer het opnieuw.",
+  "@commonUndoFailed": {
+    "x-sourceSha256": "64cb613fabf9e2b50bffb15126b715f3b0c14864606feab0fb1c7cf39226199e"
   },
   "commonRetry": "Opnieuw proberen",
   "@commonRetry": {
@@ -4695,6 +4715,10 @@
   "programsMarkedAllPerformed": "Alle dansen gemarkeerd als uitgevoerd.",
   "@programsMarkedAllPerformed": {
     "x-sourceSha256": "a0e7b24dff1bf9be7eefcb614d794bcdd53eab1576cf977fe3070ccdbf76762b"
+  },
+  "programsMarkedAllPerformedExceptAlternates": "Alle dansen behalve alternatieven gemarkeerd als uitgevoerd. Markeer een alternatief zelf als je het hebt gecalld.",
+  "@programsMarkedAllPerformedExceptAlternates": {
+    "x-sourceSha256": "08a8256620a4cffa6d30dd9cab22983d46fe20c5f9d9024d3780368cb60d0017"
   },
   "programsSavedSnack": "“{title}” opgeslagen.",
   "@programsSavedSnack": {
@@ -6534,6 +6558,10 @@
   "@archiveIntakeRejectedNoContent": {
     "x-sourceSha256": "c432135d1a1811b4f51d8ad2f995526eff018b8005496c8d5fb7a2c57faa411b"
   },
+  "archiveIntakeRejectedBackup": "Dat bestand is een back-up, geen deelbestand. Om het op dit apparaat te zetten, ga je naar Instellingen › Algemeen en kies je ‘Herstellen vanuit een back-up’.",
+  "@archiveIntakeRejectedBackup": {
+    "x-sourceSha256": "97d1949c7f180d673f52eb4a415af1cd20bd8c1c19b503754ace4b84b4514a8e"
+  },
   "importErrorInsecureScheme": "Imports moeten een beveiligde https://-URL gebruiken.",
   "@importErrorInsecureScheme": {
     "x-sourceSha256": "a6de3bdb67e3560da4e8ccca52d2dd3fca8b45a6158820d2429e3de6e9b36849"
@@ -7098,14 +7126,6 @@
   "@sharedImportSoftCapWarning": {
     "x-sourceSha256": "2d67a897d4ecda16b89d9690a2f7300c9969e2fc874a5f4b6e73a93961cfa5f6"
   },
-  "sharedImportComplete": "{count, plural, =0{Import voltooid.} =1{1 item geïmporteerd.} other{{count} items geïmporteerd.}}",
-  "@sharedImportComplete": {
-    "x-sourceSha256": "8e3c26a3b8d4edd5107078763ce244601af4951039f94ef831d74067d6851880"
-  },
-  "sharedImportCompleteWithFailures": "{count, plural, =0{Er is niets geïmporteerd.} =1{1 item geïmporteerd.} other{{count} items geïmporteerd.}} {failed, plural, =1{1 dans kon niet worden geïmporteerd.} other{{failed} dansen konden niet worden geïmporteerd.}}",
-  "@sharedImportCompleteWithFailures": {
-    "x-sourceSha256": "f51ff55e57fc1acbb9e22aa82a03ccf59f17c32898446283e422343d9e7c19de"
-  },
   "sharedImportProgramsOnly": "{count, plural, =1{Deze share bevat 1 programma en geen dansen.} other{Deze share bevat {count} programma’s en geen dansen.}}",
   "@sharedImportProgramsOnly": {
     "x-sourceSha256": "15aefeb2289ff8575bb68e5527da094f93c18c28f4091aa9ed8884892f3b9253"
@@ -7138,6 +7158,10 @@
   "@importReviewSummaryPrograms": {
     "x-sourceSha256": "c9070279087df15b091cf182503cc7f914654ec0f5d785d794ec8647e575ca3a"
   },
+  "importReviewSummaryFigures": "Figuren toegevoegd aan of bijgewerkt in je woordenlijst: {count}",
+  "@importReviewSummaryFigures": {
+    "x-sourceSha256": "6e9d9558eb08f8cd1623ef49224b3e253a6b441b1dfc51685352005254e49555"
+  },
   "importReviewProgramsUpdated": "{count} bijgewerkt (opnieuw geïmporteerd)",
   "@importReviewProgramsUpdated": {
     "x-sourceSha256": "d276d2253d5c3596bcd2d40ae1952182fdb05658e37d7b7d0bcfa067132c8e9e"
@@ -7145,6 +7169,10 @@
   "importReviewProgramNotes": "{count, plural, =1{{count} programmanotitie(s):} other{{count} programmanotities:}}",
   "@importReviewProgramNotes": {
     "x-sourceSha256": "07c7e17959f23f779d1edb246f618b91ffd73b304673c024cda04b007aeb9193"
+  },
+  "importReviewNotes": "{count, plural, =1{1 opmerking:} other{{count} opmerkingen:}}",
+  "@importReviewNotes": {
+    "x-sourceSha256": "024bca658e563e09d66070ddee25f4c452159aaef5acb22a0028f6d85accd77e"
   },
   "importReviewRecordsFailed": "{count, plural, =1{{count} record(s) kon niet worden geïmporteerd:} other{{count} records konden niet worden geïmporteerd:}}",
   "@importReviewRecordsFailed": {
@@ -7181,6 +7209,14 @@
   "importReviewImportError": "De import kon niet worden voltooid.",
   "@importReviewImportError": {
     "x-sourceSha256": "468698ddc233d06e939d5d5ca36ce259909e31cd8374a8de9b8c449a63eb6d54"
+  },
+  "importFileNotText": "Dat bestand kon niet worden gelezen: het is geen tekst die de app kan lezen. Als een andere app het heeft opgeslagen, sla het daar opnieuw op als UTF-8-tekst en probeer het nog eens.",
+  "@importFileNotText": {
+    "x-sourceSha256": "2b6b1e5e54a0395a362c30b25f7cb9bca9f24df5c8144396eae29310f06cccf5"
+  },
+  "importFileUnreadable": "Dat bestand kon niet worden geopend. Misschien gebruikt een andere app het, of staat het op een schijf die niet is verbonden.",
+  "@importFileUnreadable": {
+    "x-sourceSha256": "71056276ba590e1687abac3e64b727168c563776f408db3e6ed0da732fddda85"
   },
   "importReviewVariationTitle": "Variatie van \"{title}\"?",
   "@importReviewVariationTitle": {
@@ -7753,6 +7789,22 @@
   "danceEditorUnsavedDraftMessage": "Je hebt een niet-opgeslagen concept voor deze dans. Wil je het herstellen?",
   "@danceEditorUnsavedDraftMessage": {
     "x-sourceSha256": "4361737050c69693981e562c818bb6e1759d9787f3c3063b7c5a24110ff4bd05"
+  },
+  "danceEditorUnsavedNewDanceDraftMessage": "Je hebt een niet-opgeslagen concept van een andere nieuwe dans, ‘{title}’. Wil je het herstellen in plaats van een nieuwe te beginnen?",
+  "@danceEditorUnsavedNewDanceDraftMessage": {
+    "x-sourceSha256": "cfa0a260dbb7d319cf1657e51a6a8c15425b1eeb38646cecfe70f1b5513810c7"
+  },
+  "danceEditorUnsavedNewDanceDraftUntitledMessage": "Je hebt een niet-opgeslagen concept van een andere nieuwe dans, nog zonder titel. Wil je het herstellen in plaats van een nieuwe te beginnen?",
+  "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
+    "x-sourceSha256": "cc94ad5921a82b7a09da9609d23e294e7143bbf350f0726fb70299e73c9003e9"
+  },
+  "danceEditorUnsavedDraftSavedAt": "Concept opgeslagen op {when}.",
+  "@danceEditorUnsavedDraftSavedAt": {
+    "x-sourceSha256": "0a54afbff697740ab32849f748b479e07b7e7368e5d94fa21defb9d187ca2092"
+  },
+  "danceEditorUnsavedDraftChangedSince": "Deze dans is gewijzigd sinds het concept werd opgeslagen. Als je het concept herstelt, worden die wijzigingen vervangen.",
+  "@danceEditorUnsavedDraftChangedSince": {
+    "x-sourceSha256": "3a7cbbf1fc29a4de9fc4d7ddfd2d0542dba59459363b98374e564ac0ff457703"
   },
   "danceEditorDiscard": "Verwerpen",
   "@danceEditorDiscard": {
@@ -8365,6 +8417,14 @@
   "startupEcdConvertSnackbar": "{count, plural, one{1 dans geconverteerd naar Engels (ECD).} other{{count} dansen geconverteerd naar Engels (ECD).}}",
   "@startupEcdConvertSnackbar": {
     "x-sourceSha256": "eeac5cbd9f6ed8ecf6dde0028562b4784e4bb60d89a2a74630e423c760473b31"
+  },
+  "startupEcdConvertUndoneSnackbar": "{count, plural, =0{Er zijn geen dansen teruggezet: van elke dans zijn sindsdien het type of de tags gewijzigd.} one{1 dans teruggezet.} other{{count} dansen teruggezet.}}",
+  "@startupEcdConvertUndoneSnackbar": {
+    "x-sourceSha256": "a9e605173e6dcecccc485febe0250d6f99b6d4253045b1dbed890c92f21cdc55"
+  },
+  "appClosingMessage": "Bezig met sluiten…",
+  "@appClosingMessage": {
+    "x-sourceSha256": "abdb0cfdd8ace143929beef96d31ef863fc62904fc7e9bef546330b8594eedaa"
   },
   "updateBannerAvailable": "Een nieuwere versie van {appName} ({version}) is beschikbaar.",
   "@updateBannerAvailable": {

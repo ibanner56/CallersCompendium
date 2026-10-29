@@ -2548,7 +2548,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Føjes til hver ny dans, du importerer på egen hånd. Danse, der oprettes under import af et program, og danse, der gendannes fra et Compendium-arkiv, får ikke tags.';
+      'Føjes til hver ny dans, en import opretter, også danse fra en fil, nogen har delt med dig. Danse, der oprettes til et programs pladser under import af programmet, får ikke tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -2942,6 +2942,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
       'Når aktiveret viser en dans\' kaldshistorik kun programmer, hvis slot for den dans er markeret som fremført. Når deaktiveret vises et program, så snart det indeholder dansen.';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Kræv en begivenhedsdato til kaldshistorik';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Når aktiveret tæller et program uden begivenhedsdato ikke med i kaldshistorikken, før du giver det en. Duplikerede og modtagne programmer kommer uden dato. Når deaktiveret tæller et program, uanset om det har en dato.';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
@@ -3351,6 +3359,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'Der er ikke nok ledig plads til at erstatte denne sikkerhedskopi ($neededMb MB nødvendig; $freeMb MB ledig), så intet blev gemt. Din tidligere sikkerhedskopi er uændret.';
+  }
+
+  @override
   String get backupExportInProgress => 'Forbereder din sikkerhedskopi…';
 
   @override
@@ -3378,6 +3391,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get diagnosticsExportFailed =>
       'Kunne ikke eksportere diagnostikloggen.';
+
+  @override
+  String get diagnosticsClearFailed => 'Kunne ikke rydde diagnostikloggen.';
 
   @override
   String get diagnosticsClearLogTitle => 'Ryd diagnostiklog?';
@@ -3465,6 +3481,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get commonUndo => 'Fortryd';
+
+  @override
+  String get commonUndoFailed =>
+      'Kunne ikke fortryde det. Kontrollér resultatet, og prøv igen.';
 
   @override
   String get commonRetry => 'Prøv igen';
@@ -4622,6 +4642,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsMarkedAllPerformed => 'Markerede alle danse som fremført.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Markerede alle danse som fremført undtagen alternativer. Markér selv et alternativ, hvis du kaldte det.';
 
   @override
   String programsSavedSnack(String title) {
@@ -6609,6 +6633,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Den fil indeholdt ingen danse eller programmer.';
 
   @override
+  String get archiveIntakeRejectedBackup =>
+      'Den fil er en sikkerhedskopi, ikke en delefil. For at få den over på denne enhed skal du gå til Indstillinger › Generelt og vælge »Gendan fra en sikkerhedskopi«.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Imports skal bruge en sikker https://-URL.';
 
@@ -7184,36 +7212,6 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Importerede $count elementer.',
-      one: 'Importerede 1 element.',
-      zero: 'Import fuldført.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportCompleteWithFailures(int count, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Importerede $count elementer.',
-      one: 'Importerede 1 element.',
-      zero: 'Intet blev importeret.',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed danse kunne ikke importeres.',
-      one: '1 dans kunne ikke importeres.',
-    );
-    return '$_temp0 $_temp1';
-  }
-
-  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7260,6 +7258,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return 'Figurer tilføjet til eller opdateret i din ordliste: $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count opdateret (reimporteret)';
   }
@@ -7271,6 +7274,17 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other: '$count programnoter:',
       one: '$count programnote:',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bemærkninger:',
+      one: '1 bemærkning:',
     );
     return '$_temp0';
   }
@@ -7322,6 +7336,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'Kunne ikke fuldføre importen.';
+
+  @override
+  String get importFileNotText =>
+      'Kunne ikke læse den fil: den er ikke tekst, som appen kan læse. Hvis en anden app har gemt den, så gem den igen som UTF-8-tekst og prøv igen.';
+
+  @override
+  String get importFileUnreadable =>
+      'Kunne ikke åbne den fil. En anden app bruger den måske, eller den ligger på et drev, der ikke er tilsluttet.';
 
   @override
   String importReviewVariationTitle(String title) {
@@ -7832,6 +7854,24 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'Du har en ugemt kladde til denne dans. Vil du gendanne den?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Du har en ugemt kladde til en anden ny dans, „$title“. Vil du gendanne den i stedet for at starte en ny?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Du har en ugemt kladde til en anden ny dans, der endnu ikke har en titel. Vil du gendanne den i stedet for at starte en ny?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Kladden blev gemt $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Dansen er blevet ændret, siden kladden blev gemt. Hvis du gendanner kladden, erstattes disse ændringer.';
 
   @override
   String get danceEditorDiscard => 'Kassér';
@@ -8574,6 +8614,22 @@ class AppLocalizationsDa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ændrede $count danse tilbage.',
+      one: 'Ændrede 1 dans tilbage.',
+      zero:
+          'Ingen danse blev ændret tilbage: hver af dem har fået ændret type eller tags siden.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Lukker…';
 
   @override
   String updateBannerAvailable(String appName, String version) {

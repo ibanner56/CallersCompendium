@@ -6,7 +6,8 @@ import 'package:test/test.dart';
 /// test can tell WHICH front-end produced a fan-out winner by its note. Because
 /// it always carries a note it is a NOTE-BEARING (tier-2) attempt, which is
 /// exactly what the precedence-within-a-tier tests below want (they compare
-/// several note-bearing stubs, so the highest-precedence one wins). When [when]
+/// several note-bearing stubs with equal-length notes, so the highest-precedence
+/// one wins; #1971 ranks unequal notes by length first). When [when]
 /// is not satisfied the pre-recognizer returns null and the line falls to the
 /// shared recognizers (which do not recognize the nonsense sentinels used here),
 /// so the stub effectively "misses" and degrades to custom.
@@ -67,40 +68,67 @@ void main() {
       final f = parseFigureLineFanOut(
         sentinel,
         frontEnds: [
-          _stub('first', when: _always),
-          _stub('second', when: _always),
-          _stub('third', when: _always),
+          _stub('fe1', when: _always),
+          _stub('fe2', when: _always),
+          _stub('fe3', when: _always),
         ],
       );
       expect(f, isNotNull);
       expect(f!.isCustom, isFalse);
-      expect(f.note, 'first');
+      expect(f.note, 'fe1');
     });
 
     test('a lower-precedence front-end is used only when higher ones miss', () {
       final f = parseFigureLineFanOut(
         sentinel,
         frontEnds: [
-          _stub('first', when: _never), // misses -> custom
-          _stub('second', when: _always), // wins
-          _stub('third', when: _always),
+          _stub('fe1', when: _never), // misses -> custom
+          _stub('fe2', when: _always), // wins
+          _stub('fe3', when: _always),
         ],
       );
       expect(f!.isCustom, isFalse);
-      expect(f.note, 'second');
+      expect(f.note, 'fe2');
     });
 
     test('the third front-end wins when the first two miss', () {
       final f = parseFigureLineFanOut(
         sentinel,
         frontEnds: [
-          _stub('first', when: _never),
-          _stub('second', when: _never),
-          _stub('third', when: _always),
+          _stub('fe1', when: _never),
+          _stub('fe2', when: _never),
+          _stub('fe3', when: _always),
         ],
       );
       expect(f!.isCustom, isFalse);
-      expect(f.note, 'third');
+      expect(f.note, 'fe3');
+    });
+  });
+
+  // #1971: among note-bearing readings, the one leaving fewer letters and
+  // digits unexplained wins; precedence only breaks a tie (the stubs above
+  // carry equal-length notes for that reason).
+  group('parseFigureLineFanOut — coverage between note-bearing readings', () {
+    test('a later front-end that explains more of the line wins', () {
+      final f = parseFigureLineFanOut(
+        sentinel,
+        frontEnds: [
+          _stub('1.5 (face P)', when: _always),
+          _stub('face P', when: _always),
+        ],
+      );
+      expect(f!.note, 'face P');
+    });
+
+    test('brackets and punctuation do not count', () {
+      final f = parseFigureLineFanOut(
+        sentinel,
+        frontEnds: [
+          _stub('(NR)', when: _always),
+          _stub('NR', when: _always),
+        ],
+      );
+      expect(f!.note, '(NR)');
     });
   });
 
@@ -416,25 +444,25 @@ void main() {
       final fs = parseFigureLinesFanOut(
         'plover',
         frontEnds: [
-          _stub('first', when: _always),
-          _stub('second', when: _always),
+          _stub('fe1', when: _always),
+          _stub('fe2', when: _always),
         ],
       );
       expect(fs, hasLength(1));
       expect(fs.single.isCustom, isFalse);
-      expect(fs.single.note, 'first');
+      expect(fs.single.note, 'fe1');
     });
 
     test('falls through to a lower front-end when the higher one misses', () {
       final fs = parseFigureLinesFanOut(
         'plover',
         frontEnds: [
-          _stub('first', when: _never),
-          _stub('second', when: _always),
+          _stub('fe1', when: _never),
+          _stub('fe2', when: _always),
         ],
       );
       expect(fs.single.isCustom, isFalse);
-      expect(fs.single.note, 'second');
+      expect(fs.single.note, 'fe2');
     });
 
     test('all miss -> single import-gap custom carrying the line', () {
@@ -572,11 +600,11 @@ void main() {
   });
 
   group('parseFigureLinesFanOut — demoteNoteTails', () {
-    test('default (imports) keeps a note tail: swing + note "16"', () {
+    test('default (imports) no longer keeps a bare-number tail (#1971)', () {
+      // A note opening with a number is an amount the reader did not take, so
+      // imports leave the line custom too, rather than a swing noting "16".
       final f = parseFigureLinesFanOut('neighbors swing 16').single;
-      expect(f.isCustom, isFalse);
-      expect(f.move, 'swing');
-      expect(f.note, '16');
+      expect(f.isCustom, isTrue);
     });
 
     test('demoteNoteTails turns a bare-number note tail into a custom', () {
@@ -601,15 +629,17 @@ void main() {
     });
 
     test('demoteNoteTails also sees notes on container children', () {
+      // A move-name tail: a number tail would now leave imports custom too
+      // (#1971), so it could not show the two modes differing.
       final f = parseFigureLinesFanOut(
-        'neighbors swing 16 while partners swing',
+        'neighbors swing petronella while partners swing',
         demoteNoteTails: true,
       ).single;
       expect(f.isCustom, isTrue);
       // Default (imports) keeps the structured container.
       expect(
         parseFigureLinesFanOut(
-          'neighbors swing 16 while partners swing',
+          'neighbors swing petronella while partners swing',
         ).single.isCustom,
         isFalse,
       );

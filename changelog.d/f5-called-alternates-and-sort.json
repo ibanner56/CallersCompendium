@@ -1,0 +1,20 @@
+{
+  "id": "f5-called-alternates-and-sort",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "An alternate dance counts as called only once you mark that slot performed. Listing a dance as an alternate no longer raises its \"called ×N\" count, puts it under the Called filter, adds it to its calling history or venue repeats, or makes it the evening's closer in the half stats.",
+      "Mark all performed, in the program builder and on a program's summary, no longer marks alternates, and neither does setting a program's status to Performed. When an alternate is left unmarked, the confirmation says so; mark the alternate you used yourself."
+    ],
+    "fixed": [
+      "The Last called sort now follows the same rules as the \"called ×N\" count: it honours Require \"mark performed\" and Track calling history for all callers, and dates a dance by its program's event date when no slot is marked performed, instead of leaving it among the never-called dances.",
+      "Changing the default caller in Settings, or receiving a change by sync, updates Collection's \"called ×N\" counts straight away instead of after a restart."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Calling-history queries, the Called filter and half-calling stats count an alternate slot only once it is marked performed; Program.stampDanceSlotsPerformed skips alternates. Add ProgramSlot.countsTowardCallingHistory and ProgramSlot.isBulkMarkPerformedTarget.",
+      "DanceRepository.search takes callerFilter and performedOnly, which scope the last-called sort; the sort orders by COALESCE(performed_at, event_date, updated_at)."
+    ]
+  }
+}

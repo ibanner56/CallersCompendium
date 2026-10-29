@@ -1520,6 +1520,166 @@ void main() {
       },
     );
 
+    group('omni search and the internal role tokens (FIND-16)', () {
+      Future<void> seed() async {
+        await dances.create(_dance(id: 'log', title: 'Rolling Off a Log'));
+        await dances.create(
+          _dance(
+            id: 'plain',
+            title: 'Plain Jane',
+            figures: [
+              Figure(
+                move: 'swing',
+                params: const {'who': 'role1s', 'beats': 8},
+              ),
+            ],
+          ),
+        );
+      }
+
+      test(
+        'a fragment of a role token finds only the verbatim-text match',
+        () async {
+          await seed();
+          // 1-2 characters use the prefix index; longer ones the trigram index.
+          const matchesTitle = {'r', 'ro', 'rol'}; // "Rolling": not "role"
+          for (final q in ['r', 'ro', 'rol', 'role', 'ole']) {
+            expect(
+              await dances.search(
+                FullTextFilter(q),
+                dialect: Dialect.larksRobins,
+              ),
+              matchesTitle.contains(q) ? ['log'] : isEmpty,
+              reason: 'omni "$q"',
+            );
+          }
+        },
+      );
+
+      test(
+        'a fragment still finds a real move whose name starts with it',
+        () async {
+          await dances.create(
+            _dance(
+              id: 'roll',
+              title: 'Plain Two',
+              figures: [
+                Figure(
+                  move: 'custom',
+                  params: const {'text': 'roll away with a half sashay'},
+                ),
+              ],
+            ),
+          );
+          await seed();
+          for (final q in ['r', 'ro', 'rol', 'roll']) {
+            for (final sort in [SearchSort.title, SearchSort.relevance]) {
+              expect(
+                await dances.search(
+                  FullTextFilter(q),
+                  dialect: Dialect.larksRobins,
+                  sort: sort,
+                ),
+                contains('roll'),
+                reason: 'omni "$q" ($sort)',
+              );
+              expect(
+                await dances.search(
+                  FullTextFilter(q),
+                  dialect: Dialect.larksRobins,
+                  sort: sort,
+                ),
+                isNot(contains('plain')),
+                reason: 'omni "$q" ($sort) must not reach the role token',
+              );
+            }
+          }
+        },
+      );
+
+      test(
+        'a multi-word query ending in a short word still finds the figure',
+        () async {
+          await dances.create(
+            _dance(
+              id: 'circ',
+              title: 'Plain Three',
+              figures: [
+                Figure(
+                  move: 'custom',
+                  params: const {'text': 'circle left 3 places'},
+                ),
+              ],
+            ),
+          );
+          await seed();
+          expect(
+            await dances.search(
+              const FullTextFilter('circle le'),
+              dialect: Dialect.larksRobins,
+            ),
+            ['circ'],
+          );
+        },
+      );
+
+      test(
+        'the relevance sort direction still flips a fragment query',
+        () async {
+          await dances.create(
+            _dance(id: 'many', title: 'Rosy Rogue Robin Rover Rowan Roy'),
+          );
+          await dances.create(_dance(id: 'one', title: 'Roman Holiday Jig'));
+          await dances.create(
+            _dance(
+              id: 'roll',
+              title: 'Plain Two',
+              figures: [
+                Figure(move: 'custom', params: const {'text': 'roll away'}),
+              ],
+            ),
+          );
+          final asc = await dances.search(
+            const FullTextFilter('ro'),
+            dialect: Dialect.larksRobins,
+            sort: SearchSort.relevance,
+            direction: SortDirection.ascending,
+          );
+          final desc = await dances.search(
+            const FullTextFilter('ro'),
+            dialect: Dialect.larksRobins,
+            sort: SearchSort.relevance,
+            direction: SortDirection.descending,
+          );
+          expect(asc.toSet(), {'many', 'one', 'roll'});
+          expect(desc, asc.reversed.toList());
+        },
+      );
+
+      test('the relevance sort leaves the token out too', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const FullTextFilter('ro'),
+            dialect: Dialect.larksRobins,
+            sort: SearchSort.relevance,
+          ),
+          ['log'],
+        );
+      });
+
+      test('a whole role word still finds the figure', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const FullTextFilter('larks'),
+            dialect: Dialect.larksRobins,
+          ),
+          ['plain'],
+        );
+      });
+    });
+
     group('omni raw branch (role words in verbatim columns)', () {
       Future<void> seedAuthored() async {
         // ignore: unused_result
