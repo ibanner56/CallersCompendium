@@ -9743,7 +9743,7 @@ abstract class AppLocalizations {
   /// **'Compendium share'**
   String get fileDialogTypeCompendiumShare;
 
-  /// Name of the Caller's Companion .USR filter in the native import file dialog. Product and file-type names; kept verbatim.
+  /// Name of the Caller's Companion .USR filter in the native import file dialog. Product and file-type names; not translated.
   ///
   /// In en, this message translates to:
   /// **'Caller\'s Companion .USR'**

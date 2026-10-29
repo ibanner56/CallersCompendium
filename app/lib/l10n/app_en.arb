@@ -8287,7 +8287,7 @@
   },
   "fileDialogTypeCompanionUsr": "Caller's Companion .USR",
   "@fileDialogTypeCompanionUsr": {
-    "description": "Name of the Caller's Companion .USR filter in the native import file dialog. Product and file-type names; kept verbatim."
+    "description": "Name of the Caller's Companion .USR filter in the native import file dialog. Product and file-type names; not translated."
   },
   "fileDialogTypeDiagnosticsLog": "Diagnostics log",
   "@fileDialogTypeDiagnosticsLog": {

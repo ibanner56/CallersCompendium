@@ -10,7 +10,7 @@ import 'coalesce_trailing.dart';
 typedef CustomFieldDisplay = ({String label, Object value});
 
 /// Fully-hydrated data for the dance detail screen (`docs/design/ux.md` §2):
-/// the [dance] plus the resolved author/tag names, formatted custom fields,
+/// the [dance] plus the resolved author/tag names, custom-field values,
 /// related-dance titles, cited sources, and the cross-reference
 /// [DanceTitleLinker] used to link mentions of other dances.
 ///
