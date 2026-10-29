@@ -958,24 +958,30 @@ void main() {
           expect(m.isCollision(0, c), isTrue);
         });
 
-        test('an alternate across the break is skipped, one before it is not',
-            () {
-          // Section 1: d1, d2a/d2b (alts). Section 2: d3.
-          final m = build(
-            [
-              d('d1', 'balance'),
-              d('d2a', 'circle'),
-              d('d2b', 'balance'),
-              d('d3', 'balance'),
-            ],
-            const [1, 1, 1, 2],
-            const [0, 1, 1, 2],
-          );
-          final c = m.columns.indexWhere((c) => c.moveId == 'balance');
-          expect(m.isCollision(0, c), isTrue, reason: 'd1 vs alt d2b');
-          expect(m.isCollision(2, c), isTrue, reason: 'd2b vs d1');
-          expect(m.isCollision(3, c), isFalse, reason: 'd3 is past the break');
-        });
+        test(
+          'an alternate across the break is skipped, one before it is not',
+          () {
+            // Section 1: d1, d2a/d2b (alts). Section 2: d3.
+            final m = build(
+              [
+                d('d1', 'balance'),
+                d('d2a', 'circle'),
+                d('d2b', 'balance'),
+                d('d3', 'balance'),
+              ],
+              const [1, 1, 1, 2],
+              const [0, 1, 1, 2],
+            );
+            final c = m.columns.indexWhere((c) => c.moveId == 'balance');
+            expect(m.isCollision(0, c), isTrue, reason: 'd1 vs alt d2b');
+            expect(m.isCollision(2, c), isTrue, reason: 'd2b vs d1');
+            expect(
+              m.isCollision(3, c),
+              isFalse,
+              reason: 'd3 is past the break',
+            );
+          },
+        );
       });
     }
   });
