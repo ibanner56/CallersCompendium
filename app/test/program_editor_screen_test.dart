@@ -3293,6 +3293,35 @@ void main() {
     },
   );
 
+  testWidgets('a failed program read offers Retry, and Retry loads it', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.programs.create(_program(id: 'p1', slots: const []));
+    delayed.programs.failNextRead = true;
+
+    await _pumpBuilder(tester, delayed.repos, programId: 'p1');
+
+    expect(find.text('Could not load the program.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('save-program')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('load-error-retry')).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not load the program.'), findsNothing);
+    expect(find.byKey(const ValueKey('save-program')), findsOneWidget);
+  });
+
+  testWidgets('a program that no longer exists offers no Retry', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+
+    await _pumpBuilder(tester, repos, programId: 'gone');
+
+    expect(find.byKey(const ValueKey('load-error-retry')), findsNothing);
+  });
+
   testWidgets(
     'failed persisted Undo enters a safe state when recovery read fails',
     (tester) async {

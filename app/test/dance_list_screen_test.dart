@@ -1987,6 +1987,30 @@ void main() {
     expect(find.byType(DanceListTile), findsNothing);
   });
 
+  testWidgets('a failed search offers Retry, and Retry runs it again', (
+    tester,
+  ) async {
+    final db = openWidgetTestDatabase();
+    final dances = _FailOnceSearchDances(db, contraTaxonomy);
+    final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    expect(dances.fired, isTrue, reason: 'the injected failure must fire');
+    expect(
+      find.text('Something went wrong running the search.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Something went wrong running the search.'), findsNothing);
+    expect(find.byType(DanceListTile), findsOneWidget);
+  });
+
   testWidgets('punctuation-only query degrades to no-match, not an error', (
     tester,
   ) async {
@@ -2528,6 +2552,42 @@ void main() {
     final fab = tester.getRect(find.byKey(const ValueKey('new-dance')));
     expect(lowestRowBottom, lessThanOrEqualTo(fab.top));
   });
+}
+
+/// Fails the first search, then behaves normally.
+class _FailOnceSearchDances extends DanceRepository {
+  _FailOnceSearchDances(super.db, super.taxonomy);
+
+  bool fired = false;
+
+  @override
+  Future<List<String>> search(
+    DanceFilter filter, {
+    SearchSort sort = SearchSort.title,
+    SortDirection? direction,
+    Dialect? dialect,
+    SearchEnrichment? enrichment,
+    bool ignoreLeadingArticles = false,
+    String? callerFilter,
+    bool performedOnly = false,
+    bool requireEventDate = false,
+  }) {
+    if (!fired) {
+      fired = true;
+      return Future.error(StateError('injected search failure'));
+    }
+    return super.search(
+      filter,
+      sort: sort,
+      direction: direction,
+      dialect: dialect,
+      enrichment: enrichment,
+      ignoreLeadingArticles: ignoreLeadingArticles,
+      callerFilter: callerFilter,
+      performedOnly: performedOnly,
+      requireEventDate: requireEventDate,
+    );
+  }
 }
 
 class _CountingDances extends DanceRepository {

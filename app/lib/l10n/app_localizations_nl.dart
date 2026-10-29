@@ -1257,6 +1257,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get settingsSyncConflictsCheckFailed =>
+      'Conflicten konden niet worden gecontroleerd.';
+
+  @override
   String commonSyncNowConflictsTooltip(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1468,6 +1472,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsSyncWipeDetachFailed =>
       'De opslag is van de server verwijderd, maar dit apparaat kon de verbinding ermee niet verbreken. De opslag is weg en kan niet worden teruggehaald. Gebruik Dit apparaat loskoppelen om het af te ronden.';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'Opslag verwijderd, dit apparaat nog verbonden';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -4406,6 +4414,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceNotFound => 'Dans niet gevonden.';
+
+  @override
+  String get danceLoadError => 'Deze dans kon niet worden geladen.';
 
   @override
   String get danceEditFab => 'Bewerken';
@@ -9270,6 +9281,11 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 dans',
     );
     return '“$label” kan niet worden verwijderd: nog in gebruik door $_temp0. Verwijder de waarde eerst van alle dansen.';
+  }
+
+  @override
+  String customFieldsDeleteFailed(String label) {
+    return '“$label” kon niet worden verwijderd. Probeer het opnieuw.';
   }
 
   @override

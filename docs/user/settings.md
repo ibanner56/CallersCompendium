@@ -1056,6 +1056,10 @@ won't arrive here. This device disconnects and forgets its phrase; your other
 devices find the store gone the next time they sync and are asked whether to
 start a new one, the same question as any store that's no longer there.
 
+If the store is deleted but this device can't disconnect from it, a message says
+so: the store is gone and can't be brought back, and this device still holds its
+phrase. Choose **Disconnect this device** to finish.
+
 This is what to use if someone else has seen your sync phrase. A leaked phrase
 can't be revoked, and moving your devices to a new phrase doesn't help on its
 own — whoever has the old one can still read and change everything in the old

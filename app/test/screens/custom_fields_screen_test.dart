@@ -1,4 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -6,6 +8,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 
+import '../support/fail_once_interceptor.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
@@ -346,6 +349,45 @@ void main() {
         expect(find.textContaining('1 dance.'), findsOneWidget);
       },
     );
+
+    testWidgets('a delete that fails for another reason says so', (
+      tester,
+    ) async {
+      final failer = FailOnceInterceptor(
+        'custom_field_defs',
+        failUpdates: true,
+      );
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+        ),
+        contraTaxonomy,
+      );
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpScreen(tester, repos);
+      failer.arm();
+
+      await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('delete-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+      expect(
+        find.byKey(const ValueKey('delete-failed-snackbar')),
+        findsOneWidget,
+      );
+      expect(find.text('Couldn\'t delete "Notes". Try again.'), findsOneWidget);
+      expect(find.text('Notes'), findsOneWidget);
+    });
 
     testWidgets('the in-use snackbar pluralises the live dance count', (
       tester,

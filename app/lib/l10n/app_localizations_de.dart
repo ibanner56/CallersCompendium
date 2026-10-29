@@ -1257,6 +1257,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get settingsSyncConflictsCheckFailed =>
+      'Konflikte konnten nicht geprüft werden.';
+
+  @override
   String commonSyncNowConflictsTooltip(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1467,6 +1471,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsSyncWipeDetachFailed =>
       'Der Speicher wurde vom Server gelöscht, aber dieses Gerät konnte die Verbindung dazu nicht trennen. Der Speicher ist weg und lässt sich nicht zurückholen. Nutze Dieses Gerät trennen, um es abzuschließen.';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'Speicher gelöscht, dieses Gerät noch verbunden';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -4422,6 +4430,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceNotFound => 'Tanz nicht gefunden.';
+
+  @override
+  String get danceLoadError => 'Dieser Tanz konnte nicht geladen werden.';
 
   @override
   String get danceEditFab => 'Bearbeiten';
@@ -9309,6 +9320,11 @@ class AppLocalizationsDe extends AppLocalizations {
       one: '1 Tanz',
     );
     return '„$label“ kann nicht gelöscht werden: noch in $_temp0 verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.';
+  }
+
+  @override
+  String customFieldsDeleteFailed(String label) {
+    return '„$label“ konnte nicht gelöscht werden. Versuchen Sie es erneut.';
   }
 
   @override

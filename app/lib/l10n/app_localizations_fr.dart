@@ -1265,6 +1265,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get settingsSyncConflictsCheckFailed =>
+      'Impossible de vérifier les conflits.';
+
+  @override
   String commonSyncNowConflictsTooltip(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1474,6 +1478,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsSyncWipeDetachFailed =>
       'L\'espace a été supprimé du serveur, mais cet appareil n\'a pas pu s\'en déconnecter. L\'espace a disparu et ne peut pas être récupéré. Utilisez Déconnecter cet appareil pour terminer.';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'Espace supprimé, cet appareil toujours connecté';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -4438,6 +4446,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceNotFound => 'Danse introuvable.';
+
+  @override
+  String get danceLoadError => 'Impossible de charger cette danse.';
 
   @override
   String get danceEditFab => 'Modifier';
@@ -9331,6 +9342,11 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '1 danse',
     );
     return 'Impossible de supprimer « $label » : encore utilisé par $_temp0. Supprimez d’abord la valeur de toutes les danses.';
+  }
+
+  @override
+  String customFieldsDeleteFailed(String label) {
+    return 'Impossible de supprimer « $label ». Réessayez.';
   }
 
   @override

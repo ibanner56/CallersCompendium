@@ -1084,6 +1084,10 @@
   "@settingsSyncConflictsSubtitle": {
     "x-sourceSha256": "fda77cdb41bdca627b9072e4fd6eb1104fd8e1fdeb8b45a41a83a14cd07b6d01"
   },
+  "settingsSyncConflictsCheckFailed": "Konflikte konnten nicht geprüft werden.",
+  "@settingsSyncConflictsCheckFailed": {
+    "x-sourceSha256": "4a3d8f191e2d1cd1d26cbecb325f05d583eb8a8a6b792cf925156fc7d790a20b"
+  },
   "commonSyncNowConflictsTooltip": "{count, plural, =1{Jetzt synchronisieren (1 Eintrag wartet auf deine Wahl)} other{Jetzt synchronisieren ({count} Einträge warten auf deine Wahl)}}",
   "@commonSyncNowConflictsTooltip": {
     "x-sourceSha256": "9f484617ad8c5c7b7f348011989c3612a4c229fe322d59ff138f9d8a769a66d4"
@@ -1267,6 +1271,10 @@
   "settingsSyncWipeDetachFailed": "Der Speicher wurde vom Server gelöscht, aber dieses Gerät konnte die Verbindung dazu nicht trennen. Der Speicher ist weg und lässt sich nicht zurückholen. Nutze Dieses Gerät trennen, um es abzuschließen.",
   "@settingsSyncWipeDetachFailed": {
     "x-sourceSha256": "ac763fba9e00e2a235a8877b2058b006c655d5e1afb26a7009b2a925794f173f"
+  },
+  "settingsSyncWipeDetachFailedTitle": "Speicher gelöscht, dieses Gerät noch verbunden",
+  "@settingsSyncWipeDetachFailedTitle": {
+    "x-sourceSha256": "a1e6faaeb955586b38a8e45f33a2c7b866a4dcb781aa7b753901759684ba357f"
   },
   "settingsSyncMeteredRouted": "Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.",
   "@settingsSyncMeteredRouted": {
@@ -4463,6 +4471,10 @@
   "danceNotFound": "Tanz nicht gefunden.",
   "@danceNotFound": {
     "x-sourceSha256": "1b47619207fe31d79756e61a38e5461c7f399df14567e6d72556dab910ae2883"
+  },
+  "danceLoadError": "Dieser Tanz konnte nicht geladen werden.",
+  "@danceLoadError": {
+    "x-sourceSha256": "4e8d6f4f8ae4f08224ef7f01eb361aa01c04be7811c7281b51049ee62d971ff7"
   },
   "danceEditFab": "Bearbeiten",
   "@danceEditFab": {
@@ -8921,6 +8933,10 @@
   "customFieldsDeleteInUse": "„{label}“ kann nicht gelöscht werden: noch in {count, plural, =1{1 Tanz} other{{count} Tänzen}} verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.",
   "@customFieldsDeleteInUse": {
     "x-sourceSha256": "3216847c71408f8c115cc0f639621a7a700926cf3c3d29fe2bcce0948156a556"
+  },
+  "customFieldsDeleteFailed": "„{label}“ konnte nicht gelöscht werden. Versuchen Sie es erneut.",
+  "@customFieldsDeleteFailed": {
+    "x-sourceSha256": "0a9687d09317172625c68b565f464f85b4f69dff8f22cec58db3c02959c8ce04"
   },
   "customFieldsKeyDuplicate": "Ein Feld mit dem Schlüssel „{key}“ existiert bereits. Der Schlüssel wurde nicht geändert.",
   "@customFieldsKeyDuplicate": {
