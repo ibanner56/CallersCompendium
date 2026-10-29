@@ -251,6 +251,20 @@ void main() {
     expect((await _slot(repos, 's0')).performedAt, _stamp);
   });
 
+  testWidgets('quick taps on two different rows both land', (tester) async {
+    final repos = await _seed();
+    await _pumpWide(tester, repos);
+    await _open(tester);
+
+    // No pump between the taps: the first row's write is still in flight.
+    await tester.tap(_toggle('s0'));
+    await tester.tap(_toggle('s1'));
+    await tester.pumpAndSettle();
+
+    expect((await _slot(repos, 's0')).performedAt, isNotNull);
+    expect((await _slot(repos, 's1')).performedAt, isNotNull);
+  });
+
   testWidgets('the toggle names the dance and its state to screen readers and '
       'is reachable without a swipe', (tester) async {
     final handle = tester.ensureSemantics();

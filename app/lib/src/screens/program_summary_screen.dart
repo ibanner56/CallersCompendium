@@ -255,9 +255,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     DanceDetailData detail,
   ) => _reimport.open(routeContext, detail);
 
-  /// True while a row toggle's write is in flight, so a double tap cannot flip
-  /// the mark twice before the first write has been read back.
-  bool _togglingPerformed = false;
+  /// The slots whose toggle write is in flight, so a second tap on the same
+  /// row waits for the first write to be read back. Other rows are never
+  /// blocked: their writes serialise through [ProgramRepository.replaceIfUnchanged]
+  /// and its retry.
+  final Set<String> _togglingSlots = {};
 
   void _invalidateBulkUndo() {
     _bulkUndoSnackBar?.close();
@@ -969,8 +971,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// silently dropped: the compare fails and the toggle re-reads and retries.
   Future<void> _setPerformed(String slotId, String title, bool marking) async {
     final programId = _program?.id;
-    if (programId == null || _togglingPerformed) return;
-    _togglingPerformed = true;
+    if (programId == null || !_togglingSlots.add(slotId)) return;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
@@ -1053,7 +1054,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         );
       }
     } finally {
-      _togglingPerformed = false;
+      _togglingSlots.remove(slotId);
     }
   }
 
