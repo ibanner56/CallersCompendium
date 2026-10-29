@@ -6,10 +6,13 @@
 ///
 /// The key, enum, and resolver below are Flutter-free pure functions so they
 /// can be unit-tested directly. Only [formatEventDate] touches Flutter, and only
-/// for the `system` default, where it defers to [MaterialLocalizations].
+/// for the `system` default, where it follows the device's region.
 library;
 
+import 'dart:ui' show Locale, PlatformDispatcher;
+
 import 'package:flutter/material.dart' show MaterialLocalizations;
+import 'package:intl/intl.dart' show DateFormat, Intl;
 
 import '../../l10n/app_localizations.dart';
 import 'custom_date_pattern.dart';
@@ -30,7 +33,8 @@ const String kDateFormatCustomPatternKey = 'date_format_custom';
 
 /// How program event dates render on screen.
 enum DateFormatPref {
-  /// Defer to the platform locale via [MaterialLocalizations.formatShortDate].
+  /// Follow the device's region: its numeric year-month-day order (see
+  /// [formatEventDate]).
   system('system'),
 
   /// ISO-like year-month-day, e.g. `2026-07-15`.
@@ -182,25 +186,44 @@ MonthNames monthNamesFromL10n(AppLocalizations l10n) => MonthNames(
 
 /// Formats a program event [date] for on-screen display per [setting].
 ///
-/// For [DateFormatPref.system] (and any invalid custom pattern) this defers to
-/// the platform locale via [material] (`formatShortDate`, the locale's
-/// year-bearing abbreviated-month date; `formatMediumDate` omits the year, so
-/// a printed set list from last season would read like this season's). For the fixed tokens
-/// and a valid custom pattern it uses a dependency-free zero-padded pattern (no
-/// `intl`); written-out month tokens (`MMM`/`MMMM`) render localized month names
-/// built from [l10n].
+/// For [DateFormatPref.system] (and any invalid custom pattern) this follows the
+/// **device's region** (`PlatformDispatcher.locale`, or [platformLocale] when
+/// given), not the app language: an English-UI caller on a Danish-region phone
+/// reads `15.7.2026`. It uses the region's numeric date (`yMd`), which carries
+/// the year (the abbreviated `formatMediumDate` form omits it, so a printed set
+/// list from last season would read like this season's) and has no month names,
+/// so the app language and the region's can never mix in one date.
+///
+/// Date symbols for any locale Flutter ships are registered the first time a
+/// `GlobalMaterialLocalizations` loads, not only the app's, so the region need
+/// not match the app language. A tag `intl` cannot resolve falls back to
+/// [material]'s `formatShortDate` (the app language's date).
+///
+/// For the fixed tokens and a valid custom pattern it uses a dependency-free
+/// zero-padded pattern; written-out month tokens (`MMM`/`MMMM`) render
+/// localized month names built from [l10n].
 String formatEventDate(
   DateTime date,
   DateFormatSetting setting,
   MaterialLocalizations material,
-  AppLocalizations l10n,
-) {
+  AppLocalizations l10n, {
+  Locale? platformLocale,
+}) {
   final fixed = formatDatePattern(
     date,
     setting,
     monthNames: monthNamesFromL10n(l10n),
   );
-  return fixed ?? material.formatShortDate(date);
+  if (fixed != null) return fixed;
+  final region = Intl.verifiedLocale(
+    (platformLocale ?? PlatformDispatcher.instance.locale)
+        .toLanguageTag()
+        .replaceAll('-', '_'),
+    DateFormat.localeExists,
+    onFailure: (_) => '',
+  );
+  if (region == null || region.isEmpty) return material.formatShortDate(date);
+  return DateFormat.yMd(region).format(date);
 }
 
 /// Returns the fixed zero-padded pattern for [date] under [setting], or `null`

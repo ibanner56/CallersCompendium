@@ -11673,6 +11673,10 @@
   "@userGuideOpenOnline": {
     "description": "Action that opens the user guide on the web when local content is unavailable."
   },
+  "userGuideEnglishOnly": "The guide is in English.",
+  "@userGuideEnglishOnly": {
+    "description": "One-line notice at the top of every user-guide page when the app language is not English: the bundled guide is only written in English (PLAT-13)."
+  },
   "shorthandMappingsTitle": "Figure shorthands",
   "@shorthandMappingsTitle": {
     "description": "App-bar title for the figure-shorthand mappings manager."

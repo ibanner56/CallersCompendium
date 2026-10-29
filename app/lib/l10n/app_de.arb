@@ -8698,6 +8698,10 @@
   "@userGuideOpenOnline": {
     "x-sourceSha256": "61d8e286ff933eae17fd92dfa28b5d1a2f64aab89cde2f540a54fefbcb9d02f1"
   },
+  "userGuideEnglishOnly": "Der Leitfaden ist auf Englisch.",
+  "@userGuideEnglishOnly": {
+    "x-sourceSha256": "323645d45d88a0a75b3b42ca39ac6e2b184b3355e3d96022d56b386a9becc6c1"
+  },
   "shorthandMappingsTitle": "Figur-Abkürzungen",
   "@shorthandMappingsTitle": {
     "x-sourceSha256": "6f5ff0b92387ef25b6fc9fcb3f26f31b8e74ac953fd6f80b0662a6947c45e901"

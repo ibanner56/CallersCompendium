@@ -1,10 +1,19 @@
+import 'dart:ui' show Locale;
+
 import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/custom_date_pattern.dart';
 import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:flutter/material.dart' show DefaultMaterialLocalizations;
+import 'package:flutter_localizations/flutter_localizations.dart'
+    show GlobalMaterialLocalizations;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // The app registers date symbols for every locale Flutter ships when its
+  // localizations delegate first loads; do the same so the region lookup under
+  // test sees the data it sees at runtime.
+  setUpAll(() => GlobalMaterialLocalizations.delegate.load(const Locale('en')));
+
   group('dateFormatPrefFromStored', () {
     test('defaults to system when unset (null)', () {
       expect(dateFormatPrefFromStored(null), DateFormatPref.system);
@@ -174,29 +183,58 @@ void main() {
       );
     });
 
-    test('defers to the localization short (year-bearing) date for system', () {
-      final date = DateTime(2026, 7, 15);
-      expect(
+    final date = DateTime(2026, 7, 15);
+    const system = DateFormatSetting.system;
+
+    String sys(Locale platform, [DateFormatSetting setting = system]) =>
         formatEventDate(
           date,
-          DateFormatSetting(DateFormatPref.system),
+          setting,
           material,
           l10n,
+          platformLocale: platform,
+        );
+
+    test('system carries the year in the device region\'s order', () {
+      expect(sys(const Locale('en', 'US')), '7/15/2026');
+      expect(sys(const Locale('en', 'GB')), '15/07/2026');
+      expect(sys(const Locale('da', 'DK')), '15.7.2026');
+      expect(sys(const Locale('ja', 'JP')), '2026/7/15');
+    });
+
+    test('system follows the region, not the app language (PLAT-12)', () {
+      // l10n is English; the Danish-region phone still gets Danish numerals
+      // order, and no month name from either language appears.
+      final out = sys(const Locale('da', 'DK'));
+      expect(out, isNot('7/15/2026'));
+      expect(out, isNot(contains('Jul')));
+      expect(out, isNot(contains('jul')));
+    });
+
+    test('a locale tag with a script subtag still resolves', () {
+      expect(
+        sys(
+          Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hans',
+            countryCode: 'CN',
+          ),
         ),
-        material.formatShortDate(date),
+        isNotEmpty,
       );
     });
 
-    test('an invalid custom pattern defers to the short date (system)', () {
-      final date = DateTime(2026, 7, 15);
+    test('an unresolvable tag falls back to the app-language short date', () {
+      expect(sys(const Locale('xx', 'YY')), material.formatShortDate(date));
+    });
+
+    test('an invalid custom pattern follows the device region too', () {
       expect(
-        formatEventDate(
-          date,
+        sys(
+          const Locale('da', 'DK'),
           DateFormatSetting(DateFormatPref.custom, customPattern: 'bogus'),
-          material,
-          l10n,
         ),
-        material.formatShortDate(date),
+        '15.7.2026',
       );
     });
   });

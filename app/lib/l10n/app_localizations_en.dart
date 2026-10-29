@@ -8884,6 +8884,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userGuideOpenOnline => 'Open the guide online';
 
   @override
+  String get userGuideEnglishOnly => 'The guide is in English.';
+
+  @override
   String get shorthandMappingsTitle => 'Figure shorthands';
 
   @override
