@@ -655,8 +655,8 @@ you changed dialects since the draft was saved.
 ### Leaving without saving
 
 If you try to leave with unsaved changes, the app asks **Discard changes?** —
-**Keep editing** returns you to the dance, **Discard** leaves it as it was last
-saved.
+**Keep editing** (the highlighted button) returns you to the dance, and
+**Discard** (in red) leaves it as it was last saved.
 
 The editors for [figure shorthands](#figure-shorthands), custom themes,
 [venues](./settings.md#venues) and [custom fields](./collection.md#make-your-own-fields)

@@ -1,0 +1,9 @@
+{
+  "id": "2018-discard-dialog-buttons",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The Discard changes? prompt now highlights Keep editing, the safe choice, and shows Discard as red text instead of the other way round. The dialect editor's prompt does the same for Exit without saving."
+    ]
+  }
+}
