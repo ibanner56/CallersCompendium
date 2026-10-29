@@ -1530,15 +1530,18 @@ has to be judged in its own context.
   **Caller's Companion dancer names (#1975):** `_takeDancer` (and
   `_takeLeadingDancer`) read `new neighbor(s)` as `nextNeighbors` and a
   singular `corner` as `firstCorners`, with `1st`/`first` and `2nd`/`second`
-  corner(s) naming either corner. A bare plural (`allemande left the
-  corners`, ContraDB's contra-corners text) may mean both corners in turn, so
-  it is not read. A numbered corner (`Corner 2 swing`, `Corner 3 Right
-  Shoulder Round`) is a square's corner, like TCB's C1–C3, which are not
-  mapped, so `_foldDancerNumbers` marks its number as it does a dancer
-  number's and the line stays custom rather than reading the number as an
-  amount. The bare `Corner` → `firstCorners` reading is the maintainer's
-  decision for Caller's Companion. These are context-dependent two-word names,
-  so they live in the reader rather than in `dancerWords`.
+  corner(s) naming either corner. A bare plural (`allemande left the corners`,
+  ContraDB's contra-corners text) may mean both corners in turn, so it is not
+  read. A numbered corner (`Corner 2 swing`, `Corner 3 Right Shoulder Round`)
+  is a square's corner, like TCB's C1–C3, which are not mapped, so
+  `_foldDancerNumbers` marks its number as it does a dancer number's and the
+  line stays custom rather than reading the number as an amount. The bare
+  `Corner` → `firstCorners` reading, and the ordinals' reading, are the
+  maintainer's decisions for Caller's Companion (#1975; the ordinals on
+  2026-10-29, after weighing the tester's file, which writes both
+  contra-corners ordinals, `1st corner allemande Right 3/4`, and square-style
+  numbered corners). These are context-dependent two-word names, so they live
+  in the reader rather than in `dancerWords`.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on
