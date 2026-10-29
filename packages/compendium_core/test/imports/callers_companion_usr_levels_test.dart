@@ -183,8 +183,10 @@ void main() {
 
     test('a deleted level of that name is restored; undo deletes it '
         'again', () async {
+      // Spaced differently: only the importer sees deleted levels, so this
+      // is its own match, not the pipeline's.
       final old = await levels.createCustom(
-        label: 'Easy/Intermediate',
+        label: 'Easy / Intermediate',
         position: 3,
       );
       await levels.delete(old.id, at: now);
@@ -193,7 +195,23 @@ void main() {
       expect(result.insertedDifficultyLevelIds, isEmpty);
       expect((await dances.listAll()).single.difficultyLevelId, old.id);
       await importer.undo(result);
-      expect(await labels(), isNot(contains('Easy/Intermediate')));
+      expect(await labels(), isNot(contains('Easy / Intermediate')));
+    });
+
+    test('the plan already shows a level the user has', () async {
+      // What the review shows: the pipeline reuses it before commit.
+      final mine = await levels.createCustom(
+        label: 'easy / intermediate',
+        position: 3,
+      );
+      final draft = (await importer.plan(
+        usr(['Easy\nIntermediate']),
+      )).records.single.draft;
+      expect(draft.dance.difficultyLevelId, mine.id);
+      expect(
+        draft.issues.map((i) => i.code),
+        isNot(contains(ccNewLevelIssueCode)),
+      );
     });
 
     test(
@@ -231,6 +249,26 @@ void main() {
         'Beginner/Easy',
         'Easy',
         'Easy/Intermediate',
+        'Intermediate',
+        'Advanced',
+      ]);
+    });
+
+    test('a level the scale says nothing about keeps its place', () async {
+      // The user's own "Party" sits between Beginner and Intermediate; the
+      // new level goes straight after Beginner, the last level below it.
+      final party = await levels.createCustom(label: 'Party', position: 1);
+      await levels.reorder([
+        DifficultyLevel.beginnerId,
+        party.id,
+        DifficultyLevel.intermediateId,
+        DifficultyLevel.advancedId,
+      ]);
+      await import(usr(['Easy\nIntermediate']));
+      expect(await labels(), [
+        'Beginner',
+        'Easy/Intermediate',
+        'Party',
         'Intermediate',
         'Advanced',
       ]);
