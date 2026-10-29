@@ -3108,6 +3108,30 @@ void main() {
       expect(find.text('Changed 1 dance back.'), findsOneWidget);
     });
 
+    testWidgets('a failing Undo on the confirmation says so instead of '
+        'swallowing the error (audit FAIL-6)', (tester) async {
+      final appData = await bootWithEcdTaggedDance(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      // Closing the database makes the undo's transaction throw.
+      await tester.runAsync(appData.close);
+      await tester.tap(find.byKey(const ValueKey('ecd-convert-undo')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('undo-failed-snackbar')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('ecd-convert-undone-snackbar')),
+        findsNothing,
+      );
+    });
+
     testWidgets('declining leaves the dance untouched', (tester) async {
       final appData = await bootWithEcdTaggedDance(tester);
 

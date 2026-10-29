@@ -2520,8 +2520,7 @@ class _CompendiumAppState extends State<CompendiumApp>
         undoLabel: l10n.commonUndo,
         undoFailedMessage: l10n.commonUndoFailed,
         accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-        onUndo: () =>
-            unawaited(_undoEcdConversion(repos, conversion, messenger, l10n)),
+        onUndo: () => _undoEcdConversion(repos, conversion, messenger, l10n),
       );
     } on Object catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'main.ecd-convert-prompt');
@@ -2531,30 +2530,29 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// Reverses the on-launch ECD conversion (INTAKE-15) and says how many
   /// dances it put back, which is fewer than were converted when some were
   /// edited in the meantime.
+  ///
+  /// Does not catch: a failure propagates to [showUndoSnackBar], which logs it
+  /// and shows the "Undo failed" snackbar (audit FAIL-6).
   Future<void> _undoEcdConversion(
     CompendiumRepositories repos,
     EcdConversion conversion,
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
   ) async {
-    try {
-      final restored = await undoEcdConversion(
-        repos,
-        conversion,
-        at: (widget.nowOverride ?? () => DateTime.now().toUtc())(),
+    final restored = await undoEcdConversion(
+      repos,
+      conversion,
+      at: (widget.nowOverride ?? () => DateTime.now().toUtc())(),
+    );
+    if (!mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('ecd-convert-undone-snackbar'),
+          content: Text(l10n.startupEcdConvertUndoneSnackbar(restored)),
+        ),
       );
-      if (!mounted) return;
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            key: const ValueKey('ecd-convert-undone-snackbar'),
-            content: Text(l10n.startupEcdConvertUndoneSnackbar(restored)),
-          ),
-        );
-    } on Object catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'main.ecd-convert-undo');
-    }
   }
 
   /// The widget types of [_appScopeWrappers], outermost first, read from the
