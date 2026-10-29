@@ -5,13 +5,17 @@ import '../model/dance.dart';
 import '../model/dance_link.dart';
 import '../model/enums.dart';
 import '../model/program.dart';
+import '../model/published_source.dart';
+import '../model/source_citation.dart';
 import '../model/venue.dart';
 import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/dance_repository.dart';
 import '../storage/repositories/program_repository.dart';
+import '../storage/repositories/published_source_repository.dart';
 import '../storage/repositories/venue_repository.dart';
 import '../storage/shareable_text.dart';
 import '../util/uuid.dart';
+import 'callers_companion_mapping.dart';
 import 'callers_companion_programs.dart';
 import 'callers_companion_related_dances.dart';
 import 'callers_companion_usr_adapter.dart';
@@ -49,7 +53,15 @@ class CcUsrImportResult {
     List<String> restoredCustomFieldIds = const [],
     List<ImportIssue> customFieldIssues = const [],
     Map<String, List<String>> linksAddedToEarlierDances = const {},
-  }) : programs = List.unmodifiable(programs),
+    List<String> insertedPublishedSourceIds = const [],
+    List<String> restoredPublishedSourceIds = const [],
+  }) : insertedPublishedSourceIds = List.unmodifiable(
+         insertedPublishedSourceIds,
+       ),
+       restoredPublishedSourceIds = List.unmodifiable(
+         restoredPublishedSourceIds,
+       ),
+       programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
@@ -132,6 +144,15 @@ class CcUsrImportResult {
   /// removes just these links; the dances stay.
   final Map<String, List<String>> linksAddedToEarlierDances;
 
+  /// Ids of the published sources this import created for CC `Reference`
+  /// citations (#1974). Removed on [CallersCompanionUsrImporter.undo] unless a
+  /// surviving dance cites one.
+  final List<String> insertedPublishedSourceIds;
+
+  /// Ids of tombstoned published sources this import restored for a citation.
+  /// Tombstoned again on undo (same guard).
+  final List<String> restoredPublishedSourceIds;
+
   /// Ids of the programs updated in place (re-imported) by this import.
   List<String> get updatedProgramIds => [
     for (final p in updatedProgramPriorStates) p.id,
@@ -170,8 +191,14 @@ class CallersCompanionUsrImporter {
     this._programs,
     this._venues,
     this._customFields, {
+    required PublishedSourceRepository publishedSources,
     CallersCompanionUsrAdapter? adapter,
-  }) : _adapter = adapter ?? CallersCompanionUsrAdapter();
+  }) : _sources = publishedSources,
+       _adapter = adapter ?? CallersCompanionUsrAdapter();
+
+  /// Where the published sources behind CC `Reference` citations are matched
+  /// and created (#1974), alongside the user-field definitions.
+  final PublishedSourceRepository _sources;
 
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
@@ -301,6 +328,8 @@ class CallersCompanionUsrImporter {
       insertedFieldIds: keptInserted,
       restoredFieldIds: keptRestored,
       fieldIssues: fieldIssues,
+      insertedSourceIds: keptSourcesInserted,
+      restoredSourceIds: keptSourcesRestored,
     ) = await _commitDancesWithFields(
       batch,
       now: now,
@@ -336,6 +365,7 @@ class CallersCompanionUsrImporter {
     } catch (_) {
       await _pipeline.undo(danceSession);
       await _revertUserFieldDefinitions(keptInserted, keptRestored);
+      await _revertPublishedSources(keptSourcesInserted, keptSourcesRestored);
       rethrow;
     }
 
@@ -561,6 +591,7 @@ class CallersCompanionUsrImporter {
       await _venues.hardDelete(insertedVenueIds);
       await _pipeline.undo(danceSession);
       await _revertUserFieldDefinitions(keptInserted, keptRestored);
+      await _revertPublishedSources(keptSourcesInserted, keptSourcesRestored);
       // Last, so the older steps above run even if this one throws.
       await _removeLinks(linksAddedToEarlier);
       rethrow;
@@ -578,6 +609,8 @@ class CallersCompanionUsrImporter {
       relatedDanceLinkIssues: relatedDanceLinkIssues,
       insertedCustomFieldIds: keptInserted,
       restoredCustomFieldIds: keptRestored,
+      insertedPublishedSourceIds: keptSourcesInserted,
+      restoredPublishedSourceIds: keptSourcesRestored,
       customFieldIssues: fieldIssues,
       linksAddedToEarlierDances: linksAddedToEarlier,
     );
@@ -589,11 +622,14 @@ class CallersCompanionUsrImporter {
   /// matches or creates the definitions behind the CC `UserDefined_*` values
   /// (as [commit] does), since [DanceRepository] refuses a value for a field
   /// that does not exist: without this, every dance with a user-field value
-  /// failed to commit.
+  /// failed to commit. It resolves the published sources behind CC `Reference`
+  /// citations the same way (#1974).
   ///
-  /// A definition no committed dance uses is dropped again, and a commit that
-  /// throws removes the definitions it created. The definitions a committed
-  /// dance holds stay, as the dance does; the per-row Edit has no undo. Pass
+  /// A definition or source no committed dance uses is dropped again, and a
+  /// commit that throws removes the ones it created. Those a committed dance
+  /// holds stay, as the dance does; the per-row Edit has no undo, and a later
+  /// batch [commit] reuses them rather than recording them for its own undo.
+  /// Pass
   /// the CC ids of the dances written here to a later [commit] as its
   /// `earlierDanceIds` so its sets and related dances can name them.
   Future<ImportSession> commitDances(
@@ -623,6 +659,8 @@ class CallersCompanionUsrImporter {
       List<String> insertedFieldIds,
       List<String> restoredFieldIds,
       List<ImportIssue> fieldIssues,
+      List<String> insertedSourceIds,
+      List<String> restoredSourceIds,
     })
   >
   _commitDancesWithFields(
@@ -641,10 +679,27 @@ class CallersCompanionUsrImporter {
       now: now,
       newId: newId,
     );
+    // Published sources likewise: a citation names a source row (#1974).
+    final ({
+      ImportBatchResult batch,
+      List<String> inserted,
+      List<String> restored,
+    })
+    sources;
+    try {
+      sources = await _resolvePublishedSources(
+        fields.batch,
+        now: now,
+        newId: newId,
+      );
+    } catch (_) {
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      rethrow;
+    }
     final ImportSession danceSession;
     try {
       danceSession = await _pipeline.commit(
-        fields.batch,
+        sources.batch,
         now: now,
         newId: newId,
         resolutions: resolutions,
@@ -654,6 +709,7 @@ class CallersCompanionUsrImporter {
       );
     } catch (_) {
       await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      await _revertPublishedSources(sources.inserted, sources.restored);
       rethrow;
     }
     // A definition no committed dance ended up using (every dance that carried
@@ -662,7 +718,17 @@ class CallersCompanionUsrImporter {
     // must not leave them without an undo handle.
     final keptInserted = <String>[];
     final keptRestored = <String>[];
+    final keptSourcesInserted = <String>[];
+    final keptSourcesRestored = <String>[];
     try {
+      for (final id in sources.inserted) {
+        if (await _removeUnusedSource(id, permanent: true)) continue;
+        keptSourcesInserted.add(id);
+      }
+      for (final id in sources.restored) {
+        if (await _removeUnusedSource(id, permanent: false)) continue;
+        keptSourcesRestored.add(id);
+      }
       for (final id in fields.inserted) {
         if (await _customFields.isInUse(id)) {
           keptInserted.add(id);
@@ -680,6 +746,7 @@ class CallersCompanionUsrImporter {
     } catch (_) {
       await _pipeline.undo(danceSession);
       await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      await _revertPublishedSources(sources.inserted, sources.restored);
       rethrow;
     }
     return (
@@ -687,7 +754,147 @@ class CallersCompanionUsrImporter {
       insertedFieldIds: keptInserted,
       restoredFieldIds: keptRestored,
       fieldIssues: fields.issues,
+      insertedSourceIds: keptSourcesInserted,
+      restoredSourceIds: keptSourcesRestored,
     );
+  }
+
+  /// Matches or creates the published source behind each placeholder citation
+  /// in [batch] (a CC `Reference`, #1974), and returns [batch] with each
+  /// placeholder id rewritten to the real one.
+  ///
+  /// A source is matched by title (#1974), compared as [naturalKeyMatchKey]
+  /// does (normalised, case-folded), so a book the user entered with its author
+  /// or year is reused rather than duplicated. Among several, a live one beats a
+  /// tombstone, which is restored, then an exact title beats a case variant,
+  /// then the smallest id, so the pick does not depend on load order. Otherwise
+  /// a source with that title is created, once for all its case variants.
+  Future<
+    ({ImportBatchResult batch, List<String> inserted, List<String> restored})
+  >
+  _resolvePublishedSources(
+    ImportBatchResult batch, {
+    required DateTime now,
+    required String Function() newId,
+  }) async {
+    final titles = <String>{
+      for (final record in batch.records)
+        for (final citation in record.draft.dance.sourceCitations)
+          ?ccPublishedSourceTitleOf(citation.sourceId),
+    };
+    if (titles.isEmpty) {
+      return (
+        batch: batch,
+        inserted: const <String>[],
+        restored: const <String>[],
+      );
+    }
+    final existing = await _sources.listAllWithDeleted();
+    final idByTitle = <String, String>{};
+    final idByKey = <String, String>{};
+    final inserted = <String>[];
+    final restored = <String>[];
+    try {
+      for (final title in titles) {
+        final key = naturalKeyMatchKey(title);
+        if (idByKey[key] case final id?) {
+          idByTitle[title] = id;
+          continue;
+        }
+        final matches =
+            [
+              for (final item in existing)
+                if (naturalKeyMatchKey(item.source.title) == key) item,
+            ]..sort((a, b) {
+              if (a.deleted != b.deleted) return a.deleted ? 1 : -1;
+              final aExact = a.source.title == title;
+              if (aExact != (b.source.title == title)) return aExact ? -1 : 1;
+              return a.source.id.compareTo(b.source.id);
+            });
+        if (matches.isNotEmpty) {
+          final match = matches.first;
+          if (match.deleted) {
+            await _sources.restore(match.source.id, at: now);
+            restored.add(match.source.id);
+          }
+          idByTitle[title] = idByKey[key] = match.source.id;
+          continue;
+        }
+        final id = newId();
+        await _sources.upsert(
+          PublishedSource(id: id, title: title),
+          at: now,
+        );
+        inserted.add(id);
+        idByTitle[title] = idByKey[key] = id;
+      }
+    } catch (_) {
+      await _revertPublishedSources(inserted, restored);
+      rethrow;
+    }
+
+    ImportRecordPlan rewrite(ImportRecordPlan record) {
+      final citations = record.draft.dance.sourceCitations;
+      if (!citations.any((c) => ccPublishedSourceTitleOf(c.sourceId) != null)) {
+        return record;
+      }
+      return ImportRecordPlan(
+        draft: record.draft.copyWith(
+          dance: record.draft.dance.copyWith(
+            sourceCitations: [
+              for (final c in citations)
+                switch (ccPublishedSourceTitleOf(c.sourceId)) {
+                  final title? => SourceCitation(
+                    sourceId: idByTitle[title]!,
+                    page: c.page,
+                    number: c.number,
+                  ),
+                  null => c,
+                },
+            ],
+          ),
+        ),
+        verdict: record.verdict,
+      );
+    }
+
+    return (
+      batch: ImportBatchResult(
+        records: [for (final record in batch.records) rewrite(record)],
+        errors: batch.errors,
+        warnings: batch.warnings,
+        dedupeIndex: batch.dedupeIndex,
+      ),
+      inserted: inserted,
+      restored: restored,
+    );
+  }
+
+  /// Removes source [id] when no live dance cites it, permanently for one this
+  /// import created or back to a tombstone for one it restored, and reports
+  /// whether it did. The repository refuses a cited source in its own
+  /// transaction.
+  Future<bool> _removeUnusedSource(String id, {required bool permanent}) async {
+    try {
+      await _sources.delete(id, permanent: permanent);
+      return true;
+    } on StateError {
+      return false; // Still cited by a live dance.
+    }
+  }
+
+  /// Reverts the sources [inserted] (removed) and [restored] (tombstoned
+  /// again), leaving any a surviving dance still cites.
+  Future<void> _revertPublishedSources(
+    List<String> inserted,
+    List<String> restored,
+  ) async {
+    for (final id in inserted) {
+      await _removeUnusedSource(id, permanent: true);
+    }
+    for (final id in restored) {
+      await _removeUnusedSource(id, permanent: false);
+    }
   }
 
   /// Removes the links named in [linkIdsByDanceId] from each of those dances,
@@ -1045,6 +1252,11 @@ class CallersCompanionUsrImporter {
       result.insertedCustomFieldIds,
       result.restoredCustomFieldIds,
     );
+    // After the dances too: the repository refuses a source a live dance cites.
+    await _revertPublishedSources(
+      result.insertedPublishedSourceIds,
+      result.restoredPublishedSourceIds,
+    );
     // Last, so the older steps above run even if this one throws.
     await _removeLinks(result.linksAddedToEarlierDances);
     result._undone = true;
@@ -1080,6 +1292,7 @@ class CallersCompanionUsrImporter {
     dancerLevel: src.dancerLevel,
     notes: src.notes,
     status: src.status,
+    hideAlternates: src.hideAlternates,
     slots: src.slots,
     createdAt: createdAt,
     updatedAt: src.updatedAt,

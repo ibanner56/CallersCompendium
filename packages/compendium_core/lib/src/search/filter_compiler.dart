@@ -370,6 +370,7 @@ class FilterCompiler {
             'EXISTS (SELECT 1 FROM program_slots ps '
             'JOIN programs p ON p.id = ps.program_id '
             'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL'
+            ' ${callingHistoryAlternateClause(slotTable: 'ps').trimRight()}'
             '$performed$callerClause)';
         return called ? exists : 'NOT ($exists)';
       case RatingFilter(:final minimum):

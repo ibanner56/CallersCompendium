@@ -149,6 +149,38 @@ void main() {
     );
   });
 
+  // INTAKE-16: the glossary-terms and shared-figures steps offer Undo; this one
+  // did not.
+  testWidgets('the seeding message offers Undo, which removes the shorthands '
+      'it seeded', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    final controller = ShorthandMappingsController(repos.settings);
+    addTearDown(controller.dispose);
+    await tester.runAsync(controller.load);
+
+    await importToSeedScreen(
+      tester,
+      repos: repos,
+      controller: controller,
+      usr: _usrWithCallButtons(),
+    );
+    await tester.tap(find.byKey(const ValueKey('seed-confirm')));
+    await tester.pumpAndSettle();
+    expect(controller.mappings, hasLength(2));
+
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('shorthand-seed-complete')),
+        matching: find.text('Undo'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.mappings, isEmpty);
+  });
+
   // #1830: buttons that do not read as figures were left out without a word.
   testWidgets('the seeding screen says how many buttons were left out', (
     tester,

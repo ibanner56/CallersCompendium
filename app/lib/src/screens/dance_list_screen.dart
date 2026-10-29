@@ -12,6 +12,7 @@ import '../data/callersbox_online.dart';
 import '../data/collection_facets_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
+import '../data/default_program_caller_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
@@ -207,6 +208,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// Whether calling-history filters use performed slots only.
   bool _requirePerformedForHistory = false;
 
+  /// The live default caller from [DefaultProgramCallerScope], or `null` when
+  /// no scope is wired (then [_boot] reads the setting). While
+  /// [_trackHistoryForAllCallers] is off it scopes the per-dance counts, so a
+  /// change re-runs [_boot] — after [_callerRefreshDelay], because the
+  /// Settings field reports every keystroke and each re-boot is a full
+  /// Collection load (PRES-4).
+  String? _defaultProgramCaller;
+  Timer? _callerRefreshTimer;
+  static const Duration _callerRefreshDelay = Duration(milliseconds: 500);
+
   /// Filter sections hidden in Settings → Defaults (issue #1419), mirrored from
   /// [CollectionFacetsScope] in [didChangeDependencies] so a newly hidden
   /// section's selection can be cleared (see [FacetSelections.clearFacets]).
@@ -395,6 +406,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final trackAllCallersChanged =
         _started && newTrackAllCallers != _trackHistoryForAllCallers;
     _trackHistoryForAllCallers = newTrackAllCallers;
+    final newDefaultCaller = DefaultProgramCallerScope.maybeOf(context);
+    final defaultCallerChanged =
+        _started && newDefaultCaller != _defaultProgramCaller;
+    _defaultProgramCaller = newDefaultCaller;
     final newRequirePerformed = RequirePerformedForHistoryScope.of(context);
     final requirePerformedChanged =
         _started && newRequirePerformed != _requirePerformedForHistory;
@@ -419,13 +434,19 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _boot();
     } else if (trackAllCallersChanged) {
       _boot();
-    } else if (requirePerformedChanged && !_onlineEnabled && _data != null) {
-      _runSearch();
-    } else if (dialectChanged ||
-        ignoreArticlesChanged ||
-        enrichmentChanged ||
-        facetsCleared) {
-      _runSearch();
+    } else {
+      if (defaultCallerChanged && !_trackHistoryForAllCallers) {
+        _callerRefreshTimer?.cancel();
+        _callerRefreshTimer = Timer(_callerRefreshDelay, _boot);
+      }
+      if (requirePerformedChanged && !_onlineEnabled && _data != null) {
+        _runSearch();
+      } else if (dialectChanged ||
+          ignoreArticlesChanged ||
+          enrichmentChanged ||
+          facetsCleared) {
+        _runSearch();
+      }
     }
 
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
@@ -501,15 +522,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
     unawaited(_dataSub?.cancel());
     _filterController?.removeListener(_onTagFilterRequested);
     _debounceTimer?.cancel();
+    _callerRefreshTimer?.cancel();
     _ftsController.dispose();
     super.dispose();
   }
 
   Future<void> _boot() async {
+    _callerRefreshTimer?.cancel();
     try {
       final callerFilter = await resolveCallingHistoryCallerFilter(
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
+        defaultCaller: _defaultProgramCaller,
       );
       if (!mounted) return;
       _watchCollectionData(callerFilter);
@@ -571,7 +595,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// performed, say — changes only the per-dance tallies, and re-running the
   /// FTS query for a badge is the thrash issue #340 records; the rows are
   /// re-derived in memory from the dances already loaded instead. The one
-  /// exception is the last-called sort, whose ORDER BY those very tallies feed.
+  /// exception is the last-called sort, whose ORDER BY is derived from the same
+  /// program rows as those tallies (it runs its own query over them in
+  /// `DanceRepository.search`), so a program-side write can reorder it.
   ///
   /// ## What this skip list must be complete with respect to (issue #768)
   ///
@@ -808,6 +834,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dialect: _dialect,
         enrichment: _enrichment,
         ignoreLeadingArticles: _sortIgnoreArticles,
+        // The Last-called sort reads the same history as the count and the
+        // Called filter above (FIND-2).
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
       );
       if (!mounted || seq != _searchSeq) return;
       setState(() {

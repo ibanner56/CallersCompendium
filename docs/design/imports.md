@@ -41,7 +41,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
 | **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). Below the fuzzy tier, `DedupeVerdict.possibleMatchIds` lists dances that are **possibly** the same under a differently written title (see *Possible matches under another title*); it never changes the verdict. |
 | **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. An overwrite warning counts the existing dances a commit would replace; nothing silently mutates existing user data. |
-| **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. A draft's links are in the source's id space (a shared file carries the sender's link ids and dance ids), so each gets a fresh id. A related-dance link names its target by the target's external id (the generic JSON and published-collection adapters rewrite the file's dance id to the target's record key when the file carries the target), and is added only after the whole batch is written: to the dance the batch wrote under that key, else a live dance already received from the same source under it, else a live dance whose id it is (a file this library wrote). One that resolves to neither is left out with an `archive_related_dance_unresolved` note on `ImportSession.issues`, which the app does not yet display. |
+| **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. A draft's links are in the source's id space (a shared file carries the sender's link ids and dance ids), so each gets a fresh id. A related-dance link names its target by the target's external id (the generic JSON and published-collection adapters rewrite the file's dance id to the target's record key when the file carries the target), and is added only after the whole batch is written: to the dance the batch wrote under that key, else a live dance already received from the same source under it, else a live dance whose id it is (a file this library wrote). One that resolves to neither is left out with an `archive_related_dance_unresolved` note on `ImportSession.issues`, which the import result lists with the rest of the commit's notes. |
 
 Adapters implement a small interface (`discover() / fetch() / parse()`) in the
 pure-Dart core → each adapter unit-tested against fixture files.
@@ -489,10 +489,41 @@ declines the collapse.
     carries nothing, so the value already stored for it is kept.
   - **Not migrated:** dances imported before #1890 keep the `Label: value`
     lines in their calling notes.
+- **Notes, links and sources (#1974).** The calling notes are assembled from
+  `CallingNotes`, then `Music:`, the unmapped-type line, `Progression:` with
+  `ProgressionOther` when `Progression` is also set (alone, `ProgressionOther`
+  is still read as the progression), `Credits`, `Other notes:` with
+  `NotesOther`, and last `Source:` with `From`, as the Caller's Box and ContraDB
+  importers end with "Imported from …". `SourceURL` is a source link and
+  `VideoURL` … `VideoURL5` are video links, each kept only when it is an
+  `http`/`https` URL with a host and no whitespace or invisible characters
+  (`ccLinkUrl`), so CC's empty `http://` placeholder is dropped. `CallersBox_id`
+  is a source link labelled "The Caller's Box" to its
+  `…/thecallersbox/dance.php?id=N` page; the dance's provenance stays CC's, which
+  re-import matches on. `Reference` is a published source cited with
+  `PageNumber` as the page: the mapper writes a placeholder source id
+  (`cc-published-source:<title>`), and `CallersCompanionUsrImporter` resolves it
+  before the pipeline commit, reusing a source with that title, compared
+  normalised and case-folded (`naturalKeyMatchKey`), whatever else it has set,
+  so a book entered with its author is not duplicated (a live one before a
+  tombstone, which is revived, then an exact title, then the smallest id), or
+  creating one.
+  Created and revived sources are reverted with a failed commit, dropped
+  straight after the commit when no live dance cites them (every dance citing
+  one was skipped), and removed (revived ones tombstoned again) on `undo`, each
+  behind the repository's guard against deleting a source a live dance cites,
+  so a source a user's own dance has since cited stays.
+- **Set flags (#1974).** `SetItem.Break` is a checkbox that CC's own set-list
+  layout describes as "a break occurs after this dance", so the program gets a
+  `Break` text slot after that dance and its alternates, unless the set already
+  has its own break slot there. A slot with no dance that carries the flag is
+  the break itself. `Set.SetList_HideALT` is `Program.hideAlternates`,
+  re-applied from the file on re-import like the program's other fields.
 - **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
   before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
-  the same definition step as `commit` (a bare pipeline commit of a dance with a
-  user-field value is refused by the repository) but builds no programs or
+  the same definition and published-source steps as `commit` (a bare pipeline
+  commit of a dance with a user-field value is refused by the repository) but
+  builds no programs or
   links, and has no undo. The screen keeps each such dance's `zk_Dance_ID` →
   dance id and passes it to the batch `commit` as `earlierDanceIds`, so set
   slots and `Dance_Related` pairs naming it resolve to it rather than becoming

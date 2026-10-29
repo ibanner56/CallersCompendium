@@ -2,11 +2,13 @@ import 'package:meta/meta.dart';
 
 import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/dance_link.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/partial_date.dart';
+import '../model/source_citation.dart';
 import '../taxonomy/dance_vocabulary.dart';
 import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
@@ -96,14 +98,25 @@ class CcDanceRecord {
     this.fromUsrColumns = false,
     this.level,
     this.progression,
+    this.progressionOther,
     this.music,
     this.notes,
+    this.callingNotes,
+    this.otherNotes,
+    this.from,
+    this.reference,
+    this.pageNumber,
+    this.callersBoxId,
+    List<String> sourceUrls = const [],
+    List<String> videoUrls = const [],
     this.composed,
     this.revised,
     this.rating,
     List<CcUserField> userFields = const [],
     List<CcBodySection> body = const [],
-  }) : authors = List.unmodifiable(authors),
+  }) : sourceUrls = List.unmodifiable(sourceUrls),
+       videoUrls = List.unmodifiable(videoUrls),
+       authors = List.unmodifiable(authors),
        userFields = List.unmodifiable(userFields),
        body = List.unmodifiable(body);
 
@@ -155,12 +168,45 @@ class CcDanceRecord {
   /// CC `Progression` (e.g. "Single", "Double").
   final String? progression;
 
+  /// CC `ProgressionOther` beside a stated [progression]: its detail, which
+  /// the app has no field for, so it goes to the calling notes (#1974).
+  final String? progressionOther;
+
   /// CC `Music` — free-text tune/music note.
   final String? music;
 
   /// Any additional free-text notes (e.g. CC `Credits`), if the source has
   /// them. Folded into the dance's calling notes.
   final String? notes;
+
+  /// CC `CallingNotes`: the caller's own notes, first in the calling notes
+  /// (#1974).
+  final String? callingNotes;
+
+  /// CC `NotesOther`: history, variations, attribution. Added to the calling
+  /// notes under "Other notes:" (#1974).
+  final String? otherNotes;
+
+  /// CC `From`: where the caller found the dance, a source that is not a link.
+  /// Added at the bottom of the calling notes as "Source:" (#1974).
+  final String? from;
+
+  /// CC `Reference`: a published source (book) the dance appears in; cited
+  /// with [pageNumber] (#1974).
+  final String? reference;
+
+  /// CC `PageNumber`: the page of [reference].
+  final String? pageNumber;
+
+  /// CC `CallersBox_id`: the dance's id on The Caller's Box, kept as a source
+  /// link to its page (#1974).
+  final String? callersBoxId;
+
+  /// CC `SourceURL`: source links (#1974).
+  final List<String> sourceUrls;
+
+  /// CC `VideoURL` … `VideoURL5`: video links (#1974).
+  final List<String> videoUrls;
 
   /// CC `DateComposed`, as a raw string (`YYYY`, `YYYY-MM`, or `YYYY-MM-DD`).
   final String? composed;
@@ -368,13 +414,54 @@ CcDanceMapping mapCallersCompanionDance(
   ]);
   issues.addAll(userFieldPlan.issues);
 
-  // Notes: Music + an unmapped-type note + any extra source notes.
+  // Notes: the caller's own calling notes, Music, an unmapped-type note, any
+  // extra source notes, the other notes, and last the non-link source, as the
+  // Caller's Box and ContraDB importers end with "Imported from …" (#1974).
   final notes = _joinNotes([
+    if ((record.callingNotes ?? '').trim().isNotEmpty)
+      record.callingNotes!.trim(),
     if ((record.music ?? '').trim().isNotEmpty)
       'Music: ${record.music!.trim()}',
     ?typeNote,
+    if ((record.progressionOther ?? '').trim().isNotEmpty)
+      'Progression: ${record.progressionOther!.trim()}',
     if ((record.notes ?? '').trim().isNotEmpty) record.notes!.trim(),
+    if ((record.otherNotes ?? '').trim().isNotEmpty)
+      'Other notes: ${record.otherNotes!.trim()}',
+    if ((record.from ?? '').trim().isNotEmpty) 'Source: ${record.from!.trim()}',
   ]);
+
+  // Links: source and video URLs, and the dance's Caller's Box page (#1974).
+  // A URL the file repeats is linked once.
+  final mintLinkId = newId ?? uuidV4;
+  final callersBoxUrl = callersBoxDanceUrl(record.callersBoxId);
+  final linked = <String>{?callersBoxUrl};
+  final links = <DanceLink>[
+    for (final url in record.sourceUrls.map(ccLinkUrl).nonNulls)
+      if (linked.add(url))
+        DanceLink(id: mintLinkId(), kind: LinkKind.source, url: url),
+    if (callersBoxUrl != null)
+      DanceLink(
+        id: mintLinkId(),
+        kind: LinkKind.source,
+        url: callersBoxUrl,
+        label: "The Caller's Box",
+      ),
+    for (final url in record.videoUrls.map(ccLinkUrl).nonNulls)
+      if (linked.add(url))
+        DanceLink(id: mintLinkId(), kind: LinkKind.video, url: url),
+  ];
+
+  // A published source: its id is a placeholder the importer resolves to a
+  // matched or created [PublishedSource] at commit, as for user fields.
+  final reference = _sanitizeLine(record.reference);
+  final citations = [
+    if (reference != null)
+      SourceCitation(
+        sourceId: ccPublishedSourcePlaceholderId(reference),
+        page: _sanitizeLine(record.pageNumber),
+      ),
+  ];
 
   // Body → figures (design §2). Each `(beats) text` line has its leading beats
   // prefix peeled off ([splitCcBeatPrefix], which accepts a lone `(16)` or a
@@ -423,6 +510,8 @@ CcDanceMapping mapCallersCompanionDance(
     difficultyLevelId: difficultyLevelId,
     mixedLevel: mixedLevel,
     rating: rating,
+    links: links,
+    sourceCitations: citations,
     customFields: [
       for (final field in userFieldPlan.fields)
         CustomFieldValue(
@@ -1197,3 +1286,49 @@ int? _mapRating(String? raw, List<ImportIssue> issues) {
   }
   return parsed;
 }
+
+/// The prefix of the placeholder source id [mapCallersCompanionDance] gives a
+/// CC `Reference`, which `CallersCompanionUsrImporter` resolves at commit.
+const String kCcPublishedSourceIdPrefix = 'cc-published-source:';
+
+/// The placeholder source id for the CC reference titled [title].
+String ccPublishedSourcePlaceholderId(String title) =>
+    '$kCcPublishedSourceIdPrefix$title';
+
+/// The title carried by a placeholder source id, or null for a real id.
+String? ccPublishedSourceTitleOf(String sourceId) =>
+    sourceId.startsWith(kCcPublishedSourceIdPrefix)
+    ? sourceId.substring(kCcPublishedSourceIdPrefix.length)
+    : null;
+
+/// The longest link kept from an imported file; longer is not a real link.
+const int _maxCcLinkLength = 2048;
+
+/// [raw] as a link to keep, or null: only an `http`/`https` URL with a host
+/// and no whitespace, control or invisible characters, so CC's empty `http://`
+/// placeholder and anything that is not a web link are dropped (imported text
+/// is untrusted).
+String? ccLinkUrl(String? raw) {
+  final trimmed = raw?.trim() ?? '';
+  if (trimmed.isEmpty || trimmed.length > _maxCcLinkLength) return null;
+  if (trimmed.contains(RegExp(r'\s')) ||
+      sanitizeImportedText(trimmed, allowLineBreaks: false) != trimmed) {
+    return null;
+  }
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+    return null;
+  }
+  if (uri.host.isEmpty) return null;
+  return trimmed;
+}
+
+/// The Caller's Box page of the dance with the id [raw], or null when [raw] is
+/// not a plain number.
+String? callersBoxDanceUrl(String? raw) {
+  final id = raw?.trim() ?? '';
+  if (!_callersBoxIdRe.hasMatch(id)) return null;
+  return 'https://ibiblio.org/contradance/thecallersbox/dance.php?id=$id';
+}
+
+final RegExp _callersBoxIdRe = RegExp(r'^[0-9]{1,9}$');

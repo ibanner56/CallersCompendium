@@ -19,12 +19,20 @@ import 'display_defaults.dart' show kDefaultProgramCallerKey;
 ///   with `LOWER(TRIM(...))` for a trim + case-insensitive match.
 ///
 /// Caller reads [trackAllCallers] from the scope synchronously (before any
-/// `await`) and passes it here; this reads the default caller from settings.
+/// `await`) and passes it here. Pass [defaultCaller] — the live value from
+/// `DefaultProgramCallerScope.maybeOf` — when the caller has it: it is used
+/// instead of reading the setting, which a just-edited value may not have
+/// reached yet (the handler flips the notifier before it persists). `null`
+/// reads the default caller from settings.
 Future<String?> resolveCallingHistoryCallerFilter(
   SettingsRepository settings, {
   required bool trackAllCallers,
+  String? defaultCaller,
 }) async {
   if (trackAllCallers) return null;
+  if (defaultCaller != null) {
+    return normalizeCallingHistoryCaller(defaultCaller);
+  }
   Object? stored;
   try {
     stored = await settings.get(kDefaultProgramCallerKey);

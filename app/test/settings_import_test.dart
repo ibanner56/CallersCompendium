@@ -59,5 +59,11 @@ void main() {
     // The review screen is now on top.
     expect(find.byKey(const ValueKey('import-review-appbar')), findsOneWidget);
     expect(find.byKey(const ValueKey('import-choose-file')), findsOneWidget);
+
+    // INTAKE-14: the same sources as the Collection's Import dances,
+    // published collections included.
+    await tester.tap(find.byKey(const ValueKey('import-source-select')));
+    await tester.pumpAndSettle();
+    expect(find.text('Published collections'), findsWidgets);
   });
 }

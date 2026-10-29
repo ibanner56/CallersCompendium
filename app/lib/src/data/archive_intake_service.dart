@@ -57,6 +57,11 @@ enum ArchiveIntakeRejectionReason {
 
   /// The archive decoded fine but carried neither dances nor programs.
   noContent,
+
+  /// The file is a full backup (its root is the `backupContainer` envelope),
+  /// which Restore reads, not a share file (PLAT-2). Told apart from
+  /// [noContent] so the caller is not told a whole library is empty.
+  backup,
 }
 
 /// The outcome of an [ArchiveIntakeService] attempt. Intake **never throws** to
@@ -226,7 +231,9 @@ class ArchiveIntakeService {
 
     if (archive.dances.isEmpty && archive.programs.isEmpty) {
       return ArchiveIntakeValidation.rejected(
-        ArchiveIntakeRejectionReason.noContent,
+        _isBackupContainer(json)
+            ? ArchiveIntakeRejectionReason.backup
+            : ArchiveIntakeRejectionReason.noContent,
       );
     }
 
@@ -235,6 +242,14 @@ class ArchiveIntakeService {
       archive: archive,
       entityCount: compendiumArchiveEntityCount(archive),
     );
+  }
+
+  /// Whether [json]'s root is a backup's envelope (`backupContainer`, written
+  /// by `encodeBackup`). Decoded again only on this rejection path, and
+  /// [decodeArchive] has already parsed it, so it cannot throw here.
+  static bool _isBackupContainer(String json) {
+    final root = jsonDecode(json);
+    return root is Map && root.containsKey('backupContainer');
   }
 
   Future<Uint8List> _readFileWithCap(String path) async {

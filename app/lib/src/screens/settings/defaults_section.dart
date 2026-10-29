@@ -10,6 +10,7 @@ import '../../data/aggressive_beats_update_scope.dart';
 import '../../data/collection_facets_scope.dart';
 import '../../data/collection_tile_fields_scope.dart';
 import '../../data/dance_share_fields_scope.dart';
+import '../../data/default_program_caller_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
@@ -630,11 +631,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Future<void> _onDefaultProgramCallerChanged(String value) async {
     _defaultCallerUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await persistSetting(
-      repos.settings,
-      kDefaultProgramCallerKey,
-      value.trim(),
-    );
+    final caller = value.trim();
+    // Live, so Collection's caller-scoped counts follow the change (PRES-4).
+    DefaultProgramCallerScope.notifierOf(context).value = caller;
+    await persistSetting(repos.settings, kDefaultProgramCallerKey, caller);
   }
 
   Future<void> _onDefaultProgramBandChanged(String value) async {

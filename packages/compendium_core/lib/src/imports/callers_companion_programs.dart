@@ -64,10 +64,36 @@ CcProgramsResult buildCcPrograms(
 
     final slots = <ProgramSlot>[];
     var position = 0;
+    // A dance flagged `Break` puts the break after it and its alternates
+    // (#1974), so the slot waits for the next item that is not an alternate.
+    var breakPending = false;
+    void addBreak() {
+      slots.add(
+        ProgramSlot(
+          id: mintSlotId(),
+          position: position++,
+          text: Program.breakSlotText,
+        ),
+      );
+      breakPending = false;
+    }
+
     for (final item in set.items) {
       String? danceId;
       String? text;
       final cleanBreakText = _cleanNote(item.breakText);
+      if (breakPending && !item.isAlt) {
+        // Unless the set already has its own break slot here.
+        final isOwnBreak =
+            item.danceRecordId == null &&
+            cleanBreakText?.trim().toLowerCase() ==
+                Program.breakSlotText.toLowerCase();
+        if (isOwnBreak) {
+          breakPending = false;
+        } else {
+          addBreak();
+        }
+      }
       if (item.danceRecordId != null) {
         danceId = danceIdByCcRowId[item.danceRecordId];
         if (danceId == null) {
@@ -115,7 +141,9 @@ CcProgramsResult buildCcPrograms(
           danceMinutes: item.minutes,
         ),
       );
+      if (item.breakAfter) breakPending = true;
     }
+    if (breakPending) addBreak();
 
     programs.add(
       Program(
@@ -127,6 +155,7 @@ CcProgramsResult buildCcPrograms(
         caller: _cleanLine(set.caller),
         dancerLevel: _cleanLine(set.dancerLevel),
         notes: _cleanNote(set.notes) ?? '',
+        hideAlternates: set.hideAlternates,
         slots: slots,
         createdAt: timestamp,
         updatedAt: timestamp,

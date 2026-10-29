@@ -636,6 +636,87 @@ void main() {
     },
   );
 
+  // F5: an alternate counts as called only once it is marked by hand
+  // (maintainer ruling, 2026-10-28), so Mark all performed skips it and says so.
+  testWidgets('summary mark-all skips alternates and says so', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'chorus', title: 'Chorus Jig'));
+    await repos.dances.create(_dance(id: 'hulls', title: "Hull's Victory"));
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [
+          ProgramSlot(id: 's0', position: 0, danceId: 'chorus'),
+          ProgramSlot(id: 's1', position: 1, danceId: 'hulls', isAlt: true),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Marked all dances performed except alternates. '
+        'Mark an alternate yourself if you called it.',
+      ),
+      findsOneWidget,
+    );
+    final saved = (await repos.programs.getById('p1'))!;
+    expect(saved.slots[0].performedAt, isNotNull);
+    expect(saved.slots[1].performedAt, isNull);
+  });
+
+  testWidgets('summary mark-all explains an alternate left unmarked', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final called = DateTime.utc(2025, 12, 31, 20);
+    await repos.dances.create(_dance(id: 'chorus', title: 'Chorus Jig'));
+    await repos.dances.create(_dance(id: 'hulls', title: "Hull's Victory"));
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [
+          ProgramSlot(
+            id: 's0',
+            position: 0,
+            danceId: 'chorus',
+            performedAt: called,
+          ),
+          ProgramSlot(id: 's1', position: 1, danceId: 'hulls', isAlt: true),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Marked all dances performed except alternates. '
+        'Mark an alternate yourself if you called it.',
+      ),
+      findsOneWidget,
+    );
+    final stored = (await repos.programs.getById('p1'))!;
+    expect(stored.slots.map((s) => s.performedAt), [called, null]);
+  });
+
   testWidgets(
     'summary mark-all Undo preserves prior stamps and intervening edits',
     (tester) async {

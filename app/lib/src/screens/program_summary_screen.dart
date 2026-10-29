@@ -844,12 +844,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
-  /// Marks every slot with a dance as performed (now), persists the change, and
-  /// reloads the summary. Mirrors [ProgramEditorScreen]'s `_markAllPerformed`
-  /// (no confirm dialog), but writes through the repository immediately because
-  /// the summary shows a saved program — there is no draft to fold into a later
-  /// save. Only reachable when at least one slot has a dance, matching the
-  /// builder's guard.
+  /// Marks every primary slot with a dance as performed (now) — alternates are
+  /// skipped ([ProgramSlot.isBulkMarkPerformedTarget]) — persists the change,
+  /// and reloads the summary. Mirrors [ProgramEditorScreen]'s
+  /// `_markAllPerformed` (no confirm dialog), but writes through the repository
+  /// immediately because the summary shows a saved program — there is no draft
+  /// to fold into a later save. Only reachable when at least one slot has a
+  /// dance, matching the builder's guard; with only alternates it marks nothing.
   Future<void> _markAllPerformed() async {
     final program = _program;
     if (program == null) return;
@@ -860,14 +861,31 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final markedSlotIds = <String>{};
     final updatedSlots = <ProgramSlot>[];
     for (final s in program.slots) {
-      if (s.danceId != null && s.performedAt == null) {
+      // Alternates are skipped: one counts as called only once the caller
+      // marks it by hand (maintainer ruling, 2026-10-28).
+      if (s.isBulkMarkPerformedTarget) {
         markedSlotIds.add(s.id);
         updatedSlots.add(s.copyWith(performedAt: now));
       } else {
         updatedSlots.add(s);
       }
     }
-    if (markedSlotIds.isEmpty) return;
+    if (markedSlotIds.isEmpty) {
+      // Every primary was already marked: say why the alternates still are not,
+      // rather than doing nothing visible. There is nothing to undo.
+      if (program.slots.any(_isUnmarkedAlternate)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).programsMarkedAllPerformedExceptAlternates,
+            ),
+          ),
+        );
+      }
+      return;
+    }
     final updated = program.copyWith(slots: updatedSlots, updatedAt: now);
     await _repos.programs.update(updated);
     if (!mounted) return;
@@ -875,7 +893,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final messenger = ScaffoldMessenger.of(context);
     _bulkUndoSnackBar = showUndoSnackBar(
       messenger,
-      message: l10n.programsMarkedAllPerformed,
+      message: updatedSlots.any(_isUnmarkedAlternate)
+          ? l10n.programsMarkedAllPerformedExceptAlternates
+          : l10n.programsMarkedAllPerformed,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () => unawaited(
@@ -894,6 +914,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // themselves now, so the write reaches them unaided and this pane's own
     // stream re-emits for it.
   }
+
+  static bool _isUnmarkedAlternate(ProgramSlot s) =>
+      s.danceId != null && s.isAlt && s.performedAt == null;
 
   Future<void> _undoMarkAllPerformed({
     required String programId,

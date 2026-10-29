@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/default_program_caller_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/collection_filter_scope.dart';
@@ -73,6 +74,7 @@ Future<void> _pumpScreen(
   ContraDbOnline? contraDbOnline,
   CollectionFilterController? filterController,
   ValueNotifier<Set<String>>? hiddenFacets,
+  ValueNotifier<String>? defaultProgramCaller,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -113,12 +115,15 @@ Future<void> _pumpScreen(
                   // The hidden-filters preference (#1419); the scope is only
                   // mounted when a test supplies a notifier, so every other
                   // test still runs without it.
-                  child: hiddenFacets == null
-                      ? child!
-                      : CollectionFacetsScope(
-                          notifier: hiddenFacets,
-                          child: child!,
-                        ),
+                  child: _maybeWrapDefaultCaller(
+                    defaultProgramCaller,
+                    hiddenFacets == null
+                        ? child!
+                        : CollectionFacetsScope(
+                            notifier: hiddenFacets,
+                            child: child!,
+                          ),
+                  ),
                 ),
               ),
             ),
@@ -132,6 +137,13 @@ Future<void> _pumpScreen(
     ),
   );
 }
+
+/// Mounts [DefaultProgramCallerScope] only when a test supplies a notifier, so
+/// every other test still reads the default caller from settings.
+Widget _maybeWrapDefaultCaller(ValueNotifier<String>? notifier, Widget child) =>
+    notifier == null
+    ? child
+    : DefaultProgramCallerScope(notifier: notifier, child: child);
 
 /// Enters full-text search and lets the 250 ms debounce + async query resolve.
 Future<void> _search(WidgetTester tester, String text) async {
@@ -854,6 +866,79 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_titles(tester), ['Called Dance', 'Never Called']);
+  });
+
+  group('calling history follows the default caller (F5)', () {
+    // Two unmarked programs: one led by the user, one by a guest caller.
+    // "Track calling history for all callers" is off (no scope = default
+    // off), so the default caller scopes every count and the sort.
+    Future<CompendiumRepositories> seed() async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'mine', title: 'Zed Mine'));
+      await repos.dances.create(_dance(id: 'guest', title: 'Alpha Guest'));
+      Program program(String id, String danceId, String caller, int month) =>
+          Program(
+            id: id,
+            title: id,
+            caller: caller,
+            eventDate: DateTime.utc(2026, month),
+            slots: [ProgramSlot(id: '$id-s', position: 0, danceId: danceId)],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          );
+      await repos.programs.create(program('ours', 'mine', 'Me', 2));
+      await repos.programs.create(program('theirs', 'guest', 'Guest', 5));
+      await repos.settings.set(kDefaultProgramCallerKey, 'Me');
+      return repos;
+    }
+
+    Finder badge(String title) => find.descendant(
+      of: find.widgetWithText(DanceListTile, title),
+      matching: find.text('called ×1'),
+    );
+
+    testWidgets('Last called sorts by the caller-scoped history (FIND-2)', (
+      tester,
+    ) async {
+      final repos = await seed();
+      final caller = ValueNotifier<String>('Me');
+      addTearDown(caller.dispose);
+      await _pumpScreen(tester, repos, defaultProgramCaller: caller);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Last called').last);
+      await tester.pumpAndSettle();
+
+      // Neither slot is marked, so a performed-only sort would leave both in
+      // title order; an unscoped one would put the guest's later program
+      // first.
+      expect(_titles(tester), ['Zed Mine', 'Alpha Guest']);
+    });
+
+    testWidgets('changing the default caller re-scopes the counts (PRES-4)', (
+      tester,
+    ) async {
+      final repos = await seed();
+      final caller = ValueNotifier<String>('Me');
+      addTearDown(caller.dispose);
+      await _pumpScreen(tester, repos, defaultProgramCaller: caller);
+      await tester.pumpAndSettle();
+      expect(badge('Zed Mine'), findsOneWidget);
+      expect(badge('Alpha Guest'), findsNothing);
+
+      // The notifier changes before the setting is written (the Settings
+      // handler flips it first), so the list must follow the live value.
+      caller.value = 'Guest';
+      // One frame to hear the change, then past the re-boot debounce.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+
+      expect(badge('Zed Mine'), findsNothing);
+      expect(badge('Alpha Guest'), findsOneWidget);
+    });
   });
 
   testWidgets('full-text search narrows the list', (tester) async {

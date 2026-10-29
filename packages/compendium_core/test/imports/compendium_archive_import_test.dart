@@ -1668,6 +1668,46 @@ void main() {
     expect((await dances.getById(local.id))!.title, 'My Shared Reel');
   });
 
+  // INTAKE-6: a shared file opened in the review gets the caller's default
+  // import tags on the dances it creates, as every other import screen route
+  // does. A dance it updates keeps the tags it has.
+  test('default import tags go on the dances a commit creates, not on one it '
+      're-imports', () async {
+    final tagId = await TagRepository(
+      db,
+    ).upsert(Tag(id: 'mine', name: 'Imported'));
+    final first = CompendiumArchive(
+      exportedAt: now,
+      dances: [_dance('orig-d1', 'Simplicity Swing')],
+    );
+    await importer.import(
+      encodeArchive(first),
+      first,
+      now: now,
+      newId: sequentialIds('a'),
+      newSlotId: sequentialIds('a-slot'),
+    );
+    final archive = _bundle();
+    final batch = await importer.plan(encodeArchive(archive));
+    expect(
+      batch.records.map((r) => r.verdict.kind),
+      containsAll([DedupeKind.reimport, DedupeKind.isNew]),
+    );
+
+    await importer.commit(
+      batch,
+      archive,
+      now: now,
+      newId: sequentialIds('b'),
+      newSlotId: sequentialIds('b-slot'),
+      defaultTagIds: [tagId],
+    );
+
+    final byTitle = {for (final d in await dances.listAll()) d.title: d};
+    expect(byTitle['Petronella']!.tagIds, [tagId]);
+    expect(byTitle['Simplicity Swing']!.tagIds, isEmpty);
+  });
+
   group('venue wiring (community import path)', () {
     CompendiumArchive bundleWithVenue({
       String? programVenueId,
