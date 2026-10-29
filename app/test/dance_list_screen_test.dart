@@ -26,6 +26,7 @@ import 'package:compendium_app/src/widgets/skeleton.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/panel_chip.dart';
 
 Dance _dance({
   required String id,
@@ -1110,8 +1111,6 @@ void main() {
     await tester.tap(find.text('Figure').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
     expect(
@@ -1149,8 +1148,6 @@ void main() {
     await tester.tap(find.text('Figure').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
     expect(
@@ -1210,8 +1207,6 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('online-search-enable')));
       await tester.pumpAndSettle();
       expect(
@@ -1282,8 +1277,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
@@ -1342,8 +1335,6 @@ void main() {
         callersBoxOnline: callers,
         contraDbOnline: contraDb,
       );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('advanced-panel')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('online-search-enable')));
       await tester.pumpAndSettle();
@@ -1651,7 +1642,6 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Has figure'));
 
@@ -1671,16 +1661,19 @@ void main() {
     expect(find.text('Advanced (on)'), findsOneWidget);
     expect(_titles(tester), ['Has Petronella']);
 
-    // Online results are not narrowed by the query, so the button stops
-    // saying it is on, though the query is kept for local search.
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    // Online results are not narrowed by the query, so Advanced is greyed out
+    // while online, but the query is kept for local search.
     await _tapVisible(
       tester,
       find.byKey(const ValueKey('online-search-enable')),
     );
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    expect(find.text('Advanced (on)'), findsNothing);
-    expect(find.text('Advanced'), findsOneWidget);
+    expectPanelDisabled(tester, 'advanced-panel');
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    expect(find.text('Advanced (on)'), findsOneWidget);
+    expect(_titles(tester), ['Has Petronella']);
   });
 
   testWidgets('advanced builder: add and remove a condition group', (
@@ -1693,7 +1686,6 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
 
     // Root group only.
     expect(find.byType(DropdownButton<GroupKind>), findsOneWidget);
@@ -1729,7 +1721,6 @@ void main() {
       await tester.pumpAndSettle();
 
       await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-      await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
 
       final tagDropdowns = find.byWidgetPredicate((w) {
         final key = w.key;
@@ -1757,7 +1748,6 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
-    await _tapVisible(tester, find.byKey(const ValueKey('advanced-enable')));
     await _tapVisible(tester, find.text('Add'));
     await _tapVisible(tester, find.text('Sequence (then)'));
 

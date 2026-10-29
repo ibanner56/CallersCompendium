@@ -26,6 +26,7 @@ import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
+import 'package:compendium_app/src/widgets/online_search_toggle.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart'
     show PdfLayouter;
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
@@ -287,13 +288,6 @@ class _TwoQueuedPreviewProgramOnlineService extends _ProgramOnlineService {
 
 Future<void> _startInlineOnlineImport(WidgetTester tester) async {
   final picker = find.byKey(const ValueKey('inline-picker'));
-  await tester.tap(
-    find.descendant(
-      of: picker,
-      matching: find.byKey(const ValueKey('picker-advanced-panel')),
-    ),
-  );
-  await tester.pumpAndSettle();
   await tester.tap(
     find.descendant(
       of: picker,
@@ -1361,13 +1355,6 @@ void main() {
       await tester.tap(
         find.descendant(
           of: picker,
-          matching: find.byKey(const ValueKey('picker-advanced-panel')),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(
-          of: picker,
           matching: find.byKey(const ValueKey('picker-online-search-enable')),
         ),
       );
@@ -1425,13 +1412,6 @@ void main() {
     );
 
     final picker = find.byKey(const ValueKey('inline-picker'));
-    await tester.tap(
-      find.descendant(
-        of: picker,
-        matching: find.byKey(const ValueKey('picker-advanced-panel')),
-      ),
-    );
-    await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
         of: picker,
@@ -2230,13 +2210,6 @@ void main() {
       await tester.tap(
         find.descendant(
           of: picker,
-          matching: find.byKey(const ValueKey('picker-advanced-panel')),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(
-          of: picker,
           matching: find.byKey(const ValueKey('picker-online-search-enable')),
         ),
       );
@@ -2295,7 +2268,7 @@ void main() {
       );
       expect(
         tester
-            .widget<SwitchListTile>(
+            .widget<OnlineSearchToggle>(
               find.byKey(const ValueKey('picker-online-search-enable')),
             )
             .onChanged,
@@ -2420,13 +2393,6 @@ void main() {
       await tester.pumpAndSettle();
 
       final picker = find.byKey(const ValueKey('replace-picker'));
-      await tester.tap(
-        find.descendant(
-          of: picker,
-          matching: find.byKey(const ValueKey('picker-advanced-panel')),
-        ),
-      );
-      await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
           of: picker,

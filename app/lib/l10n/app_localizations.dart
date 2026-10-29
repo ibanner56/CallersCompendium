@@ -6061,18 +6061,6 @@ abstract class AppLocalizations {
   /// **'{tool} · {count}'**
   String searchToolActiveCount(String tool, int count);
 
-  /// Toggle that enables the boolean advanced-query builder.
-  ///
-  /// In en, this message translates to:
-  /// **'Use advanced query'**
-  String get collectionUseAdvancedQuery;
-
-  /// Subtitle explaining what the advanced-query builder does.
-  ///
-  /// In en, this message translates to:
-  /// **'Combine figures and sequences with all / any / none groups.'**
-  String get collectionUseAdvancedQuerySubtitle;
-
   /// Result count of local dances matching the current query.
   ///
   /// In en, this message translates to:
@@ -13093,18 +13081,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Advanced'**
   String get collectionPickerAdvanced;
-
-  /// Collection-picker toggle enabling the advanced structured query builder.
-  ///
-  /// In en, this message translates to:
-  /// **'Use advanced query'**
-  String get collectionPickerUseAdvancedQuery;
-
-  /// Helper text describing the advanced query builder in the collection picker.
-  ///
-  /// In en, this message translates to:
-  /// **'Combine figures and sequences with all / any / none groups.'**
-  String get collectionPickerAdvancedQueryHelp;
 
   /// Screen-reader label for the button that adds a dance to the program.
   ///

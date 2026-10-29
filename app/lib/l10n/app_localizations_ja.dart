@@ -3673,13 +3673,6 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get collectionUseAdvancedQuery => '詳細クエリを使用';
-
-  @override
-  String get collectionUseAdvancedQuerySubtitle =>
-      'フィギュアとシーケンスをすべて/いずれか/なしのグループで組み合わせます。';
-
-  @override
   String collectionDanceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8496,13 +8489,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionPickerAdvanced => '詳細検索';
-
-  @override
-  String get collectionPickerUseAdvancedQuery => '詳細クエリを使用';
-
-  @override
-  String get collectionPickerAdvancedQueryHelp =>
-      'フィギュアとシーケンスをすべて/いずれか/なしのグループで組み合わせます。';
 
   @override
   String collectionPickerAddSemantic(String title) {

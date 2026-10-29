@@ -3910,13 +3910,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get collectionUseAdvancedQuery => 'Utiliser la recherche avancée';
-
-  @override
-  String get collectionUseAdvancedQuerySubtitle =>
-      'Combinez figures et séquences avec des groupes tout / l’un / aucun.';
-
-  @override
   String collectionDanceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8956,14 +8949,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get collectionPickerAdvanced => 'Avancé';
-
-  @override
-  String get collectionPickerUseAdvancedQuery =>
-      'Utiliser la recherche avancée';
-
-  @override
-  String get collectionPickerAdvancedQueryHelp =>
-      'Combinez figures et séquences avec des groupes tout / l’un / aucun.';
 
   @override
   String collectionPickerAddSemantic(String title) {

@@ -26,6 +26,7 @@ import 'dance_list_tile.dart';
 import 'facet_panel.dart';
 import 'online_import_dialogs.dart';
 import 'online_result_tile.dart';
+import 'online_search_toggle.dart';
 import 'preview_hold_listener.dart';
 import 'search_panel_bar.dart';
 
@@ -106,7 +107,8 @@ class CollectionPicker extends StatefulWidget {
   /// existing consumer.
   final PickerRowAction rowAction;
 
-  /// Whether the Advanced panel offers the Collection's online search mode.
+  /// Whether the search row offers the Online search icon, the Collection's
+  /// online search mode.
   ///
   /// Hosts opt in because an online result imports before [onAddDance] runs,
   /// unlike a local result which is already persisted.
@@ -172,7 +174,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
-  bool _advancedEnabled = false;
 
   late OnlineSearchService _callersBox;
   late OnlineSearchService _contraDb;
@@ -366,7 +367,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         facets: _facets,
         defs: data.customFieldDefs,
         byPhrase: _byPhrase,
-        advancedRoot: _advancedEnabled ? _advancedRoot : null,
+        advancedRoot: _advancedRoot,
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
@@ -466,7 +467,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _ftsController.text.trim().isNotEmpty ||
       !_facets.isEmpty ||
       !_byPhrase.isEmpty ||
-      (_advancedEnabled && _advancedRoot.toFilter() != null);
+      _advancedRoot.toFilter() != null;
 
   void _clearAll() {
     _debounceTimer?.cancel();
@@ -478,7 +479,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _byPhrase.clear();
       _advancedRoot.children.clear();
       _advancedRoot.kind = GroupKind.all;
-      _advancedEnabled = false;
       _onlineResults = const [];
       _onlineError = null;
       _onlineImportError = null;
@@ -736,7 +736,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                       ? l10n.collectionPickerOnlineSearchFieldHint
                       : l10n.collectionSearchFieldHint,
                   prefixIcon: Icon(
-                    _onlineEnabled ? Icons.cloud_outlined : Icons.search,
+                    _onlineEnabled ? kOnlineSearchIcon : Icons.search,
                   ),
                   suffixIcon: _hasActiveQuery
                       ? IconButton(
@@ -778,54 +778,88 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   /// The same compact row of search tools as the Collection
   /// ([SearchPanelBar]): Filters and By phrase are local-only (By phrase also
-  /// for online sources that support it), and Advanced is always offered.
+  /// for online sources that support it), and Advanced is local-only too, so
+  /// while online those tools stay in the row greyed out. The Online search
+  /// icon ends the row in both modes (when the picker offers online search);
+  /// while online, the source selector sits full-width under the row.
   Widget _buildSearchPanels(CollectionData data) {
     final l10n = AppLocalizations.of(context);
     final filtersActive = _facets.activeCount;
     final byPhraseActive = _byPhraseActiveCount();
-    return SearchPanelBar(
+    final panelBar = SearchPanelBar(
       storageId: 'picker',
+      trailing: widget.enableOnlineSearch
+          ? OnlineSearchToggle(
+              key: const ValueKey('picker-online-search-enable'),
+              enabled: _onlineEnabled,
+              onChanged: _onlineImporting ? null : _onOnlineToggled,
+            )
+          : null,
       panels: [
-        if (!_onlineEnabled)
-          SearchPanelSpec(
-            key: const ValueKey('picker-filters-panel'),
-            label: filtersActive == 0
-                ? l10n.collectionPickerFilters(0)
-                : l10n.searchToolActiveCount(
-                    l10n.collectionPickerFilters(0),
-                    filtersActive,
-                  ),
-            semanticsLabel: filtersActive == 0
-                ? null
-                : l10n.collectionPickerFilters(filtersActive),
-            builder: (_) => _buildFiltersPanel(data),
-          ),
-        if (!_onlineEnabled || _onlineSource.supportsByPhrase)
-          SearchPanelSpec(
-            key: const ValueKey('picker-by-phrase-panel'),
-            label: byPhraseActive == 0
-                ? l10n.collectionPickerByPhrase(0)
-                : l10n.searchToolActiveCount(
-                    l10n.collectionPickerByPhrase(0),
-                    byPhraseActive,
-                  ),
-            semanticsLabel: byPhraseActive == 0
-                ? null
-                : l10n.collectionPickerByPhrase(byPhraseActive),
-            builder: (_) => _buildByPhrasePanel(data),
-          ),
+        SearchPanelSpec(
+          key: const ValueKey('picker-filters-panel'),
+          enabled: !_onlineEnabled,
+          label: filtersActive == 0
+              ? l10n.collectionPickerFilters(0)
+              : l10n.searchToolActiveCount(
+                  l10n.collectionPickerFilters(0),
+                  filtersActive,
+                ),
+          semanticsLabel: filtersActive == 0
+              ? null
+              : l10n.collectionPickerFilters(filtersActive),
+          builder: (_) => _buildFiltersPanel(data),
+        ),
+        SearchPanelSpec(
+          key: const ValueKey('picker-by-phrase-panel'),
+          enabled: !_onlineEnabled || _onlineSource.supportsByPhrase,
+          label: byPhraseActive == 0
+              ? l10n.collectionPickerByPhrase(0)
+              : l10n.searchToolActiveCount(
+                  l10n.collectionPickerByPhrase(0),
+                  byPhraseActive,
+                ),
+          semanticsLabel: byPhraseActive == 0
+              ? null
+              : l10n.collectionPickerByPhrase(byPhraseActive),
+          builder: (_) => _buildByPhrasePanel(data),
+        ),
         SearchPanelSpec(
           key: const ValueKey('picker-advanced-panel'),
-          // Online results are not narrowed by the query; only say it is on
-          // where it applies.
-          label:
-              !_onlineEnabled &&
-                  _advancedEnabled &&
-                  _advancedRoot.toFilter() != null
+          enabled: !_onlineEnabled,
+          label: _advancedRoot.toFilter() != null
               ? l10n.collectionAdvancedActive
               : l10n.collectionPickerAdvanced,
           builder: (_) => _buildAdvancedPanel(data),
         ),
+      ],
+    );
+    // The bar is always the Column's first child, so toggling online keeps its
+    // state (open tool, scroll and focus inside a panel) instead of rebuilding it.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        panelBar,
+        if (_onlineEnabled)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SegmentedButton<OnlineSource>(
+              key: const ValueKey('picker-online-source-selector'),
+              expandedInsets: EdgeInsets.zero,
+              segments: [
+                for (final source in OnlineSource.values)
+                  ButtonSegment<OnlineSource>(
+                    value: source,
+                    label: Text(source.label),
+                  ),
+              ],
+              selected: {_onlineSource},
+              showSelectedIcon: false,
+              onSelectionChanged: _onlineImporting
+                  ? null
+                  : (selection) => _onOnlineSourceChanged(selection.first),
+            ),
+          ),
       ],
     );
   }
@@ -882,66 +916,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   Widget _buildAdvancedPanel(CollectionData data) {
-    final l10n = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (widget.enableOnlineSearch) ...[
-          SwitchListTile(
-            key: const ValueKey('picker-online-search-enable'),
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.cloud_outlined),
-            title: Text(l10n.onlineSearchToggleTitle),
-            subtitle: Text(l10n.onlineSearchToggleSubtitle),
-            value: _onlineEnabled,
-            onChanged: _onlineImporting ? null : _onOnlineToggled,
-          ),
-          if (_onlineEnabled)
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: SegmentedButton<OnlineSource>(
-                  key: const ValueKey('picker-online-source-selector'),
-                  segments: [
-                    for (final source in OnlineSource.values)
-                      ButtonSegment<OnlineSource>(
-                        value: source,
-                        label: Text(source.label),
-                      ),
-                  ],
-                  selected: {_onlineSource},
-                  showSelectedIcon: false,
-                  onSelectionChanged: _onlineImporting
-                      ? null
-                      : (selection) => _onOnlineSourceChanged(selection.first),
-                ),
-              ),
-            ),
-        ],
-        SwitchListTile(
-          key: const ValueKey('picker-advanced-enable'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.collectionPickerUseAdvancedQuery),
-          subtitle: Text(l10n.collectionPickerAdvancedQueryHelp),
-          value: _advancedEnabled,
-          onChanged: _onlineEnabled
-              ? null
-              : (value) {
-                  setState(() => _advancedEnabled = value);
-                  _runSearch();
-                },
-        ),
-        if (_advancedEnabled && !_onlineEnabled)
-          AdvancedQueryBuilder(
-            root: _advancedRoot,
-            taxonomy: data.taxonomy,
-            dialect: widget.dialect,
-            sectionLabels: data.sectionLabels,
-            tags: data.tags,
-            onChanged: _onAdvancedChanged,
-          ),
-      ],
+    return AdvancedQueryBuilder(
+      root: _advancedRoot,
+      taxonomy: data.taxonomy,
+      dialect: widget.dialect,
+      sectionLabels: data.sectionLabels,
+      tags: data.tags,
+      onChanged: _onAdvancedChanged,
     );
   }
 
