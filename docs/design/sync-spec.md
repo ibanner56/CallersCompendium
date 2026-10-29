@@ -3593,6 +3593,36 @@ the whole record: a field it no longer carries is gone everywhere. Decided by
 Isaac (maintainer) in planning this change, including that a known-but-private
 field is kept like an unknown one.
 
+> **Amended 2026-10-29, by the maintainer's decision.** A setting that this
+> build *withdrew* from sync is not kept. It is dropped. Here, withdrawn means
+> an older build classified the key `shareable` and this build does not. The
+> withdrawn keys are named in `syncWithdrawnSettingKeys`
+> (`packages/compendium_core/lib/src/sync/sync_withdrawn_settings.dart`):
+> `app_locale`, `reduce_motion`, `auto_size_perform_cards` and
+> `perform_stage_mode`. The maintainer made these per-device on 2026-10-29
+> (settings-sync-scope), and the settings registry classifies them
+> `deviceLocal`.
+>
+> A client MUST leave a withdrawn setting out of every peer manifest it reads
+> for a pass, so the record is never downloaded or merged. Its apply MUST also
+> discard any such record that still reaches it. The record is not applied,
+> not stored, not published back and not reported. The copy of a peer's
+> manifest kept for the next `ETag` request stays as the peer published it.
+>
+> Keeping the record whole, as this section otherwise requires, would never
+> end. Every pass would publish the kept copy back. A peer that upgrades later
+> would receive its own last value from this device, keep it in turn and
+> publish it on. It would also raise `keptNewerFields` on every pass, which
+> tells an up-to-date user to update the app. Dropping it loses nothing: a
+> record absent from a manifest is never a deletion (§4.5), so the older peer
+> keeps its own value. A later build that makes a withdrawn key `shareable`
+> again MUST remove it from the list in the same change. The detach clean-up
+> (§3.3) judges this device's own manifest without them too, since no upgraded
+> peer carries them. The maintainer chose dropping on 2026-10-29, answering a
+> question raised while this change was built (recorded in its pull request).
+> The alternatives were keeping the record but suppressing the notice, and
+> leaving the notice standing.
+
 A record this device shares none of has no body to put kept parts back into. A
 custom-field definition made private (`shareable: false`) projects to an empty
 body (§6.6), so what was kept for it MUST NOT be merged into one and published;

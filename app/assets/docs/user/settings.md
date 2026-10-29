@@ -63,7 +63,8 @@ The **General** section gathers everyday behavior into small groups.
   switch off the app's animations and the fade between themes even when your
   device allows motion. Turning it off stops the app removing its own
   animations, but cannot restore animations your device's setting has already
-  shortened.
+  shortened. This setting belongs to this device: it is not synced to your
+  other devices, but a backup includes it.
 - **Always show verbose figure text** — shows the full spoken-style
   [figure](./glossary.md#figure) wording on screen in the dance view, not only to
   screen readers. Turn it off for the terse notation. This affects the dance view;
@@ -181,7 +182,9 @@ details are handled when you export.
 - **Auto-size Perform cards** (on) — scales each card so it fits the screen in
   [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
   the text yourself using the **A−** and **A+** buttons while performing. See
-  [Perform mode](./perform.md) for more.
+  [Perform mode](./perform.md) for more. Like the stage theme and the text size
+  you pick in Perform, this setting belongs to this device: it is not synced to
+  your other devices, but a backup includes it.
 - **Show timer for individual Perform** (on) — shows an elapsed timer and
   pause/resume control while performing a single dance. Turn it off when you
   want individual Perform to stay timer-free.
@@ -356,7 +359,9 @@ The **Language & region** section handles formats and localization.
   (currently English, German, French, Japanese, Danish, and Dutch). Changing it
   re-renders the app immediately and is remembered next time you open the app.
   With **System default**, the app follows your device's language when it is one
-  of those bundled languages and otherwise uses English.
+  of those bundled languages and otherwise uses English. The language belongs to
+  this device: it is not synced to your other devices, so each one can use its
+  own, but a backup includes it.
   Your dance content — figure and call wording — is governed by your chosen
   [dialect](./dialects.md), independent of the interface language.
 
@@ -952,6 +957,12 @@ Sync is off and open while it is on.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
+- A few other settings depend on the screen they are used on, so they stay on
+  each device too: **App language**, **Reduce motion**, **Auto-size Perform
+  cards**, and Perform's stage theme and text size. Unlike the sync settings
+  above, a backup includes them. Your theme and custom themes do sync. A
+  device still on an older version of the app keeps syncing these with other
+  older devices, but this device ignores what it sends.
 
 **Connecting.** Once Device Sync is on, choose **Connect**, then either:
 

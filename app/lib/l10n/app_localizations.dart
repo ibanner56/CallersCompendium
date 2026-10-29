@@ -1730,7 +1730,7 @@ abstract class AppLocalizations {
   /// **'Programs sort direction (default)'**
   String get syncSettingDefaultProgramSortDirection;
 
-  /// Name of the synced setting that turns on the dark stage theme in Perform.
+  /// Name of the setting that turns on the dark stage theme in Perform, as a Device Sync conflict names it. It stays on each device now; a conflict over it can only be one queued by an older version of the app.
   ///
   /// In en, this message translates to:
   /// **'Stage theme in Perform'**
