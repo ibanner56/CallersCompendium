@@ -76,8 +76,9 @@ class DanceCallingRecord {
   /// re-dating the program moves it. Always non-null so ordering never depends
   /// on [performedAt] being present.
   ///
-  /// `_callingHistoryRows` orders by the same `COALESCE`, and
-  /// `DanceRepository._sortByLastCalled` sorts by it.
+  /// `_callingHistoryRows` orders by the same date, and
+  /// `DanceRepository._sortByLastCalled` sorts by it, both through
+  /// `callingHistoryDateSql`.
   DateTime get effectiveDate => eventDate ?? performedAt ?? programUpdatedAt;
 
   @override
@@ -1212,9 +1213,8 @@ class ProgramRepository {
     '${_eventDateClause(requireEventDate)}'
     '${_callerClause(caller)}'
     'AND programs.deleted_at IS NULL '
-    'ORDER BY COALESCE('
-    'programs.event_date, program_slots.performed_at, programs.updated_at'
-    ') DESC, programs.id',
+    'ORDER BY ${callingHistoryDateSql(slotTable: 'program_slots', programTable: 'programs')} '
+    'DESC, programs.id',
     variables: [Variable<String>(danceId), ..._callerVariables(caller)],
     readsFrom: includeVenues
         ? _programDerivedWithVenues
