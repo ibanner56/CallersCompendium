@@ -1,8 +1,9 @@
 # Design: Renaming, merging and deleting tags, authors and sources
 
 *Design note N2 for audit findings FIND-3 and LIFE-5. Written 2026-10-29
-against `origin/main` at `acacb05`; every `file:line` below is for that tree
-unless it names another branch.*
+against `origin/main` at `acacb05`, and re-checked after merging `main` at
+`296b594`. Every `file:line` below is for `296b594` unless it names another
+branch. Of the files cited, only `ux.md` moved between the two.*
 
 **Status: proposal.** This note decides nothing. The maintainer asked for it
 (below). Everything marked **Recommendation** is my view as the note's
@@ -108,7 +109,7 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
   "'Flowy' already exists. Merge 'Flowing' into it?", with **Keep editing**
   and **Merge**.
   - This is a question, not a destructive-action confirm. The user may not
-    know the name is taken. `ux.md:192-193` limits *confirms* to actions with
+    know the name is taken. `ux.md:201-202` limits *confirms* to actions with
     no Undo, and a merge has an Undo (below).
   - Button order follows D-1's pattern for the discard dialog.
 - **Undo** writes the old name back. A snackbar through `showUndoSnackBar`
@@ -346,7 +347,7 @@ The decision is D-N2-4.
 **The count and the Undo.** The manager shows each row's count of live
 dances before the user acts, and the delete reports it afterwards: "Deleted
 'Bouncey' from 12 dances. **Undo**". There is no confirm, following
-`ux.md:192-193`, because Undo exists. Dances in Recently deleted are not
+`ux.md:201-202`, because Undo exists. Dances in Recently deleted are not
 counted: they don't protect the row (trash-policy (b)), and they lose the tag
 too.
 
@@ -354,7 +355,7 @@ too.
 only dances and programs (`recently_deleted_screen.dart:326-367`), and a venue
 delete is already permanent (`settings.md:128-133`).
 
-- `ux.md:192`'s "restore within 30 days" would need tags in Recently deleted.
+- `ux.md:201`'s "restore within 30 days" would need tags in Recently deleted.
 - Restoring a tag weeks later onto dances edited since would be a merge of
   its own.
 - **Recommendation:** snackbar Undo only. Rejected alternative: a Tags tab in
@@ -635,10 +636,11 @@ implementing branch should confirm them with the maintainer in its PR:
 - a merged tag keeps the loser's colour when the survivor has none;
 - a "show these dances" action waits for B15.
 
-**Where the brief's line numbers differ from `acacb05`.** The work plan cites
+**Where the brief's line numbers differ.** The work plan cites
 `settings.md:1158-1168` for the sync **Merge** choice and `ux.md:186-187` for
-the undo rule. On this tree they are at `settings.md:1200-1225` and
-`ux.md:192-193`, and this note cites those. The plan's B8 constraint applies
+the undo rule. Those sections are at `settings.md:1200-1225` and
+`ux.md:192-193` on `acacb05`, and at `ux.md:201-202` on `296b594`. This note
+cites the current lines. The plan's B8 constraint applies
 through trash-policy (b): T1 waits for B8, and nothing here counts a trashed
 dance as protecting a row.
 
