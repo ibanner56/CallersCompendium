@@ -19,8 +19,9 @@
 ///  * **Same-figure collision** (per cell): the move repeats in a
 ///    *strictly-adjacent* dance (the row immediately above or below in program
 ///    order — or, where a slot has alternates, any dance that could be called
-///    directly before or after it, see [MatrixRow.alternateGroup]) — the repeat
-///    a caller wants to reconsider
+///    directly before or after it, see [MatrixRow.alternateGroup]), and never
+///    across a break: rows in different numbered [MatrixRow.section]s are not
+///    neighbours — the repeat a caller wants to reconsider
 ///    ([ProgramMatrix.isCollision]). Positions are derived from cumulative
 ///    **effective** beats ([Taxonomy.effectiveParams], so figures with no
 ///    explicitly-stored count still land correctly) and threaded through
