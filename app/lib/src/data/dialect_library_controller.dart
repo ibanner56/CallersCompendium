@@ -24,9 +24,19 @@ const String kActiveDialectRefKey = 'active_dialect_ref';
 ///
 /// Mirrors the `CustomThemesController` pattern.
 class DialectLibraryController extends ChangeNotifier {
-  DialectLibraryController(this._settings);
+  DialectLibraryController(
+    this._settings, {
+    ProgramRepository? programs,
+    DateTime Function()? clock,
+  }) : _programs = programs,
+       _clock = clock ?? (() => DateTime.now().toUtc());
 
   final SettingsRepository _settings;
+
+  /// Where a rename is carried to the programs that name the dialect. `null`
+  /// leaves programs untouched (a controller built without a program store).
+  final ProgramRepository? _programs;
+  final DateTime Function() _clock;
 
   final List<Dialect> _customDialects = [];
   String? _activeName;
@@ -153,7 +163,15 @@ class DialectLibraryController extends ChangeNotifier {
   }
 
   /// Renames the custom dialect [oldName] to [newName] (uniquified). Presets
-  /// cannot be renamed. Keeps the active pointer in sync. Returns the new name.
+  /// cannot be renamed. Keeps the active pointer in sync, and carries the new
+  /// name to every program that names the dialect, trashed ones included (a
+  /// program stores only the name). Delete still leaves programs unpinned.
+  /// Returns the new name.
+  ///
+  /// The library is saved before the programs are touched: a failure in
+  /// between leaves programs on the old name, which already reads as
+  /// "unavailable" (`resolveProgramDialect`), rather than on a name that was
+  /// never saved.
   Future<String?> rename(String oldName, String newName) async {
     final index = _customByNameIndex(oldName);
     if (index < 0) return null;
@@ -163,6 +181,13 @@ class DialectLibraryController extends ChangeNotifier {
     if (_activeName == oldName) {
       _activeName = unique;
       await _persistActive();
+    }
+    if (unique != oldName) {
+      await _programs?.renameDialect(
+        oldName: oldName,
+        newName: unique,
+        updatedAt: _clock(),
+      );
     }
     notifyListeners();
     return unique;

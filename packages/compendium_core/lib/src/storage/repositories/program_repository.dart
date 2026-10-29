@@ -481,6 +481,54 @@ class ProgramRepository {
     });
   }
 
+  /// Carries a dialect rename to the programs that name it: every program whose
+  /// `dialectName` is [oldName] gets [newName], and returns how many changed.
+  ///
+  /// Names are compared after [normalizeShareableText] on both sides, as
+  /// `resolveProgramDialect` does, so a program holding the NFD spelling of a
+  /// name still follows its NFC-normalized library entry. Trashed programs are
+  /// included: restoring one must not bring back a name that no longer exists.
+  ///
+  /// Each changed program gets a stamp after its current one (at or after
+  /// [updatedAt]), so the rename travels in Device Sync as an ordinary newer
+  /// program record. The dialect library syncs separately, as a setting.
+  Future<int> renameDialect({
+    required String oldName,
+    required String newName,
+    required DateTime updatedAt,
+  }) {
+    assertUtc(updatedAt, 'updatedAt');
+    final oldKey = normalizeShareableText(oldName);
+    final stored = normalizeShareableText(newName);
+    if (oldKey == stored) return Future.value(0);
+    return _db.transaction(() async {
+      final rows = await (_db.select(
+        _db.programs,
+      )..where((t) => t.dialectName.isNotNull())).get();
+      var renamed = 0;
+      for (final row in rows) {
+        if (normalizeShareableText(row.dialectName!) != oldKey) continue;
+        await (_db.update(
+          _db.programs,
+        )..where((t) => t.id.equals(row.id))).write(
+          ProgramsCompanion(
+            dialectName: Value(stored),
+            updatedAt: Value(
+              nextStoredTimestamp(
+                now: updatedAt.isAfter(row.updatedAt)
+                    ? updatedAt
+                    : row.updatedAt.add(storedTimestampTick),
+                current: [row.updatedAt],
+              ),
+            ),
+          ),
+        );
+        renamed++;
+      }
+      return renamed;
+    });
+  }
+
   Future<void> _upsert(
     Program program, {
     LiveVenueIds? knownVenueIds,

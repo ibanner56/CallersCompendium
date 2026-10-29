@@ -663,7 +663,9 @@ database already carries it. The steps that can still fire are v36 onward.
 - v37 (issue #1554): adds nullable `programs.dialect_name`, the name of the
   dialect Perform uses for that program; NULL (every existing row) means Perform
   follows the application dialect. A soft reference by name, deliberately not
-  validated at write time and never cascaded on dialect rename or delete: a name
+  validated at write time and not cascaded on dialect delete (amended 2026-10-29:
+  a dialect rename is now carried to the programs that name it, trashed ones
+  included, by `ProgramRepository.renameDialect`; see `dialect.md`): a name
   that does not resolve falls back to the application dialect when Perform
   resolves it. Written NFC-normalised like every shareable string: the dialect
   library's own names are NFC-normalised on their way to storage
