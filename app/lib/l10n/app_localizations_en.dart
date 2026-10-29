@@ -3319,6 +3319,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'There isn\'t enough free space to replace this backup ($neededMb MB needed; $freeMb MB free), so nothing was saved. Your earlier backup is unchanged.';
+  }
+
+  @override
   String get backupExportInProgress => 'Preparing your backup…';
 
   @override
@@ -7792,6 +7797,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'You have an unsaved draft for this dance. Would you like to restore it?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'You have an unsaved draft of another new dance, “$title”. Would you like to restore it instead of starting a new one?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'You have an unsaved draft of another new dance, not yet titled. Would you like to restore it instead of starting a new one?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Draft saved $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'This dance has been changed since the draft was saved. Restoring the draft replaces those changes.';
 
   @override
   String get danceEditorDiscard => 'Discard';

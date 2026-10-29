@@ -3385,6 +3385,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'Es ist nicht genug Speicherplatz frei, um diese Sicherung zu ersetzen ($neededMb MB benötigt; $freeMb MB frei), daher wurde nichts gespeichert. Ihre frühere Sicherung bleibt unverändert.';
+  }
+
+  @override
   String get backupExportInProgress => 'Sicherung wird vorbereitet…';
 
   @override
@@ -7914,6 +7919,24 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'Sie haben einen nicht gespeicherten Entwurf für diesen Tanz. Möchten Sie ihn wiederherstellen?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, „$title“. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, noch ohne Titel. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Entwurf gespeichert: $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Dieser Tanz wurde geändert, seit der Entwurf gespeichert wurde. Wenn Sie den Entwurf wiederherstellen, werden diese Änderungen ersetzt.';
 
   @override
   String get danceEditorDiscard => 'Verwerfen';

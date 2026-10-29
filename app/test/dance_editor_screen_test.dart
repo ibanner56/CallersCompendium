@@ -21,6 +21,7 @@ import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
 import 'support/test_repositories.dart';
+import 'support/new_dance_draft.dart';
 import 'support/l10n_harness.dart';
 import 'figures_support.dart';
 
@@ -892,7 +893,7 @@ void main() {
       // Let the debounced autosave write the draft that cleanup must remove.
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
-      expect(await repos.settings.get('editor_draft:new'), isNotNull);
+      expect(await newDanceDraft(repos), isNotNull);
 
       settings.removeFailuresRemaining = 1000;
       await tester.tap(find.byKey(const ValueKey('save-dance')));
@@ -929,14 +930,14 @@ void main() {
       );
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
-      expect(await repos.settings.get('editor_draft:new'), isNotNull);
+      expect(await newDanceDraft(repos), isNotNull);
 
       settings.removeFailuresRemaining = 1;
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
 
       expect(settings.draftRemoveCalls, 2);
-      expect(await repos.settings.get('editor_draft:new'), isNull);
+      expect(await newDanceDraft(repos), isNull);
       expect(await repos.dances.listAll(), hasLength(1));
       expect(find.text("Couldn't save the dance."), findsNothing);
       expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);

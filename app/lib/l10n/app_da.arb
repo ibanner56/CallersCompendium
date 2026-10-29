@@ -3384,6 +3384,10 @@
   "@backupExportTooLarge": {
     "x-sourceSha256": "1416959a2f449b0558cc843bfa3dbd39209ae1069307cb905582625594368e3e"
   },
+  "backupExportDiskFull": "Der er ikke nok ledig plads til at erstatte denne sikkerhedskopi ({neededMb} MB nødvendig; {freeMb} MB ledig), så intet blev gemt. Din tidligere sikkerhedskopi er uændret.",
+  "@backupExportDiskFull": {
+    "x-sourceSha256": "891f8cc1f6aa387d25f0ac96f04536ea5ef0d34348c4e4e344d9f86a90220382"
+  },
   "backupExportInProgress": "Forbereder din sikkerhedskopi…",
   "@backupExportInProgress": {
     "x-sourceSha256": "9174795f8bf8199c1a9f40bd555b24c33361d0c752e5f0d07215277151a36101"
@@ -7745,6 +7749,22 @@
   "danceEditorUnsavedDraftMessage": "Du har en ugemt kladde til denne dans. Vil du gendanne den?",
   "@danceEditorUnsavedDraftMessage": {
     "x-sourceSha256": "4361737050c69693981e562c818bb6e1759d9787f3c3063b7c5a24110ff4bd05"
+  },
+  "danceEditorUnsavedNewDanceDraftMessage": "Du har en ugemt kladde til en anden ny dans, „{title}“. Vil du gendanne den i stedet for at starte en ny?",
+  "@danceEditorUnsavedNewDanceDraftMessage": {
+    "x-sourceSha256": "cfa0a260dbb7d319cf1657e51a6a8c15425b1eeb38646cecfe70f1b5513810c7"
+  },
+  "danceEditorUnsavedNewDanceDraftUntitledMessage": "Du har en ugemt kladde til en anden ny dans, der endnu ikke har en titel. Vil du gendanne den i stedet for at starte en ny?",
+  "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
+    "x-sourceSha256": "cc94ad5921a82b7a09da9609d23e294e7143bbf350f0726fb70299e73c9003e9"
+  },
+  "danceEditorUnsavedDraftSavedAt": "Kladden blev gemt {when}.",
+  "@danceEditorUnsavedDraftSavedAt": {
+    "x-sourceSha256": "0a54afbff697740ab32849f748b479e07b7e7368e5d94fa21defb9d187ca2092"
+  },
+  "danceEditorUnsavedDraftChangedSince": "Dansen er blevet ændret, siden kladden blev gemt. Hvis du gendanner kladden, erstattes disse ændringer.",
+  "@danceEditorUnsavedDraftChangedSince": {
+    "x-sourceSha256": "3a7cbbf1fc29a4de9fc4d7ddfd2d0542dba59459363b98374e564ac0ff457703"
   },
   "danceEditorDiscard": "Kassér",
   "@danceEditorDiscard": {

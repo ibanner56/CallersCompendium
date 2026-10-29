@@ -331,7 +331,10 @@ A `.USR` import brings across both your **dances** and your **program history**
 before it commits and undoable right after. Dances and programs you have imported
 before are recognised and offered as updates rather than duplicated. A dance
 you bring in early with **Import and edit** still takes its place in your
-programs and related dances when you then import the rest of the file.
+programs and related dances when you then import the rest of the file. The review
+says how many programs the file includes, and they are imported even when you
+leave every dance at **Skip** — so importing a fresher export just to pick up new
+sets works when you already have all its dances.
 
 Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app

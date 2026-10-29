@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'backup_volume_channel.dart';
 import 'picker_extensions.dart';
 
 /// Delivers a finished backup [json] to the user as a file named
@@ -44,6 +45,41 @@ Future<ShareResult> Function(ShareParams params) shareFilesViaSheet =
 /// the atomic replacement. Overridable so tests can drive both branches of that
 /// routing without depending on the host OS.
 bool Function() isMacOsPlatform = () => Platform.isMacOS;
+
+/// Test seam for the free-space query the in-place macOS write makes before it
+/// overwrites an existing backup ([writeDesktopBackup]); defaults to the
+/// native [BackupVolumeChannel]. Returns `null` when the answer is unknown.
+Future<int?> Function(String path) backupVolumeAvailableBytes = (path) =>
+    BackupVolumeChannel().availableBytes(path);
+
+/// Room the in-place macOS write needs beyond the backup's own bytes before it
+/// truncates an existing backup: filesystem blocks are allocated whole, and
+/// the file's metadata takes space too.
+const int kInPlaceBackupHeadroomBytes = 1024 * 1024;
+
+/// Thrown by [writeDesktopBackup] on macOS when the volume does not have room
+/// for the new backup, before the existing file at that path is touched. Only
+/// that in-place write can destroy an earlier backup by running out of space;
+/// the atomic write elsewhere leaves it untouched on failure. No user-facing
+/// text: the export flow builds its translated message from [requiredBytes]
+/// and [availableBytes]; [toString] is for logs only.
+class BackupDiskFullException implements Exception {
+  const BackupDiskFullException({
+    required this.requiredBytes,
+    required this.availableBytes,
+  });
+
+  /// The bytes the write needs, [kInPlaceBackupHeadroomBytes] included.
+  final int requiredBytes;
+
+  /// The bytes the volume reported free.
+  final int availableBytes;
+
+  @override
+  String toString() =>
+      'BackupDiskFullException: backup needs $requiredBytes bytes; '
+      '$availableBytes bytes free';
+}
 
 /// The file-type filter behind the backup save and restore dialogs.
 @visibleForTesting
@@ -289,6 +325,16 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
 /// still truncate the prior backup — the sandbox leaves no atomic alternative
 /// for a user-selected destination.
 ///
+/// A full disk is the one such interruption that can be seen coming. So when
+/// [path] already holds a file, the macOS branch first asks how much space the
+/// volume has free ([backupVolumeAvailableBytes]) and, when that is less than
+/// the backup plus [kInPlaceBackupHeadroomBytes], throws
+/// [BackupDiskFullException] without touching the file. The check is
+/// conservative: it does not count the space the old file would free, so it
+/// can refuse a save that would just have fitted. It is not a guarantee
+/// either: another app can fill the disk between the check and the write, and
+/// an unknown answer (`null`) lets the write go ahead unchecked, as before.
+///
 /// [debugSimulateFailure] is forwarded to [writeStringAtomically] on the
 /// Windows/Linux path (a test-only seam proving an interrupted write can't harm
 /// the previous backup); the in-place macOS path has no such protection to
@@ -300,13 +346,30 @@ Future<void> writeDesktopBackup(
   Future<void> Function()? debugSimulateFailure,
 }) {
   if (isMacOsPlatform()) {
-    return writeStringToUserSelectedPath(path, contents);
+    return _writeInPlaceIfRoom(path, contents);
   }
   return writeStringAtomically(
     path,
     contents,
     debugSimulateFailure: debugSimulateFailure,
   );
+}
+
+/// The macOS branch of [writeDesktopBackup]: refuses with
+/// [BackupDiskFullException] before overwriting an existing file the volume
+/// has no room to replace, then writes in place.
+Future<void> _writeInPlaceIfRoom(String path, String contents) async {
+  if (await File(path).exists()) {
+    final available = await backupVolumeAvailableBytes(path);
+    final required = utf8.encode(contents).length + kInPlaceBackupHeadroomBytes;
+    if (available != null && available < required) {
+      throw BackupDiskFullException(
+        requiredBytes: required,
+        availableBytes: available,
+      );
+    }
+  }
+  await writeStringToUserSelectedPath(path, contents);
 }
 
 /// Writes in place to the exact path authorized by a native desktop Save As

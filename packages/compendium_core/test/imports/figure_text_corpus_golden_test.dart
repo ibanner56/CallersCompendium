@@ -14,7 +14,9 @@ import '../test_package_root.dart';
 /// (`test/imports/support/**`, `tools/seed/fixtures/*.html`), one per line,
 /// followed by hand-written lines that make every entry of `dancerWords` and
 /// `fillerWords` (`taxonomy/dance_vocabulary.dart`) decide at least one
-/// record, so deleting any entry turns this test red. Lines may be appended;
+/// record, so deleting any entry turns this test red, then the distinct body
+/// lines of a beta tester's Caller's Companion library, beat prefix removed as
+/// the `.USR` import removes it (#1971). Lines may be appended;
 /// their expected records must be recorded from unchanged behaviour. For
 /// each line the golden records what the import scrub, the import fan-out
 /// parser and the editor's free-text entry produce. A refactor of the parser

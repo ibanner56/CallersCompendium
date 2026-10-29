@@ -519,7 +519,57 @@ List<String> _normalize(
       .where((w) => w.isNotEmpty)
       .map((w) => w == 'thru' ? 'through' : w)
       .toList();
+  _foldDancerNumbers(words);
   return words;
+}
+
+/// The neighbour words a following `0`–`4` folds onto, as `Neighbor 2` is the
+/// same dancer as the `N2` tag (#1971).
+const Set<String> _neighborWords = {
+  'neighbor',
+  'neighbors',
+  'neighbour',
+  'neighbours',
+};
+
+/// Whether the words from [at] are the fraction of a mixed number: `1/2`, or
+/// `and 1/2` as `_normalize` leaves TCB's `1 & 1/2`.
+bool _startsMixedNumber(List<String> w, int at) {
+  if (at < w.length && w[at] == 'and') at++;
+  return at < w.length && _slashFractionRe.hasMatch(w[at]);
+}
+
+/// A bare whole number, as a dancer number or an amount is written.
+final RegExp _bareInteger = RegExp(r'^\d+$');
+
+/// Reads a number written straight after a dancer word as part of the dancer,
+/// never as an amount (#1971): `Neighbor 2 Do-si-do` is next neighbors, not a
+/// do-si-do twice, and `Neighbor 1 allemande Left 3/4` turns ¾, not 1¾.
+///
+/// A neighbour word followed by `0`–`4` becomes the matching `n0`–`n4` tag, so
+/// both spellings resolve through the same [dancerWords] entry. Any other
+/// number after a dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) is
+/// marked with a leading `#`, which no recognizer reads, so the line falls to
+/// custom (or into a prefix match's note) rather than lending its number to an
+/// amount. A number that starts a mixed number is left alone: it is the amount
+/// (`Gypsy partner 1 1/2`, `Allemande left neighbor 1½`).
+void _foldDancerNumbers(List<String> w) {
+  for (var i = 0; i + 1 < w.length; i++) {
+    final number = w[i + 1];
+    if (!_bareInteger.hasMatch(number)) continue;
+    // A whole number starting a mixed number is an amount, not a dancer:
+    // `Allemande left neighbor 1½` (`_normalize` splits `1½` into `1 1/2`).
+    if (_startsMixedNumber(w, i + 2)) continue;
+    if (_neighborWords.contains(w[i]) && number.length == 1) {
+      final n = int.parse(number);
+      if (n <= 4) {
+        w[i] = 'n$n';
+        w.removeAt(i + 1);
+        continue;
+      }
+    }
+    if (dancerWords.containsKey(w[i])) w[i + 1] = '#$number';
+  }
 }
 
 String _stripEdgePunct(String w) {
@@ -885,10 +935,21 @@ double? _takeRotation(List<String> w) {
     '1/4': 0.25,
     '1/2': 0.5,
     '3/4': 0.75,
+    // Decimal turn counts, as Caller's Companion libraries write them (#1971).
+    '0.25': 0.25,
+    '0.5': 0.5,
+    '0.75': 0.75,
+    '1.0': 1.0,
     '1.25': 1.25,
     '1.5': 1.5,
     '1.75': 1.75,
+    '2.0': 2.0,
     '2.5': 2.5,
+    // Hyphenated mixed numbers (#1971).
+    '1-1/4': 1.25,
+    '1-1/2': 1.5,
+    '1-3/4': 1.75,
+    '2-1/2': 2.5,
   };
   for (var i = 0; i < w.length; i++) {
     // Two-token compound forms: "1 1/2" / "1 1/4" / "1 3/4" and "2 1/2"
@@ -982,6 +1043,22 @@ int? _takePlaces(List<String> w) {
     '1/2': 2,
     '3/4': 3,
     '4/4': 4,
+    // More than a full turn written as quarters ("Circle left 5/4", #1971).
+    '5/4': 5,
+    '6/4': 6,
+    '7/4': 7,
+    '8/4': 8,
+    '9/4': 9,
+    '10/4': 10,
+    // Decimal turns, as Caller's Companion libraries write them (#1971).
+    '0.25': 1,
+    '0.5': 2,
+    '0.75': 3,
+    '1.0': 4,
+    '1.25': 5,
+    '1.5': 6,
+    '1.75': 7,
+    '2.0': 8,
     'once': 4,
     '1x': 4,
     '1': 4,
@@ -2317,9 +2394,18 @@ _Match? _squareThrough(List<String> w) {
       break;
     }
   }
+  // "Square through 3 without hands" with a pass list is a circular hey, read
+  // by the TCB decoder; without one there is nothing to build it from, so the
+  // words stay as the note on the square through (#1971).
+  final withoutHands = _consumePhrase(w, ['without', 'hands']);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('square_through', {'places': ?places});
+  return _Match('square_through', {
+    'places': ?places,
+    // Passing without hands is no balance-and-pull, and an import never gains
+    // a balance its line does not state (#1969, #1971).
+    if (withoutHands) 'balance': false,
+  }, withoutHands ? 'without hands' : null);
 }
 
 /// Tier A: TCB writes "Men pull by left" / "Partner pull by left" (dance ids

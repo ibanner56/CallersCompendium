@@ -4149,6 +4149,20 @@
       }
     }
   },
+  "backupExportDiskFull": "There isn't enough free space to replace this backup ({neededMb} MB needed; {freeMb} MB free), so nothing was saved. Your earlier backup is unchanged.",
+  "@backupExportDiskFull": {
+    "description": "Snackbar shown on macOS when saving a backup over an existing backup file is refused because the disk does not have room for the new one; the existing file is left as it was. 'MB' is the megabyte unit.",
+    "placeholders": {
+      "neededMb": {
+        "type": "String",
+        "example": "31.4"
+      },
+      "freeMb": {
+        "type": "String",
+        "example": "12.0"
+      }
+    }
+  },
   "backupExportInProgress": "Preparing your backup…",
   "@backupExportInProgress": {
     "description": "Text in the progress dialog shown while a backup is being built and saved. No percentage is shown."
@@ -9084,7 +9098,7 @@
   },
   "importReviewWillImportPrograms": "Also includes {count, plural, =1{1 program} other{{count} programs}}.",
   "@importReviewWillImportPrograms": {
-    "description": "Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) carries programs. Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.",
+    "description": "Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) or a Caller's Companion .USR file carries programs (.USR sets). Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.",
     "placeholders": {
       "count": {
         "type": "int"
@@ -10109,6 +10123,34 @@
   "danceEditorUnsavedDraftMessage": "You have an unsaved draft for this dance. Would you like to restore it?",
   "@danceEditorUnsavedDraftMessage": {
     "description": "Dialog body asking whether to restore a pending autosave draft."
+  },
+  "danceEditorUnsavedNewDanceDraftMessage": "You have an unsaved draft of another new dance, “{title}”. Would you like to restore it instead of starting a new one?",
+  "@danceEditorUnsavedNewDanceDraftMessage": {
+    "description": "Dialog body when the caller starts a new dance and a draft of a different new dance, never saved, is waiting from an earlier session. Restoring continues that dance; discarding deletes it.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Lady of the Lake"
+      }
+    }
+  },
+  "danceEditorUnsavedNewDanceDraftUntitledMessage": "You have an unsaved draft of another new dance, not yet titled. Would you like to restore it instead of starting a new one?",
+  "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
+    "description": "Dialog body when the caller starts a new dance and an untitled draft of a different new dance, never saved, is waiting from an earlier session."
+  },
+  "danceEditorUnsavedDraftSavedAt": "Draft saved {when}.",
+  "@danceEditorUnsavedDraftSavedAt": {
+    "description": "Line in the restore-draft dialog giving when the autosave draft was last written, so the caller can judge how old it is.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "Oct 28, 2026 3:15 PM"
+      }
+    }
+  },
+  "danceEditorUnsavedDraftChangedSince": "This dance has been changed since the draft was saved. Restoring the draft replaces those changes.",
+  "@danceEditorUnsavedDraftChangedSince": {
+    "description": "Warning in the restore-draft dialog when the saved dance was edited elsewhere (a bulk tag, a rating, a sync, a re-check) after the draft was written; restoring overwrites those later changes."
   },
   "danceEditorDiscard": "Discard",
   "@danceEditorDiscard": {

@@ -213,6 +213,13 @@ ALTERNATE_TITLE_EXEMPTIONS: dict[str, frozenset[str]] = {
     "packages/compendium_core/lib/src/imports/dedupe.dart": frozenset(
         {"dedupeCoreTitleKey"}
     ),
+    # In-memory display matching for the Ctrl/Cmd-K palette: lowercases and
+    # drops combining marks so typing `ecole` finds `École`, as the Collection's
+    # FTS index does. It only ranks and filters what is shown. It is never a
+    # sync, merge, dedupe or identity key, and keeps articles and punctuation.
+    "packages/compendium_core/lib/src/search/title_match.dart": frozenset(
+        {"foldForTitleMatch", "rankTitleMatch"}
+    ),
 }
 
 

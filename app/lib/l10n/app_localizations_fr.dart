@@ -3401,6 +3401,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'L’espace libre est insuffisant pour remplacer cette sauvegarde ($neededMb Mo nécessaires ; $freeMb Mo libres) ; rien n’a été enregistré. Votre sauvegarde précédente est inchangée.';
+  }
+
+  @override
   String get backupExportInProgress => 'Préparation de votre sauvegarde…';
 
   @override
@@ -7932,6 +7937,24 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'Vous avez un brouillon non enregistré pour cette danse. Voulez-vous le restaurer ?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Vous avez un brouillon non enregistré d’une autre nouvelle danse, « $title ». Voulez-vous le restaurer au lieu d’en commencer une nouvelle ?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Vous avez un brouillon non enregistré d’une autre nouvelle danse, encore sans titre. Voulez-vous le restaurer au lieu d’en commencer une nouvelle ?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Brouillon enregistré le $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Cette danse a été modifiée depuis l’enregistrement du brouillon. Restaurer le brouillon remplace ces modifications.';
 
   @override
   String get danceEditorDiscard => 'Abandonner';

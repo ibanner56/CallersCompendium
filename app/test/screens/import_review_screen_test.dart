@@ -2325,65 +2325,78 @@ void main() {
     // (external ids 4/7 → "Simplicity Swing", "Petronella"), one set whose
     // Location becomes the program title ("Grange Hall"), and a SetItem
     // referencing an absent dance (99) so a program note is produced.
-    Uint8List ccUsrBytes({bool thirdDance = false, String? userField}) =>
-        buildFmp12Fixture([
-          FmpFixtureTable(
-            index: 1,
-            name: 'Dance',
-            columnNames: ['zk_Dance_ID', 'Name', 'Author1', 'UserDefined_1'],
-            rows: [
-              MapEntry(10, {
-                1: '4',
-                2: 'Simplicity Swing',
-                3: 'Becky Hill',
-                4: ?userField,
-              }),
-              MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
-              if (thirdDance)
-                MapEntry(12, {1: '9', 2: 'Chorus Jig', 3: 'Trad'}),
-            ],
-          ),
-          FmpFixtureTable(
-            index: 2,
-            name: 'Set',
-            columnNames: [
-              'zk_Set_ID',
-              'Date',
-              'Location',
-              'Band',
-              'Caller',
-              'Notes',
-            ],
-            rows: [
-              MapEntry(20, {
-                1: '1',
-                2: '3/14/2020',
-                3: 'Grange Hall',
-                4: 'The Band',
-                5: 'Jane',
-                6: 'a good night',
-              }),
-            ],
-          ),
-          FmpFixtureTable(
-            index: 3,
-            name: 'SetItem',
-            columnNames: [
-              'zk_Set_ID',
-              'zk_SetItem_ID',
-              'zk_Dance_ID',
-              'Order',
-              'Time',
-              'Break',
-            ],
-            rows: [
-              MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
-              MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
-              MapEntry(32, {1: '1', 2: '103', 4: '3', 6: 'Waltz break'}),
-              MapEntry(33, {1: '1', 2: '104', 3: '99', 4: '4'}),
-            ],
-          ),
-        ]);
+    // [secondSet] adds a later set ("Second Hall", using dance 4), as a fresher
+    // export of the same library would.
+    Uint8List ccUsrBytes({
+      bool thirdDance = false,
+      bool secondSet = false,
+      String? userField,
+    }) => buildFmp12Fixture([
+      FmpFixtureTable(
+        index: 1,
+        name: 'Dance',
+        columnNames: ['zk_Dance_ID', 'Name', 'Author1', 'UserDefined_1'],
+        rows: [
+          MapEntry(10, {
+            1: '4',
+            2: 'Simplicity Swing',
+            3: 'Becky Hill',
+            4: ?userField,
+          }),
+          MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
+          if (thirdDance) MapEntry(12, {1: '9', 2: 'Chorus Jig', 3: 'Trad'}),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 2,
+        name: 'Set',
+        columnNames: [
+          'zk_Set_ID',
+          'Date',
+          'Location',
+          'Band',
+          'Caller',
+          'Notes',
+        ],
+        rows: [
+          MapEntry(20, {
+            1: '1',
+            2: '3/14/2020',
+            3: 'Grange Hall',
+            4: 'The Band',
+            5: 'Jane',
+            6: 'a good night',
+          }),
+          if (secondSet)
+            MapEntry(21, {
+              1: '2',
+              2: '3/21/2020',
+              3: 'Second Hall',
+              4: 'The Band',
+              5: 'Jane',
+            }),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 3,
+        name: 'SetItem',
+        columnNames: [
+          'zk_Set_ID',
+          'zk_SetItem_ID',
+          'zk_Dance_ID',
+          'Order',
+          'Time',
+          'Break',
+        ],
+        rows: [
+          MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
+          MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
+          MapEntry(32, {1: '1', 2: '103', 4: '3', 6: 'Waltz break'}),
+          MapEntry(33, {1: '1', 2: '104', 3: '99', 4: '4'}),
+          if (secondSet) MapEntry(34, {1: '2', 2: '201', 3: '4', 4: '1'}),
+        ],
+      ),
+    ]);
 
     List<ImportSource> sourcesFor(ImportBytePicker picker) => [
       ImportSource(
@@ -2961,6 +2974,52 @@ void main() {
 
       final program = (await repos.programs.listAll()).single;
       expect(program.slots.map((s) => s.danceId).toList(), linked);
+    });
+
+    // A caller who re-imports only to pick up new sets already has every
+    // dance, so every row defaults to Skip. The sets must still import.
+    testWidgets('a re-import with every dance at Skip still imports its sets', (
+      tester,
+    ) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+      final first = ccUsrBytes();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => first),
+        bytePicker: () async => first,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      final swing = (await repos.dances.listAll()).singleWhere(
+        (d) => d.title == 'Simplicity Swing',
+      );
+
+      final again = ccUsrBytes(secondSet: true);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => again),
+        bytePicker: () async => again,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      expect(find.text(l10n.importReviewWillImport(0, 2)), findsOneWidget);
+      expect(find.text(l10n.importReviewWillImportPrograms(2)), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final second = (await repos.programs.listAll()).singleWhere(
+        (p) => p.title == 'Second Hall',
+      );
+      expect(second.slots.single.danceId, swing.id);
+      expect(await repos.dances.listAll(), hasLength(2));
     });
 
     testWidgets('a dance committed through Import and edit keeps its program '

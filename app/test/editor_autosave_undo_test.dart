@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart'
     show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
+import 'support/new_dance_draft.dart';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -412,6 +414,114 @@ void main() {
       expect(restored.meanwhileSides![0].move, 'swing');
       expect(restored.meanwhileSides![1].move, 'allemande');
       expect(restored.toFigure(), draft.toFigure());
+      // A typed group count stays protected after an undo (AUTH-5).
+      expect(restored.beatsTouched, isTrue);
+      expect(restored.meanwhileSides![0].beatsTouched, isFalse);
+    });
+
+    test('a draft round-trips beatsTouched, its save time and baseline, and '
+        'the role terms its text is in (AUTH-5, AUTH-10, AUTH-17)', () {
+      final savedAt = DateTime.utc(2026, 10, 28, 15, 4, 5);
+      final base = DateTime.utc(2026, 10, 27, 9);
+      final snapshot = _snap(title: 'T').copyWith(
+        figureDrafts: const [
+          FigureDraftSnapshot(
+            id: 'typed',
+            move: 'swing',
+            params: {'beats': 12},
+            note: 'Larks go',
+            progression: false,
+            schemaVersion: 1,
+            beatsTouched: true,
+          ),
+          FigureDraftSnapshot(
+            id: 'derived',
+            move: 'swing',
+            params: {'beats': 8},
+            note: '',
+            progression: false,
+            schemaVersion: 1,
+          ),
+        ],
+        textDialect: Dialect.larksRobins,
+        savedAt: savedAt,
+        baseUpdatedAt: base,
+      );
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(
+        [for (final d in decoded.figureDrafts) d.beatsTouched],
+        [true, false],
+      );
+      expect(decoded.savedAt, savedAt);
+      expect(decoded.baseUpdatedAt, base);
+      expect(decoded.textDialect?.roles, Dialect.larksRobins.roles);
+      // The text is kept as typed; only a restore under other roles converts.
+      expect(decoded.figureDrafts.first.note, 'Larks go');
+    });
+
+    test('new-dance drafts are keyed under the editor draft prefix, which '
+        'backup excludes and the registry classifies', () {
+      expect(danceEditorDraftKey(kLegacyNewDanceDraftId), 'editor_draft:new');
+      expect(danceEditorDraftKey(kNewDanceDraftIdPrefix), 'editor_draft:new:');
+      expect(
+        classifySettingsKey('editor_draft:new:x')?.egress,
+        EgressClass.deviceScoped,
+      );
+      expect(isNewDanceEditorDraftKey('editor_draft:new'), isTrue);
+      expect(isNewDanceEditorDraftKey('editor_draft:new:x'), isTrue);
+      expect(isNewDanceEditorDraftKey('editor_draft:newer'), isFalse);
+      expect(isNewDanceEditorDraftKey('editor_draft:d1'), isFalse);
+      expect(isNewDanceEditorDraftKey('program_editor_draft:new'), isFalse);
+    });
+
+    test('unreadable text roles read as unknown, not as no roles', () {
+      final decoded = decodeDraft({
+        'v': 13,
+        'form': 'contra',
+        'formationShape': 'dupleImproper',
+        'progression': 'single',
+        'status': 'active',
+        'textRoles': {'role1': 'lark'},
+      });
+      expect(decoded.textDialect, isNull);
+    });
+
+    test('a draft written before F2 still decodes, with a stored count read '
+        'as typed and no save time, baseline or dialect', () {
+      final decoded = decodeDraft({
+        'v': 13,
+        'title': 'Old',
+        'form': 'contra',
+        'formationShape': 'dupleImproper',
+        'progression': 'single',
+        'status': 'active',
+        'figureDrafts': [
+          {
+            'id': 'a',
+            'move': 'swing',
+            'params': {'beats': 12},
+            'note': 'larks go',
+            'progression': false,
+            'sv': 1,
+          },
+          {
+            'id': 'b',
+            'move': null,
+            'params': <String, Object?>{},
+            'note': '',
+            'progression': false,
+            'sv': 1,
+          },
+        ],
+      });
+      expect(decoded.title, 'Old');
+      expect(
+        [for (final d in decoded.figureDrafts) d.beatsTouched],
+        [true, false],
+      );
+      expect(decoded.savedAt, isNull);
+      expect(decoded.baseUpdatedAt, isNull);
+      expect(decoded.textDialect, isNull);
     });
   });
 
@@ -782,13 +892,13 @@ void main() {
         'Draft Title',
       );
       // Before debounce fires, no draft yet.
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
 
       // Advance debounce.
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
 
-      final raw = await repos.settings.get('editor_draft:new');
+      final raw = await newDanceDraft(repos);
       final decoded = decodeDraft(raw);
       expect(decoded.title, 'Draft Title');
     });
@@ -806,7 +916,7 @@ void main() {
 
         // Structural changes schedule autosave (debounced 500ms).
         await tester.pump(const Duration(milliseconds: 600));
-        expect(await repos.settings.contains('editor_draft:new'), isTrue);
+        expect(await hasNewDanceDraft(repos), isTrue);
       },
     );
 
@@ -819,12 +929,12 @@ void main() {
         'To Save',
       );
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
 
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
 
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     });
 
     testWidgets('back navigation on a dirty editor prompts before discarding', (
@@ -838,7 +948,7 @@ void main() {
         'Will Discard',
       );
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
 
       // Backing out no longer silently discards: it shows the same
       // 'Discard changes?' confirmation the program editor uses.
@@ -849,7 +959,7 @@ void main() {
       // Still on the editor, and the draft is preserved until the user
       // explicitly confirms the discard — no silent data loss.
       expect(find.byKey(const ValueKey('title-field')), findsOneWidget);
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
     });
 
     testWidgets(
@@ -872,7 +982,7 @@ void main() {
         // Dialog dismissed, still editing, draft intact.
         expect(find.text('Discard changes?'), findsNothing);
         expect(find.byKey(const ValueKey('title-field')), findsOneWidget);
-        expect(await repos.settings.contains('editor_draft:new'), isTrue);
+        expect(await hasNewDanceDraft(repos), isTrue);
       },
     );
 
@@ -887,7 +997,7 @@ void main() {
         'Will Discard',
       );
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      expect(await hasNewDanceDraft(repos), isTrue);
 
       await tester.pageBack();
       await tester.pumpAndSettle();
@@ -897,7 +1007,7 @@ void main() {
       // Editor popped back to the launcher and the draft was cleared.
       expect(find.byKey(const ValueKey('title-field')), findsNothing);
       expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     });
 
     testWidgets('restore dialog shown when draft exists for new dance', (
@@ -940,7 +1050,81 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_titleText(tester), '');
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
+    });
+
+    testWidgets('the restore prompt gives the draft\'s age, and warns when the '
+        'dance has changed since (AUTH-10)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd5', title: 'D5'));
+      final stored = (await repos.dances.getById('d5'))!;
+      await repos.settings.set(
+        'editor_draft:d5',
+        encodeDraft(
+          _snap(title: 'Pending').copyWith(
+            savedAt: DateTime.utc(2026, 10, 28, 15, 4),
+            baseUpdatedAt: stored.updatedAt.subtract(const Duration(hours: 1)),
+          ),
+        ),
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd5');
+
+      expect(
+        find.text(
+          'You have an unsaved draft for this dance. Would you like '
+          'to restore it?',
+        ),
+        findsOneWidget,
+      );
+      // Shown in local time, so the expected text is built the same way.
+      final shown = DateFormat.yMMMd(
+        'en',
+      ).add_jm().format(DateTime.utc(2026, 10, 28, 15, 4).toLocal());
+      expect(find.text('Draft saved $shown.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('draft-changed-since')), findsOneWidget);
+    });
+
+    testWidgets('the restore prompt does not warn when the dance is as the '
+        'draft left it (AUTH-10)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd6', title: 'D6'));
+      final stored = (await repos.dances.getById('d6'))!;
+      await repos.settings.set(
+        'editor_draft:d6',
+        encodeDraft(
+          _snap(title: 'Pending').copyWith(
+            savedAt: DateTime.utc(2026, 10, 28, 15, 4),
+            baseUpdatedAt: stored.updatedAt,
+          ),
+        ),
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd6');
+
+      expect(find.text('Unsaved draft'), findsOneWidget);
+      expect(find.byKey(const ValueKey('draft-changed-since')), findsNothing);
+    });
+
+    testWidgets('a new dance is offered an abandoned new dance\'s draft by '
+        'name, not as "this dance" (AUTH-10)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        danceEditorDraftKey(kLegacyNewDanceDraftId),
+        encodeDraft(_snap(title: 'Abandoned')),
+      );
+
+      await _pumpEditor(tester, repos);
+
+      expect(
+        find.text(
+          'You have an unsaved draft of another new dance, '
+          '“Abandoned”. Would you like to restore it instead of starting a '
+          'new one?',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('for this dance'), findsNothing);
     });
 
     testWidgets('draft keyed by danceId for an existing dance', (tester) async {
@@ -956,7 +1140,7 @@ void main() {
 
       expect(await repos.settings.contains('editor_draft:dance123'), isTrue);
       // 'new' key is NOT written.
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     });
 
     testWidgets('partial/incomplete figure draft (null move) round-trips', (
@@ -978,7 +1162,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 600));
 
-      final raw = await repos.settings.get('editor_draft:new');
+      final raw = await newDanceDraft(repos);
       final decoded = decodeDraft(raw);
       expect(decoded.figureDrafts, hasLength(1));
       expect(decoded.figureDrafts.single.move, isNull);
@@ -1014,7 +1198,7 @@ void main() {
       // No restore dialog should appear.
       expect(find.text('Unsaved draft'), findsNothing);
       // Key is cleaned up.
-      expect(await repos.settings.contains('editor_draft:new'), isFalse);
+      expect(await hasNewDanceDraft(repos), isFalse);
     });
 
     // Regression: fix #3 (updated) — v1 drafts are now forward-compatible
@@ -1078,7 +1262,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 600));
 
-      final raw = await repos.settings.get('editor_draft:new');
+      final raw = await newDanceDraft(repos);
       final decoded = decodeDraft(raw);
       expect(decoded.customValues['cf1'], 'my typed value');
     });
