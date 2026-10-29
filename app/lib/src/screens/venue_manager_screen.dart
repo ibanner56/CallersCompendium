@@ -259,7 +259,7 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
         key: const ValueKey('venue-manager-empty'),
         icon: EmptyState.glyph(context, Icons.place_outlined),
         title: l10n.venueManagerEmptyTitle,
-        body: l10n.venueManagerEmpty,
+        body: l10n.venueManagerEmptyBody,
         actions: [
           FilledButton.icon(
             key: const ValueKey('venue-manager-empty-add'),

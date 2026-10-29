@@ -232,8 +232,10 @@ void main() {
     await _pumpScreen(tester, repos, onImport: () => imports++);
     await tester.pumpAndSettle();
 
+    // The title says it once; the body must not open by repeating it.
+    expect(find.textContaining('collection is empty'), findsOneWidget);
     expect(find.text('Your collection is empty'), findsOneWidget);
-    expect(find.textContaining('Your collection is empty.'), findsOneWidget);
+    expect(find.textContaining('Add or import a dance'), findsOneWidget);
     // The empty-collection state leads with the brand mark above the copy (§4.4).
     expect(find.byType(BrandMark), findsOneWidget);
     expect(find.byKey(const ValueKey('collection-import-card')), findsNothing);

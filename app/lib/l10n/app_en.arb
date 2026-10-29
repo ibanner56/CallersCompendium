@@ -4788,9 +4788,9 @@
       }
     }
   },
-  "collectionEmpty": "Your collection is empty. Add or import a dance to get started — or turn on Online search above to import from an online source.",
-  "@collectionEmpty": {
-    "description": "Empty-state message shown in the results area when the collection has no dances."
+  "collectionEmptyBody": "Add or import a dance to get started — or turn on Online search above to import from an online source.",
+  "@collectionEmptyBody": {
+    "description": "Body of the empty-Collection state, under the title; says how to add the first dance."
   },
   "collectionEmptyTitle": "Your collection is empty",
   "@collectionEmptyTitle": {
@@ -12588,9 +12588,9 @@
   "@venueManagerClearSearchTooltip": {
     "description": "Tooltip for the button that clears the venue manager's search field."
   },
-  "venueManagerEmpty": "No venues yet. Add one with the button below, or from a program when reusable venues are turned on.",
-  "@venueManagerEmpty": {
-    "description": "Empty state for the venue manager when no venues exist yet."
+  "venueManagerEmptyBody": "Add one here, or from a program when reusable venues are turned on.",
+  "@venueManagerEmptyBody": {
+    "description": "Body of the empty Venues state, under the title; the add button sits right below it."
   },
   "venueManagerEmptyTitle": "No venues yet",
   "@venueManagerEmptyTitle": {

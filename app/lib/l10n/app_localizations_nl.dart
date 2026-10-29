@@ -3847,8 +3847,8 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get collectionEmpty =>
-      'Je collectie is leeg. Voeg een dans toe of importeer er een om te beginnen — of schakel Onlinezoeken hierboven in om te importeren vanuit een onlinebron.';
+  String get collectionEmptyBody =>
+      'Voeg een dans toe of importeer er een om te beginnen — of schakel Onlinezoeken hierboven in om te importeren vanuit een onlinebron.';
 
   @override
   String get collectionEmptyTitle => 'Je collectie is leeg';
@@ -9741,8 +9741,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get venueManagerClearSearchTooltip => 'Zoekopdracht wissen';
 
   @override
-  String get venueManagerEmpty =>
-      'Nog geen locaties. Voeg er een toe via de knop hieronder, of vanuit een programma wanneer herbruikbare locaties zijn ingeschakeld.';
+  String get venueManagerEmptyBody =>
+      'Voeg er hier een toe, of vanuit een programma wanneer herbruikbare locaties zijn ingeschakeld.';
 
   @override
   String get venueManagerEmptyTitle => 'Nog geen locaties';

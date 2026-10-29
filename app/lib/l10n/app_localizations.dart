@@ -6013,11 +6013,11 @@ abstract class AppLocalizations {
   /// **'Duplicated as \"{title}\".'**
   String collectionDuplicatedSnack(String title);
 
-  /// Empty-state message shown in the results area when the collection has no dances.
+  /// Body of the empty-Collection state, under the title; says how to add the first dance.
   ///
   /// In en, this message translates to:
-  /// **'Your collection is empty. Add or import a dance to get started — or turn on Online search above to import from an online source.'**
-  String get collectionEmpty;
+  /// **'Add or import a dance to get started — or turn on Online search above to import from an online source.'**
+  String get collectionEmptyBody;
 
   /// Title of the empty-Collection state.
   ///
@@ -14270,11 +14270,11 @@ abstract class AppLocalizations {
   /// **'Clear search'**
   String get venueManagerClearSearchTooltip;
 
-  /// Empty state for the venue manager when no venues exist yet.
+  /// Body of the empty Venues state, under the title; the add button sits right below it.
   ///
   /// In en, this message translates to:
-  /// **'No venues yet. Add one with the button below, or from a program when reusable venues are turned on.'**
-  String get venueManagerEmpty;
+  /// **'Add one here, or from a program when reusable venues are turned on.'**
+  String get venueManagerEmptyBody;
 
   /// Title of the empty Venues list.
   ///

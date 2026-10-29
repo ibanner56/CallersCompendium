@@ -3820,8 +3820,8 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get collectionEmpty =>
-      'Din samling er tom. Tilføj eller importér en dans for at komme i gang – eller aktiver onlinesøgning i indstillinger.';
+  String get collectionEmptyBody =>
+      'Tilføj eller importér en dans for at komme i gang – eller aktiver onlinesøgning i indstillinger.';
 
   @override
   String get collectionEmptyTitle => 'Din samling er tom';
@@ -9674,11 +9674,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get venueManagerClearSearchTooltip => 'Ryd søgning';
 
   @override
-  String get venueManagerEmpty =>
-      'Ingen spillesteder endnu. Tilføj et med knappen nedenfor, eller fra et program når genanvendelige spillesteder er aktiveret.';
+  String get venueManagerEmptyBody =>
+      'Tilføj et her, eller fra et program når genanvendelige spillesteder er aktiveret.';
 
   @override
-  String get venueManagerEmptyTitle => 'Ingen steder endnu';
+  String get venueManagerEmptyTitle => 'Ingen spillesteder endnu';
 
   @override
   String get venueManagerNoMatches => 'Ingen spillesteder matcher din søgning.';

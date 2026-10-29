@@ -2696,7 +2696,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         title: l10n.collectionEmptyTitle,
-        body: l10n.collectionEmpty,
+        body: l10n.collectionEmptyBody,
         actions: _startActions(l10n),
       ),
     );

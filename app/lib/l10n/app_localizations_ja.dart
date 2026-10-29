@@ -3642,8 +3642,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get collectionEmpty =>
-      'コレクションは空です。ダンスを追加またはインポートして始めましょう — または上のオンライン検索をオンにしてオンラインソースからインポートしてください。';
+  String get collectionEmptyBody =>
+      'ダンスを追加またはインポートして始めましょう — または上のオンライン検索をオンにしてオンラインソースからインポートしてください。';
 
   @override
   String get collectionEmptyTitle => 'コレクションは空です';
@@ -9295,8 +9295,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get venueManagerClearSearchTooltip => '検索をクリア';
 
   @override
-  String get venueManagerEmpty =>
-      '会場がまだありません。下のボタンで追加するか、再利用可能な会場をオンにしたプログラムから追加してください。';
+  String get venueManagerEmptyBody =>
+      'ここから追加するか、再利用可能な会場をオンにしたプログラムから追加してください。';
 
   @override
   String get venueManagerEmptyTitle => '会場はまだありません';

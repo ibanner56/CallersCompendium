@@ -3864,8 +3864,8 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get collectionEmpty =>
-      'Ihre Sammlung ist leer. Fügen Sie einen Tanz hinzu oder importieren Sie einen, um loszulegen – oder aktivieren Sie die Online-Suche oben, um aus einer Online-Quelle zu importieren.';
+  String get collectionEmptyBody =>
+      'Füge einen Tanz hinzu oder importiere einen, um loszulegen – oder aktiviere oben die Online-Suche, um aus einer Online-Quelle zu importieren.';
 
   @override
   String get collectionEmptyTitle => 'Deine Sammlung ist leer';
@@ -9785,11 +9785,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get venueManagerClearSearchTooltip => 'Suche löschen';
 
   @override
-  String get venueManagerEmpty =>
-      'Noch keine Veranstaltungsorte. Fügen Sie einen mit der Schaltfläche unten hinzu oder über ein Programm, wenn wiederverwendbare Veranstaltungsorte aktiviert sind.';
+  String get venueManagerEmptyBody =>
+      'Füge hier einen hinzu oder über ein Programm, wenn wiederverwendbare Veranstaltungsorte aktiviert sind.';
 
   @override
-  String get venueManagerEmptyTitle => 'Noch keine Orte';
+  String get venueManagerEmptyTitle => 'Noch keine Veranstaltungsorte';
 
   @override
   String get venueManagerNoMatches =>
