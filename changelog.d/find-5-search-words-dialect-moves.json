@@ -1,0 +1,20 @@
+{
+  "id": "find-5-search-words-dialect-moves",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The Collection search bar now finds dances that contain all of your words, wherever they appear: \"Kaynor petronella\" finds a Bob Kaynor dance with a petronella in it, where before it looked for that exact phrase and found nothing. Figure and role names of several words, such as \"do si do\", still count as one word."
+    ],
+    "added": [
+      "The Collection search bar understands your dialect's own names for the built-in figures: if your dialect calls the swing a \"buzz\", searching \"buzz\" finds every dance with a swing."
+    ]
+  },
+  "core": {
+    "changed": [
+      "FilterCompiler splits a FullTextFilter query into words and ANDs one canonical-or-raw predicate per word; multi-word role, move and dialect move terms stay one word, and role terms are decided on the whole query (new analyzeRoleTerms)."
+    ],
+    "added": [
+      "FilterCompiler maps the active and saved dialects' move names to the taxonomy display name in full-text search."
+    ]
+  }
+}

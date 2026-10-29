@@ -107,12 +107,20 @@ you want one.
 
 The search bar sits at the top of **Collection**. Type any words — a title, an
 author, a phrase from the notes — and the list narrows as you type to the dances
-that match.
+that match **all** of your words. The words don't have to sit together or in the
+same place: **Kaynor petronella** finds a dance by Bob Kaynor that has a
+petronella in it, and **combination nice** still finds *The Nice Combination*.
+A word of three or more letters can be any part of a longer one, so **ron**
+finds *petronella*; a word of one or two letters finds the start of a word, so
+**pe** finds *petronella* and **et** does not. A figure or role name of several
+words, such as **do si do**, counts as one word.
 
 Search understands your [dialect](./glossary.md#dialect) wording. If you saved or
 imported a dance in one set of words and search in another, the app still finds
 it: searching **robins chain** turns up the dance even if it was stored using
-different role names. You do not have to remember how a dance was originally
+different role names. Your dialect's own names for the built-in figures work
+too: if your dialect calls the swing a "buzz", searching **buzz** finds every
+dance with a swing. You do not have to remember how a dance was originally
 written down.
 
 Clear the search bar to return to your whole collection.
@@ -120,8 +128,8 @@ Clear the search bar to return to your whole collection.
 Use **Search in**, beside the search bar (above it on a narrow screen or with
 large text), to choose where your words are looked for: **All fields**,
 **Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
-sources, custom field values, hooks and notes, and finds your words exactly as
-they were typed. It skips yes/no fields, which you find with their filter, and
+sources, custom field values, hooks and notes, and finds each word exactly as
+you typed it. It skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
 [Make your own fields](#make-your-own-fields)). It also looks at figures, which are matched by meaning, so a
 role word finds the figure however the role was worded when the dance was

@@ -50,8 +50,10 @@ Because the stored form never changes when you switch dialects, three good thing
 follow on their own:
 
 - **Search always works**, whatever words you prefer. If you search using your
-  own role names or an older term, the app matches it against the shared form for
-  you, so you find the dance either way.
+  own role names, your own names for the built-in figures, or an older term, the
+  app matches it against the shared form for you, so you find the dance either
+  way. (Search finds a figure of your own by its own name; see
+  [Your own figures](#your-own-figures).)
 - **Your data stays portable.** A dance you saved in one dialect opens correctly
   for someone using another, and your [backups](./backup-portability.md) never bake in one set
   of words.
@@ -129,7 +131,10 @@ say out loud. If you always call a move by a particular name, set it here and th
 app uses your wording on every dance that contains that move. For moves that come
 in left- and right-handed versions, type `%S` where the side belongs — for
 example `%S shoulder round` — and the app fills in "left" or "right" for you, so
-you don't have to write two versions.
+you don't have to write two versions. The Collection search bar understands your
+names too: searching your name for a move finds every dance with that move.
+A name with `%S` in it is the exception; search for the move by its usual
+name instead.
 
 ### Move wording templates
 
