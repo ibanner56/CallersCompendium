@@ -1,0 +1,9 @@
+{
+  "id": "audit-ux2-1-unsaved-editor-guards",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Leaving a figure shorthand, a custom theme, a venue or a custom field with unsaved changes now asks \"Discard changes?\" first, as the dance and program editors do, instead of losing what you typed. The venue and custom-field sheets no longer close when swiped down; close them with Cancel, or with Back or a tap outside, which ask first when there are changes."
+    ]
+  }
+}
