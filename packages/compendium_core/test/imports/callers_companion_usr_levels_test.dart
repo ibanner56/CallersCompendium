@@ -127,6 +127,12 @@ void main() {
       for (final level in await levels.listAll()) level.label,
     ];
 
+    /// Every live level's row as stored: what sync publishes.
+    Future<Map<String, (int, DateTime?)>> rows() async => {
+      for (final row in await db.select(db.difficultyLevels).get())
+        if (row.deletedAt == null) row.id: (row.position, row.updatedAt),
+    };
+
     Future<String?> levelOf(String title) async {
       final dance = (await dances.listAll()).firstWhere(
         (d) => d.title == title,
@@ -194,6 +200,13 @@ void main() {
       expect(result.restoredDifficultyLevelIds, [old.id]);
       expect(result.insertedDifficultyLevelIds, isEmpty);
       expect((await dances.listAll()).single.difficultyLevelId, old.id);
+      // Placed like a created level, not left where it was deleted.
+      expect(await labels(), [
+        'Beginner',
+        'Easy / Intermediate',
+        'Intermediate',
+        'Advanced',
+      ]);
       await importer.undo(result);
       expect(await labels(), isNot(contains('Easy / Intermediate')));
     });
@@ -272,6 +285,104 @@ void main() {
         'Intermediate',
         'Advanced',
       ]);
+    });
+
+    test('a list ordered hardest first is read hardest first', () async {
+      await levels.reorder([
+        DifficultyLevel.advancedId,
+        DifficultyLevel.intermediateId,
+        DifficultyLevel.beginnerId,
+      ]);
+      await import(usr(['Easy\nIntermediate', 'Intermediate\nAdvanced']));
+      expect(await labels(), [
+        'Advanced',
+        'Intermediate/Advanced',
+        'Intermediate',
+        'Easy/Intermediate',
+        'Beginner',
+      ]);
+    });
+
+    test('an import that keeps no level rewrites no level', () async {
+      final before = await rows();
+      final batch = await importer.plan(usr(['Easy\nIntermediate']));
+      await importer.commit(
+        ImportBatchResult(
+          records: [
+            ImportRecordPlan(
+              draft: batch.records.single.draft,
+              verdict: DedupeVerdict.ambiguous(const []),
+            ),
+          ],
+        ),
+        CcUsrArchive(dances: const [], sets: const [], warnings: const []),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      expect(await rows(), before);
+    });
+
+    test('a failed import rewrites no level', () async {
+      final before = await rows();
+      final failing = importerWith(_FailingProgramRepository(db));
+      await expectLater(
+        failing.import(
+          usr(['Easy\nIntermediate'], withSet: true),
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(await rows(), before);
+    });
+
+    test('placing a level rewrites only the levels that move', () async {
+      final before = await rows();
+      final result = await import(usr(['Intermediate\nAdvanced']));
+      final after = await rows();
+      // Beginner and Intermediate keep their places and their rows.
+      expect(
+        after[DifficultyLevel.beginnerId],
+        before[DifficultyLevel.beginnerId],
+      );
+      expect(
+        after[DifficultyLevel.intermediateId],
+        before[DifficultyLevel.intermediateId],
+      );
+      expect(after[DifficultyLevel.advancedId]!.$1, 3);
+      await importer.undo(result);
+      expect(await labels(), ['Beginner', 'Intermediate', 'Advanced']);
+    });
+
+    test('a batch after an Edit reuses the level the Edit made', () async {
+      // Planned together, so neither row's plan saw the other's level.
+      final batch = await importer.plan(
+        usr(['Easy\nIntermediate', 'Easy\nIntermediate']),
+      );
+      await importer.commitDances(
+        ImportBatchResult(records: [batch.records[0]]),
+        now: now,
+        newId: nextId,
+      );
+      final result = await importer.commit(
+        ImportBatchResult(records: [batch.records[1]]),
+        CcUsrArchive(dances: const [], sets: const [], warnings: const []),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      expect(result.insertedDifficultyLevelIds, isEmpty);
+      expect(
+        (await labels()).where((l) => l == 'Easy/Intermediate'),
+        hasLength(1),
+      );
+      expect({
+        for (final d in await dances.listAll()) d.difficultyLevelId,
+      }, hasLength(1));
+      await importer.undo(result);
+      expect(await labels(), contains('Easy/Intermediate'));
     });
 
     test('a failed commit removes the level it created', () async {

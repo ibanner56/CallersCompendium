@@ -751,6 +751,8 @@ List<Figure>? _retryHyphenatedHand(String text, int beats, List<Figure> first) {
       severity: ImportIssueSeverity.info,
       code: ccNewLevelIssueCode,
       message: 'Level "$name" is added as a difficulty level of its own.',
+      // Safe to show: built only from [ccLevelScale]'s own names.
+      data: {'level': name},
     ),
   );
   return (id: null, mixed: false, label: name);

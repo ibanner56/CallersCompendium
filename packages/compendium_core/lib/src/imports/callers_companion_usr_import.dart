@@ -609,6 +609,8 @@ class CallersCompanionUsrImporter {
           );
         }
       }
+      // Last: only an import that otherwise succeeded moves any level.
+      await _placeLevels([...keptLevelsInserted, ...keptLevelsRestored], now);
     } catch (_) {
       await _programs.hardDelete(insertedIds);
       for (final prior in priorStates) {
@@ -678,6 +680,27 @@ class CallersCompanionUsrImporter {
       resolutions: resolutions,
       defaultTagIds: defaultTagIds,
     );
+    try {
+      await _placeLevels([
+        ...committed.insertedLevelIds,
+        ...committed.restoredLevelIds,
+      ], now);
+    } catch (_) {
+      await _pipeline.undo(committed.session);
+      await _revertUserFieldDefinitions(
+        committed.insertedFieldIds,
+        committed.restoredFieldIds,
+      );
+      await _revertPublishedSources(
+        committed.insertedSourceIds,
+        committed.restoredSourceIds,
+      );
+      await _revertDifficultyLevels(
+        committed.insertedLevelIds,
+        committed.restoredLevelIds,
+      );
+      rethrow;
+    }
     return committed.session;
   }
 
@@ -1018,16 +1041,15 @@ class CallersCompanionUsrImporter {
           idByKey[key] = match.level.id;
           continue;
         }
-        final order = await _levels.listAll();
+        // Created last for now: [_placeLevels] moves it once the import has
+        // kept it, so nothing else is rewritten for an import that fails,
+        // skips the dance, or is undone.
         final created = await _levels.createCustom(
           label: label,
-          position: order.length,
+          position: (await _levels.listAll()).length,
         );
         inserted.add(created.id);
         idByKey[key] = created.id;
-        final ids = [for (final level in order) level.id];
-        ids.insert(_levelInsertIndex(order, created), created.id);
-        await _levels.reorder(ids, at: now);
       }
     } catch (_) {
       await _revertDifficultyLevels(inserted, restored);
@@ -1061,17 +1083,45 @@ class CallersCompanionUsrImporter {
     );
   }
 
+  /// Places the levels [ids] this import kept (created or restored) among
+  /// the user's levels by CC's scale (maintainer decision, #1973), writing only
+  /// the levels whose position changes.
+  Future<void> _placeLevels(List<String> ids, DateTime now) async {
+    if (ids.isEmpty) return;
+    final moving = ids.toSet();
+    final order = [
+      for (final level in await _levels.listAll())
+        if (!moving.contains(level.id)) level,
+    ];
+    for (final id in ids) {
+      final level = await _levels.getById(id);
+      if (level == null) continue;
+      order.insert(_levelInsertIndex(order, level), level);
+    }
+    await _levels.setPositions({
+      for (final (position, level) in order.indexed)
+        if (level.position != position) level.id: position,
+    }, at: now);
+  }
+
   /// Where [level] goes in [order] (the live levels, by position): after the
   /// last level that sits below it on CC's scale, else before the first that
-  /// sits above it, else last. Levels the scale says nothing about keep their
-  /// places around it.
+  /// sits above it, else last. "Below" follows the user's own direction: a
+  /// list ordered hardest first is read hardest first. Levels the scale says
+  /// nothing about keep their places around it.
   static int _levelInsertIndex(
     List<DifficultyLevel> order,
     DifficultyLevel level,
   ) {
-    final key = ccLevelScaleKey(level);
-    if (key == null) return order.length;
-    final keys = [for (final other in order) ccLevelScaleKey(other)];
+    final own = ccLevelScaleKey(level);
+    if (own == null) return order.length;
+    final known = [for (final other in order) ?ccLevelScaleKey(other)];
+    final sign = known.length >= 2 && known.first > known.last ? -1 : 1;
+    final key = own * sign;
+    final keys = [
+      for (final other in order)
+        if (ccLevelScaleKey(other) case final k?) k * sign else null,
+    ];
     final below = keys.lastIndexWhere((k) => k != null && k < key);
     if (below >= 0) return below + 1;
     final above = keys.indexWhere((k) => k != null && k > key);
