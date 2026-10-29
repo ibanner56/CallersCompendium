@@ -321,7 +321,8 @@ class Program {
   /// and exports keep the application dialect. A soft reference by name,
   /// resolved with `Dialect.resolveByName` when Perform opens: a name that no
   /// longer resolves silently falls back to the application dialect, so it is
-  /// never validated or cleared when a dialect is renamed or deleted.
+  /// never validated, and not cleared when a dialect is deleted; a rename is
+  /// carried to the program by `ProgramRepository.renameDialect`.
   final String? dialectName;
 
   /// What the caller is paid for this program, in the currency's minor units

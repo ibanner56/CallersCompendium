@@ -341,10 +341,11 @@ is nothing to type.
 - You can still use **Switch dialect** in Perform. While the program has its own
   dialect, that switch affects the rest of this time in Perform only; the
   program's dialect is back the next time you open it.
-- A program remembers the dialect by its **name**. If you rename or delete that
-  dialect, the program quietly goes back to using your active dialect in Perform,
-  and the editor shows the old name as **unavailable** so you can see what
-  happened. Pick a dialect again to reconnect it.
+- A program remembers the dialect by its **name**. If you rename that dialect,
+  every program that uses it, including ones in Recently deleted, follows the
+  new name. If you delete it, the program quietly goes back to using your active
+  dialect in Perform, and the editor shows the old name as **unavailable** so you
+  can see what happened. Pick a dialect again to reconnect it.
 
 ## Peek at the canonical wording
 

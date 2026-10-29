@@ -7,7 +7,7 @@ import 'dialect_library_controller.dart';
 /// a dialect.
 ///
 /// A `null` result is the signal to fall back to the application dialect: a
-/// program stores only a name, so a dialect that was renamed or deleted — or
+/// program stores only a name, so a dialect that was deleted — or
 /// has not synced to this device yet — silently stops resolving instead of
 /// being validated or cleared on the program (issue #1554).
 ///
