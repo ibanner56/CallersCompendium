@@ -2234,31 +2234,34 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                         ),
                       );
                 if (!mounted) return null;
-                final takeElsewhere =
-                    write.changedUnderneath && generation == _editGeneration;
+                final elsewhere = write.changedUnderneath;
                 setState(() {
-                  _existing = stored;
-                  // No edit since: with nothing else unsaved, the working copy
-                  // is the stored program, details included when they changed
-                  // elsewhere. With other unsaved edits, the working slots
-                  // take what changed elsewhere, so a later save keeps it;
-                  // the unsaved details stay as typed.
-                  if (generation == _editGeneration) {
-                    _dirty = keepDirty;
-                    if (!keepDirty && takeElsewhere) {
-                      _applyProgramToEditor(stored);
-                    } else if (!keepDirty) {
-                      _slots = stored.slots;
-                    } else if (takeElsewhere) {
-                      _slots = withElsewhere(_slots);
-                    }
+                  // With nothing else unsaved, the working copy is the stored
+                  // program, details included when they changed elsewhere.
+                  // With other unsaved edits, the working slots take what
+                  // changed elsewhere, so a later save keeps it; the unsaved
+                  // details stay as typed. Either way this holds when a later
+                  // adjustment has overtaken this write: its own write
+                  // compares with this one, so it will not see the change.
+                  if (generation == _editGeneration) _dirty = keepDirty;
+                  if (elsewhere && !keepDirty) {
+                    _applyProgramToEditor(
+                      generation == _editGeneration
+                          ? stored
+                          : stored.copyWith(slots: withElsewhere(_slots)),
+                    );
+                  } else if (elsewhere) {
+                    _slots = withElsewhere(_slots);
+                  } else if (generation == _editGeneration && !keepDirty) {
+                    _slots = stored.slots;
                   }
+                  _existing = stored;
                 });
-                if (takeElsewhere && !keepDirty) {
+                if (elsewhere && !keepDirty) {
                   await _refreshLinkedVenueForId(stored.venueId);
                   if (!mounted) return null;
                 }
-                if (takeElsewhere && keepDirty) _scheduleAutosave();
+                if (elsewhere && keepDirty) _scheduleAutosave();
                 if (_dirty) _scheduleAutoCommit();
                 _performAdjusted = updated;
                 _performAdjustedGeneration = _editGeneration;

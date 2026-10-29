@@ -358,6 +358,48 @@ void main() {
       );
     });
 
+    testWidgets('with unsaved edits, a change elsewhere found by an '
+        'overtaken write still reaches the builder', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await seed(repos);
+      await pumpHome(tester, repos, const ProgramEditorScreen(programId: 'p1'));
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Barn Dance, revised',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      // Adjustment A is held mid-write while the change elsewhere lands, and
+      // adjustment B is queued behind it.
+      delayed.programs.holdNextWrite();
+      await markCurrentPerformed(tester);
+      await delayed.programs.writeStarted;
+      await changeElsewhere(repos);
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      await markCurrentPerformed(tester);
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final stored = (await repos.programs.getById('p1'))!;
+      expect(stored.title, 'Barn Dance, revised');
+      expect(stored.slots.map((s) => s.id), ['s1', 's2', 's3']);
+      expect(stored.slots.take(2).map((s) => s.performedAt != null), [
+        true,
+        true,
+      ]);
+    });
+
     testWidgets('a change landing while the adjustment is being written is not '
         'overwritten', (tester) async {
       final delayed = openTestRepositoriesWithDelayedPrograms();
