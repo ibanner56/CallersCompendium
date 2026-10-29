@@ -198,6 +198,11 @@ details are handled when you export.
   [alternate](./glossary.md#alt) counts only once you mark that slot performed;
   **Mark all performed** and the **Performed** status skip alternates, so mark
   the ones you used yourself.
+- **Show mark-performed toggles** (on) — adds a circle to the end of each dance
+  row on a saved program's summary, alternates included, so you can mark that
+  dance performed (or clear the mark) without opening the editor. Marking or
+  clearing offers an **Undo**. Turn it off and rows only show a check on dances
+  already marked performed. The change applies straight away.
 - **Require an event date for calling history** (off) — when on, a program with
   no event date counts nowhere calling history is read (the "called ×N" count,
   the **Called** filter, a dance's history list, the **Last called** sort, and

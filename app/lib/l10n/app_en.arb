@@ -3641,6 +3641,14 @@
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "description": "Subtitle explaining the require-mark-performed calling history toggle."
   },
+  "settingsGeneralShowPerformedTogglesTitle": "Show mark-performed toggles",
+  "@settingsGeneralShowPerformedTogglesTitle": {
+    "description": "Title of the Calling history setting that adds a mark-performed toggle to each dance row in the program view."
+  },
+  "settingsGeneralShowPerformedTogglesSubtitle": "When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.",
+  "@settingsGeneralShowPerformedTogglesSubtitle": {
+    "description": "Subtitle explaining the show mark-performed toggles setting."
+  },
   "settingsGeneralRequireEventDateForHistoryTitle": "Require an event date for calling history",
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "description": "Title of the calling-history settings toggle that leaves programs with no event date out of calling history."
@@ -6433,6 +6441,74 @@
   "programsMarkedPerformed": "Marked performed.",
   "@programsMarkedPerformed": {
     "description": "Accessibility announcement after a slot is marked performed."
+  },
+  "programsSummaryPerformedToggleOn": "{title}: performed",
+  "@programsSummaryPerformedToggleOn": {
+    "description": "Screen-reader label of a program-view dance row's mark-performed toggle when the dance is marked performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryPerformedToggleOff": "{title}: not performed",
+  "@programsSummaryPerformedToggleOff": {
+    "description": "Screen-reader label of a program-view dance row's mark-performed toggle when the dance is not marked performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryMarkPerformedTooltip": "Mark {title} performed",
+  "@programsSummaryMarkPerformedTooltip": {
+    "description": "Tooltip of a program-view dance row's mark-performed toggle while the dance is not marked performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryClearPerformedTooltip": "Clear performed mark on {title}",
+  "@programsSummaryClearPerformedTooltip": {
+    "description": "Tooltip of a program-view dance row's mark-performed toggle while the dance is marked performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryMarkedPerformedSnack": "Marked {title} performed.",
+  "@programsSummaryMarkedPerformedSnack": {
+    "description": "Undo snackbar shown after a dance row's toggle marks it performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryClearedPerformedSnack": "Cleared the performed mark on {title}.",
+  "@programsSummaryClearedPerformedSnack": {
+    "description": "Undo snackbar shown after a dance row's toggle clears its performed mark.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryPerformedToggleError": "Could not update the performed mark. Please try again.",
+  "@programsSummaryPerformedToggleError": {
+    "description": "Snackbar shown when a program-view dance row's mark-performed toggle could not be saved."
+  },
+  "programsSummaryUndoPerformedToggleError": "Could not undo that change to the performed mark.",
+  "@programsSummaryUndoPerformedToggleError": {
+    "description": "Snackbar shown when undoing a single dance row's performed mark fails, for instance because the program was edited in the meantime."
   },
   "programsPerformedCleared": "Performed mark cleared.",
   "@programsPerformedCleared": {

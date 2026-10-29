@@ -2956,6 +2956,14 @@
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "x-sourceSha256": "1848996e206cb4e46920d0bbc3310cb92d75a955a7a5042e6c91c27de09f0d7d"
   },
+  "settingsGeneralShowPerformedTogglesTitle": "Schakelaars voor ‘markeren als uitgevoerd’ tonen",
+  "@settingsGeneralShowPerformedTogglesTitle": {
+    "x-sourceSha256": "94dccb12ab231250226e6ac36cd0cedd4dc38d5528f16ec0d8d80589d788f239"
+  },
+  "settingsGeneralShowPerformedTogglesSubtitle": "Als ingeschakeld, heeft elke dans in de programmaweergave een schakelaar om die als uitgevoerd te markeren of niet, zonder de editor te openen. Als uitgeschakeld, tonen de rijen alleen of een dans is uitgevoerd.",
+  "@settingsGeneralShowPerformedTogglesSubtitle": {
+    "x-sourceSha256": "c72198d2bb64ea770c17a1f45239591d056d391a276ee7c416ddba46d5e53c48"
+  },
   "settingsGeneralRequireEventDateForHistoryTitle": "Eventdatum vereisen voor callerhistorie",
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
@@ -5125,6 +5133,38 @@
   "programsMarkedPerformed": "Gemarkeerd als uitgevoerd.",
   "@programsMarkedPerformed": {
     "x-sourceSha256": "5dbeaa439cb266505d90d60f62e0fd7cf313782ac5c7cbeafa49434d6ba9f044"
+  },
+  "programsSummaryPerformedToggleOn": "{title}: uitgevoerd",
+  "@programsSummaryPerformedToggleOn": {
+    "x-sourceSha256": "3cd5ba40da4dca696efa8319307b890a70672dc1aa6cebea2ae7b272f53f6397"
+  },
+  "programsSummaryPerformedToggleOff": "{title}: niet uitgevoerd",
+  "@programsSummaryPerformedToggleOff": {
+    "x-sourceSha256": "1481d85b62bca2328edcbe6b6180595f6702853bafa844aeefd393ef8bca8744"
+  },
+  "programsSummaryMarkPerformedTooltip": "{title} markeren als uitgevoerd",
+  "@programsSummaryMarkPerformedTooltip": {
+    "x-sourceSha256": "51bdb6864e20e781354c7b8a87ccee8c643ee8cae6bae9cb9eec17fc61eba85f"
+  },
+  "programsSummaryClearPerformedTooltip": "Uitvoermarkering van {title} wissen",
+  "@programsSummaryClearPerformedTooltip": {
+    "x-sourceSha256": "b0a517071217bc49489f06578742e09590467ecba6999c8eb2cceddf1034e16d"
+  },
+  "programsSummaryMarkedPerformedSnack": "{title} gemarkeerd als uitgevoerd.",
+  "@programsSummaryMarkedPerformedSnack": {
+    "x-sourceSha256": "54ddedcbaa84004cb9bf258a035985de171c2bd73bb215df436d06c18416a695"
+  },
+  "programsSummaryClearedPerformedSnack": "Uitvoermarkering van {title} gewist.",
+  "@programsSummaryClearedPerformedSnack": {
+    "x-sourceSha256": "4a1c9091241cd97c3c635df20a7a0654c8769f6d4c3d907fb514eef030c03d7b"
+  },
+  "programsSummaryPerformedToggleError": "De uitvoermarkering kon niet worden bijgewerkt. Probeer het opnieuw.",
+  "@programsSummaryPerformedToggleError": {
+    "x-sourceSha256": "969da3e91556de1a52f769c9b94424289f1d043d28b1442618e22190e605b976"
+  },
+  "programsSummaryUndoPerformedToggleError": "Die wijziging van de uitvoermarkering kon niet ongedaan worden gemaakt.",
+  "@programsSummaryUndoPerformedToggleError": {
+    "x-sourceSha256": "19f90c6c6bb2ee6a81e819456d81b93b0f83e95956ea4cbb3eb1b8399c9d9b18"
   },
   "programsPerformedCleared": "Uitvoermarkering gewist.",
   "@programsPerformedCleared": {

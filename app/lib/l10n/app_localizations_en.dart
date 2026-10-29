@@ -2917,6 +2917,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.';
 
   @override
+  String get settingsGeneralShowPerformedTogglesTitle =>
+      'Show mark-performed toggles';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Require an event date for calling history';
 
@@ -4977,6 +4985,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => 'Marked performed.';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title: performed';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title: not performed';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return 'Mark $title performed';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return 'Clear performed mark on $title';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return 'Marked $title performed.';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return 'Cleared the performed mark on $title.';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      'Could not update the performed mark. Please try again.';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      'Could not undo that change to the performed mark.';
 
   @override
   String get programsPerformedCleared => 'Performed mark cleared.';

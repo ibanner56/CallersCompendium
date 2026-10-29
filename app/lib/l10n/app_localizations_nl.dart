@@ -2965,6 +2965,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als ingeschakeld, toont de callerhistorie van een dans alleen programma’s waarvan het slot voor die dans als uitgevoerd is gemarkeerd. Als uitgeschakeld, verschijnt een programma zodra het de dans bevat.';
 
   @override
+  String get settingsGeneralShowPerformedTogglesTitle =>
+      'Schakelaars voor ‘markeren als uitgevoerd’ tonen';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'Als ingeschakeld, heeft elke dans in de programmaweergave een schakelaar om die als uitgevoerd te markeren of niet, zonder de editor te openen. Als uitgeschakeld, tonen de rijen alleen of een dans is uitgevoerd.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Eventdatum vereisen voor callerhistorie';
 
@@ -5045,6 +5053,44 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => 'Gemarkeerd als uitgevoerd.';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title: uitgevoerd';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title: niet uitgevoerd';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return '$title markeren als uitgevoerd';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return 'Uitvoermarkering van $title wissen';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$title gemarkeerd als uitgevoerd.';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return 'Uitvoermarkering van $title gewist.';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      'De uitvoermarkering kon niet worden bijgewerkt. Probeer het opnieuw.';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      'Die wijziging van de uitvoermarkering kon niet ongedaan worden gemaakt.';
 
   @override
   String get programsPerformedCleared => 'Uitvoermarkering gewist.';
