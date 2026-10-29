@@ -2518,6 +2518,7 @@ class _CompendiumAppState extends State<CompendiumApp>
         actionKey: const ValueKey('ecd-convert-undo'),
         message: l10n.startupEcdConvertSnackbar(conversion.count),
         undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
         accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
         onUndo: () =>
             unawaited(_undoEcdConversion(repos, conversion, messenger, l10n)),

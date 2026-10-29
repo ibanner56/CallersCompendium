@@ -1021,6 +1021,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           messenger,
           message: message,
           undoLabel: l10n.commonUndo,
+          undoFailedMessage: l10n.commonUndoFailed,
           accessibleNavigation: accessibleNavigation,
           onUndo: () => unawaited(
             _undoTogglePerformed(
