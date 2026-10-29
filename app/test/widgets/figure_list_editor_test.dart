@@ -4706,4 +4706,32 @@ void main() {
     );
     expect(add.top, greaterThanOrEqualTo(field.bottom));
   });
+
+  // October behaviour audit, AUTH-2, maintainer decision
+  // AUTH-2-incomplete-rows = (b): a row Save leaves out says so on the row.
+  testWidgets('a group Save leaves out is marked on its row (AUTH-2)', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    FigureDraft swing() =>
+        FigureDraft(move: 'swing', params: {'who': 'neighbors', 'beats': 8});
+    await _pump(tester, [
+      swing(),
+      FigureDraft(meanwhileSides: [swing(), FigureDraft()]),
+      FigureDraft(),
+    ]);
+    const marker = 'Not complete, so Save leaves it out.';
+
+    expect(find.byKey(const ValueKey('figure-1-incomplete')), findsOneWidget);
+    expect(find.text(marker), findsOneWidget);
+    // A complete row, and a blank one that has nothing to lose, are not.
+    expect(find.byKey(const ValueKey('figure-0-incomplete')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-2-incomplete')), findsNothing);
+    // Read out with the row, whose label covers what it shows.
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('figure-1-summary'))).label,
+      contains(marker),
+    );
+    handle.dispose();
+  });
 }

@@ -10086,6 +10086,16 @@
       }
     }
   },
+  "validationIncompleteFigure": "Figure {position} is not complete, so Save leaves it out.",
+  "@validationIncompleteFigure": {
+    "description": "Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is a group that is not complete, such as a meanwhile with one side filled in or a modifier group with no Core, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "validationPhraseInvalid": "That phrase structure isn't valid.",
   "@validationPhraseInvalid": {
     "description": "Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds)."
@@ -10691,6 +10701,10 @@
   "danceEditorCompoundUnavailable": "This figure of yours can't be expanded: it has been deleted or changed, or doesn't accept these values. Saving keeps only its name, beats, note and progression mark.",
   "@danceEditorCompoundUnavailable": {
     "description": "Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name."
+  },
+  "danceEditorIncompleteFigure": "Not complete, so Save leaves it out.",
+  "@danceEditorIncompleteFigure": {
+    "description": "Shown on a dance's figure row (AUTH-2) that saving would leave out because it is not complete: a meanwhile group with fewer than two sides filled in, a modifier group with no Core, or a group holding such a group. Matches the Warnings entry validationIncompleteFigure. 'Save' is the editor's Save button (commonSave)."
   },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.",
   "@danceEditorFigureSummarySemantic": {

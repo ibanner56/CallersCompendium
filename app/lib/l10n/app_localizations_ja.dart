@@ -7488,6 +7488,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'フィギュア$positionは未完成のため、保存しても含まれません。';
+  }
+
+  @override
   String get validationPhraseInvalid => 'そのフレーズ構造は無効です。';
 
   @override
@@ -7896,6 +7901,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'この自分のフィギュアは展開できません。削除または変更されたか、これらの値を受け付けません。保存すると、名前・拍数・メモ・プログレッションだけが残ります。';
+
+  @override
+  String get danceEditorIncompleteFigure => '未完成のため、保存しても含まれません。';
 
   @override
   String danceEditorFigureSummarySemantic(

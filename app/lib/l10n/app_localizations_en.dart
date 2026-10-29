@@ -7769,6 +7769,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'Figure $position is not complete, so Save leaves it out.';
+  }
+
+  @override
   String get validationPhraseInvalid => 'That phrase structure isn\'t valid.';
 
   @override
@@ -8189,6 +8194,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.';
+
+  @override
+  String get danceEditorIncompleteFigure =>
+      'Not complete, so Save leaves it out.';
 
   @override
   String danceEditorFigureSummarySemantic(

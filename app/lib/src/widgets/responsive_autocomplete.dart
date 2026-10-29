@@ -69,6 +69,7 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
     this.autofocus = false,
     this.sheetSemanticLabel,
     this.selectFirstOnSheetSubmit = false,
+    this.onSheetDismissed,
     this.overlayConstraints = const BoxConstraints(
       maxHeight: 240,
       maxWidth: 320,
@@ -148,6 +149,12 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
   /// call site keeps dismissing on submit in the sheet. With no options, or a
   /// blank query, Enter still just dismisses. Ignored on the wide layout.
   final bool selectFirstOnSheetSubmit;
+
+  /// Called with the sheet field's text when the narrow layout's sheet closes
+  /// without a choice and without Enter: dragged away, the barrier tapped, or
+  /// Back. That text is otherwise dropped, as the field under the sheet keeps
+  /// its own. Ignored on the wide layout, whose field keeps what was typed.
+  final ValueChanged<String>? onSheetDismissed;
 
   /// Size constraints for the wide layout's floating options popover. Ignored
   /// on the narrow layout (the sheet sizes itself via
@@ -276,6 +283,8 @@ class _ResponsiveAutocompleteState<T extends Object>
     // simultaneously with it.
     setState(() => _sheetOpen = true);
     final l10n = widget.sheetSemanticLabel;
+    var sheetText = _controller.text;
+    var submitted = false;
     final picked = await showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
@@ -302,6 +311,8 @@ class _ResponsiveAutocompleteState<T extends Object>
                 scrollController: scrollController,
                 semanticLabel: l10n,
                 selectFirstOnSubmit: widget.selectFirstOnSheetSubmit,
+                onTextChanged: (text) => sheetText = text,
+                onSubmitted: () => submitted = true,
               );
             },
           ),
@@ -341,6 +352,8 @@ class _ResponsiveAutocompleteState<T extends Object>
         selection: TextSelection.collapsed(offset: selectionString.length),
       );
       widget.onSelected(picked);
+    } else if (!submitted) {
+      widget.onSheetDismissed?.call(sheetText);
     }
   }
 
@@ -458,6 +471,8 @@ class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
     required this.optionTileBuilder,
     required this.scrollController,
     required this.selectFirstOnSubmit,
+    required this.onTextChanged,
+    required this.onSubmitted,
     this.semanticLabel,
   });
 
@@ -469,6 +484,12 @@ class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
   final AutocompleteOptionTileBuilder<T> optionTileBuilder;
   final ScrollController scrollController;
   final bool selectFirstOnSubmit;
+
+  /// Told the sheet field's text whenever it changes.
+  final ValueChanged<String> onTextChanged;
+
+  /// Told when Enter closes the sheet, before it closes.
+  final VoidCallback onSubmitted;
   final String? semanticLabel;
 
   @override
@@ -507,6 +528,7 @@ class _AutocompleteSheetContentState<T extends Object>
   }
 
   void _recompute() {
+    widget.onTextChanged(_controller.text);
     setState(() {
       _options = widget.optionsBuilder(
         TextEditingValue(text: _controller.text),
@@ -547,6 +569,7 @@ class _AutocompleteSheetContentState<T extends Object>
             fieldViewBuilder: widget.fieldViewBuilder,
             onChanged: _recompute,
             onSubmit: () {
+              widget.onSubmitted();
               if (widget.selectFirstOnSubmit && options.isNotEmpty) {
                 Navigator.of(context).pop(options.first);
               } else {

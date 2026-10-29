@@ -7722,6 +7722,10 @@
   "@validationSequenceExceedsPhrase": {
     "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
   },
+  "validationIncompleteFigure": "La figure {position} n’est pas complète : Enregistrer la laisse de côté.",
+  "@validationIncompleteFigure": {
+    "x-sourceSha256": "3c52fdb408c5114d40e661e2abc28520d0663fd0e7ff50a1096a901c31915a3a"
+  },
   "validationPhraseInvalid": "Cette structure de phrase n'est pas valide.",
   "@validationPhraseInvalid": {
     "x-sourceSha256": "92d3acedb87ed98d680de3f4a8a54a8ad246bf74ccca87209f3e77773e2aa664"
@@ -8117,6 +8121,10 @@
   "danceEditorCompoundUnavailable": "Cette figure ne peut pas être développée : elle a été supprimée ou modifiée, ou n’accepte pas ces valeurs. À l’enregistrement, seuls son nom, ses temps, sa note et la marque de progression sont conservés.",
   "@danceEditorCompoundUnavailable": {
     "x-sourceSha256": "ed634f3cb27197c9dbd7a4c570a64adccedace935c49e3fbf8cbb4c54e532732"
+  },
+  "danceEditorIncompleteFigure": "Pas complète : Enregistrer la laisse de côté.",
+  "@danceEditorIncompleteFigure": {
+    "x-sourceSha256": "a94c6fd28cd88d631dc65171fee6a1ec2665e1d82ac33275a06a7fc64d24b7f3"
   },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 temps} other{{beats} temps}}} other{}}{hasNote, select, yes{, note : {note}} other{}}. Figure {position} sur {total}.",
   "@danceEditorFigureSummarySemantic": {

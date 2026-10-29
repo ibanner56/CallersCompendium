@@ -11,6 +11,7 @@ import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
 import '../editor/free_text_composer_controller.dart';
+import '../editor/pending_move_text_controller.dart';
 import '../editor/user_figure_draft.dart';
 import '../glossary/custom_figures.dart';
 import '../search/facet_labels.dart';
@@ -68,6 +69,7 @@ class FigureListEditor extends StatefulWidget {
     this.freeTextEntry = false,
     this.onAddFreeText,
     this.freeTextComposerController,
+    this.pendingMoveTextController,
     this.onReplaceWithFreeText,
     this.onSubmitCompoundShorthand,
     this.onReplaceWithShorthand,
@@ -174,6 +176,13 @@ class FigureListEditor extends StatefulWidget {
   /// to add it, so the screen can count that line as unsaved and add it on
   /// Save. Null (the default) leaves the composer to itself.
   final FreeTextComposerController? freeTextComposerController;
+
+  /// Told whether a row's Move box holds text that leaving it would apply,
+  /// and able to settle it (AUTH-1), so the screen can count that text as
+  /// unsaved and apply it on Save. Null (the default) gives the list one of
+  /// its own, which still settles the box when another row opens or this one
+  /// closes.
+  final PendingMoveTextController? pendingMoveTextController;
 
   /// Replaces the row [draft] with the figure(s) parsed from a line typed into
   /// its Move box (#1177), in its place. Only used when free-text entry is
@@ -343,6 +352,14 @@ class _FigureListEditorState extends State<FigureListEditor>
   bool _openLastAfterAdd = false;
   final Set<String> _pendingMeanwhileDraftIds = {};
 
+  /// Serves the Move boxes when the screen passes no
+  /// [FigureListEditor.pendingMoveTextController].
+  PendingMoveTextController? _ownPendingMoveText;
+
+  PendingMoveTextController get _pendingMoveText =>
+      widget.pendingMoveTextController ??
+      (_ownPendingMoveText ??= PendingMoveTextController());
+
   /// Per-row focus nodes (keyed by draft id) so the collapsed summary is
   /// keyboard-focusable, can receive Enter/Space/Alt+Arrow, and can be
   /// re-focused after collapse/delete/reorder.
@@ -450,6 +467,7 @@ class _FigureListEditorState extends State<FigureListEditor>
     _addButtonFocusNode.dispose();
     _addMenuFirstItemFocusNode.dispose();
     widget.freeTextComposerController?.detach(_submitPendingLine);
+    _ownPendingMoveText?.dispose();
     _freeTextController.dispose();
     _freeTextFocusNode.dispose();
     super.dispose();
@@ -530,6 +548,9 @@ class _FigureListEditorState extends State<FigureListEditor>
 
   // --- Accordion ------------------------------------------------------------
   void _openDraft(String id) {
+    // Opening a row closes the open one, and its Move box with it: settle the
+    // box first, as leaving it does, since a tap does not always take focus.
+    _pendingMoveText.settle();
     setState(() => _openDraftId = id);
     // Focus lands on the Move field via MoveAutocomplete.autofocus when the
     // editor mounts, but only for a blank or `stand_still` draft (genuine new
@@ -552,6 +573,7 @@ class _FigureListEditorState extends State<FigureListEditor>
   }
 
   void _closeDraft(String id) {
+    _pendingMoveText.settle();
     final i = widget.drafts.indexWhere((d) => d.id == id);
     if (_openDraftId == id) setState(() => _openDraftId = null);
     WidgetsBinding.instance.addPostFrameCallback(
@@ -570,6 +592,7 @@ class _FigureListEditorState extends State<FigureListEditor>
   void _commitAndOpenNext(String id) {
     final i = widget.drafts.indexWhere((d) => d.id == id);
     if (i == -1) return;
+    _pendingMoveText.settle();
     if (i < widget.drafts.length - 1) {
       _openDraft(widget.drafts[i + 1].id);
     } else {
@@ -579,6 +602,8 @@ class _FigureListEditorState extends State<FigureListEditor>
 
   void _addFigure() {
     if (!widget.allowAdding) return;
+    // The new row opens in place of the open one.
+    _pendingMoveText.settle();
     if (_freeTextEnabled) {
       // Free-text entry (opt-in): open a single free-text field instead of
       // appending a blank structured draft. The typed line is parsed and
@@ -841,6 +866,11 @@ class _FigureListEditorState extends State<FigureListEditor>
     _announce(_l10n.danceEditorFreeTextRowReplacedAnnouncement(acceptedCount));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || index >= widget.drafts.length) return;
+      // A row replaced because its Move box lost focus (AUTH-1) leaves focus
+      // where the caller moved it. Focus that fell back to a scope went with
+      // the replaced row, and comes to its replacement.
+      final focused = FocusManager.instance.primaryFocus;
+      if (focused != null && focused is! FocusScopeNode) return;
       _rowFocusNode(widget.drafts[index].id).requestFocus();
     });
   }
@@ -898,6 +928,13 @@ class _FigureListEditorState extends State<FigureListEditor>
   @override
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin
+    return PendingMoveTextScope(
+      controller: _pendingMoveText,
+      child: Builder(builder: _buildList),
+    );
+  }
+
+  Widget _buildList(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final drafts = widget.drafts;
@@ -2027,6 +2064,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             );
     }
 
+    // A group not complete enough to save, said on its row as the Warnings
+    // card says it (AUTH-2), so the row is not mistaken for part of the dance.
+    final incomplete = draft.isIncomplete;
     final compound = draft.compound;
     final resolve = widget.resolveCompound;
     // A placeholder that cannot expand is saved as its name alone (#709).
@@ -2081,7 +2121,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // Screen-reader composite: "A1, neighbors balance and swing, progression,
     // 16 beats, note: smooth swing. Figure 3 of 12."
     final main = labelText.isEmpty ? spoken : '$labelText, $spoken';
-    final composite = l10n.danceEditorFigureSummarySemantic(
+    final summarySemantic = l10n.danceEditorFigureSummarySemantic(
       main,
       isImportGap ? 'yes' : 'no',
       l10n.importGapMessage,
@@ -2093,6 +2133,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.index + 1,
       widget.totalCount,
     );
+    final composite = incomplete
+        ? '$summarySemantic ${l10n.danceEditorIncompleteFigure}'
+        : summarySemantic;
 
     final summaryContent = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -2186,6 +2229,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             Text(
                               l10n.danceEditorCompoundUnavailable,
                               key: _key('compound-unavailable'),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                          if (incomplete)
+                            Text(
+                              l10n.danceEditorIncompleteFigure,
+                              key: _key('incomplete'),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.error,
                               ),
@@ -2559,6 +2610,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     ? widget.isShorthandToken
                     : null,
                 onCleared: _clearMove,
+                commitOnBlur: true,
               ),
               if (def != null) ...[
                 const SizedBox(height: 12),
@@ -2670,6 +2722,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     ? widget.isShorthandToken
                     : null,
                 onCleared: _clearMove,
+                commitOnBlur: true,
               ),
               if (definition != null)
                 for (final param in definition.params) ...[
@@ -2775,6 +2828,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     ? widget.isShorthandToken
                     : null,
                 onCleared: _clearMove,
+                commitOnBlur: true,
               ),
               const SizedBox(height: 12),
               UserFigureUseEditor(
@@ -4007,6 +4061,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               },
               onCustomSubmitted: _createCustom,
               onCleared: _clearMove,
+              commitOnBlur: true,
             ),
             if (def != null) ...[
               const SizedBox(height: 8),

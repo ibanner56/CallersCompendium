@@ -368,6 +368,49 @@ void main() {
       );
     });
 
+    // AUTH-1, maintainer decision AUTH-1-move-blur = (a): leaving the box
+    // applies a shorthand as Enter would, and focus stays where it went.
+    testWidgets('a token typed into an existing row\'s Move box is applied '
+        'when the box is left, keeping focus where it went', (tester) async {
+      final repos = await pump(tester, compounds: [shorthand()]);
+      await typeLine(tester, 'neighbors swing');
+      for (final seed in ['partners swing', 'turn alone']) {
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-free-text-field')),
+          seed,
+        );
+        await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const ValueKey('figure-1-summary')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-1-move-input')));
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-1-move-input')),
+        'grl',
+      );
+      await tester.pumpAndSettle();
+      final title = find.byKey(const ValueKey('title-field'));
+      await tester.ensureVisible(title);
+      await tester.tap(title);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(of: title, matching: find.byType(TextField)),
+            )
+            .focusNode!
+            .hasFocus,
+        isTrue,
+      );
+      final figures = await saved(tester, repos);
+      expect(
+        [for (final f in figures) f.move],
+        ['swing', 'pull_by', 'pull_by', 'pull_by', 'pull_by', 'turn_alone'],
+      );
+    });
+
     testWidgets('a token whose combination was deleted is read as any other '
         'Move-box text, so it takes the move whose name contains it', (
       tester,
