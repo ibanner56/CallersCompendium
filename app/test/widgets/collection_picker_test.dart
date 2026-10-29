@@ -1727,13 +1727,15 @@ void main() {
 
     for (final textScale in [1.0, 2.0]) {
       testWidgets('saved rows at 360px, ${textScale}x text', (tester) async {
+        final added = <String>[];
+        final viewed = <String>[];
         final repos = openTestRepositories();
         await repos.dances.create(_dance(id: 'a', title: longTitle));
         await _pumpPicker(
           tester,
           repos,
-          onAddDance: (_) {},
-          onViewDanceDetails: (_) {},
+          onAddDance: added.add,
+          onViewDanceDetails: viewed.add,
           addedDanceCounts: const {'a': 2},
           surfaceSize: phone,
           textScale: textScale,
@@ -1755,8 +1757,15 @@ void main() {
           );
         }
         expect(tester.takeException(), isNull);
-        // Tapping the title still adds; tapping a control hits the control.
-        expect(find.text(longTitle), findsOneWidget);
+        // Routing: the title adds; a control hits only itself.
+        await tester.tap(find.text(longTitle));
+        await tester.pump();
+        expect(added, ['a']);
+        expect(viewed, isEmpty);
+        await tester.tap(find.byKey(const ValueKey('picker-details-a')));
+        await tester.pump();
+        expect(viewed, ['a']);
+        expect(added, ['a'], reason: 'the details button must not also add');
       });
 
       testWidgets('online rows at 360px, ${textScale}x text', (tester) async {
