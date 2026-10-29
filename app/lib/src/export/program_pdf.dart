@@ -412,7 +412,7 @@ List<pw.Widget> _slotWidgets(
   List<String> Function(String danceId)? authorNamesFor,
 }) {
   final widgets = <pw.Widget>[];
-  var n = 1;
+  var n = 0;
   for (final group in program.outputGrouped) {
     final primary = programSlotLine(
       group.primary,
@@ -429,7 +429,7 @@ List<pw.Widget> _slotWidgets(
     widgets.add(pw.SizedBox(height: 2));
     widgets.add(
       pw.Text(
-        '$n. $primary',
+        setListPrimaryLine(group.primary, primary, labels, () => ++n),
         style: const pw.TextStyle(fontSize: 13),
         overflow: pw.TextOverflow.span,
       ),
@@ -455,7 +455,6 @@ List<pw.Widget> _slotWidgets(
       );
       widgets.add(pw.SizedBox(height: 1));
     }
-    n++;
   }
   return widgets;
 }

@@ -723,7 +723,7 @@ void main() {
         danceOverrides: (await resolveDeletedSlotDances(
           repos.dances,
           repos.choreographers,
-          program,
+          program.slots,
           data,
         )).dances,
       );
@@ -787,7 +787,7 @@ void main() {
       final resolved = (await resolveDeletedSlotDances(
         repos.dances,
         repos.choreographers,
-        program,
+        program.slots,
         data,
       )).dances;
 

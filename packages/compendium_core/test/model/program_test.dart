@@ -458,6 +458,79 @@ void main() {
     });
   });
 
+  group('Program.danceNumbersForSlots (GIG-10)', () {
+    test('numbers planned dances only; the last number is the count', () {
+      final slots = [
+        ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+        ProgramSlot(id: 'b', position: 1, danceId: 'd2', isAlt: true),
+        ProgramSlot(id: 'c', position: 2, text: Program.breakSlotText),
+        ProgramSlot(id: 'd', position: 3, text: 'Waltz'),
+        ProgramSlot(id: 'e', position: 4, danceId: 'd3'),
+      ];
+      expect(Program.danceNumbersForSlots(slots), [1, null, null, 2, 3]);
+      expect(Program.plannedDanceCountOf(slots), 3);
+    });
+
+    test('leaves a leading alternate unnumbered', () {
+      expect(
+        Program.danceNumbersForSlots([
+          ProgramSlot(id: 'a', position: 0, danceId: 'd1', isAlt: true),
+          ProgramSlot(id: 'b', position: 1, danceId: 'd2'),
+        ]),
+        [null, 1],
+      );
+    });
+  });
+
+  group('Program.removeSlotPromotingAlternate (LIFE-10)', () {
+    final slots = [
+      ProgramSlot(id: 'brk', position: 0, text: Program.breakSlotText),
+      ProgramSlot(id: 'b', position: 1, danceId: 'd1'),
+      ProgramSlot(id: 'b-alt1', position: 2, danceId: 'd2', isAlt: true),
+      ProgramSlot(id: 'b-alt2', position: 3, danceId: 'd3', isAlt: true),
+      ProgramSlot(id: 'c', position: 4, danceId: 'd4'),
+    ];
+
+    test('promotes the first alternate of a removed primary', () {
+      final next = Program.removeSlotPromotingAlternate(slots, 1);
+      expect(next.map((s) => s.id), ['brk', 'b-alt1', 'b-alt2', 'c']);
+      expect(next.map((s) => s.isAlt), [false, false, true, false]);
+      // The remaining alternate now belongs to the promoted slot, not to the
+      // break above.
+      expect(Program.alternateGroupsForSlots(next), [0, 1, 1, 2]);
+      expect(Program.alternatePromotedByRemoving(slots, 1), 2);
+    });
+
+    test('a moved primary leaves its alternate group whole', () {
+      // Down one: the drop lands inside the promoted group, so it moves past
+      // the group instead of taking b-alt2 with it.
+      final down = Program.moveSlotPromotingAlternate(slots, 1, 2);
+      expect(down.map((s) => s.id), ['brk', 'b-alt1', 'b-alt2', 'b', 'c']);
+      expect(Program.alternateGroupsForSlots(down), [0, 1, 1, 2, 3]);
+
+      // Up one: the group stays where it was.
+      final up = Program.moveSlotPromotingAlternate(slots, 1, 0);
+      expect(up.map((s) => s.id), ['b', 'brk', 'b-alt1', 'b-alt2', 'c']);
+      expect(Program.alternateGroupsForSlots(up), [0, 1, 2, 2, 3]);
+
+      // An alternate moves as itself.
+      final alt = Program.moveSlotPromotingAlternate(slots, 3, 4);
+      expect(alt.map((s) => s.id), ['brk', 'b', 'b-alt1', 'c', 'b-alt2']);
+    });
+
+    test('promotes nothing when an alternate or a lone primary is removed', () {
+      final withoutAlt = Program.removeSlotPromotingAlternate(slots, 2);
+      expect(withoutAlt.map((s) => s.id), ['brk', 'b', 'b-alt2', 'c']);
+      expect(withoutAlt.map((s) => s.isAlt), [false, false, true, false]);
+      expect(Program.alternatePromotedByRemoving(slots, 2), isNull);
+
+      final withoutLast = Program.removeSlotPromotingAlternate(slots, 4);
+      expect(withoutLast.map((s) => s.isAlt), [false, false, true, true]);
+      expect(Program.alternatePromotedByRemoving(slots, 4), isNull);
+      expect(Program.alternatePromotedByRemoving(slots, 0), isNull);
+    });
+  });
+
   group('Program.plannedDanceCount', () {
     Program program(List<ProgramSlot> slots) => Program(
       id: 'p1',

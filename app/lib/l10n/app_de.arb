@@ -5102,9 +5102,9 @@
   "@programsSummaryPay": {
     "x-sourceSha256": "edb750f88d3e102e12c717b828d27067d77e472f20bd2854687d637c09d4df1d"
   },
-  "programsSetListHeader": "Setliste ({count})",
+  "programsSetListHeader": "Setliste ({count, plural, =1{1 Tanz} other{{count} Tänze}})",
   "@programsSetListHeader": {
-    "x-sourceSha256": "454f8099ebe3e022a0dca4d7cfa7950af044b0756f6c41a4adda530de848b750"
+    "x-sourceSha256": "2bdbaeaf4dad5019b3e017aae262fab73e2b630c3e675a2e8fcf0beb5daf11e8"
   },
   "programsSummaryEmptySetList": "Noch keine Slots – öffnen Sie den Builder, um Tänze hinzuzufügen.",
   "@programsSummaryEmptySetList": {
@@ -5138,9 +5138,9 @@
   "@programsPerformed": {
     "x-sourceSha256": "ea15100e35349e59fe49158944d163a3b870118a2a893a797ff3a05bb806b388"
   },
-  "programsSlotCount": "{count, plural, =1{1 Slot} other{{count} Slots}}",
-  "@programsSlotCount": {
-    "x-sourceSha256": "caa898d6da7283b1c6390e2d3c4bc26411578269d37aff2208672d7bc25efc30"
+  "programsDanceCount": "{count, plural, =1{1 Tanz} other{{count} Tänze}}",
+  "@programsDanceCount": {
+    "x-sourceSha256": "494f9853fc3774e0f786711a47fd9eadd58c8bb7368cc1b789ad71cb16de9db3"
   },
   "programsSlotNoteFallback": "Notiz",
   "@programsSlotNoteFallback": {
@@ -5209,6 +5209,10 @@
   "programsRemovedSlot": "{name} entfernt.",
   "@programsRemovedSlot": {
     "x-sourceSha256": "a1a2461156e4b83d78d6616d10f71ef9e3d805dc96b8195dbc44c696b948e279"
+  },
+  "programsAlternatePromoted": "{name} tritt an seine Stelle.",
+  "@programsAlternatePromoted": {
+    "x-sourceSha256": "8fd3844581800cadbfd3ddf3f0fdbd84728d04cc2c71dbb276f6573a3c95ace1"
   },
   "programsAltOrdinal": "ALT",
   "@programsAltOrdinal": {

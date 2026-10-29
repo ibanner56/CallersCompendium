@@ -7,9 +7,10 @@ import '../data/regional_formats.dart';
 import '../data/venue_label.dart';
 import 'program_status_chip.dart';
 
-/// One Programs list row: title, event date, venue, slot count, and a status
-/// chip (icon+text). Tapping calls [onTap]; [selected] highlights the row in
-/// split-pane mode. Mirrors `DanceListTile` (`docs/design/ux.md` §4).
+/// One Programs list row: title, event date, venue, planned dance count
+/// ([Program.plannedDanceCount]), and a status chip (icon+text). Tapping calls
+/// [onTap]; [selected] highlights the row in split-pane mode. Mirrors
+/// `DanceListTile` (`docs/design/ux.md` §4).
 class ProgramListTile extends StatelessWidget {
   const ProgramListTile({
     super.key,
@@ -41,7 +42,7 @@ class ProgramListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final slotCount = program.plannedDanceCount;
+    final danceCount = program.plannedDanceCount;
     final eventDate = program.eventDate;
     final dateLabel = eventDate == null
         ? null
@@ -56,7 +57,7 @@ class ProgramListTile extends StatelessWidget {
     final subtitleParts = <String>[
       ?dateLabel,
       if (venue != null && venue.isNotEmpty) venue,
-      l10n.programsSlotCount(slotCount),
+      l10n.programsDanceCount(danceCount),
     ];
 
     return ListTile(

@@ -92,7 +92,7 @@ Future<void> showAddToProgramSheet(
 }
 
 /// One selectable program row: a single merged-semantics button exposing the
-/// program's title, event date (if any), and slot count.
+/// program's title, event date (if any), and planned dance count.
 Widget _buildProgramPickRow(
   BuildContext context,
   BuildContext sheetContext,
@@ -104,7 +104,7 @@ Widget _buildProgramPickRow(
   required bool accessibleNavigation,
   required AppLocalizations l10n,
 }) {
-  final slotCount = program.slots.length;
+  final danceCount = program.plannedDanceCount;
   final dateLabel = program.eventDate == null
       ? null
       : formatEventDate(
@@ -113,7 +113,7 @@ Widget _buildProgramPickRow(
           MaterialLocalizations.of(context),
           l10n,
         );
-  final countLabel = l10n.collectionDanceCount(slotCount);
+  final countLabel = l10n.programsDanceCount(danceCount);
   final subtitleParts = [?dateLabel, countLabel];
   return MergeSemantics(
     child: Semantics(

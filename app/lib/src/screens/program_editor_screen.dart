@@ -169,6 +169,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// True while [_performProgram] resolves deleted dances, so a double tap
   /// cannot push two Perform screens.
   bool _resolvingPerform = false;
+
+  /// Soft-deleted dances behind [_slots], from [resolveDeletedSlotDances], so
+  /// a dance in Recently deleted keeps its title in the slot list and its
+  /// figures in the matrix, as it does in Perform (GIG-11). [_danceById]
+  /// falls back to it after the live snapshot.
+  Map<String, Dance> _deletedSlotDances = const {};
+
+  /// Dance ids [_lookUpDeletedSlotDances] has asked about since the last
+  /// collection snapshot, so a rebuild does not ask again for one that
+  /// resolved to nothing (a purged dance). Cleared with each snapshot, which
+  /// is when a trashed dance can have been restored, purged or newly trashed.
+  final Set<String> _deletedSlotLookups = {};
+  int _deletedSlotLookupGeneration = 0;
   late DanceReimportCoordinator _reimport;
   late final TabController _tabController;
   final _formKey = GlobalKey<FormState>();
@@ -1766,6 +1779,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   void _setCollectionData(CollectionData data) {
     _collectionDataGeneration++;
     _data = data;
+    _deletedSlotLookupGeneration++;
+    _deletedSlotLookups.clear();
     _createdDances.removeWhere((id, created) {
       final current = data.dancesById[id];
       if (current != null && !current.updatedAt.isBefore(created.updatedAt)) {
@@ -1843,9 +1858,69 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   /// Resolves [danceId] to a [Dance], preferring the overlay while the live
-  /// snapshot catches up with a newly imported or updated record.
+  /// snapshot catches up with a newly imported or updated record. A dance in
+  /// Recently deleted resolves from [_deletedSlotDances], with
+  /// [Dance.isDeleted] set.
   Dance? _danceById(String danceId) =>
-      _createdDances[danceId] ?? _data?.dancesById[danceId];
+      _createdDances[danceId] ??
+      _data?.dancesById[danceId] ??
+      _deletedSlotDances[danceId];
+
+  /// Looks up, once per collection snapshot, every slot dance that neither
+  /// the snapshot nor the created-dance overlay holds, through
+  /// [resolveDeletedSlotDances]: the same lookup Perform uses. Called from
+  /// [build], so slots that arrive by any route (load, draft restore, undo)
+  /// are covered; the result lands in a later frame, and until then the slot
+  /// shows the deleted-dance placeholder it showed before. A result from an
+  /// older snapshot is dropped, as a newer lookup supersedes it.
+  void _lookUpDeletedSlotDances() {
+    final data = _data;
+    if (data == null) return;
+    final missing = [
+      for (final slot in _slots)
+        if (slot.danceId case final id?
+            when !_createdDances.containsKey(id) &&
+                !data.dancesById.containsKey(id) &&
+                _deletedSlotLookups.add(id))
+          slot,
+    ];
+    if (missing.isEmpty) return;
+    final generation = _deletedSlotLookupGeneration;
+    unawaited(
+      resolveDeletedSlotDances(
+        _repos.dances,
+        _repos.choreographers,
+        missing,
+        data,
+      ).then((resolved) {
+        if (!mounted || generation != _deletedSlotLookupGeneration) return;
+        // A failed read resolves nothing; keep what earlier lookups found
+        // rather than turning those slots back into tombstones. The next
+        // snapshot asks again.
+        if (resolved.lookupFailed) return;
+        setState(() {
+          _deletedSlotDances = {
+            for (final entry in _deletedSlotDances.entries)
+              if (!missing.any((s) => s.danceId == entry.key))
+                entry.key: entry.value,
+            ...resolved.dances,
+          };
+        });
+      }),
+    );
+  }
+
+  /// The slot list's title for [danceId]: the dance's title, marked as
+  /// deleted while the dance is in Recently deleted, as Perform marks it.
+  /// Exports use [_titleForDance], which leaves the mark out: the band is
+  /// still playing for that dance.
+  String? _slotTitleForDance(String danceId) {
+    final dance = _danceById(danceId);
+    if (dance == null) return null;
+    if (!dance.isDeleted) return dance.title;
+    return '${dance.title} '
+        '${AppLocalizations.of(context).programsDeletedDanceFallback}';
+  }
 
   Future<void> _rememberImportedDance(String danceId) async {
     final dance = await _repos.dances.getById(danceId);
@@ -1927,7 +2002,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       deletedDances = await resolveDeletedSlotDances(
         _repos.dances,
         _repos.choreographers,
-        program,
+        program.slots,
         data,
       );
     } finally {
@@ -2287,12 +2362,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  /// Moves the slot at [oldIndex] to [newIndex] (`onReorderItem` semantics).
+  /// A primary leaves its alternates behind with the first one promoted in its
+  /// place, as cutting it does ([_removeSlot]).
   void _reorderSlot(int oldIndex, int newIndex) {
+    if (oldIndex == newIndex) return;
     setState(() {
-      final list = [..._slots];
-      final item = list.removeAt(oldIndex);
-      list.insert(newIndex.clamp(0, list.length), item);
-      _slots = _renumber(list);
+      _slots = _renumber(
+        Program.moveSlotPromotingAlternate(_slots, oldIndex, newIndex),
+      );
     });
     _markDirty();
   }
@@ -2326,10 +2404,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _markDirty();
   }
 
+  /// Cuts the slot at [index]. A primary's first alternate takes its place
+  /// rather than its alternates joining the slot above (LIFE-10).
   void _removeSlot(int index) {
     setState(() {
-      final list = [..._slots]..removeAt(index);
-      _slots = _renumber(list);
+      _slots = _renumber(Program.removeSlotPromotingAlternate(_slots, index));
     });
     _markDirty();
   }
@@ -3002,6 +3081,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    _lookUpDeletedSlotDances();
     final hasPersistedProgram = _existing != null;
     final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
     final tabBar = TabBar(
@@ -3287,9 +3367,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (data == null) return const SizedBox.shrink();
 
     // Rows = dance slots in program order (flat). Free-text-only slots are
-    // omitted; a slot referencing a soft-deleted dance renders a tombstone
-    // row so the gap is still visible in the matrix. Per-row sections are
-    // derived from the full ordered slot list (including the break and any
+    // omitted. A dance in Recently deleted keeps its figures, marked as
+    // deleted in its title (GIG-11); a slot whose dance resolves to nothing
+    // renders a tombstone row so the gap is still visible in the matrix.
+    // Per-row sections are derived from the full ordered slot list (including the break and any
     // free-text slots) so the ordinal badge reflects every break position.
     final now = DateTime.now();
     final sectionsForSlots = Program.sectionsForSlots(_slots);
@@ -3310,14 +3391,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         omittedFreeText++;
         continue;
       }
-      final dance =
-          _danceById(danceId) ??
-          Dance(
-            id: danceId,
-            title: l10n.programsDeletedDanceFallback,
-            createdAt: now,
-            updatedAt: now,
-          );
+      final resolved = _danceById(danceId);
+      final dance = resolved == null
+          ? Dance(
+              id: danceId,
+              title: l10n.programsDeletedDanceFallback,
+              createdAt: now,
+              updatedAt: now,
+            )
+          : resolved.isDeleted
+          ? resolved.copyWith(title: _slotTitleForDance(danceId))
+          : resolved;
       rows.add(dance);
       rowSections.add(sectionsForSlots[i]);
       rowAlternateGroups.add(alternateGroupsForSlots[i]);
@@ -3347,9 +3431,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              // Toggles show their state in the glyph and to assistive
+              // technology (`isSelected`), not only in the tooltip (UX7-3d).
               IconButton(
                 key: const ValueKey('program-matrix-toggle-alternates'),
-                icon: const Icon(Icons.alt_route),
+                isSelected: _showMatrixAlternates,
+                icon: const Icon(Icons.straight),
+                selectedIcon: const Icon(Icons.alt_route),
                 tooltip: _showMatrixAlternates
                     ? l10n.programsMatrixHideAlternatesSemantic
                     : l10n.programsMatrixShowAlternatesSemantic,
@@ -3361,7 +3449,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ),
               IconButton(
                 key: const ValueKey('program-matrix-toggle-phrases'),
-                icon: const Icon(Icons.text_fields),
+                isSelected: _showMatrixPhrases,
+                icon: const Icon(Icons.category_outlined),
+                selectedIcon: const Icon(Icons.text_fields),
                 tooltip: _showMatrixPhrases
                     ? l10n.programsMatrixHidePhrasesSemantic
                     : l10n.programsMatrixShowPhrasesSemantic,
@@ -3529,7 +3619,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ),
               const Spacer(),
               Text(
-                '${_slots.length}',
+                l10n.programsDanceCount(Program.plannedDanceCountOf(_slots)),
+                key: const ValueKey('program-slots-dance-count'),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -3563,7 +3654,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           const SizedBox(height: 8),
           ProgramSlotListEditor(
             slots: _slots,
-            danceTitles: _titleForDance,
+            danceTitles: _slotTitleForDance,
+            isDeletedDance: (id) => _danceById(id)?.isDeleted ?? false,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
             dialect: _dialect,
