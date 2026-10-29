@@ -195,7 +195,7 @@ void main() {
           platformLocale: platform,
         );
 
-    test('system carries the year in the device region\'s order', () {
+    test('system carries the year in the device locale\'s order', () {
       expect(sys(const Locale('en', 'US')), '7/15/2026');
       expect(sys(const Locale('en', 'GB')), '15/07/2026');
       expect(sys(const Locale('da', 'DK')), '15.7.2026');
@@ -228,7 +228,17 @@ void main() {
       expect(sys(const Locale('xx', 'YY')), material.formatShortDate(date));
     });
 
-    test('an invalid custom pattern follows the device region too', () {
+    test('a regional variant Flutter ships is honoured; one it does not '
+        'resolves to the language default', () {
+      // en_GB is a shipped set, so the region counts.
+      expect(sys(const Locale('en', 'GB')), '15/07/2026');
+      // en_DK is not (documented in formatEventDate): an English device in
+      // Denmark reads US order. This pins that behaviour so a change to it is
+      // deliberate.
+      expect(sys(const Locale('en', 'DK')), '7/15/2026');
+    });
+
+    test('an invalid custom pattern follows the device locale too', () {
       expect(
         sys(
           const Locale('da', 'DK'),

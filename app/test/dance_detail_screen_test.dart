@@ -153,7 +153,7 @@ Future<ValueNotifier<bool>> _pumpDetail(
   return requirePerformedNotifier;
 }
 
-/// The System date format (PLAT-12): the device region's numeric date.
+/// The System date format (PLAT-12): the device locale's numeric date.
 String _systemDate(DateTime d) =>
     DateFormat.yMd(PlatformDispatcher.instance.locale.toString()).format(d);
 

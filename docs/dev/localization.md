@@ -315,7 +315,7 @@ App call sites resolve the localized labels from `AppLocalizations` through
 localized helpers in `search/facet_labels.dart` (`formationLabel`,
 `danceStatusLabel`, `danceLevelLabel`); dates go through
 `formatEventDate` under the user's Date format setting (System follows the
-**device region**, `PlatformDispatcher.locale`, as the region's numeric `yMd`
+**device locale**, `PlatformDispatcher.locale`, as its numeric `yMd`
 date, so it carries the year and shows no month names that could mix with the
 app language; an `intl`-unresolvable tag falls back to
 `MaterialLocalizations.formatShortDate`. Date symbols for every Flutter-shipped

@@ -11,7 +11,7 @@ import 'package:compendium_app/src/widgets/program_list_tile.dart';
 
 import '../support/l10n_harness.dart';
 
-/// The System date format (PLAT-12): the device region's numeric date.
+/// The System date format (PLAT-12): the device locale's numeric date.
 String _systemDate(DateTime d) =>
     DateFormat.yMd(PlatformDispatcher.instance.locale.toString()).format(d);
 

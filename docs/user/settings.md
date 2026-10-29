@@ -329,10 +329,12 @@ The **Language & region** section handles formats and localization.
   result, and your choice controls how program event dates appear: in the
   Programs list and editor, in a dance's calling history, and in printed and
   emailed set lists and PDFs. **System default** always includes the year and
-  follows your **device's region** (not the app language): on a phone set to a
-  Danish region, an English-language app shows `15.7.2026`. It uses the region's
-  all-numbers date, so a date never mixes two languages' month names. Pick a
-  fixed format or **Custom…** if you want one layout everywhere.
+  follows your **device's language and region** (not the app language): on a
+  phone set to Danish, an English-language app shows `15.7.2026`. It uses
+  all-numbers dates, so a date never mixes two languages' month names. Where the
+  device language has no variant for your region (English in Denmark, say), you
+  get that language's default order. Pick a fixed format or **Custom…** if you
+  want one layout everywhere.
 
   A custom pattern is built from these tokens:
 

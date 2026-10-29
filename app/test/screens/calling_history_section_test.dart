@@ -13,6 +13,10 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
+/// The System date format (PLAT-12): the device locale's numeric date.
+String _systemDate(DateTime d) =>
+    DateFormat.yMd(PlatformDispatcher.instance.locale.toString()).format(d);
+
 /// Tests for the app's first reactive read (issue #768).
 ///
 /// The load-bearing one is "a program-side write with NO refresh scope mounted
@@ -20,10 +24,6 @@ import '../support/test_repositories.dart';
 /// only when a mutation site remembered to bump `ProgramsRefreshScope`, and
 /// seven places did not. These tests mount the section with no scope at all, so
 /// the only thing that can make them pass is the database telling the widget.
-/// The System date format (PLAT-12): the device region's numeric date.
-String _systemDate(DateTime d) =>
-    DateFormat.yMd(PlatformDispatcher.instance.locale.toString()).format(d);
-
 void main() {
   drift.driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 

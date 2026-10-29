@@ -6,7 +6,7 @@
 ///
 /// The key, enum, and resolver below are Flutter-free pure functions so they
 /// can be unit-tested directly. Only [formatEventDate] touches Flutter, and only
-/// for the `system` default, where it follows the device's region.
+/// for the `system` default, where it follows the device's locale.
 library;
 
 import 'dart:ui' show Locale, PlatformDispatcher;
@@ -33,7 +33,7 @@ const String kDateFormatCustomPatternKey = 'date_format_custom';
 
 /// How program event dates render on screen.
 enum DateFormatPref {
-  /// Follow the device's region: its numeric year-month-day order (see
+  /// Follow the device's locale (language and region): its numeric date (see
   /// [formatEventDate]).
   system('system'),
 
@@ -187,12 +187,20 @@ MonthNames monthNamesFromL10n(AppLocalizations l10n) => MonthNames(
 /// Formats a program event [date] for on-screen display per [setting].
 ///
 /// For [DateFormatPref.system] (and any invalid custom pattern) this follows the
-/// **device's region** (`PlatformDispatcher.locale`, or [platformLocale] when
-/// given), not the app language: an English-UI caller on a Danish-region phone
-/// reads `15.7.2026`. It uses the region's numeric date (`yMd`), which carries
-/// the year (the abbreviated `formatMediumDate` form omits it, so a printed set
-/// list from last season would read like this season's) and has no month names,
-/// so the app language and the region's can never mix in one date.
+/// **device's locale** (`PlatformDispatcher.locale`, or [platformLocale] when
+/// given), not the app language: an English-UI caller on a phone set to Danish
+/// (`da_DK`) reads `15.7.2026`. It uses that locale's numeric date (`yMd`),
+/// which carries the year (the abbreviated `formatMediumDate` form omits it, so
+/// a printed set list from last season would read like this season's) and has
+/// no month names, so the app language and the device's can never mix in one
+/// date.
+///
+/// The region only counts where Flutter ships a symbol set for the full tag
+/// (`en_GB`, `en_AU`, `fr_CA`, …; 18 regional variants). A tag with no such set
+/// (`en_DK`, `en_SE`) resolves to its language's default, so an English device
+/// in Denmark reads US order. Picking a region's order for it would need a
+/// hand-kept country-to-language table that drifts, so that case is documented
+/// rather than special-cased.
 ///
 /// Date symbols for any locale Flutter ships are registered the first time a
 /// `GlobalMaterialLocalizations` loads, not only the app's, so the region need

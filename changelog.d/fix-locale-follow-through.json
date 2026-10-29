@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "The **System default** date format now follows your device's region instead of the app language, so an English-language app on a Danish-region phone shows `15.7.2026`. It uses the region's all-numbers date, which keeps the year.",
+      "The **System default** date format now follows your device's language and region instead of the app language, so an English-language app on a phone set to Danish shows `15.7.2026`. It uses all-numbers dates, which keep the year. A device language with no variant for your region (for example English in Denmark) uses that language's default order; pick a fixed format if you want another.",
       "When the app is set to a language other than English, every User guide page now starts with a one-line notice that the guide is in English."
     ]
   }
