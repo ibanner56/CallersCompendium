@@ -1882,7 +1882,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       key: key,
       message: lines.join('\n'),
       undoLabel: l10n.commonUndo,
-      onUndo: () => unawaited(undoShorthandSeed(controller, outcome.added)),
+      undoFailedMessage: l10n.commonUndoFailed,
+      onUndo: () => undoShorthandSeed(controller, outcome.added),
       accessibleNavigation: accessibleNavigation,
     );
   }
