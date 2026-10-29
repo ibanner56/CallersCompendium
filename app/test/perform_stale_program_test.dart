@@ -400,6 +400,41 @@ void main() {
       ]);
     });
 
+    testWidgets('with nothing else unsaved, a change elsewhere found by an '
+        'overtaken write still reaches the builder\'s details', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await seed(repos);
+      await pumpHome(tester, repos, const ProgramEditorScreen(programId: 'p1'));
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      delayed.programs.holdNextWrite();
+      await markCurrentPerformed(tester);
+      await delayed.programs.writeStarted;
+      await changeElsewhere(repos);
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      await markCurrentPerformed(tester);
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      // A later edit and save must not write the old title back.
+      await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final stored = (await repos.programs.getById('p1'))!;
+      expect(stored.title, 'Renamed Night');
+      expect(stored.slots, hasLength(4));
+      expect(stored.slots.map((s) => s.id), containsAll(['s1', 's2', 's3']));
+    });
+
     testWidgets('a change landing while the adjustment is being written is not '
         'overwritten', (tester) async {
       final delayed = openTestRepositoriesWithDelayedPrograms();
