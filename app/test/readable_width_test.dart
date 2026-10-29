@@ -56,6 +56,30 @@ void main() {
       expect(tester.getSize(find.byType(ListView)).width, 1600);
     });
 
+    testWidgets('ReadableListView keeps the bottom safe-area inset', (
+      tester,
+    ) async {
+      await setScreenSize(tester, const Size(360, 800));
+      const key = ValueKey('last');
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(padding: const EdgeInsets.only(bottom: 34)),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: ReadableListView(
+              children: const [SizedBox(key: key, height: 40)],
+            ),
+          ),
+        ),
+      );
+      final padding = tester.widget<ListView>(find.byType(ListView)).padding;
+      expect(padding?.resolve(TextDirection.ltr).bottom, 34);
+    });
+
     testWidgets('leave a narrow window exactly as laid out before', (
       tester,
     ) async {

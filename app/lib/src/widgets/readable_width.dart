@@ -36,7 +36,7 @@ EdgeInsets readableContentPadding(
 class ReadableListView extends StatelessWidget {
   const ReadableListView({
     required this.children,
-    this.padding = EdgeInsets.zero,
+    this.padding,
     this.keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual,
     super.key,
   });
@@ -44,8 +44,9 @@ class ReadableListView extends StatelessWidget {
   final List<Widget> children;
 
   /// The padding the list would have had uncapped; see
-  /// [readableContentPadding].
-  final EdgeInsets padding;
+  /// [readableContentPadding]. When null, the safe-area insets above and below
+  /// apply, as they do to a [ListView] given no padding.
+  final EdgeInsets? padding;
 
   final ScrollViewKeyboardDismissBehavior keyboardDismissBehavior;
 
@@ -54,7 +55,10 @@ class ReadableListView extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) => ListView(
         keyboardDismissBehavior: keyboardDismissBehavior,
-        padding: readableContentPadding(constraints.maxWidth, padding),
+        padding: readableContentPadding(
+          constraints.maxWidth,
+          padding ?? MediaQuery.paddingOf(context).copyWith(left: 0, right: 0),
+        ),
         children: children,
       ),
     );
