@@ -205,8 +205,8 @@ void main() {
       );
     });
 
-    testWidgets('Undo, in Perform and after it, reverses only the adjustment '
-        'and keeps the change from elsewhere', (tester) async {
+    testWidgets('Undo in Perform reverses only the adjustment and keeps the '
+        'change from elsewhere', (tester) async {
       final repos = openTestRepositories();
       await seed(repos);
       await pumpHome(
@@ -223,14 +223,28 @@ void main() {
       // The notice offers the adjustment's Undo.
       await tester.tap(find.text(l10nOf(tester).commonUndo));
       await tester.pumpAndSettle();
-      var stored = (await repos.programs.getById('p1'))!;
+      final stored = (await repos.programs.getById('p1'))!;
       expect(stored.title, 'Renamed Night');
       expect(stored.slots.map((s) => s.id), ['s1', 's2', 's3']);
       expect(stored.slots.first.performedAt, isNull);
       expect(position(tester), 'Slot 1 of 3');
+    });
 
-      // Again, and this time Undo after leaving Perform.
+    testWidgets('Undo after leaving Perform reverses only the adjustment and '
+        'keeps the change from elsewhere', (tester) async {
+      final repos = openTestRepositories();
+      await seed(repos);
+      await pumpHome(
+        tester,
+        repos,
+        const ProgramSummaryScreen(programId: 'p1'),
+      );
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      await changeElsewhere(repos);
+      await tester.pumpAndSettle();
       await markCurrentPerformed(tester);
+
       await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
@@ -238,7 +252,7 @@ void main() {
       expect(find.byType(PerformProgramScreen), findsNothing);
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();
-      stored = (await repos.programs.getById('p1'))!;
+      final stored = (await repos.programs.getById('p1'))!;
       expect(stored.title, 'Renamed Night');
       expect(stored.slots.map((s) => s.id), ['s1', 's2', 's3']);
       expect(stored.slots.first.performedAt, isNull);
