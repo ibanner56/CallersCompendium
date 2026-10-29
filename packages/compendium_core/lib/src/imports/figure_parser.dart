@@ -574,7 +574,6 @@ void _foldDancerNumbers(List<String> w) {
   }
 }
 
-
 String _stripEdgePunct(String w) {
   var start = 0;
   var end = w.length;
