@@ -2791,7 +2791,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
                 IconButton(
                   key: ValueKey('move-default-remove-$moveId'),
                   tooltip: l10n.settingsDefaultsRemoveMoveTooltip,
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(Icons.remove_circle_outline),
                   onPressed: () => onRemoveMoveDefault(moveId),
                 ),
               ],

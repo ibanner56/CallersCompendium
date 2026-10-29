@@ -1138,7 +1138,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                   ),
                   IconButton(
                     key: ValueKey('dialect-move-delete-$id'),
-                    icon: const Icon(Icons.delete_outline),
+                    icon: const Icon(Icons.remove_circle_outline),
                     tooltip: l10n.commonRemove,
                     onPressed: () => onRemove(id),
                   ),
@@ -1386,7 +1386,7 @@ class _MoveWordingsEditor extends StatelessWidget {
               IconButton(
                 key: ValueKey('dialect-wording-delete-$id'),
                 icon: Icon(
-                  Icons.delete_outline,
+                  Icons.remove_circle_outline,
                   color: Theme.of(context).colorScheme.error,
                 ),
                 tooltip: l10n.commonRemove,
@@ -1505,7 +1505,7 @@ class _MoveWordingsEditor extends StatelessWidget {
               IconButton(
                 key: ValueKey('dialect-wording-delete-$id'),
                 icon: Icon(
-                  Icons.delete_outline,
+                  Icons.remove_circle_outline,
                   color: theme.colorScheme.error,
                 ),
                 tooltip: l10n.commonRemove,
@@ -1583,7 +1583,7 @@ class _MoveWordingsEditor extends StatelessWidget {
               IconButton(
                 key: ValueKey('dialect-wording-delete-$moveId'),
                 icon: Icon(
-                  Icons.delete_outline,
+                  Icons.remove_circle_outline,
                   color: Theme.of(context).colorScheme.error,
                 ),
                 tooltip: l10n.commonRemove,
@@ -1818,7 +1818,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
                   ),
                   IconButton(
                     key: ValueKey('dialect-dancer-delete-$token'),
-                    icon: const Icon(Icons.delete_outline),
+                    icon: const Icon(Icons.remove_circle_outline),
                     tooltip: l10n.commonRemove,
                     onPressed: () => onRemove(token),
                   ),

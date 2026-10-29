@@ -47,6 +47,7 @@ import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/confirm_discard_changes.dart';
+import '../widgets/notice_card.dart';
 import '../widgets/venue_picker.dart';
 import 'dance_editor_screen.dart';
 import 'dance_detail_screen.dart';
@@ -4263,47 +4264,22 @@ class _ProgramWarningsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return Card(
+    return NoticeCard(
       key: const ValueKey('program-warnings-card'),
-      color: theme.colorScheme.tertiaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_outlined,
-                  size: 18,
-                  color: theme.colorScheme.onTertiaryContainer,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.programsWarningCount(warnings.length),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.colorScheme.onTertiaryContainer,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            for (final w in warnings)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Semantics(
-                  liveRegion: true,
-                  child: Text(
-                    validationIssueMessage(l10n, w),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onTertiaryContainer,
-                    ),
-                  ),
-                ),
+      kind: NoticeKind.warning,
+      title: l10n.programsWarningCount(warnings.length),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final w in warnings)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Semantics(
+                liveRegion: true,
+                child: Text(validationIssueMessage(l10n, w)),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

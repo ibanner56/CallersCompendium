@@ -2379,7 +2379,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             key: _key('duplicate'),
             focusNode: firstEnabled(widget.onDuplicate),
             onPressed: widget.onDuplicate,
-            leadingIcon: const Icon(Icons.copy, size: 18),
+            leadingIcon: const Icon(Icons.copy_outlined, size: 18),
             child: Text(l10n.commonDuplicate),
           ),
         if (widget.onGroupWithNext != null)
