@@ -104,9 +104,15 @@ theme, per the "no colour-only meaning" rule (`ux.md:196-199`).
   code. It gets a model-to-selection mapping the framework does not provide.
 
 **Recommendation: A.** "What you see is what you copy" is the rule users
-expect from selection, it matches **Copy dance** (same `dialect`, so the
-canonical toggle already steers both), and a caller who wants canonical text
-flips the toggle. The user docs say so in one sentence.
+expect from selection, it agrees with **Copy dance** on dialect and the
+canonical toggle (both use the same `dialect`), and a caller who wants
+canonical text flips the toggle. The two differ in two preferences. A selection
+copy carries "always show verbose figure text" and figure capitalisation,
+because the screen applies both (`figure_table.dart:223-229`); **Copy dance**
+applies neither (`packages/compendium_core/lib/src/export/dance_text.dart:121-122`
+renders `renderSummary`, terse and uncapitalised). That is what Option A means,
+and Decision 3 asks the maintainer to accept it. The user docs say so in one
+sentence.
 
 ### 4. Desktop only, or phones too?
 
@@ -145,7 +151,7 @@ make the row announce twice or read the beats digits an extra time.
 
 ### 6. Right-click
 
-B29 (`feat/desktop-shortcuts-and-mac-menu`, `decided-work-plan.md:657`) makes
+B29 (`feat/desktop-shortcuts-and-mac-menu`, the work plan's B29 entry, see "Sources" below) makes
 right-click on a dance row and a program row open the ⋮ menu
 (`widgets/dance_list_tile.dart:352`, `widgets/program_list_tile.dart:100`; both
 are the `PopupMenuButton` construction). Selection's context menu (Copy, Select
@@ -169,7 +175,7 @@ B29 should add a widget test that a secondary tap on detail text shows the
 selection toolbar, and one that a secondary tap on a list row shows the ⋮ menu.
 
 **A coordination point with PLAT-8.** B29 replaces the macOS menu with a
-`PlatformMenuBar` that has no Edit menu (`decided-work-plan.md:670-672`).
+`PlatformMenuBar` that has no Edit menu (the work plan's B29 entry).
 Cmd-C and Cmd-A still work, because `SelectableRegion` binds them itself. But a
 Mac caller loses the menu item for them, so the right-click toolbar is the only
 visible Copy. That is one more reason rule 1 should hold.
@@ -233,8 +239,9 @@ These choices belong to the maintainer. Each preference is a recommendation.
    setting, which brings registry entries.
 2. **Summary set list.** Keep it outside the selectable region (recommended) or
    include the dance titles, accepting the tap-versus-drag conflict on rows.
-3. **Copy contents.** Rendered text (recommended), or the heavier canonical or
-   toggle options (question 3).
+3. **Copy contents.** Rendered text (recommended), which differs from **Copy
+   dance** on the verbose and capitalisation preferences, or the heavier
+   canonical or toggle options (question 3).
 4. **Right-click precedence.** Selection menu inside selectable content, ⋮ menu
    on list rows (recommended), as the rule B29 should follow.
 5. **Perform.** Excluded (recommended), or a deliberate "select text" mode
@@ -242,14 +249,25 @@ These choices belong to the maintainer. Each preference is a recommendation.
 
 ## Proposed branch breakdown
 
-Sized like `decided-work-plan.md`. Both items touch only the files named.
+Sized like the work plan (see "Sources"). Both items touch only the files named.
 
 | # | Branch | Main files | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- |
 | S1 | `feat/selectable-detail-text` | new `widgets/selectable_content.dart`; `dance_detail_screen.dart`; `widgets/figure_table.dart`; tests; the `ux.md`, `accessibility.md` and user-doc lines; a changelog fragment | M (~250) | Sonnet | Decisions 1, 3, 5. |
-| S2 | `feat/selectable-summary-text` | `program_summary_screen.dart`; tests | S (~100) | Sonnet | S1 (the widget); Decision 2. Sequence after F10, U7 and F11, which edit the summary and the editor (`decided-work-plan.md` hot-files table); after B4 → B5 and B22, which edit the same file. |
+| S2 | `feat/selectable-summary-text` | `program_summary_screen.dart`; tests | S (~100) | Sonnet | S1 (the widget); Decision 2. Sequence after F10, U7 and F11, which edit the summary and the editor (the work plan's hot-files table); after B4 → B5 and B22, which edit the same file. |
 | S3 | `test/selectable-right-click-rule` | one test file in B29's branch | S (~50) | Sonnet | B29 and S1. Folded into B29 if B29 lands later. |
 
 S1 and S2 share no file, but S2 reuses S1's widget, so S2 follows S1. Neither
 edits a privacy or storage path, so neither joins the registry serialisation
 queue unless Decision 1 adds a setting.
+
+## Sources
+
+The B29 facts and the branch sizing come from the 2026-10 behavior audit's
+`decided-work-plan.md` (the "B29" entry, the "Design notes" section and the
+hot-files table), which lives at
+`docs/dev/audits/2026-10-behavior/decided-work-plan.md` on branch
+`claude/app-audit-categories-k2pdon` and is not on `main` yet. Until it
+lands, treat B29's right-click handlers and its menu-bar replacement as
+planned work, not shipped behaviour. The audit finding is PLAT-17 in
+`reports/PLAT.md` on the same branch.
