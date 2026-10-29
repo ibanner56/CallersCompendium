@@ -6192,6 +6192,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '“$title” is gewijzigd sinds je hem importeerde, dus Ongedaan maken heeft hem gelaten zoals hij is.';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '“$title” staat al in je collectie.';
   }
@@ -6220,7 +6225,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Je collectie bevat “$existingTitle” al uit een andere bron. Beide versies hebben dezelfde volgorde van moves.';
+    return 'Je collectie bevat “$existingTitle” al. Beide versies hebben dezelfde volgorde van moves.';
   }
 
   @override

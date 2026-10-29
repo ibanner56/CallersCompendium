@@ -6216,6 +6216,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '„$title“ wurde seit dem Import geändert, daher hat Rückgängig ihn unverändert gelassen.';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '„$title“ ist bereits in Ihrer Sammlung.';
   }
@@ -6244,7 +6249,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Ihre Sammlung enthält „$existingTitle“ bereits aus einer anderen Quelle. Beide Versionen haben dieselbe Abfolge von Bewegungen.';
+    return 'Ihre Sammlung enthält „$existingTitle“ bereits. Beide Versionen haben dieselbe Abfolge von Bewegungen.';
   }
 
   @override

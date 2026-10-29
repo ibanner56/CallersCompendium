@@ -185,11 +185,11 @@ class ContraDbOnline implements OnlineSearchService {
   /// [OnlineImportKind.needsConfirmation] (nothing written) so the caller can
   /// show a resolution dialog (issue #797); a fuzzy near-match with a confident
   /// title+author candidate, **canonically identical** figures (same moves and
-  /// order; beats and notes may differ), and a confirmed different source
-  /// returns [OnlineImportKind.needsConfirmationIdentical] (nothing written) so
-  /// the caller can show a cross-source duplicate dialog (issue #811); dances
-  /// with null provenance fall through rather than being falsely labelled "from
-  /// a different source"; with no confident candidate, a possible match under
+  /// order; beats and notes may differ), and either a different source or a
+  /// hand-entered existing dance returns
+  /// [OnlineImportKind.needsConfirmationIdentical] (nothing written) so the
+  /// caller can show the duplicate dialog (issue #811; INTAKE-5); with no
+  /// confident candidate, a possible match under
   /// another title returns [OnlineImportKind.needsPossibleMatchChoice]
   /// (nothing written, issue #1907); any other fuzzy near-match is imported as
   /// a new dance.

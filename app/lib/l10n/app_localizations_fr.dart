@@ -6230,6 +6230,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '« $title » a été modifiée depuis son importation, donc Annuler l’a laissée telle quelle.';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '« $title » est déjà dans votre collection.';
   }
@@ -6258,7 +6263,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Votre collection contient déjà « $existingTitle » provenant d’une autre source. Les deux versions ont la même séquence de mouvements.';
+    return 'Votre collection contient déjà « $existingTitle ». Les deux versions ont la même séquence de mouvements.';
   }
 
   @override

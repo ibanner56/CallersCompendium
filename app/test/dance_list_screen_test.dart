@@ -1432,6 +1432,58 @@ void main() {
     },
   );
 
+  // 2026-10 behaviour audit, INTAKE-5: the import snackbar offers Undo, and
+  // Undo also leaves the page of the dance it took away.
+  testWidgets('Undo on the online import snackbar removes the dance and '
+      'closes its page', (tester) async {
+    final repos = openTestRepositories();
+    final callers = CallersBoxOnline(
+      searchFetcher: (_) async => '''
+        <html><body>
+        <p>Of 1 dances in the database, your query matches 1.</p>
+        <table><tr>
+          <td>&#x24bb;</td><td></td><td></td>
+          <td><a href='dance.php?id=10600' target='_blank'>Money Musk</a></td>
+          <td>Traditional</td><td>Triple Minor - Proper</td>
+        </tr></table>
+        </body></html>
+      ''',
+      jsonFetcher: (_) async => '''
+        {
+          "ID":"10600","Name":"Money Musk","Authors":["Traditional"],
+          "InterpretedBy":[],"Permission":"full",
+          "FormationBase":"Triple Minor - Proper","FormationDetail":"",
+          "Progression":"Single","PhraseStructure":"","CallingNotes":[],
+          "OtherNames":[],"Music":[],"Tunes":[],"Appearances":[],
+          "phrases":[{"name":"A1","figures":["Actives balance and swing"]}]
+        }
+      ''',
+    );
+
+    await _pumpScreen(tester, repos, callersBoxOnline: callers);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    await _search(tester, 'Money Musk');
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('online-result-10600')),
+    );
+    await tester.tap(find.byKey(const ValueKey('import-dance')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DanceDetailScreen), findsOneWidget);
+    expect(await repos.dances.listAll(), hasLength(1));
+
+    await tester.tap(find.byKey(const ValueKey('online-import-undo')));
+    await tester.pumpAndSettle();
+
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(find.byType(DanceDetailScreen), findsNothing);
+  });
+
   testWidgets('a facet chip filters the list', (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result

@@ -6148,6 +6148,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '„$title“ er ændret, siden du importerede den, så Fortryd lod den være som den er.';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '„$title“ er allerede i din samling.';
   }
@@ -6176,7 +6181,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Din samling har allerede „$existingTitle“ fra en anden kilde. Begge versioner har den samme rækkefølge af bevægelser.';
+    return 'Din samling har allerede „$existingTitle“. Begge versioner har den samme rækkefølge af bevægelser.';
   }
 
   @override
