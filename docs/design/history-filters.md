@@ -35,7 +35,7 @@ with no `sort:` argument (`collection_picker.dart:374-379`).
 - Duplicate venue records and venue merging.
 - Saved searches, which the app does not have.
 
-Line numbers are for `origin/main` at `acacb05`.
+Line numbers are for `origin/main` at `296b594`.
 
 ## Constraints
 
@@ -84,14 +84,14 @@ These come from `decided-work-plan.md` ("Design notes" and N1) on
    (`sync-spec.md:3682-3684`). The label then falls back to the typed text
    (`app/lib/src/data/venue_label.dart:21-33`).
 6. **Dates.** `programs.event_date` holds UTC midnight of the calendar day the
-   caller picked (`app/lib/src/screens/program_editor_screen.dart:4248-4250`).
+   caller picked (`app/lib/src/screens/program_editor_screen.dart:4342`).
    `updated_at` and most `performed_at` values are instants. Status → Performed
    is the exception: it copies the event date into `performed_at`
    (`calling_history_section.dart:398-414`).
 7. **`ux.md`'s rules:**
    - undo everywhere, and confirm only where Undo is impossible
-     (`docs/design/ux.md:192-193`);
-   - no meaning carried by colour alone (`:200`);
+     (`docs/design/ux.md:201-202`);
+   - no meaning carried by colour alone (`:209`);
    - single-pane phone layouts (`:26`).
 
    The Filters panel and the picker share one panel, `FacetPanel`, and one list
@@ -273,10 +273,10 @@ chip and no marker.
 - It defaults to null, so B14's stable constructor API still holds, and all five
   mounts compile unchanged.
 - Four of the mounts are edited to pass it:
-  - `program_editor_screen.dart:3206`, `:3663` and `:3781`;
+  - `program_editor_screen.dart:3287`, `:3756` and `:3874`;
   - `perform_adjust_sheet.dart:273`, because a live swap at the venue asks the
     same question.
-- `settings/defaults_section.dart:615` has no program and passes nothing.
+- `settings/defaults_section.dart:616` has no program and passes nothing.
 - Because the editor mounts are edited, H3 waits for F10, F11 and U7.
 
 ## Q4. Should picker rows show when and where a dance was last called?
@@ -292,7 +292,7 @@ here marker.**
   time as a call. It is a new `CollectionTileField.lastCalled`, so the card-fields
   setting can hide it.
 - **The here marker** is an icon and the word "here", never colour alone
-  (`ux.md:200`). It is picker-only. Its data comes from one search,
+  (`ux.md:209`). It is picker-only. Its data comes from one search,
   `CalledFilter(called: true, venue: <this program's key>, currentProgramId:
   …)`, which returns a set of dance ids. The search reruns when the program's
   venue or slots change.
@@ -421,7 +421,7 @@ Each implementation branch updates these in the same PR:
   expression.
 - `docs/user/collection.md:157` (Filters: Calling history) and `:52-58` (Last
   called).
-- `docs/user/programs.md:158-161` (the picker): the here marker, the Not called
+- `docs/user/programs.md:160-163` (the picker): the here marker, the Not called
   here chip, and what the picker's "called ×N" counts.
 - `docs/user/settings.md:382-386` (card fields): Last called.
 
