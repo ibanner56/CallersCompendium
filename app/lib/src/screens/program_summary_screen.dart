@@ -167,6 +167,11 @@ class ProgramSummaryPane extends StatefulWidget {
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
 
+  /// Pane width (logical pixels) below which the title row keeps Perform and
+  /// Export and moves Mark all performed, Duplicate and Delete into a "⋮"
+  /// menu. Matches `DanceDetailScreen.compactActionsBreakpoint`.
+  static const double compactActionsBreakpoint = 600;
+
   @override
   State<ProgramSummaryPane> createState() => _ProgramSummaryPaneState();
 }
@@ -674,7 +679,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       appBar: widget.showAppBar
           ? AppBar(title: Text(l10n.programsSummaryTitle))
           : null,
-      body: _buildBody(),
+      // Below [ProgramSummaryPane.compactActionsBreakpoint] the title row
+      // keeps Perform and Export; the rest fold into [_secondaryActionsMenu].
+      body: LayoutBuilder(
+        builder: (context, constraints) => _buildBody(
+          compact:
+              constraints.maxWidth <
+              ProgramSummaryPane.compactActionsBreakpoint,
+        ),
+      ),
       floatingActionButton: (_program != null)
           ? FloatingActionButton.extended(
               key: const ValueKey('open-builder'),
@@ -687,7 +700,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody({required bool compact}) {
     final l10n = AppLocalizations.of(context);
     if (_loading) {
       return Center(
@@ -742,25 +755,29 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               customFieldFor: (id) => _collectionData?.customFieldFor(id),
               difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
             ),
-            if (program.slots.any((s) => s.danceId != null))
+            if (compact)
+              _secondaryActionsMenu(program)
+            else ...[
+              if (program.slots.any((s) => s.danceId != null))
+                IconButton(
+                  key: const ValueKey('mark-all-performed'),
+                  tooltip: l10n.programsMarkAllPerformedTooltip,
+                  icon: const Icon(Icons.done_all),
+                  onPressed: _markAllPerformed,
+                ),
               IconButton(
-                key: const ValueKey('mark-all-performed'),
-                tooltip: l10n.programsMarkAllPerformedTooltip,
-                icon: const Icon(Icons.done_all),
-                onPressed: _markAllPerformed,
+                key: const ValueKey('summary-duplicate'),
+                tooltip: l10n.commonDuplicate,
+                icon: const Icon(Icons.copy_all_outlined),
+                onPressed: _duplicate,
               ),
-            IconButton(
-              key: const ValueKey('summary-duplicate'),
-              tooltip: l10n.commonDuplicate,
-              icon: const Icon(Icons.copy_all_outlined),
-              onPressed: _duplicate,
-            ),
-            IconButton(
-              key: const ValueKey('summary-delete'),
-              tooltip: l10n.commonDelete,
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _delete,
-            ),
+              IconButton(
+                key: const ValueKey('summary-delete'),
+                tooltip: l10n.commonDelete,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: _delete,
+              ),
+            ],
           ],
         ),
         const SizedBox(height: 8),
@@ -812,6 +829,47 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         const SizedBox(height: 8),
         ..._buildSetList(program),
         const SizedBox(height: 80),
+      ],
+    );
+  }
+
+  /// The narrow title row's "⋮" menu: Mark all performed, Duplicate and
+  /// Delete, under the keys and labels of the buttons they replace.
+  Widget _secondaryActionsMenu(Program program) {
+    final l10n = AppLocalizations.of(context);
+    return PopupMenuButton<void>(
+      key: const ValueKey('summary-actions-overflow'),
+      tooltip: l10n.programsMoreActions,
+      icon: const Icon(Icons.more_vert),
+      itemBuilder: (context) => [
+        if (program.slots.any((s) => s.danceId != null))
+          PopupMenuItem<void>(
+            key: const ValueKey('mark-all-performed'),
+            onTap: _markAllPerformed,
+            child: ListTile(
+              leading: const Icon(Icons.done_all),
+              title: Text(l10n.programsMarkAllPerformedTooltip),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        PopupMenuItem<void>(
+          key: const ValueKey('summary-duplicate'),
+          onTap: _duplicate,
+          child: ListTile(
+            leading: const Icon(Icons.copy_all_outlined),
+            title: Text(l10n.commonDuplicate),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
+          key: const ValueKey('summary-delete'),
+          onTap: _delete,
+          child: ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: Text(l10n.commonDelete),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
       ],
     );
   }

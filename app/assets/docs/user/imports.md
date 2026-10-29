@@ -62,8 +62,8 @@ keep.
 ### Search an archive online and import a dance
 
 1. Open **Collection**.
-2. Open the **Advanced** panel above the dance list and turn on the
-   **Online search** switch. (Your local filters do not apply while online
+2. Tap the **Online search** icon at the end of the row of search tools above
+   the dance list. (Your local filters do not apply while online
    search is on — you are searching the archive, not your own library.)
 3. Choose which archive to search — **The Caller's Box** or **ContraDB** — from
    the online source selector.

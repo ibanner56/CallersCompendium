@@ -1,0 +1,10 @@
+{
+  "id": "search-online-icon",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "On the Collection and in the program editor's dance picker, Online search is now an icon at the end of the row of search tools instead of a switch inside the Advanced panel; hover over it or press and hold for its description. Filters and Advanced are greyed out while Online search is on, and a full-width source selector appears under the row.",
+      "The \"Use advanced query\" switch is gone: the Advanced panel's query editor is always available, and any condition you add applies straight away. To set a query aside, delete its conditions."
+    ]
+  }
+}

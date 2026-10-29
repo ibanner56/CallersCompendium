@@ -15,7 +15,9 @@ import 'preview_hold_listener.dart';
 /// Reordering offers a drag handle **plus** a non-drag alternative (move
 /// up/down), for WCAG 2.5.7. The scissors button removes the slot (issue
 /// #1270); there is no cut/paste reordering here, unlike
-/// `figure_list_editor.dart`.
+/// `figure_list_editor.dart`. On a narrow row (see [compactActionsBreakpoint])
+/// only the drag handle and the "…" menu stay on the row; move up/down, View
+/// details and cut move into that menu, up and down first.
 /// `isAlt` slots render **indented** under their primary with an alt icon +
 /// "Alt" text (never colour alone), matching [Program.grouped] semantics.
 ///
@@ -118,6 +120,19 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// Opens a persistent details preview for keyboard and AT users.
   final void Function(String danceId)? onViewDanceDetails;
 
+  /// Window width (logical pixels) below which each row keeps only its drag
+  /// handle and "…" menu, folding View details, move up/down and cut into the
+  /// menu. 600 mirrors Material 3's compact window-size-class cutoff (matching
+  /// `DanceDetailScreen.compactActionsBreakpoint`): at 360dp the full row left
+  /// the title 8dp and overflowed an alternate row by 24dp.
+  static const double compactActionsBreakpoint = 600;
+
+  /// List width below which rows use the compact layout even on a wide window.
+  /// The builder's two-pane layout halves the window, so up to about 1100dp
+  /// the program pane is too narrow for the full row (at 820dp an alternate
+  /// row's title got no width at all, and the row overflowed).
+  static const double minFullRowWidth = 520;
+
   @override
   State<ProgramSlotListEditor> createState() => _ProgramSlotListEditorState();
 }
@@ -217,48 +232,57 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     // break: the same numbers as the set list, its text and its PDF, so the
     // builder's "5" is the band's "5." (GIG-10).
     final danceNumbers = Program.danceNumbersForSlots(slots);
-    return ReorderableListView(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      buildDefaultDragHandles: false,
-      onReorderItem: widget.onReorder,
-      children: [
-        for (var i = 0; i < slots.length; i++)
-          _SlotTile(
-            key: ValueKey('slot-${slots[i].id}'),
-            index: i,
-            slot: slots[i],
-            title: _slotTitle(l10n, slots[i]),
-            note: _slotNote(slots[i]),
-            dialect: widget.dialect,
-            canonicalizeDiscouragedTerms: widget.canonicalizeDiscouragedTerms,
-            formation: _slotFormation(slots[i]),
-            mixer: _slotMixer(slots[i]),
-            ordinal: danceNumbers[i],
-            isDanceSlot: slots[i].danceId != null,
-            isTombstone: _isTombstone(slots[i]),
-            indented: _isAltAtIndex(i),
-            onMoveUp: i == 0 ? null : () => _moveUp(i),
-            onMoveDown: i == slots.length - 1 ? null : () => _moveDown(i),
-            onEdit: () => _editSlot(i),
-            onToggleAlt: () => _toggleAlt(i),
-            onTogglePerformed: () => _togglePerformed(i),
-            onRemove: () => _remove(i),
-            onCreateDance: () => widget.onCreateDance(i),
-            onPreviewDanceStarted:
-                widget.onPreviewDanceStarted == null || slots[i].danceId == null
-                ? null
-                : () => widget.onPreviewDanceStarted!(slots[i].danceId!),
-            onPreviewDanceEnded:
-                widget.onPreviewDanceEnded == null || slots[i].danceId == null
-                ? null
-                : () => widget.onPreviewDanceEnded!(slots[i].danceId!),
-            onViewDanceDetails:
-                widget.onViewDanceDetails == null || slots[i].danceId == null
-                ? null
-                : () => widget.onViewDanceDetails!(slots[i].danceId!),
-          ),
-      ],
+    final narrowWindow =
+        MediaQuery.sizeOf(context).width <
+        ProgramSlotListEditor.compactActionsBreakpoint;
+    return LayoutBuilder(
+      builder: (context, constraints) => ReorderableListView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        buildDefaultDragHandles: false,
+        onReorderItem: widget.onReorder,
+        children: [
+          for (var i = 0; i < slots.length; i++)
+            _SlotTile(
+              key: ValueKey('slot-${slots[i].id}'),
+              compact:
+                  narrowWindow ||
+                  constraints.maxWidth < ProgramSlotListEditor.minFullRowWidth,
+              index: i,
+              slot: slots[i],
+              title: _slotTitle(l10n, slots[i]),
+              note: _slotNote(slots[i]),
+              dialect: widget.dialect,
+              canonicalizeDiscouragedTerms: widget.canonicalizeDiscouragedTerms,
+              formation: _slotFormation(slots[i]),
+              mixer: _slotMixer(slots[i]),
+              ordinal: danceNumbers[i],
+              isDanceSlot: slots[i].danceId != null,
+              isTombstone: _isTombstone(slots[i]),
+              indented: _isAltAtIndex(i),
+              onMoveUp: i == 0 ? null : () => _moveUp(i),
+              onMoveDown: i == slots.length - 1 ? null : () => _moveDown(i),
+              onEdit: () => _editSlot(i),
+              onToggleAlt: () => _toggleAlt(i),
+              onTogglePerformed: () => _togglePerformed(i),
+              onRemove: () => _remove(i),
+              onCreateDance: () => widget.onCreateDance(i),
+              onPreviewDanceStarted:
+                  widget.onPreviewDanceStarted == null ||
+                      slots[i].danceId == null
+                  ? null
+                  : () => widget.onPreviewDanceStarted!(slots[i].danceId!),
+              onPreviewDanceEnded:
+                  widget.onPreviewDanceEnded == null || slots[i].danceId == null
+                  ? null
+                  : () => widget.onPreviewDanceEnded!(slots[i].danceId!),
+              onViewDanceDetails:
+                  widget.onViewDanceDetails == null || slots[i].danceId == null
+                  ? null
+                  : () => widget.onViewDanceDetails!(slots[i].danceId!),
+            ),
+        ],
+      ),
     );
   }
 
@@ -378,10 +402,12 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   }
 }
 
-/// A single slot row: drag handle + alt-indent + summary + inline controls.
+/// A single slot row: drag handle + alt-indent + summary + controls (inline,
+/// or in the "…" menu when [compact]).
 class _SlotTile extends StatelessWidget {
   const _SlotTile({
     super.key,
+    required this.compact,
     required this.index,
     required this.slot,
     required this.title,
@@ -406,6 +432,10 @@ class _SlotTile extends StatelessWidget {
     this.onViewDanceDetails,
   });
 
+  /// Keep only the drag handle and the "…" menu on the row; View details,
+  /// move up/down and cut become menu items (see
+  /// [ProgramSlotListEditor.compactActionsBreakpoint]).
+  final bool compact;
   final int index;
   final ProgramSlot slot;
   final String title;
@@ -457,6 +487,7 @@ class _SlotTile extends StatelessWidget {
     final performed = slot.performedAt != null;
     final previewable =
         isDanceSlot && !isTombstone && onPreviewDanceStarted != null;
+    final canViewDetails = onViewDanceDetails != null && !isTombstone;
 
     // Redundant formation-family accent (issue #270, extended for mixer flag in
     // issue #732): only for dance slots with a resolved formation, when the user
@@ -624,42 +655,52 @@ class _SlotTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (onViewDanceDetails != null && !isTombstone)
+                if (!compact) ...[
+                  if (canViewDetails)
+                    IconButton(
+                      key: ValueKey('slot-$index-view-details'),
+                      tooltip: l10n.viewDetails,
+                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onViewDanceDetails,
+                    ),
                   IconButton(
-                    key: ValueKey('slot-$index-view-details'),
-                    tooltip: l10n.viewDetails,
-                    icon: const Icon(Icons.visibility_outlined, size: 18),
+                    key: ValueKey('slot-$index-move-up'),
+                    tooltip: l10n.programsMoveSlotUp(title),
+                    icon: const Icon(Icons.arrow_upward, size: 18),
                     visualDensity: VisualDensity.compact,
-                    onPressed: onViewDanceDetails,
+                    onPressed: onMoveUp,
                   ),
-                IconButton(
-                  key: ValueKey('slot-$index-move-up'),
-                  tooltip: l10n.programsMoveSlotUp(title),
-                  icon: const Icon(Icons.arrow_upward, size: 18),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onMoveUp,
-                ),
-                IconButton(
-                  key: ValueKey('slot-$index-move-down'),
-                  tooltip: l10n.programsMoveSlotDown(title),
-                  icon: const Icon(Icons.arrow_downward, size: 18),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onMoveDown,
-                ),
-                // Scissors icon and "Cut …" tooltip kept by maintainer decision
-                // (issue #1270), but the action is removal.
-                IconButton(
-                  key: ValueKey('slot-$index-remove'),
-                  tooltip: l10n.programsCutSlot(title),
-                  icon: const Icon(Icons.content_cut, size: 18),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onRemove,
-                ),
+                  IconButton(
+                    key: ValueKey('slot-$index-move-down'),
+                    tooltip: l10n.programsMoveSlotDown(title),
+                    icon: const Icon(Icons.arrow_downward, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onMoveDown,
+                  ),
+                  // Scissors icon and "Cut …" tooltip kept by maintainer
+                  // decision (issue #1270), but the action is removal.
+                  IconButton(
+                    key: ValueKey('slot-$index-remove'),
+                    tooltip: l10n.programsCutSlot(title),
+                    icon: const Icon(Icons.content_cut, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onRemove,
+                  ),
+                ],
                 PopupMenuButton<String>(
                   key: ValueKey('slot-$index-menu'),
                   tooltip: l10n.programsMoreActionsForSlot(title),
                   onSelected: (value) {
                     switch (value) {
+                      case 'move_up':
+                        onMoveUp?.call();
+                      case 'move_down':
+                        onMoveDown?.call();
+                      case 'view_details':
+                        onViewDanceDetails?.call();
+                      case 'remove':
+                        onRemove();
                       case 'edit':
                         onEdit();
                       case 'alt':
@@ -671,6 +712,55 @@ class _SlotTile extends StatelessWidget {
                     }
                   },
                   itemBuilder: (context) => [
+                    // A compact row's inline actions, under the same keys and
+                    // labels as the buttons they replace. Up and down come
+                    // first so the non-drag reorder stays one step away.
+                    if (compact) ...[
+                      PopupMenuItem(
+                        key: ValueKey('slot-$index-move-up'),
+                        value: 'move_up',
+                        enabled: onMoveUp != null,
+                        child: ListTile(
+                          leading: const Icon(Icons.arrow_upward),
+                          title: Text(l10n.programsMoveSlotUp(title)),
+                          enabled: onMoveUp != null,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        key: ValueKey('slot-$index-move-down'),
+                        value: 'move_down',
+                        enabled: onMoveDown != null,
+                        child: ListTile(
+                          leading: const Icon(Icons.arrow_downward),
+                          title: Text(l10n.programsMoveSlotDown(title)),
+                          enabled: onMoveDown != null,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      if (canViewDetails)
+                        PopupMenuItem(
+                          key: ValueKey('slot-$index-view-details'),
+                          value: 'view_details',
+                          child: ListTile(
+                            leading: const Icon(Icons.visibility_outlined),
+                            title: Text(l10n.viewDetails),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      // Scissors icon and "Cut …" wording kept by maintainer
+                      // decision (issue #1270), but the action is removal.
+                      PopupMenuItem(
+                        key: ValueKey('slot-$index-remove'),
+                        value: 'remove',
+                        child: ListTile(
+                          leading: const Icon(Icons.content_cut),
+                          title: Text(l10n.programsCutSlot(title)),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                    ],
                     PopupMenuItem(
                       value: 'edit',
                       child: ListTile(

@@ -5,6 +5,8 @@ import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
+import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
+import 'package:compendium_app/src/widgets/facet_panel.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+import '../support/panel_chip.dart';
 
 String _danceJson({String id = '10600', String name = 'Money Musk'}) =>
     '{'
@@ -69,10 +72,8 @@ Future<void> _pumpShell(
   await tester.pumpAndSettle();
 }
 
-/// Expands the Advanced panel and turns on the "Online search" switch.
+/// Turns on "Online search" with the icon beside the search tools.
 Future<void> _enableOnline(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('online-search-enable')));
   await tester.pumpAndSettle();
 }
@@ -98,21 +99,126 @@ CallersBoxOnline _online({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('the Online search toggle sits above the advanced-query switch', (
+  testWidgets('the Online search icon ends the row of search tools', (
     tester,
   ) async {
     final repos = openTestRepositories();
     await _pumpShell(tester, repos, _online());
+
+    final online = tester.getRect(
+      find.byKey(const ValueKey('online-search-enable')),
+    );
+    final advanced = tester.getRect(
+      find.byKey(const ValueKey('advanced-panel')),
+    );
+    expect(online.center.dy, closeTo(advanced.center.dy, 1));
+    expect(online.left, greaterThanOrEqualTo(advanced.right));
+    expect(find.byKey(const ValueKey('advanced-enable')), findsNothing);
+  });
+
+  testWidgets('the Online search icon carries its help text as a tooltip and '
+      'shows whether it is on', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpShell(tester, repos, _online());
+
+    final toggle = find.byKey(const ValueKey('online-search-enable'));
+    final icon = find.descendant(of: toggle, matching: find.byType(IconButton));
+    expect(
+      tester.widget<IconButton>(icon).isSelected,
+      isFalse,
+      reason: 'off until tapped',
+    );
+    final tooltip = find.descendant(of: toggle, matching: find.byType(Tooltip));
+    expect(
+      tester.widget<Tooltip>(tooltip).message,
+      'Search online and import dances directly (requires internet). Local '
+      'filters do not apply.',
+    );
+
+    // A screen reader activates it through the semantic tap action.
+    final handle = tester.ensureSemantics();
+    final node = tester.getSemantics(find.bySemanticsLabel('Online search'));
+    expect(
+      node,
+      isSemantics(
+        label: 'Online search',
+        isButton: true,
+        hasTapAction: true,
+        hasToggledState: true,
+        isToggled: false,
+      ),
+    );
+    tester.semantics.tap(find.semantics.byLabel('Online search'));
+    await tester.pumpAndSettle();
+    handle.dispose();
+    expect(tester.widget<IconButton>(icon).isSelected, isTrue);
+    await tester.tap(icon);
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(icon).isSelected, isFalse);
+  });
+
+  testWidgets(
+    'going online greys out Filters instead of removing it, closes it '
+    'if it was open, and shows a full-width source selector',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Petronella',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await _pumpShell(tester, repos, _online());
+      final filters = find.byKey(const ValueKey('filters-panel'));
+      final rowTop = tester.getRect(filters).top;
+      await tester.tap(filters);
+      await tester.pumpAndSettle();
+      expect(find.byType(FacetPanel), findsOneWidget);
+
+      await _enableOnline(tester);
+
+      expectPanelDisabled(tester, 'filters-panel');
+      expect(
+        tester.getRect(filters).top,
+        rowTop,
+        reason: 'the row did not jump',
+      );
+      expect(find.byType(FacetPanel), findsNothing, reason: 'its panel closed');
+      final selector = tester.getRect(
+        find.byKey(const ValueKey('online-source-selector')),
+      );
+      expect(selector.top, greaterThan(tester.getRect(filters).bottom - 1));
+      expect(
+        selector.width,
+        greaterThan(300),
+        reason: 'full width, not intrinsic',
+      );
+    },
+  );
+
+  testWidgets('the advanced query editor is always on, with no enable switch '
+      'and a greyed-out Advanced tool while online', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpShell(tester, repos, _online());
+
     await tester.tap(find.byKey(const ValueKey('advanced-panel')));
     await tester.pumpAndSettle();
+    expect(find.byType(AdvancedQueryBuilder), findsOneWidget);
 
-    final onlineY = tester
-        .getTopLeft(find.byKey(const ValueKey('online-search-enable')))
-        .dy;
-    final advancedY = tester
-        .getTopLeft(find.byKey(const ValueKey('advanced-enable')))
-        .dy;
-    expect(onlineY, lessThan(advancedY));
+    await _enableOnline(tester);
+    expectPanelDisabled(tester, 'advanced-panel');
+    expect(
+      find.byKey(const ValueKey('online-source-selector')),
+      findsOneWidget,
+    );
+
+    // Back offline, the tool that was open when online search began is closed
+    // rather than springing open again.
+    await _enableOnline(tester);
+    expect(find.byType(AdvancedQueryBuilder), findsNothing);
+    expect(find.byKey(const ValueKey('online-source-selector')), findsNothing);
   });
 
   testWidgets('the by-phrase panel is available in Online search mode', (
@@ -123,8 +229,9 @@ void main() {
     await _enableOnline(tester);
 
     // Un-gated for online: TCB supports its own "search by phrase" fields, so
-    // the panel stays reachable (only the local Filters panel is hidden online).
+    // the panel stays reachable (the local Filters panel is greyed out online).
     expect(find.byKey(const ValueKey('by-phrase-panel')), findsOneWidget);
+    // This collection is empty, so Filters was never in the row.
     expect(find.byKey(const ValueKey('filters-panel')), findsNothing);
   });
 

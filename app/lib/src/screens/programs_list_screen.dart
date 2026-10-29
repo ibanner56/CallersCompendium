@@ -15,6 +15,7 @@ import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/sync_now_action.dart';
@@ -669,35 +670,19 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     }
 
     if (programs.isEmpty) {
-      return Center(
+      return EmptyState(
         key: const ValueKey('empty-state'),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.event_note_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.programsEmptyTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(l10n.programsListEmptyBody, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                key: const ValueKey('empty-new-program'),
-                onPressed: _openNewProgram,
-                icon: const Icon(Icons.add),
-                label: Text(l10n.programsNewProgram),
-              ),
-            ],
+        icon: EmptyState.glyph(context, Icons.event_note_outlined),
+        title: l10n.programsEmptyTitle,
+        body: l10n.programsListEmptyBody,
+        actions: [
+          FilledButton.icon(
+            key: const ValueKey('empty-new-program'),
+            onPressed: _openNewProgram,
+            icon: const Icon(Icons.add),
+            label: Text(l10n.programsNewProgram),
           ),
-        ),
+        ],
       );
     }
 

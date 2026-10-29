@@ -12,6 +12,7 @@ class SearchPanelSpec {
     required this.key,
     required this.label,
     this.semanticsLabel,
+    this.enabled = true,
     required this.builder,
   });
 
@@ -27,6 +28,12 @@ class SearchPanelSpec {
   /// What a screen reader hears instead of [label], when the short form needs
   /// spelling out ("Filters (3 active)" for "Filters · 3").
   final String? semanticsLabel;
+
+  /// Whether the tool applies right now. A tool that does not (Filters while an
+  /// online archive is searched) stays in the row greyed out, rather than
+  /// disappearing and moving the others; it cannot be opened, and one that was
+  /// open closes.
+  final bool enabled;
 
   /// The panel's content.
   final WidgetBuilder builder;
@@ -54,11 +61,16 @@ class SearchPanelBar extends StatefulWidget {
     super.key,
     required this.storageId,
     required this.panels,
+    this.trailing,
   });
 
   /// Unique among the bars under one [PageStorage] (one per route).
   final String storageId;
   final List<SearchPanelSpec> panels;
+
+  /// A compact control that sits in the toggles' row after the last one — a
+  /// mode switch rather than a tool, so it opens no panel of its own.
+  final Widget? trailing;
 
   @override
   State<SearchPanelBar> createState() => _SearchPanelBarState();
@@ -79,8 +91,26 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
     final stored = PageStorage.maybeOf(
       context,
     )?.readState(context, identifier: _identifier);
-    _open = stored is Key ? stored : null;
+    _open =
+        stored is Key &&
+            widget.panels.any((panel) => panel.key == stored && panel.enabled)
+        ? stored
+        : null;
     if (_open != null) _opened.add(_open!);
+  }
+
+  @override
+  void didUpdateWidget(SearchPanelBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A tool that is no longer offered or enabled (Advanced while online) cannot
+    // stay the open one, or it would reappear open the moment it applies again.
+    if (_open != null &&
+        !widget.panels.any((panel) => panel.key == _open && panel.enabled)) {
+      _open = null;
+      PageStorage.maybeOf(
+        context,
+      )?.writeState(context, null, identifier: _identifier);
+    }
   }
 
   @override
@@ -90,6 +120,9 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
   }
 
   void _toggle(Key key) {
+    if (!widget.panels.any((panel) => panel.key == key && panel.enabled)) {
+      return;
+    }
     setState(() {
       _open = key == _open ? null : key;
       if (_open != null) _opened.add(_open!);
@@ -144,6 +177,7 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
           child: Wrap(
             spacing: AppSpacing.xxs,
             runSpacing: AppSpacing.xxs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               for (final panel in widget.panels)
                 _PanelToggle(
@@ -151,6 +185,7 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
                   open: panel.key == _open,
                   onToggle: () => _toggle(panel.key),
                 ),
+              if (widget.trailing != null) widget.trailing!,
             ],
           ),
         ),
@@ -158,7 +193,7 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
           if (_opened.contains(panel.key))
             Visibility(
               key: ValueKey(panel.key),
-              visible: panel.key == _open,
+              visible: panel.key == _open && panel.enabled,
               maintainState: true,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -200,33 +235,36 @@ class _PanelToggle extends StatelessWidget {
     // One complete node for the toggle: the chip's own semantics are replaced,
     // so its label, button role, open state, hints and tap action are read
     // together. Keyboard focus and activation still come from the chip.
+    final enabled = panel.enabled;
     Widget toggle = Semantics(
       button: true,
-      enabled: true,
+      enabled: enabled,
       expanded: open,
       label: panel.semanticsLabel ?? panel.label,
       hint: stateHint,
       onTapHint: open
           ? localizations.expansionTileExpandedTapHint
           : localizations.expansionTileCollapsedTapHint,
-      onTap: onToggle,
+      onTap: enabled ? onToggle : null,
       excludeSemantics: true,
       child: ActionChip(
         key: panel.key,
-        backgroundColor: open ? scheme.secondaryContainer : null,
-        // No leading icon: the label and chevron say what the chip does, and
-        // without one all three tools fit one row in a phone-width pane.
+        backgroundColor: open && enabled ? scheme.secondaryContainer : null,
+        // No leading icon, and padding trimmed all round: the label and chevron
+        // say what the chip does, and the three tools plus a [trailing] control
+        // must share one row on a 390dp phone even with "Filters · 3" showing.
         // The chevron already adds space at the end of the label.
-        labelPadding: const EdgeInsetsDirectional.only(start: 8, end: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        labelPadding: const EdgeInsetsDirectional.only(start: 4, end: 0),
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(child: Text(panel.label)),
-            const SizedBox(width: AppSpacing.xxs),
-            Icon(open ? Icons.expand_less : Icons.expand_more, size: 18),
+            const SizedBox(width: 2),
+            Icon(open ? Icons.expand_less : Icons.expand_more, size: 16),
           ],
         ),
-        onPressed: onToggle,
+        onPressed: enabled ? onToggle : null,
       ),
     );
     if (defaultTargetPlatform == TargetPlatform.android) {

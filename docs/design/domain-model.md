@@ -75,6 +75,15 @@ sort share these SQL predicates from `calling_history_scope.dart`; half stats
 apply the same alternate rule in Dart through
 `ProgramSlot.countsTowardCallingHistory`.
 
+A call is dated by its program's `eventDate` when the program has one, else by
+the slot's `performedAt`, else by the program's `updatedAt`
+(`DanceCallingRecord.effectiveDate`, and the same `COALESCE` in the history
+order, last-called and the Last-called sort). `performedAt` is therefore a
+"called" flag whose time matters only for an undated program: marking slots
+days after the event, or past midnight during it, does not move the call, and
+re-dating a program moves its history with no data migration (GIG-2,
+maintainer decision 2026-10-29).
+
 ### Figure (value object, not a table-per-move)
 ```
 {
@@ -217,7 +226,7 @@ entry mode only (free-text field vs. picker); it never rewrites either column.
 | band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
 | status: draft/finalized/performed | isAlt: bool (alternate dance, decided at event time) |
 | createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
-| | performedAt? (set when actually called → feeds dance calling history) |
+| | performedAt? (set when marked performed → the "called" flag for dance calling history; its time dates the call only when the program has no eventDate) |
 
 `band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
 event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
