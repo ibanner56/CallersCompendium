@@ -192,6 +192,30 @@ class FigureDraft {
     };
   }
 
+  /// Gives the rows [rows] that replaced the row [replaced], whose move was
+  /// retyped, what it had beside its move, as picking a new move keeps them
+  /// (AUTH-9): its note goes on the first row, after a note typed with the
+  /// line, its walkthrough step too unless that row has one or is a
+  /// combination's (which has none of its own), and its progression mark on
+  /// the last row, unless a row already has one. This is how a combination's
+  /// row passes them on when it expands on Save.
+  static void carryRowExtras(FigureDraft replaced, List<FigureDraft> rows) {
+    final first = rows.first;
+    final note = replaced.note.trim();
+    if (note.isNotEmpty) {
+      final own = first.note.trim();
+      first.note = own.isEmpty ? note : '$own; $note';
+    }
+    if (replaced.walkthroughOverride case final step?
+        when first.walkthroughOverride == null &&
+            !first.isCompoundPlaceholder) {
+      first.walkthroughOverride = step;
+    }
+    if (replaced.progression && !rows.any((row) => row.progression)) {
+      rows.last.progression = true;
+    }
+  }
+
   /// Stable identity for widget keys across reorders/rebuilds.
   final String id;
 
@@ -207,9 +231,11 @@ class FigureDraft {
   /// Beats are auto-filled from the taxonomy: picking a move seeds the move's
   /// canonical default and clears this flag. Once the user edits the beats
   /// field directly (or the draft is seeded from a loaded figure that already
-  /// carries an explicit `beats` via [FigureDraft.fromFigure]), this becomes
-  /// `true` and the editor stops auto-filling beats so a manual override is
-  /// never silently overwritten. (Exception: toggling a `balance` flag shifts
+  /// carries an explicit `beats` via [FigureDraft.fromFigure], except a group
+  /// whose count is 0 or matches what its sides call for ([sidesBeats]),
+  /// which keeps following them, AUTH-11), this becomes `true` and the editor
+  /// stops auto-filling beats so a manual override is never silently
+  /// overwritten. (Exception: toggling a `balance` flag shifts
   /// the count by 4 either way; see core's `applyParamChange`.)
   bool beatsTouched;
 

@@ -92,7 +92,8 @@ bool isNewDanceEditorDraftKey(String key) {
 /// Added without a version bump, because a build that ignores them still
 /// restores the draft without losing anything (AUTH-5, AUTH-10, AUTH-17):
 /// - per-figure `beatsTouched` (bool). A draft without it reads each figure as
-///   touched when it carries a `beats` count, as opening a saved dance does.
+///   touched when it carries a `beats` count, except a group whose count is 0,
+///   which follows its sides (AUTH-11).
 /// - `savedAt` and `baseUpdatedAt` (ISO-8601 UTC timestamps, omitted when
 ///   unknown): when the draft was written, and the stored dance's `updatedAt`
 ///   it was edited from.

@@ -1672,7 +1672,7 @@ class DanceEditorController extends ChangeNotifier {
   /// its Move box (#1177, opt-in "Free-text entry"), in its place. The rows are
   /// built as [insertFreeTextFigures] builds them, so parser-gap customs keep
   /// the #398 marker and stay reparse-eligible, and they keep what [draft] had
-  /// beside its move ([_carryRowExtras]). Returns the number of rows
+  /// beside its move ([FigureDraft.carryRowExtras]). Returns the number of rows
   /// inserted; 0 (an empty list, or [draft] no longer in the list) changes
   /// nothing.
   int replaceWithFreeTextFigures(FigureDraft draft, List<Figure> figures) {
@@ -1688,7 +1688,7 @@ class DanceEditorController extends ChangeNotifier {
     ];
     figureDrafts.replaceRange(index, index + 1, inserted);
     _renderDraftTextRecursively(inserted);
-    _carryRowExtras(draft, inserted);
+    FigureDraft.carryRowExtras(draft, inserted);
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
@@ -1698,7 +1698,7 @@ class DanceEditorController extends ChangeNotifier {
 
   /// Puts the shorthand rows [drafts] at the end of the list, or in place of
   /// [replacing] (#1847) when that row is still in the list, keeping what it
-  /// had beside its move ([_carryRowExtras]). Returns false, changing
+  /// had beside its move ([FigureDraft.carryRowExtras]). Returns false, changing
   /// nothing, when [replacing] was given but is gone or [drafts] is empty.
   bool placeShorthandDrafts(
     List<FigureDraft> drafts, {
@@ -1711,37 +1711,13 @@ class DanceEditorController extends ChangeNotifier {
       final index = figureDrafts.indexOf(replacing);
       if (index == -1) return false;
       figureDrafts.replaceRange(index, index + 1, drafts);
-      _carryRowExtras(replacing, drafts);
+      FigureDraft.carryRowExtras(replacing, drafts);
     }
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
     _notify();
     return true;
-  }
-
-  /// Gives the rows [rows] that replaced the row [replaced], whose move was
-  /// retyped, what it had beside its move, as picking a new move keeps them
-  /// (AUTH-9): its note goes on the first row, after a note typed with the
-  /// line, its walkthrough step too unless that row has one or is a
-  /// combination's (which has none of its own), and its progression mark on
-  /// the last row, unless a row already has one. This is how a combination's
-  /// row passes them on when it expands on Save.
-  static void _carryRowExtras(FigureDraft replaced, List<FigureDraft> rows) {
-    final first = rows.first;
-    final note = replaced.note.trim();
-    if (note.isNotEmpty) {
-      final own = first.note.trim();
-      first.note = own.isEmpty ? note : '$own; $note';
-    }
-    if (replaced.walkthroughOverride case final step?
-        when first.walkthroughOverride == null &&
-            !first.isCompoundPlaceholder) {
-      first.walkthroughOverride = step;
-    }
-    if (replaced.progression && !rows.any((row) => row.progression)) {
-      rows.last.progression = true;
-    }
   }
 
   /// The rows for [figures] parsed from one `;` clause of a shorthand line

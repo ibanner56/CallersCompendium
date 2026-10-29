@@ -500,12 +500,14 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           .toList();
     }
     if (accepted.isEmpty) return 0;
-    setState(
-      () => drafts.replaceRange(index, index + 1, [
-        for (final figure in accepted)
-          FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
-      ]),
-    );
+    final rows = [
+      for (final figure in accepted)
+        FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+    ];
+    // The retyped row keeps its note, step and mark, as in the dance editor
+    // (AUTH-9).
+    FigureDraft.carryRowExtras(draft, rows);
+    setState(() => drafts.replaceRange(index, index + 1, rows));
     unawaited(persist());
     return accepted.length;
   }
