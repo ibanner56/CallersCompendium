@@ -1529,7 +1529,9 @@ has to be judged in its own context.
 
   **Hey starts (#1975):** besides `half hey, ladies start by the right`, the
   shared `_heyStartBy` reads Caller's Companion's `Half Hey, Robins start right
-  shoulder(s)` into `pass1`, `shoulder` and `length`. Lengths are half (`1/2`)
+  shoulder(s)` (or `starts`) into `pass1`, `shoulder` and `length`; this
+  wording must state a length, since the half-hey default could contradict the
+  line's beats. Lengths are half (`1/2`)
   and full, plus `1/4` → `lessThanHalf` and `3/4` → `betweenHalfAndFull`, as the
   TCB pass-list decoder maps them. A leading `left/right diagonal` is `where`.
   A trailing `<role> ricochet` sets a ricochet flag only on a half hey started

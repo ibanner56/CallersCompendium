@@ -91,6 +91,20 @@ void main() {
       test('any other ricochet stays custom', () {
         expectCustom('Full Hey, Larks start left shoulder, Robins ricochet');
         expectCustom('Half Hey, Partner start left shoulder, Robins ricochet');
+        expectCustom('Half Hey, Larks start left shoulder, Neighbor ricochet');
+      });
+
+      test('"start" wording without a length stays custom', () {
+        // The half-hey default could contradict the line's beats.
+        expectCustom('Hey, Robins start right shoulder');
+        expectCustom('Hey - Robins start right shoulder');
+      });
+
+      test('"starts" reads as "start"', () {
+        expectHey('Full Hey, Neighbor starts Right shoulder', {
+          'pass1': 'neighbors',
+          'length': 'full',
+        });
       });
 
       test('a different figure named after a hey stays custom', () {

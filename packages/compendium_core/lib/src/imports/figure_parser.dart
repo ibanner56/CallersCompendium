@@ -1173,8 +1173,9 @@ final List<_Recognizer> _recognizers = [
   // ContraDB lines are recognized by `contradb_figure_dialect.dart` instead.
   _madRobin,
   _butterflyWhirl,
-  // Free-text phrasing "half hey, ladies start by the right": anchors on the
-  // `hey` word plus a `start by` clause that no other recognizer consumes.
+  // Free-text phrasing "half hey, ladies start by the right", and Caller's
+  // Companion's "Half Hey, Robins start right shoulder" (#1975): anchors on the
+  // `hey` word plus a `start (by)` clause that no other recognizer consumes.
   _heyStartBy,
   // `circular_hey` (taxonomy v36): the renderer's own sentence, "3/4 circular
   // hey, neighbors pass right across", and its "square hey" alias.
@@ -2205,6 +2206,8 @@ _Match? _butterflyWhirl(List<String> w) {
 /// name, see `typed_figure_names.dart`), and any leftover token yields null so
 /// the line degrades to a faithful custom figure.
 ///
+/// The "start" wording (also "starts") must state a length.
+///
 /// Lengths: half (`1/2`) and full, and the partial `1/4` → `lessThanHalf` and
 /// `3/4` → `betweenHalfAndFull`, as the Caller's Box pass-list decoder maps
 /// them. A trailing "`role` ricochet" is read only on a half hey started by a
@@ -2236,9 +2239,16 @@ _Match? _heyStartBy(List<String> w) {
     }
   }
   if (length == null && !_consumePhrase(w, ['hey'])) return null;
-  if (!_consumePhrase(w, ['start', 'by']) && !_consumePhrase(w, ['start'])) {
+  final startBy = _consumePhrase(w, ['start', 'by']);
+  if (!startBy &&
+      !_consumePhrase(w, ['start']) &&
+      !_consumePhrase(w, ['starts'])) {
     return null;
   }
+  // Caller's Companion always states the length; without one, the half-hey
+  // default could contradict the line's beats (a 16-beat hey is a full one),
+  // so only the older "start by" phrasing may leave it out.
+  if (length == null && !startBy) return null;
   final pass1 = _takeDancer(w);
   if (pass1 == null) return null;
   final shoulder = _takeSide(w);

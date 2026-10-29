@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A hey written as Caller's Companion does, such as \"Half Hey, Robins start right shoulder\", \"1/4 Hey, Partner start Right shoulder\" or \"Left diagonal Half Hey, …\", now comes in as a hey with who starts, the shoulder and the length, instead of text. A ricochet named on a half hey is kept too. This applies to imports and to figures you type."
+      "A hey written as Caller's Companion does, such as \"Half Hey, Robins start right shoulder\", \"1/4 Hey, Partner start Right shoulder\" or \"Left diagonal Half Hey, …\", now comes in as a hey with who starts, the shoulder and the length, instead of text. A ricochet on a half hey that Larks or Robins start is kept too. This applies to imports and to figures you type."
     ]
   },
   "core": {
