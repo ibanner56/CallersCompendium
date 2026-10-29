@@ -16,12 +16,13 @@ enum DiscardChangesChoice {
   save,
 }
 
-/// The one "Discard changes?" prompt every editor shows before it throws away
+/// The shared "Discard changes?" prompt an editor shows before it throws away
 /// unsaved work (UX2-1).
 ///
-/// Each editor passes its own wording where it has some (the dance, program,
-/// compound-figure and dialect editors keep the strings they had before this
-/// helper existed); the rest fall back to the generic `common*` strings.
+/// Used by the dance, program, compound-figure and dialect editors, which pass
+/// the wording they had before this helper existed, and (through
+/// [DiscardChangesGuard], with the generic `common*` strings) by the shorthand,
+/// compound-shorthand and theme editors and the venue and custom-field sheets.
 ///
 /// Passing [saveLabel] adds a third action that saves and leaves, as the
 /// dialect editor offers. The caller does the saving: this only reports the
