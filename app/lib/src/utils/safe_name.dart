@@ -126,10 +126,12 @@ String programPdfJobName(
   String? suffix,
   DateTime? eventDate,
 }) {
-  final parts = [
-    sanitizeExportName(title, fallback: fallback),
-    if (suffix != null) sanitizeExportName(suffix),
+  final base = sanitizeExportName(title, fallback: fallback);
+  final sanitizedSuffix = suffix == null ? null : sanitizeExportName(suffix);
+  return [
+    base,
+    // An untitled program already fell back to the suffix's own words.
+    if (sanitizedSuffix != null && sanitizedSuffix != base) sanitizedSuffix,
     if (eventDate != null) isoDate(eventDate),
-  ];
-  return parts.join('_');
+  ].join('_');
 }

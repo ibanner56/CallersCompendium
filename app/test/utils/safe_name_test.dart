@@ -176,6 +176,17 @@ void main() {
       expect(matrix, isNot(setList));
     });
 
+    test('an untitled matrix is not named twice', () {
+      expect(
+        programPdfJobName(
+          '',
+          fallback: 'Programming matrix',
+          suffix: 'Programming matrix',
+        ),
+        'Programming_matrix',
+      );
+    });
+
     test('uses the fallback for an untitled program', () {
       expect(programPdfJobName('', fallback: 'program'), 'program');
     });
