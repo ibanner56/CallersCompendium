@@ -494,6 +494,7 @@ CcDanceMapping mapCallersCompanionDance(
       final produced =
           _retryHyphenatedHand(prefix.text, prefix.beats, first) ?? first;
       final allocated = withBeatImpliedBalance(
+        prefix.text,
         _allocateCompoundBeats(produced, prefix.parts),
       );
       lineCache?.remember(line, allocated);

@@ -3,15 +3,15 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "\"Neighbor Roll Away\" and \"Partners roll away\" now come in as a roll away with your neighbor or partner, instead of one where the neighbors roll each other away. \"Neighbor rollaway w/ half sashay\", as Caller's Companion writes it, now comes in as a roll away too, and a note like \"(Robins roll R, Larks step L)\" sets who rolls the others away. This applies to imports and to figures you type; figures you already imported are unchanged.",
-      "An imported box circulate that has a line to itself now includes its balance in 8 beats and leaves it out in 4. Before, every box circulate showed a balance.",
+      "\"Neighbor Roll Away\" and \"Partners roll away\" now come in as a roll away with your neighbor or partner, instead of one where the neighbors roll each other away. \"Neighbor rollaway w/ half sashay\", as Caller's Companion writes it, now comes in as a roll away too, and a note like \"(Robins roll R, Larks step L)\" sets who rolls the others away. This applies to imports, to figures you type, and to figures Re-check custom figures reads again; roll aways already structured in your collection are unchanged.",
+      "A box circulate on a line of its own, imported or typed, now includes its balance in 8 beats and leaves it out in 4. Before, a box circulate that did not say either way always showed a balance.",
       "A Caller's Box line that names its subject in a leading bracket, such as \"[Ones] Box circulate\", no longer shows that subject as assumed."
     ]
   },
   "core": {
     "changed": [
       "The shared figure recognizer, and the ContraDB dialect for a line with one dancer set, read a relationship that is the line's only dancer set as roll_away's whom, leaving who to the default with assumedSubject; the recognizer also reads \"rollaway\" and \"w/ half sashay\".",
-      "withBeatImpliedBalance sets box_circulate's balance from a whole line's beats (8: true, 4: false) in the Caller's Companion mapper, the Caller's Box per-line parse and reparseImportGapFigures.",
+      "withBeatImpliedBalance sets box_circulate's balance from a whole line's beats (8: true, 4: false) when the line has no top-level `;`, in the Caller's Companion mapper, the Caller's Box per-line parse, reparseImportGapFigures and parseFreeTextFigureEntry.",
       "The CallersBox per-role roll-away annotation fills who on the whom reading for any roll-away relationship and clears assumedSubject; it also reads a role-named note (\"role2s roll R, role1s step L\"). A leading bracket that fills who clears assumedSubject, and does not overrule an annotation's roller."
     ]
   }

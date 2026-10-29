@@ -146,11 +146,11 @@ void main() {
     });
   });
 
-  // Only an importer reads the balance from beats, once a line's beats are
-  // settled and the box circulate is the whole line. Free-text entry has no
-  // beats.
+  // The balance is read from beats once a line's beats are settled and the
+  // box circulate is the whole line.
   group('box circulate', () {
     final importers = {
+      'free-text entry': (String line) async => parseFreeTextFigureEntry(line),
       "Caller's Companion": _ccFigures,
       "Caller's Box": _tcbFigures,
       're-parse': (String line) async => reparseImportGapFigures([
@@ -200,6 +200,28 @@ void main() {
         expect(figures.map((f) => f.move), ['box_circulate', 'swing']);
         expect(figures.first.params.containsKey('balance'), isFalse);
       }
+    });
+
+    test('a stored `;` custom re-read as one figure and a note', () {
+      // The line's total stays on the one figure, but some of it is the
+      // noted clause's.
+      final f = reparseImportGapFigures([
+        customFigure(
+          'Box circulate; Neighbor swing',
+          beats: 8,
+          origin: CustomOrigin.importGap,
+        ),
+      ]).figures.single;
+      expect(f.move, 'box_circulate');
+      expect(f.note, isNotNull);
+      expect(f.params.containsKey('balance'), isFalse);
+    });
+
+    test('a Caller\'s Box `;` line read as one figure and a note', () async {
+      final f = (await _tcbFigures('(8) Box circulate; face up')).single;
+      expect(f.move, 'box_circulate');
+      expect(f.note, isNotNull);
+      expect(f.params.containsKey('balance'), isFalse);
     });
 
     test('a ContraDB box circulate keeps its own reading of the balance', () {

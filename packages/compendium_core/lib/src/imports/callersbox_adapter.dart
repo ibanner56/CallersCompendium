@@ -601,6 +601,7 @@ class CallersBoxAdapter implements SourceAdapter {
     // figures; the rest fall back to custom. Empty when the line is empty
     // after scrubbing.
     return withBeatImpliedBalance(
+      text,
       parseFigureLines(
         text,
         beats: beats,
