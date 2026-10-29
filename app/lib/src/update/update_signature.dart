@@ -75,8 +75,8 @@ Future<bool> verifyManifestSignatureWith(
   String? signatureText, {
   required List<String> publicKeysBase64,
 }) async {
-  // No signature => refuse. Preserves the "missing signature is a silent no-op"
-  // contract without letting an unsigned manifest through.
+  // No signature => refuse. Fail closed: an unsigned manifest is never let through
+  // (the automatic check stays silent about it; a manual one reports it).
   if (signatureText == null) return false;
   final trimmedSig = signatureText.trim();
   if (trimmedSig.isEmpty) return false;

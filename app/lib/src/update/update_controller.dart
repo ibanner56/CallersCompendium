@@ -341,7 +341,7 @@ class UpdateController extends ChangeNotifier {
   /// A concurrent call is ignored while one is in flight. Never throws — every
   /// failure resolves to [AssistedDownloadStatus.failed] with a user-facing
   /// [downloadFailure] (a verification mismatch also deletes the file). This is
-  /// deliberately **not** a silent no-op like the check: it is a security gate
+  /// deliberately **not** a silent no-op like the automatic check: it is a security gate
   /// (ADR-002 §6, "Stage 1.5").
   Future<void> startAssistedDownload() async {
     if (isDownloadInFlight || isAwaitingMacosInstall) return;
