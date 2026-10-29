@@ -372,7 +372,14 @@ CcDanceMapping mapCallersCompanionDance(
   final authorNames = splitAuthorNames(record.authors, issues: issues);
 
   // Level → shipped difficulty-level id (+ mixedLevel), best-effort.
-  final (difficultyLevelId, mixedLevel) = _mapLevel(record.level, issues);
+  final (
+    id: difficultyLevelId,
+    mixed: mixedLevel,
+    label: difficultyLevelLabel,
+  ) = _mapLevel(
+    record.level,
+    issues,
+  );
 
   // A `.USR` carries the formation in separate columns, and its formation
   // types and mixer SubTypes are read into the formation and the mixer flag
@@ -533,7 +540,7 @@ CcDanceMapping mapCallersCompanionDance(
     dance: dance,
     issues: issues,
     authorNames: authorNames,
-    difficultyLevelLabel: record.level?.trim(),
+    difficultyLevelLabel: difficultyLevelLabel,
   );
 }
 
@@ -691,26 +698,120 @@ List<Figure>? _retryHyphenatedHand(String text, int beats, List<Figure> first) {
   return f.params['hand'] == side.toLowerCase() ? retried : null;
 }
 
-(String?, bool) _mapLevel(String? raw, List<ImportIssue> issues) {
-  final value = raw?.trim().toLowerCase() ?? '';
-  if (value.isEmpty) return (null, false);
-  if (value.contains('mix')) return (null, true);
-  const beginner = {'beginner', 'easy', 'novice', 'basic'};
-  const intermediate = {'intermediate', 'medium', 'moderate'};
-  const advanced = {'advanced', 'hard', 'challenging', 'difficult', 'expert'};
-  if (beginner.contains(value)) return (DifficultyLevel.beginnerId, false);
-  if (intermediate.contains(value)) {
-    return (DifficultyLevel.intermediateId, false);
+/// Reads a CC `Level` into a shipped difficulty-level id, the mixed-level
+/// flag, and the label the pipeline matches against the receiver's levels.
+///
+/// CC's `Level` is a multi-select and stores each checked value on its own
+/// line (#1973). One value (or several that are the same step) maps to a
+/// shipped level as before, `Easy` to Beginner. Several steps name a level of
+/// their own, "Easy/Intermediate", lowest first on CC's scale
+/// ([ccLevelScale]); it is left unset here, with a [ccNewLevelIssueCode] issue,
+/// and the pipeline reuses a level of that name while the `.USR` importer
+/// creates one that does not exist yet.
+({String? id, bool mixed, String? label}) _mapLevel(
+  String? raw,
+  List<ImportIssue> issues,
+) {
+  final values = [
+    for (final value in (raw ?? '').split(_lineBreak))
+      if (value.trim().isNotEmpty) value.trim(),
+  ];
+  if (values.isEmpty) return (id: null, mixed: false, label: null);
+  // Joined, not raw: a message or label never carries a line break.
+  final written = values.join('/');
+  if (written.toLowerCase().contains('mix')) {
+    return (id: null, mixed: true, label: written);
   }
-  if (advanced.contains(value)) return (DifficultyLevel.advancedId, false);
+  final steps = <int>{};
+  for (final value in values) {
+    final step = _ccLevelStep(value);
+    if (step == null) {
+      issues.add(
+        ImportIssue(
+          severity: ImportIssueSeverity.warning,
+          code: 'cc_unmapped_level',
+          message: 'Level "$written" is unrecognized; left unspecified.',
+        ),
+      );
+      return (id: null, mixed: false, label: written);
+    }
+    steps.add(step);
+  }
+  if (steps.length == 1) {
+    final id = switch (steps.single) {
+      0 || 1 => DifficultyLevel.beginnerId,
+      2 => DifficultyLevel.intermediateId,
+      _ => DifficultyLevel.advancedId,
+    };
+    return (id: id, mixed: false, label: values.first);
+  }
+  final name = ([...steps]..sort()).map((s) => ccLevelScale[s]).join('/');
   issues.add(
     ImportIssue(
-      severity: ImportIssueSeverity.warning,
-      code: 'cc_unmapped_level',
-      message: 'Level "${raw!.trim()}" is unrecognized; left unspecified.',
+      severity: ImportIssueSeverity.info,
+      code: ccNewLevelIssueCode,
+      message: 'Level "$name" is added as a difficulty level of its own.',
+      // Safe to show: built only from [ccLevelScale]'s own names.
+      data: {'level': name},
     ),
   );
-  return (null, false);
+  return (id: null, mixed: false, label: name);
+}
+
+final RegExp _lineBreak = RegExp(r'\r\n|\r|\n');
+
+/// Caller's Companion's level scale, lowest first (#1973). A combined level
+/// is named from these and placed among the receiver's levels by them
+/// ([ccLevelScaleKey]).
+const List<String> ccLevelScale = [
+  'Beginner',
+  'Easy',
+  'Intermediate',
+  'Advanced',
+];
+
+/// The key two level names match on when a CC combined level is reused
+/// (#1973): case and spacing are ignored, so a hand-made "easy / intermediate"
+/// is the imported "Easy/Intermediate".
+String ccLevelNameKey(String label) =>
+    label.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+
+/// The [ImportIssue] code on a draft whose CC level combines several steps
+/// and names a level that is not resolved yet (#1973).
+const String ccNewLevelIssueCode = 'cc_new_level';
+
+/// The step on [ccLevelScale] a CC level value names, or null. The synonyms
+/// are the ones a single value has always mapped.
+int? _ccLevelStep(String value) => switch (value.toLowerCase()) {
+  'beginner' || 'novice' || 'basic' => 0,
+  'easy' => 1,
+  'intermediate' || 'medium' || 'moderate' => 2,
+  'advanced' || 'hard' || 'challenging' || 'difficult' || 'expert' => 3,
+  _ => null,
+};
+
+/// Where [level] sits on [ccLevelScale], or null when it says nothing about
+/// that: the shipped levels by id (whatever they are now called), and a level
+/// named from scale steps ("Easy/Intermediate") at the middle of its span.
+double? ccLevelScaleKey(DifficultyLevel level) {
+  switch (level.id) {
+    case DifficultyLevel.beginnerId:
+      return 0;
+    case DifficultyLevel.intermediateId:
+      return 2;
+    case DifficultyLevel.advancedId:
+      return 3;
+  }
+  final steps = <int>[];
+  for (final part in level.label.split('/')) {
+    final index = ccLevelScale.indexWhere(
+      (step) => step.toLowerCase() == part.trim().toLowerCase(),
+    );
+    if (index < 0) return null;
+    steps.add(index);
+  }
+  steps.sort();
+  return (steps.first + steps.last) / 2;
 }
 
 /// Returns whether [raw] still names [level] in the receiver's active

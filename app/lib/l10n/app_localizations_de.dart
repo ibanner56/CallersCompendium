@@ -7138,6 +7138,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ein Niveau wurde nicht erkannt; nicht angegeben.';
 
   @override
+  String importIssueNewLevel(String level) {
+    return 'Das Niveau „$level“ wird zu Ihren Schwierigkeitsgraden hinzugefügt.';
+  }
+
+  @override
   String get importIssueUnmappedProgression =>
       'Eine Progression wurde nicht erkannt; Standard ist einfach.';
 

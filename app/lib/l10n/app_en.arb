@@ -9106,6 +9106,16 @@
   "@importIssueUnmappedLevel": {
     "description": "Import note: a difficulty/level string wasn't recognized and was left unspecified."
   },
+  "importIssueNewLevel": "The level \"{level}\" is added to your difficulty levels.",
+  "@importIssueNewLevel": {
+    "description": "Import note: a Caller's Companion dance had several levels checked, so a level named after them is added to the user's difficulty levels. {level} is that name, built from Caller's Companion's own level words.",
+    "placeholders": {
+      "level": {
+        "type": "String",
+        "example": "Easy/Intermediate"
+      }
+    }
+  },
   "importIssueUnmappedProgression": "A progression wasn't recognized; defaulted to single.",
   "@importIssueUnmappedProgression": {
     "description": "Import note: a progression string wasn't recognized and defaulted to single progression."

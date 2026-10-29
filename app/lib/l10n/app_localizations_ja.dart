@@ -6777,6 +6777,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importIssueUnmappedLevel => 'レベルを認識できませんでした。未指定のままです。';
 
   @override
+  String importIssueNewLevel(String level) {
+    return 'レベル「$level」を難易度に追加します。';
+  }
+
+  @override
   String get importIssueUnmappedProgression =>
       'プログレッションを認識できませんでした。既定でシングルにしました。';
 

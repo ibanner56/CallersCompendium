@@ -2382,4 +2382,92 @@ void main() {
       expect(await repo.getById('recent', includeDeleted: true), isNotNull);
     });
   });
+
+  group('renameDialect', () {
+    final stamp = DateTime.utc(2026, 6, 1);
+
+    test('renames live and trashed programs, bumps updatedAt', () async {
+      await repo.create(sampleProgram(id: 'live').copyWith(dialectName: 'Old'));
+      await repo.create(
+        sampleProgram(
+          id: 'trashed',
+          deletedAt: DateTime.utc(2026, 2, 1),
+        ).copyWith(dialectName: 'Old'),
+      );
+      final n = await repo.renameDialect(
+        oldName: 'Old',
+        newName: 'New',
+        updatedAt: stamp,
+      );
+      expect(n, 2);
+      for (final id in ['live', 'trashed']) {
+        final p = (await repo.getById(id, includeDeleted: true))!;
+        expect(p.dialectName, 'New');
+        expect(p.updatedAt, stamp);
+      }
+      expect(
+        (await repo.getById('trashed', includeDeleted: true))!.deletedAt,
+        isNotNull,
+      );
+    });
+
+    test('leaves other dialects and unset programs alone', () async {
+      await repo.create(sampleProgram(id: 'other').copyWith(dialectName: 'X'));
+      await repo.create(sampleProgram(id: 'none'));
+      final n = await repo.renameDialect(
+        oldName: 'Old',
+        newName: 'New',
+        updatedAt: stamp,
+      );
+      expect(n, 0);
+      final other = (await repo.getById('other'))!;
+      expect(other.dialectName, 'X');
+      expect(other.updatedAt, DateTime.utc(2026, 1, 1));
+      expect((await repo.getById('none'))!.dialectName, isNull);
+    });
+
+    test('matches canonically-equal spellings, stores NFC', () async {
+      // "é" as e + combining acute, stored by a writer that skipped NFC.
+      await db.customStatement(
+        "INSERT INTO programs (id, title, status, created_at, updated_at, "
+        "dialect_name) VALUES ('nfd', 'T', 'draft', 0, 0, 'Caf\u0065\u0301')",
+      );
+      final n = await repo.renameDialect(
+        oldName: 'Caf\u00e9',
+        newName: 'Cafe\u0301 2',
+        updatedAt: stamp,
+      );
+      expect(n, 1);
+      expect(
+        (await repo.getById('nfd'))!.dialectName,
+        normalizeShareableText('Cafe\u0301 2'),
+      );
+    });
+
+    test('a newer stored stamp still advances', () async {
+      final future = DateTime.utc(2027, 1, 1);
+      await repo.create(
+        sampleProgram(updatedAt: future).copyWith(dialectName: 'Old'),
+      );
+      await repo.renameDialect(
+        oldName: 'Old',
+        newName: 'New',
+        updatedAt: stamp,
+      );
+      expect((await repo.getById('p1'))!.updatedAt.isAfter(future), isTrue);
+    });
+
+    test('same name is a no-op', () async {
+      await repo.create(sampleProgram().copyWith(dialectName: 'Old'));
+      expect(
+        await repo.renameDialect(
+          oldName: 'Old',
+          newName: 'Old',
+          updatedAt: stamp,
+        ),
+        0,
+      );
+      expect((await repo.getById('p1'))!.updatedAt, DateTime.utc(2026, 1, 1));
+    });
+  });
 }

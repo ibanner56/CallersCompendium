@@ -101,6 +101,17 @@ String canonicalizeText(
   Map<String, String> extraRoleSynonyms = const {},
 }) => _rolesFor(dialect, extraRoleSynonyms).canonicalize(text);
 
+/// Every role-term occurrence in [text] with the decision [canonicalizeText]
+/// makes for it (same rewriter, same [extraRoleSynonyms]). The search bar
+/// decides the roles of a whole query this way, in context, before splitting it
+/// into words, so "lead down" keeps its verb even though each word is matched
+/// on its own.
+List<RoleSpanDecision> analyzeRoleTerms(
+  String text,
+  Dialect dialect, {
+  Map<String, String> extraRoleSynonyms = const {},
+}) => _rolesFor(dialect, extraRoleSynonyms).analyze(text);
+
 /// Per-[Dialect] memo of the user-glossary role rewriters, bounded like
 /// [_dialectRoles].
 final Map<Dialect, RoleCanonicalizer> _glossaryRoles = {};

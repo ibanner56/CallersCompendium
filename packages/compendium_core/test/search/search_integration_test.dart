@@ -2049,7 +2049,15 @@ void main() {
     test(
       'title ignoring leading articles files under first real word',
       () async {
-        await dances.create(_dance(id: 'nice', title: 'The Nice Combination'));
+        await dances.create(
+          _dance(
+            id: 'nice',
+            title: 'The Nice Combination',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
         await dances.create(_dance(id: 'apple', title: 'Apple Blossom'));
         await dances.create(_dance(id: 'zesty', title: 'A Zesty Reel'));
         await dances.create(_dance(id: 'mid', title: 'Midtown'));
@@ -2944,4 +2952,251 @@ FROM seq
       );
     });
   });
+
+  group(
+    'several words find a dance with them in different fields (FIND-5)',
+    () {
+      Future<void> seed() async {
+        // ignore: unused_result
+        await choreographers.upsert(Choreographer(id: 'k', name: 'Bob Kaynor'));
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'r', name: 'Robin Hayden'),
+        );
+        await dances.create(
+          _dance(
+            id: 'kaynor-pet',
+            title: 'Fiddleheads',
+            authorIds: ['k'],
+            figures: [
+              Figure(move: 'petronella', params: const {'beats': 8}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'kaynor-only',
+            title: 'Plainsong',
+            authorIds: ['k'],
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'hayden-swing',
+            title: 'Quiet Morning',
+            authorIds: ['r'],
+            figures: [
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'dosido',
+            title: 'Neighbourly',
+            figures: [
+              Figure(move: 'do_si_do', params: const {'beats': 8}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'nice',
+            title: 'The Nice Combination',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+      }
+
+      test('an author word and a figure word', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('Kaynor petronella')), [
+          'kaynor-pet',
+        ]);
+      });
+
+      test('word order does not matter', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('combination nice')), [
+          'nice',
+        ]);
+        expect(
+          await dances.search(
+            const FullTextFilter(
+              'combination nice',
+              scope: FullTextScope.title,
+            ),
+          ),
+          ['nice'],
+        );
+      });
+
+      test(
+        'a role word and a figure word: the raw branch is per word',
+        () async {
+          await seed();
+          // "Robin" is a role word; only its raw form finds the author, while
+          // "swing" is found in the figures.
+          expect(
+            await dances.search(
+              const FullTextFilter('Robin Hayden swing'),
+              dialect: Dialect.larksRobins,
+            ),
+            ['hayden-swing'],
+          );
+        },
+      );
+
+      test('a short word uses the prefix index alongside a long one', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('Kaynor pe')), [
+          'kaynor-pet',
+        ]);
+      });
+
+      test('a move name of several words is matched as that move', () async {
+        await seed();
+        // "do si do" is a keyword of the move stored as "dosido"; split into
+        // words first, "si" would match nothing.
+        expect(await dances.search(const FullTextFilter('do si do')), [
+          'dosido',
+        ]);
+      });
+
+      test('a short word of punctuation alone constrains nothing', () async {
+        await seed();
+        await dances.create(
+          _dance(
+            id: 'rock',
+            title: 'Rock & Roll Reel',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        // "&" has no token for the prefix index, so as a word of its own it
+        // would match no row and empty the whole AND.
+        expect(await dances.search(const FullTextFilter('Rock & Roll')), [
+          'rock',
+        ]);
+        expect(
+          await dances.search(
+            const FullTextFilter('Rock - Roll', scope: FullTextScope.title),
+          ),
+          ['rock'],
+        );
+        // Alone it still matches nothing, as before.
+        expect(await dances.search(const FullTextFilter('&')), isEmpty);
+      });
+
+      test('every word must match', () async {
+        await seed();
+        expect(
+          await dances.search(const FullTextFilter('Kaynor swing')),
+          isEmpty,
+        );
+      });
+    },
+  );
+
+  group(
+    "the search bar finds a move by the dialect's name for it (FIND-4)",
+    () {
+      final buzz = Dialect(name: 'Buzz', moves: const {'swing': 'buzz'});
+
+      Future<void> seed() async {
+        await dances.create(
+          _dance(
+            id: 'swing',
+            title: 'Whirl',
+            figures: [
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'other',
+            title: 'Stillness',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'titled',
+            title: 'Buzz Off',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+      }
+
+      test('All fields finds the figure and a title with the word', () async {
+        await seed();
+        expect(
+          await dances.search(const FullTextFilter('buzz'), dialect: buzz),
+          unorderedEquals(['swing', 'titled']),
+        );
+      });
+
+      test('Figure finds the figure', () async {
+        await seed();
+        expect(
+          await dances.search(
+            const FullTextFilter('buzz', scope: FullTextScope.figure),
+            dialect: buzz,
+          ),
+          ['swing'],
+        );
+      });
+
+      test('a dialect name that is also a word of other moves still finds '
+          'them', () async {
+        await dances.create(
+          _dance(
+            id: 'ring',
+            title: 'Circle',
+            figures: [
+              Figure(move: 'balance_the_ring', params: const {'beats': 4}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'plain-balance',
+            title: 'Lines',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 4}),
+            ],
+          ),
+        );
+        final ringIsBalance = Dialect(
+          name: 'Ring',
+          moves: const {'balance_the_ring': 'balance'},
+        );
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          expect(
+            await dances.search(
+              FullTextFilter('balance', scope: scope),
+              dialect: ringIsBalance,
+            ),
+            containsAll(['ring', 'plain-balance']),
+          );
+        }
+      });
+
+      test('without the dialect the word is only a word', () async {
+        await seed();
+        expect(await dances.search(const FullTextFilter('buzz')), ['titled']);
+      });
+    },
+  );
 }

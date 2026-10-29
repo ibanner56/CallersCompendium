@@ -802,14 +802,191 @@ void main() {
     });
   });
 
+  group('free text is split into words and ANDed (FIND-5)', () {
+    const raw = '{title authors sources custom_values hook notes}';
+
+    test('each word is its own canonical-or-raw match, ANDed', () {
+      final c = compiler.compile(const FullTextFilter('Kaynor petronella'));
+      const word =
+          '(id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE dance_substring_fts MATCH ?) '
+          'OR id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE dance_substring_fts MATCH ?))';
+      expect(c.sql, contains('($word AND $word)'));
+      expect(c.binds, [
+        '"Kaynor"',
+        '$raw : ("Kaynor")',
+        '"petronella"',
+        '$raw : ("petronella")',
+      ]);
+    });
+
+    test('a word of one or two characters uses the prefix index', () {
+      final c = compiler.compile(const FullTextFilter('of Kaynor'));
+      expect(
+        c.sql,
+        contains(
+          '((id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?) '
+          'OR id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)) '
+          'AND (id IN (SELECT dance_id FROM dance_substring_fts',
+        ),
+      );
+      expect(c.binds, [
+        '"of"*',
+        '$raw : ("of"*)',
+        '"Kaynor"',
+        '$raw : ("Kaynor")',
+      ]);
+    });
+
+    test('a move name of several words stays one word', () {
+      final c = FilterCompiler(
+        null,
+        null,
+        contraTaxonomy,
+      ).compile(const FullTextFilter('do si do Kaynor'));
+      expect(c.binds, [
+        '"dosido"',
+        '$raw : ("do si do")',
+        '"Kaynor"',
+        '$raw : ("Kaynor")',
+      ]);
+    });
+
+    test('a role of several words stays one word', () {
+      final dialect = Dialect(
+        name: 'Birds',
+        roles: const {
+          'role1': RoleTerm('lady bird', plural: 'lady birds'),
+          'role2': RoleTerm('gent bird', plural: 'gent birds'),
+        },
+      );
+      final c = FilterCompiler(
+        dialect,
+      ).compile(const FullTextFilter('Lady Birds chain'));
+      expect(c.binds, [
+        '"role1s"',
+        '$raw : ("Lady Birds")',
+        '"chain"',
+        '$raw : ("chain")',
+      ]);
+    });
+
+    test('the role-token guard applies to each word on its own', () {
+      final c = compiler.compile(const FullTextFilter('Kaynor ro'));
+      // "Kaynor" has the plain shape; "ro" alone gets the figure re-check.
+      expect(c.binds, [
+        '"Kaynor"',
+        '$raw : ("Kaynor")',
+        '$raw : ("ro"*)',
+        '$raw : ("ro"*)',
+        '"ro"*',
+        '% ro%',
+      ]);
+    });
+
+    test('a role word is decided in the context of the whole query', () {
+      // "lead" before "down" is the verb under Leads/Follows, so it is not
+      // rewritten to role1 although the words are matched one by one.
+      final c = FilterCompiler(
+        Dialect.leadsFollows,
+      ).compile(const FullTextFilter('lead down', scope: FullTextScope.figure));
+      expect(c.binds, ['"lead"', '"down"']);
+    });
+
+    test('scoped searches AND their words too', () {
+      final c = compiler.compile(
+        const FullTextFilter('nice combination', scope: FullTextScope.title),
+      );
+      expect(
+        c.sql,
+        contains(
+          '(id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE title MATCH ?) AND id IN (SELECT dance_id FROM '
+          'dance_substring_fts WHERE title MATCH ?))',
+        ),
+      );
+      expect(c.binds, ['"nice"', '"combination"']);
+    });
+  });
+
+  group("the search bar reads the dialect's move names (FIND-4)", () {
+    const raw = '{title authors sources custom_values hook notes}';
+    final buzz = Dialect(
+      name: 'Buzz',
+      moves: const {'swing': 'buzz', 'mad_robin': 'dizzy robin'},
+    );
+
+    test('a dialect move name is searched as the stored move name', () {
+      final c = FilterCompiler(
+        buzz,
+        null,
+        contraTaxonomy,
+      ).compile(const FullTextFilter('buzz'));
+      // Canonical side: the taxonomy name the figure text holds; raw side:
+      // the word as typed. Then the same word without the dialect's meaning,
+      // ORed, so "buzz" still finds what it found before (FIND-4 adds).
+      expect(c.binds, [
+        '"swing"',
+        '$raw : ("buzz")',
+        '"buzz"',
+        '$raw : ("buzz")',
+      ]);
+      expect(c.sql, contains(') OR ('));
+    });
+
+    test('a dialect move name of several words is one word; a role word '
+        'inside it is a role only in the as-typed form', () {
+      final c = FilterCompiler(buzz, null, contraTaxonomy).compile(
+        const FullTextFilter('dizzy robin Kaynor', scope: FullTextScope.figure),
+      );
+      expect(c.binds, ['"mad robin"', '"dizzy role2"', '"Kaynor"']);
+    });
+
+    test('the Figure scope maps it too', () {
+      final c = FilterCompiler(
+        buzz,
+        null,
+        contraTaxonomy,
+      ).compile(const FullTextFilter('buzz', scope: FullTextScope.figure));
+      expect(c.binds, ['"swing"', '"buzz"']);
+    });
+
+    test("a saved dialect's move name (enrichment) is read too", () {
+      final c =
+          FilterCompiler(
+            null,
+            SearchEnrichment(
+              moveSynonyms: const {'gypsy dance': 'shoulder_round'},
+            ),
+            contraTaxonomy,
+          ).compile(
+            const FullTextFilter('gypsy dance', scope: FullTextScope.figure),
+          );
+      expect(c.binds, ['"shoulder round"', '"shoulder round dance"']);
+    });
+
+    test('without a taxonomy the word is searched as typed', () {
+      final c = FilterCompiler(
+        buzz,
+      ).compile(const FullTextFilter('buzz', scope: FullTextScope.figure));
+      expect(c.binds, ['"buzz"']);
+    });
+  });
+
   group('dialect canonicalization at the compiler boundary', () {
     test('FullText role terms are canonicalized', () {
       final c = FilterCompiler(
         Dialect.larksRobins,
       ).compile(const FullTextFilter('robins allemande'));
-      // Canonicalized to role tokens while keeping the long query as one
-      // literal substring phrase.
-      expect(c.binds.first, '"role2s allemande"');
+      // Each word is canonicalized on its own (FIND-5): the role word becomes
+      // its token on the canonical side and stays as typed on the raw side.
+      expect(c.binds, [
+        '"role2s"',
+        '{title authors sources custom_values hook notes} : ("robins")',
+        '"allemande"',
+        '{title authors sources custom_values hook notes} : ("allemande")',
+      ]);
     });
 
     test('role-valued figure params are canonicalized', () {

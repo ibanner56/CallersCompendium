@@ -578,18 +578,26 @@ class ImportPipeline {
     if (sourceLabel == null || sourceLabel.trim().isEmpty) {
       return draft;
     }
-    final hasUnmappedLevelIssue = draft.issues.any(
-      (issue) => issue.code == 'cc_unmapped_level',
-    );
+    // A level the source names but the mapper could not place: one it does
+    // not recognise, or a CC combined level such as "Easy/Intermediate"
+    // (#1973). Either is matched to a configured level of the same name.
+    bool isUnplacedLevel(ImportIssue issue) =>
+        issue.code == 'cc_unmapped_level' || issue.code == ccNewLevelIssueCode;
+    final hasUnmappedLevelIssue = draft.issues.any(isUnplacedLevel);
     if (id == null) {
       if (!hasUnmappedLevelIssue) return draft;
-      final configured = configuredByLabel[_normalizeName(sourceLabel)];
+      final configured =
+          configuredByLabel[_normalizeName(sourceLabel)] ??
+          configuredById.values.firstWhereOrNull(
+            (level) =>
+                ccLevelNameKey(level.label) == ccLevelNameKey(sourceLabel),
+          );
       if (configured == null) return draft;
       return draft.copyWith(
         dance: draft.dance.copyWith(difficultyLevelId: configured.id),
         issues: [
           for (final issue in draft.issues)
-            if (issue.code != 'cc_unmapped_level') issue,
+            if (!isUnplacedLevel(issue)) issue,
         ],
       );
     }

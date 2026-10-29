@@ -99,9 +99,17 @@ built figure.
   keep the active dialect, and the active dialect is never changed by it. The
   program stores only the dialect's **name**, resolved when Perform opens
   (`resolveProgramDialect`, comparing names after `normalizeShareableText`): a
-  name that no longer resolves — renamed, deleted, or not yet synced to this
-  device — silently falls back to the active dialect. Rename and delete never
-  write to programs. Inside Perform the quick-switch is then session-local.
+  name that no longer resolves — deleted, or not yet synced to this device —
+  silently falls back to the active dialect. Delete never writes to programs.
+  Rename does (amended 2026-10-29, @ibanner56's ruling on PRES-11/LIFE-11):
+  `DialectLibraryController.rename` saves the library, then
+  `ProgramRepository.renameDialect` gives every program naming the old dialect
+  (trashed ones included, names compared after `normalizeShareableText`) the
+  new name and a newer `updatedAt`. The library syncs as the `custom_dialects`
+  setting and each program as a record, so another device receives the two
+  independently, in either order, and ends on the new name. A program edited
+  on another device before it receives the rename is an ordinary record
+  conflict, and the loser keeps the old name, which reads as unavailable. Inside Perform the quick-switch is then session-local.
 
 ## Conditional wording
 
