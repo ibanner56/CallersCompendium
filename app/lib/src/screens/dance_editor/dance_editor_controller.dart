@@ -929,7 +929,8 @@ class DanceEditorController extends ChangeNotifier {
           ValidationIssue(
             severity: ValidationSeverity.warning,
             code: incompleteFigureValidationCode,
-            message: 'figure ${index + 1} is incomplete and is not saved',
+            message:
+                'figure ${index + 1} is incomplete and is not saved', // i18n-ignore: internal diagnostic, never shown
             data: {'position': index + 1},
           ),
       ..._phraseWarnings,
