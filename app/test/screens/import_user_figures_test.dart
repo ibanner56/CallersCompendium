@@ -349,9 +349,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect((await repos.userGlossary.getById('zoom-id'))?.name, 'zoom');
-      expect(find.text('Imported 2 items.'), findsOneWidget);
+      expect(
+        find.text('Figures added to or updated in your Glossary: 1'),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.text('Undo'));
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
       await tester.pumpAndSettle();
       expect(await repos.dances.listAll(), isEmpty);
       expect(await repos.userGlossary.getById('zoom-id'), isNull);
@@ -402,7 +405,7 @@ void main() {
       expect((taken.payload! as Map)['template'], '{move}');
       expect(taken.notes, 'my notes');
 
-      await tester.tap(find.text('Undo'));
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
       await tester.pumpAndSettle();
       final back = (await repos.userGlossary.getById('zoom-id'))!;
       expect((back.payload! as Map)['template'], '{move} mine');
@@ -419,8 +422,12 @@ void main() {
       expect(await repos.dances.listAll(), hasLength(1));
       expect(await repos.userGlossary.getById('zoom-id'), isNull);
       expect(
-        find.byKey(const ValueKey('shared-import-undo-snackbar')),
+        find.byKey(const ValueKey('import-result-dialog')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('import-summary-Figures')),
+        findsNothing,
       );
     });
 

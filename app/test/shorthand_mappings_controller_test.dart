@@ -160,9 +160,34 @@ void main() {
       ShorthandMapping(token: 'seed-c', figures: [_swing()]),
     ]);
 
-    expect(outcome.seeded, 1);
+    expect(outcome.added.map((m) => m.token), ['seed-a']);
     expect(outcome.skippedAtCap, 2);
     expect(controller.mappings, hasLength(maxShorthandMappings));
+  });
+
+  // INTAKE-16: seeding shorthands from a Caller's Companion file can be undone.
+  test('undoing a seed removes what it added, and only that', () async {
+    final repos = openTestRepositories();
+    final controller = ShorthandMappingsController(repos.settings);
+    addTearDown(controller.dispose);
+    final mine = ShorthandMapping(token: 'mine', figures: [_swing()]);
+    await controller.upsert(mine);
+
+    final outcome = await seedShorthandMappings(controller, [
+      ShorthandMapping(token: ' seed-a ', figures: [_swing()]),
+      ShorthandMapping(token: 'seed-b', figures: [_swing()]),
+    ]);
+    expect(controller.mappings, hasLength(3));
+    // The user changes one seed's figures before tapping Undo: it is theirs.
+    final changed = ShorthandMapping(
+      token: 'seed-b',
+      figures: [_swing(), _swing()],
+    );
+    await controller.upsert(changed, index: 2);
+
+    await undoShorthandSeed(controller, outcome.added);
+
+    expect(controller.mappings, [mine, changed]);
   });
 
   test('upsert rejects an empty or over-long token', () async {

@@ -6333,6 +6333,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get archiveIntakeRejectedNoContent => 'そのファイルにはダンスもプログラムも含まれていませんでした。';
 
   @override
+  String get archiveIntakeRejectedBackup =>
+      'そのファイルは共有ファイルではなくバックアップです。このデバイスに取り込むには、設定 › 一般 を開き、「バックアップから復元」を選んでください。';
+
+  @override
   String get importErrorInsecureScheme => 'インポートには安全なhttps:// URLを使用する必要があります。';
 
   @override
@@ -6888,33 +6892,6 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count件のアイテムをインポートしました。',
-      zero: 'インポート完了。',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportCompleteWithFailures(int count, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count件のアイテムをインポートしました。',
-      zero: '何もインポートされませんでした。',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed件のダンスをインポートできませんでした。',
-    );
-    return '$_temp0$_temp1';
-  }
-
-  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -6960,6 +6937,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return '用語集に追加または更新したフィギュア: $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count件更新済み（再インポート）';
   }
@@ -6970,6 +6952,16 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count件のプログラムノート:',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のメモ:',
     );
     return '$_temp0';
   }
@@ -7016,6 +7008,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'インポートを完了できませんでした。';
+
+  @override
+  String get importFileNotText =>
+      'そのファイルを読み込めませんでした。アプリが読めるテキストではありません。別のアプリで保存したファイルなら、UTF-8テキストとして保存し直してから、もう一度お試しください。';
+
+  @override
+  String get importFileUnreadable =>
+      'そのファイルを開けませんでした。別のアプリが使用中か、接続されていないドライブにある可能性があります。';
 
   @override
   String importReviewVariationTitle(String title) {

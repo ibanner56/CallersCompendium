@@ -396,12 +396,12 @@ Select **Import defaults** to open this group.
   you import on its own: from the import screen (including a pasted list of
   titles), from an online search (including the one in the program editor's
   dance picker), or from a shared dance link. It applies only
-  to dances the import creates. A dance an import updates in place, a dance
-  created for a program slot while importing a program (from a file, from a
-  title list, or from ContraDB), and dances restored
-  from a Compendium archive keep whatever tags they already have. A program in
-  a Caller's Companion file or a published collection is still imported, but
-  only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
+  to dances the import creates, including those from a file someone shared with
+  you, alongside the tags the sender gave them. A dance an import updates in
+  place, and a dance created for a program slot while importing a program (from
+  a file, from a title list, or from ContraDB), keep whatever tags they already
+  have. A program in a Caller's Companion file, a shared file, or a published
+  collection is still imported, but only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
   survives a sync or a merge restore. If you later delete one of the tags,
   imports simply skip it. Dances you create in the editor are not tagged either.
   Choosing tags here does not change dances already in your collection, and

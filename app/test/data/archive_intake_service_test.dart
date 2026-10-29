@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/archive_intake_service.dart';
+import 'package:compendium_app/src/data/backup_document.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -167,6 +168,24 @@ void main() {
       expectRejected(
         await service().validateBytes(_bytes(json)),
         reason: ArchiveIntakeRejectionReason.noContent,
+      );
+    });
+
+    // PLAT-2: a backup opened with the app was called empty.
+    test('a backup is rejected as a backup, not as an empty file', () async {
+      // A library of one dance, as Settings › Export a backup writes it.
+      final backup = encodeBackup(
+        BackupDocument(
+          createdAt: DateTime.utc(2026, 7, 15),
+          core: CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            dances: [_dance('d1', 'My Whole Library')],
+          ),
+        ),
+      );
+      expectRejected(
+        await service().validateBytes(_bytes(backup)),
+        reason: ArchiveIntakeRejectionReason.backup,
       );
     });
 

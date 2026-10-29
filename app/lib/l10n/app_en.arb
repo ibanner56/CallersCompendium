@@ -8523,6 +8523,10 @@
   "@archiveIntakeRejectedNoContent": {
     "description": "Rejection shown when a shared archive decoded successfully but carried neither dances nor programs."
   },
+  "archiveIntakeRejectedBackup": "That file is a backup, not a share file. To bring it into this device, go to Settings › General and choose Restore from a backup.",
+  "@archiveIntakeRejectedBackup": {
+    "description": "Snackbar shown when a full backup file is opened with the app (Open with, AirDrop, or a tap in Files) instead of being restored. Names the Settings path to Restore from a backup."
+  },
   "importErrorInsecureScheme": "Imports must use a secure https:// URL.",
   "@importErrorInsecureScheme": {
     "description": "Error shown when an import URL does not use the https scheme."
@@ -9236,27 +9240,6 @@
       }
     }
   },
-  "sharedImportComplete": "{count, plural, =0{Import complete.} =1{Imported 1 item.} other{Imported {count} items.}}",
-  "@sharedImportComplete": {
-    "description": "Transient snackbar message shown after a shared bundle is imported, alongside an Undo action.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "sharedImportCompleteWithFailures": "{count, plural, =0{Nothing was imported.} =1{Imported 1 item.} other{Imported {count} items.}} {failed, plural, =1{1 dance couldn't be imported.} other{{failed} dances couldn't be imported.}}",
-  "@sharedImportCompleteWithFailures": {
-    "description": "Transient snackbar message shown, alongside an Undo action, after a shared bundle is imported when some of its dances failed to import. {count} is what did import (dances, programs and other items); {failed} is the number of dances that failed (always at least 1).",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "failed": {
-        "type": "int"
-      }
-    }
-  },
   "sharedImportProgramsOnly": "{count, plural, =1{This share contains 1 program and no dances.} other{This share contains {count} programs and no dances.}}",
   "@sharedImportProgramsOnly": {
     "description": "Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.",
@@ -9329,6 +9312,15 @@
       }
     }
   },
+  "importReviewSummaryFigures": "Figures added to or updated in your Glossary: {count}",
+  "@importReviewSummaryFigures": {
+    "description": "Import result summary line for a shared file: how many of the sender's own figures were added to the Glossary or replaced the user's version.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "importReviewProgramsUpdated": "{count} updated (re-imported)",
   "@importReviewProgramsUpdated": {
     "description": "Import result detail: how many imported programs updated an existing one.",
@@ -9341,6 +9333,15 @@
   "importReviewProgramNotes": "{count, plural, =1{{count} program note(s):} other{{count} program note(s):}}",
   "@importReviewProgramNotes": {
     "description": "Import result heading listing program-level notes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importReviewNotes": "{count, plural, =1{1 note:} other{{count} notes:}}",
+  "@importReviewNotes": {
+    "description": "Import result heading listing notes about the imported dances, such as a related-dance link that was left out because the related dance was not imported. {count} is how many notes follow.",
     "placeholders": {
       "count": {
         "type": "int"
@@ -9398,6 +9399,14 @@
   "importReviewImportError": "Couldn't complete the import.",
   "@importReviewImportError": {
     "description": "Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209)."
+  },
+  "importFileNotText": "Couldn't read that file: it isn't text the app can read. If another app saved it, save it again as UTF-8 text and try again.",
+  "@importFileNotText": {
+    "description": "Snackbar on the import screen when the chosen file is not UTF-8 text (for example a file saved in another encoding, or not a text file at all). Nothing was imported."
+  },
+  "importFileUnreadable": "Couldn't open that file. Another app may be using it, or it may be on a drive that isn't connected.",
+  "@importFileUnreadable": {
+    "description": "Snackbar on the import screen when the chosen file could not be read from disk (locked by another app, on a disconnected drive, or refused by the file system). Nothing was imported."
   },
   "importReviewVariationTitle": "Variation of \"{title}\"?",
   "@importReviewVariationTitle": {
@@ -11557,7 +11566,7 @@
   },
   "importUserFiguresFailed": "{count, plural, =1{1 figure could not be saved to your Glossary.} other{{count} figures could not be saved to your Glossary.}}",
   "@importUserFiguresFailed": {
-    "description": "Snackbar after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.",
+    "description": "Line in the import result after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.",
     "placeholders": {
       "count": {
         "type": "int"

@@ -6651,6 +6651,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dat bestand bevatte geen dansen of programma’s.';
 
   @override
+  String get archiveIntakeRejectedBackup =>
+      'Dat bestand is een back-up, geen deelbestand. Om het op dit apparaat te zetten, ga je naar Instellingen › Algemeen en kies je ‘Herstellen vanuit een back-up’.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Imports moeten een beveiligde https://-URL gebruiken.';
 
@@ -7232,36 +7236,6 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items geïmporteerd.',
-      one: '1 item geïmporteerd.',
-      zero: 'Import voltooid.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportCompleteWithFailures(int count, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items geïmporteerd.',
-      one: '1 item geïmporteerd.',
-      zero: 'Er is niets geïmporteerd.',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed dansen konden niet worden geïmporteerd.',
-      one: '1 dans kon niet worden geïmporteerd.',
-    );
-    return '$_temp0 $_temp1';
-  }
-
-  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7308,6 +7282,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return 'Figuren toegevoegd aan of bijgewerkt in je woordenlijst: $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count bijgewerkt (opnieuw geïmporteerd)';
   }
@@ -7319,6 +7298,17 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: '$count programmanotities:',
       one: '$count programmanotitie(s):',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count opmerkingen:',
+      one: '1 opmerking:',
     );
     return '$_temp0';
   }
@@ -7371,6 +7361,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'De import kon niet worden voltooid.';
+
+  @override
+  String get importFileNotText =>
+      'Dat bestand kon niet worden gelezen: het is geen tekst die de app kan lezen. Als een andere app het heeft opgeslagen, sla het daar opnieuw op als UTF-8-tekst en probeer het nog eens.';
+
+  @override
+  String get importFileUnreadable =>
+      'Dat bestand kon niet worden geopend. Misschien gebruikt een andere app het, of staat het op een schijf die niet is verbonden.';
 
   @override
   String importReviewVariationTitle(String title) {
