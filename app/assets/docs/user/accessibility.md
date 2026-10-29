@@ -147,7 +147,7 @@ one, and **Esc** closes the menu and returns focus to the **⋮** button.
 
 **Add figure menu.** Open it with **Space** or **Enter** and focus lands on its
 first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
-meanwhile** and **Add modifier**.
+meanwhile**, **Add modifier** and **Add sequence**.
 
 **Always know where you are.** Interactive controls show a visible focus outline
 as you move through them, so you can always see which control has focus.

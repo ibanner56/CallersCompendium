@@ -35,7 +35,25 @@ const String meanwhileMove = 'meanwhile';
 /// is a structural id, not a taxonomy move, and is stable once serialized.
 const String modifierMove = 'modifier';
 
-/// Maximum number of children either structural container may hold.
+/// Reserved structural move id for a **sequence** container: two or more
+/// figures danced one after another and shown on one line ("balance and
+/// swing", "box the gnat, pull by, and orbit"). Ordinary sequence is still just
+/// the order of a dance's figures; this container exists so an ordered run can
+/// sit where one figure must, such as one side of a [meanwhileMove]. Like the
+/// other two, it is a structural id, not a taxonomy move, and is stable once
+/// serialized.
+const String sequenceMove = 'sequence';
+
+/// Every structural container move id. Anything that must treat the three
+/// kinds alike (codecs, sanitizers, validators) asks [isContainerMove] rather
+/// than listing them, so a kind cannot be missed at one site.
+const Set<String> containerMoves = {meanwhileMove, modifierMove, sequenceMove};
+
+/// Whether [move] is one of the [containerMoves].
+bool isContainerMove(Object? move) => containerMoves.contains(move);
+
+/// Maximum number of children a meanwhile or modifier container may hold (a
+/// sequence holds fewer: [kMaxSequenceFigures]).
 ///
 /// Real choreography never stacks more than a handful of simultaneous actions,
 /// so this is both a UX bound and a **security bound** on the untrusted archive
@@ -49,12 +67,24 @@ const int kMaxMeanwhileSides = 6;
 /// children.
 const int kMaxModifierFigures = kMaxMeanwhileSides;
 
+/// Maximum number of children a [sequenceMove] container may hold. Lower than
+/// the other containers' cap because a sequence must also fit in one phrase
+/// (`PhraseStructure.longestPhraseBeats`): four figures already divide 16
+/// beats into fours.
+const int kMaxSequenceFigures = 4;
+
+/// The child cap for the container kind [move]: [kMaxSequenceFigures] for a
+/// sequence, [kMaxMeanwhileSides] for the other two.
+int maxContainerChildren(String move) =>
+    move == sequenceMove ? kMaxSequenceFigures : kMaxMeanwhileSides;
+
 /// Maximum structural container depth accepted by the strict model and honored
 /// while decoding/sanitizing untrusted `params['figures']`.
 ///
-/// A root container may contain one opposite container, but that child may only
-/// contain ordinary figures. Same-kind nesting and deeper alternation are
-/// rejected by the model and dropped defensively by tolerant decoders.
+/// A root container may contain containers of the other kinds, but those
+/// children may only contain ordinary figures. Same-kind nesting and deeper
+/// alternation are rejected by the model and dropped defensively by tolerant
+/// decoders.
 const int kMaxContainerDepth = 2;
 
 const DeepCollectionEquality _paramsEquality = DeepCollectionEquality();
@@ -114,8 +144,8 @@ class Figure {
   /// math — a sub-figure's own `beats` is display-only and never counted).
   ///
   /// Enforces the structural caps for **programmatic** construction. A meanwhile
-  /// may contain ordinary figures or modifier containers, but never another
-  /// meanwhile and never a container below that nested modifier.
+  /// may contain ordinary figures or modifier or sequence containers, but never
+  /// another meanwhile and never a container below that nested one.
   factory Figure.meanwhile({
     required List<Figure> figures,
     required int beats,
@@ -143,8 +173,8 @@ class Figure {
   /// Builds a **modifier** container: [figures.first] is the core figure and
   /// later figures are ordered modifiers sharing the container's beat count.
   ///
-  /// A modifier may contain ordinary figures or a meanwhile container, but not
-  /// another modifier and never a deeper container.
+  /// A modifier may contain ordinary figures or a meanwhile or sequence
+  /// container, but not another modifier and never a deeper container.
   factory Figure.modifier({
     required List<Figure> figures,
     required int beats,
@@ -160,6 +190,38 @@ class Figure {
     );
     return _container(
       move: modifierMove,
+      figures: figures,
+      beats: beats,
+      note: note,
+      progression: progression,
+      extraParams: extraParams,
+      wordingOverride: wordingOverride,
+    );
+  }
+
+  /// Builds a **sequence** container: [figures] danced in order and shown on
+  /// one line. [beats] is the shared count, as for the other containers; the
+  /// editor keeps it equal to the sum of the children's own counts, but the
+  /// model does not require that.
+  ///
+  /// Holds 2–[kMaxSequenceFigures] children. A sequence may contain ordinary
+  /// figures or a meanwhile or modifier container, but not another sequence
+  /// and never a deeper container.
+  factory Figure.sequence({
+    required List<Figure> figures,
+    required int beats,
+    String? note,
+    bool progression = false,
+    Map<String, Object?> extraParams = const {},
+    String? wordingOverride,
+  }) {
+    _validateContainer(
+      containerMove: sequenceMove,
+      figures: figures,
+      beats: beats,
+    );
+    return _container(
+      move: sequenceMove,
       figures: figures,
       beats: beats,
       note: note,
@@ -201,11 +263,12 @@ class Figure {
         '$containerMove needs at least 2 children',
       );
     }
-    if (figures.length > kMaxMeanwhileSides) {
+    final cap = maxContainerChildren(containerMove);
+    if (figures.length > cap) {
       throw ArgumentError.value(
         figures.length,
         'figures',
-        '$containerMove allows at most $kMaxMeanwhileSides children',
+        '$containerMove allows at most $cap children',
       );
     }
     if (beats < 0) {
@@ -309,8 +372,12 @@ class Figure {
   /// figure and later children are modifiers.
   bool get isModifier => move == modifierMove;
 
-  /// Whether this is either structural container kind.
-  bool get isContainer => isMeanwhile || isModifier;
+  /// Whether this is a **sequence** container: ordered children shown on one
+  /// line.
+  bool get isSequence => move == sequenceMove;
+
+  /// Whether this is any structural container kind.
+  bool get isContainer => isContainerMove(move);
 
   /// The ordered children of a structural container, or empty for an ordinary
   /// figure. Downstream surfaces read this instead of hand-parsing
@@ -318,7 +385,8 @@ class Figure {
   ///
   /// The children are authoritative; their individual `beats` are display-only
   /// and MUST NOT be summed into section totals — the container's own [beats]
-  /// (`params['beats']`) is the single shared count.
+  /// (`params['beats']`) is the single shared count. (A sequence's editor
+  /// derives that count from its children's, but readers still use [beats].)
   List<Figure> get subFigures {
     final raw = params['figures'];
     if (raw is List) {

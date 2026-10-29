@@ -209,7 +209,9 @@ class DanceFigures extends Table {
   IntColumn get idx => integer()();
 
   /// Correlation group: all rows flattened from one **top-level** figure share
-  /// this value, and it is monotonic across a dance's top-level figures. Unlike
+  /// this value, and it is monotonic across a dance's top-level figures — except
+  /// that each child of a top-level `sequence` container, being danced in
+  /// order, takes a group of its own. Unlike
   /// [idx] (unique per row, as the `{danceId, idx}` PK requires), [groupIdx] is
   /// deliberately **not** unique — the concurrent sides of a `meanwhile`
   /// container (flattened per side, #590) all carry the container's single

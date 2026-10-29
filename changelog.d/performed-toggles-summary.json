@@ -1,0 +1,10 @@
+{
+  "id": "performed-toggles-summary",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Each dance row on a saved program's summary, alternates included, now has a toggle to mark that dance performed or not without opening the editor, with an Undo. This is how you mark an alternate you called, since an alternate only counts toward calling history once it is marked.",
+      "A new Settings › Program › Calling history option, **Show mark-performed toggles** (on by default), hides those toggles; rows then only show whether a dance was performed."
+    ]
+  }
+}

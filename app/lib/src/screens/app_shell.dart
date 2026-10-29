@@ -24,6 +24,7 @@ import 'glossary/glossary_screen.dart';
 import 'programs_shell.dart';
 import 'settings_screen.dart';
 import 'user_guide/user_guide_screen.dart';
+import '../theme/app_shapes.dart';
 
 /// Top-level navigation between Collection, Programs, the Glossary, Settings,
 /// and the User Guide (`docs/design/ux.md` information architecture).
@@ -443,7 +444,7 @@ class _RailSearchButton extends StatelessWidget {
       child: InkWell(
         key: const ValueKey('global-search-button'),
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppShapes.borderRadiusLarge,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
           child: Column(
@@ -507,7 +508,7 @@ class _RailHelpButton extends StatelessWidget {
       child: InkWell(
         key: const ValueKey('user-guide-button'),
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppShapes.borderRadiusLarge,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
           child: Column(

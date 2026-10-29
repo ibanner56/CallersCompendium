@@ -48,12 +48,25 @@ Future<void> confirmAndWipeStore(
     // happened would invite them to retry a destructive action that already
     // succeeded, and would leave them unaware that this device still holds the
     // phrase for a store that no longer exists.
+    //
+    // A dialog rather than a snackbar: the condition is rare, and the one
+    // thing left to do (Disconnect this device) is easy to miss in a message
+    // that disappears.
     case SyncAdminOutcome.wipedButStillAttached:
-      messenger?.showSnackBar(
-        SnackBar(
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
           key: const ValueKey('sync-wipe-detach-failed'),
+          title: Text(l10n.settingsSyncWipeDetachFailedTitle),
           content: Text(l10n.settingsSyncWipeDetachFailed),
-          duration: const Duration(seconds: 10),
+          actions: [
+            FilledButton(
+              key: const ValueKey('sync-wipe-detach-failed-ok'),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.commonOk),
+            ),
+          ],
         ),
       );
     case _:

@@ -124,6 +124,12 @@ abstract class AppLocalizations {
   /// **'Added a modifier container.'**
   String get danceEditorAddedModifierAnnouncement;
 
+  /// Screen-reader announcement after the Add menu inserts a new, empty sequence container (figures danced one after another on one line).
+  ///
+  /// In en, this message translates to:
+  /// **'Added a sequence container.'**
+  String get danceEditorAddedSequenceAnnouncement;
+
   /// Bottom/rail navigation label for the dance collection destination.
   ///
   /// In en, this message translates to:
@@ -1736,6 +1742,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}'**
   String settingsSyncConflictsSubtitle(int count);
 
+  /// Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Retry button, so a failed check is not mistaken for there being no conflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for conflicts.'**
+  String get settingsSyncConflictsCheckFailed;
+
   /// Tooltip of the toolbar Sync now button while items await a conflict choice; the button also shows the count as a badge.
   ///
   /// In en, this message translates to:
@@ -2006,11 +2018,17 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete the store, or couldn\'t confirm it was deleted. This device is still connected. Check your other devices before trying again.'**
   String get settingsSyncWipeFailed;
 
-  /// Snackbar for SyncAdminOutcome.wipedButStillAttached: the DELETE succeeded but the local clear did not, so the store is irreversibly gone while this device still holds its sync phrase. Must not read as a failure to delete.
+  /// Body of the dialog for SyncAdminOutcome.wipedButStillAttached: the DELETE succeeded but the local clear did not, so the store is irreversibly gone while this device still holds its sync phrase. Must not read as a failure to delete.
   ///
   /// In en, this message translates to:
   /// **'The store was deleted from the server, but this device couldn\'t disconnect from it. The store is gone and can\'t be brought back. Use Disconnect this device to finish.'**
   String get settingsSyncWipeDetachFailed;
+
+  /// Title of the dialog for SyncAdminOutcome.wipedButStillAttached; the body is settingsSyncWipeDetachFailed. Must not read as a failure to delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Store deleted, this device still connected'**
+  String get settingsSyncWipeDetachFailedTitle;
 
   /// Message shown when a manual sync is attempted on a metered connection, pointing at the Wi-Fi-only setting.
   ///
@@ -3661,6 +3679,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save the difficulty levels. Try again.'**
   String get settingsDefaultsDifficultyLevelActionFailed;
 
+  /// Snackbar after a difficulty level is deleted from Settings > Defaults, shown with an Undo action. {label} is the level's display name, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {label}.'**
+  String settingsDefaultsDifficultyLevelDeleted(String label);
+
   /// Text-field label for the default band prefilled into new programs.
   ///
   /// In en, this message translates to:
@@ -4548,6 +4572,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
   String get settingsGeneralRequirePerformedForHistorySubtitle;
+
+  /// Title of the Calling history setting that adds a mark-performed toggle to each dance row in the program view.
+  ///
+  /// In en, this message translates to:
+  /// **'Show mark-performed toggles'**
+  String get settingsGeneralShowPerformedTogglesTitle;
+
+  /// Subtitle explaining the show mark-performed toggles setting.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.'**
+  String get settingsGeneralShowPerformedTogglesSubtitle;
 
   /// Title of the calling-history settings toggle that leaves programs with no event date out of calling history.
   ///
@@ -6799,6 +6835,12 @@ abstract class AppLocalizations {
   /// **'Dance not found.'**
   String get danceNotFound;
 
+  /// Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Retry button.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this dance.'**
+  String get danceLoadError;
+
   /// Label of the floating action button that opens the dance editor.
   ///
   /// In en, this message translates to:
@@ -7792,6 +7834,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked performed.'**
   String get programsMarkedPerformed;
+
+  /// Screen-reader label of a program-view dance row's mark-performed toggle when the dance is marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: performed'**
+  String programsSummaryPerformedToggleOn(String title);
+
+  /// Screen-reader label of a program-view dance row's mark-performed toggle when the dance is not marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: not performed'**
+  String programsSummaryPerformedToggleOff(String title);
+
+  /// Tooltip of a program-view dance row's mark-performed toggle while the dance is not marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark {title} performed'**
+  String programsSummaryMarkPerformedTooltip(String title);
+
+  /// Tooltip of a program-view dance row's mark-performed toggle while the dance is marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear performed mark on {title}'**
+  String programsSummaryClearPerformedTooltip(String title);
+
+  /// Undo snackbar shown after a dance row's toggle marks it performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked {title} performed.'**
+  String programsSummaryMarkedPerformedSnack(String title);
+
+  /// Undo snackbar shown after a dance row's toggle clears its performed mark.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared the performed mark on {title}.'**
+  String programsSummaryClearedPerformedSnack(String title);
+
+  /// Snackbar shown when a program-view dance row's mark-performed toggle could not be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update the performed mark. Please try again.'**
+  String get programsSummaryPerformedToggleError;
+
+  /// Snackbar shown when undoing a single dance row's performed mark fails, for instance because the program was edited in the meantime.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not undo that change to the performed mark.'**
+  String get programsSummaryUndoPerformedToggleError;
 
   /// Accessibility announcement after a slot's performed mark is cleared.
   ///
@@ -9034,6 +9124,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} min'**
   String exportMinutesLabel(int count);
+
+  /// Page footer on every exported PDF (dance card, set list, programming matrix), e.g. 'Page 2 of 3'.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page} of {pages}'**
+  String exportPageOfPages(int page, int pages);
 
   /// Heading for the venue detail block on an exported set-list PDF.
   ///
@@ -11633,6 +11729,12 @@ abstract class AppLocalizations {
   /// **'The figures total {actual} beats; the phrase structure expects {expected}.'**
   String validationPhraseBeatMismatch(int actual, int expected);
 
+  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.
+  ///
+  /// In en, this message translates to:
+  /// **'A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).'**
+  String validationSequenceExceedsPhrase(int position, int actual, int limit);
+
   /// Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds).
   ///
   /// In en, this message translates to:
@@ -12153,6 +12255,12 @@ abstract class AppLocalizations {
   /// **'Add modifier'**
   String get danceEditorAddModifier;
 
+  /// Menu item label for adding an empty sequence container: two or more figures danced one after another and shown on one line, such as "balance and swing".
+  ///
+  /// In en, this message translates to:
+  /// **'Add sequence'**
+  String get danceEditorAddSequence;
+
   /// Semantics label for pasting a cut figure at the end of the list.
   ///
   /// In en, this message translates to:
@@ -12302,6 +12410,12 @@ abstract class AppLocalizations {
   /// **'Group with next as modifier'**
   String get danceEditorGroupWithNextAsModifier;
 
+  /// Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Group with next as sequence'**
+  String get danceEditorGroupWithNextAsSequence;
+
   /// Menu item label for converting a flat modifier group into a meanwhile group.
   ///
   /// In en, this message translates to:
@@ -12314,6 +12428,12 @@ abstract class AppLocalizations {
   /// **'Convert to modifier'**
   String get danceEditorConvertToModifier;
 
+  /// Menu item label for converting a meanwhile or modifier group into a sequence group, whose figures are danced in order.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to sequence'**
+  String get danceEditorConvertToSequence;
+
   /// Menu item label for replacing a meanwhile group with its child figures.
   ///
   /// In en, this message translates to:
@@ -12325,6 +12445,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ungroup modifier'**
   String get danceEditorUngroupModifier;
+
+  /// Menu item label for replacing a sequence group with its child figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup sequence'**
+  String get danceEditorUngroupSequence;
+
+  /// Lower-case entry in the move picker that turns the current figure into the first figure of a sequence group (figures danced one after another, shown on one line). Shown beside move names, so it reads like one; the English word also always matches what the user types.
+  ///
+  /// In en, this message translates to:
+  /// **'sequence'**
+  String get danceEditorSequenceOptionLabel;
+
+  /// Visible heading for a sequence group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{Sequence ({count} figures)}}'**
+  String danceEditorSequenceGroupLabel(int count);
+
+  /// Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {beats, plural, =1{1 beat} other{{beats} beats}} in total.'**
+  String danceEditorSequenceGroupSemantic(int count, int beats);
+
+  /// Read-only line in a sequence group's editor giving the sum of its figures' beats. Unlike a meanwhile or modifier, a sequence has no shared beats field: each figure edits its own.
+  ///
+  /// In en, this message translates to:
+  /// **'{beats, plural, =1{1 beat in total} other{{beats} beats in total}}'**
+  String danceEditorSequenceTotalBeats(int beats);
+
+  /// Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.
+  ///
+  /// In en, this message translates to:
+  /// **'This sequence is {beats} beats, longer than one phrase ({limit} beats).'**
+  String danceEditorSequenceOverPhrase(int beats, int limit);
+
+  /// Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.
+  ///
+  /// In en, this message translates to:
+  /// **'These figures fill one phrase ({limit} beats).'**
+  String danceEditorSequencePhraseFull(int limit);
+
+  /// Inline message shown in place of the add-figure button once a sequence group holds the maximum number of figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of {max} figures in a sequence.'**
+  String danceEditorSequenceStepsCapReached(int max);
+
+  /// Compact heading for one figure within a sequence group's editor, numbered in dance order.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {number}'**
+  String danceEditorSequenceStepLabel(int number);
+
+  /// Screen-reader label identifying one figure's position within a sequence group.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {number} of {total} in sequence.'**
+  String danceEditorSequenceStepSemantic(int number, int total);
+
+  /// Button label that adds another figure to the end of a sequence group.
+  ///
+  /// In en, this message translates to:
+  /// **'Add next figure'**
+  String get danceEditorAddSequenceStep;
+
+  /// Icon button tooltip/semantics for removing one figure from a sequence group. Removing down to one figure collapses the group back to a plain figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this figure'**
+  String get danceEditorRemoveSequenceStep;
 
   /// Visible heading for a modifier group's expanded editor.
   ///
@@ -13507,6 +13699,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can\'t delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.'**
   String customFieldsDeleteInUse(String label, int count);
+
+  /// Snackbar when deleting a custom field failed for a reason other than it still being in use. The raw error is logged, never shown (CWE-209). {label} is plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete \"{label}\". Try again.'**
+  String customFieldsDeleteFailed(String label);
 
   /// Snackbar shown when saving a custom field with a key another definition already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {key} is untrusted user-entered text, rendered as plain text.
   ///

@@ -80,6 +80,9 @@ bool isNewDanceEditorDraftKey(String key) {
 /// when the dance is eventually saved.
 ///
 /// v12 -> v13: adds recursive structural-container children to figure drafts.
+/// A later `sequence` container kind needed no new version: a build that
+/// predates it rejects the unknown `containerKind` as malformed, which is
+/// what it does with an unknown version too.
 ///
 /// v13 -> v14: adds the optional per-figure `compound` object, a row that is
 /// one of the user's own compound figures not yet expanded (#709). Only a
@@ -535,8 +538,7 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
   }
   final containerKind = m['containerKind'];
   if (containerKind != null &&
-      containerKind != meanwhileMove &&
-      containerKind != modifierMove) {
+      (containerKind is! String || !isContainerMove(containerKind))) {
     throw FormatException(
       'figureDraft.containerKind is invalid: $containerKind',
     );
@@ -556,13 +558,16 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     throw const FormatException('figureDraft container depth is too deep');
   }
   if (containerKind != null && containerKind == parentContainerKind) {
-    throw const FormatException('figureDraft containers must alternate kinds');
+    throw const FormatException(
+      'figureDraft containers may not nest their own kind',
+    );
   }
-  if (containerKind != null &&
+  if (containerKind is String &&
       children is List &&
-      children.length > kMaxMeanwhileSides) {
+      children.length > maxContainerChildren(containerKind)) {
     throw FormatException(
-      'figureDraft.children exceeds the $kMaxMeanwhileSides-child limit',
+      'figureDraft.children exceeds the '
+      '${maxContainerChildren(containerKind)}-child limit',
     );
   }
   final parsedChildren = children is List
@@ -634,6 +639,7 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     wordingOverride: _optSnippet(m['wordingOverride']),
     meanwhileSides: containerKind == meanwhileMove ? parsedChildren : null,
     modifierFigures: containerKind == modifierMove ? parsedChildren : null,
+    sequenceFigures: containerKind == sequenceMove ? parsedChildren : null,
     compound: compound,
   );
 }
@@ -669,7 +675,8 @@ CompoundPlaceholder? _parseCompound(Object? raw) {
 }
 
 Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
-  final children = draft.meanwhileSides ?? draft.modifierFigures;
+  final children =
+      draft.meanwhileSides ?? draft.modifierFigures ?? draft.sequenceFigures;
   final params = Map<String, Object?>.of(draft.params);
   if (children != null) {
     params.remove('figures');
@@ -699,9 +706,11 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
         'beats': compound.beats,
       },
     if (children != null) ...{
-      'containerKind': draft.modifierFigures == null
-          ? meanwhileMove
-          : modifierMove,
+      'containerKind': draft.modifierFigures != null
+          ? modifierMove
+          : draft.sequenceFigures != null
+          ? sequenceMove
+          : meanwhileMove,
       'children': [for (final child in children) _figureDraftJson(child)],
     },
   };

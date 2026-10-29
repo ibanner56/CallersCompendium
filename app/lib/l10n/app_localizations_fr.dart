@@ -20,6 +20,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Conteneur de modificateur ajouté.';
 
   @override
+  String get danceEditorAddedSequenceAnnouncement =>
+      'Conteneur de séquence ajouté.';
+
+  @override
   String get navCollection => 'Collection';
 
   @override
@@ -1263,6 +1267,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get settingsSyncConflictsCheckFailed =>
+      'Impossible de vérifier les conflits.';
+
+  @override
   String commonSyncNowConflictsTooltip(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1472,6 +1480,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsSyncWipeDetachFailed =>
       'L\'espace a été supprimé du serveur, mais cet appareil n\'a pas pu s\'en déconnecter. L\'espace a disparu et ne peut pas être récupéré. Utilisez Déconnecter cet appareil pour terminer.';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'Espace supprimé, cet appareil toujours connecté';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -2455,6 +2467,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’enregistrer les niveaux de difficulté. Réessayez.';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '« $label » supprimé.';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Orchestre par défaut';
 
   @override
@@ -2990,6 +3007,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
       'Activé : l’historique d’appel d’une danse ne liste que les programmes dont le créneau pour cette danse a été marqué comme joué. Désactivé : un programme apparaît dès qu’il contient la danse.';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesTitle =>
+      'Afficher les commutateurs « marquer comme joué »';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'Activé : chaque danse de la vue d’un programme a un commutateur pour la marquer comme jouée ou non, sans ouvrir l’éditeur. Désactivé : les lignes indiquent seulement si une danse a été jouée.';
 
   @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
@@ -4430,6 +4455,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceNotFound => 'Danse introuvable.';
 
   @override
+  String get danceLoadError => 'Impossible de charger cette danse.';
+
+  @override
   String get danceEditFab => 'Modifier';
 
   @override
@@ -5073,6 +5101,44 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => 'Marqué comme joué.';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title : joué';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title : non joué';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return 'Marquer $title comme joué';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return 'Effacer la marque de joué sur $title';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$title marqué comme joué.';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return 'Marque de joué effacée sur $title.';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      'Impossible de mettre à jour la marque de joué. Veuillez réessayer.';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      'Impossible d’annuler cette modification de la marque de joué.';
 
   @override
   String get programsPerformedCleared => 'Marque de joué effacée.';
@@ -5966,6 +6032,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String exportMinutesLabel(int count) {
     return '$count min';
+  }
+
+  @override
+  String exportPageOfPages(int page, int pages) {
+    return 'Page $page sur $pages';
   }
 
   @override
@@ -7831,6 +7902,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String validationSequenceExceedsPhrase(int position, int actual, int limit) {
+    return 'Une séquence de la figure $position dure $actual temps, plus qu’une phrase ($limit temps).';
+  }
+
+  @override
   String get validationPhraseInvalid =>
       'Cette structure de phrase n\'est pas valide.';
 
@@ -8197,6 +8273,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorAddModifier => 'Ajouter un modificateur';
 
   @override
+  String get danceEditorAddSequence => 'Ajouter une séquence';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Coller à la fin de la liste des figures';
 
@@ -8334,16 +8413,98 @@ class AppLocalizationsFr extends AppLocalizations {
       'Grouper avec la suivante comme modificateur';
 
   @override
+  String get danceEditorGroupWithNextAsSequence =>
+      'Grouper avec la suivante comme séquence';
+
+  @override
   String get danceEditorConvertToMeanwhile => 'Convertir en meanwhile';
 
   @override
   String get danceEditorConvertToModifier => 'Convertir en modificateur';
 
   @override
+  String get danceEditorConvertToSequence => 'Convertir en séquence';
+
+  @override
   String get danceEditorUngroupMeanwhile => 'Dissocier le meanwhile';
 
   @override
   String get danceEditorUngroupModifier => 'Dissocier le modificateur';
+
+  @override
+  String get danceEditorUngroupSequence => 'Dissocier la séquence';
+
+  @override
+  String get danceEditorSequenceOptionLabel => 'séquence';
+
+  @override
+  String danceEditorSequenceGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Séquence ($count figures)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures',
+      one: '1 figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats temps',
+      one: '1 temps',
+    );
+    return 'Groupe de séquence, $_temp0 dans l’ordre, $_temp1 au total.';
+  }
+
+  @override
+  String danceEditorSequenceTotalBeats(int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats temps au total',
+      one: '1 temps au total',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceOverPhrase(int beats, int limit) {
+    return 'Cette séquence dure $beats temps, plus qu’une phrase ($limit temps).';
+  }
+
+  @override
+  String danceEditorSequencePhraseFull(int limit) {
+    return 'Ces figures remplissent une phrase ($limit temps).';
+  }
+
+  @override
+  String danceEditorSequenceStepsCapReached(int max) {
+    return 'Maximum de $max figures dans une séquence.';
+  }
+
+  @override
+  String danceEditorSequenceStepLabel(int number) {
+    return 'Figure $number';
+  }
+
+  @override
+  String danceEditorSequenceStepSemantic(int number, int total) {
+    return 'Figure $number sur $total de la séquence.';
+  }
+
+  @override
+  String get danceEditorAddSequenceStep => 'Ajouter la figure suivante';
+
+  @override
+  String get danceEditorRemoveSequenceStep => 'Supprimer cette figure';
 
   @override
   String danceEditorModifierGroupLabel(num count) {
@@ -9293,6 +9454,11 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '1 danse',
     );
     return 'Impossible de supprimer « $label » : encore utilisé par $_temp0. Supprimez d’abord la valeur de toutes les danses.';
+  }
+
+  @override
+  String customFieldsDeleteFailed(String label) {
+    return 'Impossible de supprimer « $label ». Réessayez.';
   }
 
   @override

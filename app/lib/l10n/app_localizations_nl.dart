@@ -20,6 +20,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een modifier-container is toegevoegd.';
 
   @override
+  String get danceEditorAddedSequenceAnnouncement =>
+      'Een reeks-container is toegevoegd.';
+
+  @override
   String get navCollection => 'Collectie';
 
   @override
@@ -1256,6 +1260,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get settingsSyncConflictsCheckFailed =>
+      'Conflicten konden niet worden gecontroleerd.';
+
+  @override
   String commonSyncNowConflictsTooltip(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1467,6 +1475,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsSyncWipeDetachFailed =>
       'De opslag is van de server verwijderd, maar dit apparaat kon de verbinding ermee niet verbreken. De opslag is weg en kan niet worden teruggehaald. Gebruik Dit apparaat loskoppelen om het af te ronden.';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'Opslag verwijderd, dit apparaat nog verbonden';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -2434,6 +2446,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'De moeilijkheidsniveaus konden niet worden opgeslagen. Probeer het opnieuw.';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '“$label” verwijderd.';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standaard band';
 
   @override
@@ -2962,6 +2979,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
       'Als ingeschakeld, toont de callerhistorie van een dans alleen programma’s waarvan het slot voor die dans als uitgevoerd is gemarkeerd. Als uitgeschakeld, verschijnt een programma zodra het de dans bevat.';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesTitle =>
+      'Schakelaars voor ‘markeren als uitgevoerd’ tonen';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'Als ingeschakeld, heeft elke dans in de programmaweergave een schakelaar om die als uitgevoerd te markeren of niet, zonder de editor te openen. Als uitgeschakeld, tonen de rijen alleen of een dans is uitgevoerd.';
 
   @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
@@ -4399,6 +4424,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceNotFound => 'Dans niet gevonden.';
 
   @override
+  String get danceLoadError => 'Deze dans kon niet worden geladen.';
+
+  @override
   String get danceEditFab => 'Bewerken';
 
   @override
@@ -5044,6 +5072,44 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => 'Gemarkeerd als uitgevoerd.';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title: uitgevoerd';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title: niet uitgevoerd';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return '$title markeren als uitgevoerd';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return 'Uitvoermarkering van $title wissen';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$title gemarkeerd als uitgevoerd.';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return 'Uitvoermarkering van $title gewist.';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      'De uitvoermarkering kon niet worden bijgewerkt. Probeer het opnieuw.';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      'Die wijziging van de uitvoermarkering kon niet ongedaan worden gemaakt.';
 
   @override
   String get programsPerformedCleared => 'Uitvoermarkering gewist.';
@@ -5929,6 +5995,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String exportMinutesLabel(int count) {
     return '$count min';
+  }
+
+  @override
+  String exportPageOfPages(int page, int pages) {
+    return 'Pagina $page van $pages';
   }
 
   @override
@@ -7782,6 +7853,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String validationSequenceExceedsPhrase(int position, int actual, int limit) {
+    return 'Een reeks in figuur $position duurt $actual tellen, langer dan één frase ($limit tellen).';
+  }
+
+  @override
   String get validationPhraseInvalid => 'Die fraseopbouw is ongeldig.';
 
   @override
@@ -8147,6 +8223,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorAddModifier => 'Modifier toevoegen';
 
   @override
+  String get danceEditorAddSequence => 'Reeks toevoegen';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Plakken aan het einde van de figurenlijst';
 
@@ -8282,16 +8361,98 @@ class AppLocalizationsNl extends AppLocalizations {
       'Met volgende groeperen als modifier';
 
   @override
+  String get danceEditorGroupWithNextAsSequence =>
+      'Met volgende groeperen als reeks';
+
+  @override
   String get danceEditorConvertToMeanwhile => 'Omzetten naar meanwhile';
 
   @override
   String get danceEditorConvertToModifier => 'Omzetten naar modifier';
 
   @override
+  String get danceEditorConvertToSequence => 'Omzetten naar reeks';
+
+  @override
   String get danceEditorUngroupMeanwhile => 'Meanwhile-groepering opheffen';
 
   @override
   String get danceEditorUngroupModifier => 'Modifier-groepering opheffen';
+
+  @override
+  String get danceEditorUngroupSequence => 'Reeks-groepering opheffen';
+
+  @override
+  String get danceEditorSequenceOptionLabel => 'reeks';
+
+  @override
+  String danceEditorSequenceGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Reeks ($count figuren)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren',
+      one: '1 figuur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats tellen',
+      one: '1 tel',
+    );
+    return 'Reeksgroep, $_temp0 na elkaar, $_temp1 in totaal.';
+  }
+
+  @override
+  String danceEditorSequenceTotalBeats(int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats tellen in totaal',
+      one: '1 tel in totaal',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceOverPhrase(int beats, int limit) {
+    return 'Deze reeks duurt $beats tellen, langer dan één frase ($limit tellen).';
+  }
+
+  @override
+  String danceEditorSequencePhraseFull(int limit) {
+    return 'Deze figuren vullen één frase ($limit tellen).';
+  }
+
+  @override
+  String danceEditorSequenceStepsCapReached(int max) {
+    return 'Maximaal $max figuren in een reeks.';
+  }
+
+  @override
+  String danceEditorSequenceStepLabel(int number) {
+    return 'Figuur $number';
+  }
+
+  @override
+  String danceEditorSequenceStepSemantic(int number, int total) {
+    return 'Figuur $number van $total in de reeks.';
+  }
+
+  @override
+  String get danceEditorAddSequenceStep => 'Volgende figuur toevoegen';
+
+  @override
+  String get danceEditorRemoveSequenceStep => 'Deze figuur verwijderen';
 
   @override
   String danceEditorModifierGroupLabel(num count) {
@@ -9233,6 +9394,11 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 dans',
     );
     return '“$label” kan niet worden verwijderd: nog in gebruik door $_temp0. Verwijder de waarde eerst van alle dansen.';
+  }
+
+  @override
+  String customFieldsDeleteFailed(String label) {
+    return '“$label” kon niet worden verwijderd. Probeer het opnieuw.';
   }
 
   @override

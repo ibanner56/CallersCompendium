@@ -361,8 +361,9 @@ A few practical notes:
   navigate it row by row and column by column.
 - **To take it with you**, use **Export or print matrix as PDF** in the **Matrix**
   tab. This is the matrix's own control, separate from the program's **Export**
-  menu, and it is unavailable while the matrix is empty. The PDF is landscape and
-  carries its own legend — where the screen uses icons, the printed page uses the
+  menu, and it is unavailable while the matrix is empty. The PDF is landscape on
+  the paper you choose in the print dialog, repeats its heading row on every
+  page, and carries its own legend — where the screen uses icons, the printed page uses the
   marks `★` (introduced here), `▸` (dance's first figure), `✓` (present), and `‼`
   (shares beats with an adjacent dance, or same phrase as adjacent dance if
   you've turned the setting off). Columns you have hidden on screen still
@@ -430,9 +431,10 @@ see
 When you share, copy, or export as PDF the app asks **"Include figures?"** —
 choose **Set list only** to keep titles, notes, and the author, or
 **Set list and figures** to append a full card for each dance, showing every
-selected field alongside its figures, after the set list. If none of the
-program's dances have structured figures, the
-question is skipped. If your program is linked to
+selected field alongside its figures, after the set list. A dance with no
+structured figures still gets a card when it has calling notes or a walkthrough
+you've selected. If none of the program's dances have anything to put on a
+card, the question is skipped. If your program is linked to
 a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
 **Share (program + dances)** exports first ask whether to include those
 contacts, and leave them out unless you say otherwise. A venue's street address
@@ -461,8 +463,15 @@ calling it: if Hull's Victory is the alternate to Chorus Jig and you call Chorus
 Jig, only Chorus Jig's count goes up. Mark Hull's Victory performed too if you
 called it instead, or as well.
 
-To mark one slot, choose **Mark performed** from its **…** menu, or mark it
-from [Perform mode](./perform.md#adjust-on-the-fly) while you call. To mark
+To mark one slot, tap the circle at the end of its row on a saved program's
+summary (alternates included; tap it again to clear the mark), choose **Mark
+performed** from its **…** menu in the editor, or mark it from
+[Perform mode](./perform.md#adjust-on-the-fly) while you call. Marking or
+clearing from the summary shows an **Undo**, which only applies while the
+program is otherwise unchanged. If you'd rather not see the circles, turn off
+**Show mark-performed toggles** in
+[Settings › Program › Calling history](./settings.md#calling-history); rows then
+just show a check on dances already marked. To mark
 every unperformed dance at once, use **Mark all performed** in the program
 editor or on a saved program's summary; it offers a one-tap **Undo**. Mark all
 performed skips alternates, and so does setting a program's status to

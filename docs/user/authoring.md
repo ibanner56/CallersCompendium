@@ -41,8 +41,8 @@ up to as you go.
 ### Type and press Enter
 
 Figure entry is keyboard-first. Choose **Add figure** (or **Add first figure** on
-an empty dance). When the dance can also hold a meanwhile or a modifier, the
-button opens a small menu: press Space or Enter on it and focus lands on **Add
+an empty dance). When the dance can also hold a meanwhile, a modifier or a
+sequence, the button opens a small menu: press Space or Enter on it and focus lands on **Add
 figure**. Press Enter to choose it, use the up and down arrow keys to reach the
 other choices, and press Escape to close the menu.
 
@@ -342,7 +342,7 @@ release adds a figure with the same name; see
 #### A combination
 
 A combination is offered for a figure in the list itself, not inside a
-meanwhile or modifier group.
+meanwhile, modifier or sequence group.
 
 A combination you pick stays one row while you edit: it shows its name and
 the value you chose for each of its parameters, and opening it lets you change
@@ -362,18 +362,20 @@ expanded, or no longer accepts the values on the row, the row says so, and
 saving keeps it as a [custom figure](#custom-figure) with its name, its beats,
 and the row's note and progression mark. The values you chose for its
 parameters are not kept. A row that is one of your combinations cannot be
-grouped as a meanwhile or modifier. Turning Custom Figures off stops them being
-offered, but a row you already picked is still expanded when you save.
+grouped as a meanwhile, modifier or sequence. Turning Custom Figures off stops
+them being offered, but a row you already picked is still expanded when you
+save.
 
 #### A new figure
 
-A new figure is offered for a figure in the list and inside a meanwhile or
-modifier group.
+A new figure is offered for a figure in the list and inside a meanwhile,
+modifier or sequence group.
 
 A new figure you pick stays one figure, in the dance and once it is saved. It
 starts with its defaults and its default beats. Opening it lets you choose the
-value of each of its parameters and its beats (inside a group, the group's
-beats count), mark the progression, and add a note. It reads in the dance with
+value of each of its parameters and its beats (inside a meanwhile or modifier
+group, the group's beats count; inside a sequence, its own do), mark the
+progression, and add a note. It reads in the dance with
 its own wording, filled in with your values.
 
 The dance keeps following your figure: when you change its wording in the
@@ -401,6 +403,7 @@ between actions, Enter runs one, and Escape closes the menu:
 | **Duplicate** | Adds an identical figure |
 | **Group with next as meanwhile** | Joins it to the next figure as simultaneous action |
 | **Group with next as modifier** | Makes the first figure the core and the next figure a modifier |
+| **Group with next as sequence** | Joins it to the next figure as one line, danced in order |
 | **Mark progression** / **Clear progression** | Sets or clears the progression |
 | **Delete** | Removes the figure |
 
@@ -417,9 +420,11 @@ thing while the middles do another. Choose **Group with next as meanwhile** and
 the two figures become a [meanwhile](./glossary.md#meanwhile) group, labelled
 with how many sides it has and sharing one set of beats. Until you type a count
 for the group, its beats follow its sides: the longest side's, since the sides
-are danced at the same time. A modifier group follows its **Core**. This holds
-however the group was made: grouped, added from the **Add** menu, typed with
-`||` or `while`, or in a shorthand.
+are danced at the same time. A modifier group follows its **Core**, and a
+sequence always adds up its figures (see
+[Sequence figures](#sequence-figures)). This holds however the group was made:
+grouped, added from the **Add** menu, typed with `||` or `while`, or in a
+shorthand.
 
 You can also choose **Add meanwhile** from the list's **Add** menu to create the
 group first. It starts with your **Meanwhile defaults** (see
@@ -434,9 +439,9 @@ Inside the group, each side is labelled **Side 1**, **Side 2**, and so on, and h
 its own controls to move up, move down, or **Remove this side**. **Add side** adds
 another side, up to six.
 
-A note you add to one side, or to one figure of a modifier group, is shown in
-brackets after that figure wherever the dance is shown: in the list, on the
-dance's page, in Perform and when printed. For example,
+A note you add to one side, or to one figure of a modifier or sequence group, is
+shown in brackets after that figure wherever the dance is shown: in the list, on
+the dance's page, in Perform and when printed. For example,
 `robins allemande right once (1 1/2) while larks orbit`. If you choose
 **Customize wording for this dance** on the group itself, your wording replaces
 the whole line, its sides' notes included.
@@ -448,9 +453,38 @@ and the next describes how it is performed. The first figure is labelled
 **Core** and the figures after it **Modifier**, in order. **Add modifier**
 creates a modifier group from your **Modifier defaults**.
 
-You can put a meanwhile group inside a modifier group, or a modifier group inside
-a meanwhile group, one level deep. The app does not allow a group inside another
-of the same kind, or nesting any deeper.
+### Sequence figures
+
+A sequence is two to four figures danced one after another and written as one
+line: **ones balance and swing**, or **twos box the gnat, pull by right, and
+orbit clockwise ½**. On its own a sequence reads just like the same figures in
+separate rows. It is for a run of figures that has to stand in one place, most
+often one side of a meanwhile group:
+**ones balance and swing while twos box the gnat, pull by right, and orbit
+clockwise ½**. When a figure repeats the dancers of the one before it, the line
+names them once.
+
+Choose **Group with next as sequence**, **Add sequence** from the **Add** menu,
+or type *sequence* in a figure's **Move** box to make it the first figure of a
+new sequence. Each figure in the group is labelled **Figure 1**, **Figure 2**,
+and so on, and keeps its own **Beats**: the group's beats are their total, shown
+at the top. A sequence must fit in one phrase of the dance (16 beats in the
+usual structure), so **Group with next as sequence** is only offered when the
+two figures fit, and **Add next figure** goes away once the figures fill a
+phrase or there are four of them. Changing a figure already in the sequence,
+its move or its beats, is not stopped, and neither is a change to the phrase
+structure: if the sequence ends up longer than a phrase, the group and the
+dance's warnings say so, and you can still save it.
+
+**Convert to sequence**, **Convert to meanwhile** and **Convert to modifier**
+change a group from one kind to another when its figures fit the new kind. A
+sequence turned into a meanwhile or modifier group then follows its figures'
+beats as that kind of group does.
+
+You can put a group inside a group of another kind — a sequence inside a
+meanwhile, or a meanwhile inside a modifier, for example — one level deep. The
+app does not allow a group inside another of the same kind, or nesting any
+deeper.
 
 ### Keep an eye on the beats
 

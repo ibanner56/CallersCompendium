@@ -1,4 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -7,6 +9,7 @@ import 'package:compendium_app/src/screens/tag_colors_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/color_edit_dialog.dart';
 
+import '../support/fail_once_interceptor.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
@@ -31,6 +34,33 @@ void main() {
   late CompendiumRepositories repos;
 
   setUp(() => repos = openTestRepositories());
+
+  testWidgets('a failed load offers Retry, and Retry loads the tags', (
+    tester,
+  ) async {
+    final failer = FailOnceInterceptor('tags');
+    final flaky = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(failer),
+      ),
+      contraTaxonomy,
+    );
+    // ignore: unused_result
+    await flaky.tags.upsert(Tag(id: 't1', name: 'chestnut'));
+    failer.arm();
+
+    await _pump(tester, flaky);
+
+    expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+    expect(find.text("Couldn't load your tags."), findsOneWidget);
+    expect(find.byKey(const ValueKey('tag-color-t1')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Couldn't load your tags."), findsNothing);
+    expect(find.byKey(const ValueKey('tag-color-t1')), findsOneWidget);
+  });
 
   testWidgets('lists every tag, colourless ones included', (tester) async {
     // ignore: unused_result

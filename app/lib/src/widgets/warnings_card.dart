@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/validation_issue_labels.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_shapes.dart';
 
 /// The non-blocking warnings of a dance, such as figures whose beats do not
 /// add up to the phrase structure. Shown by the dance editor while it edits,
@@ -23,7 +24,7 @@ class WarningsCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: theme.colorScheme.tertiary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

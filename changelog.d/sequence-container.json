@@ -1,0 +1,14 @@
+{
+  "id": "sequence-container",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can join two to four figures into a sequence that reads as one line, such as \"ones balance and swing\", and use it as one side of a meanwhile: \"ones balance and swing while twos box the gnat, pull by right, and orbit clockwise ½\". Choose Group with next as sequence, Add sequence, or type sequence in a figure's Move box. Each figure keeps its own beats, and the sequence must fit in one phrase."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the `sequence` structural container: 2–4 ordered children, rendered as an English list, nestable one level with meanwhile and modifier, with a `sequence_exceeds_phrase` warning and per-step `group_idx` for a top-level sequence."
+    ]
+  }
+}

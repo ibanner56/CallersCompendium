@@ -28,10 +28,12 @@ import '../../search/program_sort.dart';
 import '../../search/program_sort_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../utils/undo_snack_bar.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/collection_picker.dart';
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
@@ -1219,6 +1221,54 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   }
 }
 
+/// Asks for a new difficulty level's name; pops the text typed, or nothing on
+/// Cancel. Owns its controller so it outlives the dialog's closing animation.
+/// Once a name is typed, a tap outside, Escape and Back leave it open.
+class _AddLevelDialog extends StatefulWidget {
+  const _AddLevelDialog();
+
+  @override
+  State<_AddLevelDialog> createState() => _AddLevelDialogState();
+}
+
+class _AddLevelDialogState extends State<_AddLevelDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty,
+      child: AlertDialog(
+        title: Text(l10n.commonAdd),
+        content: TextField(
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: l10n.danceEditorLevelLabel),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(_controller.text),
+            child: Text(l10n.commonSave),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Edits the ordered vocabulary used by dance difficulty assignments.
 class DifficultyLevelsEditor extends StatefulWidget {
   const DifficultyLevelsEditor({super.key});
@@ -1300,32 +1350,10 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   }
 
   Future<void> _add() async {
-    final controller = TextEditingController();
     final label = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context).commonAdd),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context).danceEditorLevelLabel,
-          ),
-          onSubmitted: (value) => Navigator.of(context).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(AppLocalizations.of(context).commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: Text(AppLocalizations.of(context).commonSave),
-          ),
-        ],
-      ),
+      builder: (context) => const _AddLevelDialog(),
     );
-    controller.dispose();
     final normalized = label?.trim() ?? '';
     if (!mounted || normalized.isEmpty) return;
     try {
@@ -1394,6 +1422,21 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
       }
       await levels.delete(level.id);
       await _reload();
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      // No confirm: all that is lost is a label and its place in the list, and
+      // Undo brings both back (same row, same id).
+      showUndoSnackBar(
+        ScaffoldMessenger.of(context),
+        message: l10n.settingsDefaultsDifficultyLevelDeleted(level.label),
+        undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
+        accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+        onUndo: () async {
+          await levels.restore(level.id, at: DateTime.now().toUtc());
+          if (mounted) await _reload();
+        },
+      );
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'defaults_section._delete');
       _report(error);

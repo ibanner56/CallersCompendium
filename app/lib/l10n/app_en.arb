@@ -12,6 +12,10 @@
   "@danceEditorAddedModifierAnnouncement": {
     "description": "Screen-reader announcement after adding a modifier container."
   },
+  "danceEditorAddedSequenceAnnouncement": "Added a sequence container.",
+  "@danceEditorAddedSequenceAnnouncement": {
+    "description": "Screen-reader announcement after the Add menu inserts a new, empty sequence container (figures danced one after another on one line)."
+  },
   "navCollection": "Collection",
   "@navCollection": {
     "description": "Bottom/rail navigation label for the dance collection destination."
@@ -1582,6 +1586,10 @@
       }
     }
   },
+  "settingsSyncConflictsCheckFailed": "Couldn't check for conflicts.",
+  "@settingsSyncConflictsCheckFailed": {
+    "description": "Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Retry button, so a failed check is not mistaken for there being no conflicts."
+  },
   "commonSyncNowConflictsTooltip": "{count, plural, =1{Sync now (1 item needs your choice)} other{Sync now ({count} items need your choice)}}",
   "@commonSyncNowConflictsTooltip": {
     "description": "Tooltip of the toolbar Sync now button while items await a conflict choice; the button also shows the count as a badge.",
@@ -1816,7 +1824,11 @@
   },
   "settingsSyncWipeDetachFailed": "The store was deleted from the server, but this device couldn't disconnect from it. The store is gone and can't be brought back. Use Disconnect this device to finish.",
   "@settingsSyncWipeDetachFailed": {
-    "description": "Snackbar for SyncAdminOutcome.wipedButStillAttached: the DELETE succeeded but the local clear did not, so the store is irreversibly gone while this device still holds its sync phrase. Must not read as a failure to delete."
+    "description": "Body of the dialog for SyncAdminOutcome.wipedButStillAttached: the DELETE succeeded but the local clear did not, so the store is irreversibly gone while this device still holds its sync phrase. Must not read as a failure to delete."
+  },
+  "settingsSyncWipeDetachFailedTitle": "Store deleted, this device still connected",
+  "@settingsSyncWipeDetachFailedTitle": {
+    "description": "Title of the dialog for SyncAdminOutcome.wipedButStillAttached; the body is settingsSyncWipeDetachFailed. Must not read as a failure to delete."
   },
   "settingsSyncMeteredRouted": "You are on a mobile-data connection and Sync only on Wi-Fi is on. Turn that setting off below to sync now.",
   "@settingsSyncMeteredRouted": {
@@ -3020,6 +3032,15 @@
   "@settingsDefaultsDifficultyLevelActionFailed": {
     "description": "Generic fallback snackbar when adding, renaming, deleting or reordering a difficulty level fails for a reason with no specific message. The raw exception is logged, never shown (CWE-209)."
   },
+  "settingsDefaultsDifficultyLevelDeleted": "Deleted {label}.",
+  "@settingsDefaultsDifficultyLevelDeleted": {
+    "description": "Snackbar after a difficulty level is deleted from Settings > Defaults, shown with an Undo action. {label} is the level's display name, plain text.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "settingsDefaultsBandLabel": "Default band",
   "@settingsDefaultsBandLabel": {
     "description": "Text-field label for the default band prefilled into new programs."
@@ -3634,6 +3655,14 @@
   "settingsGeneralRequirePerformedForHistorySubtitle": "When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.",
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "description": "Subtitle explaining the require-mark-performed calling history toggle."
+  },
+  "settingsGeneralShowPerformedTogglesTitle": "Show mark-performed toggles",
+  "@settingsGeneralShowPerformedTogglesTitle": {
+    "description": "Title of the Calling history setting that adds a mark-performed toggle to each dance row in the program view."
+  },
+  "settingsGeneralShowPerformedTogglesSubtitle": "When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.",
+  "@settingsGeneralShowPerformedTogglesSubtitle": {
+    "description": "Subtitle explaining the show mark-performed toggles setting."
   },
   "settingsGeneralRequireEventDateForHistoryTitle": "Require an event date for calling history",
   "@settingsGeneralRequireEventDateForHistoryTitle": {
@@ -5517,6 +5546,10 @@
   "@danceNotFound": {
     "description": "Message shown when the requested dance cannot be loaded."
   },
+  "danceLoadError": "Couldn't load this dance.",
+  "@danceLoadError": {
+    "description": "Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Retry button."
+  },
   "danceEditFab": "Edit",
   "@danceEditFab": {
     "description": "Label of the floating action button that opens the dance editor."
@@ -6427,6 +6460,74 @@
   "programsMarkedPerformed": "Marked performed.",
   "@programsMarkedPerformed": {
     "description": "Accessibility announcement after a slot is marked performed."
+  },
+  "programsSummaryPerformedToggleOn": "{title}: performed",
+  "@programsSummaryPerformedToggleOn": {
+    "description": "Screen-reader label of a program-view dance row's mark-performed toggle when the dance is marked performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryPerformedToggleOff": "{title}: not performed",
+  "@programsSummaryPerformedToggleOff": {
+    "description": "Screen-reader label of a program-view dance row's mark-performed toggle when the dance is not marked performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryMarkPerformedTooltip": "Mark {title} performed",
+  "@programsSummaryMarkPerformedTooltip": {
+    "description": "Tooltip of a program-view dance row's mark-performed toggle while the dance is not marked performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryClearPerformedTooltip": "Clear performed mark on {title}",
+  "@programsSummaryClearPerformedTooltip": {
+    "description": "Tooltip of a program-view dance row's mark-performed toggle while the dance is marked performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryMarkedPerformedSnack": "Marked {title} performed.",
+  "@programsSummaryMarkedPerformedSnack": {
+    "description": "Undo snackbar shown after a dance row's toggle marks it performed.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryClearedPerformedSnack": "Cleared the performed mark on {title}.",
+  "@programsSummaryClearedPerformedSnack": {
+    "description": "Undo snackbar shown after a dance row's toggle clears its performed mark.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "The Rendezvous"
+      }
+    }
+  },
+  "programsSummaryPerformedToggleError": "Could not update the performed mark. Please try again.",
+  "@programsSummaryPerformedToggleError": {
+    "description": "Snackbar shown when a program-view dance row's mark-performed toggle could not be saved."
+  },
+  "programsSummaryUndoPerformedToggleError": "Could not undo that change to the performed mark.",
+  "@programsSummaryUndoPerformedToggleError": {
+    "description": "Snackbar shown when undoing a single dance row's performed mark fails, for instance because the program was edited in the meantime."
   },
   "programsPerformedCleared": "Performed mark cleared.",
   "@programsPerformedCleared": {
@@ -7629,6 +7730,18 @@
     "description": "Planned-minutes suffix for a set-list slot on an export, e.g. '5 min'. 'min' abbreviates 'minutes'.",
     "placeholders": {
       "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exportPageOfPages": "Page {page} of {pages}",
+  "@exportPageOfPages": {
+    "description": "Page footer on every exported PDF (dance card, set list, programming matrix), e.g. 'Page 2 of 3'.",
+    "placeholders": {
+      "page": {
+        "type": "int"
+      },
+      "pages": {
         "type": "int"
       }
     }
@@ -9953,6 +10066,24 @@
       }
     }
   },
+  "validationSequenceExceedsPhrase": "A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).",
+  "@validationSequenceExceedsPhrase": {
+    "description": "Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
+      "actual": {
+        "type": "int",
+        "example": "20"
+      },
+      "limit": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
   "validationPhraseInvalid": "That phrase structure isn't valid.",
   "@validationPhraseInvalid": {
     "description": "Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds)."
@@ -10477,6 +10608,10 @@
   "@danceEditorAddModifier": {
     "description": "Menu item label for adding an empty modifier container."
   },
+  "danceEditorAddSequence": "Add sequence",
+  "@danceEditorAddSequence": {
+    "description": "Menu item label for adding an empty sequence container: two or more figures danced one after another and shown on one line, such as \"balance and swing\"."
+  },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {
     "description": "Semantics label for pasting a cut figure at the end of the list."
@@ -10653,6 +10788,10 @@
   "@danceEditorGroupWithNextAsModifier": {
     "description": "Menu item label that groups this figure row with the one immediately after it into an ordered modifier group."
   },
+  "danceEditorGroupWithNextAsSequence": "Group with next as sequence",
+  "@danceEditorGroupWithNextAsSequence": {
+    "description": "Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase."
+  },
   "danceEditorConvertToMeanwhile": "Convert to meanwhile",
   "@danceEditorConvertToMeanwhile": {
     "description": "Menu item label for converting a flat modifier group into a meanwhile group."
@@ -10661,6 +10800,10 @@
   "@danceEditorConvertToModifier": {
     "description": "Menu item label for converting a flat meanwhile group into a modifier group."
   },
+  "danceEditorConvertToSequence": "Convert to sequence",
+  "@danceEditorConvertToSequence": {
+    "description": "Menu item label for converting a meanwhile or modifier group into a sequence group, whose figures are danced in order."
+  },
   "danceEditorUngroupMeanwhile": "Ungroup meanwhile",
   "@danceEditorUngroupMeanwhile": {
     "description": "Menu item label for replacing a meanwhile group with its child figures."
@@ -10668,6 +10811,114 @@
   "danceEditorUngroupModifier": "Ungroup modifier",
   "@danceEditorUngroupModifier": {
     "description": "Menu item label for replacing a modifier group with its child figures."
+  },
+  "danceEditorUngroupSequence": "Ungroup sequence",
+  "@danceEditorUngroupSequence": {
+    "description": "Menu item label for replacing a sequence group with its child figures."
+  },
+  "danceEditorSequenceOptionLabel": "sequence",
+  "@danceEditorSequenceOptionLabel": {
+    "description": "Lower-case entry in the move picker that turns the current figure into the first figure of a sequence group (figures danced one after another, shown on one line). Shown beside move names, so it reads like one; the English word also always matches what the user types."
+  },
+  "danceEditorSequenceGroupLabel": "{count, plural, other{Sequence ({count} figures)}}",
+  "@danceEditorSequenceGroupLabel": {
+    "description": "Visible heading for a sequence group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorSequenceGroupSemantic": "Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {beats, plural, =1{1 beat} other{{beats} beats}} in total.",
+  "@danceEditorSequenceGroupSemantic": {
+    "description": "Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "beats": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "danceEditorSequenceTotalBeats": "{beats, plural, =1{1 beat in total} other{{beats} beats in total}}",
+  "@danceEditorSequenceTotalBeats": {
+    "description": "Read-only line in a sequence group's editor giving the sum of its figures' beats. Unlike a meanwhile or modifier, a sequence has no shared beats field: each figure edits its own.",
+    "placeholders": {
+      "beats": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "danceEditorSequenceOverPhrase": "This sequence is {beats} beats, longer than one phrase ({limit} beats).",
+  "@danceEditorSequenceOverPhrase": {
+    "description": "Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.",
+    "placeholders": {
+      "beats": {
+        "type": "int",
+        "example": "20"
+      },
+      "limit": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "danceEditorSequencePhraseFull": "These figures fill one phrase ({limit} beats).",
+  "@danceEditorSequencePhraseFull": {
+    "description": "Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "danceEditorSequenceStepsCapReached": "Maximum of {max} figures in a sequence.",
+  "@danceEditorSequenceStepsCapReached": {
+    "description": "Inline message shown in place of the add-figure button once a sequence group holds the maximum number of figures.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "danceEditorSequenceStepLabel": "Figure {number}",
+  "@danceEditorSequenceStepLabel": {
+    "description": "Compact heading for one figure within a sequence group's editor, numbered in dance order.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "danceEditorSequenceStepSemantic": "Figure {number} of {total} in sequence.",
+  "@danceEditorSequenceStepSemantic": {
+    "description": "Screen-reader label identifying one figure's position within a sequence group.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "danceEditorAddSequenceStep": "Add next figure",
+  "@danceEditorAddSequenceStep": {
+    "description": "Button label that adds another figure to the end of a sequence group."
+  },
+  "danceEditorRemoveSequenceStep": "Remove this figure",
+  "@danceEditorRemoveSequenceStep": {
+    "description": "Icon button tooltip/semantics for removing one figure from a sequence group. Removing down to one figure collapses the group back to a plain figure."
   },
   "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} figures)}}",
   "@danceEditorModifierGroupLabel": {
@@ -11876,6 +12127,15 @@
       },
       "count": {
         "type": "int"
+      }
+    }
+  },
+  "customFieldsDeleteFailed": "Couldn't delete \"{label}\". Try again.",
+  "@customFieldsDeleteFailed": {
+    "description": "Snackbar when deleting a custom field failed for a reason other than it still being in use. The raw error is logged, never shown (CWE-209). {label} is plain text.",
+    "placeholders": {
+      "label": {
+        "type": "String"
       }
     }
   },

@@ -50,4 +50,29 @@ void main() {
       ),
     );
   });
+
+  testWidgets('is announced as a heading', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: SectionHeader(title: 'Details')),
+      ),
+    );
+
+    expect(
+      tester.getSemantics(find.text('Details')),
+      matchesSemantics(label: 'Details', isHeader: true),
+    );
+    handle.dispose();
+  });
+
+  testWidgets('shows the title as written, not upper-cased', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: SectionHeader(title: 'Device Sync')),
+      ),
+    );
+
+    expect(find.text('Device Sync'), findsOneWidget);
+  });
 }

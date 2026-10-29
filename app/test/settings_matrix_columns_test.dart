@@ -140,6 +140,49 @@ void main() {
       expect(matrix.columns.map((c) => c.moveId), isNot(contains('do_si_do')));
     });
 
+    testWidgets('a tap outside keeps the rename dialog once text is typed', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-rename-do_si_do')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-column-rename-field')),
+        'Dosido',
+      );
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-column-rename-field')),
+        findsOneWidget,
+      );
+      expect(find.text('Dosido'), findsOneWidget);
+      expect(read().renames, isEmpty);
+    });
+
+    testWidgets('a tap outside still closes an untouched rename dialog', (
+      tester,
+    ) async {
+      await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-rename-do_si_do')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-column-rename-field')),
+        findsNothing,
+      );
+    });
+
     testWidgets('renaming a column writes renames[id] and changes the header '
         'label used by the table and PDF', (tester) async {
       final read = await _pumpEditor(tester);

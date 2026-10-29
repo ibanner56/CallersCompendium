@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_call_count_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
@@ -47,6 +48,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   final eventDate = requireEventDate ?? ValueNotifier<bool>(false);
   if (requireEventDate == null) addTearDown(eventDate.dispose);
   final trackAllCallers = ValueNotifier<bool>(false);
+  final showPerformedToggles = ValueNotifier<bool>(true);
   final autoCommit = ValueNotifier<bool>(initialAutoCommit);
   final venueCalls = ValueNotifier<int>(kVenueCallCountDefault);
   onScopeNotifiers?.call(autoCommit, venueCalls);
@@ -59,6 +61,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   addTearDown(exactBeatCollision.dispose);
   addTearDown(requirePerformed.dispose);
   addTearDown(trackAllCallers.dispose);
+  addTearDown(showPerformedToggles.dispose);
   addTearDown(autoCommit.dispose);
   addTearDown(customThemes.dispose);
 
@@ -104,7 +107,10 @@ Future<ValueNotifier<bool>> _pumpProgram(
           ),
         ),
       ),
-      home: const SettingsScreen(),
+      home: ShowPerformedTogglesScope(
+        notifier: showPerformedToggles,
+        child: const SettingsScreen(),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -182,6 +188,31 @@ void main() {
       find.byKey(const ValueKey('general-track-history-for-all-callers')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('general-show-performed-toggles')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('"Show mark-performed toggles" defaults on, and flipping it '
+      'persists', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    final tile = find.byKey(const ValueKey('general-show-performed-toggles'));
+    await tester.scrollUntilVisible(
+      tile,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+    expect(find.text('Show mark-performed toggles'), findsOneWidget);
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+    expect(await repos.settings.get(kShowPerformedTogglesKey), isFalse);
   });
 
   testWidgets('matrix-columns entry point opens the editor screen', (

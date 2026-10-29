@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// A borderless expandable section whose title is set in the section-header
-/// style (uppercase `labelLarge`, primary colour), for grouping a long screen
+/// style (`labelLarge`, primary colour, as in `SectionHeader`), for grouping a long screen
 /// into sections the user can fold away.
 class CollapsibleSection extends StatelessWidget {
   const CollapsibleSection({
@@ -32,7 +32,7 @@ class CollapsibleSection extends StatelessWidget {
       initiallyExpanded: expanded,
       onExpansionChanged: onExpansionChanged,
       title: Text(
-        title.toUpperCase(),
+        title,
         style: theme.textTheme.labelLarge?.copyWith(
           color: theme.colorScheme.primary,
         ),

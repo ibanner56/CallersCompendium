@@ -23,6 +23,7 @@ class FigureDraft {
     this.wordingOverride,
     this.meanwhileSides,
     this.modifierFigures,
+    this.sequenceFigures,
     this.compound,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
@@ -72,6 +73,9 @@ class FigureDraft {
     modifierFigures: figure.isModifier
         ? [for (final child in figure.subFigures) FigureDraft.fromFigure(child)]
         : null,
+    sequenceFigures: figure.isSequence
+        ? [for (final child in figure.subFigures) FigureDraft.fromFigure(child)]
+        : null,
   );
 
   /// Seeds a draft from a figure parsed out of a free-text entry line (#419).
@@ -108,9 +112,7 @@ class FigureDraft {
     Map<String, Map<String, Object?>>? moveParamDefaults,
   ) {
     if (figure.isContainer) {
-      final children = figure.isMeanwhile
-          ? draft.meanwhileSides
-          : draft.modifierFigures;
+      final children = draft.containerChildren;
       final sources = figure.subFigures;
       if (children == null || children.length != sources.length) return;
       for (var i = 0; i < children.length; i++) {
@@ -276,12 +278,21 @@ class FigureDraft {
   /// draft). `null` (the default) means an ordinary, non-grouped figure —
   /// today's ubiquitous case.
   ///
-  /// A child may itself carry the one legal opposite container kind.
+  /// A child may itself be a container of another kind.
   List<FigureDraft>? meanwhileSides;
 
   /// Non-null when this draft is a modifier container. The first child is the
   /// core figure; later children are modifiers.
   List<FigureDraft>? modifierFigures;
+
+  /// Non-null when this draft is a sequence container: children danced in
+  /// order and shown on one line. Unlike the other two kinds, a sequence's
+  /// count is not edited on the container: [beats] is the sum of its
+  /// children's, and `params['beats']` is not read.
+  ///
+  /// At most one of [meanwhileSides], [modifierFigures] and [sequenceFigures]
+  /// is non-null; [setContainer] keeps it so.
+  List<FigureDraft>? sequenceFigures;
 
   /// Non-null when this row is one of the user's own compound figures (#709),
   /// picked in the dance editor and not yet expanded. A placeholder exists only
@@ -299,41 +310,130 @@ class FigureDraft {
   /// Whether this draft is a modifier group. Mirrors [Figure.isModifier].
   bool get isModifierGroup => modifierFigures != null;
 
-  /// Whether this draft is either structural container kind.
-  bool get isContainerDraft => isMeanwhileGroup || isModifierGroup;
+  /// Whether this draft is a sequence group. Mirrors [Figure.isSequence].
+  bool get isSequenceGroup => sequenceFigures != null;
+
+  /// Whether this draft is any structural container kind.
+  bool get isContainerDraft => containerKind != null;
+
+  /// The container move id of this draft ([meanwhileMove], [modifierMove] or
+  /// [sequenceMove]), or null for an ordinary figure.
+  String? get containerKind => isMeanwhileGroup
+      ? meanwhileMove
+      : isModifierGroup
+      ? modifierMove
+      : isSequenceGroup
+      ? sequenceMove
+      : null;
+
+  /// The ordered children of a container draft, or null for an ordinary one.
+  List<FigureDraft>? get containerChildren =>
+      meanwhileSides ?? modifierFigures ?? sequenceFigures;
+
+  /// Makes this draft a container of [kind] holding [children], or an ordinary
+  /// draft when [kind] is null, clearing the other kinds' lists.
+  void setContainer(String? kind, List<FigureDraft>? children) {
+    meanwhileSides = kind == meanwhileMove ? children : null;
+    modifierFigures = kind == modifierMove ? children : null;
+    sequenceFigures = kind == sequenceMove ? children : null;
+  }
 
   /// Whether any descendant of this draft is a structural container.
   bool get hasNestedContainer {
-    final children = meanwhileSides ?? modifierFigures;
+    final children = containerChildren;
     return children?.any(
           (child) => child.isContainerDraft || child.hasNestedContainer,
         ) ??
         false;
   }
 
-  /// Whether this draft can be a direct child of the requested container kind.
+  /// Whether this draft can be a direct child of a container of [parentKind]
+  /// (a container move id).
   ///
-  /// Structural children must alternate kinds and may not introduce a third
-  /// container level.
+  /// A nested container must be of another kind than its parent and may not
+  /// introduce a third container level.
   ///
   /// A compound placeholder never can: it stands for several figures, which
   /// are not one side or one modifier child (#709).
-  bool canNestInContainer({required bool modifierParent}) {
+  bool canNestInContainer(String parentKind) {
     if (isCompoundPlaceholder) return false;
-    if (!isContainerDraft) return true;
-    final oppositeKind = modifierParent ? isMeanwhileGroup : isModifierGroup;
-    return oppositeKind && !hasNestedContainer;
+    final kind = containerKind;
+    if (kind == null) return true;
+    return kind != parentKind && !hasNestedContainer;
+  }
+
+  /// Whether [first] and [second], adjacent rows, can be grouped into a new
+  /// container of [kind]. A sequence must also fit in [sequenceBeatLimit]
+  /// beats, one phrase of the dance.
+  static bool canGroup(
+    String kind,
+    FigureDraft first,
+    FigureDraft second, {
+    required int sequenceBeatLimit,
+  }) =>
+      first.canNestInContainer(kind) &&
+      second.canNestInContainer(kind) &&
+      (kind != sequenceMove || first.beats + second.beats <= sequenceBeatLimit);
+
+  /// A new container of [kind] holding [first] and [second]. A meanwhile's or
+  /// modifier's shared count follows its children until the user types one
+  /// ([syncContainerBeats]); a sequence's count is always its children's sum.
+  static FigureDraft group(String kind, FigureDraft first, FigureDraft second) {
+    final group = FigureDraft()..setContainer(kind, [first, second]);
+    if (kind != sequenceMove) {
+      group.params['beats'] = first.beats;
+      group.syncContainerBeats();
+    }
+    return group;
+  }
+
+  /// Whether this container draft can become a container of [kind] in place:
+  /// it is another kind, its children fit [kind]'s cap and none of them is
+  /// itself a [kind] container, and, for a sequence, their counts fit in
+  /// [sequenceBeatLimit] beats.
+  bool canConvertContainerTo(String kind, {required int sequenceBeatLimit}) {
+    final children = containerChildren;
+    if (children == null || containerKind == kind) return false;
+    if (children.length > maxContainerChildren(kind)) return false;
+    if (children.any((child) => child.containerKind == kind)) return false;
+    return kind != sequenceMove ||
+        children.fold(0, (sum, child) => sum + child.beats) <=
+            sequenceBeatLimit;
+  }
+
+  /// Makes this container draft a [kind] container with the same children.
+  /// The shared count then follows the children as for any group
+  /// ([syncContainerBeats]); leaving a sequence, whose count nobody typed, it
+  /// starts from the total the sequence showed and follows them too.
+  /// Callers check [canConvertContainerTo] first.
+  void convertContainerTo(String kind) {
+    final children = containerChildren;
+    if (children == null) return;
+    if (isSequenceGroup) {
+      params['beats'] = beats;
+      beatsTouched = false;
+    }
+    setContainer(kind, children);
+    syncContainerBeats();
   }
 
   /// The draft's beat count. A compound placeholder's is the count its
-  /// expansion last had ([CompoundPlaceholder.beats]).
-  int get beats => compound?.beats ?? (params['beats'] as int?) ?? 0;
+  /// expansion last had ([CompoundPlaceholder.beats]); a sequence's is the sum
+  /// of its children's ([sequenceFigures]).
+  int get beats {
+    if (compound case final compound?) return compound.beats;
+    if (sequenceFigures case final steps?) {
+      return steps.fold(0, (sum, step) => sum + step.beats);
+    }
+    return (params['beats'] as int?) ?? 0;
+  }
 
   /// The count a group's sides call for (AUTH-11): a modifier group's core's,
   /// since the other figures say how the core is danced, or while the core
   /// has none yet the longest side's; a meanwhile group's longest side's,
-  /// since its sides are danced at once. 0 for an ordinary row, or for a
-  /// group none of whose sides has a count yet.
+  /// since its sides are danced at once. 0 for an ordinary row, for a
+  /// sequence (whose count is always its steps' sum, [beats]), or for a group
+  /// none of whose sides has a count yet.
   int get sidesBeats {
     final sides = meanwhileSides ?? modifierFigures;
     if (sides == null || sides.isEmpty) return 0;
@@ -378,6 +478,9 @@ class FigureDraft {
         ?.map((side) => side.clone())
         .toList(growable: true),
     modifierFigures: modifierFigures
+        ?.map((child) => child.clone())
+        .toList(growable: true),
+    sequenceFigures: sequenceFigures
         ?.map((child) => child.clone())
         .toList(growable: true),
     compound: compound?.copy(),
@@ -486,8 +589,9 @@ class FigureDraft {
     if (compound case final compound?) {
       return _compoundFallback(compound, canonicalizeNote);
     }
-    final children = meanwhileSides ?? modifierFigures;
-    if (children != null) {
+    final children = containerChildren;
+    final kind = containerKind;
+    if (children != null && kind != null) {
       // Never silently drop a child that the user has started authoring
       // (#679 review): only a genuinely untouched placeholder side (no move,
       // no note/params/walkthrough override) is skipped. An incomplete nested
@@ -513,34 +617,36 @@ class FigureDraft {
       // Defensive clamp mirroring the codec's untrusted-input behavior: the
       // UI never lets the side count exceed the cap, but this keeps toFigure()
       // from ever throwing even if that invariant is somehow violated.
-      final cappedChildren = [
-        for (final child
-            in readyChildren.length > kMaxMeanwhileSides
-                ? readyChildren.sublist(0, kMaxMeanwhileSides)
-                : readyChildren)
-          _withGroupBeats(child, beats),
+      final cap = maxContainerChildren(kind);
+      final cappedChildren = readyChildren.length > cap
+          ? readyChildren.sublist(0, cap)
+          : readyChildren;
+      // A sequence's children keep their own counts, which are its total; the
+      // other kinds share one count that each child's use takes.
+      final groupBeats = kind == sequenceMove
+          ? cappedChildren.fold(0, (sum, child) => sum + child.beats)
+          : beats;
+      final figures = [
+        for (final child in cappedChildren)
+          kind == sequenceMove ? child : _withGroupBeats(child, groupBeats),
       ];
       final trimmedNote = canonicalizeNote(note);
       final extraParams = Map<String, Object?>.of(params)
         ..remove('beats')
         ..remove('figures');
-      final rebuilt = modifierFigures != null
-          ? Figure.modifier(
-              figures: cappedChildren,
-              beats: beats,
-              extraParams: extraParams,
-              note: trimmedNote.isEmpty ? null : trimmedNote,
-              progression: progression,
-              wordingOverride: _trimOptionalOverride(wordingOverride),
-            )
-          : Figure.meanwhile(
-              figures: cappedChildren,
-              beats: beats,
-              extraParams: extraParams,
-              note: trimmedNote.isEmpty ? null : trimmedNote,
-              progression: progression,
-              wordingOverride: _trimOptionalOverride(wordingOverride),
-            );
+      final build = switch (kind) {
+        modifierMove => Figure.modifier,
+        sequenceMove => Figure.sequence,
+        _ => Figure.meanwhile,
+      };
+      final rebuilt = build(
+        figures: figures,
+        beats: groupBeats,
+        extraParams: extraParams,
+        note: trimmedNote.isEmpty ? null : trimmedNote,
+        progression: progression,
+        wordingOverride: _trimOptionalOverride(wordingOverride),
+      );
       final trimmedWalkthrough = walkthroughOverride?.trim();
       return rebuilt.copyWith(
         schemaVersion: schemaVersion,

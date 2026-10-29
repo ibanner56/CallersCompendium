@@ -6,7 +6,13 @@
 /// print-job `name:` must reduce it to a safe, uniform character set first
 /// (issue #468). This is the single source of truth for that idiom, previously
 /// duplicated inline across the export and update-download paths.
+///
+/// Two character sets are in play: print-job names and update downloads stay
+/// ASCII ([sanitizeExportName], [replaceUnsafeNameChars]), while the names of
+/// shared dance and program files keep Unicode letters ([shareFileBaseName]).
 library;
+
+import 'package:compendium_core/compendium_core.dart' show isoDate;
 
 /// Every character *outside* the safe set `[A-Za-z0-9._-]` (ASCII letters,
 /// digits, dot, underscore, hyphen). Anything else — path separators,
@@ -23,9 +29,9 @@ final RegExp _hasAlphanumeric = RegExp(r'[A-Za-z0-9]');
 
 /// Replaces every character outside `[A-Za-z0-9._-]` in [value] with `_`.
 ///
-/// Low-level building block shared by [sanitizeExportName] and by the
-/// program-share-bundle / update-download file-name derivations, so every path
-/// applies the identical canonical idiom.
+/// Low-level building block shared by [sanitizeExportName] and the
+/// update-download file-name derivation, so both apply the identical ASCII
+/// idiom. Shared dance and program files use [shareFileBaseName] instead.
 String replaceUnsafeNameChars(String value) =>
     value.replaceAll(_unsafeNameChars, '_');
 
@@ -66,3 +72,75 @@ String sanitizeExportName(String raw, {String fallback = 'export'}) {
 String _stripToSafeName(String value) => replaceUnsafeNameChars(
   value.trim(),
 ).replaceAll(_leadingTrailingSeparators, '');
+
+/// Letters, digits and combining marks in any script, plus `. _ -`. The share
+/// file name keeps a title's own letters ("Contredanse à la française", an
+/// all-Japanese title); it still replaces separators, whitespace, control and
+/// format characters (bidi overrides included) and punctuation.
+final RegExp _unsafeShareNameChars = RegExp(
+  r'[^\p{L}\p{N}\p{M}._-]',
+  unicode: true,
+);
+
+final RegExp _hasLetterOrDigit = RegExp(r'[\p{L}\p{N}]', unicode: true);
+
+/// The longest base name [shareFileBaseName] returns, in code points. A CJK
+/// letter takes three bytes in UTF-8, and common file systems cap a whole name
+/// at 255 bytes; 64 leaves room for the date and extension.
+const int _maxShareBaseNameRunes = 64;
+
+/// The base (extension-less) file name for a shared dance or program: [title]
+/// with every character outside [_unsafeShareNameChars]'s safe set replaced by
+/// `_`, leading/trailing dots and underscores stripped, or [fallback] when no
+/// letter or digit remains.
+///
+/// Unlike [sanitizeExportName] this keeps Unicode letters, because a share file
+/// is named by the title the user sees and an all-Japanese title would
+/// otherwise collapse to the fallback. It is still path-safe: separators and
+/// control characters never survive, and the result can never be `.`, `..` or a
+/// dotfile. A title longer than [_maxShareBaseNameRunes] code points is cut.
+/// [fallback] is trusted (a code constant), not user input.
+///
+/// [eventDate], when given, is appended as `_yyyy-MM-dd` so weekly programs
+/// with the same title export under distinct names.
+String shareFileBaseName(
+  String title, {
+  required String fallback,
+  DateTime? eventDate,
+}) {
+  final cleaned = String.fromCharCodes(
+    title
+        .trim()
+        .replaceAll(_unsafeShareNameChars, '_')
+        .replaceAll(_leadingTrailingSeparators, '')
+        .runes
+        .take(_maxShareBaseNameRunes),
+  ).replaceAll(_leadingTrailingSeparators, '');
+  final base = cleaned.contains(_hasLetterOrDigit) ? cleaned : fallback;
+  return eventDate == null ? base : '${base}_${isoDate(eventDate)}';
+}
+
+/// The print-job name (the file name "Save as PDF" proposes) for a program PDF:
+/// [sanitizeExportName] of [title], then `_`[suffix] (the matrix PDF passes its
+/// localized "Programming matrix" so it never shares a name with the set-list
+/// PDF) and `_yyyy-MM-dd` of [eventDate] when each is given. An untitled
+/// program takes the suffix as its whole name; otherwise it takes [fallback].
+String programPdfJobName(
+  String title, {
+  required String fallback,
+  String? suffix,
+  DateTime? eventDate,
+}) {
+  // A suffix with no ASCII letter (the Japanese "Programming matrix") would
+  // otherwise collapse to the generic `export`, which names nothing.
+  final sanitizedSuffix = suffix == null
+      ? null
+      : sanitizeExportName(suffix, fallback: 'Programming_matrix');
+  // An untitled program is named by the suffix alone, so it is not named twice.
+  final base = sanitizeExportName(title, fallback: sanitizedSuffix ?? fallback);
+  return [
+    base,
+    if (sanitizedSuffix != null && sanitizedSuffix != base) sanitizedSuffix,
+    if (eventDate != null) isoDate(eventDate),
+  ].join('_');
+}
