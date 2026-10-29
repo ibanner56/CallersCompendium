@@ -2819,18 +2819,23 @@ class DanceRepository {
     );
   }
 
-  /// [Dance.duplicate] (fresh identity, no provenance) and persists it.
+  /// [Dance.duplicate] (fresh identity, no provenance) and persists it in one
+  /// write. [newTitle] is applied to the copy before it is written; see
+  /// [Dance.duplicate]. This does not touch the *other* dances' reverse
+  /// related-dance links; callers that want those maintained go through the
+  /// app layer's `duplicateDanceWithRelatedLinks`.
   Future<Dance> duplicate({
     required String id,
     required String newId,
     required DateTime now,
+    String? newTitle,
   }) async {
     assertUtc(now, 'now');
     final source = await getById(id, includeDeleted: true);
     if (source == null) {
       throw ArgumentError.value(id, 'id', 'no such dance');
     }
-    final copy = source.duplicate(newId: newId, now: now);
+    final copy = source.duplicate(newId: newId, now: now, newTitle: newTitle);
     await create(copy);
     return copy;
   }
@@ -2886,10 +2891,10 @@ class DanceRepository {
   /// `ORDER BY` here and are computed as a post-fetch step. The post-sort is
   /// stable, preserving the SQL title base order for ties.
   ///
-  /// [callerFilter] and [performedOnly] scope [SearchSort.lastCalled] exactly
-  /// as they scope a [CalledFilter] and the "called ×N" count (issue #583's
-  /// "in lockstep"; FIND-2): pass the same values. They have no effect on any
-  /// other sort.
+  /// [callerFilter], [performedOnly] and [requireEventDate] scope
+  /// [SearchSort.lastCalled] exactly as they scope a [CalledFilter] and the
+  /// "called ×N" count (issue #583's "in lockstep"; FIND-2): pass the same
+  /// values. They have no effect on any other sort.
   ///
   /// When [ignoreLeadingArticles] is `true`, [SearchSort.title] alphabetizes
   /// with a leading article ("the"/"a"/"an") ignored (see [titleSortKey]) —
@@ -2911,6 +2916,7 @@ class DanceRepository {
     bool ignoreLeadingArticles = false,
     String? callerFilter,
     bool performedOnly = false,
+    bool requireEventDate = false,
   }) async {
     final dir = direction ?? sort.defaultDirection;
     final descending = dir == SortDirection.descending;
@@ -2935,6 +2941,7 @@ class DanceRepository {
           descending: descending,
           caller: normalizeCallingHistoryCaller(callerFilter),
           performedOnly: performedOnly,
+          requireEventDate: requireEventDate,
         );
       case SearchSort.title:
         return ignoreLeadingArticles
@@ -3036,8 +3043,8 @@ class DanceRepository {
   /// The slots it reads are exactly the ones that make up the "called ×N"
   /// count and the dance-detail history (`ProgramRepository`'s
   /// `_programDerivedRows` / `_callingHistoryRows`): non-deleted programs, the
-  /// host-caller scope [caller], the alternate rule, and — when [performedOnly]
-  /// — performed slots only. Each slot's date is the one the history list
+  /// host-caller scope [caller], the alternate rule, when [performedOnly]
+  /// performed slots only, and when [requireEventDate] dated programs only. Each slot's date is the one the history list
   /// orders by, `COALESCE(performed_at, event_date, updated_at)`; under
   /// [performedOnly] every counted slot has a `performed_at`, so that reduces
   /// to the performed stamp. A dance the count would show as never called
@@ -3047,6 +3054,7 @@ class DanceRepository {
     bool descending = true,
     required String? caller,
     required bool performedOnly,
+    required bool requireEventDate,
   }) async {
     if (ids.isEmpty) return ids;
     // The aggregate is restricted to the incoming result `ids` (chunked
@@ -3068,6 +3076,7 @@ class DanceRepository {
             '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
             'AND programs.deleted_at IS NULL '
             '${callingHistoryAlternateClause(slotTable: 'program_slots')}'
+            '${callingHistoryEventDateClause(requireEventDate: requireEventDate, programTable: 'programs')}'
             '${callingHistoryCallerClause(caller, callerColumn: 'programs.caller')}'
             'AND program_slots.dance_id IN ($placeholders) '
             'GROUP BY program_slots.dance_id',

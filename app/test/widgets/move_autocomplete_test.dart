@@ -15,6 +15,8 @@ Future<void> _pump(
   Dialect? dialect,
   ValueChanged<MoveOption>? onSelected,
   ValueChanged<String>? onCustomSubmitted,
+  bool Function(String text)? submitsAsText,
+  List<MoveOption> compoundOptions = const [],
   bool includeModifier = false,
 }) async {
   await tester.pumpWidget(
@@ -27,6 +29,8 @@ Future<void> _pump(
           fieldKey: 'move',
           onSelected: onSelected ?? (_) {},
           onCustomSubmitted: onCustomSubmitted,
+          submitsAsText: submitsAsText,
+          compoundOptions: compoundOptions,
           includeModifier: includeModifier,
         ),
       ),
@@ -212,6 +216,100 @@ void main() {
 
       expect(custom, 'a brand new move');
       expect(find.byType(BottomSheet), findsNothing);
+    });
+  });
+
+  // October behaviour audit, AUTH-8: Enter used to take the first option whose
+  // name merely contained the text.
+  group('Enter chooses', () {
+    Future<(MoveOption?, String?)> submit(
+      WidgetTester tester,
+      String text, {
+      bool Function(String text)? submitsAsText,
+      List<MoveOption> compoundOptions = const [],
+    }) async {
+      MoveOption? picked;
+      String? custom;
+      await _pump(
+        tester,
+        onSelected: (o) => picked = o,
+        onCustomSubmitted: (v) => custom = v,
+        submitsAsText: submitsAsText,
+        compoundOptions: compoundOptions,
+      );
+      await tester.enterText(find.byKey(const ValueKey('move-input')), text);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      return (picked, custom);
+    }
+
+    testWidgets('the move named exactly, not the first containing it', (
+      tester,
+    ) async {
+      final (picked, custom) = await submit(tester, 'star');
+      expect(picked?.id, 'star');
+      expect(custom, isNull);
+    });
+
+    testWidgets('the app\'s move over your figure that contains its name', (
+      tester,
+    ) async {
+      final (picked, _) = await submit(
+        tester,
+        'Hey',
+        compoundOptions: const [
+          MoveOption(
+            id: 'twist',
+            displayName: 'Hey with a twist',
+            kind: MoveOptionKind.compound,
+          ),
+        ],
+      );
+      expect(picked?.id, 'hey');
+    });
+
+    testWidgets('your figure when you name it exactly', (tester) async {
+      final (picked, _) = await submit(
+        tester,
+        'hey with a twist',
+        compoundOptions: const [
+          MoveOption(
+            id: 'twist',
+            displayName: 'Hey with a twist',
+            kind: MoveOptionKind.compound,
+          ),
+        ],
+      );
+      expect(picked?.id, 'twist');
+    });
+
+    testWidgets('a shorthand as typed, not the move containing it', (
+      tester,
+    ) async {
+      final (picked, custom) = await submit(
+        tester,
+        'rl',
+        submitsAsText: (text) => text == 'rl',
+      );
+      expect(picked, isNull);
+      expect(custom, 'rl');
+    });
+
+    testWidgets('an exact name over a shorthand with the same token', (
+      tester,
+    ) async {
+      final (picked, custom) = await submit(
+        tester,
+        'swing',
+        submitsAsText: (_) => true,
+      );
+      expect(picked?.id, 'swing');
+      expect(custom, isNull);
+    });
+
+    testWidgets('otherwise the first option, as before', (tester) async {
+      final (picked, _) = await submit(tester, 'sw');
+      expect(picked?.id, 'swing');
     });
   });
 }

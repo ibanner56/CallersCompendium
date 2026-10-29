@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_call_count_scope.dart';
@@ -34,6 +35,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   double textScale = 1,
   void Function(ValueNotifier<bool> autoCommit, ValueNotifier<int> venueCalls)?
   onScopeNotifiers,
+  ValueNotifier<bool>? requireEventDate,
 }) async {
   await setScreenSize(tester, surface);
 
@@ -42,6 +44,8 @@ Future<ValueNotifier<bool>> _pumpProgram(
   final venueMode = ValueNotifier<bool>(false);
   final exactBeatCollision = ValueNotifier<bool>(initialExactBeatCollision);
   final requirePerformed = ValueNotifier<bool>(false);
+  final eventDate = requireEventDate ?? ValueNotifier<bool>(false);
+  if (requireEventDate == null) addTearDown(eventDate.dispose);
   final trackAllCallers = ValueNotifier<bool>(false);
   final autoCommit = ValueNotifier<bool>(initialAutoCommit);
   final venueCalls = ValueNotifier<int>(kVenueCallCountDefault);
@@ -76,17 +80,20 @@ Future<ValueNotifier<bool>> _pumpProgram(
                   notifier: exactBeatCollision,
                   child: RequirePerformedForHistoryScope(
                     notifier: requirePerformed,
-                    child: TrackHistoryForAllCallersScope(
-                      notifier: trackAllCallers,
-                      child: ProgramAutoCommitScope(
-                        notifier: autoCommit,
-                        child: VenueCallCountScope(
-                          notifier: venueCalls,
-                          child:
-                              (textScaleBuilder(
-                                textScale,
-                              )?.call(context, child)) ??
-                              child!,
+                    child: RequireEventDateForHistoryScope(
+                      notifier: eventDate,
+                      child: TrackHistoryForAllCallersScope(
+                        notifier: trackAllCallers,
+                        child: ProgramAutoCommitScope(
+                          notifier: autoCommit,
+                          child: VenueCallCountScope(
+                            notifier: venueCalls,
+                            child:
+                                (textScaleBuilder(
+                                  textScale,
+                                )?.call(context, child)) ??
+                                child!,
+                          ),
                         ),
                       ),
                     ),
@@ -376,6 +383,41 @@ void main() {
       isTrue,
     );
     expect(await repos.settings.get(kAutoCommitProgramChangesKey), isTrue);
+  });
+
+  testWidgets('Require an event date defaults off; toggling it flips the live '
+      'scope and persists the setting (F6)', (tester) async {
+    final repos = openTestRepositories();
+    final requireEventDate = ValueNotifier<bool>(false);
+    addTearDown(requireEventDate.dispose);
+    await _pumpProgram(tester, repos, requireEventDate: requireEventDate);
+
+    final toggle = find.byKey(
+      const ValueKey('general-require-event-date-for-history'),
+    );
+    await tester.scrollUntilVisible(
+      toggle,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(
+      find.text('Require an event date for calling history'),
+      findsOneWidget,
+    );
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(requireEventDate.value, isTrue);
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    expect(await repos.settings.get(kRequireEventDateForHistoryKey), isTrue);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(requireEventDate.value, isFalse);
+    expect(await repos.settings.get(kRequireEventDateForHistoryKey), isFalse);
   });
 
   testWidgets('toggling auto-size off persists the setting', (tester) async {

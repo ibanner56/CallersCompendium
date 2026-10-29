@@ -227,8 +227,9 @@ class MixerFilter extends DanceFilter {
 /// [callerFilter] follows the calling-history convention: null or blank means
 /// all callers; a configured caller includes matching host callers and
 /// programs whose host caller is null or blank. [performedOnly] restricts the
-/// matching slots to those with a non-null performed timestamp. In either
-/// mode an alternate slot matches only once it is marked performed
+/// matching slots to those with a non-null performed timestamp.
+/// [requireEventDate] restricts them to programs that have an event date. In
+/// every mode an alternate slot matches only once it is marked performed
 /// (`ProgramSlot.countsTowardCallingHistory`).
 @immutable
 class CalledFilter extends DanceFilter {
@@ -236,11 +237,13 @@ class CalledFilter extends DanceFilter {
     required this.called,
     this.callerFilter,
     this.performedOnly = false,
+    this.requireEventDate = false,
   });
 
   final bool called;
   final String? callerFilter;
   final bool performedOnly;
+  final bool requireEventDate;
 }
 
 /// Dances whose curatorial rating is **at least** [minimum] (`rating >= N`) on

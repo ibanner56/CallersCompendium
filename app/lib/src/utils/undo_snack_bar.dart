@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../diagnostics/error_log.dart';
 
 /// How long an undo prompt stays visible before auto-dismissing on the default
 /// (non-assistive) path. Chosen to give a comfortable window to react without
@@ -36,13 +40,21 @@ const Duration kUndoSnackBarDuration = Duration(seconds: 6);
 /// `MediaQuery.accessibleNavigationOf(context)`) and [undoLabel] (via
 /// `AppLocalizations.of(context).commonUndo`) before that gap.
 ///
+/// [onUndo] may be async. It runs once the prompt has already closed, so a
+/// failure has nowhere to surface unless this helper puts it somewhere: an
+/// exception (sync or async) is logged and reported with a plain snackbar
+/// reading [undoFailedMessage], rather than escaping to the zone log while the
+/// caller believes the action was undone (audit FAIL-6). An Undo that can say
+/// more about its own failure reports it itself and does not throw.
+///
 /// [key] is forwarded to the [SnackBar] and [actionKey] to its
 /// [SnackBarAction], so existing widget-test keys are kept.
 ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   ScaffoldMessengerState messenger, {
   required String message,
   required String undoLabel,
-  required VoidCallback onUndo,
+  required FutureOr<void> Function() onUndo,
+  required String undoFailedMessage,
   required bool accessibleNavigation,
   Key? key,
   Key? actionKey,
@@ -59,8 +71,33 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
       action: SnackBarAction(
         key: actionKey,
         label: undoLabel,
-        onPressed: onUndo,
+        onPressed: () =>
+            unawaited(_runUndo(messenger, onUndo, undoFailedMessage)),
       ),
     ),
   );
+}
+
+Future<void> _runUndo(
+  ScaffoldMessengerState messenger,
+  FutureOr<void> Function() onUndo,
+  String undoFailedMessage,
+) async {
+  try {
+    await onUndo();
+  } catch (error, stackTrace) {
+    logCaughtError(error, stackTrace, source: 'showUndoSnackBar.onUndo');
+    // The screen that offered the Undo may be gone, so there is no widget
+    // check here, but the messenger itself must still be mounted: showing a
+    // snackbar on a disposed one throws, inside an Undo that has already failed.
+    if (!messenger.mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('undo-failed-snackbar'),
+          content: Text(undoFailedMessage),
+        ),
+      );
+  }
 }

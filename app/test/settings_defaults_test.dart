@@ -2108,6 +2108,47 @@ void main() {
       expect(stored.map((f) => f.move), ['circle', 'turn_alone']);
     });
 
+    // October behaviour audit, AUTH-9: as in the dance editor, a retyped row
+    // keeps what it had beside its move.
+    testWidgets('a retyped template row keeps its note and progression mark', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(
+            move: 'stand_still',
+            params: const {'beats': 8},
+            note: 'to new neighbors',
+            progression: true,
+          ),
+        ]),
+      );
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4800));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        'neighbors swing',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final stored = danceFiguresTemplateFromStored(
+        await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      ).single;
+      expect(stored.move, 'swing');
+      expect(stored.note, 'to new neighbors');
+      expect(stored.progression, isTrue);
+    });
+
     testWidgets('a modifier-defaults row replaced at the cap keeps only the '
         'figures that fit (#1177)', (tester) async {
       final repos = openTestRepositories();

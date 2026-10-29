@@ -209,7 +209,9 @@ combined planned length is the sum of non-null values.
 alongside the free-text `venue` label; the two persist independently (see Venue
 above) so switching venue-entry modes is lossless.
 
-Duplicate-program = deep copy of slots. The programming matrix is a **view**
+Duplicate-program = deep copy of slots, as a Draft with performed marks, pay
+and event date cleared (a copy is for a different event; LIFE-7). The
+programming matrix is a **view**
 computed from structured figures (no manual "elements" checklist — the fix for
 CC's biggest weakness).
 

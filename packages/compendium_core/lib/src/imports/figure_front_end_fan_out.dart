@@ -249,7 +249,9 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
 ///   read, on its own, as a whole figure with no note; or
 /// - it holds a turn amount: a fraction (`3/4`, `½`), a decimal (`1.5`),
 ///   `twice`, `x2` or `2x`, or `N times` (`petronella twice`), for N of 2
-///   or more.
+///   or more; or one spelled out: `two times`, or a fraction such as
+///   `three quarters` or `a half` (so `and a half`) at the end of a clause or
+///   before `turn`, `around`, `way`, `times` or `of`.
 ///
 /// Anything else keeps the structured reading with the words as its note:
 /// that is the designed behaviour. So do plain words (`slowly`,
@@ -302,11 +304,32 @@ final RegExp _clauseBreak = RegExp(r'[,;:]|\b(?:and|then)\b');
 /// A turn amount anywhere in a normalised note: see [_noteIsLeftover].
 final RegExp _turnToken = RegExp(
   r'\d\s*/\s*\d|[¼½¾⅓⅔]|\d\.\d|\b(twice|thrice)\b'
-  '|\\bx\\s*$_moreThanOne\\b|\\b$_moreThanOne\\s*(x|times)\\b',
+  '|\\bx\\s*$_moreThanOne\\b|\\b$_moreThanOne\\s*(x|times)\\b'
+  '|\\b$_spelledMoreThanOne\\s+times\\b'
+  '|\\b$_spelledCount\\s+$_spelledFraction\\b$_turnFollows',
 );
 
 /// A count of two or more: `1x` is once, the default turn.
 const String _moreThanOne = r'(?:[2-9]|[1-9]\d+)';
+
+/// [_moreThanOne] spelled out (`two times`): `one time` is once, the default.
+const String _spelledMoreThanOne =
+    '(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)';
+
+/// A spelled-out count before a fraction word: `three quarters`, `one half`,
+/// `a half` (and so `one and a half`, whose `and` breaks no amount here).
+const String _spelledCount = '(?:a|one|$_spelledMoreThanOne)';
+
+/// A fraction spelled out: `quarter(s)`, `half`/`halves`, `third(s)`,
+/// `eighth(s)`.
+const String _spelledFraction = '(?:quarters?|half|halves|thirds?|eighths?)';
+
+/// What may follow a spelled-out fraction for it to be a turn amount: the end
+/// of the note or of a clause, or a word that says it is one (`three quarters
+/// around`, `a half turn`, `one and a half times`). So `a half step` and `a
+/// half sashay` are plain words.
+const String _turnFollows =
+    r'(?=\s*(?:$|[,;:.!?)\]]|(?:turns?|around|round|way|times|of)\b))';
 
 /// The active taxonomy's move and alias names, as a pattern that matches one
 /// at the start of a clause, as whole words (display names, ids spelled with

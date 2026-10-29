@@ -448,6 +448,38 @@ void main() {
     },
   );
 
+  test('a pending-autosave flush writes the edit now and leaves autosave '
+      'running (PLAT-19)', () async {
+    final repos = openTestRepositories();
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    await controller.flushPendingAutosave();
+    expect(
+      await repos.settings.contains(controller.draftKey),
+      isFalse,
+      reason: 'nothing was waiting on the debounce, so nothing is written',
+    );
+
+    controller.titleController.text = 'Backgrounded title';
+    controller.onTextEdited();
+    // Awaited directly, with no time for the debounce to fire.
+    await controller.flushPendingAutosave();
+    expect(
+      decodeDraft(await repos.settings.get(controller.draftKey)).title,
+      'Backgrounded title',
+    );
+
+    // Not a final flush: an edit after resuming still autosaves.
+    controller.titleController.text = 'Resumed title';
+    controller.onTextEdited();
+    await settleDebounce();
+    expect(
+      decodeDraft(await repos.settings.get(controller.draftKey)).title,
+      'Resumed title',
+    );
+  });
+
   test('clearDraft awaits an in-flight autosave so it cannot resurrect the '
       'draft afterwards (issue #616)', () async {
     final delayed = openTestRepositoriesWithDelayedSettings();
@@ -1328,7 +1360,10 @@ void main() {
       expect(group.meanwhileSides, hasLength(2));
       expect(group.meanwhileSides![0].move, 'balance');
       expect(group.meanwhileSides![1].move, 'swing');
-      expect(group.beats, 4);
+      // The sides are danced at once, so the group takes the longer one's
+      // count (AUTH-11), not the first side's.
+      expect(group.beats, 8);
+      expect(group.beatsTouched, isFalse);
     });
 
     test(
@@ -1794,6 +1829,285 @@ void main() {
         expect(controller.canUndo, isFalse);
       },
     );
+  });
+
+  // October behaviour audit, batch F3: every way of making a row behaves the
+  // same as picking its move.
+  group('typed rows behave as picked ones', () {
+    Future<DanceEditorController> controllerWith(
+      CompendiumRepositories repos, {
+      List<Figure> figures = const [],
+    }) async {
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      await controller.load(
+        dance: Dance(
+          id: 'd1',
+          title: 'My Dance',
+          figures: figures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+        fieldDefs: const [],
+      );
+      return controller;
+    }
+
+    group('Move defaults (AUTH-7)', () {
+      const fullHey = {
+        'hey': {'length': 'full', 'beats': 16},
+        // Not the parser's own assumption for a bare `swing` (partners).
+        'swing': {'who': 'neighbors'},
+      };
+
+      test('fill what a typed line leaves unstated', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.moveParamDefaults = fullHey;
+
+        for (final line in ['hey', 'swing']) {
+          controller.insertFreeTextFigures(parseFreeTextFigureEntry(line));
+        }
+
+        final [hey, swing] = controller.figureDrafts;
+        expect(hey.params['length'], 'full');
+        expect(hey.beats, 16);
+        // A default count is the user's own, as when the move is picked.
+        expect(hey.beatsTouched, isTrue);
+        expect(swing.params['who'], 'neighbors');
+        // The default is the user's stated choice, not one the parser
+        // assumed, as when the move is picked (#460).
+        expect(swing.assumedSubject, isFalse);
+      });
+
+      test('never override what the line states', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.moveParamDefaults = fullHey;
+
+        for (final line in ['half hey', 'partners swing', '12 hey']) {
+          controller.insertFreeTextFigures(parseFreeTextFigureEntry(line));
+        }
+
+        final [half, swing, counted] = controller.figureDrafts;
+        expect(half.params['length'], 'half');
+        // The default 16 went with the full hey the line overruled.
+        expect(half.beats, 8);
+        expect(half.beatsTouched, isFalse);
+        expect(swing.params['who'], 'partners');
+        expect(counted.params['length'], 'full');
+        expect(counted.beats, 12);
+      });
+
+      test('a default without a count derives one', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.moveParamDefaults = const {
+          'hey': {'length': 'full'},
+        };
+
+        controller.insertFreeTextFigures(parseFreeTextFigureEntry('hey'));
+
+        final hey = controller.figureDrafts.single;
+        expect(hey.beats, 16);
+        expect(hey.beatsTouched, isFalse);
+      });
+
+      test('apply to a row retyped in its Move box, and to a group\'s '
+          'sides', () async {
+        final controller = await controllerWith(
+          openTestRepositories(),
+          figures: [
+            Figure(move: 'turn_alone', params: const {'beats': 4}),
+          ],
+        );
+        addTearDown(controller.dispose);
+        controller.moveParamDefaults = fullHey;
+
+        controller.replaceWithFreeTextFigures(
+          controller.figureDrafts.single,
+          parseFreeTextFigureEntry('circle left || swing'),
+        );
+
+        final group = controller.figureDrafts.single;
+        expect(group.meanwhileSides![1].params['who'], 'neighbors');
+      });
+    });
+
+    group('a retyped row keeps what it had beside its move (AUTH-9)', () {
+      Future<DanceEditorController> marked() async {
+        final controller = await controllerWith(
+          openTestRepositories(),
+          figures: [
+            Figure(
+              move: 'stand_still',
+              params: const {'beats': 8},
+              note: 'to new neighbors',
+              progression: true,
+              walkthroughOverride: 'wait for it',
+            ),
+          ],
+        );
+        addTearDown(controller.dispose);
+        return controller;
+      }
+
+      test('its note and walkthrough step on the first row, its '
+          'progression mark on the last', () async {
+        final controller = await marked();
+
+        controller.replaceWithFreeTextFigures(
+          controller.figureDrafts.single,
+          parseFreeTextFigureEntry('neighbor balance & swing; circle left'),
+        );
+
+        final figures = figuresOf(controller.buildDance());
+        expect(figures.map((f) => f.move), ['swing', 'circle']);
+        expect(figures.first.note, 'to new neighbors');
+        expect(figures.first.walkthroughOverride, 'wait for it');
+        expect(figures.first.progression, isFalse);
+        expect(figures.last.progression, isTrue);
+        expect(figures.last.note, isNull);
+      });
+
+      test('after a note typed with the line', () async {
+        final controller = await marked();
+
+        controller.replaceWithFreeTextFigures(
+          controller.figureDrafts.single,
+          parseFreeTextFigureEntry('neighbors swing slowly'),
+        );
+
+        expect(controller.figureDrafts.single.note, 'slowly; to new neighbors');
+      });
+
+      test('from a shorthand\'s rows too', () async {
+        final controller = await marked();
+
+        controller.placeShorthandDrafts([
+          FigureDraft(move: 'balance', params: {'beats': 4}),
+          FigureDraft(move: 'swing', params: {'beats': 12}),
+        ], replacing: controller.figureDrafts.single);
+
+        final [first, last] = controller.figureDrafts;
+        expect(first.note, 'to new neighbors');
+        expect(last.progression, isTrue);
+      });
+
+      test('undo brings the row back as it was', () async {
+        final controller = await marked();
+
+        controller.replaceWithFreeTextFigures(
+          controller.figureDrafts.single,
+          parseFreeTextFigureEntry('neighbors swing'),
+        );
+        controller.undo();
+
+        final row = controller.figureDrafts.single;
+        expect(row.move, 'stand_still');
+        expect(row.progression, isTrue);
+      });
+    });
+
+    group('a group\'s shared count follows its sides (AUTH-11)', () {
+      test('a typed group with no count of its own', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+
+        for (final line in [
+          'circle left || neighbor balance and swing',
+          'long lines while roll away',
+        ]) {
+          controller.insertFreeTextFigures(parseFreeTextFigureEntry(line));
+        }
+
+        final [meanwhile, modifier] = controller.figureDrafts;
+        // The longer side: the balance and swing.
+        expect(meanwhile.beats, 16);
+        expect(meanwhile.beatsTouched, isFalse);
+        // The core: long lines.
+        expect(modifier.beats, 8);
+      });
+
+      test('a count typed for the group is kept', () async {
+        final controller = await controllerWith(openTestRepositories());
+        addTearDown(controller.dispose);
+
+        controller.insertFreeTextFigures(
+          parseFreeTextFigureEntry('12 circle left || neighbor swing'),
+        );
+
+        final group = controller.figureDrafts.single;
+        expect(group.beats, 12);
+        expect(group.beatsTouched, isTrue);
+      });
+
+      test('grouping with next takes the longer side, and a modifier its '
+          'core', () async {
+        final controller = await controllerWith(
+          openTestRepositories(),
+          figures: [
+            Figure(move: 'balance', params: const {'beats': 4}),
+            Figure(move: 'swing', params: const {'beats': 12}),
+            Figure(move: 'long_lines', params: const {'beats': 8}),
+            Figure(move: 'roll_away', params: const {'beats': 4}),
+          ],
+        );
+        addTearDown(controller.dispose);
+
+        controller.groupFigureWithNext(controller.figureDrafts[0]);
+        controller.groupFigureWithNextAsModifier(controller.figureDrafts[1]);
+
+        final [meanwhile, modifier] = controller.figureDrafts;
+        expect(meanwhile.beats, 12);
+        expect(modifier.beats, 8);
+
+        // Converting changes which rule applies.
+        controller.convertContainerToModifier(meanwhile);
+        expect(meanwhile.beats, 4);
+      });
+
+      test('a saved group whose count matches its sides still follows them '
+          'when the dance is reopened; one typed apart does not', () {
+        FigureDraft reopened(int beats) => FigureDraft.fromFigure(
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'circle', params: const {'beats': 8}),
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+            beats: beats,
+          ),
+        );
+        expect(reopened(16).beatsTouched, isFalse);
+        expect(reopened(12).beatsTouched, isTrue);
+        // A side keeps its own stated count.
+        expect(reopened(16).meanwhileSides!.first.beatsTouched, isTrue);
+      });
+
+      test('a group saved with no count follows its sides when one '
+          'changes', () async {
+        final group = FigureDraft.fromFigure(
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'circle', params: const {'beats': 8}),
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+            beats: 0,
+          ),
+        );
+        expect(group.beatsTouched, isFalse);
+        expect(group.syncContainerBeats(), isTrue);
+        expect(group.beats, 16);
+
+        group.beatsTouched = true;
+        group.meanwhileSides![0].params['beats'] = 32;
+        expect(group.syncContainerBeats(), isFalse);
+        expect(group.beats, 16);
+      });
+    });
   });
 
   group('addChoiceOption (inline choice-field option add, #373)', () {

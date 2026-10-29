@@ -2917,6 +2917,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Require an event date for calling history';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Track calling history for all callers';
 
@@ -3351,6 +3359,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get diagnosticsExportFailed => 'Couldn\'t export the diagnostics log.';
 
   @override
+  String get diagnosticsClearFailed => 'Couldn’t clear the diagnostics log.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Clear diagnostics log?';
 
   @override
@@ -3437,6 +3448,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonUndo => 'Undo';
+
+  @override
+  String get commonUndoFailed =>
+      'Couldn’t undo that. Please check the result and try again.';
 
   @override
   String get commonRetry => 'Retry';
@@ -7279,10 +7294,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importReviewUndone => 'Import undone.';
 
   @override
-  String get importReviewUndoFailed =>
-      'Couldn’t undo the import. Check your collection, then try Undo again.';
-
-  @override
   String get importReviewEditError => 'Couldn\'t import that dance to edit.';
 
   @override
@@ -8481,6 +8492,22 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Changed $count dances back.',
+      one: 'Changed 1 dance back.',
+      zero:
+          'No dances were changed back: each one\'s type or tags have changed since.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Closing…';
 
   @override
   String updateBannerAvailable(String appName, String version) {
@@ -10184,6 +10211,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get glossaryCustomDeleteDefaults =>
       'Your default figures in Settings use it, and keep its current wording as plain text.';
+
+  @override
+  String glossaryCustomDeleteShorthands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Your $count shorthands for it stay, and typing them will be read as ordinary lines.',
+      one:
+          'Your shorthand for it stays, and typing it will be read as an ordinary line.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String glossaryCustomDeleteUses(int count) {

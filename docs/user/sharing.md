@@ -183,6 +183,13 @@ sending the file.
 The file goes to your system's share sheet, so how it travels is up to you —
 AirDrop, email, a messaging app, a USB stick.
 
+The recipient gets your program as a plan, not as your calling history. It
+arrives as a **Draft**, with your performed marks and its event date cleared,
+just as a [duplicated program](./programs.md#create-and-manage-programs) would. With their
+default settings it counts toward their calling history like any other program;
+their **Require an event date for calling history** setting keeps it out until
+they date it.
+
 On the receiving end, opening the file takes the recipient to Caller's
 Compendium's [import review](./imports.md#open-a-shared-program-someone-sent-you)
 screen, loaded with the program, its dances, and its venue. Nothing is added
@@ -191,7 +198,10 @@ offered to them afterwards, to add to their Glossary or not — see
 [Figures in a shared file](./imports.md#figures-in-a-shared-file). Bringing the same file in twice does not pile up
 duplicate *dances* — the importer matches what is already there. A dance it
 recognises as one you already have defaults to **Skip**, and the program still
-points at your copy of it.
+points at your copy of it. Programs are different: each import adds the program
+as a new one. If a caller sends you an updated version of a program you already
+have, it arrives beside your copy and never overwrites it, so your own date,
+marks and edits stay as they were.
 
 Venues are matched more narrowly. Importing the same program again, or another
 program from the same sender that uses the same venue, reuses the venue the first

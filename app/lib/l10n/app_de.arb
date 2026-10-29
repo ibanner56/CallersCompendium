@@ -2956,6 +2956,14 @@
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "x-sourceSha256": "1848996e206cb4e46920d0bbc3310cb92d75a955a7a5042e6c91c27de09f0d7d"
   },
+  "settingsGeneralRequireEventDateForHistoryTitle": "Veranstaltungsdatum für Calling-Verlauf erfordern",
+  "@settingsGeneralRequireEventDateForHistoryTitle": {
+    "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
+  },
+  "settingsGeneralRequireEventDateForHistorySubtitle": "Wenn aktiviert, zählt ein Programm ohne Veranstaltungsdatum erst dann zum Calling-Verlauf, wenn du ihm eines gibst. Duplizierte und empfangene Programme kommen ohne Datum an. Wenn deaktiviert, zählt ein Programm unabhängig davon, ob es ein Datum hat.",
+  "@settingsGeneralRequireEventDateForHistorySubtitle": {
+    "x-sourceSha256": "8bfbd2c15d3c1f7cedf4be79c03362ef0ba2dd836f800f1e8591a777352889ca"
+  },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Calling-Verlauf für alle Caller erfassen",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
     "x-sourceSha256": "e2a17c48a924c46655d80157c23b97a219699dc1321f4afa460c2b3c56e3f72e"
@@ -3420,6 +3428,10 @@
   "@diagnosticsExportFailed": {
     "x-sourceSha256": "7a4bc94bc88c3750a70e7afa82ad0573ef674a2baad7c1f34ec0418a39347620"
   },
+  "diagnosticsClearFailed": "Diagnoseprotokoll konnte nicht gelöscht werden.",
+  "@diagnosticsClearFailed": {
+    "x-sourceSha256": "50ce27d1bce5db751b69e08e7ddbf3573dc466a5c04aefbdd637f5e11e7e4857"
+  },
   "diagnosticsClearLogTitle": "Diagnoseprotokoll löschen?",
   "@diagnosticsClearLogTitle": {
     "x-sourceSha256": "0a9b465b72b0b9539a23e5e44494ee4b1769ffb663ed14bbb6cb92bfdc28374a"
@@ -3523,6 +3535,10 @@
   "commonUndo": "Rückgängig",
   "@commonUndo": {
     "x-sourceSha256": "a8283ade31856f71220db0e6f60a257c6889dc4dad0f275f66ad44b9ed9bf8d5"
+  },
+  "commonUndoFailed": "Das konnte nicht rückgängig gemacht werden. Bitte das Ergebnis prüfen und es erneut versuchen.",
+  "@commonUndoFailed": {
+    "x-sourceSha256": "64cb613fabf9e2b50bffb15126b715f3b0c14864606feab0fb1c7cf39226199e"
   },
   "commonRetry": "Erneut versuchen",
   "@commonRetry": {
@@ -7178,10 +7194,6 @@
   "@importReviewUndone": {
     "x-sourceSha256": "0f526ab50a3ca2a66650ef99fd743de2dbf64d38d995f4c521cde940c3abc4da"
   },
-  "importReviewUndoFailed": "Der Import konnte nicht rückgängig gemacht werden. Prüfe deine Sammlung und versuche es dann noch einmal mit „Rückgängig“.",
-  "@importReviewUndoFailed": {
-    "x-sourceSha256": "b7f07770fb150f9491bc822d2b8fcc5348a2a5a4357cee7642b1f12c34a349e7"
-  },
   "importReviewEditError": "Dieser Tanz konnte nicht zum Bearbeiten importiert werden.",
   "@importReviewEditError": {
     "x-sourceSha256": "efa938acdf31d4dcd903bb981c6319d8b7a56f59d2922faf6078d2826413c32f"
@@ -8341,6 +8353,14 @@
   "startupEcdConvertSnackbar": "{count, plural, one{1 Tanz wurde in Englisch (ECD) umgewandelt.} other{{count} Tänze wurden in Englisch (ECD) umgewandelt.}}",
   "@startupEcdConvertSnackbar": {
     "x-sourceSha256": "eeac5cbd9f6ed8ecf6dde0028562b4784e4bb60d89a2a74630e423c760473b31"
+  },
+  "startupEcdConvertUndoneSnackbar": "{count, plural, =0{Kein Tanz wurde zurückgesetzt: Bei jedem wurden seitdem Typ oder Tags geändert.} one{1 Tanz wurde zurückgesetzt.} other{{count} Tänze wurden zurückgesetzt.}}",
+  "@startupEcdConvertUndoneSnackbar": {
+    "x-sourceSha256": "a9e605173e6dcecccc485febe0250d6f99b6d4253045b1dbed890c92f21cdc55"
+  },
+  "appClosingMessage": "Wird geschlossen…",
+  "@appClosingMessage": {
+    "x-sourceSha256": "abdb0cfdd8ace143929beef96d31ef863fc62904fc7e9bef546330b8594eedaa"
   },
   "updateBannerAvailable": "Eine neuere Version von {appName} ({version}) ist verfügbar.",
   "@updateBannerAvailable": {
@@ -10053,6 +10073,10 @@
   "glossaryCustomDeleteDefaults": "Deine Standardfiguren in den Einstellungen verwenden sie und behalten ihren aktuellen Wortlaut als einfachen Text.",
   "@glossaryCustomDeleteDefaults": {
     "x-sourceSha256": "60f9d9b3c005db0b184ac777d688e5bdae100ee989fa1418bf1490b7f9475e7e"
+  },
+  "glossaryCustomDeleteShorthands": "{count, plural, =1{Deine Abkürzung dafür bleibt, und wenn du sie eingibst, wird sie als gewöhnliche Zeile gelesen.} other{Deine {count} Abkürzungen dafür bleiben, und wenn du sie eingibst, werden sie als gewöhnliche Zeilen gelesen.}}",
+  "@glossaryCustomDeleteShorthands": {
+    "x-sourceSha256": "57cf5fa1c84c84032888ea8146381ebd3fd2c18fac1f6a427cf526e2c915d5af"
   },
   "glossaryCustomDeleteUses": "{count, plural, =0{Kein Tanz in deiner Sammlung verwendet sie. Sie wird aus deinem Glossar entfernt.} =1{1 Tanz verwendet sie. Sie wird aus deinem Glossar entfernt, und dieser Tanz behält seinen aktuellen Wortlaut als einfachen Text.} other{{count} Tänze verwenden sie. Sie wird aus deinem Glossar entfernt, und diese Tänze behalten ihren aktuellen Wortlaut als einfachen Text.}}",
   "@glossaryCustomDeleteUses": {

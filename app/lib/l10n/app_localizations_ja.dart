@@ -2796,6 +2796,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、ダンスのコーリング履歴には、そのダンスのスロットが「実施済み」とマークされたプログラムのみが表示されます。オフにすると、ダンスを含むプログラムがすぐに表示されます。';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'コーリング履歴にはイベント日が必要';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'オンにすると、イベント日のないプログラムは、日付を設定するまでコーリング履歴に含まれません。複製したプログラムや受け取ったプログラムは日付なしで追加されます。オフにすると、日付の有無にかかわらずプログラムが含まれます。';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'すべてのコーラーのコーリング履歴を記録する';
 
@@ -3216,6 +3224,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get diagnosticsExportFailed => '診断ログをエクスポートできませんでした。';
 
   @override
+  String get diagnosticsClearFailed => '診断ログを消去できませんでした。';
+
+  @override
   String get diagnosticsClearLogTitle => '診断ログを削除しますか？';
 
   @override
@@ -3298,6 +3309,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commonUndo => '元に戻す';
+
+  @override
+  String get commonUndoFailed => '元に戻せませんでした。結果を確認して、もう一度お試しください。';
 
   @override
   String get commonRetry => '再試行';
@@ -7010,10 +7024,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importReviewUndone => 'インポートを元に戻しました。';
 
   @override
-  String get importReviewUndoFailed =>
-      'インポートを元に戻せませんでした。コレクションを確認してから、もう一度「元に戻す」をお試しください。';
-
-  @override
   String get importReviewEditError => '編集用にそのダンスをインポートできませんでした。';
 
   @override
@@ -8182,6 +8192,20 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを元に戻しました。',
+      zero: '元に戻したダンスはありません。どのダンスもその後に種類またはタグが変更されています。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => '終了しています…';
 
   @override
   String updateBannerAvailable(String appName, String version) {
@@ -9822,6 +9846,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get glossaryCustomDeleteDefaults =>
       '設定の既定のフィギュアがこのフィギュアを使っており、現在の文言をプレーンテキストとして残します。';
+
+  @override
+  String glossaryCustomDeleteShorthands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'このフィギュアの$count件のショートハンドは残り、入力すると通常の行として読み取られます。',
+    );
+    return '$_temp0';
+  }
 
   @override
   String glossaryCustomDeleteUses(int count) {

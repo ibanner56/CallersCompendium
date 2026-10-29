@@ -14,12 +14,11 @@ import '../../editor/figure_draft.dart';
 import '../../editor/free_text_composer_controller.dart';
 import '../../editor/user_figure_draft.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
+import 'choice_option.dart';
 import 'link_draft.dart';
 import 'source_citation_draft.dart';
 
-/// Result of an inline [DanceEditorController.addChoiceOption] attempt, so the
-/// editor UI can report why an add did nothing.
-enum AddChoiceResult { added, empty, duplicate, notFound }
+export 'choice_option.dart' show AddChoiceResult;
 
 /// Owns the dance editor's mutable working draft, its bounded [EditorUndoStack],
 /// and the debounced undo/autosave machinery.
@@ -199,6 +198,11 @@ class DanceEditorController extends ChangeNotifier {
   final LingoTextEditingController phraseController;
   final LingoTextEditingController formationDetailController;
   final LingoTextEditingController tuneController;
+
+  /// The user's Move defaults (DD.3), by move id, which a typed line's rows
+  /// take for what it leaves unstated, as picking a move takes them (AUTH-7).
+  /// The screen sets them once it has read them; empty until then.
+  Map<String, Map<String, Object?>> moveParamDefaults = const {};
 
   /// Custom text/number field editors, keyed by field id. Text fields get lingo
   /// styling; number fields carry the same controller type but never match a
@@ -1129,6 +1133,17 @@ class DanceEditorController extends ChangeNotifier {
     _autosaveTimer = Timer(_debounce, _saveDraft);
   }
 
+  /// Writes the draft the autosave debounce is waiting to write, now, for the
+  /// app being paused or hidden (PLAT-19). Unlike [prepareShutdownFlush] this
+  /// is not final: later edits schedule autosave as usual. A no-op when no
+  /// autosave is pending.
+  Future<void> flushPendingAutosave() {
+    final timer = _autosaveTimer;
+    if (timer == null || !timer.isActive) return Future<void>.value();
+    timer.cancel();
+    return _saveDraft();
+  }
+
   /// Cancels the pending debounce and queues one immutable final snapshot
   /// synchronously, before shutdown begins awaiting any editor operation.
   EditorDraftShutdownOperation prepareShutdownFlush() {
@@ -1530,32 +1545,13 @@ class DanceEditorController extends ChangeNotifier {
     final def = fieldDefs[index];
     if (def.type != CustomFieldType.choice) return AddChoiceResult.notFound;
 
-    final normalized = normalizeChoiceOption(raw);
-    if (normalized == null) return AddChoiceResult.empty;
-    final existing = def.choices ?? const <String>[];
-    if (existing.contains(normalized)) return AddChoiceResult.duplicate;
-
-    final updated = CustomFieldDef(
-      id: def.id,
-      key: def.key,
-      label: def.label,
-      type: def.type,
-      choices: [...existing, normalized],
-      showInList: def.showInList,
-      searchable: def.searchable,
-      // Preserve the privacy flag: the constructor defaults to `true`, so
-      // omitting it would silently make a private field shareable.
-      shareable: def.shareable,
-    );
-    // Safe discard: `updated` is built from `def.id` (an already-persisted row),
-    // not a fresh UUID. Tombstone adoption requires a minting caller; it cannot
-    // fire here, so the returned id is always identical to updated.id.
-    // ignore: unused_result
-    await _repos.customFieldDefs.upsert(updated, localUserEdit: true);
+    final outcome = await addChoiceOptionToDef(_repos, def, raw);
+    final updated = outcome.def;
+    if (updated == null) return outcome.result;
     if (_disposed) return AddChoiceResult.added;
 
     fieldDefs = [for (final d in fieldDefs) d.id == fieldId ? updated : d];
-    customValues[fieldId] = normalized;
+    customValues[fieldId] = outcome.option!;
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -1593,7 +1589,8 @@ class DanceEditorController extends ChangeNotifier {
       sides.add(FigureDraft());
     }
     final group = FigureDraft(meanwhileSides: sides);
-    group.params['beats'] = sides.first.beats;
+    group.params['beats'] = 0;
+    group.syncContainerBeats();
     _renderDraftTextRecursively([group]);
     figureDrafts.add(group);
     recomputeWarnings();
@@ -1623,7 +1620,8 @@ class DanceEditorController extends ChangeNotifier {
       children.add(FigureDraft());
     }
     final group = FigureDraft(modifierFigures: children);
-    group.params['beats'] = children.first.beats;
+    group.params['beats'] = 0;
+    group.syncContainerBeats();
     _renderDraftTextRecursively([group]);
     figureDrafts.add(group);
     recomputeWarnings();
@@ -1646,7 +1644,11 @@ class DanceEditorController extends ChangeNotifier {
     if (figures.isEmpty) return 0;
     final inserted = [
       for (final figure in figures)
-        FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+        FigureDraft.fromFreeTextFigure(
+          figure,
+          contraTaxonomy,
+          moveParamDefaults: moveParamDefaults,
+        ),
     ];
     figureDrafts.addAll(inserted);
     _renderDraftTextRecursively(inserted);
@@ -1660,7 +1662,8 @@ class DanceEditorController extends ChangeNotifier {
   /// Replaces the row [draft] with the figure(s) parsed from a line typed into
   /// its Move box (#1177, opt-in "Free-text entry"), in its place. The rows are
   /// built as [insertFreeTextFigures] builds them, so parser-gap customs keep
-  /// the #398 marker and stay reparse-eligible. Returns the number of rows
+  /// the #398 marker and stay reparse-eligible, and they keep what [draft] had
+  /// beside its move ([FigureDraft.carryRowExtras]). Returns the number of rows
   /// inserted; 0 (an empty list, or [draft] no longer in the list) changes
   /// nothing.
   int replaceWithFreeTextFigures(FigureDraft draft, List<Figure> figures) {
@@ -1668,10 +1671,15 @@ class DanceEditorController extends ChangeNotifier {
     if (figures.isEmpty || index == -1) return 0;
     final inserted = [
       for (final figure in figures)
-        FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+        FigureDraft.fromFreeTextFigure(
+          figure,
+          contraTaxonomy,
+          moveParamDefaults: moveParamDefaults,
+        ),
     ];
     figureDrafts.replaceRange(index, index + 1, inserted);
     _renderDraftTextRecursively(inserted);
+    FigureDraft.carryRowExtras(draft, inserted);
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
@@ -1680,9 +1688,9 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   /// Puts the shorthand rows [drafts] at the end of the list, or in place of
-  /// [replacing] (#1847) when that row is still in the list. Returns false,
-  /// changing nothing, when [replacing] was given but is gone or [drafts] is
-  /// empty.
+  /// [replacing] (#1847) when that row is still in the list, keeping what it
+  /// had beside its move ([FigureDraft.carryRowExtras]). Returns false, changing
+  /// nothing, when [replacing] was given but is gone or [drafts] is empty.
   bool placeShorthandDrafts(
     List<FigureDraft> drafts, {
     FigureDraft? replacing,
@@ -1694,6 +1702,7 @@ class DanceEditorController extends ChangeNotifier {
       final index = figureDrafts.indexOf(replacing);
       if (index == -1) return false;
       figureDrafts.replaceRange(index, index + 1, drafts);
+      FigureDraft.carryRowExtras(replacing, drafts);
     }
     recomputeWarnings();
     pushUndoNow();
@@ -1709,7 +1718,11 @@ class DanceEditorController extends ChangeNotifier {
   List<FigureDraft> draftsForFreeTextFigures(List<Figure> figures) {
     final drafts = [
       for (final figure in figures)
-        FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+        FigureDraft.fromFreeTextFigure(
+          figure,
+          contraTaxonomy,
+          moveParamDefaults: moveParamDefaults,
+        ),
     ];
     _renderDraftTextRecursively(drafts);
     return drafts;
@@ -1833,8 +1846,8 @@ class DanceEditorController extends ChangeNotifier {
 
   /// Merges [draft] (a top-level figure row) with the row immediately after
   /// it into ONE new meanwhile group draft (#590/#593): both are demoted to
-  /// concurrent sides, seeded with the first side's beats (the user edits the
-  /// shared count afterward). Existing modifier groups may be nested as
+  /// concurrent sides, and the group's shared count follows them, the longer
+  /// side's, until the user types one ([FigureDraft.syncContainerBeats]). Existing modifier groups may be nested as
   /// concurrent sides, but only when they contain no further container.
   void groupFigureWithNext(FigureDraft draft) {
     final index = figureDrafts.indexOf(draft);
@@ -1847,7 +1860,7 @@ class DanceEditorController extends ChangeNotifier {
     }
     final group = FigureDraft(meanwhileSides: [first, second]);
     group.params['beats'] = first.beats;
-    group.beatsTouched = first.beatsTouched;
+    group.syncContainerBeats();
     figureDrafts
       ..removeAt(index + 1)
       ..removeAt(index)
@@ -1872,7 +1885,7 @@ class DanceEditorController extends ChangeNotifier {
     }
     final group = FigureDraft(modifierFigures: [first, second]);
     group.params['beats'] = first.beats;
-    group.beatsTouched = first.beatsTouched;
+    group.syncContainerBeats();
     figureDrafts
       ..removeAt(index + 1)
       ..removeAt(index)
@@ -1893,6 +1906,7 @@ class DanceEditorController extends ChangeNotifier {
     draft
       ..meanwhileSides = children
       ..modifierFigures = null;
+    draft.syncContainerBeats();
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
@@ -1909,6 +1923,7 @@ class DanceEditorController extends ChangeNotifier {
     draft
       ..modifierFigures = children
       ..meanwhileSides = null;
+    draft.syncContainerBeats();
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();

@@ -85,6 +85,13 @@ class _FailingReadCrashLogStore extends CrashLogStore {
   Future<void> clear() async {}
 }
 
+/// A store whose clear always fails, as a log file another program holds open
+/// does on Windows.
+class _FailingClearCrashLogStore extends _InMemoryCrashLogStore {
+  @override
+  Future<void> clear() async => throw StateError('log file is in use');
+}
+
 /// Pumps [SettingsScreen] with the diagnostics seams wired to [store] and opens
 /// the Diagnostics section. [onExport] captures the text handed to the saver.
 Future<void> _pumpDiagnostics(
@@ -319,6 +326,27 @@ void main() {
 
     expect(await store.readRecords(), isEmpty);
     expect(find.byKey(const ValueKey('diagnostics-empty')), findsOneWidget);
+  });
+
+  testWidgets('a failed clear says so and keeps the entries listed', (
+    tester,
+  ) async {
+    final failing = _FailingClearCrashLogStore();
+    await failing.append(_seededRecord());
+
+    await _pumpDiagnostics(tester, store: failing, onExport: (_) {});
+    await tester.tap(find.byKey(const ValueKey('diagnostics-clear')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('diagnostics-clear-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('diagnostics-clear-failed')),
+      findsOneWidget,
+    );
+    expect(find.text('Couldn’t clear the diagnostics log.'), findsOneWidget);
+    expect(find.text('Diagnostics log cleared.'), findsNothing);
+    expect(find.byKey(const ValueKey('diagnostics-entry-0')), findsOneWidget);
   });
 
   testWidgets('shows a load-failure state when the log cannot be read', (
