@@ -253,7 +253,7 @@ row, the search field and two or three rows would not fit.
 
 **Recommendation:** size the sheet from the *available* height, that is, the
 screen height minus `viewInsets.bottom`, and add the bottom inset as padding.
-`isScrollControlled: true` is already set (`:40`), which is what lets the sheet
+`isScrollControlled: true` is already set (`:41`), which is what lets the sheet
 use more than half the screen. Pin New above the list and the search field
 below it; the list is the only part that scrolls. The build must have a widget
 test at 360×640 with a simulated keyboard inset, and one at 200% text scale.
