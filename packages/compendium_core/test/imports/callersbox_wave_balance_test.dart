@@ -606,4 +606,16 @@ void main() {
       expect(sections, hasLength(figures.length));
     });
   });
+
+  test('a square corner on a balance line folds since taxonomy v38', () async {
+    // #1975: C2 decodes to the opposites, so the annotation is carried.
+    final figures = await _figuresFor([
+      '(4) Pass the ocean',
+      '(4) Balance wave of four (C2R,WL)',
+    ]);
+    expect(figures, hasLength(1));
+    expect(figures.single.move, 'pass_the_ocean');
+    expect(figures.single.params['sides'], 'opposites');
+    expect(figures.single.params['balance'], isTrue);
+  });
 }

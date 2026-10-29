@@ -549,10 +549,11 @@ final RegExp _bareInteger = RegExp(r'^\d+$');
 ///
 /// A neighbour word followed by `0`–`4` becomes the matching `n0`–`n4` tag, so
 /// both spellings resolve through the same [dancerWords] entry. Any other
-/// number after a dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) or a
-/// corner word (`Corner 2`) is marked with a leading `#`, which no recognizer
-/// reads, so the line falls to custom (or into a prefix match's note) rather
-/// than lending its number to an amount. A number that starts a mixed number is left alone: it is the amount
+/// `Corner 1`/`2`/`3` names a corner set (below). Any other number after a
+/// dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) or a corner word
+/// (`Corner 5`) is marked with a leading `#`, which no recognizer reads, so the
+/// line falls to custom (or into a prefix match's note) rather than lending
+/// its number to an amount. A number that starts a mixed number is left alone: it is the amount
 /// (`Gypsy partner 1 1/2`, `Allemande left neighbor 1½`).
 void _foldDancerNumbers(List<String> w) {
   for (var i = 0; i + 1 < w.length; i++) {
@@ -737,8 +738,8 @@ bool _isSameRolePair(List<String> w, int i) =>
 /// and [_foldDancerNumbers] has read "Corner 1"/"2"/"3"). A bare plural ("the
 /// corners") may mean both corners in turn, so only the singular is read.
 /// "Opposite(s)" is the opposites, unless it describes a role, side,
-/// direction, way or hand ("opposite role pull by L"), all maintainer
-/// decisions.
+/// direction, way or hand ("opposite role pull by L"). These are maintainer
+/// decisions, except "3rd"/"third", the author's extension of the ordinals.
 String? _takeNamedDancerAt(List<String> w, int i) {
   final word = w[i];
   final next = i + 1 < w.length ? w[i + 1] : null;
@@ -790,7 +791,7 @@ const Map<String, String> _numberedCorners = {
 };
 
 /// The words after which "opposite" describes something rather than naming
-/// the opposites (maintainer decision, #1975). Today the described word is
+/// the opposites (maintainer decision, #1975; the plurals are the author's). Today the described word is
 /// never read, so such a line stays text even without this; it keeps a
 /// recognizer that tolerated a leftover word from reading "opposite role" as
 /// the opposites.

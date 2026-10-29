@@ -48,11 +48,31 @@ void main() {
         expect(read('Corner 5 swing').single.isCustom, isTrue);
       });
 
+      test('a mixed number after a corner is still the amount', () {
+        for (final line in [
+          'Allemande left corner 1 1/2',
+          'Allemande left corner 1½',
+        ]) {
+          final f = read(line).single;
+          expect(f.params['who'], 'firstCorners', reason: line);
+          expect(f.params['travel'], 1.5, reason: line);
+        }
+      });
+
+      test('opposites roll away is a roll away with them', () {
+        final f = read('Opposite roll away').single;
+        expect(f.move, 'roll_away');
+        expect(f.params['whom'], 'opposites');
+      });
+
       test('"opposite" is the opposites', () {
         expectWho('Opposite balance and swing', 'swing', 'opposites');
         expectWho('Opposites swing', 'swing', 'opposites');
       });
 
+      // A non-regression pin, not a test of the guard alone: today the
+      // described word is never read, so each line stays text even without
+      // `_oppositeDescribes`.
       test('"opposite" describing a role, side, direction, way or hand is not '
           'a dancer', () {
         for (final line in [
@@ -71,4 +91,25 @@ void main() {
       });
     });
   }
+
+  group('The Caller\'s Box side runs and waves', () {
+    Figure? tcb(String line) =>
+        parseFigureLine(line, beats: 4, frontEnd: tcbFigureFrontEnd);
+
+    test('a side run names the corner sets', () {
+      final f = tcb('Cross trails (C1R;C2L)')!;
+      expect(f.params['who'], 'firstCorners');
+      expect(f.params['who2'], 'opposites');
+    });
+
+    test('a corner a slot cannot hold is not approximated', () {
+      // `form_long_waves.who` is an invertible pair; opposites are not one,
+      // so the run declines and the defaults stay, as before v38.
+      for (final line in ['Form long waves (C2R)', 'Form long waves (C3L)']) {
+        final f = tcb(line)!;
+        expect(f.move, 'form_long_waves', reason: line);
+        expect(f.params.containsKey('who'), isFalse, reason: line);
+      }
+    });
+  });
 }

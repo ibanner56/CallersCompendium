@@ -1294,7 +1294,7 @@ comment saying an unmapped people code "declines the whole line to custom" is
 **true** of the hey decoder — whose pass list *is* the figure's structure, so
 without it there is nothing to build — and **false** of
 `_squareThroughPassList` or `_sideRunAnnotation`, whose runs only *add* params.
-`Square through 2 (C1R;C2L)` still imports as a `square_through`; only the
+`Square through 2 (Ph1R;Ph2L)` still imports as a `square_through`; only the
 unmapped detail is dropped. Prefer naming the outcome ("falls through to the
 shared reading", "becomes a custom figure") over the bare verb.
 
@@ -1426,9 +1426,10 @@ has to be judged in its own context.
   default), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
-  #577; a balance line whose annotation does not decode — `(C2R,WL)`,
+  #577; a balance line whose annotation does not decode — `(Ph1R,WL)`,
   `(SRNR,1CL)` — is not folded and stays custom, since the fold carries only
-  decoded params), diagonal chain /
+  decoded params; since taxonomy v38 a square corner decodes, so `(C2R,WL)`
+  folds with `opposites` as the sides), diagonal chain /
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
@@ -1647,20 +1648,21 @@ has to be judged in its own context.
   shares the reader, so a Caller's Box `[with corner]` bracket on a
   balance-the-wave line now keeps the note `with firstCorners`, as `[with
   partner]` keeps `with partners`, where it was dropped before. The bare
-  `Corner` and the ordinal readings are the maintainer's decisions (#1975; the
-  ordinals and the scope on 2026-10-29). A bare plural (`allemande left the
-  corners`, ContraDB's contra-corners text) may mean both corners in turn, so
-  it is not read. Since taxonomy v38 a numbered corner is read like TCB's
-  C1–C3 (maintainer decision): `_foldDancerNumbers` turns `Corner 1`, `2` and
-  `3` into the first corners, the opposites and the third corners, even though
-  the tester's own `Corner 3 (next to you)` disagrees, and still marks any
-  other number after a corner word, so `Corner 5 swing` stays custom rather
-  than reading the number as an amount. `third`/`3rd corner` is the third
-  corners, and `opposite(s)` is the opposites unless the next word is role,
-  side, direction, way or hand (`opposite role pull by L` stays text; today
-  that word is never read, so the line would stay text anyway, and the check
-  is a safeguard). These are context-dependent two-word names, so they live in
-  the reader rather than in `dancerWords`.
+  `Corner` and the `1st`/`2nd` ordinal readings are the maintainer's decisions
+  (#1975; the ordinals and the scope on 2026-10-29); `3rd`/`third` is the
+  author's extension of them. A bare plural (`allemande left the corners`,
+  ContraDB's contra-corners text) may mean both corners in turn, so it is not
+  read. Since taxonomy v38 a numbered corner is read like TCB's C1–C3
+  (maintainer decision): `_foldDancerNumbers` turns `Corner 1`, `2` and `3`
+  into the first corners, the opposites and the third corners, even though the
+  tester's own `Corner 3 (next to you)` disagrees, and still marks any other
+  number after a corner word, so `Corner 5 swing` stays custom rather than
+  reading the number as an amount. `third`/`3rd corner` is the third corners,
+  and `opposite(s)` is the opposites unless the next word is role, side,
+  direction, way or hand (`opposite role pull by L` stays text; today that
+  word is never read, so the line would stay text anyway, and the check is a
+  safeguard). These are context-dependent two-word names, so they live in the
+  reader rather than in `dancerWords`.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on

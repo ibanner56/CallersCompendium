@@ -194,7 +194,7 @@ their pass count. The 196 declines break down as:
 
 | reason | lines | detail |
 |---|---|---|
-| unmappable pass code | 115 | square corners `C1`–`C7` 55 · mixer partner series `P6`+/`P-n` 18 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
+| unmappable pass code | 115 | square corners `C1`–`C7` 55 (`C1`–`C3` map since taxonomy v38, #1975; not re-measured) · mixer partner series `P6`+/`P-n` 18 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
 | leftover prose outside the pass list | 56 | a second parenthetical 17 · a `[…]` qualifier 16 · other prose/`;`-tail 9 · `Progressive grand right and left` 8 · `Same-role grand right and left` 6 |
 | no pass list at all | 3 | |
 | degenerate list (`(N1R)`, `(N1R;;N2L)`) | 2 | |

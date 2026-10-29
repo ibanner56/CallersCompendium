@@ -2524,9 +2524,10 @@ bool _isSquareRoleSetDescriptor(String body) =>
 ///     is a side run and the others are prose, which becomes the note
 ///     (`Pass through along (NR) (optional)`, #1971);
 ///   * the annotation is not entirely `<people-code><R|L>` cells, or any
-///     people code is absent from [tcbPassPeople] (`O`, `Ph`, `SRN`, `C1`–`C3`,
-///     out-of-range neighbors/shadows) — never approximated onto a token that
-///     means something else;
+///     people code is absent from [tcbPassPeople] (`O`, `Ph`, `SRN`, `C4`+,
+///     out-of-range neighbors/shadows), or names a dancer the move's slot does
+///     not accept (`Form long waves (C2R)`: opposites are not an invertible
+///     pair) — never approximated onto a token that means something else;
 ///   * the sides do not alternate by position parity, which is the model both
 ///     two-pass renderers implement;
 ///   * a `square_through` 4-code list is not periodic (`code[2] == code[0]`,
@@ -2612,6 +2613,14 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   final who1 = _consistentWho(decoded, odd: true);
   final who2 = _consistentWho(decoded, odd: false);
   if (who1 == null) return null; // positions disagree -> ambiguous -> decline.
+  // A dancer the slot does not accept is not approximated either: since
+  // taxonomy v38 (#1975) a square corner decodes to `opposites`, which a
+  // `form_long_waves.who` (an invertible pair) cannot hold.
+  bool fits(String slotName, String who) =>
+      def.params[slotName]?.validate(who) ?? true;
+  if (!fits('who', who1) || (who2 != null && !fits('who2', who2))) {
+    return null;
+  }
   if (def.params.containsKey('who') && !match.params.containsKey('who')) {
     params['who'] = who1;
   }
@@ -3165,8 +3174,9 @@ FigureMatch? _circulate(String scrubbed) {
 ///   * the cell count does not equal `n` (a square through of `n` has `n`
 ///     passes; a mismatch is an unmodeled variant);
 ///   * any cell is not `<people-code><R|L>` with the people code present in
-///     [tcbPassPeople] (square corners, mixer partner series, out-of-range
-///     neighbors/shadows, phantoms and bare `R`/`L` therefore stay custom rather
+///     [tcbPassPeople] (square corners past `C3`, mixer partner series,
+///     out-of-range neighbors/shadows, phantoms and bare `R`/`L` therefore stay
+///     custom rather
 ///     than being approximated onto a token that means something else);
 ///   * the odd/even dancers are not internally consistent, or the hands do not
 ///     alternate (an ambiguous list is never partially structured).
@@ -3619,7 +3629,8 @@ const String _grandRightAndLeftNote = 'grand right and left';
 ///   qualifier, a second parenthetical (`(ones and twos begin with neighbor…)`)
 ///   or any other leftover prose;
 /// - any cell is not `<people-code><R|L>` with the people code present in
-///   [tcbPassPeople] — square corners (`C1`..`C3`), out-of-range mixer partner
+///   [tcbPassPeople] — square corners past `C3` (`C1`..`C3` map since taxonomy
+///   v38, #1975), out-of-range mixer partner
 ///   codes (`P6`+/`P-n`), out-of-range neighbors/shadows, phantoms, trail
 ///   buddies and bare `R`/`L` (a hand with no dancer) therefore all stay custom
 ///   rather than being approximated onto a token that means something else;
