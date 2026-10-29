@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Notes on imported dances, update checks, Device Sync decisions and custom-field setup now use plain words instead of developer terms such as \"stub\", \"taxonomy default\", \"sha256\", \"peer record\" and \"machine key\". A custom field's Yes/No type is now called Yes/No.",
+      "Notes on imported dances, update checks, Device Sync decisions and custom-field setup now use plain words instead of developer terms such as \"stub\", \"taxonomy default\", \"sha256\", \"peer record\" and \"machine key\". A custom field's Boolean type is now called Yes/No.",
       "The program editor's Save button reads \"Save changes\" instead of \"Save *\" when there are unsaved changes, and \"Wi-Fi\" is spelled the same way throughout Device Sync."
     ],
     "fixed": [

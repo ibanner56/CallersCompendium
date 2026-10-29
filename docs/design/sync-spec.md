@@ -6073,7 +6073,7 @@ refused, and no request carrying `Authorization` is issued to it** (mutation:
 validate only scheme, userinfo and port — every cosmetic check still passes and
 the sync ID, which is the whole credential, leaves for an attacker-controlled
 origin on the first hop). **§6.12's triggers behave as specified**: *Sync only
-on WiFi* defaults to on; on a metered connection no automatic pass runs and a
+on Wi-Fi* defaults to on; on a metered connection no automatic pass runs and a
 manual attempt routes to the setting rather than failing; and a pass suppressed
 for either reason runs at the next trigger without user action (mutation: treat
 a suppressed pass as a completed one — nothing reports an error, and the device

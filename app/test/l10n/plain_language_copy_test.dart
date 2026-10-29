@@ -106,13 +106,11 @@ void main() {
         'importReviewBatchErrors',
       ]) {
         final value = en[key] as String;
-        final one = RegExp(
-          r'=1\{([^}]*(?:\{count\}[^}]*)?)\}',
+        final branches = RegExp(
+          r'=1\{(.*?)\} other\{(.*)\}\}$',
         ).firstMatch(value);
-        final other = RegExp(r'other\{(.*)\}\}$').firstMatch(value);
-        expect(one, isNotNull, reason: key);
-        expect(other, isNotNull, reason: key);
-        expect(one!.group(1), isNot(other!.group(1)), reason: key);
+        expect(branches, isNotNull, reason: key);
+        expect(branches!.group(1), isNot(branches.group(2)), reason: key);
       }
     });
   });

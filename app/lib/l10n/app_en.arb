@@ -2336,7 +2336,7 @@
   },
   "settingsUpdatesVerifyingSubtitle": "Checking that the download is complete and unchanged…",
   "@settingsUpdatesVerifyingSubtitle": {
-    "description": "Subtitle shown while verifying the download's sha256 integrity. 'sha256' is a technical term kept verbatim."
+    "description": "Subtitle shown while the app checks that the downloaded update is complete and unchanged (a checksum comparison, described in plain words)."
   },
   "settingsUpdatesHandoffTitle": "Preparing the installer",
   "@settingsUpdatesHandoffTitle": {
@@ -11046,7 +11046,7 @@
   },
   "updateDownloadFailureChecksumMismatch": "The downloaded update failed its security check and was deleted. Try again, or use \"View release\" to download it manually.",
   "@updateDownloadFailureChecksumMismatch": {
-    "description": "Assisted-download error shown when the downloaded file's sha256 did not match the manifest, so the file was deleted. \"sha256\" is the literal checksum name and stays as-is. \"View release\" must match the translation of updateBannerViewRelease."
+    "description": "Assisted-download error shown when the downloaded file did not match the manifest's checksum, so the file was deleted. Keep the wording plain; do not name the hash algorithm. \"View release\" must match the translation of updateBannerViewRelease."
   },
   "updateDownloadFailureHandoffFailed": "The update was downloaded and verified, but could not be opened automatically. Use \"View release\" to finish installing.",
   "@updateDownloadFailureHandoffFailed": {

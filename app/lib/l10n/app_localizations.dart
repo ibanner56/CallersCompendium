@@ -2695,7 +2695,7 @@ abstract class AppLocalizations {
   /// **'Verifying download'**
   String get settingsUpdatesVerifyingTitle;
 
-  /// Subtitle shown while verifying the download's sha256 integrity. 'sha256' is a technical term kept verbatim.
+  /// Subtitle shown while the app checks that the downloaded update is complete and unchanged (a checksum comparison, described in plain words).
   ///
   /// In en, this message translates to:
   /// **'Checking that the download is complete and unchanged…'**
@@ -12650,7 +12650,7 @@ abstract class AppLocalizations {
   /// **'The update could not be saved because the download location is not writable. Check its permissions and try again, or use \"View release\".'**
   String get updateDownloadFailureUnwritable;
 
-  /// Assisted-download error shown when the downloaded file's sha256 did not match the manifest, so the file was deleted. "sha256" is the literal checksum name and stays as-is. "View release" must match the translation of updateBannerViewRelease.
+  /// Assisted-download error shown when the downloaded file did not match the manifest's checksum, so the file was deleted. Keep the wording plain; do not name the hash algorithm. "View release" must match the translation of updateBannerViewRelease.
   ///
   /// In en, this message translates to:
   /// **'The downloaded update failed its security check and was deleted. Try again, or use \"View release\" to download it manually.'**
