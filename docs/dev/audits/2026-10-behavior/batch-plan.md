@@ -257,6 +257,7 @@ The maintainer chose option (d) for G2, replacing the earlier "received and dupl
 
 This is the intake's "stale copies overwrite newer data" pattern, applied to what GIG-3/4 leaves.
 
+- **Added from F2 (#1996, merged):** the program editor still keeps every new program's draft under the single shared key `program_editor_draft:new`. Give each new program its own draft key, as #1996 did for dances, so two new programs can't overwrite each other's draft.
 - **Findings:**
   - **GIG-6:** Perform adjustments write with `replaceIfUnchanged` against the program Perform started from, and tell the caller when the program changed underneath them.
   - **GIG-19:** add-to-program Undo uses compare-and-replace. This also fixes FIND-17's Undo bullet.
