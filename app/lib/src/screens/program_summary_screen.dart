@@ -255,10 +255,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     DanceDetailData detail,
   ) => _reimport.open(routeContext, detail);
 
-  /// The slots whose toggle write is in flight, so a second tap on the same
-  /// row waits for the first write to be read back. Other rows are never
-  /// blocked: their writes serialise through [ProgramRepository.replaceIfUnchanged]
-  /// and its retry.
+  /// The slots whose toggle write is in flight. A second tap on the same row
+  /// while its write is in flight is ignored (it would set the same state).
+  /// Other rows are never blocked: their writes serialise through
+  /// [ProgramRepository.replaceIfUnchanged] and its retry.
   final Set<String> _togglingSlots = {};
 
   void _invalidateBulkUndo() {
