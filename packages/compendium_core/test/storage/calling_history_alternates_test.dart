@@ -76,7 +76,15 @@ void main() {
 
     test('Called ×N counts only the performed primary', () async {
       final counts = await programs.countByDance();
-      expect(counts['chorus-jig'], const DanceCallCounts(all: 2, performed: 2));
+      expect(
+        counts['chorus-jig'],
+        const DanceCallCounts(
+          all: 2,
+          performed: 2,
+          dated: 0,
+          performedDated: 0,
+        ),
+      );
       expect(counts, isNot(contains('hulls-victory')));
     });
 
@@ -155,7 +163,7 @@ void main() {
     );
     expect(
       (await programs.countByDance())['hulls-victory'],
-      const DanceCallCounts(all: 1, performed: 1),
+      const DanceCallCounts(all: 1, performed: 1, dated: 0, performedDated: 0),
     );
     final history = await programs
         .watchCallingHistoryForDance('hulls-victory', performedOnly: true)
@@ -171,7 +179,7 @@ void main() {
     await programs.create(saturday());
     expect(
       (await programs.countByDance())['chorus-jig'],
-      const DanceCallCounts(all: 1, performed: 0),
+      const DanceCallCounts(all: 1, performed: 0, dated: 0, performedDated: 0),
     );
     expect(await programs.callingHistoryForDance('chorus-jig'), hasLength(1));
   });
