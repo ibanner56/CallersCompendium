@@ -522,6 +522,42 @@ declines the collapse.
   one was skipped), and removed (revived ones tombstoned again) on `undo`, each
   behind the repository's guard against deleting a source a live dance cites,
   so a source a user's own dance has since cited stays.
+- **Difficulty level (#1973).** CC's `Level` is a multi-select and stores each
+  checked value on its own line. One value, or several that are the same step,
+  maps to a shipped level as before (`Easy` to Beginner). Several steps name a
+  level of their own, written lowest first on CC's scale (`ccLevelScale`:
+  Beginner, Easy, Intermediate, Advanced), so `Intermediate⏎Easy` is
+  "Easy/Intermediate" (maintainer decisions); a synonym takes the scale's
+  word, so `Novice⏎Medium` is "Beginner/Intermediate". The mapper leaves the
+  dance's level unset with a `cc_new_level` issue, which carries the name for
+  the review's localized note; the pipeline points it at a level of that name
+  the receiver already has, ignoring case and spacing (`ccLevelNameKey`,
+  maintainer decision), and `CallersCompanionUsrImporter` resolves the rest
+  before the pipeline commit: a live level of that name is reused (one an
+  earlier per-row Edit made since the plan), a tombstoned one is restored (the
+  author's call, as #1974 restores a source), and otherwise one is created,
+  last for now. Once the import has otherwise succeeded, each created or
+  restored level it kept is placed by CC's scale (`ccLevelScaleKey`: the
+  shipped levels by id, a combined name at the middle of its span), after the
+  last level below it, else before the first level above it, else last,
+  reading "below" in the user's own direction (a list ordered hardest first is
+  read hardest first). So the tester's levels read Beginner, Beginner/Easy,
+  Easy/Intermediate, Intermediate, Intermediate/Advanced, Advanced (placement
+  is the maintainer's decision). Levels the scale says nothing about keep
+  their places, and the other levels keep their positions, gaps included: a
+  placed level takes the position after the level before it, and a later level
+  moves up only while it would collide.
+  `DifficultyLevelRepository.setPositions` writes only those levels, so a
+  skipped or failed import rewrites none, and a kept one restamps only the
+  levels it had to move. Created and restored levels are reverted with a
+  failed commit, dropped straight after the commit when no dance uses them,
+  and on `undo` removed (restored ones tombstoned again) unless a dance,
+  tombstoned ones included, uses them (maintainer decision). Undo keeps the
+  moves the commit made rather than moving the other levels back, so their
+  positions keep a gap. A value outside the scale still raises
+  `cc_unmapped_level`, and its message joins the values with `/` rather than
+  printing a line break. The text export has one-line levels, so it never
+  meets a combined one.
 - **Set flags (#1974).** `SetItem.Break` is a checkbox that CC's own set-list
   layout describes as "a break occurs after this dance", so the program gets a
   `Break` text slot after that dance and its alternates, unless the set already
@@ -530,17 +566,16 @@ declines the collapse.
   re-applied from the file on re-import like the program's other fields.
 - **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
   before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
-  the same definition and published-source steps as `commit` (a bare pipeline
-  commit of a dance with a user-field value is refused by the repository) but
-  builds no programs or
-  links, and has no undo. The screen keeps each such dance's `zk_Dance_ID` →
-  dance id and passes it to the batch `commit` as `earlierDanceIds`, so set
-  slots and `Dance_Related` pairs naming it resolve to it rather than becoming
-  "not imported" placeholders; an entry whose dance no longer exists is
-  ignored, and the batch's own dance wins for a CC id it also commits. A
-  related-dance link the batch adds **to** such a dance is recorded
-  (`CcUsrImportResult.linksAddedToEarlierDances`) and removed by id on undo or a
-  failed commit, since that dance is not the batch's to restore.
+  the same definition, published-source and difficulty-level steps as `commit`
+  (a bare pipeline commit of a dance with a user-field value is refused by the
+  repository) but builds no programs or links, and has no undo. The screen keeps
+  each such dance's `zk_Dance_ID` → dance id and passes it to the batch `commit`
+  as `earlierDanceIds`, so set slots and `Dance_Related` pairs naming it resolve
+  to it rather than becoming "not imported" placeholders; an entry whose dance
+  no longer exists is ignored, and the batch's own dance wins for a CC id it
+  also commits. A related-dance link the batch adds **to** such a dance is
+  recorded (`CcUsrImportResult.linksAddedToEarlierDances`) and removed by id on
+  undo or a failed commit, since that dance is not the batch's to restore.
 - Library-scale behaviour (a ~20 000-dance `.USR` is ~240 MB and ~40 s of
   parsing): the app reads the file on a **background isolate** (the adapter takes
   an injectable `CcUsrArchiveReader`; the default source uses
