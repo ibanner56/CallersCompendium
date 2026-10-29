@@ -2120,17 +2120,28 @@ void main() {
       await tester.pumpAndSettle();
 
       // The snapshot is real file I/O, which FakeAsync would never complete.
-      await tester.runAsync(() async {
-        await tester.tap(find.text('Back Up + Reset'));
-        await Future<void>.delayed(const Duration(milliseconds: 500));
-      });
+      await tester.tap(find.text('Back Up + Reset'));
+      for (var i = 0; i < 20; i++) {
+        await tester.pump();
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        if (find.text('Reset app data?').evaluate().isNotEmpty) break;
+      }
       await tester.pumpAndSettle();
 
       expect(find.text('Reset app data?'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Reset'), findsOneWidget);
+      final dialog = find.byType(AlertDialog);
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.widgetWithText(FilledButton, 'Reset'),
+        ),
+        findsOneWidget,
+      );
       // The backup is already done, so the confirm no longer repeats it.
       expect(
-        find.widgetWithText(FilledButton, 'Back Up + Reset'),
+        find.descendant(of: dialog, matching: find.text('Back Up + Reset')),
         findsNothing,
       );
     },
