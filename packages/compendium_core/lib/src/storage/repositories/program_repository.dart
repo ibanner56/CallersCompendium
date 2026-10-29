@@ -499,8 +499,7 @@ class ProgramRepository {
   }) {
     assertUtc(updatedAt, 'updatedAt');
     final oldKey = normalizeShareableText(oldName);
-    final stored = normalizeShareableText(newName);
-    if (oldKey == stored) return Future.value(0);
+    if (oldKey == normalizeShareableText(newName)) return Future.value(0);
     return _db.transaction(() async {
       final rows = await (_db.select(
         _db.programs,
@@ -512,7 +511,7 @@ class ProgramRepository {
           _db.programs,
         )..where((t) => t.id.equals(row.id))).write(
           ProgramsCompanion(
-            dialectName: Value(stored),
+            dialectName: Value(normalizeShareableText(newName)),
             updatedAt: Value(
               nextStoredTimestamp(
                 now: updatedAt.isAfter(row.updatedAt)

@@ -2,6 +2,7 @@ import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/program_dialect.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -240,6 +241,7 @@ void main() {
       for (final settingsFirst in [true, false]) {
         test('converges on a second device '
             '(${settingsFirst ? 'setting' : 'program'} first)', () async {
+          driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
           final a = openTestRepositories();
           final b = openTestRepositories();
           await a.ensureMigrated();

@@ -26,10 +26,9 @@ const String kActiveDialectRefKey = 'active_dialect_ref';
 class DialectLibraryController extends ChangeNotifier {
   DialectLibraryController(
     this._settings, {
-    ProgramRepository? programs,
+    this._programs,
     DateTime Function()? clock,
-  }) : _programs = programs,
-       _clock = clock ?? (() => DateTime.now().toUtc());
+  }) : _clock = clock ?? (() => DateTime.now().toUtc());
 
   final SettingsRepository _settings;
 
