@@ -153,6 +153,25 @@ void main() {
     expect(read(), isNull);
   });
 
+  testWidgets('adding a sequence clears the figure-list error', (tester) async {
+    await _pumpEditor(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'bns',
+    );
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+    const error = ValueKey('shorthand-validation-error');
+    expect(find.byKey(error), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('figure-add-sequence')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(error), findsNothing);
+  });
+
   testWidgets('saving an edited mapping returns token + figures', (
     tester,
   ) async {
