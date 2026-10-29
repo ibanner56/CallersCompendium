@@ -44,9 +44,14 @@ class AppClosingOverlay extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox.square(
+                        SizedBox.square(
                           dimension: 24,
-                          child: CircularProgressIndicator(strokeWidth: 3),
+                          // The indeterminate spinner runs its own controller
+                          // and ignores `disableAnimations`, so with Reduce
+                          // motion on a still icon takes its place.
+                          child: MediaQuery.disableAnimationsOf(context)
+                              ? const Icon(Icons.hourglass_empty)
+                              : const CircularProgressIndicator(strokeWidth: 3),
                         ),
                         const SizedBox(width: 16),
                         Text(message),

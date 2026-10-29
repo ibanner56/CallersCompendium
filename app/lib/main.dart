@@ -2762,8 +2762,8 @@ class _CompendiumAppState extends State<CompendiumApp>
               data: override == null
                   ? media
                   : media.copyWith(disableAnimations: override),
-              // Inside the override, so the closing spinner follows the
-              // Reduce motion switch too.
+              // Inside the override, so the closing overlay sees the in-app
+              // Reduce motion switch and shows a still icon for its spinner.
               child: AppClosingOverlay(
                 closing: _closingNotifier,
                 child: scoped,
