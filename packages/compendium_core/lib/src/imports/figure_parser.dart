@@ -569,6 +569,16 @@ void _foldDancerNumbers(List<String> w) {
         continue;
       }
     }
+    // Caller's Companion's numbered corners (maintainer decision, #1975):
+    // Corner 1, 2 and 3 are The Caller's Box's C1, C2 and C3. After an
+    // ordinal ("1st corner 2") the number is not part of the name.
+    if (w[i] == 'corner' &&
+        _numberedCorners.containsKey('#corner$number') &&
+        (i == 0 || !_cornerOrdinals.containsKey(w[i - 1]))) {
+      w[i] = '#corner$number';
+      w.removeAt(i + 1);
+      continue;
+    }
     if (dancerWords.containsKey(w[i]) || _cornerWords.contains(w[i])) {
       w[i + 1] = '#$number';
     }
@@ -726,15 +736,27 @@ bool _isSameRolePair(List<String> w, int i) =>
 
 /// Removes and returns the dancer set Caller's Companion names at `w[i]`, or
 /// null (#1975): "New Neighbor" is the next neighbors, and "Corner" the first
-/// corners ("1st"/"2nd", "first"/"second" corner name either). A bare plural
-/// ("the corners") may mean both corners in turn, so only the singular is
-/// read.
+/// corners ("1st"/"2nd"/"3rd", "first"/"second"/"third" corner name each one,
+/// and [_foldDancerNumbers] has read "Corner 1"/"2"/"3"). A bare plural ("the
+/// corners") may mean both corners in turn, so only the singular is read.
+/// "Opposite(s)" is the opposites, unless it describes a role, side,
+/// direction, way or hand ("opposite role pull by L"), all maintainer
+/// decisions.
 String? _takeNamedDancerAt(List<String> w, int i) {
   final word = w[i];
   final next = i + 1 < w.length ? w[i + 1] : null;
   if (word == 'new' && _neighborWords.contains(next)) {
     w.removeRange(i, i + 2);
     return 'nextNeighbors';
+  }
+  if (_numberedCorners[word] case final corners?) {
+    w.removeAt(i);
+    return corners;
+  }
+  if ((word == 'opposite' || word == 'opposites') &&
+      !_oppositeDescribes.contains(next)) {
+    w.removeAt(i);
+    return 'opposites';
   }
   if (_cornerOrdinals[word] case final corners?
       when _cornerWords.contains(next)) {
@@ -758,6 +780,31 @@ const Map<String, String> _cornerOrdinals = {
   '1st': 'firstCorners',
   'second': 'secondCorners',
   '2nd': 'secondCorners',
+  'third': 'thirdCorners',
+  '3rd': 'thirdCorners',
+};
+
+/// The marks [_foldDancerNumbers] leaves for "Corner 1"/"2"/"3", which no
+/// other reader takes, and the dancer sets they name.
+const Map<String, String> _numberedCorners = {
+  '#corner1': 'firstCorners',
+  '#corner2': 'opposites',
+  '#corner3': 'thirdCorners',
+};
+
+/// The words after which "opposite" describes something rather than naming
+/// the opposites.
+const Set<String> _oppositeDescribes = {
+  'role',
+  'roles',
+  'side',
+  'sides',
+  'direction',
+  'directions',
+  'way',
+  'ways',
+  'hand',
+  'hands',
 };
 
 /// Like [_takeDancer] but ONLY matches a dancer set at the FRONT of [w].

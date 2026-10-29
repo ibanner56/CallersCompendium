@@ -287,7 +287,7 @@ void main() {
     // A balance line whose annotation does not decode would lose it in the
     // fold: only decoded params and notes carry over. It stays custom instead.
     for (final pair in const [
-      ['(4) Pass the ocean', '(4) Balance wave of four (C2R,WL)'],
+      ['(4) Pass the ocean', '(4) Balance wave of four (Ph1R,WL)'],
       [
         '(8) Same-role neighbor do-si-do 1 & 1/4; form wave of four',
         '(4) Balance wave of four (SRNR,1CL)',

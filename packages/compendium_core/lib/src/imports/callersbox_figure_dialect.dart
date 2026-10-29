@@ -2966,12 +2966,12 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// slot.
 ///
 /// Notable mappings and the deliberate omissions, per `Glossary.htm`:
-/// - `C1`/`C2`/`C3` — the glossary's *"Corners (square)"* are a DIFFERENT
-///   concept from its separate *"First/second corners"* entry ("First corners
-///   are man one and woman two"), which is what [ParamVocab]'s
-///   `firstCorners`/`secondCorners` model. C1 is "the non-partner next to you",
-///   C2 "the person across from you", C3 "the remaining person" — a square/
-///   four-face-four relationship the taxonomy has no token for.
+/// - `C1`/`C2`/`C3` — the glossary's *"Corners (square)"*: C1 is "the
+///   non-partner next to you", C2 "the person across from you", C3 "the
+///   remaining person". Since taxonomy v38 (#1975, maintainer decisions) they
+///   map to `firstCorners`, `opposites` and `thirdCorners`: a square's corner
+///   is a contra first corner. Before that they were declined as a concept the
+///   taxonomy had no token for.
 /// - `P0`, `P2`–`P5` — a mixer's previous/future partners (taxonomy v24,
 ///   issue #732). These map to `prevPartners`, `nextPartners`, `thirdPartners`,
 ///   `fourthPartners`, `fifthPartners` respectively (see entries below).
@@ -2992,15 +2992,16 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   is real, and a reader checking the glossary against this map would find it
 ///   missing with no reason given.
 ///
-///   Two separate things, and only one of them is a ruling:
-///   - **No `opposites` token — ruling by @ibanner56, confirmed 2026-08-11.**
-///     `O` is primarily meaningful for non-duple formations (squares), which
-///     are not a current priority; addressing them is not immediately pressing.
-///   - **No token added *for now* — derived, not chosen.** Given the ruling,
-///     the correct behaviour requires no code change: an unmapped code declines
-///     the run per the bucket list above, which is already what happens. This
-///     is a DOCUMENTATION fix only.
+///   The 2026-08-11 ruling that there was no `opposites` token is superseded:
+///   taxonomy v38 adds one (#1975) and maps `C2` to it. `O` itself is still
+///   declined. In the corpus it sits in side runs such as `Neighbor swing
+///   (OR)`, where "opposite" does not read, so mapping it waits on what those
+///   runs mean.
 const Map<String, String> tcbPassPeople = {
+  // Glossary (Corners (square)), mapped since taxonomy v38 (#1975).
+  'c1': 'firstCorners',
+  'c2': 'opposites',
+  'c3': 'thirdCorners',
   'm': 'role1s',
   'w': 'role2s',
   'p': 'partners',
