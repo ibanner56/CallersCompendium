@@ -165,7 +165,8 @@ trusted Compendium Analect catalog. They are signed and checked before the app
 offers them for import, and the app records their source and version so you can
 see where the dances came from.
 
-1. Open **Collection** and choose **Import dances**.
+1. Open **Collection** and choose **Import dances**, or open **Settings** →
+   **General** → **Import…**.
 2. Under the source selector, choose a published collection to review its
    title, version, dance count, and availability. You can also browse the same
    catalog from **Settings** → **General** → **Published collections**.
@@ -259,6 +260,11 @@ about. The review then shows one warning, *"This file was made by a newer versio
 of Caller's Compendium. Update the app before importing, or some details may be
 left out."* Update the app first if you want everything that file carries.
 
+If the app can't read the file you chose, it says why and nothing is imported:
+either the file isn't text the app can read (another app saved it in a
+different text encoding: save it again as UTF-8), or the file can't be opened
+(another app is using it, or it is on a drive that isn't connected).
+
 ### Open a shared program someone sent you
 
 If another caller shares a **program bundle** with you — the
@@ -278,8 +284,16 @@ screen a manual import uses, already loaded with what the file contains — the
 program, its dances, and its venue.
 
 Nothing is added until you confirm. You review the bundle exactly as you would any
-other import, decide what to bring in, and commit; an **Undo** is offered
-afterwards.
+other import, decide what to bring in, and commit. The same summary as any
+other import follows: what happened to each dance and to the program, anything
+that could not be imported, and any note, such as a link to a related dance
+that was left out. It offers **Undo** until you choose **Done**. The dances it
+adds get your [default import tags](./settings.md#import-defaults), next to
+the tags the sender gave them.
+
+A full **backup** opened this way is not imported: the app says it is a
+backup, and that **Settings › General › Restore from a backup** is where to
+bring it in (see [below](#move-your-whole-library-backup-and-restore)).
 
 This intake is deliberately safe. The file is treated as untrusted input: it is
 size-checked *before* being read, validated against the expected format, and a
@@ -403,6 +417,9 @@ The app keeps up to 500 figure shorthands. When fewer than that many slots are
 free, the screen says how many more it can take, and only the first ones you
 leave ticked are added. The message afterwards says how many were seeded and how
 many were not added; you can seed those after deleting some shorthands.
+
+The message offers **Undo**, which takes back the shorthands this step added.
+One you have already changed in the meantime is left as you made it.
 
 ### Bring your glossary terms across
 

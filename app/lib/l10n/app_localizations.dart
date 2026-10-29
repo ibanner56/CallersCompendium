@@ -3886,7 +3886,7 @@ abstract class AppLocalizations {
   /// Explains which imports the default import tags apply to and which they skip.
   ///
   /// In en, this message translates to:
-  /// **'Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.'**
+  /// **'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.'**
   String get settingsDefaultsImportTagsSubtitle;
 
   /// Shown in place of the tag chips when the user has no tags.
@@ -9953,6 +9953,12 @@ abstract class AppLocalizations {
   /// **'That file didn\'t contain any dances or programs.'**
   String get archiveIntakeRejectedNoContent;
 
+  /// Snackbar shown when a full backup file is opened with the app (Open with, AirDrop, or a tap in Files) instead of being restored. Names the Settings path to Restore from a backup.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is a backup, not a share file. To bring it into this device, go to Settings › General and choose Restore from a backup.'**
+  String get archiveIntakeRejectedBackup;
+
   /// Error shown when an import URL does not use the https scheme.
   ///
   /// In en, this message translates to:
@@ -10799,18 +10805,6 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{This import contains 1 item — more than expected for a normal share.} other{This import contains {count} items — more than expected for a normal share.}}'**
   String sharedImportSoftCapWarning(int count);
 
-  /// Transient snackbar message shown after a shared bundle is imported, alongside an Undo action.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0{Import complete.} =1{Imported 1 item.} other{Imported {count} items.}}'**
-  String sharedImportComplete(int count);
-
-  /// Transient snackbar message shown, alongside an Undo action, after a shared bundle is imported when some of its dances failed to import. {count} is what did import (dances, programs and other items); {failed} is the number of dances that failed (always at least 1).
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0{Nothing was imported.} =1{Imported 1 item.} other{Imported {count} items.}} {failed, plural, =1{1 dance couldn\'t be imported.} other{{failed} dances couldn\'t be imported.}}'**
-  String sharedImportCompleteWithFailures(int count, int failed);
-
   /// Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.
   ///
   /// In en, this message translates to:
@@ -10859,6 +10853,12 @@ abstract class AppLocalizations {
   /// **'Programs: {count}'**
   String importReviewSummaryPrograms(int count);
 
+  /// Import result summary line for a shared file: how many of the sender's own figures were added to the Glossary or replaced the user's version.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures added to or updated in your Glossary: {count}'**
+  String importReviewSummaryFigures(int count);
+
   /// Import result detail: how many imported programs updated an existing one.
   ///
   /// In en, this message translates to:
@@ -10870,6 +10870,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{{count} program note(s):} other{{count} program note(s):}}'**
   String importReviewProgramNotes(int count);
+
+  /// Import result heading listing notes about the imported dances, such as a related-dance link that was left out because the related dance was not imported. {count} is how many notes follow.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note:} other{{count} notes:}}'**
+  String importReviewNotes(int count);
 
   /// Import result heading listing records that failed to import.
   ///
@@ -10901,6 +10907,12 @@ abstract class AppLocalizations {
   /// **'Import undone.'**
   String get importReviewUndone;
 
+  /// Snackbar over the import result when its Undo fails (for example, a locked database). The import may not have been reversed; Undo can be tried again.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t undo the import. Check your collection, then try Undo again.'**
+  String get importReviewUndoFailed;
+
   /// Snackbar shown when committing a single record so it can be edited fails.
   ///
   /// In en, this message translates to:
@@ -10924,6 +10936,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t complete the import.'**
   String get importReviewImportError;
+
+  /// Snackbar on the import screen when the chosen file is not UTF-8 text (for example a file saved in another encoding, or not a text file at all). Nothing was imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read that file: it isn\'t text the app can read. If another app saved it, save it again as UTF-8 text and try again.'**
+  String get importFileNotText;
+
+  /// Snackbar on the import screen when the chosen file could not be read from disk (locked by another app, on a disconnected drive, or refused by the file system). Nothing was imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open that file. Another app may be using it, or it may be on a drive that isn\'t connected.'**
+  String get importFileUnreadable;
 
   /// Heading of the inline figure-diff block shown when a confidently-matched candidate's figures differ from the incoming record (issue #686). The title is an untrusted local value rendered as plain text.
   ///
@@ -13220,7 +13244,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Done} =1{Apply 1 change} other{Apply {count} changes}}'**
   String importUserFiguresConfirm(int count);
 
-  /// Snackbar after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.
+  /// Line in the import result after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 figure could not be saved to your Glossary.} other{{count} figures could not be saved to your Glossary.}}'**

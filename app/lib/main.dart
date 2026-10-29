@@ -1146,7 +1146,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// nothing** (fail closed). A valid bundle is decoded Dart-side *before* any UI renders,
   /// then handed to [ImportReviewScreen], which previews it, applies per-entity
   /// dispositions, and commits (dances + programs + venues) only on the user's
-  /// confirmation — offering a transient Undo afterwards.
+  /// confirmation — showing the import result, with Undo, afterwards.
   Future<void> _handleIncomingFile(IncomingFile incomingFile) async {
     _trackOwnedIncomingFile(incomingFile);
     if (_incomingIntakeDisposed) {

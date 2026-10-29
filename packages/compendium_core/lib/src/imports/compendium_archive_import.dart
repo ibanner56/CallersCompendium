@@ -405,6 +405,10 @@ class CompendiumArchiveImporter {
   /// A program slot for such a dance links to it instead of becoming a "not
   /// imported" placeholder. The dances it names are not written.
   ///
+  /// [defaultTagIds] are the caller's default import tags: they are added to
+  /// each dance this commit **creates**, next to the sender's own tags, as
+  /// [ImportPipeline.commit] adds them. A dance it updates keeps its tags.
+  ///
   /// Everything is recorded on the returned [CompendiumArchiveImportResult] so
   /// [undo] reverts dances **and** programs. Sync-state invalidation, pending
   /// deletion revalidation, and normalization run in one database transaction
@@ -419,6 +423,7 @@ class CompendiumArchiveImporter {
     String Function()? newSlotId,
     Map<int, DedupeResolution> resolutions = const {},
     Map<String, String> existingDanceIdByExternalId = const {},
+    List<String> defaultTagIds = const [],
   }) async {
     final mintId = newId ?? uuidV4;
     final insertedIds = <String>[];
@@ -448,6 +453,7 @@ class CompendiumArchiveImporter {
         now: now,
         newId: mintId,
         resolutions: resolutions,
+        defaultTagIds: defaultTagIds,
       );
       danceSession = committedDanceSession;
 

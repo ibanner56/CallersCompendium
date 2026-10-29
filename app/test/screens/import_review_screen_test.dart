@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
@@ -10,7 +11,6 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/widgets/figure_diff_view.dart';
-import 'package:compendium_app/src/utils/undo_snack_bar.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -265,6 +265,52 @@ void main() {
       findsOneWidget,
     );
   });
+
+  // FAIL-4: a file that is not UTF-8, or that the file system will not hand
+  // over, escaped the button and nothing on screen changed.
+  for (final (label, error, key) in [
+    (
+      'not UTF-8 text',
+      const FormatException('Unexpected extension byte'),
+      'import-file-not-text',
+    ),
+    (
+      'locked or unreachable',
+      const FileSystemException('Cannot open file'),
+      'import-file-unreadable',
+    ),
+  ]) {
+    testWidgets('choosing a file that is $label says so', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1000, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final repos = openTestRepositories();
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: RepositoriesScope(
+            repositories: repos,
+            child: ImportReviewScreen(
+              sources: [
+                ImportSource(
+                  kind: ImportSourceKind.genericJson,
+                  adapterFactory: GenericJsonAdapter.new,
+                ),
+              ],
+              picker: () async => throw error,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(ValueKey(key)), findsOneWidget);
+    });
+  }
 
   /// Presses Import with the commit held at the second dance's insert, then
   /// expects the committing view to read "1 / 3": one record handled.
@@ -2532,6 +2578,32 @@ void main() {
       expect(find.text(l10n.importRecordErrorDiscover), findsNothing);
     });
 
+    // FAIL-4: the same for the .USR picker.
+    testWidgets('a .USR the file system will not hand over says so', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      Future<Uint8List?> locked() async =>
+          throw const FileSystemException('Cannot open file');
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(locked),
+        bytePicker: locked,
+      );
+
+      await selectUsr(tester);
+      await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.byKey(const ValueKey('import-file-unreadable')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('an oversized .USR is rejected with a friendly SnackBar and '
         'nothing is loaded', (tester) async {
       final repos = openTestRepositories();
@@ -3637,9 +3709,7 @@ void main() {
     }
 
     // Mounts the review screen for a shared [bundle], pushed on top of a home
-    // scaffold (mirroring main.dart's `_navigatorKey.push`) so the post-commit
-    // Undo snackbar — which rides the app-level ScaffoldMessenger and outlives
-    // the popped review route — stays reachable.
+    // scaffold, mirroring main.dart's `_navigatorKey.push`.
     Future<void> pumpShared(
       WidgetTester tester,
       CompendiumRepositories repos,
@@ -3779,7 +3849,7 @@ void main() {
 
     testWidgets(
       'Import commits dances + programs + venues via the archive importer, '
-      'shows the transient undo snackbar (no result dialog)',
+      'and shows the same result summary as any other import',
       (tester) async {
         final repos = openTestRepositories();
 
@@ -3794,16 +3864,16 @@ void main() {
         expect(await repos.programs.listAll(), hasLength(1));
         expect(await repos.venues.listAll(), hasLength(1));
 
-        // Share-target path uses the transient snackbar, NOT the manual-import
-        // result dialog.
-        expect(
-          find.byKey(const ValueKey('shared-import-undo-snackbar')),
-          findsOneWidget,
-        );
+        // INTAKE-6: one summary for every route, which says what each dance
+        // row did and what the programs did, not one count of every entity.
+        final l10n = lookupAppLocalizations(const Locale('en'));
         expect(
           find.byKey(const ValueKey('import-result-dialog')),
-          findsNothing,
+          findsOneWidget,
         );
+        expect(find.text(l10n.importReviewSummaryCreated(1)), findsOneWidget);
+        expect(find.text(l10n.importReviewSummaryPrograms(1)), findsOneWidget);
+        expect(find.text(l10n.importReviewUndoWithPrograms), findsOneWidget);
       },
     );
 
@@ -3847,8 +3917,8 @@ void main() {
     });
 
     testWidgets(
-      'a dance that fails to import is reported in the undo snackbar, not '
-      'counted as a success',
+      'a dance that fails to import is listed in the result, not counted as a '
+      'success',
       (tester) async {
         final repos = openTestRepositories();
         // A commit failure is recorded on its record rather than thrown, so
@@ -3879,15 +3949,89 @@ void main() {
         ]);
         final l10n = lookupAppLocalizations(const Locale('en'));
         // One dance and one program imported; one dance failed.
-        expect(
-          find.descendant(
-            of: find.byKey(const ValueKey('shared-import-undo-snackbar')),
-            matching: find.text(l10n.sharedImportCompleteWithFailures(2, 1)),
-          ),
-          findsOneWidget,
-        );
+        expect(find.text(l10n.importReviewSummaryCreated(1)), findsOneWidget);
+        expect(find.text(l10n.importReviewSummaryPrograms(1)), findsOneWidget);
+        expect(find.text(l10n.importReviewRecordsFailed(1)), findsOneWidget);
       },
     );
+
+    // INTAKE-6: settings.md says default import tags apply from the import
+    // screen; a shared file reached it and was not tagged.
+    testWidgets('the default import tags go on the dances a shared file '
+        'creates', (tester) async {
+      final repos = openTestRepositories();
+      final tagId = await repos.tags.upsert(
+        Tag(id: 'mine', name: 'From friends'),
+      );
+      await repos.settings.set(
+        kDefaultImportTagNamesKey,
+        encodeDefaultImportTagNames(['From friends']),
+      );
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      expect((await repos.dances.listAll()).single.tagIds, [tagId]);
+    });
+
+    // Added to F13 from #1979: the commit's notes were recorded and never
+    // shown.
+    testWidgets('the result lists the notes the commit raised: a related '
+        'link left out, and a program slot whose dance is not here', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [
+          Dance(
+            id: 'd1',
+            title: 'Shared Reel',
+            links: [
+              DanceLink(
+                id: 'l1',
+                kind: LinkKind.relatedDance,
+                targetDanceId: 'not-in-the-file',
+              ),
+            ],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Shared Spring Fling',
+            slots: [
+              ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+              ProgramSlot(id: 's2', position: 1, danceId: 'not-here-either'),
+            ],
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+      );
+      await pumpShared(tester, repos, bundleFor(archive));
+
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('import-notes')), findsOneWidget);
+      expect(
+        find.text('• ${l10n.importIssueRelatedDanceUnresolved}'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('import-program-notes')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('• ${l10n.importIssueProgramUnresolvedDance}'),
+        findsOneWidget,
+      );
+    });
 
     testWidgets(
       '#880: after Try another edits share-target text, Import commits the edit',
@@ -4001,7 +4145,7 @@ void main() {
       );
     });
 
-    testWidgets('the transient Undo removes EXACTLY the imported batch, leaving '
+    testWidgets('the Undo removes EXACTLY the imported batch, leaving '
         'pre-existing rows untouched', (tester) async {
       final repos = openTestRepositories();
       // A pre-existing dance the user already had — the undo must not touch it.
@@ -4018,7 +4162,7 @@ void main() {
       expect(await repos.venues.listAll(), hasLength(1));
 
       // Undo the batch.
-      await tester.tap(find.text('Undo'));
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
       await tester.pumpAndSettle();
 
       // Precisely the imported batch is gone; the pre-existing row remains.
@@ -4029,9 +4173,72 @@ void main() {
       expect(await repos.venues.listAll(), isEmpty);
     });
 
+    // The Undo is a dialog button now, which stays up while the undo runs; a
+    // second tap must not start a second undo of the same import.
+    testWidgets('Undo is disabled while it runs', (tester) async {
+      final gate = _CommitGate();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(gate),
+        ),
+        contraTaxonomy,
+      );
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final undoGate = Completer<void>();
+      gate.arm(undoGate);
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pump();
+      expect(
+        tester
+            .widget<TextButton>(
+              find.byKey(const ValueKey('import-undo-button')),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      undoGate.complete();
+      await tester.pumpAndSettle();
+      expect(await repos.dances.listAll(), isEmpty);
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+
+    testWidgets('a failed Undo says so and can be tried again', (tester) async {
+      final repos = openTestRepositories();
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      // The undo's first write fails.
+      await repos.db.customStatement(
+        'CREATE TRIGGER boom BEFORE DELETE ON programs '
+        "BEGIN SELECT RAISE(ABORT, 'boom'); END",
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('import-undo-failed')), findsOneWidget);
+      expect(
+        tester
+            .widget<TextButton>(
+              find.byKey(const ValueKey('import-undo-button')),
+            )
+            .onPressed,
+        isNotNull,
+      );
+
+      await repos.db.customStatement('DROP TRIGGER boom');
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+
     testWidgets(
-      'the Undo is transient: after it auto-dismisses the snackbar is gone and '
-      'the import is retained',
+      'Done closes the result and keeps the import, as on every other route',
       (tester) async {
         final repos = openTestRepositories();
 
@@ -4039,17 +4246,11 @@ void main() {
 
         await tester.tap(find.byKey(const ValueKey('import-commit-button')));
         await tester.pumpAndSettle();
-        expect(
-          find.byKey(const ValueKey('shared-import-undo-snackbar')),
-          findsOneWidget,
-        );
-
-        // Let the transient timer elapse.
-        await tester.pump(kUndoSnackBarDuration + const Duration(seconds: 1));
+        await tester.tap(find.byKey(const ValueKey('import-done-button')));
         await tester.pumpAndSettle();
 
         expect(
-          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          find.byKey(const ValueKey('import-result-dialog')),
           findsNothing,
         );
         // Undo never fired, so the committed batch is retained.
@@ -4152,7 +4353,7 @@ void main() {
         expect(await repos.programs.listAll(), hasLength(1));
         expect(await repos.dances.listAll(), isEmpty);
         expect(
-          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          find.byKey(const ValueKey('import-summary-Programs')),
           findsOneWidget,
         );
       },
@@ -4311,13 +4512,16 @@ void main() {
         expect(closeButton().onPressed, isNull);
         expect(closed, 0);
 
-        // Release the gate: the commit finishes, the data lands, and onClose
-        // fires exactly once — nothing stranded.
+        // Release the gate: the commit finishes and the data lands. Done on
+        // the result fires onClose exactly once — nothing stranded.
         commitGate.complete();
         await tester.pumpAndSettle();
         expect(await repos.dances.listAll(), hasLength(1));
         expect(await repos.programs.listAll(), hasLength(1));
         expect(await repos.venues.listAll(), hasLength(1));
+        expect(closed, 0);
+        await tester.tap(find.byKey(const ValueKey('import-done-button')));
+        await tester.pumpAndSettle();
         expect(closed, 1);
       },
     );
@@ -4374,9 +4578,8 @@ void main() {
     );
 
     // Mounts the review screen with a canned picker that returns [payload],
-    // pushed on top of a home scaffold (mirroring main.dart's navigator push)
-    // so the post-commit Undo snackbar — which rides the app-level
-    // ScaffoldMessenger and outlives the popped review route — stays reachable.
+    // pushed on top of a home scaffold (mirroring main.dart's navigator push),
+    // as a share-target import is.
     Future<void> pumpWithPicker(
       WidgetTester tester,
       CompendiumRepositories repos,
@@ -4422,7 +4625,7 @@ void main() {
 
     testWidgets(
       'picking a .ccshare with a program commits the dance AND program via '
-      'the archive importer, shows the transient undo snackbar',
+      'the archive importer',
       (tester) async {
         final repos = openTestRepositories();
         final archive = pickerArchive();
@@ -4451,21 +4654,16 @@ void main() {
         expect(await repos.programs.listAll(), hasLength(1));
         expect(await repos.venues.listAll(), hasLength(1));
 
-        // Archive-importer path uses the transient snackbar (not the result
-        // dialog).
+        // Archive-importer path: the summary reports the program too.
         expect(
-          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          find.byKey(const ValueKey('import-summary-Programs')),
           findsOneWidget,
-        );
-        expect(
-          find.byKey(const ValueKey('import-result-dialog')),
-          findsNothing,
         );
       },
     );
 
     testWidgets(
-      'the transient Undo after a picked .ccshare removes the dance AND program',
+      'the Undo after a picked .ccshare removes the dance AND program',
       (tester) async {
         final repos = openTestRepositories();
         final payload = encodeArchive(pickerArchive());
@@ -4478,7 +4676,7 @@ void main() {
         expect(await repos.dances.listAll(), hasLength(1));
         expect(await repos.programs.listAll(), hasLength(1));
 
-        await tester.tap(find.text('Undo'));
+        await tester.tap(find.byKey(const ValueKey('import-undo-button')));
         await tester.pumpAndSettle();
 
         expect(await repos.dances.listAll(), isEmpty);
@@ -4514,14 +4712,14 @@ void main() {
 
         final dances = await repos.dances.listAll();
         expect(dances.map((d) => d.title), contains('Plain Jig'));
-        // No programs — dance-only path used the result dialog, not undo snackbar.
+        // No programs — the dance-only path, whose summary has no programs.
         expect(await repos.programs.listAll(), isEmpty);
         expect(
           find.byKey(const ValueKey('import-result-dialog')),
           findsOneWidget,
         );
         expect(
-          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          find.byKey(const ValueKey('import-summary-Programs')),
           findsNothing,
         );
       },
@@ -4615,14 +4813,10 @@ void main() {
         final dances = await repos.dances.listAll();
         expect(dances.map((d) => d.title), contains('Picker Reel'));
         expect(await repos.programs.listAll(), hasLength(1));
-        // Archive path: undo snackbar, not result dialog.
+        // Archive path: the summary reports the program too.
         expect(
-          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          find.byKey(const ValueKey('import-summary-Programs')),
           findsOneWidget,
-        );
-        expect(
-          find.byKey(const ValueKey('import-result-dialog')),
-          findsNothing,
         );
       },
     );
@@ -4690,13 +4884,13 @@ void main() {
         expect(dances.map((d) => d.title), contains('Edited Reel'));
         // No program — the stale decoded bundle was not used.
         expect(await repos.programs.listAll(), isEmpty);
-        // Dance-only path: result dialog, not undo snackbar.
+        // Dance-only path: a summary with no programs.
         expect(
           find.byKey(const ValueKey('import-result-dialog')),
           findsOneWidget,
         );
         expect(
-          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          find.byKey(const ValueKey('import-summary-Programs')),
           findsNothing,
         );
       },
@@ -4863,10 +5057,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('import-commit-button')));
       await tester.pumpAndSettle();
 
+      // Only the archive-importer route brings the file's tags in.
       expect((await repos.tags.listAll()).map((t) => t.name), ['Escaped Tag']);
-      // The archive-importer route reports through the Undo snackbar, never the
-      // dance-only result dialog.
-      expect(find.byKey(const ValueKey('import-result-dialog')), findsNothing);
     });
 
     testWidgets('unrelated JSON and a dances-less object skip the archive '
@@ -4885,10 +5077,6 @@ void main() {
       await pumpCounting(tester, repos, '{"dances": "x"}', calls);
       await _toReview(tester);
       expect(tester.takeException(), isNull);
-      expect(
-        find.byKey(const ValueKey('shared-import-undo-snackbar')),
-        findsNothing,
-      );
     });
 
     testWidgets('re-planning unchanged text does not decode again; changed '

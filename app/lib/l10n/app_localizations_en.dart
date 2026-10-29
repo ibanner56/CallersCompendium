@@ -2524,7 +2524,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.';
+      'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -6582,6 +6582,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That file didn\'t contain any dances or programs.';
 
   @override
+  String get archiveIntakeRejectedBackup =>
+      'That file is a backup, not a share file. To bring it into this device, go to Settings › General and choose Restore from a backup.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Imports must use a secure https:// URL.';
 
@@ -7158,36 +7162,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Imported $count items.',
-      one: 'Imported 1 item.',
-      zero: 'Import complete.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportCompleteWithFailures(int count, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Imported $count items.',
-      one: 'Imported 1 item.',
-      zero: 'Nothing was imported.',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed dances couldn\'t be imported.',
-      one: '1 dance couldn\'t be imported.',
-    );
-    return '$_temp0 $_temp1';
-  }
-
-  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7234,6 +7208,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return 'Figures added to or updated in your Glossary: $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count updated (re-imported)';
   }
@@ -7245,6 +7224,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count program note(s):',
       one: '$count program note(s):',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes:',
+      one: '1 note:',
     );
     return '$_temp0';
   }
@@ -7284,6 +7274,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importReviewUndone => 'Import undone.';
 
   @override
+  String get importReviewUndoFailed =>
+      'Couldn’t undo the import. Check your collection, then try Undo again.';
+
+  @override
   String get importReviewEditError => 'Couldn\'t import that dance to edit.';
 
   @override
@@ -7297,6 +7291,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'Couldn\'t complete the import.';
+
+  @override
+  String get importFileNotText =>
+      'Couldn\'t read that file: it isn\'t text the app can read. If another app saved it, save it again as UTF-8 text and try again.';
+
+  @override
+  String get importFileUnreadable =>
+      'Couldn\'t open that file. Another app may be using it, or it may be on a drive that isn\'t connected.';
 
   @override
   String importReviewVariationTitle(String title) {

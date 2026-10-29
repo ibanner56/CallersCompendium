@@ -2567,7 +2567,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Wird jedem neuen Tanz hinzugefügt, den du einzeln importierst. Tänze, die beim Import eines Programms entstehen, und Tänze, die aus einem Compendium-Archiv wiederhergestellt werden, erhalten keine Tags.';
+      'Wird jedem neuen Tanz hinzugefügt, den ein Import anlegt, auch Tänzen aus einer Datei, die dir jemand geteilt hat. Tänze, die beim Import eines Programms für seine Plätze angelegt werden, erhalten keine Tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -6685,6 +6685,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Datei enthielt keine Tänze oder Programme.';
 
   @override
+  String get archiveIntakeRejectedBackup =>
+      'Diese Datei ist eine Sicherung, keine Freigabedatei. Um sie auf dieses Gerät zu bringen, öffne Einstellungen › Allgemein und wähle „Aus einer Sicherung wiederherstellen“.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Importe müssen eine sichere https://-URL verwenden.';
 
@@ -7270,36 +7274,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Elemente importiert.',
-      one: '1 Element importiert.',
-      zero: 'Import abgeschlossen.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportCompleteWithFailures(int count, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Elemente importiert.',
-      one: '1 Element importiert.',
-      zero: 'Nichts wurde importiert.',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed Tänze konnten nicht importiert werden.',
-      one: '1 Tanz konnte nicht importiert werden.',
-    );
-    return '$_temp0 $_temp1';
-  }
-
-  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7346,6 +7320,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return 'Figuren in deinem Glossar hinzugefügt oder aktualisiert: $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count aktualisiert (neu importiert)';
   }
@@ -7357,6 +7336,17 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: '$count Programm-Notizen:',
       one: '$count Programm-Notiz:',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Hinweise:',
+      one: '1 Hinweis:',
     );
     return '$_temp0';
   }
@@ -7396,6 +7386,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importReviewUndone => 'Import rückgängig gemacht.';
 
   @override
+  String get importReviewUndoFailed =>
+      'Der Import konnte nicht rückgängig gemacht werden. Prüfe deine Sammlung und versuche es dann noch einmal mit „Rückgängig“.';
+
+  @override
   String get importReviewEditError =>
       'Dieser Tanz konnte nicht zum Bearbeiten importiert werden.';
 
@@ -7411,6 +7405,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importReviewImportError =>
       'Der Import konnte nicht abgeschlossen werden.';
+
+  @override
+  String get importFileNotText =>
+      'Die Datei konnte nicht gelesen werden: Sie ist kein Text, den die App lesen kann. Wenn eine andere App sie gespeichert hat, speichere sie dort erneut als UTF-8-Text und versuche es noch einmal.';
+
+  @override
+  String get importFileUnreadable =>
+      'Die Datei konnte nicht geöffnet werden. Vielleicht verwendet eine andere App sie gerade, oder sie liegt auf einem Laufwerk, das nicht verbunden ist.';
 
   @override
   String importReviewVariationTitle(String title) {
