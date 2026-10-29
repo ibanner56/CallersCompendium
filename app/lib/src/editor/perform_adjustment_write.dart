@@ -5,9 +5,15 @@ import 'program_slot_rebase.dart';
 /// What [writePerformAdjustment] stored.
 class PerformAdjustmentWrite {
   const PerformAdjustmentWrite({
+    required this.base,
     required this.stored,
     required this.changedUnderneath,
   });
+
+  /// The stored program the adjustment was applied to, as read just before
+  /// the write: what changed from `expected` to this is what changed
+  /// elsewhere.
+  final Program base;
 
   /// The program as the write stored it: the token the next adjustment, and
   /// the Undo offered after Perform closes, compare the stored program
@@ -63,7 +69,11 @@ Future<PerformAdjustmentWrite> writePerformAdjustment(
       updatedAt: DateTime.now().toUtc(),
     );
     if (stored != null) {
-      return PerformAdjustmentWrite(stored: stored, changedUnderneath: changed);
+      return PerformAdjustmentWrite(
+        base: current,
+        stored: stored,
+        changedUnderneath: changed,
+      );
     }
     // Another write landed between the read and the compare: it is newer than
     // Perform's copy too.

@@ -20,7 +20,8 @@ import '../diagnostics/error_log.dart';
 ///   after that predecessor's alternates the edit never saw, so they stay in
 ///   its group;
 /// - a slot [onto] does not hold (an unsaved builder slot) is not added, even
-///   when Perform changed or moved it.
+///   when Perform changed or moved it;
+/// - a slot Perform added that [onto] already holds is not added again.
 List<ProgramSlot> rebaseSlotEdits({
   required List<ProgramSlot> before,
   required List<ProgramSlot> after,
@@ -63,6 +64,8 @@ List<ProgramSlot> rebaseSlotEdits({
     final ProgramSlot merged;
     final was = beforeById[slot.id];
     if (was == null) {
+      // Already placed by the loop above, as one of [onto]'s own slots.
+      if (ontoById.containsKey(slot.id)) continue;
       merged = slot;
     } else {
       final current = ontoById[slot.id];

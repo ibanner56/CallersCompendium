@@ -2174,10 +2174,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               // to what that commit wrote, and compared with the program as
               // this builder last knew it once that commit has landed.
               final operation = _commitQueueTail.then((_) async {
+                final known = _existing;
                 final write = await writePerformAdjustment(
                   _repos.programs,
                   programId: existing.id,
-                  expected: _existing,
+                  expected: known,
                   before: before.slots,
                   after: updated.slots,
                 );
@@ -2191,7 +2192,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     resetEditorState: false,
                   );
                 }
-                return write;
+                return (write: write, known: known);
               });
               // Keep later commits usable if this live-gig write fails, while
               // still surfacing the failure to this callback. With other edits
@@ -2212,18 +2213,46 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 },
               );
               try {
-                final write = await operation;
+                final (:write, :known) = await operation;
                 final stored = write.stored;
+                // What changed elsewhere: from the program this builder knew
+                // to the one the adjustment was written onto.
+                List<ProgramSlot> withElsewhere(List<ProgramSlot> onto) =>
+                    known == null
+                    ? onto
+                    : _renumber(
+                        rebaseSlotEdits(
+                          before: known.slots,
+                          after: write.base.slots,
+                          onto: onto,
+                        ),
+                      );
                 if (!mounted) return null;
+                final takeElsewhere =
+                    write.changedUnderneath && generation == _editGeneration;
                 setState(() {
                   _existing = stored;
                   // No edit since: with nothing else unsaved, the working copy
-                  // is the stored program.
+                  // is the stored program, details included when they changed
+                  // elsewhere. With other unsaved edits, the working slots
+                  // take what changed elsewhere, so a later save keeps it;
+                  // the unsaved details stay as typed.
                   if (generation == _editGeneration) {
                     _dirty = keepDirty;
-                    if (!keepDirty) _slots = stored.slots;
+                    if (!keepDirty && takeElsewhere) {
+                      _applyProgramToEditor(stored);
+                    } else if (!keepDirty) {
+                      _slots = stored.slots;
+                    } else if (takeElsewhere) {
+                      _slots = withElsewhere(_slots);
+                    }
                   }
                 });
+                if (takeElsewhere && !keepDirty) {
+                  await _refreshLinkedVenueForId(stored.venueId);
+                  if (!mounted) return null;
+                }
+                if (takeElsewhere && keepDirty) _scheduleAutosave();
                 if (_dirty) _scheduleAutoCommit();
                 _performAdjusted = updated;
                 _performAdjustedGeneration = _editGeneration;
@@ -2238,15 +2267,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 // Perform's copy takes what changed elsewhere, and the
                 // builder's unsaved edits stay as they were.
                 if (!keepDirty) return stored;
-                return updated.copyWith(
-                  slots: _renumber(
-                    rebaseSlotEdits(
-                      before: existing.slots,
-                      after: stored.slots,
-                      onto: updated.slots,
-                    ),
-                  ),
-                );
+                return updated.copyWith(slots: withElsewhere(updated.slots));
               } on Object catch (_) {
                 // export-guard: exempt — mark-performed stamp, not an export
                 // diagnostics: silent — logged by the commit queue above; the

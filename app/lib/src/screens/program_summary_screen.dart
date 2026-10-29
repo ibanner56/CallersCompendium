@@ -640,8 +640,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final resumeStore = _performResume;
     final resume = resumeStore[program.id];
     // The stored program Perform's copy is based on: the one it opens with,
-    // then each adjustment's write as stored (GIG-6).
+    // then each adjustment's write as stored (GIG-6). Writes run one after
+    // another, so each compares with the one before it rather than finding
+    // its own earlier write "changed elsewhere".
     var performBase = program;
+    Future<void> performWrites = Future<void>.value();
     // Resolved before the push: the route may rebuild after this screen has
     // gone, when its context can no longer be read.
     final renderer = UserFiguresScope.rendererOf(context);
@@ -681,15 +684,23 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           // program to show (GIG-6). Uses the repository rather than this
           // pane, which may itself have closed by then.
           onProgramChanged: (before, updated) async {
+            final queued = performWrites.then(
+              (_) =>
+                  writePerformAdjustment(
+                    repos.programs,
+                    programId: program.id,
+                    expected: performBase,
+                    before: before.slots,
+                    after: updated.slots,
+                  ).then((write) {
+                    performBase = write.stored;
+                    return write;
+                  }),
+            );
+            performWrites = queued.then<void>((_) {}, onError: (_) {});
             final PerformAdjustmentWrite write;
             try {
-              write = await writePerformAdjustment(
-                repos.programs,
-                programId: program.id,
-                expected: performBase,
-                before: before.slots,
-                after: updated.slots,
-              );
+              write = await queued;
             } on Object catch (error, stackTrace) {
               // export-guard: exempt — Perform adjustment write, not an export
               // diagnostics: logged — Perform keeps the change on screen.
@@ -701,7 +712,6 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               );
               return null;
             }
-            performBase = write.stored;
             storedAfterWrite[updated] = write.stored;
             // The write itself is what reloads this pane and every other view
             // of these slots — the coexisting program list, the Collection's

@@ -177,6 +177,36 @@ void main() {
       );
     });
 
+    testWidgets('a second adjustment made while the first is being written '
+        'does not report the first as a change elsewhere', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await seed(repos);
+      await pumpHome(
+        tester,
+        repos,
+        const ProgramSummaryScreen(programId: 'p1'),
+      );
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+
+      delayed.programs.holdNextWrite();
+      await markCurrentPerformed(tester);
+      await delayed.programs.writeStarted;
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      await markCurrentPerformed(tester);
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      final stored = (await repos.programs.getById('p1'))!;
+      expect(stored.slots.map((s) => s.performedAt != null), [true, true]);
+      expect(
+        find.text(l10nOf(tester).performProgramChangedElsewhere),
+        findsNothing,
+      );
+    });
+
     testWidgets('an adjustment with nothing changed elsewhere says nothing', (
       tester,
     ) async {
@@ -260,6 +290,53 @@ void main() {
   });
 
   group('from the builder', () {
+    testWidgets('with unsaved edits, a change elsewhere reaches Perform and '
+        'the builder once, and a later save keeps it', (tester) async {
+      final repos = openTestRepositories();
+      await seed(repos);
+      await pumpHome(tester, repos, const ProgramEditorScreen(programId: 'p1'));
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Barn Dance, revised',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      await changeElsewhere(repos);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('adjust-note-field')),
+        'Announcements',
+      );
+      await tester.tap(find.byKey(const ValueKey('adjust-add-note')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+
+      // s1, the note, s2 and the break from elsewhere: each once.
+      expect(position(tester), 'Slot 1 of 4');
+      expect(
+        find.text(l10nOf(tester).performProgramChangedElsewhere),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final stored = (await repos.programs.getById('p1'))!;
+      expect(stored.title, 'Barn Dance, revised');
+      expect(stored.slots, hasLength(4));
+      expect(stored.slots.map((s) => s.id), containsAll(['s1', 's2', 's3']));
+      expect(stored.slots.map((s) => s.text), contains('Announcements'));
+    });
+
     testWidgets('an adjustment after a change elsewhere keeps that change, and '
         'Perform shows it and says so', (tester) async {
       final repos = openTestRepositories();
