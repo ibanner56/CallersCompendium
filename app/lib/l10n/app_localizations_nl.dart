@@ -20,6 +20,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een modifier-container is toegevoegd.';
 
   @override
+  String get danceEditorAddedSequenceAnnouncement =>
+      'Een reeks-container is toegevoegd.';
+
+  @override
   String get navCollection => 'Collectie';
 
   @override
@@ -7830,6 +7834,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String validationSequenceExceedsPhrase(int position, int actual, int limit) {
+    return 'Een reeks in figuur $position duurt $actual tellen, langer dan één frase ($limit tellen).';
+  }
+
+  @override
   String get validationPhraseInvalid => 'Die fraseopbouw is ongeldig.';
 
   @override
@@ -8195,6 +8204,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorAddModifier => 'Modifier toevoegen';
 
   @override
+  String get danceEditorAddSequence => 'Reeks toevoegen';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Plakken aan het einde van de figurenlijst';
 
@@ -8330,16 +8342,98 @@ class AppLocalizationsNl extends AppLocalizations {
       'Met volgende groeperen als modifier';
 
   @override
+  String get danceEditorGroupWithNextAsSequence =>
+      'Met volgende groeperen als reeks';
+
+  @override
   String get danceEditorConvertToMeanwhile => 'Omzetten naar meanwhile';
 
   @override
   String get danceEditorConvertToModifier => 'Omzetten naar modifier';
 
   @override
+  String get danceEditorConvertToSequence => 'Omzetten naar reeks';
+
+  @override
   String get danceEditorUngroupMeanwhile => 'Meanwhile-groepering opheffen';
 
   @override
   String get danceEditorUngroupModifier => 'Modifier-groepering opheffen';
+
+  @override
+  String get danceEditorUngroupSequence => 'Reeks-groepering opheffen';
+
+  @override
+  String get danceEditorSequenceOptionLabel => 'reeks';
+
+  @override
+  String danceEditorSequenceGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Reeks ($count figuren)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren',
+      one: '1 figuur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats tellen',
+      one: '1 tel',
+    );
+    return 'Reeksgroep, $_temp0 na elkaar, $_temp1 in totaal.';
+  }
+
+  @override
+  String danceEditorSequenceTotalBeats(int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats tellen in totaal',
+      one: '1 tel in totaal',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceOverPhrase(int beats, int limit) {
+    return 'Deze reeks duurt $beats tellen, langer dan één frase ($limit tellen).';
+  }
+
+  @override
+  String danceEditorSequencePhraseFull(int limit) {
+    return 'Deze figuren vullen één frase ($limit tellen).';
+  }
+
+  @override
+  String danceEditorSequenceStepsCapReached(int max) {
+    return 'Maximaal $max figuren in een reeks.';
+  }
+
+  @override
+  String danceEditorSequenceStepLabel(int number) {
+    return 'Figuur $number';
+  }
+
+  @override
+  String danceEditorSequenceStepSemantic(int number, int total) {
+    return 'Figuur $number van $total in de reeks.';
+  }
+
+  @override
+  String get danceEditorAddSequenceStep => 'Volgende figuur toevoegen';
+
+  @override
+  String get danceEditorRemoveSequenceStep => 'Deze figuur verwijderen';
 
   @override
   String danceEditorModifierGroupLabel(num count) {

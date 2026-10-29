@@ -129,8 +129,9 @@ void main() {
 
   test('a placeholder never nests in a container, in either kind', () {
     final draft = placeholder();
-    expect(draft.canNestInContainer(modifierParent: false), isFalse);
-    expect(draft.canNestInContainer(modifierParent: true), isFalse);
+    expect(draft.canNestInContainer(meanwhileMove), isFalse);
+    expect(draft.canNestInContainer(modifierMove), isFalse);
+    expect(draft.canNestInContainer(sequenceMove), isFalse);
   });
 
   test('a clone has its own copy of the arguments', () {

@@ -679,8 +679,8 @@ The Glossary lists them too, when it is shown. While it is on:
   figure doesn't change, and later changes to the app's figure don't reach
   the copy. Its page says what it was copied from.
 - Build a combination from figures that come with the app, in order, the same
-  way as in the dance editor. Custom figures, meanwhile and modifier groups
-  can't be used as parts.
+  way as in the dance editor. Custom figures and meanwhile, modifier and
+  sequence groups can't be used as parts.
 - Give a new figure its **Wording**, how it reads in a dance: put a parameter
   in braces, such as `{who}`, use `{move}` for the figure's name and `{beats}`
   for its beats, and put a part in square brackets to leave it out when its

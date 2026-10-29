@@ -12,6 +12,10 @@
   "@danceEditorAddedModifierAnnouncement": {
     "x-sourceSha256": "a7ec5355066df0d57228e379f6e1940cf455d2f61b6afd75b30ad440742341e4"
   },
+  "danceEditorAddedSequenceAnnouncement": "Et sekvens-element blev tilføjet.",
+  "@danceEditorAddedSequenceAnnouncement": {
+    "x-sourceSha256": "5c4508990018b4266348c06cf375f678265966edf16317124bc3f665ac255f9d"
+  },
   "navCollection": "Samling",
   "@navCollection": {
     "x-sourceSha256": "7b790708ff1b171315a152018f3712e8c71c82f4f9000635f77a1336c34f1893"
@@ -7694,6 +7698,10 @@
   "@validationPhraseBeatMismatch": {
     "x-sourceSha256": "cbcfd5cfa1932d621756cac5a7dd64ad714b041a96c3a293ac1a3833dc29002a"
   },
+  "validationSequenceExceedsPhrase": "En sekvens i figur {position} er {actual} slag, længere end én frase ({limit} slag).",
+  "@validationSequenceExceedsPhrase": {
+    "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
+  },
   "validationPhraseInvalid": "Den frastruktur er ugyldig.",
   "@validationPhraseInvalid": {
     "x-sourceSha256": "92d3acedb87ed98d680de3f4a8a54a8ad246bf74ccca87209f3e77773e2aa664"
@@ -8038,6 +8046,10 @@
   "@danceEditorAddModifier": {
     "x-sourceSha256": "9a9d65205220dac752ca53d4344a80df8c3a695d430c300f0c82eb793261e884"
   },
+  "danceEditorAddSequence": "Tilføj sekvens",
+  "@danceEditorAddSequence": {
+    "x-sourceSha256": "03eceea4c67a68c21df3c37e508ebcb7953259ba78fcf81694c9e9680b075ff1"
+  },
   "danceEditorPasteAtEndOfFigureList": "Indsæt i slutningen af figurlisten",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"
@@ -8130,6 +8142,10 @@
   "@danceEditorGroupWithNextAsModifier": {
     "x-sourceSha256": "dc0b3085a82f4025e2497ae817772e58592dedf8fa206a04f8a6fd01cd2c9177"
   },
+  "danceEditorGroupWithNextAsSequence": "Gruppér med næste som sekvens",
+  "@danceEditorGroupWithNextAsSequence": {
+    "x-sourceSha256": "52c0fa507a3cf5a82f886dd303842a07e5b64c3f4799ea70e590a52d6ad5a6a2"
+  },
   "danceEditorConvertToMeanwhile": "Konvertér til meanwhile",
   "@danceEditorConvertToMeanwhile": {
     "x-sourceSha256": "c9efabb132e41899d095163d93026cd838ce238a4a4cbafa6f6a3ab1efbd6f1e"
@@ -8138,6 +8154,10 @@
   "@danceEditorConvertToModifier": {
     "x-sourceSha256": "d472575eb0ce29ca55b563b8be186114c56e7cada317484cb17d604f9ce51ccc"
   },
+  "danceEditorConvertToSequence": "Konvertér til sekvens",
+  "@danceEditorConvertToSequence": {
+    "x-sourceSha256": "54309121a8958708c392ab8ec8ef66853cc240dbb1be99a35cedf6169a9821b6"
+  },
   "danceEditorUngroupMeanwhile": "Ophæv meanwhile-gruppering",
   "@danceEditorUngroupMeanwhile": {
     "x-sourceSha256": "5efde75b4147394c5e486cc900c3b195ce11afcdc5c52dc69eb76796dbff6502"
@@ -8145,6 +8165,54 @@
   "danceEditorUngroupModifier": "Ophæv modifier-gruppering",
   "@danceEditorUngroupModifier": {
     "x-sourceSha256": "bfe76e0aa465b4517d011bd395490f9e997539c3ee67f58b12839d7746d4c152"
+  },
+  "danceEditorUngroupSequence": "Ophæv sekvens-gruppering",
+  "@danceEditorUngroupSequence": {
+    "x-sourceSha256": "c43407cc8d75f6dcd036b5c7b2ef6b7531905e45fc55597361b3a9877e26dd86"
+  },
+  "danceEditorSequenceOptionLabel": "sekvens",
+  "@danceEditorSequenceOptionLabel": {
+    "x-sourceSha256": "bf37c7c208717d6de100ce851b48273f8d5d945c8dc64fc64372087ffcf88ba9"
+  },
+  "danceEditorSequenceGroupLabel": "{count, plural, other{Sekvens ({count} figurer)}}",
+  "@danceEditorSequenceGroupLabel": {
+    "x-sourceSha256": "7e4967a5972cb2a9a45945a1f8f1df5edaa478ec05637dd024badf9f3001a4a5"
+  },
+  "danceEditorSequenceGroupSemantic": "Sekvensgruppe, {count, plural, =1{1 figur} other{{count} figurer}} i rækkefølge, {beats, plural, =1{1 slag} other{{beats} slag}} i alt.",
+  "@danceEditorSequenceGroupSemantic": {
+    "x-sourceSha256": "6c9161a37b5d51850e47b10e53cd288ec44e7216c6b5ac18fdbb93a8520cad11"
+  },
+  "danceEditorSequenceTotalBeats": "{beats, plural, =1{1 slag i alt} other{{beats} slag i alt}}",
+  "@danceEditorSequenceTotalBeats": {
+    "x-sourceSha256": "5939821f14dca9d0edb89c7b340aed8f7f16bc24d1b4d9b2a185dbf77b5e63c8"
+  },
+  "danceEditorSequenceOverPhrase": "Denne sekvens er {beats} slag, længere end én frase ({limit} slag).",
+  "@danceEditorSequenceOverPhrase": {
+    "x-sourceSha256": "6ae93313359a72f07ebee85db77f4cef8a909076b8df31715a5e9dccc10ab214"
+  },
+  "danceEditorSequencePhraseFull": "Disse figurer fylder én frase ({limit} slag).",
+  "@danceEditorSequencePhraseFull": {
+    "x-sourceSha256": "bca2abe6ab4af53f5bdf6dc57507aada937cc15b528249a4910e60ca260adc84"
+  },
+  "danceEditorSequenceStepsCapReached": "Maksimalt {max} figurer i en sekvens.",
+  "@danceEditorSequenceStepsCapReached": {
+    "x-sourceSha256": "0d32b0ac029efb217a22bb156c907bf9db860dd2476517694d74498d2c56799b"
+  },
+  "danceEditorSequenceStepLabel": "Figur {number}",
+  "@danceEditorSequenceStepLabel": {
+    "x-sourceSha256": "a0c4e096ba8a986db5fd592e943df04384758e199fe5a3909b3ed1e4f8a81c22"
+  },
+  "danceEditorSequenceStepSemantic": "Figur {number} af {total} i sekvensen.",
+  "@danceEditorSequenceStepSemantic": {
+    "x-sourceSha256": "eb6c8d9f8a0bff779783737125608c9fee7f69721423a081d98a3cec52893a94"
+  },
+  "danceEditorAddSequenceStep": "Tilføj næste figur",
+  "@danceEditorAddSequenceStep": {
+    "x-sourceSha256": "f62452fa543439b88b8a2b835f8bed7d4a48c556ee36e3ad9c4f524b505c0332"
+  },
+  "danceEditorRemoveSequenceStep": "Fjern denne figur",
+  "@danceEditorRemoveSequenceStep": {
+    "x-sourceSha256": "5d289b7690bf8d2073f6c6f30ce4ceee0d8935b9db316bf63708f60c2a2857ec"
   },
   "danceEditorModifierGroupLabel": "{count, plural, other{Modifikator ({count} figurer)}}",
   "@danceEditorModifierGroupLabel": {

@@ -20,6 +20,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Et modifier-element blev tilføjet.';
 
   @override
+  String get danceEditorAddedSequenceAnnouncement =>
+      'Et sekvens-element blev tilføjet.';
+
+  @override
   String get navCollection => 'Samling';
 
   @override
@@ -7772,6 +7776,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String validationSequenceExceedsPhrase(int position, int actual, int limit) {
+    return 'En sekvens i figur $position er $actual slag, længere end én frase ($limit slag).';
+  }
+
+  @override
   String get validationPhraseInvalid => 'Den frastruktur er ugyldig.';
 
   @override
@@ -8135,6 +8144,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorAddModifier => 'Tilføj modifikator';
 
   @override
+  String get danceEditorAddSequence => 'Tilføj sekvens';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Indsæt i slutningen af figurlisten';
 
@@ -8269,16 +8281,98 @@ class AppLocalizationsDa extends AppLocalizations {
       'Gruppér med næste som modifikator';
 
   @override
+  String get danceEditorGroupWithNextAsSequence =>
+      'Gruppér med næste som sekvens';
+
+  @override
   String get danceEditorConvertToMeanwhile => 'Konvertér til meanwhile';
 
   @override
   String get danceEditorConvertToModifier => 'Konvertér til modifier';
 
   @override
+  String get danceEditorConvertToSequence => 'Konvertér til sekvens';
+
+  @override
   String get danceEditorUngroupMeanwhile => 'Ophæv meanwhile-gruppering';
 
   @override
   String get danceEditorUngroupModifier => 'Ophæv modifier-gruppering';
+
+  @override
+  String get danceEditorUngroupSequence => 'Ophæv sekvens-gruppering';
+
+  @override
+  String get danceEditorSequenceOptionLabel => 'sekvens';
+
+  @override
+  String danceEditorSequenceGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sekvens ($count figurer)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurer',
+      one: '1 figur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats slag',
+      one: '1 slag',
+    );
+    return 'Sekvensgruppe, $_temp0 i rækkefølge, $_temp1 i alt.';
+  }
+
+  @override
+  String danceEditorSequenceTotalBeats(int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats slag i alt',
+      one: '1 slag i alt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceOverPhrase(int beats, int limit) {
+    return 'Denne sekvens er $beats slag, længere end én frase ($limit slag).';
+  }
+
+  @override
+  String danceEditorSequencePhraseFull(int limit) {
+    return 'Disse figurer fylder én frase ($limit slag).';
+  }
+
+  @override
+  String danceEditorSequenceStepsCapReached(int max) {
+    return 'Maksimalt $max figurer i en sekvens.';
+  }
+
+  @override
+  String danceEditorSequenceStepLabel(int number) {
+    return 'Figur $number';
+  }
+
+  @override
+  String danceEditorSequenceStepSemantic(int number, int total) {
+    return 'Figur $number af $total i sekvensen.';
+  }
+
+  @override
+  String get danceEditorAddSequenceStep => 'Tilføj næste figur';
+
+  @override
+  String get danceEditorRemoveSequenceStep => 'Fjern denne figur';
 
   @override
   String danceEditorModifierGroupLabel(num count) {

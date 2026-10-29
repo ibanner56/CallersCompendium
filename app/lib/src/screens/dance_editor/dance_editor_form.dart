@@ -468,6 +468,7 @@ class DanceEditorForm extends StatelessWidget {
                   onAdd: controller.addFigure,
                   onAddMeanwhile: controller.addMeanwhile,
                   onAddModifier: controller.addModifier,
+                  onAddSequence: controller.addSequence,
                   freeTextEntry: freeTextEntry,
                   shorthandMappings: shorthandMappings,
                   canonicalizeDiscouragedTerms:
@@ -490,9 +491,12 @@ class DanceEditorForm extends StatelessWidget {
                   onGroupWithNext: controller.groupFigureWithNext,
                   onGroupWithNextAsModifier:
                       controller.groupFigureWithNextAsModifier,
+                  onGroupWithNextAsSequence:
+                      controller.groupFigureWithNextAsSequence,
                   onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
                   onConvertToMeanwhile: controller.convertContainerToMeanwhile,
                   onConvertToModifier: controller.convertContainerToModifier,
+                  onConvertToSequence: controller.convertContainerToSequence,
                   onUngroupContainer: controller.ungroupContainer,
                   // The user's own compounds are offered while Custom Figures
                   // is on; a placeholder already in the draft still expands
