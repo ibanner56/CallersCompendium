@@ -1,6 +1,17 @@
 # ADR-002: Distribution & update channels
 
 - **Status**: Proposed
+- **Erratum (2026-10-29)**: §5 below says the check "fails silently offline —
+  a missing network is a no-op, never an error dialog". That stands for the
+  **automatic** check. A **manual** "Check for updates" is a user-initiated
+  action with an inline status line, not an error dialog, so it now says why it
+  found nothing: "Couldn't check for updates right now" when the manifest could
+  not be fetched, verified or read, and "A newer version is available from the
+  Releases page" when the manifest is authentic but in a format this build
+  cannot read. Neither state adds a request or sends anything, so the privacy
+  contract is unchanged. The accepted text below is left as written; read
+  "fails silently" as applying to the automatic check only. The maintainer
+  decided this (`update-check-wording`, option (c), 2026-10-29).
 - **Roadmap item**: 7.1
 - **Deciders**: @ibanner56
 

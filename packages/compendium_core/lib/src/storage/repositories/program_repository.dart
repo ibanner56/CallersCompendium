@@ -48,12 +48,13 @@ class DanceCallingRecord {
   final String programTitle;
 
   /// The program's last-updated timestamp (always present). UTC. Used as the
-  /// final ordering/display fallback when neither [performedAt] nor [eventDate]
+  /// final ordering/display fallback when neither [eventDate] nor [performedAt]
   /// is set.
   final DateTime programUpdatedAt;
 
-  /// When the slot was actually called, if the "mark performed" path has
-  /// stamped it — otherwise null. UTC.
+  /// When the slot was marked performed, if it has been — otherwise null. UTC.
+  /// It says the dance was called; its time dates the call only when the
+  /// program has no [eventDate] (see [effectiveDate]).
   final DateTime? performedAt;
 
   /// The program's scheduled event date, if any. UTC.
@@ -68,10 +69,17 @@ class DanceCallingRecord {
   /// fetch — the app layer decides which to show per the venue-entity mode.
   final String? venueId;
 
-  /// The date used for ordering and display: the actual performance time when
-  /// set, else the program's scheduled event date, else its last-updated time.
-  /// Always non-null so ordering never depends on [performedAt] being present.
-  DateTime get effectiveDate => performedAt ?? eventDate ?? programUpdatedAt;
+  /// The date used for ordering and display: the program's event date when it
+  /// has one, else when the slot was marked performed, else the program's
+  /// last-updated time (GIG-2, maintainer decision 2026-10-29). Marking a slot
+  /// on the Monday after Saturday's dance still dates the call Saturday, and
+  /// re-dating the program moves it. Always non-null so ordering never depends
+  /// on [performedAt] being present.
+  ///
+  /// `_callingHistoryRows` orders by the same date, and
+  /// `DanceRepository._sortByLastCalled` sorts by it, both through
+  /// `callingHistoryDateSql`.
+  DateTime get effectiveDate => eventDate ?? performedAt ?? programUpdatedAt;
 
   @override
   bool operator ==(Object other) =>
@@ -255,7 +263,7 @@ class ProgramDerivedCounts {
   });
 
   /// Same value as [ProgramRepository.lastCalledByDance] with its default
-  /// `requireEventDate: false`. No rendered surface reads this stamp; the
+  /// `requireEventDate: false`. No rendered surface reads this date; the
   /// Last-called sort runs its own query (see [ProgramRepository.lastCalledByDance]).
   final Map<String, DateTime> lastCalled;
 
@@ -952,8 +960,8 @@ class ProgramRepository {
   /// queries cannot drift apart, and justified per table:
   ///
   /// * `program_slots` — the history rows themselves (`dance_id`,
-  ///   `performed_at`), the `COUNT(*)` / `COUNT(performed_at)` tallies, and the
-  ///   `MAX(performed_at)` last-called timestamp.
+  ///   `performed_at`), the `COUNT(*)` / `COUNT(performed_at)` tallies, and
+  ///   which slots the last-called date is taken over.
   /// * `programs` — joined by every one of these queries for
   ///   `deleted_at IS NULL` and the host-caller filter, and read directly by
   ///   [callingHistoryForDance] for `title` / `event_date` / `venue` /
@@ -982,16 +990,21 @@ class ProgramRepository {
   Set<ResultSetImplementation<dynamic, dynamic>>
   get _programDerivedWithVenues => {..._programDerivedTables, _db.venues};
 
-  /// Maps dance id → the most recent `performedAt` timestamp across every
-  /// slot of every non-deleted program, for dances with at least one slot
-  /// marked performed; a dance absent from the map has no performed slot — or,
-  /// when [callerFilter] is set, none in a program led by that host caller (see
-  /// [callingHistoryForDance]; issue #583). Pass [requireEventDate] `true` to
-  /// consider only programs that have an event date ("Require an event date").
+  /// Maps dance id → the most recent date it was called across every
+  /// performed slot of every non-deleted program, for dances with at least one
+  /// slot marked performed; a dance absent from the map has no performed slot —
+  /// or, when [callerFilter] is set, none in a program led by that host caller
+  /// (see [callingHistoryForDance]; issue #583). Pass [requireEventDate] `true`
+  /// to consider only programs that have an event date ("Require an event
+  /// date").
   ///
-  /// This is the performed stamp only. Collection's Last-called sort does not
-  /// read it: `DanceRepository.search` orders by each dance's latest history
-  /// date under the active calling-history settings instead (FIND-2).
+  /// Each performed slot is dated as [DanceCallingRecord.effectiveDate] dates
+  /// it: the program's event date, else the performed stamp (GIG-2).
+  ///
+  /// Only performed slots count here, whatever the history settings.
+  /// Collection's Last-called sort does not read it: `DanceRepository.search`
+  /// orders by each dance's latest history date under the active
+  /// calling-history settings instead (FIND-2).
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
     bool requireEventDate = false,
@@ -1026,19 +1039,20 @@ class ProgramRepository {
   /// The ONE query behind [lastCalledByDance], [countByDance] and
   /// [watchProgramDerivedCounts]. [caller] is already normalized.
   ///
-  /// The two tallies and the last-called timestamp are aggregated together
-  /// rather than by two queries, for two reasons. Sharing the query is what
-  /// stops the one-shot reads and the stream from ever disagreeing about which
-  /// slots count. And computing them in one statement is what makes each emit
-  /// of [watchProgramDerivedCounts] an internally consistent snapshot: taking
-  /// `MAX(performed_at)` in a second read could observe a write that landed
-  /// after the counts were read, so one emit would carry tallies from one
-  /// revision and a last-called stamp from the next.
+  /// The two tallies and the last-called date are aggregated together rather
+  /// than by two queries, for two reasons. Sharing the query is what stops the
+  /// one-shot reads and the stream from ever disagreeing about which slots
+  /// count. And computing them in one statement is what makes each emit of
+  /// [watchProgramDerivedCounts] an internally consistent snapshot: taking the
+  /// last-called date in a second read could observe a write that landed after
+  /// the counts were read, so one emit would carry tallies from one revision
+  /// and a last-called date from the next.
   ///
-  /// `MAX(performed_at)` ignores NULLs, so no `performed_at IS NOT NULL` filter
-  /// is needed to reproduce [lastCalledByDance]'s result: a dance whose slots
-  /// were all unperformed aggregates to NULL and [_lastCalledFromRows] simply
-  /// omits it, which is what the narrower query did by excluding the rows.
+  /// The last-called date is `COALESCE(event_date, performed_at)` over
+  /// performed slots only: [DanceCallingRecord.effectiveDate] for a slot that
+  /// has a stamp, so `updated_at` is never reached. The `CASE` yields NULL for
+  /// an unperformed slot and `MAX` ignores NULLs, so a dance whose slots were
+  /// all unperformed aggregates to NULL and [_lastCalledFromRows] omits it.
   Selectable<QueryRow> _programDerivedRows(String? caller) => _db.customSelect(
     'SELECT program_slots.dance_id AS dance_id, '
     'COUNT(*) AS all_count, '
@@ -1046,9 +1060,11 @@ class ProgramRepository {
     'COUNT(programs.event_date) AS dated_count, '
     'COUNT(CASE WHEN programs.event_date IS NOT NULL '
     'THEN program_slots.performed_at END) AS performed_dated_count, '
-    'MAX(program_slots.performed_at) AS last_called, '
-    'MAX(CASE WHEN programs.event_date IS NOT NULL '
-    'THEN program_slots.performed_at END) AS last_called_dated '
+    'MAX(CASE WHEN program_slots.performed_at IS NOT NULL '
+    'THEN COALESCE(programs.event_date, program_slots.performed_at) END) '
+    'AS last_called, '
+    'MAX(CASE WHEN program_slots.performed_at IS NOT NULL '
+    'THEN programs.event_date END) AS last_called_dated '
     'FROM program_slots '
     'JOIN programs ON programs.id = program_slots.program_id '
     'WHERE program_slots.dance_id IS NOT NULL '
@@ -1154,8 +1170,9 @@ class ProgramRepository {
   /// Calling history is a derived query, never stored (see
   /// `docs/design/domain-model.md`; `docs/design/ux.md` §2 / the dance-detail
   /// wireframe "History"). One record per matching slot, ordered by each
-  /// record's effective date (performed_at, else event_date, else updated_at)
-  /// descending — the ordering never depends on `performed_at` being present.
+  /// record's [DanceCallingRecord.effectiveDate] (event_date, else
+  /// performed_at, else updated_at) descending — the ordering never depends on
+  /// `performed_at` being present (GIG-2).
   /// Feeds the dance-detail "Calling history" section.
   Future<List<DanceCallingRecord>> callingHistoryForDance(
     String danceId, {
@@ -1196,9 +1213,8 @@ class ProgramRepository {
     '${_eventDateClause(requireEventDate)}'
     '${_callerClause(caller)}'
     'AND programs.deleted_at IS NULL '
-    'ORDER BY COALESCE('
-    'program_slots.performed_at, programs.event_date, programs.updated_at'
-    ') DESC, programs.id',
+    'ORDER BY ${callingHistoryDateSql(slotTable: 'program_slots', programTable: 'programs')} '
+    'DESC, programs.id',
     variables: [Variable<String>(danceId), ..._callerVariables(caller)],
     readsFrom: includeVenues
         ? _programDerivedWithVenues

@@ -736,9 +736,10 @@ python3 tools/release/test_publish_pages_manifest.py
 > every `*.json` at the `gh-pages` root has a **valid** sibling `*.json.sig` — a
 > real Ed25519 signature over the exact manifest bytes, verified against the pinned key
 
-A missing or invalid `.sig` makes the in-app update client fail closed and silently
-report "no update" to every user on that channel — the failure is invisible by design,
-which is why an external, ongoing assertion is necessary. An out-of-band deletion (direct
+A missing or invalid `.sig` makes the in-app update client fail closed and report
+nothing found to every user on that channel — silently for the automatic check, and
+as "Couldn't check for updates" for a manual one (see the erratum below) — which is
+why an external, ongoing assertion is necessary. An out-of-band deletion (direct
 `git push` to `gh-pages`, a rogue workflow, or a GitHub UI edit) is caught within
 **≤24 hours** by the daily schedule. Publish-path regressions are caught immediately by
 the post-publish `Assert gh-pages signature invariant` steps in `pages-site.yml` and
@@ -879,7 +880,21 @@ step every supported install trusts the key CI is signing with:
 
 Never switch `UPDATE_SIGNING_KEY` to a key that is not already pinned in a
 widely installed release — those installs would reject every new manifest
-(fail closed, silently "no update") until they update by hand.
+(fail closed: no update is offered, silently on the automatic check) until they
+update by hand.
+
+> **Erratum (2026-10-29), manual update checks.** This chapter, and ADR-002 §5,
+> described a failed check as silently "no update". That holds only for the
+> **automatic** check, which stays silent. A **manual** "Check for updates" now
+> says "Couldn't check for updates right now" when it could not read the manifest
+> (offline, unreachable, unsigned, tampered or malformed), and says "A newer
+> version is available from the Releases page" when the manifest is **authentic**
+> but in a format the build cannot read (a newer `manifestSchemaVersion`, or an
+> artifact for a platform or architecture it has no name for). Only builds that
+> contain this change say so: an install that predates it still reports "No
+> update found" for every failure, so the key-rotation advice above is unchanged
+> for them. A `manifestSchemaVersion` bump is now survivable for later builds,
+> but only until their own pinned keys expire as above.
 
 **Compromise.** Pinning has no revocation: an install keeps trusting every key
 it shipped with until it updates, so a leaked private key can sign manifests
@@ -888,8 +903,8 @@ it (step 4) and shipping a release that drops the leaked key (step 5) keeps
 update delivery working for every install that **already has the next key** —
 it cannot remove trust in the leaked key from installs that have not yet taken
 the step-5 release. Installs that **predate** the release that pinned the next
-key trust only the leaked key: an immediate switch strands them (silent "no
-update" until they update by hand), and leaving the signer alone keeps them
+key trust only the leaked key: an immediate switch strands them (no update is
+offered until they update by hand), and leaving the signer alone keeps them
 exposed. That trade-off is the maintainer's call at the time. Keeping a next key
 pinned at all times — so that cohort is as small as possible — is what makes
 the response available at all.
@@ -930,7 +945,7 @@ The two publishers therefore coexist on one branch without clobbering each other
 survival case guards the release blocker in #607, whose novel-channel case
 guards the pattern-based hardening in #640, and whose `guide/` case proves the
 hosted guides and the manifests survive each other — deleting a signature makes
-the in-app update client fail closed and silently stop offering updates). This is
+the in-app update client fail closed and stop offering updates). This is
 why Pages stays on **Deploy from a branch → `gh-pages`** — do not switch it to the
 GitHub-Actions Pages source.
 

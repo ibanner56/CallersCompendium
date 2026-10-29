@@ -1684,6 +1684,14 @@
   "@settingsUpdatesStatusNoUpdate": {
     "x-sourceSha256": "2e9757f1fa4493e49072e28ddaa942cd7f19700bddac93e8e4455bf517eeb743"
   },
+  "settingsUpdatesStatusCouldNotCheck": "Kon nu niet op updates controleren. Je gebruikt versie {version}.",
+  "@settingsUpdatesStatusCouldNotCheck": {
+    "x-sourceSha256": "c48a2169576267eccc74760ea9cd1555f18e83690ef1e5b2024c6dc179250c68"
+  },
+  "settingsUpdatesStatusNewerFormat": "Er is een nieuwere versie beschikbaar op de Releases-pagina.",
+  "@settingsUpdatesStatusNewerFormat": {
+    "x-sourceSha256": "bb2639b21578780a6e05295a5e4cc63e255d0652c55f34d9f2426b34d4e66d4a"
+  },
   "settingsUpdatesStatusAvailable": "Versie {version} is beschikbaar. Zie de banner om het te bekijken.",
   "@settingsUpdatesStatusAvailable": {
     "x-sourceSha256": "5d1e28c66662c008396804936f693e48053546929db2a1e30cd27e3f8e725ac3"
@@ -4518,6 +4526,10 @@
   },
   "danceMoreActions": "Meer acties",
   "@danceMoreActions": {
+    "x-sourceSha256": "f8d46c2570e70736d62beb6e2e8df321d7cb4842a2b894f2025c47b31871d9f1"
+  },
+  "programsMoreActions": "Meer acties",
+  "@programsMoreActions": {
     "x-sourceSha256": "f8d46c2570e70736d62beb6e2e8df321d7cb4842a2b894f2025c47b31871d9f1"
   },
   "danceSectionFigures": "Figuren",

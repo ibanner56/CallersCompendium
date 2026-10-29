@@ -2286,6 +2286,20 @@
       }
     }
   },
+  "settingsUpdatesStatusCouldNotCheck": "Couldn't check for updates right now. You're on version {version}.",
+  "@settingsUpdatesStatusCouldNotCheck": {
+    "description": "Status line after a manual check that could not read the update information (offline, unreachable, or unverifiable). Says nothing about whether an update exists.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.4.0"
+      }
+    }
+  },
+  "settingsUpdatesStatusNewerFormat": "A newer version is available from the Releases page.",
+  "@settingsUpdatesStatusNewerFormat": {
+    "description": "Status line after a manual check that found genuine update information in a format this version cannot read, which means a newer release exists. Releases page is the GitHub releases page of the project."
+  },
   "settingsUpdatesStatusAvailable": "Version {version} is available. See the banner to view it.",
   "@settingsUpdatesStatusAvailable": {
     "description": "Status line after a check that found a newer version.",
@@ -5585,6 +5599,10 @@
   "danceMoreActions": "More actions",
   "@danceMoreActions": {
     "description": "Tooltip for the dance detail overflow (⋮) menu on narrow layouts."
+  },
+  "programsMoreActions": "More actions",
+  "@programsMoreActions": {
+    "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars."
   },
   "danceSectionFigures": "Figures",
   "@danceSectionFigures": {

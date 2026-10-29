@@ -1752,6 +1752,15 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsUpdatesStatusCouldNotCheck(String version) {
+    return '現在アップデートを確認できませんでした。現在のバージョンは $version です。';
+  }
+
+  @override
+  String get settingsUpdatesStatusNewerFormat =>
+      '新しいバージョンが Releases ページで公開されています。';
+
+  @override
   String settingsUpdatesStatusAvailable(String version) {
     return 'バージョン $version が利用可能です。バナーをご確認ください。';
   }
@@ -4223,6 +4232,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceMoreActions => 'その他のアクション';
+
+  @override
+  String get programsMoreActions => 'その他のアクション';
 
   @override
   String get danceSectionFigures => 'フィギュア';

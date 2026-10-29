@@ -1841,6 +1841,15 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String settingsUpdatesStatusCouldNotCheck(String version) {
+    return 'Kunne ikke søge efter opdateringer lige nu. Du bruger version $version.';
+  }
+
+  @override
+  String get settingsUpdatesStatusNewerFormat =>
+      'En nyere version er tilgængelig på Releases-siden.';
+
+  @override
   String settingsUpdatesStatusAvailable(String version) {
     return 'Version $version er tilgængelig. Se banneret for at se den.';
   }
@@ -4422,6 +4431,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceMoreActions => 'Flere handlinger';
+
+  @override
+  String get programsMoreActions => 'Flere handlinger';
 
   @override
   String get danceSectionFigures => 'Figurer';

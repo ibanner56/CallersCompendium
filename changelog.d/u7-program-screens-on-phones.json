@@ -1,0 +1,10 @@
+{
+  "id": "u7-program-screens-on-phones",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On a phone, a program slot's row in the builder no longer squeezes its title to a few letters or runs off the screen for an alternate. Each row keeps its drag handle and **…** menu, and the menu now holds **Move up**, **Move down**, **View details** and **Cut**, so you can still reorder without dragging.",
+      "On a phone, the program builder and a saved program's summary (and the summary pane wherever it is narrow) keep **Perform** and **Export** on their toolbar and move **Mark all performed**, **Duplicate** and **Delete** into a **More actions** (⋮) menu, as a dance's detail screen already does, so the program's title has room."
+    ]
+  }
+}

@@ -2641,6 +2641,18 @@ abstract class AppLocalizations {
   /// **'No update found. You\'re on version {version}.'**
   String settingsUpdatesStatusNoUpdate(String version);
 
+  /// Status line after a manual check that could not read the update information (offline, unreachable, or unverifiable). Says nothing about whether an update exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for updates right now. You\'re on version {version}.'**
+  String settingsUpdatesStatusCouldNotCheck(String version);
+
+  /// Status line after a manual check that found genuine update information in a format this version cannot read, which means a newer release exists. Releases page is the GitHub releases page of the project.
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version is available from the Releases page.'**
+  String get settingsUpdatesStatusNewerFormat;
+
   /// Status line after a check that found a newer version.
   ///
   /// In en, this message translates to:
@@ -6894,6 +6906,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More actions'**
   String get danceMoreActions;
+
+  /// Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get programsMoreActions;
 
   /// Heading of the figures section on the dance detail screen.
   ///

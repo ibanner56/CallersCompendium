@@ -233,8 +233,8 @@ class UpdatesSection extends StatelessWidget {
     await promptForMacosUpdate(context, controller);
   }
 
-  /// The inline status line under "Check for updates". Never an error — a
-  /// silent failure reads the same as "no update found" by design (§5).
+  /// The inline status line under "Check for updates". Never an error dialog
+  /// (ADR-002 §5): a manual check that fails says so in this line, calmly.
   String _statusText(AppLocalizations l10n, UpdateController controller) {
     switch (controller.status) {
       case UpdateCheckStatus.idle:
@@ -243,6 +243,10 @@ class UpdatesSection extends StatelessWidget {
         return l10n.settingsUpdatesStatusChecking;
       case UpdateCheckStatus.noUpdate:
         return l10n.settingsUpdatesStatusNoUpdate(kAppVersion);
+      case UpdateCheckStatus.couldNotCheck:
+        return l10n.settingsUpdatesStatusCouldNotCheck(kAppVersion);
+      case UpdateCheckStatus.newerFormat:
+        return l10n.settingsUpdatesStatusNewerFormat;
       case UpdateCheckStatus.updateAvailable:
         final found = controller.foundUpdate;
         final version = found?.version.toString() ?? '';

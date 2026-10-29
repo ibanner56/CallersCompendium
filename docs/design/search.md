@@ -352,7 +352,8 @@ applied as a **post-fetch pass in Dart** over the returned id set:
 - `last-called` — needs a per-dance aggregate over `program_slots`/`programs`
   (`DanceRepository._sortByLastCalled`), scoped by the same caller filter,
   performed setting and alternate rule as the "called ×N" count, and ordered by
-  `COALESCE(performed_at, event_date, updated_at)`.
+  `COALESCE(event_date, performed_at, updated_at)`, the date the history list
+  orders by (GIG-2).
 
 So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
 requested sort is `author` or `last-called`, the id set it returns is reordered

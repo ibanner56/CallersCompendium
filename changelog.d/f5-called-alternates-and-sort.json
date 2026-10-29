@@ -14,7 +14,7 @@
   "core": {
     "changed": [
       "Calling-history queries, the Called filter and half-calling stats count an alternate slot only once it is marked performed; Program.stampDanceSlotsPerformed skips alternates. Add ProgramSlot.countsTowardCallingHistory and ProgramSlot.isBulkMarkPerformedTarget.",
-      "DanceRepository.search takes callerFilter and performedOnly, which scope the last-called sort; the sort orders by COALESCE(performed_at, event_date, updated_at)."
+      "DanceRepository.search takes callerFilter and performedOnly, which scope the last-called sort; the sort orders by COALESCE(event_date, performed_at, updated_at)."
     ]
   }
 }

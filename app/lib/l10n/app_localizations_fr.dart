@@ -1858,6 +1858,15 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String settingsUpdatesStatusCouldNotCheck(String version) {
+    return 'Impossible de rechercher des mises à jour pour le moment. Vous utilisez la version $version.';
+  }
+
+  @override
+  String get settingsUpdatesStatusNewerFormat =>
+      'Une version plus récente est disponible sur la page des versions (Releases).';
+
+  @override
   String settingsUpdatesStatusAvailable(String version) {
     return 'La version $version est disponible. Consultez la bannière pour la voir.';
   }
@@ -4484,6 +4493,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceMoreActions => 'Plus d’actions';
+
+  @override
+  String get programsMoreActions => 'Plus d’actions';
 
   @override
   String get danceSectionFigures => 'Figures';
