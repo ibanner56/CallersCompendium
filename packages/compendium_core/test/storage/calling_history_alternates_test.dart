@@ -13,7 +13,7 @@ import 'test_database.dart';
 ///
 /// FIND-2: the Last-called sort reads the same caller-scoped, performed-aware
 /// history as the count, ordered by the history list's
-/// `COALESCE(performed_at, event_date, updated_at)`.
+/// `COALESCE(event_date, performed_at, updated_at)` (GIG-2).
 void main() {
   final now = DateTime.utc(2026, 1, 1);
   final gig = DateTime.utc(2026, 3, 14);

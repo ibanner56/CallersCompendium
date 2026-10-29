@@ -22,7 +22,7 @@ import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 /// Builds a controller with a fetcher that records the requested channel and
-/// returns no update (so checks are fast, silent no-ops).
+/// returns null (an unreachable manifest), so checks are fast and fail.
 UpdateController _controller(
   CompendiumRepositories repos,
   List<UpdateChannel> fetched,
@@ -124,7 +124,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(fetched, [UpdateChannel.stable]);
-    expect(controller.status, UpdateCheckStatus.noUpdate);
+    // The helper's fetcher returns null (unreachable), which a manual check
+    // reports rather than passing off as "up to date" (FAIL-3).
+    expect(controller.status, UpdateCheckStatus.couldNotCheck);
   });
 
   testWidgets('beta opt-in persists and switches the fetched channel', (

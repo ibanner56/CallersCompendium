@@ -549,10 +549,10 @@ final RegExp _bareInteger = RegExp(r'^\d+$');
 ///
 /// A neighbour word followed by `0`–`4` becomes the matching `n0`–`n4` tag, so
 /// both spellings resolve through the same [dancerWords] entry. Any other
-/// number after a dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) is
-/// marked with a leading `#`, which no recognizer reads, so the line falls to
-/// custom (or into a prefix match's note) rather than lending its number to an
-/// amount. A number that starts a mixed number is left alone: it is the amount
+/// number after a dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) or a
+/// corner word (`Corner 2`) is marked with a leading `#`, which no recognizer
+/// reads, so the line falls to custom (or into a prefix match's note) rather
+/// than lending its number to an amount. A number that starts a mixed number is left alone: it is the amount
 /// (`Gypsy partner 1 1/2`, `Allemande left neighbor 1½`).
 void _foldDancerNumbers(List<String> w) {
   for (var i = 0; i + 1 < w.length; i++) {
@@ -569,7 +569,9 @@ void _foldDancerNumbers(List<String> w) {
         continue;
       }
     }
-    if (dancerWords.containsKey(w[i])) w[i + 1] = '#$number';
+    if (dancerWords.containsKey(w[i]) || _cornerWords.contains(w[i])) {
+      w[i + 1] = '#$number';
+    }
   }
 }
 
@@ -682,6 +684,7 @@ String? _takeDancer(List<String> w) {
       w.removeRange(i, i + 2);
       return 'sameRoles';
     }
+    if (_takeNamedDancerAt(w, i) case final named?) return named;
     final token = dancerWords[w[i]];
     if (token != null) {
       final raw = w.removeAt(i);
@@ -721,6 +724,42 @@ bool _isSameRolePair(List<String> w, int i) =>
     sameRoleQualifiers.contains(w[i]) &&
     (w[i + 1] == 'neighbor' || w[i + 1] == 'neighbors');
 
+/// Removes and returns the dancer set Caller's Companion names at `w[i]`, or
+/// null (#1975): "New Neighbor" is the next neighbors, and "Corner" the first
+/// corners ("1st"/"2nd", "first"/"second" corner name either). A bare plural
+/// ("the corners") may mean both corners in turn, so only the singular is
+/// read.
+String? _takeNamedDancerAt(List<String> w, int i) {
+  final word = w[i];
+  final next = i + 1 < w.length ? w[i + 1] : null;
+  if (word == 'new' && _neighborWords.contains(next)) {
+    w.removeRange(i, i + 2);
+    return 'nextNeighbors';
+  }
+  if (_cornerOrdinals[word] case final corners?
+      when _cornerWords.contains(next)) {
+    w.removeRange(i, i + 2);
+    return corners;
+  }
+  if (word == 'corner') {
+    w.removeAt(i);
+    return 'firstCorners';
+  }
+  return null;
+}
+
+/// The corner words, which are not [dancerWords] keys: [_takeNamedDancerAt]
+/// reads them, and [_foldDancerNumbers] marks a number after one, as
+/// `Corner 2 swing` names a numbered corner, not a swing twice.
+const Set<String> _cornerWords = {'corner', 'corners'};
+
+const Map<String, String> _cornerOrdinals = {
+  'first': 'firstCorners',
+  '1st': 'firstCorners',
+  'second': 'secondCorners',
+  '2nd': 'secondCorners',
+};
+
 /// Like [_takeDancer] but ONLY matches a dancer set at the FRONT of [w].
 /// Recognizers whose grammar requires a *leading* dancer ("Ones turn contra
 /// corners", "Men give-and-take partner") use this so an unattested word order
@@ -733,6 +772,7 @@ String? _takeLeadingDancer(List<String> w) {
     w.removeRange(0, 2);
     return 'sameRoles';
   }
+  if (_takeNamedDancerAt(w, 0) case final named?) return named;
   final token = dancerWords[w[0]];
   if (token == null) return null;
   final raw = w.removeAt(0);
