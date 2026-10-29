@@ -78,8 +78,9 @@ enum UpdateArch {
 /// Raised when a manifest cannot be trusted: malformed/partial JSON, an
 /// unrecognized [kSupportedManifestSchemaVersion], a channel that disagrees with
 /// the file it came from, or a missing/invalid required field. Callers treat
-/// this as a **silent no-op** (never an error dialog) per ADR-002 §5 — the
-/// [message] exists only for tests/logging, not the UI.
+/// this as a no-op, never an error dialog (ADR-002 §5): silent in the
+/// automatic check, a calm status line in the manual one. The [message] exists
+/// only for tests/logging, not the UI.
 class UpdateManifestFormatException implements Exception {
   const UpdateManifestFormatException(this.message);
 
@@ -87,6 +88,19 @@ class UpdateManifestFormatException implements Exception {
 
   @override
   String toString() => 'UpdateManifestFormatException: $message';
+}
+
+/// A manifest that is well-formed as far as it goes but speaks a format this
+/// build does not understand: a `manifestSchemaVersion` newer than
+/// [kSupportedManifestSchemaVersion], or an artifact for a platform or
+/// architecture this build has no name for. Both are what a *newer* release
+/// looks like to an *older* app, so the manual check can say "a newer version
+/// is available" instead of "nothing found" — but only after the signature has
+/// proven the bytes authentic, which [UpdateService.checkManifest] guarantees.
+/// A schema number *below* the supported one is not "newer", so it stays a
+/// plain [UpdateManifestFormatException].
+class UpdateManifestUnsupportedException extends UpdateManifestFormatException {
+  const UpdateManifestUnsupportedException(super.message);
 }
 
 /// One downloadable artifact: `{platform, arch, url, sha256, size,
@@ -119,10 +133,10 @@ class UpdateArtifact {
     final parsedPlatform = UpdatePlatform.fromWire(platform);
     final parsedArch = UpdateArch.fromWire(arch);
     if (parsedPlatform == null) {
-      throw UpdateManifestFormatException('unknown platform "$platform"');
+      throw UpdateManifestUnsupportedException('unknown platform "$platform"');
     }
     if (parsedArch == null) {
-      throw UpdateManifestFormatException('unknown arch "$arch"');
+      throw UpdateManifestUnsupportedException('unknown arch "$arch"');
     }
     final size = node['size'];
     if (size is! int) {
@@ -288,10 +302,14 @@ class UpdateManifest {
       );
     }
     if (schema != kSupportedManifestSchemaVersion) {
-      throw UpdateManifestFormatException(
-        'unsupported manifestSchemaVersion $schema '
-        '(expected $kSupportedManifestSchemaVersion)',
-      );
+      final message =
+          'unsupported manifestSchemaVersion $schema '
+          '(expected $kSupportedManifestSchemaVersion)';
+      // Only a *higher* number is a newer format; a lower one is just wrong.
+      if (schema > kSupportedManifestSchemaVersion) {
+        throw UpdateManifestUnsupportedException(message);
+      }
+      throw UpdateManifestFormatException(message);
     }
 
     final channelStr = _requireString(decoded, 'channel');

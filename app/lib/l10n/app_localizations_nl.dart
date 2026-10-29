@@ -1850,6 +1850,15 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsUpdatesStatusCouldNotCheck(String version) {
+    return 'Kon nu niet op updates controleren. Je gebruikt versie $version.';
+  }
+
+  @override
+  String get settingsUpdatesStatusNewerFormat =>
+      'Er is een nieuwere versie beschikbaar op de Releases-pagina.';
+
+  @override
   String settingsUpdatesStatusAvailable(String version) {
     return 'Versie $version is beschikbaar. Zie de banner om het te bekijken.';
   }

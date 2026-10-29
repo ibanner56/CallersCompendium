@@ -124,7 +124,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(fetched, [UpdateChannel.stable]);
-    expect(controller.status, UpdateCheckStatus.noUpdate);
+    // The helper's fetcher returns null (unreachable), which a manual check
+    // reports rather than passing off as "up to date" (FAIL-3).
+    expect(controller.status, UpdateCheckStatus.couldNotCheck);
   });
 
   testWidgets('beta opt-in persists and switches the fetched channel', (
