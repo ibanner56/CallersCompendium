@@ -2,7 +2,6 @@ import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/program_dialect.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
