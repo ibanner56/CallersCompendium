@@ -34,6 +34,19 @@ void main() {
       ]);
     });
 
+    test('only Android also accepts a generic-typed share file (PLAT-4)', () {
+      // Android filters by MIME type and has none for .ccshare, so a saved
+      // share file arrives as application/octet-stream. Elsewhere GTK would
+      // read that type as "every file".
+      expect(
+        importJsonTypeGroup(isAndroid: true).mimeTypes,
+        containsAll(['application/json', 'application/octet-stream']),
+      );
+      expect(importJsonTypeGroup(isAndroid: false).mimeTypes, [
+        'application/json',
+      ]);
+    });
+
     test('the filters still reject unrelated files on Linux', () {
       expect(gtkMatches(importUsrTypeGroup(isLinux: true), 'a.txt'), isFalse);
       expect(gtkMatches(importJsonTypeGroup(isLinux: true), 'a.usr'), isFalse);
