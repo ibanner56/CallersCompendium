@@ -21,4 +21,5 @@ String archiveIntakeRejectionMessage(
   ArchiveIntakeRejectionReason.notArchive =>
     l10n.archiveIntakeRejectedNotArchive,
   ArchiveIntakeRejectionReason.noContent => l10n.archiveIntakeRejectedNoContent,
+  ArchiveIntakeRejectionReason.backup => l10n.archiveIntakeRejectedBackup,
 };

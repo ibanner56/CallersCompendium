@@ -7,6 +7,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
+import '../data/sort_ignore_articles_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/program_sort.dart';
 import '../search/program_sort_labels.dart';
@@ -124,7 +125,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       _repos = RepositoriesScope.of(context);
       _subscribe();
       // Fire-and-forget: unlike the Collection list, sorting here is a pure
-      // client-side re-order of already-loaded data (`_sorted`), not a
+      // client-side re-order of already-loaded data (`_sortedPrograms`), not a
       // database query, so the seed has nothing to sequence after — it only
       // needs `setState` to run before the next build that reads `_sort`.
       unawaited(_seedDefaultSort());
@@ -323,16 +324,18 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         DateTime(date.year, date.month, date.day),
   };
 
-  List<Program> get _sorted {
+  List<Program> _sortedPrograms({required bool ignoreLeadingArticles}) {
     final programs = [...?_programs];
     final descending = _sortDir == SortDirection.descending;
     int flip(int cmp) => descending ? -cmp : cmp;
     switch (_sort) {
       case ProgramSort.title:
-        programs.sort(
-          (a, b) =>
-              flip(a.title.toLowerCase().compareTo(b.title.toLowerCase())),
-        );
+        // The same key the Collection and the program dance picker sort by, so
+        // "Ignore leading articles when sorting" governs this list too.
+        String key(Program p) => ignoreLeadingArticles
+            ? titleSortKey(p.title)
+            : p.title.toLowerCase();
+        programs.sort((a, b) => flip(key(a).compareTo(key(b))));
       case ProgramSort.recentlyUpdated:
         // Ascending base (oldest-first); the default direction (descending)
         // flips it to newest-first.
@@ -698,7 +701,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       );
     }
 
-    final sorted = _sorted;
+    final sorted = _sortedPrograms(
+      ignoreLeadingArticles: SortIgnoreArticlesScope.of(context),
+    );
     return Column(
       children: [
         Padding(

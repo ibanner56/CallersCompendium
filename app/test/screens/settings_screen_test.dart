@@ -4754,6 +4754,47 @@ void main() {
       });
 
       testWidgets(
+        'a backup with no room to replace the old one says so, not the '
+        'generic failure',
+        (tester) async {
+          Future<bool> saver(String json, String name) async =>
+              throw const BackupDiskFullException(
+                requiredBytes: 31 * 1024 * 1024,
+                availableBytes: 12 * 1024 * 1024,
+              );
+
+          _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
+            getStore: ({required previouslyUsed}) async =>
+                throw UnimplementedError(),
+            createStore: () async => const SyncHttpResponse(
+              statusCode: 201,
+              kind: SyncResponseKind.created,
+              headers: {},
+              body: [],
+            ),
+          );
+          await enableAndOpenPairing(tester, backupSaver: saver);
+          await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-pairing-backup-accept')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text(
+              AppLocalizationsEn().backupExportDiskFull('31.0', '12.0'),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.text(AppLocalizationsEn().backupExportFailed),
+            findsNothing,
+          );
+        },
+      );
+
+      testWidgets(
         'skipping the backup offer exports nothing (spec §6.14 item 3)',
         (tester) async {
           var exportCalls = 0;

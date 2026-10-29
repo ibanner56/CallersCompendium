@@ -47,8 +47,9 @@ import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
+import 'package:compendium_app/src/data/default_program_caller_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart'
-    show kCanonicalDiscouragedTermsKey;
+    show kCanonicalDiscouragedTermsKey, kDefaultProgramCallerKey;
 import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
@@ -2000,6 +2001,13 @@ void main() {
             read: AppThemeScope.of,
             storedResult: AppThemeSelection.dark,
             defaultValue: AppThemeSelection.system,
+          ),
+          (
+            key: kDefaultProgramCallerKey,
+            stored: '  Grace Hopper ',
+            read: DefaultProgramCallerScope.maybeOf,
+            storedResult: 'Grace Hopper',
+            defaultValue: '',
           ),
           (
             key: kVenueCallCountKey,

@@ -2558,7 +2558,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Wordt toegevoegd aan elke nieuwe dans die je los importeert. Dansen die tijdens het importeren van een programma worden gemaakt en dansen die uit een Compendium-archief worden hersteld, krijgen geen tags.';
+      'Wordt toegevoegd aan elke nieuwe dans die een import maakt, ook dansen uit een bestand dat iemand met je heeft gedeeld. Dansen die bij het importeren van een programma voor de plekken ervan worden gemaakt, krijgen geen tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -3369,6 +3369,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String backupExportTooLarge(String sizeMb, String limitMb) {
     return 'Je collectie is te groot om als één back-up te exporteren ($sizeMb MB; limiet $limitMb MB), dus er is niets opgeslagen. Je gegevens zijn ongewijzigd.';
+  }
+
+  @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'Er is niet genoeg vrije ruimte om deze back-up te vervangen ($neededMb MB nodig; $freeMb MB vrij), dus er is niets opgeslagen. Je eerdere back-up is ongewijzigd.';
   }
 
   @override
@@ -4658,6 +4663,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsMarkedAllPerformed =>
       'Alle dansen gemarkeerd als uitgevoerd.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd. Markeer een alternatief zelf als je het hebt gecalld.';
 
   @override
   String programsSavedSnack(String title) {
@@ -6659,6 +6668,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dat bestand bevatte geen dansen of programma’s.';
 
   @override
+  String get archiveIntakeRejectedBackup =>
+      'Dat bestand is een back-up, geen deelbestand. Om het op dit apparaat te zetten, ga je naar Instellingen › Algemeen en kies je ‘Herstellen vanuit een back-up’.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Imports moeten een beveiligde https://-URL gebruiken.';
 
@@ -7240,36 +7253,6 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items geïmporteerd.',
-      one: '1 item geïmporteerd.',
-      zero: 'Import voltooid.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportCompleteWithFailures(int count, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items geïmporteerd.',
-      one: '1 item geïmporteerd.',
-      zero: 'Er is niets geïmporteerd.',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed dansen konden niet worden geïmporteerd.',
-      one: '1 dans kon niet worden geïmporteerd.',
-    );
-    return '$_temp0 $_temp1';
-  }
-
-  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7316,6 +7299,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return 'Figuren toegevoegd aan of bijgewerkt in je woordenlijst: $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count bijgewerkt (opnieuw geïmporteerd)';
   }
@@ -7327,6 +7315,17 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: '$count programmanotities:',
       one: '$count programmanotitie(s):',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count opmerkingen:',
+      one: '1 opmerking:',
     );
     return '$_temp0';
   }
@@ -7366,6 +7365,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importReviewUndone => 'Import ongedaan gemaakt.';
 
   @override
+  String get importReviewUndoFailed =>
+      'De import kon niet ongedaan worden gemaakt. Controleer je collectie en probeer ‘Ongedaan maken’ daarna opnieuw.';
+
+  @override
   String get importReviewEditError =>
       'Die dans kon niet worden geïmporteerd om te bewerken.';
 
@@ -7379,6 +7382,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'De import kon niet worden voltooid.';
+
+  @override
+  String get importFileNotText =>
+      'Dat bestand kon niet worden gelezen: het is geen tekst die de app kan lezen. Als een andere app het heeft opgeslagen, sla het daar opnieuw op als UTF-8-tekst en probeer het nog eens.';
+
+  @override
+  String get importFileUnreadable =>
+      'Dat bestand kon niet worden geopend. Misschien gebruikt een andere app het, of staat het op een schijf die niet is verbonden.';
 
   @override
   String importReviewVariationTitle(String title) {
@@ -7889,6 +7900,24 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'Je hebt een niet-opgeslagen concept voor deze dans. Wil je het herstellen?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Je hebt een niet-opgeslagen concept van een andere nieuwe dans, ‘$title’. Wil je het herstellen in plaats van een nieuwe te beginnen?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Je hebt een niet-opgeslagen concept van een andere nieuwe dans, nog zonder titel. Wil je het herstellen in plaats van een nieuwe te beginnen?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Concept opgeslagen op $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Deze dans is gewijzigd sinds het concept werd opgeslagen. Als je het concept herstelt, worden die wijzigingen vervangen.';
 
   @override
   String get danceEditorDiscard => 'Verwerpen';

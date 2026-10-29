@@ -14,6 +14,7 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/default_program_caller_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
@@ -170,6 +171,8 @@ Future<void> _pumpDefaults(
   await walkthroughSnippets.load();
   final facetsNotifier = hiddenFacets ?? ValueNotifier<Set<String>>(const {});
   if (hiddenFacets == null) addTearDown(facetsNotifier.dispose);
+  final defaultCaller = ValueNotifier<String>('');
+  addTearDown(defaultCaller.dispose);
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
@@ -201,7 +204,10 @@ Future<void> _pumpDefaults(
                       controller: walkthroughSnippets,
                       child: CollectionFacetsScope(
                         notifier: facetsNotifier,
-                        child: scaled ?? child!,
+                        child: DefaultProgramCallerScope(
+                          notifier: defaultCaller,
+                          child: scaled ?? child!,
+                        ),
                       ),
                     ),
                   ),

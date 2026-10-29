@@ -321,6 +321,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "archive-key-versions",
+        "every archive entity key names the version case that stamps it",
+        (
+            py("tools/ci/test_check_archive_key_versions.py"),
+            py("tools/ci/check_archive_key_versions.py"),
+        ),
+    ),
+    Step(
         "settings-reads",
         "raw settings reads filter deleted_at IS NULL",
         (

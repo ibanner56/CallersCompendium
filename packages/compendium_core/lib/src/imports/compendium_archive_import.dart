@@ -59,22 +59,24 @@ class _DifficultyLevelImportPlan {
 }
 
 /// Rebuilds the [archive]'s [Program]s for insertion into the live collection,
-/// resolving each slot's *original* `danceId` to the **newly-committed**
-/// Compendium dance id via [danceIdByOriginalId].
+/// resolving each slot's *original* `danceId` to a local Compendium dance id
+/// via [danceIdByOriginalId].
 ///
 /// This is a **pure builder** — no repository, no I/O — mirroring
 /// [buildCcPrograms]'s philosophy so it is trivially unit-testable and stays
 /// Flutter-free. The importer calls it *after* the archive's dances commit
 /// (so [danceIdByOriginalId] maps each archive dance id → the dance id the
-/// pipeline just minted/matched), then persists the returned programs.
+/// pipeline just minted/matched, or the existing dance a skipped re-import row
+/// already points at), then persists the returned programs.
 ///
 /// Fidelity: every program is imported **verbatim** — title, event metadata,
 /// slot order, note-only slots ([ProgramSlot.text] with no dance), alternates,
 /// guest callers, planned minutes and performed timestamps are preserved as
 /// authored. Nothing is fabricated.
 ///
-/// **Parse-never-fails:** a slot whose referenced dance was not committed (it
-/// deduped away, was skipped, or the archive omitted it) degrades to a
+/// **Parse-never-fails:** a slot whose referenced dance has no entry in
+/// [danceIdByOriginalId] (a skipped row with no local dance, a failed record,
+/// or a dance the archive omitted) degrades to a
 /// text/note placeholder slot with an [ImportIssue] — never a throw, never a
 /// dropped slot.
 ArchiveProgramsResult buildArchivePrograms(
@@ -391,8 +393,21 @@ class CompendiumArchiveImporter {
   ///
   /// The dances commit first (real pipeline path), yielding the
   /// original-dance-id → committed-dance-id map used to FK-resolve each program
-  /// slot. Programs whose slots reference a dance that was not committed degrade
-  /// to text placeholders + issues (never a throw — see [buildArchivePrograms]).
+  /// slot. Programs whose slots reference a dance that was neither committed
+  /// nor named in [existingDanceIdByExternalId] degrade to text placeholders +
+  /// issues (never a throw — see [buildArchivePrograms]).
+  ///
+  /// [existingDanceIdByExternalId] maps a dance's import key
+  /// ([GenericJsonAdapter.externalIdFor], the planned record's
+  /// `RawRecord.externalId`) to a local dance id for rows left out of [batch]
+  /// that still have a dance in the collection — chiefly a re-import row the
+  /// review left at Skip, whose verdict already names the target (INTAKE-1).
+  /// A program slot for such a dance links to it instead of becoming a "not
+  /// imported" placeholder. The dances it names are not written.
+  ///
+  /// [defaultTagIds] are the caller's default import tags: they are added to
+  /// each dance this commit **creates**, next to the sender's own tags, as
+  /// [ImportPipeline.commit] adds them. A dance it updates keeps its tags.
   ///
   /// Everything is recorded on the returned [CompendiumArchiveImportResult] so
   /// [undo] reverts dances **and** programs. Sync-state invalidation, pending
@@ -407,6 +422,8 @@ class CompendiumArchiveImporter {
     String Function()? newId,
     String Function()? newSlotId,
     Map<int, DedupeResolution> resolutions = const {},
+    Map<String, String> existingDanceIdByExternalId = const {},
+    List<String> defaultTagIds = const [],
   }) async {
     final mintId = newId ?? uuidV4;
     final insertedIds = <String>[];
@@ -436,11 +453,15 @@ class CompendiumArchiveImporter {
         now: now,
         newId: mintId,
         resolutions: resolutions,
+        defaultTagIds: defaultTagIds,
       );
       danceSession = committedDanceSession;
 
       final danceIdByOriginalId = _danceIdByOriginalId(
-        committedDanceSession,
+        await _pipeline.withLiveExistingDances(
+          _danceIdByExternalId(committedDanceSession),
+          existingDanceIdByExternalId,
+        ),
         archive,
       );
 
@@ -1047,18 +1068,9 @@ class CompendiumArchiveImporter {
     result._undone = true;
   }
 
-  /// Builds the *original*-archive-dance-id → new-Compendium-dance-id map.
-  ///
-  /// [GenericJsonAdapter] keys each committed record's `externalId` with
-  /// [GenericJsonAdapter.externalIdFor], so this correlates the archive's
-  /// dances (by that same key) with the committed records to recover the
-  /// association from the archive's *original* dance id to the id the commit
-  /// minted (or matched, on dedupe). Records that were skipped or failed
-  /// contribute nothing, so a slot referencing them degrades gracefully.
-  Map<String, String> _danceIdByOriginalId(
-    ImportSession session,
-    CompendiumArchive archive,
-  ) {
+  /// The `externalId → danceId` map of the records [session] wrote. Records
+  /// that were skipped or failed contribute nothing.
+  Map<String, String> _danceIdByExternalId(ImportSession session) {
     final committedByExternalId = <String, String>{};
     for (final record in session.records) {
       final danceId = record.danceId;
@@ -1069,12 +1081,27 @@ class CompendiumArchiveImporter {
       // `(source, externalId)` before it can be committed twice.
       committedByExternalId[externalId] = danceId;
     }
+    return committedByExternalId;
+  }
 
+  /// Builds the *original*-archive-dance-id → Compendium-dance-id map.
+  ///
+  /// [GenericJsonAdapter] keys each record's `externalId` with
+  /// [GenericJsonAdapter.externalIdFor], so this correlates the archive's
+  /// dances (by that same key) with [danceIdByExternalId] — the dances the
+  /// commit minted or matched, plus those the caller resolved outside it (see
+  /// [commit]) — to recover the association from the archive's *original*
+  /// dance id. A dance with no entry contributes nothing, so a slot
+  /// referencing it degrades gracefully.
+  Map<String, String> _danceIdByOriginalId(
+    Map<String, String> danceIdByExternalId,
+    CompendiumArchive archive,
+  ) {
     final byOriginalId = <String, String>{};
     for (final dance in archive.dances) {
       final key = GenericJsonAdapter.externalIdFor(dance);
-      final committed = committedByExternalId[key];
-      if (committed != null) byOriginalId[dance.id] = committed;
+      final resolved = danceIdByExternalId[key];
+      if (resolved != null) byOriginalId[dance.id] = resolved;
     }
     return byOriginalId;
   }

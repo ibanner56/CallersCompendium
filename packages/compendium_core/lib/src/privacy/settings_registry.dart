@@ -397,7 +397,8 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
     egress: EgressClass.deviceScoped,
     note:
         'Transient dance-editor autosave draft, keyed per dance '
-        '(editor_draft:<id>). Unsaved user-authored choreography text that '
+        '(editor_draft:<id>, or editor_draft:new:<editor id> for a dance not '
+        'yet saved). Unsaved user-authored choreography text that '
         'must never leave this device by any route, including a local '
         'backup file — see backup_service.dart.',
   ),

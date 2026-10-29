@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
@@ -13,6 +14,7 @@ import '../data/repositories_scope.dart';
 import '../data/related_dance_links.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../editor/editor_snapshot.dart';
 import '../search/dance_editor_reference_data.dart';
 import '../theme/destructive_button_style.dart';
 import '../utils/confirm_delete.dart';
@@ -543,7 +545,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(ctx).danceEditorUnsavedDraftTitle),
-        content: Text(AppLocalizations.of(ctx).danceEditorUnsavedDraftMessage),
+        content: _restoreDraftMessage(ctx, draft),
         actions: [
           TextButton(
             key: const ValueKey('draft-discard'),
@@ -569,6 +571,45 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     } else {
       await _controller.discardPendingDraft();
     }
+  }
+
+  /// The restore prompt's text (AUTH-10): whose draft it is, when it was
+  /// saved, and whether the dance has changed since, which restoring would
+  /// replace. A draft written before drafts recorded those leaves them out.
+  Widget _restoreDraftMessage(BuildContext context, EditorSnapshot draft) {
+    final l10n = AppLocalizations.of(context);
+    final title = draft.title.trim();
+    final lead = !_controller.pendingDraftIsAnotherNewDance
+        ? l10n.danceEditorUnsavedDraftMessage
+        : title.isEmpty
+        ? l10n.danceEditorUnsavedNewDanceDraftUntitledMessage
+        : l10n.danceEditorUnsavedNewDanceDraftMessage(title);
+    final savedAt = draft.savedAt;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(lead),
+        if (savedAt != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            l10n.danceEditorUnsavedDraftSavedAt(
+              DateFormat.yMMMd(
+                Localizations.localeOf(context).toString(),
+              ).add_jm().format(savedAt.toLocal()),
+            ),
+          ),
+        ],
+        if (_controller.danceChangedSince(draft)) ...[
+          const SizedBox(height: 12),
+          Text(
+            l10n.danceEditorUnsavedDraftChangedSince,
+            key: const ValueKey('draft-changed-since'),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+      ],
+    );
   }
 
   /// Prompts before discarding unsaved edits when the user backs out of a dirty

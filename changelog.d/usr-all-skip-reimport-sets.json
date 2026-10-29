@@ -1,0 +1,9 @@
+{
+  "id": "usr-all-skip-reimport-sets",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing a Caller's Companion .USR file again to pick up new sets now works when you already have every dance in it. Import was unavailable when every dance was left at Skip; the review now also says how many programs the file includes."
+    ]
+  }
+}

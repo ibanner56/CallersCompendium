@@ -2512,9 +2512,9 @@
   "@settingsDefaultsImportTagsTitle": {
     "x-sourceSha256": "b1dd2d836caef6fe35201a4a9633de08a139ef06a2d899cf238a707968aff9b3"
   },
-  "settingsDefaultsImportTagsSubtitle": "単独でインポートした新しいダンスごとに追加されます。プログラムのインポート中に作成されたダンスや、Compendiumアーカイブから復元されたダンスにはタグは付きません。",
+  "settingsDefaultsImportTagsSubtitle": "インポートで新しく作成されたダンスごとに追加されます。共有されたファイルのダンスも含みます。プログラムのインポート中にその枠のために作成されたダンスにはタグは付きません。",
   "@settingsDefaultsImportTagsSubtitle": {
-    "x-sourceSha256": "bd3b68ca22a52c38aa563a2777ac99a8624ec843d438cebd52f12aaec06833db"
+    "x-sourceSha256": "46b3272c3dea055c93ff5cd00a0744ad249390fece3a8e1fdc41014fd5024b00"
   },
   "settingsDefaultsImportTagsEmpty": "まだタグがありません。エディターでダンスにタグを追加してから、ここで選択してください。",
   "@settingsDefaultsImportTagsEmpty": {
@@ -3383,6 +3383,10 @@
   "backupExportTooLarge": "コレクションが大きすぎて1つのバックアップとして書き出せません（{sizeMb} MB、上限 {limitMb} MB）。何も保存されておらず、データは変更されていません。",
   "@backupExportTooLarge": {
     "x-sourceSha256": "1416959a2f449b0558cc843bfa3dbd39209ae1069307cb905582625594368e3e"
+  },
+  "backupExportDiskFull": "このバックアップを置き換えるための空き容量が足りません（必要 {neededMb} MB、空き {freeMb} MB）。何も保存されておらず、以前のバックアップは変更されていません。",
+  "@backupExportDiskFull": {
+    "x-sourceSha256": "891f8cc1f6aa387d25f0ac96f04536ea5ef0d34348c4e4e344d9f86a90220382"
   },
   "backupExportInProgress": "バックアップを準備しています…",
   "@backupExportInProgress": {
@@ -4699,6 +4703,10 @@
   "programsMarkedAllPerformed": "すべてのダンスを実施済みにしました。",
   "@programsMarkedAllPerformed": {
     "x-sourceSha256": "a0e7b24dff1bf9be7eefcb614d794bcdd53eab1576cf977fe3070ccdbf76762b"
+  },
+  "programsMarkedAllPerformedExceptAlternates": "代替を除くすべてのダンスを実施済みにしました。代替をコールした場合は、ご自身で実施済みにしてください。",
+  "@programsMarkedAllPerformedExceptAlternates": {
+    "x-sourceSha256": "08a8256620a4cffa6d30dd9cab22983d46fe20c5f9d9024d3780368cb60d0017"
   },
   "programsSavedSnack": "「{title}」を保存しました。",
   "@programsSavedSnack": {
@@ -6538,6 +6546,10 @@
   "@archiveIntakeRejectedNoContent": {
     "x-sourceSha256": "c432135d1a1811b4f51d8ad2f995526eff018b8005496c8d5fb7a2c57faa411b"
   },
+  "archiveIntakeRejectedBackup": "そのファイルは共有ファイルではなくバックアップです。このデバイスに取り込むには、設定 › 一般 を開き、「バックアップから復元」を選んでください。",
+  "@archiveIntakeRejectedBackup": {
+    "x-sourceSha256": "97d1949c7f180d673f52eb4a415af1cd20bd8c1c19b503754ace4b84b4514a8e"
+  },
   "importErrorInsecureScheme": "インポートには安全なhttps:// URLを使用する必要があります。",
   "@importErrorInsecureScheme": {
     "x-sourceSha256": "a6de3bdb67e3560da4e8ccca52d2dd3fca8b45a6158820d2429e3de6e9b36849"
@@ -7102,14 +7114,6 @@
   "@sharedImportSoftCapWarning": {
     "x-sourceSha256": "2d67a897d4ecda16b89d9690a2f7300c9969e2fc874a5f4b6e73a93961cfa5f6"
   },
-  "sharedImportComplete": "{count, plural, =0{インポート完了。} other{{count}件のアイテムをインポートしました。}}",
-  "@sharedImportComplete": {
-    "x-sourceSha256": "8e3c26a3b8d4edd5107078763ce244601af4951039f94ef831d74067d6851880"
-  },
-  "sharedImportCompleteWithFailures": "{count, plural, =0{何もインポートされませんでした。} other{{count}件のアイテムをインポートしました。}}{failed, plural, other{{failed}件のダンスをインポートできませんでした。}}",
-  "@sharedImportCompleteWithFailures": {
-    "x-sourceSha256": "f51ff55e57fc1acbb9e22aa82a03ccf59f17c32898446283e422343d9e7c19de"
-  },
   "sharedImportProgramsOnly": "{count, plural, other{この共有には{count}件のプログラムが含まれており、ダンスはありません。}}",
   "@sharedImportProgramsOnly": {
     "x-sourceSha256": "15aefeb2289ff8575bb68e5527da094f93c18c28f4091aa9ed8884892f3b9253"
@@ -7142,6 +7146,10 @@
   "@importReviewSummaryPrograms": {
     "x-sourceSha256": "c9070279087df15b091cf182503cc7f914654ec0f5d785d794ec8647e575ca3a"
   },
+  "importReviewSummaryFigures": "用語集に追加または更新したフィギュア: {count}",
+  "@importReviewSummaryFigures": {
+    "x-sourceSha256": "6e9d9558eb08f8cd1623ef49224b3e253a6b441b1dfc51685352005254e49555"
+  },
   "importReviewProgramsUpdated": "{count}件更新済み（再インポート）",
   "@importReviewProgramsUpdated": {
     "x-sourceSha256": "d276d2253d5c3596bcd2d40ae1952182fdb05658e37d7b7d0bcfa067132c8e9e"
@@ -7149,6 +7157,10 @@
   "importReviewProgramNotes": "{count, plural, other{{count}件のプログラムノート:}}",
   "@importReviewProgramNotes": {
     "x-sourceSha256": "07c7e17959f23f779d1edb246f618b91ffd73b304673c024cda04b007aeb9193"
+  },
+  "importReviewNotes": "{count, plural, other{{count}件のメモ:}}",
+  "@importReviewNotes": {
+    "x-sourceSha256": "024bca658e563e09d66070ddee25f4c452159aaef5acb22a0028f6d85accd77e"
   },
   "importReviewRecordsFailed": "{count, plural, other{{count}件のレコードのインポートに失敗しました:}}",
   "@importReviewRecordsFailed": {
@@ -7170,6 +7182,10 @@
   "@importReviewUndone": {
     "x-sourceSha256": "0f526ab50a3ca2a66650ef99fd743de2dbf64d38d995f4c521cde940c3abc4da"
   },
+  "importReviewUndoFailed": "インポートを元に戻せませんでした。コレクションを確認してから、もう一度「元に戻す」をお試しください。",
+  "@importReviewUndoFailed": {
+    "x-sourceSha256": "b7f07770fb150f9491bc822d2b8fcc5348a2a5a4357cee7642b1f12c34a349e7"
+  },
   "importReviewEditError": "編集用にそのダンスをインポートできませんでした。",
   "@importReviewEditError": {
     "x-sourceSha256": "efa938acdf31d4dcd903bb981c6319d8b7a56f59d2922faf6078d2826413c32f"
@@ -7185,6 +7201,14 @@
   "importReviewImportError": "インポートを完了できませんでした。",
   "@importReviewImportError": {
     "x-sourceSha256": "468698ddc233d06e939d5d5ca36ce259909e31cd8374a8de9b8c449a63eb6d54"
+  },
+  "importFileNotText": "そのファイルを読み込めませんでした。アプリが読めるテキストではありません。別のアプリで保存したファイルなら、UTF-8テキストとして保存し直してから、もう一度お試しください。",
+  "@importFileNotText": {
+    "x-sourceSha256": "2b6b1e5e54a0395a362c30b25f7cb9bca9f24df5c8144396eae29310f06cccf5"
+  },
+  "importFileUnreadable": "そのファイルを開けませんでした。別のアプリが使用中か、接続されていないドライブにある可能性があります。",
+  "@importFileUnreadable": {
+    "x-sourceSha256": "71056276ba590e1687abac3e64b727168c563776f408db3e6ed0da732fddda85"
   },
   "importReviewVariationTitle": "「{title}」のバリエーション？",
   "@importReviewVariationTitle": {
@@ -7753,6 +7777,22 @@
   "danceEditorUnsavedDraftMessage": "このダンスに未保存の下書きがあります。復元しますか？",
   "@danceEditorUnsavedDraftMessage": {
     "x-sourceSha256": "4361737050c69693981e562c818bb6e1759d9787f3c3063b7c5a24110ff4bd05"
+  },
+  "danceEditorUnsavedNewDanceDraftMessage": "別の新しいダンス「{title}」の未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？",
+  "@danceEditorUnsavedNewDanceDraftMessage": {
+    "x-sourceSha256": "cfa0a260dbb7d319cf1657e51a6a8c15425b1eeb38646cecfe70f1b5513810c7"
+  },
+  "danceEditorUnsavedNewDanceDraftUntitledMessage": "まだタイトルのない、別の新しいダンスの未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？",
+  "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
+    "x-sourceSha256": "cc94ad5921a82b7a09da9609d23e294e7143bbf350f0726fb70299e73c9003e9"
+  },
+  "danceEditorUnsavedDraftSavedAt": "下書きの保存日時: {when}",
+  "@danceEditorUnsavedDraftSavedAt": {
+    "x-sourceSha256": "0a54afbff697740ab32849f748b479e07b7e7368e5d94fa21defb9d187ca2092"
+  },
+  "danceEditorUnsavedDraftChangedSince": "下書きの保存後に、このダンスは変更されています。下書きを復元すると、それらの変更は置き換えられます。",
+  "@danceEditorUnsavedDraftChangedSince": {
+    "x-sourceSha256": "3a7cbbf1fc29a4de9fc4d7ddfd2d0542dba59459363b98374e564ac0ff457703"
   },
   "danceEditorDiscard": "破棄",
   "@danceEditorDiscard": {

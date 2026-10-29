@@ -155,6 +155,13 @@ jobs:
         run: python3 tools/ci/test_check_export_guard_catches.py
       - name: Guard export catches (`on Exception` needs an export-guard marker)
         run: python3 tools/ci/check_export_guard_catches.py
+      # Every key an archive entity writes must name the version case that
+      # stamps it, so an older build refuses or warns instead of dropping it
+      # (OUT-5: program pay and Perform dialect shipped with no stamp).
+      - name: Test the archive-key version ratchet
+        run: python3 tools/ci/test_check_archive_key_versions.py
+      - name: Guard archive entity keys (each names a version case)
+        run: python3 tools/ci/check_archive_key_versions.py
       # Every raw SELECT from settings WHERE key must filter deleted_at IS NULL.
       # The invariant is load-bearing: repositories.dart performs a deliberate
       # hard DELETE and justifies it in prose by asserting that every raw read

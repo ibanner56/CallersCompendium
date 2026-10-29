@@ -24,6 +24,7 @@ import '../data/program_ambiguous_review.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../data/decimal_turns_scope.dart';
 import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../data/show_glossary_scope.dart';
@@ -189,8 +190,8 @@ class ImportReviewScreen extends StatefulWidget {
   /// screen skips the manual input phase: it seeds the bundle, plans it
   /// immediately, and lands the user on the review/consent list. On commit it
   /// routes through [CompendiumArchiveImporter] (dances + programs + venues) and
-  /// offers a transient Undo snackbar. When null the screen behaves exactly as
-  /// the manual import flows do.
+  /// shows the same result summary, with its Undo, as the manual import flows.
+  /// When null the screen behaves exactly as the manual import flows do.
   final SharedBundleImport? sharedBundle;
 
   /// Notifies an embedding shell while a commit is running so it cannot replace
@@ -665,6 +666,27 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           content: Text(importFileTooLargeMessage(l10n, e)),
         ),
       );
+    } on FormatException catch (e, stackTrace) {
+      // Not UTF-8 text (FAIL-4): saved in another encoding, or not text at
+      // all. Said plainly, as the restore picker does, instead of a tap that
+      // visibly did nothing.
+      logCaughtError(e, stackTrace, source: 'import_review_screen._chooseFile');
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-file-not-text'),
+          content: Text(l10n.importFileNotText),
+        ),
+      );
+    } on Object catch (e, stackTrace) {
+      // Locked by another app, on a drive that went away, or refused by the
+      // file system (FAIL-4).
+      logCaughtError(e, stackTrace, source: 'import_review_screen._chooseFile');
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-file-unreadable'),
+          content: Text(l10n.importFileUnreadable),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _picking = false);
     }
@@ -697,6 +719,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         SnackBar(
           key: const ValueKey('import-file-too-large'),
           content: Text(importFileTooLargeMessage(l10n, e)),
+        ),
+      );
+    } on Object catch (e, stackTrace) {
+      // The bytes are read as they are, so only the file system can fail
+      // here (FAIL-4).
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._chooseUsrFile',
+      );
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-file-unreadable'),
+          content: Text(l10n.importFileUnreadable),
         ),
       );
     } finally {
@@ -1148,6 +1184,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (!hasConfidentMatch) return const {};
     final dialect = ActiveDialectScope.of(context);
     final renderer = UserFiguresScope.rendererOf(context);
+    final decimals = DecimalTurnsScope.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     final diffs = <int, FigureDiffResult>{};
     for (var i = 0; i < batch.records.length; i++) {
       if (!mounted) return diffs;
@@ -1174,6 +1214,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         taxonomy: contraTaxonomy,
         renderer: renderer,
         dialect: dialect,
+        decimals: decimals,
+        canonicalDiscouragedTerms: canonicalDiscouragedTerms,
       );
     }
     return diffs;
@@ -1386,6 +1428,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// `externalId → danceId` for each re-import row: its verdict's target,
+  /// which Skip leaves as it is (INTAKE-1). The program-carrying importers
+  /// link a slot through this map when the batch commit did not write that
+  /// slot's dance, so a skipped re-import no longer turns the dance's slots
+  /// into "not imported" placeholders. A row the commit did write wins over
+  /// this map in the importer, and so does a `.USR` row committed through Edit
+  /// (`earlierDanceIds`).
+  Map<String, String> _slotDanceIdsOutsideCommit() => {
+    for (final record in _batch!.records)
+      if (record.verdict.kind == DedupeKind.reimport &&
+          record.verdict.targetDanceId != null &&
+          (record.draft.raw.externalId ?? '').isNotEmpty)
+        record.draft.raw.externalId!: record.verdict.targetDanceId!,
+  };
+
   Future<bool?> _confirmEditOverwrite(String matchedTitle) {
     final l10n = AppLocalizations.of(context);
     return showDialog<bool>(
@@ -1568,14 +1625,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final adapter = _selected.adapterFactory();
       if (sharedBundle != null) {
         // Share target (issue #432): commit dances + programs + venues through
-        // the archive importer, then offer a transient Undo that reverts exactly
-        // this batch. Routed first and gated on the pre-validated bundle, never
-        // on the adapter type.
+        // the archive importer, then show the result with an Undo that reverts
+        // exactly this batch. Routed first and gated on the pre-validated
+        // bundle, never on the adapter type.
         await _commitSharedBundle(
           pipeline,
           sharedBundle,
           commitBatch,
           resolutions,
+          skipped,
         );
       } else if (adapter is CallersCompanionUsrAdapter) {
         final importer = CallersCompanionUsrImporter(
@@ -1602,6 +1660,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           newId: uuidV4,
           newSlotId: uuidV4,
           resolutions: resolutions,
+          existingDanceIdByExternalId: _slotDanceIdsOutsideCommit(),
           defaultTagIds: await resolveDefaultImportTagIds(_repos),
           onProgress: _onCommitProgress,
           earlierDanceIds: Map.of(_editCommittedCcDanceIds),
@@ -1612,7 +1671,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           session: result.danceSession,
           skipped: skipped,
           onUndo: () => importer.undo(result),
-          ccResult: result,
+          programOutcome: (
+            programs: result.programs,
+            updated: result.updatedProgramCount,
+            issues: result.programIssues,
+          ),
+          extraNotes: result.relatedDanceLinkIssues,
         );
         if (!mounted) return;
         // Opt-in, previewed step (#562): offer to seed figure shorthands from
@@ -1671,11 +1735,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           now: DateTime.now().toUtc(),
           newId: uuidV4,
           resolutions: resolutions,
-          // Only this generic dance path and the two importers above tag.
-          // The shared-bundle branch restores the sender's own tags. A program
-          // title list's ambiguous lines do reach here, and their dances are
-          // created for program slots, which keep no default tags
-          // (settings.md, "Import defaults"; #1476).
+          // A program title list's ambiguous lines reach here too, and their
+          // dances are created for program slots, which keep no default tags
+          // (settings.md, "Import defaults"; #1476). Every other route through
+          // this screen tags the dances it creates, the shared-bundle branch
+          // included (INTAKE-6).
           defaultTagIds: widget.programAmbiguousImport != null
               ? const []
               : await resolveDefaultImportTagIds(_repos),
@@ -1775,6 +1839,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // controller and messenger are app-scoped and outlive it (#1819).
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
     final chosen = await Navigator.of(context).push<List<ShorthandMapping>>(
       MaterialPageRoute(
         builder: (_) => ImportShorthandSeedScreen(
@@ -1792,29 +1857,33 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (chosen == null || chosen.isEmpty) return;
 
     final outcome = await seedShorthandMappings(controller, chosen);
-    final seeded = outcome.seeded;
+    final seeded = outcome.added.length;
     final skipped = outcome.skippedAtCap;
     if (seeded == 0 && skipped == 0) return;
-    // One snackbar: when the cap cut the seeding short, the user chose these
+    // One message: when the cap cut the seeding short, the user chose these
     // seeds, so the count that was not added rides with the count that was.
     final lines = [
       if (seeded > 0) l10n.importShorthandSeedComplete(seeded),
       if (skipped > 0)
         l10n.importShorthandSeedLimitSkipped(skipped, maxShorthandMappings),
     ];
-    messenger.showSnackBar(
-      SnackBar(
-        key: ValueKey(
-          skipped > 0
-              ? 'shorthand-seed-limit-reached'
-              : 'shorthand-seed-complete',
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [for (final line in lines) Text(line)],
-        ),
-      ),
+    final key = ValueKey(
+      skipped > 0 ? 'shorthand-seed-limit-reached' : 'shorthand-seed-complete',
+    );
+    if (seeded == 0) {
+      messenger.showSnackBar(
+        SnackBar(key: key, content: Text(lines.join('\n'))),
+      );
+      return;
+    }
+    // Undo, like the glossary-terms and shared-figures steps (INTAKE-16).
+    showUndoSnackBar(
+      messenger,
+      key: key,
+      message: lines.join('\n'),
+      undoLabel: l10n.commonUndo,
+      onUndo: () => unawaited(undoShorthandSeed(controller, outcome.added)),
+      accessibleNavigation: accessibleNavigation,
     );
   }
 
@@ -1963,15 +2032,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// Commits a validated shared [bundle] (issue #432): dances + their author
   /// choreographers + programs + venues, via [CompendiumArchiveImporter] — the
-  /// same commit engine the receive-side share path has always used — then hands
-  /// off to a transient Undo snackbar. Any failure propagates to [_commit]'s
-  /// catch (which surfaces the generic commit-error snackbar and writes nothing
-  /// further), keeping intake fail-closed on malformed/hostile input.
+  /// same commit engine the receive-side share path has always used — then
+  /// shows the same result summary as every other import ([_showResult]),
+  /// with its Undo (INTAKE-6). The dances it creates get the default import
+  /// tags, as on the other routes through this screen. Any failure propagates
+  /// to [_commit]'s catch (which surfaces the generic commit-error snackbar and
+  /// writes nothing further), keeping intake fail-closed on malformed/hostile
+  /// input.
   Future<void> _commitSharedBundle(
     ImportPipeline pipeline,
     SharedBundleImport bundle,
     ImportBatchResult commitBatch,
     Map<int, DedupeResolution> resolutions,
+    int skipped,
   ) async {
     final importer = CompendiumArchiveImporter(
       pipeline,
@@ -1984,6 +2057,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       difficultyLevels: _repos.difficultyLevels,
     );
     final lifecycle = SyncWriterLifecycleScope.maybeOf(context);
+    final defaultTagIds = await resolveDefaultImportTagIds(_repos);
     final result = await _runSyncWriterLifecycle(
       runWrite: lifecycle?.runWrite,
       operation: () => importer.commit(
@@ -1993,6 +2067,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         newId: uuidV4,
         newSlotId: uuidV4,
         resolutions: resolutions,
+        existingDanceIdByExternalId: _slotDanceIdsOutsideCommit(),
+        defaultTagIds: defaultTagIds,
       ),
     );
     if (!mounted) return;
@@ -2006,7 +2082,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       );
     } on Object catch (e, stackTrace) {
       // The dances are in: a failure offering the figures must not cost the
-      // user the Undo below, nor read as a failed import.
+      // user the result below and its Undo, nor read as a failed import.
       logCaughtError(
         e,
         stackTrace,
@@ -2014,11 +2090,37 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       );
     }
     if (!mounted) return;
-    await _showSharedBundleUndo(
-      result: result,
-      importer: importer,
-      runWrite: lifecycle?.runWrite,
-      figures: figures,
+    // Each step is undone once: a retry after a failed Undo resumes where it
+    // failed, so a failure in the figures step does not skip them.
+    var figuresUndone = figures == null;
+    await _showResult(
+      session: result.danceSession,
+      skipped: skipped,
+      onUndo: () async {
+        if (result.isUndone && figuresUndone) return;
+        await _runSyncWriterLifecycle(
+          runWrite: lifecycle?.runWrite,
+          operation: () async {
+            if (!result.isUndone) await importer.undo(result);
+            // After the import's own undo, which restores the dances it
+            // pointed at a copy.
+            if (!figuresUndone) {
+              await figures!.undo(_repos);
+              figuresUndone = true;
+            }
+          },
+        );
+      },
+      // A file without programs reads like a dance-only import.
+      programOutcome: bundle.archive.programs.isEmpty
+          ? null
+          : (
+              programs: result.programs,
+              updated: result.updatedProgramCount,
+              issues: result.programIssues,
+            ),
+      figuresAdded: figures?.count ?? 0,
+      figuresFailed: figures?.failed ?? 0,
     );
   }
 
@@ -2108,83 +2210,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
-  /// Shows the transient post-commit Undo for a shared bundle and returns the
-  /// user to where they were. The Undo reverts **exactly** this import (the ids
-  /// the commit returned) via [CompendiumArchiveImporter.undo]; once the
-  /// snackbar auto-dismisses (see [kUndoSnackBarDuration]) the action is gone —
-  /// session-transient, never persisted (issue #432 / reusing #463's helper).
-  Future<void> _showSharedBundleUndo({
-    required CompendiumArchiveImportResult result,
-    required CompendiumArchiveImporter importer,
-    SyncWriterCallback? runWrite,
-    AppliedUserFigureImport? figures,
-  }) async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
-    final importedDances = result.danceSession.records
-        .where((r) => r.succeeded && r.action != CommitAction.skip)
-        .length;
-    // A dance that failed is recorded on its record, not thrown, so it has to
-    // be counted here: otherwise a file whose dances all failed reads as a
-    // success.
-    final failedDances = result.danceSession.records
-        .where((r) => !r.succeeded)
-        .length;
-    final importedCount =
-        importedDances +
-        result.programs.length +
-        result.importedMetadataCount +
-        (figures?.count ?? 0);
-
-    showUndoSnackBar(
-      messenger,
-      key: const ValueKey('shared-import-undo-snackbar'),
-      message: failedDances == 0
-          ? l10n.sharedImportComplete(importedCount)
-          : l10n.sharedImportCompleteWithFailures(importedCount, failedDances),
-      undoLabel: l10n.commonUndo,
-      undoFailedMessage: l10n.commonUndoFailed,
-      accessibleNavigation: accessibleNavigation,
-      onUndo: () async {
-        // Idempotent: a repeated tap (or a tap after another undo) is a no-op.
-        if (result.isUndone) return;
-        await _runSyncWriterLifecycle(
-          runWrite: runWrite,
-          operation: () async {
-            await importer.undo(result);
-            // After the import's own undo, which restores the dances it
-            // pointed at a copy.
-            await figures?.undo(_repos);
-          },
-        );
-      },
-    );
-    final failed = figures?.failed ?? 0;
-    if (failed > 0) {
-      messenger.showSnackBar(
-        SnackBar(
-          key: const ValueKey('shared-import-figures-failed'),
-          content: Text(l10n.importUserFiguresFailed(failed)),
-        ),
-      );
-    }
-
-    // Return to where the user was; the transient snackbar rides the app-level
-    // ScaffoldMessenger, so it stays visible after this route is gone.
-    final onClose = widget.onClose;
-    if (onClose != null) {
-      onClose();
-    } else {
-      Navigator.of(context).pop();
-    }
-  }
-
+  /// Shows the summary of a committed import, with Undo until Done: what each
+  /// dance row did, what failed, and the notes the commit raised, such as a
+  /// related-dance link it left out ([ImportSession.issues], plus
+  /// [extraNotes]). [programOutcome] is set for an import that carries
+  /// programs (a Caller's Companion `.USR` or a shared file with programs),
+  /// and adds what it did with them; then Undo says it removes them too.
+  /// [figuresAdded] and [figuresFailed] report the shared-figures step.
   Future<void> _showResult({
     required ImportSession session,
     required int skipped,
     required Future<void> Function() onUndo,
-    CcUsrImportResult? ccResult,
+    _ProgramOutcome? programOutcome,
+    List<ImportIssue> extraNotes = const [],
+    int figuresAdded = 0,
+    int figuresFailed = 0,
     Map<int, String>? programResults,
   }) async {
     final l10n = AppLocalizations.of(context);
@@ -2210,17 +2250,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           break;
       }
     }
-    // Program outcomes only exist for a Caller's Companion `.USR` import; a
-    // text import leaves [ccResult] null and the dialog stays dance-only.
-    final programs = ccResult?.programs ?? const [];
+    // A dance-only import leaves [programOutcome] null, and the dialog stays
+    // dance-only.
+    final programs = programOutcome?.programs ?? const [];
     final programNames = [
       for (final p in programs)
         (p.title.trim().isEmpty
             ? l10n.importReviewUntitledProgram
             : p.title.trim()),
     ];
-    final programIssues = ccResult?.programIssues ?? const [];
+    final programIssues = programOutcome?.issues ?? const [];
+    final notes = [...session.issues, ...extraNotes];
     var undone = false;
+    var undoing = false;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -2265,19 +2307,27 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   ),
                 ),
               ],
-              if (ccResult != null) ...[
+              if (figuresAdded > 0)
+                _summaryLine(
+                  'Figures',
+                  l10n.importReviewSummaryFigures(figuresAdded),
+                ),
+              if (figuresFailed > 0)
+                Text(
+                  l10n.importUserFiguresFailed(figuresFailed),
+                  key: const ValueKey('shared-import-figures-failed'),
+                ),
+              if (programOutcome != null) ...[
                 const SizedBox(height: 8),
                 _summaryLine(
                   'Programs',
                   l10n.importReviewSummaryPrograms(programs.length),
                 ),
-                if (ccResult.updatedProgramCount > 0)
+                if (programOutcome.updated > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      l10n.importReviewProgramsUpdated(
-                        ccResult.updatedProgramCount,
-                      ),
+                      l10n.importReviewProgramsUpdated(programOutcome.updated),
                       key: const ValueKey('import-programs-updated'),
                     ),
                   ),
@@ -2306,6 +2356,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     ),
                 ],
               ],
+              if (notes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l10n.importReviewNotes(notes.length),
+                  key: const ValueKey('import-notes'),
+                  style: Theme.of(dialogContext).textTheme.labelLarge,
+                ),
+                for (final issue in notes)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('• ${importIssueMessage(l10n, issue)}'),
+                  ),
+              ],
               if (errors.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -2322,17 +2385,46 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
         ),
         actions: [
-          TextButton(
-            key: const ValueKey('import-undo-button'),
-            onPressed: () async {
-              await onUndo();
-              undone = true;
-              if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-            },
-            child: Text(
-              ccResult != null
-                  ? l10n.importReviewUndoWithPrograms
-                  : l10n.commonUndo,
+          // Disabled while the undo runs: the dialog stays up until it ends,
+          // and a second tap would start a second undo of the same import.
+          StatefulBuilder(
+            builder: (context, setButtonState) => TextButton(
+              key: const ValueKey('import-undo-button'),
+              onPressed: undoing
+                  ? null
+                  : () async {
+                      if (undoing) return;
+                      setButtonState(() => undoing = true);
+                      try {
+                        await onUndo();
+                      } on Object catch (e, stackTrace) {
+                        // Said, and Undo offered again: the import may still
+                        // be there, so Done must not be the only way out.
+                        logCaughtError(
+                          e,
+                          stackTrace,
+                          source: 'import_review_screen._showResult.undo',
+                        );
+                        if (!dialogContext.mounted) return;
+                        setButtonState(() => undoing = false);
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(
+                            key: const ValueKey('import-undo-failed'),
+                            content: Text(l10n.importReviewUndoFailed),
+                          ),
+                        );
+                        return;
+                      }
+                      undone = true;
+                      if (dialogContext.mounted) {
+                        Navigator.of(dialogContext).pop();
+                      }
+                    },
+              child: Text(
+                programOutcome != null
+                    ? l10n.importReviewUndoWithPrograms
+                    : l10n.commonUndo,
+              ),
             ),
           ),
           FilledButton(
@@ -2381,7 +2473,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     // Block a user-initiated back/dismiss while a commit is in flight: leaving
     // mid-commit would let the write finish with the screen unmounted, stranding
-    // freshly-imported data without the transient Undo (issue #432). The
+    // freshly-imported data without its result and Undo (issue #432). The
     // imperative pop the post-commit flow performs is unaffected by PopScope.
     return PopScope(
       canPop: _phase != _Phase.committing,
@@ -2901,9 +2993,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // programs regardless of how dance rows are dispositioned, so the button
     // gate must account for programs — not just the dance count. Mirrors the
     // identical check at the top of this method that routes zero-dance archives
-    // to _buildSharedProgramsOnlyReview.
+    // to _buildSharedProgramsOnlyReview. A `.USR` file's sets are committed
+    // as programs the same way, so a re-import that leaves every known dance
+    // at Skip can still bring in new or changed sets.
     final effectiveBundle = _effectiveSharedBundle;
-    final programCount = effectiveBundle?.archive.programs.length ?? 0;
+    final programCount =
+        effectiveBundle?.archive.programs.length ??
+        _usrArchive?.sets.length ??
+        0;
     final hasPrograms = programCount > 0;
     // How many *distinct* existing local dances a commit would overwrite (issue
     // #446): the unique target ids across rows the user has set to "Re-import
@@ -3302,7 +3399,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// still offer an Import (routing through the same [_commit] → archive-importer
   /// path, which commits the programs and any venues from an empty dance batch),
   /// rather than dead-ending on the generic "no dances" message. Shows the
-  /// soft-cap warning if applicable and honors the same transient Undo.
+  /// soft-cap warning if applicable and offers the same result and Undo.
   Widget _buildSharedProgramsOnlyReview(
     BuildContext context,
     int programCount, {
@@ -3576,8 +3673,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // The per-row Edit commits that one dance immediately (issue
               // #266). It is suppressed for a shared bundle (issue #432) so a
               // shared file can never write before the single batch Import
-              // consent, and so every imported row is covered by the transient
-              // batch Undo. Also suppressed for a manually picked .ccshare with
+              // consent, and so every imported row is covered by the batch
+              // Undo. Also suppressed for a manually picked .ccshare with
               // programs (_effectiveSharedBundle, issue #852/#880) for the same
               // reason, and for a program-ambiguity candidate (issue #943):
               // [_showResult] only reports [ImportReviewScreen.onProgramCommitted]
@@ -4011,20 +4108,34 @@ class _Option {
   final String? targetId;
 }
 
-/// How [seedShorthandMappings] fared.
-typedef ShorthandSeedOutcome = ({int seeded, int skippedAtCap});
+/// What a program-carrying import did with its programs, for the result
+/// summary: every program it wrote, how many of those it updated in place,
+/// and the notes it raised building them.
+typedef _ProgramOutcome = ({
+  List<Program> programs,
+  int updated,
+  List<ImportIssue> issues,
+});
+
+/// How [seedShorthandMappings] fared: each mapping it added, as stored, and
+/// how many it left out because the list was full.
+typedef ShorthandSeedOutcome = ({
+  List<ShorthandMapping> added,
+  int skippedAtCap,
+});
 
 /// `upsert`s each of [chosen] into [controller], skipping rather than
 /// aborting on a refusal so one late collision cannot drop the rest. A seed
 /// refused because the list is at [maxShorthandMappings] is counted in
 /// `skippedAtCap`; any other refusal (a token taken while the preview was
-/// open, say) is skipped silently.
+/// open, say) is skipped silently. What it adds is returned in `added`, for
+/// [undoShorthandSeed].
 @visibleForTesting
 Future<ShorthandSeedOutcome> seedShorthandMappings(
   ShorthandMappingsController controller,
   List<ShorthandMapping> chosen,
 ) async {
-  var seeded = 0;
+  final added = <ShorthandMapping>[];
   var skippedAtCap = 0;
   for (final mapping in chosen) {
     // Defensive: another shorthand with this token could have appeared while
@@ -4037,7 +4148,9 @@ Future<ShorthandSeedOutcome> seedShorthandMappings(
     }
     try {
       await controller.upsert(mapping);
-      seeded++;
+      // As the controller stored it (token trimmed): a new mapping is
+      // appended.
+      added.add(controller.mappings.last);
     } catch (e, stackTrace) {
       // diagnostics: silent — bounds/duplicate backstop; never surface a raw
       // error to the user (this is an optional background step, and the
@@ -4050,5 +4163,19 @@ Future<ShorthandSeedOutcome> seedShorthandMappings(
       }
     }
   }
-  return (seeded: seeded, skippedAtCap: skippedAtCap);
+  return (added: added, skippedAtCap: skippedAtCap);
+}
+
+/// Removes the shorthands a [seedShorthandMappings] call [added], for the
+/// Undo after seeding. One the user has changed since (its token or its
+/// figures) is theirs now and is left alone, as is one already removed.
+@visibleForTesting
+Future<void> undoShorthandSeed(
+  ShorthandMappingsController controller,
+  List<ShorthandMapping> added,
+) async {
+  for (final mapping in added) {
+    final index = controller.mappings.indexOf(mapping);
+    if (index >= 0) await controller.removeAt(index);
+  }
 }

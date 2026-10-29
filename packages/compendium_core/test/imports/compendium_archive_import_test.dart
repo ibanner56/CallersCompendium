@@ -1608,6 +1608,106 @@ void main() {
     });
   });
 
+  // INTAKE-1, scenario B: a friend shares program A (dance d1 is new, so it
+  // imports), then program B, which also uses d1. d1 now plans as a re-import
+  // that the review defaults to Skip and leaves out of the commit, passing its
+  // verdict's target instead. B's slot must link to the local d1, not become a
+  // "Dance not imported" placeholder, and d1 must not be rewritten.
+  test('a re-imported dance left out of the commit still links the slot of a '
+      'program that uses it', () async {
+    final now = DateTime.utc(2026, 7, 15);
+    final first = CompendiumArchive(
+      exportedAt: now,
+      dances: [_dance('orig-d1', 'Shared Reel')],
+      programs: [_programRef('orig-d1')],
+    );
+    await importer.import(
+      encodeArchive(first),
+      first,
+      now: now,
+      newId: sequentialIds('a'),
+      newSlotId: sequentialIds('a-slot'),
+    );
+    final local = (await dances.listAll()).single;
+    await dances.update(local.copyWith(title: 'My Shared Reel'));
+
+    final second = CompendiumArchive(
+      exportedAt: now,
+      dances: [_dance('orig-d1', 'Shared Reel')],
+      programs: [
+        Program(
+          id: 'orig-p2',
+          title: 'Summer Social',
+          slots: [ProgramSlot(id: 'orig-sl9', position: 0, danceId: 'orig-d1')],
+          createdAt: DateTime.utc(2026, 5, 1),
+          updatedAt: DateTime.utc(2026, 5, 1),
+        ),
+      ],
+    );
+    final batch = await importer.plan(encodeArchive(second));
+    final row = batch.records.single;
+    expect(row.verdict.targetDanceId, local.id);
+
+    final result = await importer.commit(
+      ImportBatchResult(records: const []),
+      second,
+      now: now,
+      newId: sequentialIds('b'),
+      newSlotId: sequentialIds('b-slot'),
+      existingDanceIdByExternalId: {
+        row.draft.raw.externalId!: row.verdict.targetDanceId!,
+      },
+    );
+
+    final summer = result.programs.singleWhere(
+      (p) => p.title == 'Summer Social',
+    );
+    expect(summer.slots.single.danceId, local.id);
+    expect(summer.slots.single.text, isNull);
+    expect(result.programIssues, isEmpty);
+    expect((await dances.getById(local.id))!.title, 'My Shared Reel');
+  });
+
+  // INTAKE-6: a shared file opened in the review gets the caller's default
+  // import tags on the dances it creates, as every other import screen route
+  // does. A dance it updates keeps the tags it has.
+  test('default import tags go on the dances a commit creates, not on one it '
+      're-imports', () async {
+    final tagId = await TagRepository(
+      db,
+    ).upsert(Tag(id: 'mine', name: 'Imported'));
+    final first = CompendiumArchive(
+      exportedAt: now,
+      dances: [_dance('orig-d1', 'Simplicity Swing')],
+    );
+    await importer.import(
+      encodeArchive(first),
+      first,
+      now: now,
+      newId: sequentialIds('a'),
+      newSlotId: sequentialIds('a-slot'),
+    );
+    final archive = _bundle();
+    final batch = await importer.plan(encodeArchive(archive));
+    expect(
+      batch.records.map((r) => r.verdict.kind),
+      containsAll([DedupeKind.reimport, DedupeKind.isNew]),
+    );
+
+    await importer.commit(
+      batch,
+      archive,
+      now: now,
+      newId: sequentialIds('b'),
+      newSlotId: sequentialIds('b-slot'),
+      defaultTagIds: [tagId],
+    );
+
+    final byTitle = {for (final d in await dances.listAll()) d.title: d};
+    expect(byTitle['Petronella']!.tagIds, [tagId]);
+    expect(byTitle['Simplicity Swing']!.tagIds, isEmpty);
+  });
+
   group('venue wiring (community import path)', () {
     CompendiumArchive bundleWithVenue({
       String? programVenueId,

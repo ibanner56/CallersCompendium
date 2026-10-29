@@ -165,7 +165,8 @@ trusted Compendium Analect catalog. They are signed and checked before the app
 offers them for import, and the app records their source and version so you can
 see where the dances came from.
 
-1. Open **Collection** and choose **Import dances**.
+1. Open **Collection** and choose **Import dances**, or open **Settings** →
+   **General** → **Import…**.
 2. Under the source selector, choose a published collection to review its
    title, version, dance count, and availability. You can also browse the same
    catalog from **Settings** → **General** → **Published collections**.
@@ -259,6 +260,11 @@ about. The review then shows one warning, *"This file was made by a newer versio
 of Caller's Compendium. Update the app before importing, or some details may be
 left out."* Update the app first if you want everything that file carries.
 
+If the app can't read the file you chose, it says why and nothing is imported:
+either the file isn't text the app can read (another app saved it in a
+different text encoding: save it again as UTF-8), or the file can't be opened
+(another app is using it, or it is on a drive that isn't connected).
+
 ### Open a shared program someone sent you
 
 If another caller shares a **program bundle** with you — the
@@ -278,8 +284,16 @@ screen a manual import uses, already loaded with what the file contains — the
 program, its dances, and its venue.
 
 Nothing is added until you confirm. You review the bundle exactly as you would any
-other import, decide what to bring in, and commit; an **Undo** is offered
-afterwards.
+other import, decide what to bring in, and commit. The same summary as any
+other import follows: what happened to each dance and to the program, anything
+that could not be imported, and any note, such as a link to a related dance
+that was left out. It offers **Undo** until you choose **Done**. The dances it
+adds get your [default import tags](./settings.md#import-defaults), next to
+the tags the sender gave them.
+
+A full **backup** opened this way is not imported: the app says it is a
+backup, and that **Settings › General › Restore from a backup** is where to
+bring it in (see [below](#move-your-whole-library-backup-and-restore)).
 
 This intake is deliberately safe. The file is treated as untrusted input: it is
 size-checked *before* being read, validated against the expected format, and a
@@ -331,7 +345,10 @@ A `.USR` import brings across both your **dances** and your **program history**
 before it commits and undoable right after. Dances and programs you have imported
 before are recognised and offered as updates rather than duplicated. A dance
 you bring in early with **Import and edit** still takes its place in your
-programs and related dances when you then import the rest of the file.
+programs and related dances when you then import the rest of the file. The review
+says how many programs the file includes, and they are imported even when you
+leave every dance at **Skip** — so importing a fresher export just to pick up new
+sets works when you already have all its dances.
 
 Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app
@@ -400,6 +417,9 @@ The app keeps up to 500 figure shorthands. When fewer than that many slots are
 free, the screen says how many more it can take, and only the first ones you
 leave ticked are added. The message afterwards says how many were seeded and how
 many were not added; you can seed those after deleting some shorthands.
+
+The message offers **Undo**, which takes back the shorthands this step added.
+One you have already changed in the meantime is left as you made it.
 
 ### Bring your glossary terms across
 
@@ -579,6 +599,14 @@ matches are under another title). The commit summary counts re-imports separatel
 — so you can see at a glance how much of an import was new material and how much
 was an update. The **Imported** badge appears only on a row you brought in with **Import and
 edit** during review.
+
+**Skip** leaves your copy of a dance exactly as it is, but programs in the same
+file still point at it. When a `.USR` file or a shared program uses a dance the
+review recognised as one you already have and you left it at **Skip**, or one you
+brought in with **Import and edit**, its place in the program links to the dance
+in your collection. A dance that is not brought in and was not recognised —
+including a **Possible match** you skip — still becomes a *Dance not imported*
+note in the program.
 
 Re-importing overwrites that dance with the incoming version, so if you have
 edited your copy, look before you commit. The **Undo** on the summary reverses the

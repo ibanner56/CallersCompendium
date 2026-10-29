@@ -49,7 +49,13 @@ sort by:
 - **Author** — grouped by who wrote the dances.
 - **Recently added** — newest additions first, handy just after an
   [import](./glossary.md#import).
-- **Last called** — the dances you have programmed most recently, first.
+- **Last called** — the dances you have called most recently, first, by the
+  same rules as the "called ×N" count: the
+  [calling history settings](./settings.md#calling-history) decide which
+  programs count, and an alternate counts only once marked performed. Each
+  dance is dated by when its slot was marked performed, else its program's event
+  date, else when the program was last changed. Dances you have not called come
+  last.
 - **Best match** — how well each dance matches your words. This one is offered
   only for a short search — one or two characters — in **All fields**, with no
   **Filters**, **Advanced** or **By phrase** choices set. If Best match is
@@ -278,7 +284,8 @@ The detail view brings together:
 - **Calling history** — which of your [programs](./glossary.md#program) include
   this dance, and the venues where you have called it more than once.
   [Settings](./settings.md#calling-history) decide whether this counts only
-  slots you marked performed, or every program that contains the dance.
+  slots you marked performed, or every program that contains the dance. An
+  alternate counts only once you mark it performed.
 - **Custom fields** you have filled in.
 - **Published-source citation** — the book and page a dance came from, when you
   have recorded it.
@@ -411,7 +418,12 @@ whatever you are doing. Type, and matching **Dances** and **Programs** are liste
 in groups; choose one and you go straight there.
 
 It searches titles across your collection and your programs, so it is the fastest
-way to reach a dance you can name. For searching *inside* dances — by move, by
+way to reach a dance you can name. Accents are ignored (typing `ecole` finds
+"École"), and a title that is exactly what you typed, then one that starts with
+it, is listed ahead of titles that only contain it, so `hey` shows "Hey" before
+"Cheyenne". Within each, titles are alphabetical, and a leading "The", "A" or
+"An" is ignored when [Ignore leading articles when sorting](./settings.md)
+is on. For searching *inside* dances — by move, by
 level, by tag — use the Collection search and filters above.
 
 ## Where to go next

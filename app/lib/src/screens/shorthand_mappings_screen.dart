@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/figure_summary.dart';
 import '../data/repositories_scope.dart';
 import '../data/show_custom_figures_scope.dart';
 import '../editor/figure_draft.dart';
@@ -72,7 +73,7 @@ class ShorthandMappingsScreen extends StatelessWidget {
               _ShorthandRow(
                 key: ValueKey('shorthand-tile-${mappings[i].normalizedToken}'),
                 mapping: mappings[i],
-                summary: _summarize(renderer, dialect, mappings[i]),
+                summary: _summarize(context, renderer, dialect, mappings[i]),
                 onEdit: () => _edit(context, controller, i),
                 onDelete: () => _confirmDelete(context, controller, i),
               ),
@@ -87,10 +88,13 @@ class ShorthandMappingsScreen extends StatelessWidget {
   /// Renders the mapping's target figures into a single-line preview via the
   /// active dialect, e.g. "neighbors swing → circle left ¾".
   static String _summarize(
+    BuildContext context,
     FigureRenderer renderer,
     Dialect dialect,
     ShorthandMapping mapping,
-  ) => mapping.figures.map((f) => renderer.render(f, dialect)).join(' → ');
+  ) => mapping.figures
+      .map((f) => renderFigureSummary(context, renderer, f, dialect))
+      .join(' → ');
 
   Future<void> _createNew(
     BuildContext context,
@@ -583,8 +587,8 @@ class _CompoundShorthandsSectionState
         children: [
           Text(
             beats == null
-                ? renderer.render(use, dialect)
-                : '${renderer.render(use, dialect)} · '
+                ? renderFigureSummary(context, renderer, use, dialect)
+                : '${renderFigureSummary(context, renderer, use, dialect)} · '
                       '${l10n.danceFigureBeats(beats)}',
           ),
           if (problem != null)

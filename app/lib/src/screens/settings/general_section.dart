@@ -15,6 +15,7 @@ import '../../data/backup_document.dart'
         decodeBackupOnIsolate,
         decodeBackupSizedOnIsolate,
         defaultBackupCodecRunner;
+import '../../data/backup_export_labels.dart';
 import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
@@ -29,6 +30,7 @@ import '../../data/verbose_figure_rendering_scope.dart';
 import '../../data/decimal_turns_scope.dart';
 import '../../data/capitalize_figures_scope.dart';
 import '../../diagnostics/error_log.dart';
+import '../../published_collections/published_collection_service.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
@@ -47,6 +49,7 @@ class GeneralSection extends StatefulWidget {
     this.backupPicker,
     this.importPicker,
     this.urlFetcher,
+    this.publishedCollectionService,
   });
 
   /// Test seam for delivering an exported backup file; defaults to
@@ -64,6 +67,11 @@ class GeneralSection extends StatefulWidget {
   /// Test seam for fetching an import URL; defaults to [fetchImportUrl] (real
   /// HTTP GET). Forwarded to [ImportReviewScreen].
   final UrlFetcher? urlFetcher;
+
+  /// Test seam for the published-collection catalog; defaults to a real
+  /// [PublishedCollectionService]. Forwarded to [ImportReviewScreen], so this
+  /// Import… offers the same sources as the Collection's (INTAKE-14).
+  final PublishedCollectionService? publishedCollectionService;
 
   @override
   State<GeneralSection> createState() => _GeneralSectionState();
@@ -230,26 +238,15 @@ class _GeneralSectionState extends State<GeneralSection> {
         _lastBackupAt = now.toUtc();
       });
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
-    } on BackupExportTooLargeException catch (e, st) {
-      closeProgress();
-      logCaughtError(e, st, source: 'general_section._onExportBackup');
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.backupExportTooLarge(
-              backupMegabytes(e.sizeBytes),
-              backupMegabytes(e.maxBytes),
-            ),
-          ),
-        ),
-      );
     } on Object catch (e, st) {
       closeProgress();
       logCaughtError(e, st, source: 'general_section._onExportBackup');
       if (kDebugMode) {
         debugPrint('Backup export failed: $e\n$st');
       }
-      messenger.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(backupExportFailureMessage(l10n, e))),
+      );
     } finally {
       closeProgress();
       _exportInFlight = false;
@@ -513,7 +510,8 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// [CallersBoxAdapter] ("The Caller's Box", which resolves a pasted dance URL
   /// or bare id to the `&format=JSON` endpoint before fetching), and the
   /// [ContraDbHtmlAdapter] ("ContraDB", which resolves a pasted dance URL or
-  /// bare id to the `contradb.com/dances/N` HTML page and scrapes it). The
+  /// bare id to the `contradb.com/dances/N` HTML page and scrapes it), and the
+  /// published collections, as the Collection's Import dances does. The
   /// screen is fully self-contained (plan → review → commit → undo); the live
   /// Collection now picks up its writes from the database stream directly.
   Future<void> _onImportDances() async {
@@ -523,6 +521,8 @@ class _GeneralSectionState extends State<GeneralSection> {
           sources: defaultImportSources(),
           picker: widget.importPicker,
           fetcher: widget.urlFetcher,
+          publishedCollectionService:
+              widget.publishedCollectionService ?? PublishedCollectionService(),
         ),
       ),
     );
