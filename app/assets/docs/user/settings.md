@@ -328,7 +328,11 @@ The **Language & region** section handles formats and localization.
   **Day/month/year**, **Month/day/year**, or **Custom…**. A live example shows the
   result, and your choice controls how program event dates appear: in the
   Programs list and editor, in a dance's calling history, and in printed and
-  emailed set lists and PDFs. **System default** always includes the year.
+  emailed set lists and PDFs. **System default** always includes the year and
+  follows your **device's region** (not the app language): on a phone set to a
+  Danish region, an English-language app shows `15.7.2026`. It uses the region's
+  all-numbers date, so a date never mixes two languages' month names. Pick a
+  fixed format or **Custom…** if you want one layout everywhere.
 
   A custom pattern is built from these tokens:
 
@@ -1259,7 +1263,8 @@ The **About** section tells you what you're running and where it comes from.
 
 - App name, **Version**, and the app's tagline.
 - A **User guide** link that opens the built-in offline guides — the same pages
-  you're reading now.
+  you're reading now. The guide is written in English only; when the app is set
+  to another language, each guide page starts with a one-line notice saying so.
 - License info: the app is free software under **AGPL-3.0**, with **View source on
   GitHub**.
 - Bundled-font credits — Fraunces, Atkinson Hyperlegible, and Roboto, under the

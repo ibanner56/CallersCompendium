@@ -314,8 +314,13 @@ App call sites resolve the localized labels from `AppLocalizations` through
 **values** (formation / status / level names) route through the existing
 localized helpers in `search/facet_labels.dart` (`formationLabel`,
 `danceStatusLabel`, `danceLevelLabel`); dates go through
-`formatEventDate` under the user's Date format setting (System falls back to
-`MaterialLocalizations.formatShortDate`). Never call `AppLocalizations` from a
+`formatEventDate` under the user's Date format setting (System follows the
+**device region**, `PlatformDispatcher.locale`, as the region's numeric `yMd`
+date, so it carries the year and shows no month names that could mix with the
+app language; an `intl`-unresolvable tag falls back to
+`MaterialLocalizations.formatShortDate`. Date symbols for every Flutter-shipped
+locale are registered when `GlobalMaterialLocalizations` first loads, so the
+region need not match the app language). Never call `AppLocalizations` from a
 core renderer, and never add a Flutter dependency to `compendium_core` — inject a
 label object instead.
 
@@ -579,3 +584,11 @@ to the platform locale's `MaterialLocalizations.firstDayOfWeekIndex` for
 The Language & region settings section's dropdown is live — changing it updates
 the strip immediately app-wide, the same instant-notifier-then-persist pattern
 as the date-format control.
+
+## Known limitation: the User guide is English only
+
+The bundled guide (`app/assets/docs/user/`, mirrored from `docs/user/`) has one
+English set. For any app language other than English, `UserGuideDocView` shows
+the `userGuideEnglishOnly` notice above every page — the hub and a page a help
+link opens directly alike. Translating the guide is not planned (maintainer
+decision `guide-language` = (a), 2026-10-29: a one-line notice).
