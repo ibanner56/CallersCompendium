@@ -548,10 +548,10 @@ final RegExp _bareInteger = RegExp(r'^\d+$');
 ///
 /// A neighbour word followed by `0`–`4` becomes the matching `n0`–`n4` tag, so
 /// both spellings resolve through the same [dancerWords] entry. Any other
-/// number after a dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) is
-/// marked with a leading `#`, which no recognizer reads, so the line falls to
-/// custom (or into a prefix match's note) rather than lending its number to an
-/// amount. A number that starts a mixed number is left alone: it is the amount
+/// number after a dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) or a
+/// corner word (`Corner 2`) is marked with a leading `#`, which no recognizer
+/// reads, so the line falls to custom (or into a prefix match's note) rather
+/// than lending its number to an amount. A number that starts a mixed number is left alone: it is the amount
 /// (`Gypsy partner 1 1/2`, `Allemande left neighbor 1½`).
 void _foldDancerNumbers(List<String> w) {
   for (var i = 0; i + 1 < w.length; i++) {
@@ -568,9 +568,12 @@ void _foldDancerNumbers(List<String> w) {
         continue;
       }
     }
-    if (dancerWords.containsKey(w[i])) w[i + 1] = '#$number';
+    if (dancerWords.containsKey(w[i]) || _cornerWords.contains(w[i])) {
+      w[i + 1] = '#$number';
+    }
   }
 }
+
 
 String _stripEdgePunct(String w) {
   var start = 0;
@@ -725,7 +728,7 @@ bool _isSameRolePair(List<String> w, int i) =>
 /// null (#1975): "New Neighbor" is the next neighbors, and "Corner" the first
 /// corners ("1st"/"2nd", "first"/"second" corner name either). A bare plural
 /// ("the corners") may mean both corners in turn, so only the singular is
-/// read, which also leaves the "contra corners" figure alone.
+/// read.
 String? _takeNamedDancerAt(List<String> w, int i) {
   final word = w[i];
   final next = i + 1 < w.length ? w[i + 1] : null;
@@ -745,6 +748,9 @@ String? _takeNamedDancerAt(List<String> w, int i) {
   return null;
 }
 
+/// The corner words, which are not [dancerWords] keys: [_takeNamedDancerAt]
+/// reads them, and [_foldDancerNumbers] marks a number after one, as
+/// `Corner 2 swing` names a numbered corner, not a swing twice.
 const Set<String> _cornerWords = {'corner', 'corners'};
 
 const Map<String, String> _cornerOrdinals = {

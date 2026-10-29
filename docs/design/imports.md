@@ -1532,9 +1532,13 @@ has to be judged in its own context.
   singular `corner` as `firstCorners`, with `1st`/`first` and `2nd`/`second`
   corner(s) naming either corner. A bare plural (`allemande left the
   corners`, ContraDB's contra-corners text) may mean both corners in turn, so
-  it is not read; that also leaves the `contra corners` figure alone. These
-  are context-dependent two-word names, so they live in the reader rather than
-  in `dancerWords`.
+  it is not read. A numbered corner (`Corner 2 swing`, `Corner 3 Right
+  Shoulder Round`) is a square's corner, like TCB's C1–C3, which are not
+  mapped, so `_foldDancerNumbers` marks its number as it does a dancer
+  number's and the line stays custom rather than reading the number as an
+  amount. The bare `Corner` → `firstCorners` reading is the maintainer's
+  decision for Caller's Companion. These are context-dependent two-word names,
+  so they live in the reader rather than in `dancerWords`.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on

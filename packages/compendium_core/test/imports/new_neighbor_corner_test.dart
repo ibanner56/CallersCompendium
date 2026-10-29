@@ -48,8 +48,25 @@ void main() {
         );
       });
 
-      test('contra corners is still the figure', () {
-        expectWho('Ones turn contra corners', 'contra_corners', 'ones');
+      test('a numbered corner is not the first corner or an amount', () {
+        // A square's corners (Corner 1-3) are not modelled; the number must
+        // not be read as how far the move goes either.
+        for (final line in [
+          'Corner 2 Do-si-do',
+          'Corner 2 allemande Left',
+          'Corner 3 Right Shoulder Round',
+          '1st corner 2 allemande left',
+        ]) {
+          final f = read(line).single;
+          expect(f.params['who'], isNot('firstCorners'), reason: line);
+          expect(f.params.containsKey('travel'), isFalse, reason: line);
+        }
+      });
+
+      test('a new neighbor after a leading dancer is whom', () {
+        final f = read('Larks give and take new neighbor').single;
+        expect(f.move, 'give_and_take');
+        expect(f.params['whom'], 'nextNeighbors');
       });
     });
   }
