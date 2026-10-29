@@ -1357,7 +1357,11 @@ has to be judged in its own context.
 - **First-cut coverage (in):** swing (+balance/meltdown prefix), balance,
   balance the ring, do si do / see saw, shoulder round (+gypsy), box the gnat /
   swat the flea, allemande, circle, star, chain, long lines, right left
-  through, pass through, promenade, petronella. **Enriched for CallersBox
+  through, pass through, promenade, petronella. **Enriched for Caller's
+  Companion (#1975):** `ring balance` is balance the ring, and a ring balance
+  then a spin to the right (`Ring balance, spin to the right`, `balance the
+  ring and spin right`) is one petronella with `balance: true`; the words must
+  come in that order and the spin must be to the right. **Enriched for CallersBox
   (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
   (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
   outside (→ down/up the hall `moving`), circulate (→ box circulate with the
