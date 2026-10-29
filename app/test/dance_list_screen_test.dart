@@ -1733,7 +1733,7 @@ void main() {
 
       final tagDropdowns = find.byWidgetPredicate((w) {
         final key = w.key;
-        return w is DropdownButton<String> &&
+        return w is DropdownButtonFormField<String> &&
             key is ValueKey<String> &&
             key.value.startsWith('tag-');
       });
