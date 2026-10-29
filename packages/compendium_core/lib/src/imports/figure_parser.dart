@@ -1243,6 +1243,11 @@ _Match? _swing(List<String> w) {
 }
 
 _Match? _petronella(List<String> w) {
+  // A ring balance followed by a spin to the right is the petronella, balance
+  // included (#1975): Caller's Companion's "Ring balance, spin to the right".
+  if (_isRingBalanceThenSpinRight(w)) {
+    return const _Match('petronella', {'balance': true});
+  }
   // Optional leading "balance and" (petronella's balance flag defaults true).
   _consumePhrase(w, ['balance', 'and']);
   if (!_consumePhrase(w, ['petronella'])) return null;
@@ -1254,10 +1259,41 @@ _Match? _petronella(List<String> w) {
   return w.isEmpty ? const _Match('petronella') : null;
 }
 
+/// Whether [w] is exactly a ring balance and then a spin to the right, in
+/// that order: `ring balance` or `balance (the) ring`, an optional `and`, then
+/// `spin (to the) right` (#1975).
+bool _isRingBalanceThenSpinRight(List<String> w) {
+  final rest = [...w];
+  if (!_takeRingBalance(rest)) return false;
+  _consumeLeading(rest, ['and']);
+  if (!_consumeLeading(rest, ['spin'])) return false;
+  _consumeLeading(rest, ['to', 'the']) || _consumeLeading(rest, ['to']);
+  return _consumeLeading(rest, ['right']) && rest.isEmpty;
+}
+
+/// Consumes a ring balance at the start of [w]: `balance the ring`, TCB's
+/// `balance ring`, or Caller's Companion's `ring balance` (#1975).
+bool _takeRingBalance(List<String> w) =>
+    _consumeLeading(w, ['balance', 'the', 'ring']) ||
+    _consumeLeading(w, ['balance', 'ring']) ||
+    _consumeLeading(w, ['ring', 'balance']);
+
+/// Consumes [phrase] only when [w] starts with it.
+bool _consumeLeading(List<String> w, List<String> phrase) {
+  if (w.length < phrase.length) return false;
+  for (var i = 0; i < phrase.length; i++) {
+    if (w[i] != phrase[i]) return false;
+  }
+  w.removeRange(0, phrase.length);
+  return true;
+}
+
 _Match? _balanceTheRing(List<String> w) {
-  // Accept "balance the ring" and TCB's "balance ring" (no "the").
+  // Accept "balance the ring", TCB's "balance ring" (no "the") and Caller's
+  // Companion's "ring balance" (#1975).
   if (!_consumePhrase(w, ['balance', 'the', 'ring']) &&
-      !_consumePhrase(w, ['balance', 'ring'])) {
+      !_consumePhrase(w, ['balance', 'ring']) &&
+      !_consumePhrase(w, ['ring', 'balance'])) {
     return null;
   }
   _dropFiller(w);
