@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
@@ -28,6 +30,10 @@ void main() {
           for (final (line, whom) in [
             ('Neighbor Roll Away with half sashay', 'neighbors'),
             ('Partner roll away', 'partners'),
+            ('Neighbors roll away', 'neighbors'),
+            ('Partners roll away', 'partners'),
+            ('Shadow roll away', 'shadows'),
+            ('roll away neighbors', 'neighbors'),
           ]) {
             final f = single(line);
             expect(f.move, 'roll_away', reason: line);
@@ -72,6 +78,13 @@ void main() {
           }
         });
 
+        test('a Caller\'s Box note names the roller with any relationship', () {
+          final f = single('Shadow roll away (W roll R, M side-step L)');
+          expect(f.params['who'], 'role1s');
+          expect(f.params['whom'], 'shadows');
+          expect(f.assumedSubject, isFalse);
+        });
+
         test('any other note leaves the roller assumed', () {
           for (final line in [
             'Neighbor roll away (Robins roll R, Larks roll L)',
@@ -93,37 +106,152 @@ void main() {
     });
   }
 
-  // Free-text entry has no beats, so only an import reads the balance from
-  // them. The re-parse of a stored custom line is the singular fan-out.
+  group('a leading Caller\'s Box bracket', () {
+    Figure tcb(String line) =>
+        parseFigureLine(line, beats: 4, frontEnd: tcbFigureFrontEnd)!;
+
+    test('names the roller, which is then not assumed', () {
+      final f = tcb('[Larks] Neighbor roll away');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['whom'], 'neighbors');
+      expect(f.assumedSubject, isFalse);
+    });
+
+    test('states the subject of any move it fills', () {
+      final f = tcb('[Ones] Box circulate');
+      expect(f.params['who'], 'ones');
+      expect(f.assumedSubject, isFalse);
+    });
+
+    test('does not overrule the roller a note names', () {
+      final f = tcb('[Women] Neighbor roll away (W roll R, M side-step L)');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['whom'], 'neighbors');
+      expect(f.assumedSubject, isFalse);
+      expect(f.note, contains('role2s'));
+    });
+
+    test('naming no dancer set is a note when a note names the roller', () {
+      final f = tcb('[All four] Neighbor roll away (W roll R, M side-step L)');
+      expect(f.move, 'roll_away');
+      expect(f.params['who'], 'role1s');
+      expect(f.note, contains('All four'));
+    });
+
+    test('naming no dancer set leaves the line custom', () {
+      // The roller would be assumed beside a subject the line states.
+      expect(tcb('[All four] Neighbor roll away').isCustom, isTrue);
+    });
+  });
+
+  // Only an importer reads the balance from beats, once a line's beats are
+  // settled and the box circulate is the whole line. Free-text entry has no
+  // beats.
   group('box circulate', () {
     final importers = {
-      'import': (String line, int beats) =>
-          parseFigureLinesFanOut(line, beats: beats).single,
-      're-parse': (String line, int beats) =>
-          parseFigureLineFanOut(line, beats: beats)!,
+      "Caller's Companion": _ccFigures,
+      "Caller's Box": _tcbFigures,
+      're-parse': (String line) async => reparseImportGapFigures([
+        customFigure(
+          _lineText(line),
+          beats: _lineBeats(line),
+          origin: CustomOrigin.importGap,
+        ),
+      ]).figures,
     };
     for (final MapEntry(key: path, value: read) in importers.entries) {
-      test('$path: 8 beats is a balance and circulate', () {
-        final f = read('Box circulate', 8);
+      test('$path: 8 beats is a balance and circulate', () async {
+        final f = (await read('(8) Box circulate')).single;
         expect(f.move, 'box_circulate');
         expect(f.params['balance'], isTrue);
       });
 
-      test('$path: 4 beats keeps no balance', () {
-        final f = read('Box circulate', 4);
+      test('$path: 4 beats is no balance', () async {
+        // Explicitly false: the renderer shows a box circulate's balance when
+        // the flag is absent.
+        final f = (await read('(4) Box circulate')).single;
         expect(f.move, 'box_circulate');
-        expect(f.params.containsKey('balance'), isFalse);
+        expect(f.params['balance'], isFalse);
       });
 
-      test('$path: any other count says nothing', () {
-        for (final beats in [0, 6, 16]) {
-          expect(
-            read('Box circulate', beats).params.containsKey('balance'),
-            isFalse,
-            reason: '$beats',
-          );
+      test('$path: any other count says nothing', () async {
+        for (final line in ['(6) Box circulate', '(16) Box circulate']) {
+          final f = (await read(line)).single;
+          expect(f.move, 'box_circulate', reason: line);
+          expect(f.params.containsKey('balance'), isFalse, reason: line);
         }
       });
+
+      test('$path: another move in 8 beats gets no balance', () async {
+        final f = (await read('(8) Box the gnat')).single;
+        expect(f.move, 'box_the_gnat');
+        expect(f.params.containsKey('balance'), isFalse);
+      });
     }
+
+    test('a split line\'s beats are not the box circulate\'s own', () async {
+      for (final figures in [
+        await _ccFigures('(8) Box circulate; Neighbor swing'),
+        await _ccFigures('(4,4) Box circulate; Neighbor swing'),
+        await _tcbFigures('(8) Box circulate; Neighbor swing'),
+      ]) {
+        expect(figures.map((f) => f.move), ['box_circulate', 'swing']);
+        expect(figures.first.params.containsKey('balance'), isFalse);
+      }
+    });
+
+    test('a ContraDB box circulate keeps its own reading of the balance', () {
+      final f = parseFigureLine(
+        'box circulate - larks cross while robins loop right',
+        beats: 8,
+        frontEnd: contraDbHtmlFigureFrontEnd,
+      )!;
+      expect(f.move, 'box_circulate');
+      expect(f.params.containsKey('balance'), isFalse);
+    });
   });
 }
+
+final RegExp _beatsPrefix = RegExp(r'^\((\d+)\)\s*');
+
+int _lineBeats(String line) =>
+    int.parse(_beatsPrefix.firstMatch(line)!.group(1)!);
+
+String _lineText(String line) => line.replaceFirst(_beatsPrefix, '');
+
+/// The figures a Caller's Companion text export imports for one body line.
+Future<List<Figure>> _ccFigures(String line) async {
+  final adapter = CallersCompanionTextAdapter();
+  final discovered = await adapter.discover(
+    ImportRequest(payload: 'Test Dance\nType: Contra\n\nA1   $line\n'),
+  );
+  final draft = adapter.parse(await adapter.fetch(discovered.single));
+  return _figures(draft.dance);
+}
+
+/// The figures a Caller's Box record imports for one phrase line.
+Future<List<Figure>> _tcbFigures(String line) async {
+  final adapter = CallersBoxAdapter();
+  final discovered = await adapter.discover(
+    ImportRequest(
+      payload: jsonEncode({
+        'ID': '42',
+        'Name': 'Test Dance',
+        'Permission': 'full',
+        'phrases': [
+          {
+            'name': 'A1',
+            'figures': [line],
+          },
+        ],
+      }),
+    ),
+  );
+  final draft = adapter.parse(await adapter.fetch(discovered.single));
+  return _figures(draft.dance);
+}
+
+List<Figure> _figures(Dance dance) => switch (dance.figuresSource) {
+  DecodedFigures(:final figures) => figures,
+  UnreadableFigures() => throw StateError('figures did not decode'),
+};

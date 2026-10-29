@@ -6,6 +6,7 @@ import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
+import 'roll_away_relationships.dart';
 import 'while_container.dart';
 
 /// The CallersBox / The Caller's Box (TCB) figure-text **front-end**: the
@@ -2016,13 +2017,11 @@ String? _rollAwayRoller(
       !match.assumedSubject ||
       roleAssignments.length != 1 ||
       match.params.containsKey('who') ||
-      !_callersBoxRollAwayRelationships.contains(match.params['whom'])) {
+      !rollAwayRelationships.contains(match.params['whom'])) {
     return null;
   }
   return roleAssignments.single.nonRollingRole;
 }
-
-const Set<String> _callersBoxRollAwayRelationships = {'neighbors', 'partners'};
 
 /// Parses a two-clause per-role choreography body and returns the canonical
 /// note plus any unambiguous roll-away role assignment, or `null` when the body
@@ -2199,18 +2198,26 @@ FigureMatch? _proseAnnotation(String scrubbed) {
 String? _namedRoleRoller(String body) {
   final clauses = body.split(',');
   if (clauses.length != 2) return null;
-  final first = _namedRoleClauseRe.firstMatch(clauses[0].trim());
-  final second = _namedRoleClauseRe.firstMatch(clauses[1].trim());
+  final first = _namedRoleClause(clauses[0]);
+  final second = _namedRoleClause(clauses[1]);
   if (first == null || second == null) return null;
-  if (first.group(1) == second.group(1)) return null;
-  final firstRolls = first.group(2) == 'roll';
-  final secondRolls = second.group(2) == 'roll';
-  if (firstRolls == secondRolls) return null;
-  return firstRolls ? second.group(1) : first.group(1);
+  if (first.role == second.role) return null;
+  if (first.rolls == second.rolls) return null;
+  return first.rolls ? second.role : first.role;
+}
+
+({String role, bool rolls})? _namedRoleClause(String clause) {
+  final m = _namedRoleClauseRe.firstMatch(clause.trim());
+  if (m == null) return null;
+  return (
+    role: m.group(1)!.toLowerCase(),
+    rolls: m.group(2)!.toLowerCase() == 'roll',
+  );
 }
 
 final RegExp _namedRoleClauseRe = RegExp(
-  r'^(role1s|role2s) (roll|step|side-step|step aside)(?: (?:R|L|right|left|Right|Left))?$',
+  r'^(role1s|role2s) (roll|step|side-step|step aside)(?: (?:r|l|right|left))?$',
+  caseSensitive: false,
 );
 
 /// Whether [body] is just a dancer tag (`N2`, `P`, `S1`): shorthand the shape
@@ -2349,7 +2356,18 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
 
   final notes = <String>[];
   final extraParams = <String, Object?>{};
-  final roleAssignments = <_PerRoleChoreo>[];
+  // A roll away's roller named by a `()` annotation is read first, so a leading
+  // `[Women]` cannot claim `who` against it; the bracket then stays a note.
+  final roller = _rollAwayRoller(match, [
+    for (final annotation in annotations)
+      if (!annotation.isSquare) ...[
+        if (_synthesizePerRoleChoreo(annotation.body) case final synthesized?
+            when synthesized.supportsRollAwayRoleAssignment)
+          synthesized,
+        if (_namedRoleRoller(annotation.body) case final role?)
+          _PerRoleChoreo(note: annotation.body, nonRollingRole: role),
+      ],
+  ]);
 
   for (final annotation in annotations) {
     final body = annotation.body;
@@ -2357,9 +2375,6 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
       final synthesized = _synthesizePerRoleChoreo(body);
       if (synthesized != null) {
         notes.add(synthesized.note);
-        if (synthesized.supportsRollAwayRoleAssignment) {
-          roleAssignments.add(synthesized);
-        }
       } else if (_annotationBodyHasLowercase(body) &&
           !_looksLikePerRoleBody(body)) {
         notes.add(body);
@@ -2373,6 +2388,7 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
     final matchWho = match.params['who'];
     final whoIsUnspecified = matchWho == ParamVocab.unspecified;
     if (isLeading &&
+        roller == null &&
         who != null &&
         def.params.containsKey('who') &&
         (!match.params.containsKey('who') || whoIsUnspecified) &&
@@ -2383,7 +2399,7 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
 
     if (isLeading &&
         who == null &&
-        (match.assumedSubject || whoIsUnspecified)) {
+        ((match.assumedSubject && roller == null) || whoIsUnspecified)) {
       // The bracket supplies an unmodelled (often non-duple) subject while the
       // grammar would otherwise default one. Preserve fidelity by staying custom.
       return const FigureMatch.customFallback();
@@ -2392,9 +2408,6 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
     notes.add(_canonicalSquareBracketNote(body));
   }
 
-  final roller = extraParams.containsKey('who')
-      ? null
-      : _rollAwayRoller(match, roleAssignments);
   if (roller != null) extraParams['who'] = roller;
   if (notes.isEmpty && extraParams.isEmpty) {
     // A square bracket with only code-like parentheses belongs to a later
@@ -2405,7 +2418,9 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
     match,
     _joinAnnotations(notes),
     extraParams: extraParams,
-    subjectStated: roller != null,
+    // A leading `[Larks]` states the subject the grammar assumed, as a roller
+    // annotation does.
+    subjectStated: extraParams.containsKey('who'),
   );
 }
 

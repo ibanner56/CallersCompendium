@@ -1053,7 +1053,8 @@ void main() {
         expect(figures[0].move, 'balance');
         expect(figures[0].params['who'], 'partners');
         expect(figures[1].move, 'box_circulate');
-        expect(figures[1].params.containsKey('balance'), isFalse);
+        // A 4-beat box circulate is one without a balance (#1975).
+        expect(figures[1].params['balance'], isFalse);
       });
 
       test(
