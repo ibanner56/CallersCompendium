@@ -17,8 +17,8 @@
 /// Failures): a missing, empty, malformed, wrong-length, or non-verifying
 /// signature — or an empty set, or no pinned key that is valid and verifies —
 /// returns `false`, and the caller
-/// treats that exactly like an unavailable update (a silent no-op, never an
-/// install). It never throws.
+/// treats that as a failed check ([UpdateCheckFailure.unauthentic]: silent in
+/// the automatic check, "Couldn't check" in a manual one), never an install. It never throws.
 ///
 /// Ed25519 verification uses `package:cryptography` (already an app dependency
 /// for #461's backup crypto), which cleanly supports detached-signature
@@ -75,8 +75,8 @@ Future<bool> verifyManifestSignatureWith(
   String? signatureText, {
   required List<String> publicKeysBase64,
 }) async {
-  // No signature => refuse. Preserves the "missing signature is a silent no-op"
-  // contract without letting an unsigned manifest through.
+  // No signature => refuse. Fail closed: an unsigned manifest is never let through
+  // (the automatic check stays silent about it; a manual one reports it).
   if (signatureText == null) return false;
   final trimmedSig = signatureText.trim();
   if (trimmedSig.isEmpty) return false;

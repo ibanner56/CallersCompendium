@@ -8,8 +8,9 @@ import 'update_manifest.dart';
 
 /// The GitHub Pages base under which the per-channel manifests are published
 /// (ADR-002 §1); the `beta.json` manifest is served from the `gh-pages` branch.
-/// A 404/unreachable manifest is still a silent no-op, never an error (see the
-/// fetcher and ADR-002 §5).
+/// A 404/unreachable manifest is never an error dialog: the automatic check
+/// stays silent and a manual one says it couldn't check (see the fetcher and
+/// ADR-002 §5).
 ///
 /// This is the Pages **custom domain**, requested directly. The project-site
 /// origin (`ibanner56.github.io/CallersCompendium`) 301-redirects to
@@ -23,8 +24,9 @@ const String kUpdateManifestBaseUrl = 'https://callerscompendium.com';
 /// client verifies the update manifest's detached signature against (issue
 /// #431, ADR-002 §6; key set: security-2). This is the root of trust for the
 /// *authenticity* of an update: a manifest whose signature verifies against
-/// **none** of these keys — or that has no signature at all — is refused as a
-/// silent no-op, never installed. An empty or malformed entry is skipped (never
+/// **none** of these keys — or that has no signature at all — is refused
+/// (`UpdateCheckFailure.unauthentic`: silent in the automatic check, reported by
+/// a manual one), never installed. An empty or malformed entry is skipped (never
 /// trusted); an empty list trusts nothing.
 ///
 /// The list is a **set**, not a history: at most a *current* key (the one CI
@@ -111,7 +113,7 @@ bool isAllowedArtifactHost(Uri uri) {
 }
 
 /// How long the update check waits before giving up. Deliberately short: a
-/// missing network must be a fast, silent no-op rather than a hang (ADR-002 §5).
+/// missing network must fail fast, never hang or raise a dialog (ADR-002 §5).
 const Duration kUpdateCheckTimeout = Duration(seconds: 10);
 
 /// The **idle** timeout for an assisted download (ADR-002 "Stage 1.5"): the
