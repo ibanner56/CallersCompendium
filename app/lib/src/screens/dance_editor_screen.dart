@@ -130,8 +130,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// below), mirroring the choreographer caches.
   Map<String, PublishedSource> _sourcesById = {};
 
-  /// The live reference-data subscription, opened once in
-  /// [didChangeDependencies] alongside [_load] and cancelled in [dispose].
+  /// The live reference-data subscription, opened in [didChangeDependencies]
+  /// alongside [_load], reopened by [_retryLoad], and cancelled in [dispose].
   StreamSubscription<DanceEditorReferenceData>? _refDataSub;
 
   /// Resolves once the subscription above has delivered its first event
@@ -249,7 +249,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// choreographers, tags, all dances and published sources, re-read whenever
   /// a write touches any of them.
   ///
-  /// Started once, alongside [_load], which awaits
+  /// Started alongside [_load] (and reopened by [_retryLoad]), which awaits
   /// [_initialReferenceDataReady] (completed below, on this subscription's
   /// first event) before proceeding to [DanceEditorController.load] — so the
   /// caches above are populated (or the failure already known) before the
@@ -278,9 +278,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// treats a failure: `_loadError` is set and the existing error body at
   /// `_buildBody` renders. The in-memory draft and autosave are untouched by
   /// this (only the *rendered* body changes), so nothing already typed is
-  /// lost — but it is a UX regression, not a null bug, so it should be
-  /// bounded in size the same way `_load` is if this class of failure ever
-  /// turns out to be reachable mid-edit. `cancelOnError: false` so a
+  /// lost. [_retryLoad] is the way out: once the controller has loaded it
+  /// keeps the draft and only reopens this subscription. `cancelOnError: false` so a
   /// subsequent write can still recover the subscription — including when the
   /// *first* event was the failure: `_controller.load` still runs (once
   /// [_initialReferenceDataReady] completes, error or not), so the screen
