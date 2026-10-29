@@ -717,6 +717,92 @@ void main() {
     );
   });
 
+  testWidgets('deleting an unused difficulty level offers Undo, which brings '
+      'it back in place', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+    final before = (await repos.difficultyLevels.listAll())
+        .map((l) => l.id)
+        .toList();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = _l10n(tester);
+    expect(
+      find.text(l10n.settingsDefaultsDifficultyLevelDeleted('Beginner')),
+      findsOneWidget,
+    );
+    expect(
+      (await repos.difficultyLevels.listAll()).map((l) => l.id),
+      isNot(contains(DifficultyLevel.beginnerId)),
+    );
+
+    await tester.tap(find.widgetWithText(SnackBarAction, l10n.commonUndo));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await repos.difficultyLevels.listAll()).map((l) => l.id).toList(),
+      before,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  group('adding a difficulty level', () {
+    Future<void> openAddDialog(WidgetTester tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await _openDifficultySection(tester);
+      await tester.tap(find.byKey(const ValueKey('difficulty-level-add')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a tap outside keeps the dialog once text is typed', (
+      tester,
+    ) async {
+      await openAddDialog(tester);
+      await tester.enterText(find.byType(TextField).last, 'Advanced');
+      await tester.pump();
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('Advanced'), findsOneWidget);
+    });
+
+    testWidgets('a tap outside still closes an untouched dialog', (
+      tester,
+    ) async {
+      await openAddDialog(tester);
+
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('Cancel still closes it with text typed', (tester) async {
+      await openAddDialog(tester);
+      await tester.enterText(find.byType(TextField).last, 'Advanced');
+
+      await tester.tap(find.text(_l10n(tester).commonCancel));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+  });
+
   testWidgets(
     'renaming a difficulty level to an existing label shows a localised message',
     (tester) async {

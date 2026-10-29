@@ -2364,6 +2364,10 @@
   "@settingsDefaultsDifficultyLevelActionFailed": {
     "x-sourceSha256": "2f406423b231a20a613444e2a66a85fa3f5d95c6776a82203ad64d4d4e2b0282"
   },
+  "settingsDefaultsDifficultyLevelDeleted": "“{label}” verwijderd.",
+  "@settingsDefaultsDifficultyLevelDeleted": {
+    "x-sourceSha256": "ecf9a0c7a3c009f7d946f424820da1b8574f87f8360556e12ee82938432df80a"
+  },
   "settingsDefaultsBandLabel": "Standaard band",
   "@settingsDefaultsBandLabel": {
     "x-sourceSha256": "c7318a8e4e71c43fe5a7cc0c176c889334d9caeeecd2bb34e1c8aaf3bc31a25e"

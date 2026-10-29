@@ -2435,6 +2435,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'De moeilijkheidsniveaus konden niet worden opgeslagen. Probeer het opnieuw.';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '“$label” verwijderd.';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standaard band';
 
   @override

@@ -2404,6 +2404,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t save the difficulty levels. Try again.';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return 'Deleted $label.';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Default band';
 
   @override

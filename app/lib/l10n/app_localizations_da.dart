@@ -2422,6 +2422,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Sværhedsniveauerne kunne ikke gemmes. Prøv igen.';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '„$label“ slettet.';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standardband';
 
   @override

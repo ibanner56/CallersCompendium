@@ -2457,6 +2457,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’enregistrer les niveaux de difficulté. Réessayez.';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '« $label » supprimé.';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Orchestre par défaut';
 
   @override
