@@ -1084,6 +1084,10 @@
   "@settingsSyncConflictsSubtitle": {
     "x-sourceSha256": "fda77cdb41bdca627b9072e4fd6eb1104fd8e1fdeb8b45a41a83a14cd07b6d01"
   },
+  "settingsSyncConflictsCheckFailed": "競合を確認できませんでした。",
+  "@settingsSyncConflictsCheckFailed": {
+    "x-sourceSha256": "4a3d8f191e2d1cd1d26cbecb325f05d583eb8a8a6b792cf925156fc7d790a20b"
+  },
   "commonSyncNowConflictsTooltip": "{count, plural, other{今すぐ同期（{count}件が選択を待っています）}}",
   "@commonSyncNowConflictsTooltip": {
     "x-sourceSha256": "9f484617ad8c5c7b7f348011989c3612a4c229fe322d59ff138f9d8a769a66d4"
@@ -1267,6 +1271,10 @@
   "settingsSyncWipeDetachFailed": "ストアはサーバーから削除されましたが、このデバイスの接続を解除できませんでした。ストアは失われ、元に戻すことはできません。「このデバイスの接続を解除」で完了してください。",
   "@settingsSyncWipeDetachFailed": {
     "x-sourceSha256": "ac763fba9e00e2a235a8877b2058b006c655d5e1afb26a7009b2a925794f173f"
+  },
+  "settingsSyncWipeDetachFailedTitle": "ストアは削除されましたが、このデバイスはまだ接続されています",
+  "@settingsSyncWipeDetachFailedTitle": {
+    "x-sourceSha256": "a1e6faaeb955586b38a8e45f33a2c7b866a4dcb781aa7b753901759684ba357f"
   },
   "settingsSyncMeteredRouted": "モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。",
   "@settingsSyncMeteredRouted": {
@@ -4455,6 +4463,10 @@
   "danceNotFound": "ダンスが見つかりませんでした。",
   "@danceNotFound": {
     "x-sourceSha256": "1b47619207fe31d79756e61a38e5461c7f399df14567e6d72556dab910ae2883"
+  },
+  "danceLoadError": "このダンスを読み込めませんでした。",
+  "@danceLoadError": {
+    "x-sourceSha256": "4e8d6f4f8ae4f08224ef7f01eb361aa01c04be7811c7281b51049ee62d971ff7"
   },
   "danceEditFab": "編集",
   "@danceEditFab": {
@@ -8877,6 +8889,10 @@
   "customFieldsDeleteInUse": "「{label}」を削除できません: まだ{count, plural, other{{count}件のダンス}}で使用されています。すべてのダンスから値を削除してから実行してください。",
   "@customFieldsDeleteInUse": {
     "x-sourceSha256": "3216847c71408f8c115cc0f639621a7a700926cf3c3d29fe2bcce0948156a556"
+  },
+  "customFieldsDeleteFailed": "「{label}」を削除できませんでした。もう一度お試しください。",
+  "@customFieldsDeleteFailed": {
+    "x-sourceSha256": "0a9687d09317172625c68b565f464f85b4f69dff8f22cec58db3c02959c8ce04"
   },
   "customFieldsKeyDuplicate": "キーが「{key}」のフィールドはすでに存在します。キーは変更されませんでした。",
   "@customFieldsKeyDuplicate": {

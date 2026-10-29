@@ -1185,6 +1185,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get settingsSyncConflictsCheckFailed => '競合を確認できませんでした。';
+
+  @override
   String commonSyncNowConflictsTooltip(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1384,6 +1387,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsSyncWipeDetachFailed =>
       'ストアはサーバーから削除されましたが、このデバイスの接続を解除できませんでした。ストアは失われ、元に戻すことはできません。「このデバイスの接続を解除」で完了してください。';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'ストアは削除されましたが、このデバイスはまだ接続されています';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -4171,6 +4178,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceNotFound => 'ダンスが見つかりませんでした。';
+
+  @override
+  String get danceLoadError => 'このダンスを読み込めませんでした。';
 
   @override
   String get danceEditFab => '編集';
@@ -8792,6 +8802,11 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$count件のダンス',
     );
     return '「$label」を削除できません: まだ$_temp0で使用されています。すべてのダンスから値を削除してから実行してください。';
+  }
+
+  @override
+  String customFieldsDeleteFailed(String label) {
+    return '「$label」を削除できませんでした。もう一度お試しください。';
   }
 
   @override

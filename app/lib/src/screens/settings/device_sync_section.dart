@@ -675,6 +675,23 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
               FutureBuilder<int>(
                 future: _conflictsFor(controller),
                 builder: (context, snapshot) {
+                  // A failed count is not "no conflicts": hiding the row would
+                  // tell the caller everything is resolved when it is unknown.
+                  if (snapshot.hasError) {
+                    return ListTile(
+                      key: const ValueKey('sync-conflicts-error'),
+                      leading: Icon(
+                        Icons.call_split,
+                        color: theme.colorScheme.error,
+                      ),
+                      title: Text(l10n.settingsSyncConflictsCheckFailed),
+                      trailing: TextButton(
+                        key: const ValueKey('sync-conflicts-retry'),
+                        onPressed: () => setState(() => _conflictGeneration++),
+                        child: Text(l10n.commonRetry),
+                      ),
+                    );
+                  }
                   final count = snapshot.data ?? 0;
                   if (count == 0) return const SizedBox.shrink();
                   return ListTile(

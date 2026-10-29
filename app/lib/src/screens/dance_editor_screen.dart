@@ -21,6 +21,7 @@ import '../utils/confirm_delete.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/choreographer_details_dialog.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/published_source_details_dialog.dart';
 import 'dance_editor/dance_editor_controller.dart';
 import 'dance_editor/dance_editor_form.dart';
@@ -61,7 +62,7 @@ class DanceEditorScreen extends StatefulWidget {
 
 class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late CompendiumRepositories _repos;
-  late final DanceEditorController _controller;
+  late DanceEditorController _controller;
   final _formKey = GlobalKey<FormState>();
   final _moreDetailsController = ExpansibleController();
 
@@ -141,7 +142,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// benefit (see [_subscribeReferenceData]'s doc). Completed defensively in
   /// [dispose] too, so a widget disposed before the first event arrives does
   /// not leave [_load]'s continuation suspended forever.
-  final Completer<void> _initialReferenceDataReady = Completer<void>();
+  Completer<void> _initialReferenceDataReady = Completer<void>();
 
   @override
   void didChangeDependencies() {
@@ -160,20 +161,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _dependenciesInitialized = true;
       _activeDialect = newDialect;
       _repos = RepositoriesScope.of(context);
-      _controller = DanceEditorController(
-        repositories: _repos,
-        danceId: widget.danceId,
-        dialect: newDialect,
-        initialTitle: widget.initialTitle,
-      );
-      _controller.addListener(_onControllerChanged);
-      final shutdownController = EditorDraftShutdownScope.maybeOf(context);
-      if (shutdownController != null) {
-        _unregisterShutdownFlush = shutdownController.register(
-          _controller.prepareShutdownFlush,
-          flushPending: _controller.flushPendingAutosave,
-        );
-      }
+      _createController();
       _load();
       _subscribeReferenceData();
     } else if (!identical(newDialect, _activeDialect) &&
@@ -181,6 +169,43 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _activeDialect = newDialect;
       _controller.updateDialect(newDialect);
     }
+  }
+
+  void _createController() {
+    _controller = DanceEditorController(
+      repositories: _repos,
+      danceId: widget.danceId,
+      dialect: _activeDialect,
+      initialTitle: widget.initialTitle,
+    );
+    _controller.addListener(_onControllerChanged);
+    final shutdownController = EditorDraftShutdownScope.maybeOf(context);
+    if (shutdownController != null) {
+      _unregisterShutdownFlush = shutdownController.register(
+        _controller.prepareShutdownFlush,
+        flushPending: _controller.flushPendingAutosave,
+      );
+    }
+  }
+
+  /// Retries a failed load from scratch with a fresh controller.
+  ///
+  /// [_load] appends into the controller's collections, so re-running it on the
+  /// controller that failed part-way could duplicate state; replacing the
+  /// controller is the one way to start clean. Nothing is lost by it: the
+  /// editing surface is not shown while [_loadError] is set.
+  void _retryLoad() {
+    _unregisterShutdownFlush?.call();
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
+    unawaited(_refDataSub?.cancel());
+    _initialReferenceDataReady = Completer<void>();
+    setState(() {
+      _loadError = null;
+      _createController();
+    });
+    unawaited(_load());
+    _subscribeReferenceData();
   }
 
   /// Rebuilds the screen whenever the controller's draft/undo/autosave state
@@ -316,7 +341,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     super.dispose();
   }
 
+  /// Whether a [_load] is still running; [_retryLoad] waits for it so two
+  /// loads never fill one controller.
+  bool _loadInFlight = false;
+
   Future<void> _load() async {
+    _loadInFlight = true;
     try {
       // `fieldDefs` and `dance` seed [_controller] below and are read once,
       // here — not from [_subscribeReferenceData]'s stream; see that method's
@@ -384,6 +414,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'dance_editor_screen._load');
       if (mounted) setState(() => _loadError = error);
+    } finally {
+      _loadInFlight = false;
+      if (mounted) setState(() {});
     }
   }
 
@@ -969,8 +1002,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   Widget _buildBody() {
     if (_loadError != null) {
-      return Center(
-        child: Text(AppLocalizations.of(context).danceEditorLoadError),
+      return LoadErrorView(
+        message: AppLocalizations.of(context).danceEditorLoadError,
+        onRetry: _loadInFlight ? null : _retryLoad,
       );
     }
     if (!_controller.loaded) {

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
@@ -53,6 +55,7 @@ import 'package:compendium_app/src/widgets/section_header.dart';
 
 import '../support/controllable_sync_transport.dart';
 import '../support/noop_sync_transport.dart';
+import '../support/fail_once_interceptor.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 
@@ -139,8 +142,18 @@ _pumpSettings(
 
   /// Provides a [SyncWriterLifecycleScope] with this reset hook when given.
   Future<bool> Function()? resetToCleanInstall,
+
+  /// Wraps the in-memory database's executor, so a test can fail one query.
+  drift.QueryInterceptor? interceptor,
 }) async {
-  final repos = openTestRepositories();
+  final repos = interceptor == null
+      ? openTestRepositories()
+      : CompendiumRepositories(
+          openWidgetTestDatabase(
+            executor: NativeDatabase.memory().interceptWith(interceptor),
+          ),
+          contraTaxonomy,
+        );
   await repos.ensureMigrated();
 
   // The dialect library owns dialect state; the notifier read by
@@ -3588,10 +3601,12 @@ void main() {
           WidgetTester tester, {
           SyncLocalRepository Function(CompendiumRepositories)?
           syncLocalOverride,
+          drift.QueryInterceptor? interceptor,
         }) async {
           final harness = await _pumpSettings(
             tester,
             syncLocalOverride: syncLocalOverride,
+            interceptor: interceptor,
           );
           await harness.repos.settings.set(
             'sync_id',
@@ -3610,6 +3625,29 @@ void main() {
           await openExperimental(tester);
           return harness.repos;
         }
+
+        testWidgets('a failed conflict check says so, and Retry checks again', (
+          tester,
+        ) async {
+          final failer = FailOnceInterceptor('review_queue')..arm();
+          await pumpPaired(tester, interceptor: failer);
+
+          expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+          expect(
+            find.byKey(const ValueKey('sync-conflicts-error')),
+            findsOneWidget,
+          );
+          expect(find.text("Couldn't check for conflicts."), findsOneWidget);
+
+          await tester.tap(find.byKey(const ValueKey('sync-conflicts-retry')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-conflicts-error')),
+            findsNothing,
+            reason: 'the retry succeeded, and there are no conflicts to show',
+          );
+        });
 
         testWidgets('neither action is offered until a store is connected', (
           tester,
@@ -3927,6 +3965,14 @@ void main() {
           expect(
             find.byKey(const ValueKey('sync-wipe-detach-failed')),
             findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: find.byType(AlertDialog),
+              matching: find.text('Store deleted, this device still connected'),
+            ),
+            findsOneWidget,
+            reason: 'a dialog, not a snackbar that disappears',
           );
           expect(
             find.byKey(const ValueKey('sync-wipe-failed')),

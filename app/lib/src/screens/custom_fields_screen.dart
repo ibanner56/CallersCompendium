@@ -275,6 +275,18 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           content: Text(message),
         ),
       );
+    } catch (e, st) {
+      // Any other failure used to escape unreported, so the row simply stayed
+      // and the caller had no idea why. Logged for diagnostics; the snackbar
+      // names the field and says to try again, never the raw error (CWE-209).
+      logCaughtError(e, st, source: 'custom_fields_screen._delete');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('delete-failed-snackbar'),
+          content: Text(l10n.customFieldsDeleteFailed(def.label)),
+        ),
+      );
     }
   }
 

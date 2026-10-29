@@ -1242,6 +1242,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsSyncConflictsCheckFailed =>
+      'Couldn\'t check for conflicts.';
+
+  @override
   String commonSyncNowConflictsTooltip(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1450,6 +1454,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSyncWipeDetachFailed =>
       'The store was deleted from the server, but this device couldn\'t disconnect from it. The store is gone and can\'t be brought back. Use Disconnect this device to finish.';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'Store deleted, this device still connected';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -4338,6 +4346,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceNotFound => 'Dance not found.';
+
+  @override
+  String get danceLoadError => 'Couldn\'t load this dance.';
 
   @override
   String get danceEditFab => 'Edit';
@@ -9120,6 +9131,11 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 dance',
     );
     return 'Can\'t delete \"$label\": still used by $_temp0. Remove the value from all dances first.';
+  }
+
+  @override
+  String customFieldsDeleteFailed(String label) {
+    return 'Couldn\'t delete \"$label\". Try again.';
   }
 
   @override

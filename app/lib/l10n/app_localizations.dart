@@ -1736,6 +1736,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}'**
   String settingsSyncConflictsSubtitle(int count);
 
+  /// Title of the Device Sync row shown when counting unresolved sync conflicts failed. Shown with a Retry button, so a failed check is not mistaken for there being no conflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for conflicts.'**
+  String get settingsSyncConflictsCheckFailed;
+
   /// Tooltip of the toolbar Sync now button while items await a conflict choice; the button also shows the count as a badge.
   ///
   /// In en, this message translates to:
@@ -2011,6 +2017,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The store was deleted from the server, but this device couldn\'t disconnect from it. The store is gone and can\'t be brought back. Use Disconnect this device to finish.'**
   String get settingsSyncWipeDetachFailed;
+
+  /// Title of the dialog for SyncAdminOutcome.wipedButStillAttached; the body is settingsSyncWipeDetachFailed. Must not read as a failure to delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Store deleted, this device still connected'**
+  String get settingsSyncWipeDetachFailedTitle;
 
   /// Message shown when a manual sync is attempted on a metered connection, pointing at the WiFi-only setting.
   ///
@@ -6798,6 +6810,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dance not found.'**
   String get danceNotFound;
+
+  /// Message shown on the dance detail screen when reading the dance failed, as opposed to the dance not existing (danceNotFound). Shown with a Retry button.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this dance.'**
+  String get danceLoadError;
 
   /// Label of the floating action button that opens the dance editor.
   ///
@@ -13477,6 +13495,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can\'t delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.'**
   String customFieldsDeleteInUse(String label, int count);
+
+  /// Snackbar when deleting a custom field failed for a reason other than it still being in use. The raw error is logged, never shown (CWE-209). {label} is plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete \"{label}\". Try again.'**
+  String customFieldsDeleteFailed(String label);
 
   /// Snackbar shown when saving a custom field with a key another definition already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {key} is untrusted user-entered text, rendered as plain text.
   ///

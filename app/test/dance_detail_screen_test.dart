@@ -2997,7 +2997,7 @@ void main() {
     // is exactly why the log matters: on screen, a broken query and an absent
     // dance are the same thing.
 
-    testWidgets('is logged, and still renders the not-found body', (
+    testWidgets('is logged, and says it could not load rather than not found', (
       tester,
     ) async {
       final sink = _RecordingSink();
@@ -3021,7 +3021,29 @@ void main() {
         contains('dance_detail_screen._subscribe'),
         reason: 'a failing record read must reach the diagnostic log',
       );
-      expect(find.text('Dance not found.'), findsOneWidget);
+      expect(find.text("Couldn't load this dance."), findsOneWidget);
+      expect(
+        find.text('Dance not found.'),
+        findsNothing,
+        reason: 'a read failure must not tell the caller their dance is gone',
+      );
+    });
+
+    testWidgets('Retry reads the dance again', (tester) async {
+      final db = openWidgetTestDatabase();
+      final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
+      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+
+      await _pumpDetail(tester, repos, 'd1');
+      expect(dances.fired, isTrue);
+      expect(find.text("Couldn't load this dance."), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't load this dance."), findsNothing);
+      expect(find.text('Alpha'), findsWidgets);
     });
 
     testWidgets('recovers on the next write rather than staying failed', (
@@ -3037,14 +3059,14 @@ void main() {
 
       await _pumpDetail(tester, repos, 'd1');
       expect(dances.fired, isTrue);
-      expect(find.text('Dance not found.'), findsOneWidget);
+      expect(find.text("Couldn't load this dance."), findsOneWidget);
 
       final stored = await repos.dances.getById('d1');
       await repos.dances.update(stored!.copyWith(title: 'Renamed'));
       await tester.pumpAndSettle();
 
       expect(find.text('Renamed'), findsWidgets);
-      expect(find.text('Dance not found.'), findsNothing);
+      expect(find.text("Couldn't load this dance."), findsNothing);
     });
   });
 
