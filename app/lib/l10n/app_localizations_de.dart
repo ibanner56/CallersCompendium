@@ -4469,6 +4469,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceMoreActions => 'Weitere Aktionen';
 
   @override
+  String get programsMoreActions => 'Weitere Aktionen';
+
+  @override
   String get danceSectionFigures => 'Figuren';
 
   @override

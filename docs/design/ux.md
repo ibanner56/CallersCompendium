@@ -139,7 +139,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   A dance slot's edit dialog offers **Replace…**, swapping its dance via the
   collection picker while preserving the slot's note/guest caller/planned
   minutes/mark-performed status (issue #964).
-- Reorder: drag + non-drag alternative; slot notes inline.
+- Reorder: drag + non-drag alternative; slot notes inline. Below the 600dp
+  compact breakpoint (or in a program pane narrower than the full row), a slot
+  row keeps only its drag handle and overflow menu; move up / move down lead
+  that menu, followed by View details and cut (maintainer decision D-2,
+  recorded in the October 2026 audit's `maintainer-decisions-2026-10-29.md`).
 - **Matrix view** tab: figures × dances grid computed from structured data
   (moves as columns, per-dance presence + program-debut and dance-first-figure
   highlights) — CC's

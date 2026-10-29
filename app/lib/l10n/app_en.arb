@@ -5588,6 +5588,10 @@
   "@danceMoreActions": {
     "description": "Tooltip for the dance detail overflow (⋮) menu on narrow layouts."
   },
+  "programsMoreActions": "More actions",
+  "@programsMoreActions": {
+    "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars."
+  },
   "danceSectionFigures": "Figures",
   "@danceSectionFigures": {
     "description": "Heading of the figures section on the dance detail screen."

@@ -223,6 +223,11 @@ To remove a slot, choose the **scissors** button on its row (its tooltip reads
 it move up, and the removal is announced to screen readers. Removing a slot from
 a program never deletes the dance from your collection.
 
+On a phone, or wherever the program pane is narrow, each row keeps only its drag
+handle and its **…** menu, so the slot's title has room. The menu then starts
+with **Move up** and **Move down**, followed by **View details** and the
+scissors **Cut** item, ahead of the slot's usual actions.
+
 ### Event details
 
 A program carries the details of its event:
@@ -473,9 +478,11 @@ program is otherwise unchanged. If you'd rather not see the circles, turn off
 [Settings › Program › Calling history](./settings.md#calling-history); rows then
 just show a check on dances already marked. To mark
 every unperformed dance at once, use **Mark all performed** in the program
-editor or on a saved program's summary; it offers a one-tap **Undo**. Mark all
-performed skips alternates, and so does setting a program's status to
-**Performed**: mark the alternates you used yourself.
+editor or on a saved program's summary; it offers a one-tap **Undo**. On a
+phone, or wherever the summary pane is narrow, it is in the **More actions** (⋮)
+menu, with **Duplicate** and **Delete**. Mark all performed skips alternates,
+and so does setting a program's status to **Performed**: mark the alternates you
+used yourself.
 
 A program with no event date counts too, by default. A duplicated program, or
 one another caller [sent you](./sharing.md#share-a-program-with-its-dances),

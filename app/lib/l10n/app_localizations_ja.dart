@@ -4222,6 +4222,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceMoreActions => 'その他のアクション';
 
   @override
+  String get programsMoreActions => 'その他のアクション';
+
+  @override
   String get danceSectionFigures => 'フィギュア';
 
   @override

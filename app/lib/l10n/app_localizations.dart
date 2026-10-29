@@ -6889,6 +6889,12 @@ abstract class AppLocalizations {
   /// **'More actions'**
   String get danceMoreActions;
 
+  /// Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get programsMoreActions;
+
   /// Heading of the figures section on the dance detail screen.
   ///
   /// In en, this message translates to:
