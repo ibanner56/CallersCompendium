@@ -30,6 +30,7 @@ import 'package:compendium_app/src/widgets/dance_export_menu.dart'
     show PdfLayouter, ShareInvoker;
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
+import 'package:compendium_app/src/widgets/readable_width.dart';
 
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
@@ -178,6 +179,24 @@ void main() {
     expect(find.text('Gene Hubert'), findsOneWidget);
     expect(find.text('a lovely hook'), findsOneWidget);
     expect(find.text('smooth'), findsOneWidget);
+  });
+
+  testWidgets('keeps its content to the readable width on a wide window', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Midwest Folklore'));
+
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      surfaceSize: const Size(1600, 1200),
+    );
+
+    final card = find.byType(Card).first;
+    expect(tester.getSize(card).width, lessThanOrEqualTo(kReadableContentWidth));
+    expect(tester.getCenter(card).dx, 800);
   });
 
   testWidgets('a use of a figure of your own shows its figure\'s current '

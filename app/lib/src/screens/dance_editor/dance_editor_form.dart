@@ -13,6 +13,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
+import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/warnings_card.dart';
 import 'custom_field_editor.dart';
@@ -258,7 +259,7 @@ class DanceEditorForm extends StatelessWidget {
     final snippetLib = WalkthroughSnippetLibraryScope.maybeOf(context);
     return Form(
       key: formKey,
-      child: ListView(
+      child: ReadableListView(
         keyboardDismissBehavior: kTextEntryKeyboardDismiss,
         // Section headers carry their own padding; each section's content is
         // wrapped in horizontal AppSpacing.md so headers align with the fields
@@ -319,9 +320,11 @@ class DanceEditorForm extends StatelessWidget {
                   sheetSemanticLabel: l10n.danceEditorAuthorsLabel,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                FieldLabel(l10n.danceEditorFormLabel),
                 DropdownButtonFormField<DanceForm>(
                   key: const ValueKey('form-field'),
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorFormLabel,
+                  ),
                   initialValue: controller.form,
                   items: [
                     for (final form in DanceForm.values)
@@ -335,9 +338,11 @@ class DanceEditorForm extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: AppSpacing.md),
-                FieldLabel(l10n.danceEditorFormationLabel),
                 DropdownButtonFormField<FormationShape>(
                   key: const ValueKey('formation-field'),
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorFormationLabel,
+                  ),
                   initialValue: controller.formationShape,
                   items: [
                     for (final shape in FormationShape.values)

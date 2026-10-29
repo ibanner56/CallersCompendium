@@ -12,6 +12,7 @@ import '../../diagnostics/sync_diagnostics.dart';
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/destructive_button_style.dart';
+import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 
 /// Gathers the user-content terms the scrubbed export must redact. Defaults to
@@ -242,7 +243,7 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return ListView(
+    return ReadableListView(
       children: [
         SectionHeader(title: l10n.diagnosticsHeader),
         Padding(

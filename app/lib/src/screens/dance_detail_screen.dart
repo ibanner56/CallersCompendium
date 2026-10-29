@@ -37,6 +37,7 @@ import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/program_status_chip.dart';
+import '../widgets/readable_width.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/tag_chip.dart';
 import 'dance_detail/calling_history_section.dart';
@@ -1047,7 +1048,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         )
         .toList();
 
-    return ListView(
+    return ReadableListView(
       // The bottom inset lets the last section scroll clear of the Edit FAB.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
