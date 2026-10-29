@@ -473,7 +473,10 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
     return _labelController.text.trim() != (def?.label ?? '') ||
         _keyController.text.trim() != (def?.key ?? '') ||
         _type != (def?.type ?? CustomFieldType.text) ||
-        !listEquals(_choices, _initialChoices) ||
+        // Save keeps choices only on a choice field; a type change is caught
+        // by the line above.
+        (_type == CustomFieldType.choice &&
+            !listEquals(_choices, _initialChoices)) ||
         _showInList != (def?.showInList ?? false) ||
         _searchable != (def?.searchable ?? true) ||
         _shareable != (def?.shareable ?? true);

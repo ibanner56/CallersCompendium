@@ -862,6 +862,28 @@ void main() {
       expect(find.byKey(const ValueKey('cf-label')), findsNothing);
     });
 
+    testWidgets('choices added to a field set back to Text are not a change', (
+      tester,
+    ) async {
+      await _pumpScreen(tester, openTestRepositories());
+      await _openNewForm(tester);
+      await tester.tap(find.byKey(const ValueKey('cf-type')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Choice').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('choice-input')), 'a');
+      await tester.tap(find.byKey(const ValueKey('add-choice')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('cf-type')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Text').last);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(formTitle, findsNothing);
+    });
+
     testWidgets('a swipe down does not close an edited form', (tester) async {
       await _pumpScreen(tester, openTestRepositories());
       await _openNewForm(tester);
