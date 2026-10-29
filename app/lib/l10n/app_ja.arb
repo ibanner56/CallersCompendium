@@ -4520,6 +4520,10 @@
   "@danceMoreActions": {
     "x-sourceSha256": "f8d46c2570e70736d62beb6e2e8df321d7cb4842a2b894f2025c47b31871d9f1"
   },
+  "programsMoreActions": "その他のアクション",
+  "@programsMoreActions": {
+    "x-sourceSha256": "f8d46c2570e70736d62beb6e2e8df321d7cb4842a2b894f2025c47b31871d9f1"
+  },
   "danceSectionFigures": "フィギュア",
   "@danceSectionFigures": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"

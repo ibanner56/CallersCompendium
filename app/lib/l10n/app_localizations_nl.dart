@@ -4453,6 +4453,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceMoreActions => 'Meer acties';
 
   @override
+  String get programsMoreActions => 'Meer acties';
+
+  @override
   String get danceSectionFigures => 'Figuren';
 
   @override

@@ -4424,6 +4424,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceMoreActions => 'Flere handlinger';
 
   @override
+  String get programsMoreActions => 'Flere handlinger';
+
+  @override
   String get danceSectionFigures => 'Figurer';
 
   @override
