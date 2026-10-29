@@ -374,6 +374,14 @@ Importing a dance again no longer clears custom-field values you have added to
 it since. A column you emptied in Caller's Companion does not clear the value
 already in that field; clear it in the app.
 
+Each dance's **formation** comes across as Caller's Companion recorded it: a
+Becket keeps its direction (clockwise or counterclockwise), four facing four,
+triplets, triple minors and longways keep their shape, squares come across as
+squares, circle and scatter mixers are marked as mixers, and your own
+description of the starting position ("Long Waves, R-hand to Neighbor") is kept
+as the formation's detail.
+Alternates in your sets come across as alternates.
+
 Your **notes and sources** come across with each dance. Your calling notes
 come first, then the music, any progression detail, your other notes (under
 "Other notes:"), and where the dance came from (under "Source:"). Source and

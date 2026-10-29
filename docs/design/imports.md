@@ -285,14 +285,11 @@ is.
   A Sicilian Circle that genuinely is a mixer is still caught, but only via its
   explicit `Mixer? == "Yes"`.
   - **Scope: The Caller's Box only.** This inference is **not** applied by the
-    ContraDB or Caller's Companion adapters, and that is deliberate. ContraDB has
-    no first-class mixer category to read. Caller's Companion *may* — Chris builds
-    his collection in CC and exports it to The Caller's Box, so his data probably
-    aligns, but "mixer" may be a custom field of his rather than a native CC
-    concept, and we have not confirmed which. Rather than guess a mapping for a
-    source we have not verified, those adapters leave `mixer` at its `false`
-    default. This was considered and declined, not overlooked; revisit if an
-    explicit request for those sources arrives.
+    ContraDB adapter, which has no first-class mixer category to read. Caller's
+    Companion was left out too until a real `.USR` confirmed mixers are a native
+    CC concept: its `Type` holds "Circle Mixer" and "Scatter Mixer", and a
+    square's `SubType` "Mixer, H H S S". It now reads those (#1972, see §2),
+    from the stated type rather than by inference from a shape.
 
 #### Compound figures (the `(beats) Name:` + indented-children convention)
 
@@ -407,6 +404,26 @@ declines the collapse.
   word is the dancer, never an amount: `Neighbor 0`–`Neighbor 4` read as the
   `N0`–`N4` tags, and any other (`Partner 2`) leaves the line custom.
   Sets → Programs; user fields → typed custom fields (below).
+- **Formation (#1972).** A `.USR` states the formation in separate `Dance`
+  columns, and they are read together rather than taking the first non-empty
+  one. `Type` "Circle Mixer"/"Scatter Mixer"/"Longways" gives that shape (the
+  two mixers with `mixer: true`). Otherwise the `Formation` family decides: Four
+  Facing Four, Triplet, Triple Minor (its `ContraForm` start as the detail),
+  Square (`other`, detail "Square"; the dance form comes from `Type`), Other
+  (`other`). A blank family and start with only `FormationOther` is read as the
+  text export's single string would be. A Duple Minor, or a blank family, is
+  refined by `ContraForm` and `Direction`: Becket with `CCW` is `becketCcw`
+  (else `becketCw`), Indecent, Proper, and Improper (or no start) with `Rev` is
+  `reverseProgressionImproper`; other `Direction` values are ignored. A family
+  or start outside those CC offers is read as the text export's single string
+  would be, so "Sicilian Circle" keeps its shape and unrecognised text is the
+  `other` detail with a `cc_unmapped_formation` warning. `FormationOther`, the
+  caller's own description of the start, is the detail. A square whose `SubType`
+  starts "Mixer" is a mixer (in a real file only squares have one). A formation
+  type read this way adds no "Type:" line to the calling notes. The CC text
+  export, which gives one formation string, keeps the single-string mapping, its
+  "Type:" note for these types, and `mixer: false`. `SetItem.AlternateDance`
+  marks an alternate "ALT" in a real file, which is read as true.
 - **Program slots link to dances the commit did not write (INTAKE-1).** A slot
   resolves its CC dance id through the records the commit wrote *plus*
   `existingDanceIdByExternalId`: the review passes each re-import row's target
