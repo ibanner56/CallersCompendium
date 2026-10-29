@@ -2238,8 +2238,11 @@ class _CompendiumAppState extends State<CompendiumApp>
         // Shown, not awaited: the developer reset runs inside the span
         // shutdown waits for, and the closing overlay would cover this
         // dialog's button, so a close while it is open would never finish.
-        // No caller does anything after this returns. Not shown at all once
-        // closing has begun.
+        // Not shown at all once closing has begun. While the dialog is up,
+        // the below-floor resets have returned, and the developer reset has
+        // released the writer queue and Settings has shown its failure
+        // snackbar. Both are safe: the database is already reopened, as on
+        // the success path.
         if (context != null && context.mounted && !_shutdownRequested) {
           final dialog = showDialog<void>(
             context: context,
