@@ -3795,6 +3795,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your collection is empty. Add or import a dance to get started — or turn on Online search above to import from an online source.';
 
   @override
+  String get collectionEmptyTitle => 'Your collection is empty';
+
+  @override
+  String get collectionImportCardTitle => 'Bring your dances in';
+
+  @override
+  String get collectionImportCardBody =>
+      'Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.';
+
+  @override
   String get collectionFiltersTitle => 'Filters';
 
   @override
@@ -9586,6 +9596,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nothing in the trash. Deleted dances are kept here until you remove them.';
 
   @override
+  String get recentlyDeletedEmptyTitle => 'Nothing deleted';
+
+  @override
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'Nothing in the trash. Deleted dances appear here for $days days before being removed.';
   }
@@ -9627,6 +9640,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get venueManagerEmpty =>
       'No venues yet. Add one with the button below, or from a program when reusable venues are turned on.';
+
+  @override
+  String get venueManagerEmptyTitle => 'No venues yet';
 
   @override
   String get venueManagerNoMatches => 'No venues match your search.';
@@ -10011,6 +10027,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get customFiguresEmpty =>
       'You haven\'t made any figures of your own yet. Choose + to add one.';
+
+  @override
+  String get customFiguresEmptyTitle => 'No custom figures yet';
 
   @override
   String get glossaryAddCustomFigure => 'Add your own figure';

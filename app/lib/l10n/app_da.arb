@@ -3936,6 +3936,18 @@
   "@collectionEmpty": {
     "x-sourceSha256": "0d7c2fd85fb839f0b4ea64b103f4a66ef5ff3e3c167aafda93c8e6755ad1c936"
   },
+  "collectionEmptyTitle": "Din samling er tom",
+  "@collectionEmptyTitle": {
+    "x-sourceSha256": "0f86ba83481174dfb5610d2b5df22c92b9cbdc189881b5a4610067ea3756c5ba"
+  },
+  "collectionImportCardTitle": "Hent dine danse ind",
+  "@collectionImportCardTitle": {
+    "x-sourceSha256": "170bbd223c5b8378ad829c259498938702a9e30e61d2babf1d250e4a136cfafd"
+  },
+  "collectionImportCardBody": "Importér danse, du allerede har, eller skriv din første. „The Baby Rose“ er med som eksempel, så du kan se dig om.",
+  "@collectionImportCardBody": {
+    "x-sourceSha256": "649231300ea8176cd514a89b53a1a09c17b3841fc09ce91fe4957c980d954fdf"
+  },
   "collectionFiltersTitle": "Filtre",
   "@collectionFiltersTitle": {
     "x-sourceSha256": "546ebb8eb993ea561029d9febd84c363bdb09010bb2cb915a8287762b76b9a64"
@@ -9350,6 +9362,10 @@
   "@recentlyDeletedEmptyDancesKept": {
     "x-sourceSha256": "142d1ca585d677d385a5576c0eb61d09eb1bcba41d100ef3697e79b2a179271f"
   },
+  "recentlyDeletedEmptyTitle": "Intet slettet",
+  "@recentlyDeletedEmptyTitle": {
+    "x-sourceSha256": "fa589cb6139b3fa74547d0a2238ab91bbe378689dd6417603341cf19b7ad23a3"
+  },
   "recentlyDeletedEmptyDancesRetention": "Intet i papirkurven. Slettede danse vises her i {days} dage, inden de fjernes.",
   "@recentlyDeletedEmptyDancesRetention": {
     "x-sourceSha256": "c9d92a66a393f687c97281fca98943aeb84880a3567f05db7a68e3288e3b4454"
@@ -9393,6 +9409,10 @@
   "venueManagerEmpty": "Ingen spillesteder endnu. Tilføj et med knappen nedenfor, eller fra et program når genanvendelige spillesteder er aktiveret.",
   "@venueManagerEmpty": {
     "x-sourceSha256": "2ccce32d3200d8d3b47449cc0ef868f7a3baf3edfcdb79ad86caf72ace8c20c2"
+  },
+  "venueManagerEmptyTitle": "Ingen steder endnu",
+  "@venueManagerEmptyTitle": {
+    "x-sourceSha256": "fc1231d8a1a94773b4ea5d9463bff9be4e6d56c62f65360f54f56db1c9224cfb"
   },
   "venueManagerNoMatches": "Ingen spillesteder matcher din søgning.",
   "@venueManagerNoMatches": {
@@ -9813,6 +9833,10 @@
   "@customFiguresEmpty": {
     "description": "Shown on the Custom Figures screen when the user has no figures of their own yet.",
     "x-sourceSha256": "9cb149deb9a7c7ffd120fcd93aa1aac7504a56dc0d1098a31066cf66adc0cce1"
+  },
+  "customFiguresEmptyTitle": "Ingen egne figurer endnu",
+  "@customFiguresEmptyTitle": {
+    "x-sourceSha256": "0b22e864054e2a03508be5b48a9504da1e7d5a1305fdbcea9f1d1f7e8f9d707d"
   },
   "glossaryAddCustomFigure": "Tilføj din egen figur",
   "@glossaryAddCustomFigure": {

@@ -3851,6 +3851,16 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je collectie is leeg. Voeg een dans toe of importeer er een om te beginnen — of schakel Onlinezoeken hierboven in om te importeren vanuit een onlinebron.';
 
   @override
+  String get collectionEmptyTitle => 'Je collectie is leeg';
+
+  @override
+  String get collectionImportCardTitle => 'Haal je dansen binnen';
+
+  @override
+  String get collectionImportCardBody =>
+      'Importeer dansen die je al hebt, of schrijf je eerste. „The Baby Rose” staat er als voorbeeld om rond te kijken.';
+
+  @override
   String get collectionFiltersTitle => 'Filters';
 
   @override
@@ -9689,6 +9699,9 @@ class AppLocalizationsNl extends AppLocalizations {
       'Niets in de prullenbak. Verwijderde dansen worden hier bewaard totdat je ze verwijdert.';
 
   @override
+  String get recentlyDeletedEmptyTitle => 'Niets verwijderd';
+
+  @override
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'Niets in de prullenbak. Verwijderde dansen verschijnen hier voor $days dagen voordat ze worden verwijderd.';
   }
@@ -9730,6 +9743,9 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get venueManagerEmpty =>
       'Nog geen locaties. Voeg er een toe via de knop hieronder, of vanuit een programma wanneer herbruikbare locaties zijn ingeschakeld.';
+
+  @override
+  String get venueManagerEmptyTitle => 'Nog geen locaties';
 
   @override
   String get venueManagerNoMatches =>
@@ -10119,6 +10135,9 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get customFiguresEmpty =>
       'Je hebt nog geen eigen figuren gemaakt. Kies + om er een toe te voegen.';
+
+  @override
+  String get customFiguresEmptyTitle => 'Nog geen eigen figuren';
 
   @override
   String get glossaryAddCustomFigure => 'Eigen figuur toevoegen';

@@ -84,5 +84,10 @@ void main() {
 
     expect(await repos.venues.getById('v1'), isNull);
     expect(find.byKey(const ValueKey('venue-manager-empty')), findsOneWidget);
+    expect(find.text('No venues yet'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('venue-manager-empty-add')),
+      findsOneWidget,
+    );
   });
 }

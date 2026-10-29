@@ -3646,6 +3646,16 @@ class AppLocalizationsJa extends AppLocalizations {
       'コレクションは空です。ダンスを追加またはインポートして始めましょう — または上のオンライン検索をオンにしてオンラインソースからインポートしてください。';
 
   @override
+  String get collectionEmptyTitle => 'コレクションは空です';
+
+  @override
+  String get collectionImportCardTitle => 'ダンスを取り込みましょう';
+
+  @override
+  String get collectionImportCardBody =>
+      'お持ちのダンスをインポートするか、最初の1曲を作成してください。「The Baby Rose」はサンプルとして入っています。';
+
+  @override
   String get collectionFiltersTitle => 'フィルター';
 
   @override
@@ -9243,6 +9253,9 @@ class AppLocalizationsJa extends AppLocalizations {
       'ゴミ箱は空です。削除したダンスは手動で削除するまでここに保持されます。';
 
   @override
+  String get recentlyDeletedEmptyTitle => '削除されたものはありません';
+
+  @override
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'ゴミ箱は空です。削除したダンスは削除されるまで$days日間ここに表示されます。';
   }
@@ -9284,6 +9297,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get venueManagerEmpty =>
       '会場がまだありません。下のボタンで追加するか、再利用可能な会場をオンにしたプログラムから追加してください。';
+
+  @override
+  String get venueManagerEmptyTitle => '会場はまだありません';
 
   @override
   String get venueManagerNoMatches => '検索に一致する会場がありません。';
@@ -9656,6 +9672,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get customFiguresEmpty => '自分のフィギュアはまだありません。「+」を選んで追加してください。';
+
+  @override
+  String get customFiguresEmptyTitle => 'カスタムフィギュアはまだありません';
 
   @override
   String get glossaryAddCustomFigure => '自分のフィギュアを追加';

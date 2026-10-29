@@ -3868,6 +3868,16 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ihre Sammlung ist leer. Fügen Sie einen Tanz hinzu oder importieren Sie einen, um loszulegen – oder aktivieren Sie die Online-Suche oben, um aus einer Online-Quelle zu importieren.';
 
   @override
+  String get collectionEmptyTitle => 'Deine Sammlung ist leer';
+
+  @override
+  String get collectionImportCardTitle => 'Bring deine Tänze mit';
+
+  @override
+  String get collectionImportCardBody =>
+      'Importiere Tänze, die du schon hast, oder schreibe deinen ersten. „The Baby Rose“ ist als Beispiel zum Umsehen dabei.';
+
+  @override
   String get collectionFiltersTitle => 'Filter';
 
   @override
@@ -9732,6 +9742,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nichts im Papierkorb. Gelöschte Tänze werden hier aufbewahrt, bis Sie sie entfernen.';
 
   @override
+  String get recentlyDeletedEmptyTitle => 'Nichts gelöscht';
+
+  @override
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'Nichts im Papierkorb. Gelöschte Tänze erscheinen hier für $days Tage, bevor sie entfernt werden.';
   }
@@ -9774,6 +9787,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get venueManagerEmpty =>
       'Noch keine Veranstaltungsorte. Fügen Sie einen mit der Schaltfläche unten hinzu oder über ein Programm, wenn wiederverwendbare Veranstaltungsorte aktiviert sind.';
+
+  @override
+  String get venueManagerEmptyTitle => 'Noch keine Orte';
 
   @override
   String get venueManagerNoMatches =>
@@ -10167,6 +10183,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get customFiguresEmpty =>
       'Du hast noch keine eigenen Figuren erstellt. Wähle +, um eine hinzuzufügen.';
+
+  @override
+  String get customFiguresEmptyTitle => 'Noch keine eigenen Figuren';
 
   @override
   String get glossaryAddCustomFigure => 'Eigene Figur hinzufügen';
