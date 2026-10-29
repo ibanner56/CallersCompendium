@@ -45,7 +45,10 @@ void main() {
     // The row folds the explanation into its Semantics label (the row uses
     // excludeSemantics, so the accessible signal lives on the row, not the
     // glyph's own — excluded — node).
-    expect(find.bySemanticsLabel(RegExp('parse this call')), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(RegExp('recognize this call')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows no badge for userEntered customs or structured figures', (
@@ -57,7 +60,7 @@ void main() {
     ]);
 
     expect(find.byType(ImportGapBadge), findsNothing);
-    expect(find.bySemanticsLabel(RegExp('parse this call')), findsNothing);
+    expect(find.bySemanticsLabel(RegExp('recognize this call')), findsNothing);
   });
 
   testWidgets('tapping the badge opens the explanation dialog', (tester) async {

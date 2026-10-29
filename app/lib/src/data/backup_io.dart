@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'backup_volume_channel.dart';
+import 'file_dialog_labels.dart';
 import 'picker_extensions.dart';
 
 /// Delivers a finished backup [json] to the user as a file named
@@ -84,7 +85,7 @@ class BackupDiskFullException implements Exception {
 /// The file-type filter behind the backup save and restore dialogs.
 @visibleForTesting
 XTypeGroup backupJsonTypeGroup({bool? isLinux}) => XTypeGroup(
-  label: 'Backup (JSON)',
+  label: FileDialogLabels.current.fileDialogTypeBackupJson,
   extensions: pickerExtensions(['json'], isLinux),
   uniformTypeIdentifiers: ['public.json'],
   mimeTypes: ['application/json'],

@@ -1,0 +1,14 @@
+{
+  "id": "1975-hey-starts",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A hey written as Caller's Companion does, such as \"Half Hey, Robins start right shoulder\", \"1/4 Hey, Partner start Right shoulder\" or \"Left diagonal Half Hey, …\", now comes in as a hey with who starts, the shoulder and the length, instead of text. A ricochet on a half hey that Larks or Robins start is kept too. This applies to imports and to figures you type."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The shared hey recognizer reads \"<length> hey, <who> start <side> shoulder(s)\", with 1/4 and 3/4 as the partial lengths, a leading left/right diagonal as where, and a trailing role ricochet on a half hey as rico1/rico2."
+    ]
+  }
+}

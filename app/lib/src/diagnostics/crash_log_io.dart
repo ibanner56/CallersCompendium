@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/backup_io.dart' show shareFilesViaSheet;
+import '../data/file_dialog_labels.dart';
 import '../data/picker_extensions.dart';
 
 /// Delivers the exported diagnostics [contents] to the user as a file named
@@ -23,7 +24,7 @@ bool Function() isDesktopPlatformForLog = () =>
 /// The file-type filter behind the diagnostics-log save dialog.
 @visibleForTesting
 XTypeGroup crashLogTypeGroup({bool? isLinux}) => XTypeGroup(
-  label: 'Diagnostics log',
+  label: FileDialogLabels.current.fileDialogTypeDiagnosticsLog,
   extensions: pickerExtensions(['log', 'txt'], isLinux),
   uniformTypeIdentifiers: ['public.plain-text'],
   mimeTypes: ['text/plain'],

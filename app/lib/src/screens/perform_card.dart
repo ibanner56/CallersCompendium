@@ -1076,12 +1076,12 @@ class _Figures extends StatelessWidget {
 
 /// Upper bound on the text scale of a figure row's beats label (UX4-2).
 ///
-/// Maintainer decision D-7 (cap the label's scale vs. stack it under the figure
-/// on narrow screens) is still open; this is the planning document's default.
-/// The cap applies to the card's composed scale (system text times the large-print
-/// A−/A+ size), which is the point: that composed scale is what narrows the
-/// figure column. Swapping to the stacked layout means replacing the label in [_FigureRow]'s
-/// `Row`, and this constant goes away with it.
+/// Maintainer decision D-7 = (a): cap the label's scale (rather than stack it
+/// under the figure on narrow screens), at about 1.3×, keeping the beats column
+/// aligned. The cap applies to the card's composed scale (system text times the
+/// large-print A−/A+ size), which is the point: that composed scale is what
+/// narrows the figure column. Stacking the label instead would mean replacing
+/// it in [_FigureRow]'s `Row`, and this constant would go away with it.
 const double kBeatsLabelMaxTextScale = 1.3;
 
 class _FigureRow extends StatelessWidget {

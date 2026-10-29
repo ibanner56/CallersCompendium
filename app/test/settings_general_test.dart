@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/soft_delete_retention.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/widgets/readable_width.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -106,6 +107,17 @@ void main() {
       expect(box.right, lessThanOrEqualTo(360), reason: key);
     }
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps its rows to the readable width on a wide window', (
+    tester,
+  ) async {
+    final repos = _openRepos();
+
+    await _pumpGeneral(tester, repos, surface: const Size(1600, 2600));
+
+    final row = find.byType(SwitchListTile).first;
+    expect(tester.getSize(row).width, lessThanOrEqualTo(kReadableContentWidth));
   });
 
   testWidgets('soft-delete retention defaults to 30 days and is reachable', (

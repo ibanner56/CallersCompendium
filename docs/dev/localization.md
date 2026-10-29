@@ -88,6 +88,17 @@ English template, and a CI ratchet keeps it that way — see
 user-facing string is therefore no longer complete until it is translated, or
 knowingly and visibly exempted.
 
+**File-dialog filter names reach the data layer through `FileDialogLabels`.**
+The native open/save dialogs are opened from `data/`, which has no
+`BuildContext` and is reached through zero-argument test seams, so the filter
+names (`backupJsonTypeGroup`, `importJsonTypeGroup`, `importUsrTypeGroup`,
+`crashLogTypeGroup`, `macosUpdateTypeGroup`) cannot be resolved where they are
+built. The root `MaterialApp.builder` binds the active `AppLocalizations` to
+`FileDialogLabels` on every build; until one is bound (unit tests) the English
+strings are used. The `fileDialogType*` keys are ordinary ARB keys. The JSON
+bundle filter's `JSON` label and the upper-cased extension label are format
+names, not prose, and stay literals.
+
 ## How it's wired
 
 - **`app/pubspec.yaml`** declares `flutter_localizations` (SDK) and sets

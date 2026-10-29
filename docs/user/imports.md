@@ -39,9 +39,9 @@ what the app quietly threw away, because it throws nothing away.
 The app also *shows* you where that happened. A figure kept word-for-word carries
 a small warning glyph beside it — on a dance card, in the editor, and in Perform.
 Hover it on a desktop, or select it on a touchscreen, and it explains itself:
-**Couldn't parse this call — kept verbatim as a custom figure.** It is a shape,
-not just a colour, and it is announced to screen readers, so you can find the
-lines worth tidying up whichever way you read.
+**Couldn't recognize this call — kept exactly as written as a custom
+figure.** It is a shape, not just a colour, and it is announced to screen
+readers, so you can find the lines worth tidying up whichever way you read.
 
 There is nothing wrong with leaving them as they are. A verbatim figure calls
 perfectly well; the badge just tells you the app cannot search or count beats for

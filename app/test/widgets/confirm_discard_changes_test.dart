@@ -74,23 +74,30 @@ Future<bool Function()> _pumpGuarded(
 
 void main() {
   group('confirmDiscardChanges', () {
-    testWidgets('offers Keep editing and a destructive Discard by default', (
-      tester,
-    ) async {
+    testWidgets('Keep editing is the filled action and Discard a red text '
+        'button (D-1)', (tester) async {
       final read = await _pumpPrompt(tester);
       expect(find.text('Discard changes?'), findsOneWidget);
       expect(find.text('You have unsaved changes.'), findsOneWidget);
-      expect(find.widgetWithText(TextButton, 'Keep editing'), findsOneWidget);
-      final discard = tester.widget<FilledButton>(
-        find.byKey(const ValueKey('discard-confirm')),
-      );
-      final scheme = Theme.of(
-        tester.element(find.byKey(const ValueKey('discard-confirm'))),
-      ).colorScheme;
-      expect(discard.style?.backgroundColor?.resolve(const {}), scheme.error);
       expect(find.byKey(const ValueKey('discard-save')), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      // The safe choice is the primary one; Discard must never be filled.
+      expect(
+        tester.widget(find.byKey(const ValueKey('discard-cancel'))),
+        isA<FilledButton>(),
+      );
+      final discard = find.byKey(const ValueKey('discard-confirm'));
+      expect(tester.widget(discard), isA<TextButton>());
+      expect(tester.widget(discard), isNot(isA<FilledButton>()));
+      final scheme = Theme.of(tester.element(discard)).colorScheme;
+      expect(
+        (tester.widget<TextButton>(
+          discard,
+        )).style?.foregroundColor?.resolve(const {}),
+        scheme.error,
+      );
+
+      await tester.tap(discard);
       await tester.pumpAndSettle();
       expect(read(), DiscardChangesChoice.discard);
     });
@@ -110,13 +117,25 @@ void main() {
       expect(read(), DiscardChangesChoice.keepEditing);
     });
 
-    testWidgets('with a save label, Save is the filled action and Discard a '
-        'text button', (tester) async {
+    testWidgets('with a save label, Save is the filled action, Exit without '
+        'saving a red text button and Cancel a plain one', (tester) async {
       final read = await _pumpPrompt(tester, saveLabel: 'Save and exit');
+      final discard = find.byKey(const ValueKey('discard-confirm'));
+      expect(tester.widget(discard), isA<TextButton>());
+      expect(tester.widget(discard), isNot(isA<FilledButton>()));
+      final scheme = Theme.of(tester.element(discard)).colorScheme;
       expect(
-        tester.widget(find.byKey(const ValueKey('discard-confirm'))),
-        isA<TextButton>(),
+        tester
+            .widget<TextButton>(discard)
+            .style
+            ?.foregroundColor
+            ?.resolve(const {}),
+        scheme.error,
       );
+      final cancel = tester.widget<TextButton>(
+        find.byKey(const ValueKey('discard-cancel')),
+      );
+      expect(cancel.style?.foregroundColor, isNull);
       expect(
         tester.widget(find.byKey(const ValueKey('discard-save'))),
         isA<FilledButton>(),

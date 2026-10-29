@@ -403,13 +403,13 @@ void main() {
       tester
           .widget<Text>(find.byKey(const ValueKey('sync-review-local-$key')))
           .data,
-      'Local record: zzz-author',
+      'On this device: zzz-author',
     );
     expect(
       tester
           .widget<Text>(find.byKey(const ValueKey('sync-review-peer-$key')))
           .data,
-      'Peer record: Sam Jones (aaa-author)',
+      'From the other device: Sam Jones (aaa-author)',
     );
   });
 
@@ -429,13 +429,13 @@ void main() {
         tester
             .widget<Text>(find.byKey(const ValueKey('sync-review-local-$key')))
             .data,
-        'Local record: local-author',
+        'On this device: local-author',
       );
       expect(
         tester
             .widget<Text>(find.byKey(const ValueKey('sync-review-peer-$key')))
             .data,
-        'Peer record: Shared author (peer-author)',
+        'From the other device: Shared author (peer-author)',
       );
     },
   );

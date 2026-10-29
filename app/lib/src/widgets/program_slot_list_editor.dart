@@ -34,6 +34,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.onPromoteAlternate,
     required this.onRemove,
     required this.onCreateDance,
+    this.isDeletedDance,
     this.reservedPerformedAt,
     this.dialect,
     this.canonicalizeDiscouragedTerms = false,
@@ -46,9 +47,15 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// Slots in position order.
   final List<ProgramSlot> slots;
 
-  /// Resolves a slot's `danceId` to a display title. A missing id (soft-deleted
-  /// dance) yields null → a tombstone is shown.
+  /// Resolves a slot's `danceId` to a display title. An id that resolves to
+  /// nothing yields null → a tombstone is shown.
   final String? Function(String danceId) danceTitles;
+
+  /// Whether a slot's `danceId` is a dance in Recently deleted. Its row keeps
+  /// the title [danceTitles] gives it but has no preview or details, which
+  /// load live dances only, and shows the tombstone icon. `null` treats every
+  /// dance as live.
+  final bool Function(String danceId)? isDeletedDance;
 
   /// Resolves a slot's `danceId` to its [Formation], or null when the dance is
   /// unavailable. Drives the redundant formation-family row accent (issue #270)
@@ -128,18 +135,21 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     return false;
   }
 
-  /// The 1-based running-order ordinal for the slot at [index], or `null` when
-  /// the slot is an alternate rendered under a preceding primary. Numbers only
-  /// primaries (matching [Program.grouped] and the plain-text export, where
-  /// primaries are numbered and alts render as `ALT:` lines) so an alt is never
-  /// counted as its own running-order position.
-  int? _ordinalAtIndex(int index) {
-    if (_isAltAtIndex(index)) return null;
-    var ordinal = 0;
-    for (var i = 0; i <= index; i++) {
-      if (!_isAltAtIndex(i)) ordinal++;
-    }
-    return ordinal;
+  bool _isTombstone(ProgramSlot slot) {
+    final danceId = slot.danceId;
+    if (danceId == null) return false;
+    return widget.danceTitles(danceId) == null ||
+        (widget.isDeletedDance?.call(danceId) ?? false);
+  }
+
+  /// [message] followed, when [index]'s first alternate takes its place on a
+  /// cut or move ([Program.removeSlotPromotingAlternate]), by which alternate
+  /// that is: the row changes level without the caller asking.
+  String _withPromotion(AppLocalizations l10n, int index, String message) {
+    final promoted = Program.alternatePromotedByRemoving(widget.slots, index);
+    if (promoted == null) return message;
+    final name = _slotTitle(l10n, widget.slots[promoted]);
+    return '$message ${l10n.programsAlternatePromoted(name)}';
   }
 
   String _slotTitle(AppLocalizations l10n, ProgramSlot slot) {
@@ -203,6 +213,10 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       );
     }
 
+    // Each slot's 1-based dance number, or `null` for an alternate or the
+    // break: the same numbers as the set list, its text and its PDF, so the
+    // builder's "5" is the band's "5." (GIG-10).
+    final danceNumbers = Program.danceNumbersForSlots(slots);
     return ReorderableListView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -220,11 +234,9 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
             canonicalizeDiscouragedTerms: widget.canonicalizeDiscouragedTerms,
             formation: _slotFormation(slots[i]),
             mixer: _slotMixer(slots[i]),
-            ordinal: _ordinalAtIndex(i),
+            ordinal: danceNumbers[i],
             isDanceSlot: slots[i].danceId != null,
-            isTombstone:
-                slots[i].danceId != null &&
-                widget.danceTitles(slots[i].danceId!) == null,
+            isTombstone: _isTombstone(slots[i]),
             indented: _isAltAtIndex(i),
             onMoveUp: i == 0 ? null : () => _moveUp(i),
             onMoveDown: i == slots.length - 1 ? null : () => _moveDown(i),
@@ -251,10 +263,12 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   }
 
   void _moveUp(int i) {
+    final l10n = AppLocalizations.of(context);
+    final message = _withPromotion(l10n, i, l10n.programsSlotMovedUp);
     widget.onReorder(i, i - 1);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      AppLocalizations.of(context).programsSlotMovedUp,
+      message,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
@@ -262,10 +276,12 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   void _moveDown(int i) {
     // onReorderItem semantics: newIndex is the post-removal insertion index,
     // so moving down one slot targets i + 1.
+    final l10n = AppLocalizations.of(context);
+    final message = _withPromotion(l10n, i, l10n.programsSlotMovedDown);
     widget.onReorder(i, i + 1);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      AppLocalizations.of(context).programsSlotMovedDown,
+      message,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
@@ -333,10 +349,11 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   void _remove(int i) {
     final l10n = AppLocalizations.of(context);
     final name = _slotTitle(l10n, widget.slots[i]);
+    final message = _withPromotion(l10n, i, l10n.programsRemovedSlot(name));
     widget.onRemove(i);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      l10n.programsRemovedSlot(name),
+      message,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
@@ -405,8 +422,9 @@ class _SlotTile extends StatelessWidget {
   /// mixer-aware accent and to append the mixer term to the subtitle.
   final bool mixer;
 
-  /// The 1-based running-order number for a primary slot, or `null` for an
-  /// alternate (which is grouped under its primary and carries no number).
+  /// The 1-based dance number ([Program.danceNumbersForSlots]), or `null` for
+  /// an alternate (grouped under its primary, and marked "ALT") or the break
+  /// (left blank).
   final int? ordinal;
   final bool isDanceSlot;
   final bool isTombstone;
@@ -498,7 +516,7 @@ class _SlotTile extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Ordinal: the primary slot's 1-based running-order position.
+                // Ordinal: the slot's 1-based dance number; the break has none.
                 // Alternates are grouped under their primary, so they show an
                 // "ALT" marker instead of a number (never color alone) to
                 // avoid implying a separate running-order position.
@@ -507,7 +525,11 @@ class _SlotTile extends StatelessWidget {
                   child: SizedBox(
                     width: 24,
                     child: Text(
-                      ordinal != null ? '$ordinal' : l10n.programsAltOrdinal,
+                      ordinal != null
+                          ? '$ordinal'
+                          : slot.isAlt
+                          ? l10n.programsAltOrdinal
+                          : '',
                       key: ValueKey('slot-$index-ordinal'),
                       textAlign: TextAlign.center,
                       style:
