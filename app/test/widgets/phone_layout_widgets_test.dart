@@ -5,7 +5,6 @@ import 'package:compendium_app/src/widgets/import_gap_badge.dart';
 import 'package:compendium_app/src/widgets/settings_action_row.dart';
 import 'package:compendium_app/src/widgets/tap_tempo_metronome.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
