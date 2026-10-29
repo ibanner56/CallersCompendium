@@ -8342,6 +8342,14 @@
   "@startupEcdConvertSnackbar": {
     "x-sourceSha256": "eeac5cbd9f6ed8ecf6dde0028562b4784e4bb60d89a2a74630e423c760473b31"
   },
+  "startupEcdConvertUndoneSnackbar": "{count, plural, =0{Ingen danse blev ændret tilbage: hver af dem har fået ændret type eller tags siden.} one{Ændrede 1 dans tilbage.} other{Ændrede {count} danse tilbage.}}",
+  "@startupEcdConvertUndoneSnackbar": {
+    "x-sourceSha256": "a9e605173e6dcecccc485febe0250d6f99b6d4253045b1dbed890c92f21cdc55"
+  },
+  "appClosingMessage": "Lukker…",
+  "@appClosingMessage": {
+    "x-sourceSha256": "abdb0cfdd8ace143929beef96d31ef863fc62904fc7e9bef546330b8594eedaa"
+  },
   "updateBannerAvailable": "En nyere version af {appName} ({version}) er tilgængelig.",
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"

@@ -341,6 +341,73 @@ void main() {
   );
 
   testWidgets(
+    'a failing startup purge is logged and does not block opening, and the '
+    'other kind is still swept (FAIL-7)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+
+      final appData = openTestAppData();
+      final fixedNow = DateTime.utc(2026, 6, 1);
+      final expired = fixedNow.subtract(const Duration(days: 31));
+      await appData.repositories.dances.create(
+        Dance(
+          id: 'old-dance',
+          title: 'Ancient Dance',
+          createdAt: fixedNow.subtract(const Duration(days: 60)),
+          updatedAt: expired,
+          deletedAt: expired,
+        ),
+      );
+      await appData.repositories.programs.create(
+        Program(
+          id: 'old',
+          title: 'Ancient Program',
+          createdAt: fixedNow.subtract(const Duration(days: 60)),
+          updatedAt: expired,
+          deletedAt: expired,
+        ),
+      );
+      // A real SQLite failure inside the dance purge's write transaction, as
+      // a full disk or a locked file would raise.
+      await appData.db.customStatement(
+        'CREATE TEMP TRIGGER fail_dance_purge BEFORE DELETE ON dances '
+        "BEGIN SELECT RAISE(ABORT, 'injected purge failure'); END",
+      );
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          nowOverride: () => fixedNow,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(sink.sources, contains('startup.purge_dances'));
+      expect(
+        await appData.repositories.dances.getById(
+          'old-dance',
+          includeDeleted: true,
+        ),
+        isNotNull,
+      );
+      expect(
+        await appData.repositories.programs.getById(
+          'old',
+          includeDeleted: true,
+        ),
+        isNull,
+      );
+    },
+  );
+
+  testWidgets(
     'an unreadable soft-delete retention setting starts the app and skips '
     'the sweep rather than assuming the 30-day default',
     (tester) async {
@@ -1158,6 +1225,297 @@ void main() {
       expect(shutdownCompleted, isTrue);
       expect(writerStarted, isFalse);
       expect(factoryCalls, 1);
+    },
+  );
+
+  group('closing the app (FAIL-12)', () {
+    /// A configured coordinator whose first pass waits on [gate].
+    Future<SyncCoordinator?> Function(CompendiumRepositories) gatedFactory(
+      Completer<void> gate,
+      Completer<void> started,
+    ) {
+      return (repositories) async => SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: NoopSyncCoordinatorTransport(),
+        passOperation: ({SyncStoreResult? initialStore}) async {
+          if (!started.isCompleted) started.complete();
+          await gate.future;
+          return const SyncPassResult(SyncPassStatus.completed);
+        },
+      );
+    }
+
+    testWidgets(
+      'flushes drafts before waiting on a running pass, says it is closing, '
+      'and stops waiting for the pass after the bound',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final sink = _RecordingCrashLogSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+
+        final appData = openTestAppData();
+        final passGate = Completer<void>();
+        addTearDown(() {
+          if (!passGate.isCompleted) passGate.complete();
+        });
+        final passStarted = Completer<void>();
+        final shutdownController = ApplicationShutdownController(() async {});
+        final drafts = EditorDraftShutdownController();
+        var draftsFlushed = false;
+        drafts.register(
+          () => () async {
+            draftsFlushed = true;
+          },
+        );
+        await appData.repositories.settings.set(kSyncEnabledKey, true);
+
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: NoopWindowService(appData.repositories.settings),
+            applicationShutdownController: shutdownController,
+            editorDraftShutdownController: drafts,
+            integrityCheck: () async => true,
+            syncCoordinatorFactory: gatedFactory(passGate, passStarted),
+            syncNetworkClassifier: const UnmeteredSyncNetwork(),
+            shutdownSyncPassWait: const Duration(seconds: 3),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await passStarted.future;
+
+        var closed = false;
+        final closing = shutdownController.close().then((_) => closed = true);
+        await tester.pump();
+
+        expect(
+          draftsFlushed,
+          isTrue,
+          reason: 'drafts are saved before the wait on the network',
+        );
+        expect(find.byKey(const ValueKey('app-closing-overlay')), findsOne);
+        expect(find.text('Closing…'), findsOneWidget);
+        expect(closed, isFalse, reason: 'the pass is waited for, a while');
+
+        await tester.pump(const Duration(seconds: 2));
+        expect(closed, isFalse);
+
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pump();
+        // Asserted rather than awaited, so an unbounded wait fails here
+        // instead of hanging the test.
+        expect(closed, isTrue, reason: 'the wait is bounded');
+        await closing;
+        expect(sink.sources, contains('main.shutdown_sync_wait'));
+        expect(passGate.isCompleted, isFalse);
+      },
+    );
+
+    testWidgets(
+      'does not wait past the bound for writers still waiting on the pass, '
+      'and they never run once it finishes',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final appData = openTestAppData();
+        final passGate = Completer<void>();
+        addTearDown(() {
+          if (!passGate.isCompleted) passGate.complete();
+        });
+        final passStarted = Completer<void>();
+        final shutdownController = ApplicationShutdownController(() async {});
+        await appData.repositories.settings.set(kSyncEnabledKey, true);
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: NoopWindowService(appData.repositories.settings),
+            applicationShutdownController: shutdownController,
+            integrityCheck: () async => true,
+            syncCoordinatorFactory: gatedFactory(passGate, passStarted),
+            syncNetworkClassifier: const UnmeteredSyncNetwork(),
+            shutdownSyncPassWait: const Duration(seconds: 3),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await passStarted.future;
+
+        final scope = tester.widget<SyncWriterLifecycleScope>(
+          find.byType(SyncWriterLifecycleScope),
+        );
+        // A restore or import disposes the coordinator; a review resolve
+        // holds it. Both wait for the running pass before their operation.
+        final ran = <String>[];
+        final write = scope.runWrite!(() async => ran.add('write'));
+        final recordWrite = scope.runRecordWrite!(
+          () async => ran.add('record'),
+        );
+        await tester.pump();
+
+        var closed = false;
+        final closing = shutdownController.close().then((_) => closed = true);
+        await tester.pump(const Duration(seconds: 4));
+        await tester.pump();
+        expect(
+          closed,
+          isTrue,
+          reason: 'a writer parked behind the pass must not unbound the wait',
+        );
+        await closing;
+
+        passGate.complete();
+        await expectLater(write, throwsA(isA<StateError>()));
+        await expectLater(recordWrite, throwsA(isA<StateError>()));
+        expect(ran, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'finishes when the developer reset\'s wipe-failed dialog is open, '
+      'which the closing overlay would cover',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final appData = openTestAppData();
+        final shutdownController = ApplicationShutdownController(() async {});
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: NoopWindowService(appData.repositories.settings),
+            applicationShutdownController: shutdownController,
+            integrityCheck: () async => true,
+            databaseFileResolver: () async => File('unused.sqlite'),
+            databaseResetter: (_) async =>
+                const ResetFailed('injected reset failure'),
+            appDataFactory: () =>
+                AppData(openWidgetTestDatabase(closeOnTearDown: true)),
+            windowServiceFactory: (settings) => NoopWindowService(settings),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final reset = tester
+            .widget<SyncWriterLifecycleScope>(
+              find.byType(SyncWriterLifecycleScope),
+            )
+            .resetToCleanInstall!;
+        final resetResult = reset();
+        await tester.pumpAndSettle();
+        expect(find.text('Reset failed'), findsOneWidget);
+
+        var closed = false;
+        final closing = shutdownController.close().then((_) => closed = true);
+        await tester.pump();
+        await tester.pump();
+        expect(
+          closed,
+          isTrue,
+          reason: 'the open dialog must not hold the close behind the overlay',
+        );
+        await closing;
+        expect(await resetResult, isFalse);
+      },
+    );
+
+    testWidgets(
+      'waits for a writer already inside its operation, however long it '
+      'takes, but not for one still waiting to start',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final appData = openTestAppData();
+        final shutdownController = ApplicationShutdownController(() async {});
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: NoopWindowService(appData.repositories.settings),
+            applicationShutdownController: shutdownController,
+            integrityCheck: () async => true,
+            shutdownSyncPassWait: const Duration(seconds: 1),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final runWrite = tester
+            .widget<SyncWriterLifecycleScope>(
+              find.byType(SyncWriterLifecycleScope),
+            )
+            .runWrite!;
+        final operationGate = Completer<void>();
+        final operationStarted = Completer<void>();
+        final first = runWrite(() async {
+          operationStarted.complete();
+          await operationGate.future;
+        });
+        var secondRan = false;
+        final second = runWrite(() async {
+          secondRan = true;
+        });
+        await tester.pump();
+        expect(operationStarted.isCompleted, isTrue);
+
+        var closed = false;
+        final closing = shutdownController.close().then((_) => closed = true);
+        await tester.pump(const Duration(seconds: 5));
+        expect(
+          closed,
+          isFalse,
+          reason: 'a running writer operation is never cut short',
+        );
+
+        operationGate.complete();
+        await first;
+        await expectLater(second, throwsA(isA<StateError>()));
+        await tester.pump();
+        expect(closed, isTrue);
+        await closing;
+        expect(secondRan, isFalse);
+      },
+    );
+  });
+
+  testWidgets(
+    'hiding or pausing the app writes pending editor drafts (PLAT-19)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      addTearDown(
+        () => tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        ),
+      );
+
+      final appData = openTestAppData();
+      final drafts = EditorDraftShutdownController();
+      final events = <String>[];
+      drafts.register(() {
+        events.add('final');
+        return () async {};
+      }, flushPending: () async => events.add('pending'));
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          editorDraftShutdownController: drafts,
+          integrityCheck: () async => true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump();
+      expect(events, ['pending']);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      expect(events, ['pending', 'pending']);
     },
   );
 
@@ -2715,6 +3073,28 @@ void main() {
         );
       },
     );
+
+    testWidgets('Undo on the confirmation gives the dance back its form and '
+        '"ECD" tag (INTAKE-15)', (tester) async {
+      final appData = await bootWithEcdTaggedDance(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('ecd-convert-prompt-confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        (await appData.repositories.dances.getById('d1'))!.form,
+        DanceForm.ecd,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('ecd-convert-undo')));
+      await tester.pumpAndSettle();
+
+      final dance = await appData.repositories.dances.getById('d1');
+      expect(dance!.form, DanceForm.contra);
+      expect(dance.tagIds, ['tag-ecd', 'tag-keep']);
+      expect(find.text('Changed 1 dance back.'), findsOneWidget);
+    });
 
     testWidgets('declining leaves the dance untouched', (tester) async {
       final appData = await bootWithEcdTaggedDance(tester);

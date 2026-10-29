@@ -8181,6 +8181,20 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを元に戻しました。',
+      zero: '元に戻したダンスはありません。どのダンスもその後に種類またはタグが変更されています。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => '終了しています…';
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return '$appNameの新しいバージョン（$version）が利用可能です。';
   }

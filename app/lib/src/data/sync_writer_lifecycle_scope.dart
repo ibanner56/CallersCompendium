@@ -35,8 +35,9 @@ class SyncWriterLifecycleScope extends InheritedWidget {
   /// [runWrite]'s serialization for a write that changes records the way an
   /// ordinary local edit does, rather than replacing the library: it still
   /// waits for the in-flight pass, starts no pass until the write returns, and
-  /// is awaited by shutdown, but keeps the running coordinator and its session
-  /// state instead of rebuilding it with a fresh pass. A sync trigger during
+  /// is awaited by shutdown once its operation has started, but keeps the
+  /// running coordinator and its session state instead of rebuilding it with
+  /// a fresh pass. A sync trigger during
   /// the write is deferred until it returns, not dropped. The sync review screen resolves through this, where several
   /// resolves in a row are normal.
   final SyncWriterCallback? runRecordWrite;

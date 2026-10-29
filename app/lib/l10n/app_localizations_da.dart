@@ -8514,6 +8514,22 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ændrede $count danse tilbage.',
+      one: 'Ændrede 1 dans tilbage.',
+      zero:
+          'Ingen danse blev ændret tilbage: hver af dem har fået ændret type eller tags siden.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Lukker…';
+
+  @override
   String updateBannerAvailable(String appName, String version) {
     return 'En nyere version af $appName ($version) er tilgængelig.';
   }

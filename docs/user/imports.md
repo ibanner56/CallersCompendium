@@ -414,6 +414,32 @@ Your own **glossary terms** can come across too, if the
 [Glossary](settings.md#glossary-and-custom-figures) is shown. See
 [Bring your glossary terms across](#bring-your-glossary-terms-across).
 
+### Dances tagged "ECD"
+
+Some libraries mark English country dances with a tag called **ECD** rather
+than with the dance's **Type** (see [Write & edit dances](./authoring.md)),
+and a Caller's Companion library is often one of them. When the app opens and
+finds a dance tagged **ECD** (in any capitalisation) whose type is not already
+**English (ECD)**, it asks once per launch:
+
+> **Convert ECD dances?** — Would you like to convert all non-English dances in
+> your collection with the tag "ECD" to English dances?
+
+**Convert** sets each of those dances' type to **English (ECD)** and takes the
+**ECD** tag off it; other tags stay. **Not now** changes nothing, and the
+question comes back the next time you open the app. Check **Don't show this
+again** before either answer to stop it asking.
+
+After a conversion the app says how many dances it converted and offers
+**Undo** for a few seconds. **Undo** gives each dance back its old type and its
+**ECD** tag. A dance whose type or tags you have changed since the conversion
+is left as it is, so that change is never overwritten, and an **ECD** tag you
+have deleted in the meantime is not put back.
+
+The question appears when the app opens, not straight after an import: a
+dance you import tagged **ECD** is offered for conversion the next time you
+open the app.
+
 ### Bring your call buttons across as shorthands
 
 If your Caller's Companion file has **call buttons**, the import offers to turn

@@ -7,10 +7,15 @@ import 'package:flutter_test/flutter_test.dart';
 /// decoder and is reset and loaded through the one descriptor list. A bare
 /// `ValueNotifier` field would have to be reset and loaded by hand again.
 void main() {
-  /// Fields that are deliberately plain notifiers: neither is a settings key.
+  /// Fields that are deliberately plain notifiers: none is a settings key.
   /// The dialect is fed by the dialect-library controller; the rebuild progress
-  /// is transient startup UI state.
-  const allowlist = {'_derivedRebuildProgress', '_dialectNotifier'};
+  /// is transient startup UI state, and the closing flag transient shutdown UI
+  /// state.
+  const allowlist = {
+    '_closingNotifier',
+    '_derivedRebuildProgress',
+    '_dialectNotifier',
+  };
 
   /// Blanks `//` comments so a commented-out or documented example is not read
   /// as a declaration.

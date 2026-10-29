@@ -116,7 +116,9 @@ import 'src/sync/sync_runtime.dart';
 import 'src/theme/destructive_button_style.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
+import 'src/utils/undo_snack_bar.dart';
 import 'src/widgets/app_bootstrap.dart';
+import 'src/widgets/app_closing_overlay.dart';
 import 'src/widgets/command_palette.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
 import 'src/widgets/online_import_dialogs.dart';
@@ -247,6 +249,18 @@ abstract interface class AppScopeTypesSource {
   List<Type> get appScopeTypes;
 }
 
+/// How long closing the app waits for a running sync pass (FAIL-12).
+///
+/// A pass can make several requests, each bounded at 30 s, so on a bad link
+/// an unbounded wait could keep the window open for minutes. Giving up is safe: a
+/// production pass runs in a worker isolate on its own database connection,
+/// so closing the app's connection cannot cut into the pass's transaction,
+/// and exiting with the pass still running is the interruption the sync spec
+/// already requires to leave no partial apply (sync-implementation.md, W6;
+/// sync-spec.md §6.7).
+/// The pass that did not finish runs again on the next launch.
+const Duration kShutdownSyncPassWait = Duration(seconds: 10);
+
 /// Root widget. The on-device database is initially opened in [main] and
 /// injected; the reset flow can replace it with a fresh instance. This widget's
 /// bootstrap future ([_startupSequence]) then, in order: restores the desktop
@@ -298,6 +312,7 @@ class CompendiumApp extends StatefulWidget {
     this.syncPairingProbeFactory,
     this.editorDraftShutdownController,
     this.updateTemporaryDirectoryProvider,
+    this.shutdownSyncPassWait = kShutdownSyncPassWait,
   });
 
   /// The initially opened database + repositories facade. Injected from [main]
@@ -313,6 +328,11 @@ class CompendiumApp extends StatefulWidget {
   /// The reset flow swaps this controller's action to its replacement database,
   /// so native termination never closes a stale connection.
   final ApplicationShutdownController? applicationShutdownController;
+
+  /// How long closing the app waits for a sync pass that is still running
+  /// before it closes the database anyway. Injectable so a test need not wait
+  /// out the production bound. See [kShutdownSyncPassWait].
+  final Duration shutdownSyncPassWait;
 
   /// Constructs the configured Device Sync coordinator after startup has
   /// opened and migrated the database. W13 supplies the endpoint/configuration
@@ -687,6 +707,12 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// [_syncController] at the event, so a controller rebuilt by
   /// [_replaceDatabaseBackedServices] is the one asked.
   late final AppLifecycleListener _syncLifecycleListener;
+
+  /// Writes editor drafts still waiting on their autosave debounce when the
+  /// app is hidden or paused (PLAT-19). On Android and iOS that is the last
+  /// chance before the OS may suspend or kill the process; there is no window
+  /// close there to flush them.
+  late final AppLifecycleListener _draftLifecycleListener;
   StreamSubscription<Set<TableUpdate>>? _syncChangeSubscription;
   SyncCoordinator? _syncCoordinator;
   Future<void>? _syncCoordinatorDisposeFuture;
@@ -715,6 +741,18 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// pass the just-resolved factory starts — the race spec §6.11 forbids.
   bool _syncWriterExclusive = false;
   bool _shutdownRequested = false;
+
+  /// Set when closing begins, so the app can say it is closing rather than
+  /// sit unresponsive while drafts are saved and sync finishes.
+  final ValueNotifier<bool> _closingNotifier = ValueNotifier(false);
+
+  /// The writer operation that is running, from just after its last
+  /// [_shutdownRequested] check until it returns. Shutdown waits for it whole:
+  /// it writes through this app's own connection, often in several
+  /// transactions. A writer that has not reached its operation yet sees
+  /// [_shutdownRequested] and throws before writing anything, so shutdown
+  /// does not wait for it, nor for the sync pass it may be waiting on.
+  Future<void>? _syncWriterOperation;
 
   /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
   /// `PRAGMA quick_check` probe failed, so the ready app surfaces a (non-fatal)
@@ -799,6 +837,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     _windowService = widget.windowService;
     _initializeDatabaseBackedServices(widget.appData);
     _syncLifecycleListener = AppLifecycleListener(onResume: _onAppResumed);
+    _draftLifecycleListener = AppLifecycleListener(
+      onHide: _flushPendingEditorDrafts,
+      onPause: _flushPendingEditorDrafts,
+    );
     widget.applicationShutdownController?.replaceCloseApp(_closeForShutdown);
     // Listen for files opened while the app is running (AirDrop / "Open with"
     // on an already-launched app). The cold-start file is pulled once the ready
@@ -949,8 +991,9 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// local edit does — a sync review-queue resolution — rather than replacing
   /// the library or the sync configuration.
   ///
-  /// It is serialized with every other writer and awaited by shutdown, and the
-  /// operation still starts only after the in-flight pass has finished: the
+  /// It is serialized with every other writer and, once its operation has
+  /// started, awaited by shutdown, and the operation still starts only after
+  /// the in-flight pass has finished: the
   /// coordinator is held ([SyncCoordinator.hold]), so no pass starts until the
   /// operation returns. A trigger arriving meanwhile — including one that
   /// read the coordinator before the hold — is deferred, not refused, and
@@ -992,7 +1035,7 @@ class _CompendiumAppState extends State<CompendiumApp>
         if (_shutdownRequested) {
           throw StateError('cannot start a database writer during shutdown');
         }
-        return await operation();
+        return await _trackSyncWriterOperation(operation);
       } finally {
         // Released before the writer's own reconfigure so that call — unlike
         // one racing in from outside — is free to install its coordinator.
@@ -1036,19 +1079,61 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
   }
 
-  Future<void> _closeForShutdown() async {
-    _shutdownRequested = true;
-    final writer = _syncWriterTail;
-    if (writer != null) await writer;
-    await _disposeSyncCoordinator();
-    await _closeAppData(_appData);
+  void _flushPendingEditorDrafts() {
+    if (_shutdownRequested) return;
+    unawaited(_editorDraftShutdownController.flushPending());
   }
 
-  Future<void> _closeAppData(AppData appData) async {
-    await flushEditorDraftsThenClose(
-      _editorDraftShutdownController,
-      appData.close,
-    );
+  /// Runs [operation] as the current [_syncWriterOperation]. Call it
+  /// synchronously after the last [_shutdownRequested] check.
+  Future<T> _trackSyncWriterOperation<T>(Future<T> Function() operation) async {
+    final running = Completer<void>();
+    final tracked = running.future;
+    _syncWriterOperation = tracked;
+    try {
+      return await operation();
+    } finally {
+      running.complete();
+      if (identical(_syncWriterOperation, tracked)) {
+        _syncWriterOperation = null;
+      }
+    }
+  }
+
+  /// Closes the app's database for a window close or an OS terminate.
+  ///
+  /// The order matters (FAIL-12). A writer already inside its operation is
+  /// waited for whole, because it writes through this connection. Editor
+  /// drafts are flushed next, before anything waits on the network, so a
+  /// caller who gives up and kills the app still keeps them. Only then is the
+  /// sync pass waited for, and only for [CompendiumApp.shutdownSyncPassWait].
+  Future<void> _closeForShutdown() async {
+    _shutdownRequested = true;
+    if (mounted) _closingNotifier.value = true;
+    final operation = _syncWriterOperation;
+    if (operation != null) await operation;
+    await _editorDraftShutdownController.flushAll();
+    await _awaitSyncPassForShutdown();
+    await _appData.close();
+  }
+
+  /// Disposes the sync coordinator, waiting for its running pass for at most
+  /// [CompendiumApp.shutdownSyncPassWait]. Past the bound, the dispose carries
+  /// on unawaited; see [kShutdownSyncPassWait] for why that is safe.
+  Future<void> _awaitSyncPassForShutdown() async {
+    final dispose = _disposeSyncCoordinator();
+    try {
+      await dispose.timeout(widget.shutdownSyncPassWait);
+    } on TimeoutException catch (error, stackTrace) {
+      // Not a fault: the caller asked to close and the pass is still on the
+      // network. Logged so a slow close is diagnosable.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'main.shutdown_sync_wait',
+      );
+      dispose.ignore();
+    }
   }
 
   /// Every settings-backed preference, in one place: the reset and the load
@@ -1576,15 +1661,29 @@ class _CompendiumAppState extends State<CompendiumApp>
       // cutoff. Both honor the retention promise shown in their Recently-Deleted
       // screens ("Auto-deleted in N days"); previously only dances were purged,
       // so soft-deleted programs accumulated forever (Stage 1.2).
+      //
+      // Housekeeping must not block opening: a purge is a write transaction,
+      // so a full disk or a file another process holds makes it throw, and the
+      // library is still readable. Each failure is logged and skipped, as the
+      // seed is, and the other kind is still swept. Nothing is lost by
+      // skipping; the next launch sweeps again.
       final now = (widget.nowOverride ?? () => DateTime.now().toUtc())();
-      await _appData.repositories.dances.purgeDeleted(
-        now: now,
-        retention: retention,
-      );
-      await _appData.repositories.programs.purgeDeleted(
-        now: now,
-        retention: retention,
-      );
+      try {
+        await _appData.repositories.dances.purgeDeleted(
+          now: now,
+          retention: retention,
+        );
+      } catch (error, stackTrace) {
+        logCaughtError(error, stackTrace, source: 'startup.purge_dances');
+      }
+      try {
+        await _appData.repositories.programs.purgeDeleted(
+          now: now,
+          retention: retention,
+        );
+      } catch (error, stackTrace) {
+        logCaughtError(error, stackTrace, source: 'startup.purge_programs');
+      }
     }
     await _loadPreferences();
     await _configureSyncCoordinator();
@@ -1853,6 +1952,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     unawaited(_incomingUrlSub?.cancel());
     unawaited(_disposeSyncCoordinator());
     widget.incomingFileChannel?.dispose();
+    _closingNotifier.dispose();
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
@@ -1893,6 +1993,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _updateController.dispose();
     unawaited(_syncChangeSubscription?.cancel());
     _syncLifecycleListener.dispose();
+    _draftLifecycleListener.dispose();
     _syncController.dispose();
     _windowService.dispose();
     super.dispose();
@@ -2101,13 +2202,18 @@ class _CompendiumAppState extends State<CompendiumApp>
       if (prior != null) await prior;
       if (!mounted || _shutdownRequested) return false;
       _syncWriterExclusive = true;
-      _navigatorKey.currentState?.popUntil((route) => route.isFirst);
-      await WidgetsBinding.instance.endOfFrame;
-      // Open editors persist their draft into the database on the way out; do
-      // it while the connection is still open rather than racing the close.
-      await _editorDraftShutdownController.flushAll();
-      final dbFile = await widget.databaseFileResolver();
-      return await _doReset(dbFile, l10n);
+      // Shutdown waits for the whole reset, as it did for every writer before
+      // its sync wait was bounded: the reset closes and deletes the database.
+      return await _trackSyncWriterOperation(() async {
+        _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        await WidgetsBinding.instance.endOfFrame;
+        // Open editors persist their draft into the database on the way out;
+        // do it while the connection is still open rather than racing the
+        // close.
+        await _editorDraftShutdownController.flushAll();
+        final dbFile = await widget.databaseFileResolver();
+        return _doReset(dbFile, l10n);
+      });
     } finally {
       _syncWriterExclusive = false;
       if (!release.isCompleted) release.complete();
@@ -2137,8 +2243,16 @@ class _CompendiumAppState extends State<CompendiumApp>
           _startBootstrap();
         });
         final context = _navigatorKey.currentContext;
-        if (context != null && context.mounted) {
-          await showDialog<void>(
+        // Shown, not awaited: the developer reset runs inside the span
+        // shutdown waits for, and the closing overlay would cover this
+        // dialog's button, so a close while it is open would never finish.
+        // Not shown at all once closing has begun. While the dialog is up,
+        // the below-floor resets have returned, and the developer reset has
+        // released the writer queue and Settings has shown its failure
+        // snackbar. Both are safe: the database is already reopened, as on
+        // the success path.
+        if (context != null && context.mounted && !_shutdownRequested) {
+          final dialog = showDialog<void>(
             context: context,
             builder: (ctx) => AlertDialog(
               icon: const Icon(Icons.error_outline),
@@ -2153,6 +2267,7 @@ class _CompendiumAppState extends State<CompendiumApp>
               ],
             ),
           );
+          unawaited(dialog);
         }
       }
       return false;
@@ -2374,19 +2489,51 @@ class _CompendiumAppState extends State<CompendiumApp>
       }
       if (!result.convert || !context.mounted) return;
       final now = (widget.nowOverride ?? () => DateTime.now().toUtc())();
-      final converted = await convertDancesToEcd(repos, at: now);
-      if (!context.mounted || converted == 0) return;
-      ScaffoldMessenger.of(context)
+      final conversion = await convertDancesToEcd(repos, at: now);
+      if (!context.mounted || conversion.count == 0) return;
+      final l10n = AppLocalizations.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('ecd-convert-snackbar'),
+        actionKey: const ValueKey('ecd-convert-undo'),
+        message: l10n.startupEcdConvertSnackbar(conversion.count),
+        undoLabel: l10n.commonUndo,
+        accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+        onUndo: () =>
+            unawaited(_undoEcdConversion(repos, conversion, messenger, l10n)),
+      );
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'main.ecd-convert-prompt');
+    }
+  }
+
+  /// Reverses the on-launch ECD conversion (INTAKE-15) and says how many
+  /// dances it put back, which is fewer than were converted when some were
+  /// edited in the meantime.
+  Future<void> _undoEcdConversion(
+    CompendiumRepositories repos,
+    EcdConversion conversion,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) async {
+    try {
+      final restored = await undoEcdConversion(
+        repos,
+        conversion,
+        at: (widget.nowOverride ?? () => DateTime.now().toUtc())(),
+      );
+      if (!mounted) return;
+      messenger
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: Text(
-              AppLocalizations.of(context).startupEcdConvertSnackbar(converted),
-            ),
+            key: const ValueKey('ecd-convert-undone-snackbar'),
+            content: Text(l10n.startupEcdConvertUndoneSnackbar(restored)),
           ),
         );
     } on Object catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'main.ecd-convert-prompt');
+      logCaughtError(error, stackTrace, source: 'main.ecd-convert-undo');
     }
   }
 
@@ -2615,7 +2762,12 @@ class _CompendiumAppState extends State<CompendiumApp>
               data: override == null
                   ? media
                   : media.copyWith(disableAnimations: override),
-              child: scoped,
+              // Inside the override, so the closing overlay sees the in-app
+              // Reduce motion switch and shows a still icon for its spinner.
+              child: AppClosingOverlay(
+                closing: _closingNotifier,
+                child: scoped,
+              ),
             );
           },
           home: AppBootstrap(

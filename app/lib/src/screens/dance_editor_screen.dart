@@ -171,6 +171,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       if (shutdownController != null) {
         _unregisterShutdownFlush = shutdownController.register(
           _controller.prepareShutdownFlush,
+          flushPending: _controller.flushPendingAutosave,
         );
       }
       _load();
