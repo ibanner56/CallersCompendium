@@ -188,6 +188,17 @@ void main() {
       );
     });
 
+    test('an untitled matrix in a non-Latin locale is not named "export"', () {
+      expect(
+        programPdfJobName(
+          '',
+          fallback: 'プログラミングマトリックス',
+          suffix: 'プログラミングマトリックス',
+        ),
+        'Programming_matrix',
+      );
+    });
+
     test('an untitled matrix is not named twice', () {
       expect(
         programPdfJobName(

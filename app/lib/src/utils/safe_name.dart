@@ -123,22 +123,23 @@ String shareFileBaseName(
 /// The print-job name (the file name "Save as PDF" proposes) for a program PDF:
 /// [sanitizeExportName] of [title], then `_`[suffix] (the matrix PDF passes its
 /// localized "Programming matrix" so it never shares a name with the set-list
-/// PDF) and `_yyyy-MM-dd` of [eventDate] when each is given.
+/// PDF) and `_yyyy-MM-dd` of [eventDate] when each is given. An untitled
+/// program takes the suffix as its whole name; otherwise it takes [fallback].
 String programPdfJobName(
   String title, {
   required String fallback,
   String? suffix,
   DateTime? eventDate,
 }) {
-  final base = sanitizeExportName(title, fallback: fallback);
   // A suffix with no ASCII letter (the Japanese "Programming matrix") would
   // otherwise collapse to the generic `export`, which names nothing.
   final sanitizedSuffix = suffix == null
       ? null
       : sanitizeExportName(suffix, fallback: 'Programming_matrix');
+  // An untitled program is named by the suffix alone, so it is not named twice.
+  final base = sanitizeExportName(title, fallback: sanitizedSuffix ?? fallback);
   return [
     base,
-    // An untitled program already fell back to the suffix's own words.
     if (sanitizedSuffix != null && sanitizedSuffix != base) sanitizedSuffix,
     if (eventDate != null) isoDate(eventDate),
   ].join('_');
