@@ -237,8 +237,14 @@ The table gives each one's repository path, what Undo restores and what is new.
 | **Add to program** | `program_slots` | Existing program `update`, as the single-dance sheet does (`widgets/add_to_program_sheet.dart:196-247`) | Restore each program's prior slot list | Depends on N3 |
 | **Source** | `dance_sources` | New `addSourceForMany` (add only) | Per-dance prior citation list | Core + picker reuse |
 
-All five new writes are `_updateMany` calls. That gives them the transaction and
-the `localUserEdit` stamp the existing handlers use, and `Dance.copyWith`
+The four field writes (status, mixer, mixed level, source) are `_updateMany`
+calls. That gives them the transaction and the `localUserEdit` stamp the
+existing handlers use. **Delete is the exception.** It is an existence
+transition (`_stampExistence`, `dance_repository.dart:1881-1882`), not a content
+edit, so `softDeleteMany` and `restoreMany` loop over `softDelete` and `restore`
+inside one transaction. They cannot use `_updateMany`, which only selects live
+rows (`deletedAt.isNull()`, `:2424-2458`) and would skip every dance a restore
+has to revive. Add to program writes programs, not dances. `Dance.copyWith`
 already carries `status`, `mixer`, `mixedLevel` and `sourceCitations`
 (`packages/compendium_core/lib/src/model/dance.dart`).
 
@@ -385,7 +391,7 @@ then **add to program**, then **source**.
 
 ## Selection bar layout
 
-With these additions the bar would carry up to thirteen actions. At the 48 dp
+With these additions the bar would carry up to fourteen actions, counting Select all. At the 48 dp
 slot width the file already assumes (`_actionSlotWidth`, `:2032`), a 360 dp
 phone fits the close button, a count, and about three icons.
 
@@ -416,10 +422,12 @@ the menu at 320 × 568 and at the largest text scale before it ships.
 
 **Sync (`sync-spec.md`).** None of the new actions adds a record kind, a column
 or a settings key, so **§6.15 (capability gate, `:4417`) and §6.6 (id aliases,
-`:3197`) are not engaged.** Each changed dance is an ordinary dance edit with
-`localUserEdit: true`, the provenance §6.8 (`:3722`) counts as a deliberate
-local edit. `restoreMany` goes through `restore`, which clears a pending
-deletion itself (`:1914-1932`). If a later
+`:3197`) are not engaged.** Each field edit (status, mixer, mixed level, source) is an ordinary dance edit
+with `localUserEdit: true`, the provenance §6.8 (`:3722`) counts as a deliberate
+local edit. Delete and its Undo are not content edits: they are existence
+transitions stamped by `_stampExistence`, which §6.8 handles separately.
+`restoreMany` goes through `restore`, which clears a pending deletion itself
+(`:1914-1932`). If a later
 decision adds a new kind (for example, a persisted saved selection), that goes
 through §6.6 and §6.15 first. Nothing here should.
 
@@ -527,4 +535,4 @@ list; for S3, a failure mid-batch must leave every dance live.
   *Select all* then Add tags and Delete on the lowest-end target, and quote the
   figures in the PR body after the final rebase.
 - **Sync after a mass delete.** 5,000 tombstones in the next pass is untested.
-- **Menu length** at 320 × 568 with the grouped menu (13 entries) is unchecked.
+- **Menu length** at 320 × 568 with the grouped menu (up to 11 entries and three dividers) is unchecked.
