@@ -1,0 +1,21 @@
+{
+  "id": "audit-f10-program-slot-resolution",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A dance in Recently deleted keeps its title, marked \"(deleted dance)\", in a program's builder, matrix and summary, as it already did in Perform. Its figures stay in the matrix, the printed and shared set list shows its title instead of \"Untitled dance\", and sharing a program with its dances includes it.",
+      "Every view of a program now gives the same count: the number of dances it is planned for, without alternates or the break. The builder, the summary's Set list heading and the Add to program sheet show it in dances, as the Programs list does.",
+      "The set list, its text and PDF, and the builder number only the dances, so a break no longer takes a number such as \"5. Break\".",
+      "Cutting or moving a dance that has alternates makes its first alternate the primary in its place, instead of quietly turning its alternates into alternates of the slot above. Screen readers announce which alternate took its place.",
+      "The matrix's Show alternates and Show phrase labels buttons now show whether they are on, and screen readers report their state."
+    ]
+  },
+  "core": {
+    "added": [
+      "`ProgramSlot.isPlannedDance`, `Program.plannedDanceCountOf`, `Program.danceNumbersForSlots`, `Program.removeSlotPromotingAlternate`, `Program.alternatePromotedByRemoving` and `setListPrimaryLine`."
+    ],
+    "changed": [
+      "`programToPlainText` numbers planned dances only: the break is unnumbered and a leading alternate keeps its `ALT:` prefix without a number."
+    ]
+  }
+}

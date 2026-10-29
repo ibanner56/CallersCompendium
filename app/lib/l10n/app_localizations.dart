@@ -7373,7 +7373,7 @@ abstract class AppLocalizations {
   /// **'Could not load the program.'**
   String get programsLoadError;
 
-  /// Placeholder row title in the programming matrix for a slot whose referenced dance was deleted.
+  /// Marks a program slot whose dance is in Recently deleted: shown after the dance's title in Perform, the program builder, its matrix and the program summary, and on its own when the dance can no longer be found.
   ///
   /// In en, this message translates to:
   /// **'(deleted dance)'**
@@ -7733,10 +7733,10 @@ abstract class AppLocalizations {
   /// **'Pay: {amount}'**
   String programsSummaryPay(String amount);
 
-  /// Heading of the program's set list, with the number of slots.
+  /// Heading of the program's set list, with how many dances the program is planned for (alternates and the break are not counted).
   ///
   /// In en, this message translates to:
-  /// **'Set list ({count})'**
+  /// **'Set list ({count, plural, =1{1 dance} other{{count} dances}})'**
   String programsSetListHeader(int count);
 
   /// Empty state shown under the set list heading when a program has no slots.
@@ -7787,11 +7787,11 @@ abstract class AppLocalizations {
   /// **'Performed'**
   String get programsPerformed;
 
-  /// Count of slots in a program, shown on the Programs list tile subtitle.
+  /// How many dances a program is planned for (alternates and the break are not counted), shown on the Programs list tile, the add-to-program sheet and the program builder's slot heading.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 slot} other{{count} slots}}'**
-  String programsSlotCount(int count);
+  /// **'{count, plural, =1{1 dance} other{{count} dances}}'**
+  String programsDanceCount(int count);
 
   /// Fallback title for a free-text program slot that has no text yet.
   ///
@@ -7894,6 +7894,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Removed {name}.'**
   String programsRemovedSlot(String name);
+
+  /// Accessibility announcement appended after a primary slot is removed or moved, naming its first alternate, which becomes the primary in its place.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} takes its place.'**
+  String programsAlternatePromoted(String name);
 
   /// Ordinal marker shown for an alternate slot instead of a running-order number.
   ///

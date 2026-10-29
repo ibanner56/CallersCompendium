@@ -192,8 +192,14 @@ void main() {
       await tester.tap(find.text('Barn Dance'));
       await tester.pumpAndSettle();
 
-      // Section header carries the slot count.
-      expect(find.text('Set list (3)'), findsOneWidget);
+      // Section header carries the planned dance count: the alternate and
+      // the break are not dances the evening is planned for (GIG-10).
+      expect(find.text('Set list (1 dance)'), findsOneWidget);
+
+      // Only the planned dance is numbered: the alternate shows ALT and the
+      // break has no number, as in the set list's text and PDF (GIG-10).
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('2'), findsNothing);
 
       // All three slots render.
       expect(find.text('Chase the Squirrel'), findsOneWidget);
@@ -332,7 +338,8 @@ void main() {
   );
 
   testWidgets(
-    'an unresolved dance id renders a non-tappable "Dance unavailable" fallback',
+    'a dance in Recently deleted keeps its title, marked as deleted, and its '
+    'row opens nothing (GIG-11)',
     (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
@@ -346,16 +353,24 @@ void main() {
           updatedAt: _now,
         ),
       );
-      // The dance is soft-deleted after the program references it, so the
-      // slot's danceId no longer resolves to a title.
+      // The dance is soft-deleted after the program references it. It is
+      // still restorable, so the caller must be able to tell which dance it
+      // is, as in Perform.
       await repos.dances.softDelete('d1', at: _now);
 
       await _pumpWide(tester, repos);
       await tester.tap(find.text('Barn Dance'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Dance unavailable'), findsOneWidget);
-      expect(find.byKey(const ValueKey('summary-slot-s0')), findsNothing);
+      expect(find.text('Chase the Squirrel (deleted dance)'), findsOneWidget);
+      expect(find.text('Dance unavailable'), findsNothing);
+      // The dance details read live dances only, so the row is not a button.
+      final row = find.byKey(const ValueKey('summary-slot-s0'));
+      expect(tester.widget<InkWell>(row).onTap, isNull);
+      expect(
+        find.descendant(of: row, matching: find.byIcon(Icons.chevron_right)),
+        findsNothing,
+      );
     },
   );
 
@@ -369,7 +384,7 @@ void main() {
     await tester.tap(find.text('Barn Dance'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Set list (0)'), findsOneWidget);
+    expect(find.text('Set list (0 dances)'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('summary-set-list-empty')),
       findsOneWidget,
@@ -853,8 +868,8 @@ void main() {
       await tester.tap(find.text('Barn Dance'));
       await tester.pumpAndSettle();
 
-      // The left list tile starts at a single slot.
-      expect(find.text('1 slot'), findsOneWidget);
+      // The left list tile starts at a single dance.
+      expect(find.text('1 dance'), findsOneWidget);
 
       // Enter the Perform view from the summary pane (Perform-first, no edit
       // mode) and grow the program via the in-event "adjust" sheet.
@@ -877,10 +892,10 @@ void main() {
 
       // ... and the coexisting list pane (still mounted beneath the Perform
       // route) reflects the new count with no back-navigation or manual
-      // reload. Before the fix the tile stayed "1 slot" until re-navigated,
+      // reload. Before the fix the tile stayed "1 dance" until re-navigated,
       // because the in-pane mutation never bumped the shared list refresh.
-      expect(find.text('2 slots', skipOffstage: false), findsOneWidget);
-      expect(find.text('1 slot', skipOffstage: false), findsNothing);
+      expect(find.text('2 dances', skipOffstage: false), findsOneWidget);
+      expect(find.text('1 dance', skipOffstage: false), findsNothing);
     },
   );
 

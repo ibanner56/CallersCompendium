@@ -4755,7 +4755,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String programsSetListHeader(int count) {
-    return 'セットリスト ($count)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンス',
+    );
+    return 'セットリスト ($_temp0)';
   }
 
   @override
@@ -4792,11 +4797,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsPerformed => '実施済み';
 
   @override
-  String programsSlotCount(int count) {
+  String programsDanceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$countスロット',
+      other: '$count件のダンス',
     );
     return '$_temp0';
   }
@@ -4866,6 +4871,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String programsRemovedSlot(String name) {
     return '「$name」を削除しました。';
+  }
+
+  @override
+  String programsAlternatePromoted(String name) {
+    return '$name が代わりに入ります。';
   }
 
   @override

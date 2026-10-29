@@ -77,7 +77,7 @@ void main() {
     final result = await resolveDeletedSlotDances(
       _ThrowingDances(),
       repos.choreographers,
-      program,
+      program.slots,
       data,
     );
     expect(result.dances, isEmpty);
@@ -91,7 +91,7 @@ void main() {
       final result = await resolveDeletedSlotDances(
         _DeletedDance(),
         _ThrowingChoreographers(),
-        program,
+        program.slots,
         data,
       );
       expect(result.dances.keys, ['d1']);

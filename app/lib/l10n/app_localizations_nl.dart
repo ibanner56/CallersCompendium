@@ -5005,7 +5005,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String programsSetListHeader(int count) {
-    return 'Setlijst ($count)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+    );
+    return 'Setlijst ($_temp0)';
   }
 
   @override
@@ -5042,12 +5048,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsPerformed => 'Uitgevoerd';
 
   @override
-  String programsSlotCount(int count) {
+  String programsDanceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count slots',
-      one: '1 slot',
+      other: '$count dansen',
+      one: '1 dans',
     );
     return '$_temp0';
   }
@@ -5118,6 +5124,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String programsRemovedSlot(String name) {
     return '$name verwijderd.';
+  }
+
+  @override
+  String programsAlternatePromoted(String name) {
+    return '$name neemt de plaats in.';
   }
 
   @override

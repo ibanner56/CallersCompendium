@@ -113,6 +113,13 @@ class ProgramSlot {
   bool get isBulkMarkPerformedTarget =>
       danceId != null && !isAlt && performedAt == null;
 
+  /// Whether this slot is one of the dances a program is planned for: every
+  /// slot except an alternate and the break. The one definition behind
+  /// [Program.plannedDanceCount] and the set-list numbering
+  /// ([Program.danceNumbersForSlots]), so a count and the highest number never
+  /// disagree (GIG-10).
+  bool get isPlannedDance => !isAlt && !isBreak;
+
   /// Whether this slot is a **break** — the divider the program's first/second
   /// section is derived from ([Program.sectionAtIndex]).
   ///
@@ -367,8 +374,55 @@ class Program {
   /// purged-dance captions are counted; an orphaned leading alternate is not,
   /// because it is still an alternate. [slots]`.length` is the row count, which
   /// this deliberately is not.
-  int get plannedDanceCount =>
-      slots.where((s) => !s.isAlt && !s.isBreak).length;
+  int get plannedDanceCount => plannedDanceCountOf(slots);
+
+  /// [plannedDanceCount] for a working slot list, such as the builder's
+  /// unsaved edits, without constructing a [Program].
+  static int plannedDanceCountOf(Iterable<ProgramSlot> slots) =>
+      slots.where((s) => s.isPlannedDance).length;
+
+  /// The set-list number of each slot in a **position-ordered** [slots] list,
+  /// as a parallel list (same length/order): planned dances
+  /// ([ProgramSlot.isPlannedDance]) are numbered `1..n`, and alternates and
+  /// the break are `null`. The highest number is therefore always
+  /// [plannedDanceCountOf] the same slots (GIG-10).
+  static List<int?> danceNumbersForSlots(List<ProgramSlot> slots) {
+    var number = 0;
+    return List<int?>.generate(
+      slots.length,
+      (i) => slots[i].isPlannedDance ? ++number : null,
+      growable: false,
+    );
+  }
+
+  /// [slots] without the slot at [index]. When that slot is the primary of an
+  /// alternate group, its first alternate takes its place as the primary and
+  /// any further alternates stay with it (LIFE-10); without this the group's
+  /// alternates would silently join the slot above (see
+  /// [alternateGroupsForSlots]). Positions are left for the caller to
+  /// renumber. Shared by cutting a slot and moving one.
+  static List<ProgramSlot> removeSlotPromotingAlternate(
+    List<ProgramSlot> slots,
+    int index,
+  ) {
+    final promoted = alternatePromotedByRemoving(slots, index);
+    final next = [...slots];
+    if (promoted != null) {
+      next[promoted] = next[promoted].copyWith(isAlt: false);
+    }
+    next.removeAt(index);
+    return next;
+  }
+
+  /// Index into [slots] of the alternate that
+  /// [removeSlotPromotingAlternate] would promote when removing [index], or
+  /// `null` when nothing would be promoted: the slot is itself an alternate,
+  /// or no alternate follows it.
+  static int? alternatePromotedByRemoving(List<ProgramSlot> slots, int index) {
+    if (index < 0 || index + 1 >= slots.length) return null;
+    if (slots[index].isAlt || !slots[index + 1].isAlt) return null;
+    return index + 1;
+  }
 
   /// Whether the program contains a break slot (and therefore has derived
   /// sections).
@@ -463,7 +517,9 @@ class Program {
   /// The [grouped] view used for **output** (plain-text set list, PDF, summary):
   /// identical to [grouped] except that, when [hideAlternates] is set, each
   /// group's [ProgramSlotGroup.alternates] are dropped so only primaries render.
-  /// Primaries stay numbered 1..n either way. The builder/Perform UIs use
+  /// The planned dances keep the same numbers either way: only a
+  /// [ProgramSlot.isPlannedDance] primary is numbered, so dropping alternates
+  /// changes no number. The builder/Perform UIs use
   /// [grouped] directly and are unaffected by the flag.
   List<ProgramSlotGroup> get outputGrouped {
     if (!hideAlternates) return grouped;

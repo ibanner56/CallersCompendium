@@ -6070,7 +6070,7 @@
   },
   "programsDeletedDanceFallback": "(deleted dance)",
   "@programsDeletedDanceFallback": {
-    "description": "Placeholder row title in the programming matrix for a slot whose referenced dance was deleted."
+    "description": "Marks a program slot whose dance is in Recently deleted: shown after the dance's title in Perform, the program builder, its matrix and the program summary, and on its own when the dance can no longer be found."
   },
   "programsSlotsLabel": "Slots",
   "@programsSlotsLabel": {
@@ -6363,9 +6363,9 @@
       }
     }
   },
-  "programsSetListHeader": "Set list ({count})",
+  "programsSetListHeader": "Set list ({count, plural, =1{1 dance} other{{count} dances}})",
   "@programsSetListHeader": {
-    "description": "Heading of the program's set list, with the number of slots.",
+    "description": "Heading of the program's set list, with how many dances the program is planned for (alternates and the break are not counted).",
     "placeholders": {
       "count": {
         "type": "int",
@@ -6429,9 +6429,9 @@
   "@programsPerformed": {
     "description": "Accessible label indicating a set-list slot has been marked performed."
   },
-  "programsSlotCount": "{count, plural, =1{1 slot} other{{count} slots}}",
-  "@programsSlotCount": {
-    "description": "Count of slots in a program, shown on the Programs list tile subtitle.",
+  "programsDanceCount": "{count, plural, =1{1 dance} other{{count} dances}}",
+  "@programsDanceCount": {
+    "description": "How many dances a program is planned for (alternates and the break are not counted), shown on the Programs list tile, the add-to-program sheet and the program builder's slot heading.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -6542,6 +6542,16 @@
   "programsRemovedSlot": "Removed {name}.",
   "@programsRemovedSlot": {
     "description": "Accessibility announcement after a slot is removed from the program.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAlternatePromoted": "{name} takes its place.",
+  "@programsAlternatePromoted": {
+    "description": "Accessibility announcement appended after a primary slot is removed or moved, naming its first alternate, which becomes the primary in its place.",
     "placeholders": {
       "name": {
         "type": "String",
