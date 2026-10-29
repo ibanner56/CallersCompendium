@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/set_list_accents.dart';
+import '../theme/app_shapes.dart';
 
 /// Renders [child] inside a rounded highlight whose background is the user's
 /// chosen per-formation [color] (issue #367), with an automatically-chosen
@@ -29,7 +30,7 @@ class FormationColorBadge extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppShapes.borderRadiusSmall,
       ),
       child: Padding(
         padding: padding,

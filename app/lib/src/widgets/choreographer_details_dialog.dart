@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import 'dirty_dialog_guard.dart';
+
 /// A modal dialog for editing a [Choreographer]'s shared contact details.
 ///
 /// This edits the **shared** author record: the same [Choreographer] row is
@@ -75,6 +77,18 @@ class _ChoreographerDetailsDialogState
     return trimmed.isEmpty ? null : trimmed;
   }
 
+  /// Whether any field differs from the record the dialog opened with. Compared
+  /// as typed (not trimmed), so adding a space still counts as an edit.
+  bool _isDirty() {
+    final c = widget.choreographer;
+    return _nameController.text != c.name ||
+        _websiteController.text != (c.website ?? '') ||
+        _notesController.text != (c.notes ?? '') ||
+        _emailController.text != (c.email ?? '') ||
+        _locationController.text != (c.location ?? '') ||
+        _deceased != c.deceased;
+  }
+
   void _save() {
     if (!_formKey.currentState!.validate()) return;
     final existing = widget.choreographer;
@@ -101,100 +115,110 @@ class _ChoreographerDetailsDialogState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.danceEditorChoreographerDetailsTitle),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.danceEditorChoreographerDetailsIntro,
-                style: theme.textTheme.bodySmall,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const ValueKey('choreographer-name-field'),
-                controller: _nameController,
-                autofocus: true,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorNameRequiredLabel,
-                  border: const OutlineInputBorder(),
+    return DirtyDialogGuard(
+      listenable: Listenable.merge([
+        _nameController,
+        _websiteController,
+        _notesController,
+        _emailController,
+        _locationController,
+      ]),
+      isDirty: _isDirty,
+      child: AlertDialog(
+        title: Text(l10n.danceEditorChoreographerDetailsTitle),
+        content: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.danceEditorChoreographerDetailsIntro,
+                  style: theme.textTheme.bodySmall,
                 ),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? l10n.danceEditorNameRequired
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('choreographer-website-field'),
-                controller: _websiteController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorWebsiteLabel,
-                  border: const OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const ValueKey('choreographer-name-field'),
+                  controller: _nameController,
+                  autofocus: true,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorNameRequiredLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? l10n.danceEditorNameRequired
+                      : null,
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('choreographer-email-field'),
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorEmailPrivateLabel,
-                  border: const OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('choreographer-website-field'),
+                  controller: _websiteController,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorWebsiteLabel,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('choreographer-location-field'),
-                controller: _locationController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorLocationPrivateLabel,
-                  border: const OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('choreographer-email-field'),
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorEmailPrivateLabel,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const ValueKey('choreographer-notes-field'),
-                controller: _notesController,
-                minLines: 2,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  labelText: l10n.danceEditorNotesLabel,
-                  border: const OutlineInputBorder(),
-                  alignLabelWithHint: true,
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('choreographer-location-field'),
+                  controller: _locationController,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorLocationPrivateLabel,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              SwitchListTile(
-                key: const ValueKey('choreographer-deceased-toggle'),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.danceEditorDeceasedLabel),
-                value: _deceased,
-                onChanged: (value) => setState(() => _deceased = value),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('choreographer-notes-field'),
+                  controller: _notesController,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorNotesLabel,
+                    border: const OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  key: const ValueKey('choreographer-deceased-toggle'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.danceEditorDeceasedLabel),
+                  value: _deceased,
+                  onChanged: (value) => setState(() => _deceased = value),
+                ),
+              ],
+            ),
           ),
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('choreographer-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('choreographer-save'),
+            onPressed: _save,
+            child: Text(l10n.commonSave),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          key: const ValueKey('choreographer-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('choreographer-save'),
-          onPressed: _save,
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 }

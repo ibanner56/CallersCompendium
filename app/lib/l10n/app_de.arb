@@ -12,6 +12,10 @@
   "@danceEditorAddedModifierAnnouncement": {
     "x-sourceSha256": "a7ec5355066df0d57228e379f6e1940cf455d2f61b6afd75b30ad440742341e4"
   },
+  "danceEditorAddedSequenceAnnouncement": "Ein Sequenz-Container wurde hinzugefügt.",
+  "@danceEditorAddedSequenceAnnouncement": {
+    "x-sourceSha256": "5c4508990018b4266348c06cf375f678265966edf16317124bc3f665ac255f9d"
+  },
   "navCollection": "Sammlung",
   "@navCollection": {
     "x-sourceSha256": "7b790708ff1b171315a152018f3712e8c71c82f4f9000635f77a1336c34f1893"
@@ -1084,6 +1088,10 @@
   "@settingsSyncConflictsSubtitle": {
     "x-sourceSha256": "fda77cdb41bdca627b9072e4fd6eb1104fd8e1fdeb8b45a41a83a14cd07b6d01"
   },
+  "settingsSyncConflictsCheckFailed": "Konflikte konnten nicht geprüft werden.",
+  "@settingsSyncConflictsCheckFailed": {
+    "x-sourceSha256": "4a3d8f191e2d1cd1d26cbecb325f05d583eb8a8a6b792cf925156fc7d790a20b"
+  },
   "commonSyncNowConflictsTooltip": "{count, plural, =1{Jetzt synchronisieren (1 Eintrag wartet auf deine Wahl)} other{Jetzt synchronisieren ({count} Einträge warten auf deine Wahl)}}",
   "@commonSyncNowConflictsTooltip": {
     "x-sourceSha256": "9f484617ad8c5c7b7f348011989c3612a4c229fe322d59ff138f9d8a769a66d4"
@@ -1267,6 +1275,10 @@
   "settingsSyncWipeDetachFailed": "Der Speicher wurde vom Server gelöscht, aber dieses Gerät konnte die Verbindung dazu nicht trennen. Der Speicher ist weg und lässt sich nicht zurückholen. Nutze Dieses Gerät trennen, um es abzuschließen.",
   "@settingsSyncWipeDetachFailed": {
     "x-sourceSha256": "ac763fba9e00e2a235a8877b2058b006c655d5e1afb26a7009b2a925794f173f"
+  },
+  "settingsSyncWipeDetachFailedTitle": "Speicher gelöscht, dieses Gerät noch verbunden",
+  "@settingsSyncWipeDetachFailedTitle": {
+    "x-sourceSha256": "a1e6faaeb955586b38a8e45f33a2c7b866a4dcb781aa7b753901759684ba357f"
   },
   "settingsSyncMeteredRouted": "Du nutzt mobile Daten und „Nur über WLAN synchronisieren“ ist an. Schalte diese Einstellung unten aus, um jetzt zu synchronisieren.",
   "@settingsSyncMeteredRouted": {
@@ -2364,6 +2376,10 @@
   "@settingsDefaultsDifficultyLevelActionFailed": {
     "x-sourceSha256": "2f406423b231a20a613444e2a66a85fa3f5d95c6776a82203ad64d4d4e2b0282"
   },
+  "settingsDefaultsDifficultyLevelDeleted": "„{label}“ gelöscht.",
+  "@settingsDefaultsDifficultyLevelDeleted": {
+    "x-sourceSha256": "ecf9a0c7a3c009f7d946f424820da1b8574f87f8360556e12ee82938432df80a"
+  },
   "settingsDefaultsBandLabel": "Standard-Band",
   "@settingsDefaultsBandLabel": {
     "x-sourceSha256": "c7318a8e4e71c43fe5a7cc0c176c889334d9caeeecd2bb34e1c8aaf3bc31a25e"
@@ -2955,6 +2971,14 @@
   "settingsGeneralRequirePerformedForHistorySubtitle": "Wenn aktiviert, listet der Calling-Verlauf eines Tanzes nur Programme auf, deren Slot für diesen Tanz als aufgeführt markiert wurde. Wenn deaktiviert, erscheint ein Programm, sobald es den Tanz enthält.",
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "x-sourceSha256": "1848996e206cb4e46920d0bbc3310cb92d75a955a7a5042e6c91c27de09f0d7d"
+  },
+  "settingsGeneralShowPerformedTogglesTitle": "Schalter „Als aufgeführt markieren“ anzeigen",
+  "@settingsGeneralShowPerformedTogglesTitle": {
+    "x-sourceSha256": "94dccb12ab231250226e6ac36cd0cedd4dc38d5528f16ec0d8d80589d788f239"
+  },
+  "settingsGeneralShowPerformedTogglesSubtitle": "Wenn aktiviert, hat jeder Tanz in der Programmansicht einen Schalter, um ihn als aufgeführt zu markieren oder nicht – ohne den Editor zu öffnen. Wenn deaktiviert, zeigen die Zeilen nur an, ob ein Tanz aufgeführt wurde.",
+  "@settingsGeneralShowPerformedTogglesSubtitle": {
+    "x-sourceSha256": "c72198d2bb64ea770c17a1f45239591d056d391a276ee7c416ddba46d5e53c48"
   },
   "settingsGeneralRequireEventDateForHistoryTitle": "Veranstaltungsdatum für Calling-Verlauf erfordern",
   "@settingsGeneralRequireEventDateForHistoryTitle": {
@@ -4456,6 +4480,10 @@
   "@danceNotFound": {
     "x-sourceSha256": "1b47619207fe31d79756e61a38e5461c7f399df14567e6d72556dab910ae2883"
   },
+  "danceLoadError": "Dieser Tanz konnte nicht geladen werden.",
+  "@danceLoadError": {
+    "x-sourceSha256": "4e8d6f4f8ae4f08224ef7f01eb361aa01c04be7811c7281b51049ee62d971ff7"
+  },
   "danceEditFab": "Bearbeiten",
   "@danceEditFab": {
     "x-sourceSha256": "464c4ffd019e1e9691dcf0537c797353ef2b1c1d4833d3d463e5b74ae4547344"
@@ -5125,6 +5153,38 @@
   "programsMarkedPerformed": "Als aufgeführt markiert.",
   "@programsMarkedPerformed": {
     "x-sourceSha256": "5dbeaa439cb266505d90d60f62e0fd7cf313782ac5c7cbeafa49434d6ba9f044"
+  },
+  "programsSummaryPerformedToggleOn": "{title}: aufgeführt",
+  "@programsSummaryPerformedToggleOn": {
+    "x-sourceSha256": "3cd5ba40da4dca696efa8319307b890a70672dc1aa6cebea2ae7b272f53f6397"
+  },
+  "programsSummaryPerformedToggleOff": "{title}: nicht aufgeführt",
+  "@programsSummaryPerformedToggleOff": {
+    "x-sourceSha256": "1481d85b62bca2328edcbe6b6180595f6702853bafa844aeefd393ef8bca8744"
+  },
+  "programsSummaryMarkPerformedTooltip": "{title} als aufgeführt markieren",
+  "@programsSummaryMarkPerformedTooltip": {
+    "x-sourceSha256": "51bdb6864e20e781354c7b8a87ccee8c643ee8cae6bae9cb9eec17fc61eba85f"
+  },
+  "programsSummaryClearPerformedTooltip": "Aufführungsmarkierung von {title} entfernen",
+  "@programsSummaryClearPerformedTooltip": {
+    "x-sourceSha256": "b0a517071217bc49489f06578742e09590467ecba6999c8eb2cceddf1034e16d"
+  },
+  "programsSummaryMarkedPerformedSnack": "{title} als aufgeführt markiert.",
+  "@programsSummaryMarkedPerformedSnack": {
+    "x-sourceSha256": "54ddedcbaa84004cb9bf258a035985de171c2bd73bb215df436d06c18416a695"
+  },
+  "programsSummaryClearedPerformedSnack": "Aufführungsmarkierung von {title} entfernt.",
+  "@programsSummaryClearedPerformedSnack": {
+    "x-sourceSha256": "4a1c9091241cd97c3c635df20a7a0654c8769f6d4c3d907fb514eef030c03d7b"
+  },
+  "programsSummaryPerformedToggleError": "Die Aufführungsmarkierung konnte nicht aktualisiert werden. Bitte versuche es erneut.",
+  "@programsSummaryPerformedToggleError": {
+    "x-sourceSha256": "969da3e91556de1a52f769c9b94424289f1d043d28b1442618e22190e605b976"
+  },
+  "programsSummaryUndoPerformedToggleError": "Die Änderung der Aufführungsmarkierung konnte nicht rückgängig gemacht werden.",
+  "@programsSummaryUndoPerformedToggleError": {
+    "x-sourceSha256": "19f90c6c6bb2ee6a81e819456d81b93b0f83e95956ea4cbb3eb1b8399c9d9b18"
   },
   "programsPerformedCleared": "Aufführungsmarkierung entfernt.",
   "@programsPerformedCleared": {
@@ -5925,6 +5985,10 @@
   "exportMinutesLabel": "{count} Min.",
   "@exportMinutesLabel": {
     "x-sourceSha256": "1829c58ba472520fd39e61f9e337a1b7da27e86299332dde5bfdea355c3895a8"
+  },
+  "exportPageOfPages": "Seite {page} von {pages}",
+  "@exportPageOfPages": {
+    "x-sourceSha256": "240ab6d8dc2cbb5ede8e1e708f5812d1129644348c3a28d3aaf8d5b97a4cfaef"
   },
   "exportLabelVenue": "Veranstaltungsort",
   "@exportLabelVenue": {
@@ -7638,6 +7702,10 @@
   "@validationPhraseBeatMismatch": {
     "x-sourceSha256": "cbcfd5cfa1932d621756cac5a7dd64ad714b041a96c3a293ac1a3833dc29002a"
   },
+  "validationSequenceExceedsPhrase": "Eine Sequenz in Figur {position} hat {actual} Beats und ist länger als eine Phrase ({limit} Beats).",
+  "@validationSequenceExceedsPhrase": {
+    "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
+  },
   "validationPhraseInvalid": "Diese Phrasierungsstruktur ist ungültig.",
   "@validationPhraseInvalid": {
     "x-sourceSha256": "92d3acedb87ed98d680de3f4a8a54a8ad246bf74ccca87209f3e77773e2aa664"
@@ -7982,6 +8050,10 @@
   "@danceEditorAddModifier": {
     "x-sourceSha256": "9a9d65205220dac752ca53d4344a80df8c3a695d430c300f0c82eb793261e884"
   },
+  "danceEditorAddSequence": "Sequenz hinzufügen",
+  "@danceEditorAddSequence": {
+    "x-sourceSha256": "03eceea4c67a68c21df3c37e508ebcb7953259ba78fcf81694c9e9680b075ff1"
+  },
   "danceEditorPasteAtEndOfFigureList": "Am Ende der Figurenliste einfügen",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"
@@ -8074,6 +8146,10 @@
   "@danceEditorGroupWithNextAsModifier": {
     "x-sourceSha256": "dc0b3085a82f4025e2497ae817772e58592dedf8fa206a04f8a6fd01cd2c9177"
   },
+  "danceEditorGroupWithNextAsSequence": "Mit der nächsten Figur als Sequenz gruppieren",
+  "@danceEditorGroupWithNextAsSequence": {
+    "x-sourceSha256": "52c0fa507a3cf5a82f886dd303842a07e5b64c3f4799ea70e590a52d6ad5a6a2"
+  },
   "danceEditorConvertToMeanwhile": "In Meanwhile umwandeln",
   "@danceEditorConvertToMeanwhile": {
     "x-sourceSha256": "c9efabb132e41899d095163d93026cd838ce238a4a4cbafa6f6a3ab1efbd6f1e"
@@ -8082,6 +8158,10 @@
   "@danceEditorConvertToModifier": {
     "x-sourceSha256": "d472575eb0ce29ca55b563b8be186114c56e7cada317484cb17d604f9ce51ccc"
   },
+  "danceEditorConvertToSequence": "In Sequenz umwandeln",
+  "@danceEditorConvertToSequence": {
+    "x-sourceSha256": "54309121a8958708c392ab8ec8ef66853cc240dbb1be99a35cedf6169a9821b6"
+  },
   "danceEditorUngroupMeanwhile": "Meanwhile auflösen",
   "@danceEditorUngroupMeanwhile": {
     "x-sourceSha256": "5efde75b4147394c5e486cc900c3b195ce11afcdc5c52dc69eb76796dbff6502"
@@ -8089,6 +8169,54 @@
   "danceEditorUngroupModifier": "Modifier auflösen",
   "@danceEditorUngroupModifier": {
     "x-sourceSha256": "bfe76e0aa465b4517d011bd395490f9e997539c3ee67f58b12839d7746d4c152"
+  },
+  "danceEditorUngroupSequence": "Sequenz auflösen",
+  "@danceEditorUngroupSequence": {
+    "x-sourceSha256": "c43407cc8d75f6dcd036b5c7b2ef6b7531905e45fc55597361b3a9877e26dd86"
+  },
+  "danceEditorSequenceOptionLabel": "Sequenz",
+  "@danceEditorSequenceOptionLabel": {
+    "x-sourceSha256": "bf37c7c208717d6de100ce851b48273f8d5d945c8dc64fc64372087ffcf88ba9"
+  },
+  "danceEditorSequenceGroupLabel": "{count, plural, other{Sequenz ({count} Figuren)}}",
+  "@danceEditorSequenceGroupLabel": {
+    "x-sourceSha256": "7e4967a5972cb2a9a45945a1f8f1df5edaa478ec05637dd024badf9f3001a4a5"
+  },
+  "danceEditorSequenceGroupSemantic": "Sequenz-Gruppe, {count, plural, =1{1 Figur} other{{count} Figuren}} nacheinander, insgesamt {beats, plural, =1{1 Beat} other{{beats} Beats}}.",
+  "@danceEditorSequenceGroupSemantic": {
+    "x-sourceSha256": "6c9161a37b5d51850e47b10e53cd288ec44e7216c6b5ac18fdbb93a8520cad11"
+  },
+  "danceEditorSequenceTotalBeats": "{beats, plural, =1{Insgesamt 1 Beat} other{Insgesamt {beats} Beats}}",
+  "@danceEditorSequenceTotalBeats": {
+    "x-sourceSha256": "5939821f14dca9d0edb89c7b340aed8f7f16bc24d1b4d9b2a185dbf77b5e63c8"
+  },
+  "danceEditorSequenceOverPhrase": "Diese Sequenz hat {beats} Beats und ist länger als eine Phrase ({limit} Beats).",
+  "@danceEditorSequenceOverPhrase": {
+    "x-sourceSha256": "6ae93313359a72f07ebee85db77f4cef8a909076b8df31715a5e9dccc10ab214"
+  },
+  "danceEditorSequencePhraseFull": "Diese Figuren füllen eine Phrase ({limit} Beats).",
+  "@danceEditorSequencePhraseFull": {
+    "x-sourceSha256": "bca2abe6ab4af53f5bdf6dc57507aada937cc15b528249a4910e60ca260adc84"
+  },
+  "danceEditorSequenceStepsCapReached": "Maximal {max} Figuren in einer Sequenz.",
+  "@danceEditorSequenceStepsCapReached": {
+    "x-sourceSha256": "0d32b0ac029efb217a22bb156c907bf9db860dd2476517694d74498d2c56799b"
+  },
+  "danceEditorSequenceStepLabel": "Figur {number}",
+  "@danceEditorSequenceStepLabel": {
+    "x-sourceSha256": "a0c4e096ba8a986db5fd592e943df04384758e199fe5a3909b3ed1e4f8a81c22"
+  },
+  "danceEditorSequenceStepSemantic": "Figur {number} von {total} in der Sequenz.",
+  "@danceEditorSequenceStepSemantic": {
+    "x-sourceSha256": "eb6c8d9f8a0bff779783737125608c9fee7f69721423a081d98a3cec52893a94"
+  },
+  "danceEditorAddSequenceStep": "Nächste Figur hinzufügen",
+  "@danceEditorAddSequenceStep": {
+    "x-sourceSha256": "f62452fa543439b88b8a2b835f8bed7d4a48c556ee36e3ad9c4f524b505c0332"
+  },
+  "danceEditorRemoveSequenceStep": "Diese Figur entfernen",
+  "@danceEditorRemoveSequenceStep": {
+    "x-sourceSha256": "5d289b7690bf8d2073f6c6f30ce4ceee0d8935b9db316bf63708f60c2a2857ec"
   },
   "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} Figuren)}}",
   "@danceEditorModifierGroupLabel": {
@@ -8877,6 +9005,10 @@
   "customFieldsDeleteInUse": "„{label}“ kann nicht gelöscht werden: noch in {count, plural, =1{1 Tanz} other{{count} Tänzen}} verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.",
   "@customFieldsDeleteInUse": {
     "x-sourceSha256": "3216847c71408f8c115cc0f639621a7a700926cf3c3d29fe2bcce0948156a556"
+  },
+  "customFieldsDeleteFailed": "„{label}“ konnte nicht gelöscht werden. Versuchen Sie es erneut.",
+  "@customFieldsDeleteFailed": {
+    "x-sourceSha256": "0a9687d09317172625c68b565f464f85b4f69dff8f22cec58db3c02959c8ce04"
   },
   "customFieldsKeyDuplicate": "Ein Feld mit dem Schlüssel „{key}“ existiert bereits. Der Schlüssel wurde nicht geändert.",
   "@customFieldsKeyDuplicate": {

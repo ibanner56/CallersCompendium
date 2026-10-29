@@ -22,6 +22,7 @@ import 'lingo_discouraged_hint.dart';
 import 'links_editor.dart';
 import 'name_picker.dart';
 import 'source_citations_editor.dart';
+import '../../theme/app_shapes.dart';
 
 /// The dance editor's scrolling metadata form. Presentational only: it reads
 /// the working draft from [controller] and routes edits back through the
@@ -468,6 +469,7 @@ class DanceEditorForm extends StatelessWidget {
                   onAdd: controller.addFigure,
                   onAddMeanwhile: controller.addMeanwhile,
                   onAddModifier: controller.addModifier,
+                  onAddSequence: controller.addSequence,
                   freeTextEntry: freeTextEntry,
                   shorthandMappings: shorthandMappings,
                   canonicalizeDiscouragedTerms:
@@ -490,9 +492,12 @@ class DanceEditorForm extends StatelessWidget {
                   onGroupWithNext: controller.groupFigureWithNext,
                   onGroupWithNextAsModifier:
                       controller.groupFigureWithNextAsModifier,
+                  onGroupWithNextAsSequence:
+                      controller.groupFigureWithNextAsSequence,
                   onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
                   onConvertToMeanwhile: controller.convertContainerToMeanwhile,
                   onConvertToModifier: controller.convertContainerToModifier,
+                  onConvertToSequence: controller.convertContainerToSequence,
                   onUngroupContainer: controller.ungroupContainer,
                   // The user's own compounds are offered while Custom Figures
                   // is on; a placeholder already in the draft still expands
@@ -633,7 +638,7 @@ class DanceEditorForm extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context);
     final sectionShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppShapes.borderRadiusMedium,
       side: BorderSide(color: colorScheme.outlineVariant),
     );
     return ExpansionTile(

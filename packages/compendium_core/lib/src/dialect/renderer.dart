@@ -274,6 +274,25 @@ class FigureRenderer {
           )
           .join(' while ');
     }
+    if (figure.isSequence) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return sequenceMove;
+      return _sequenceLine(
+        children,
+        [
+          for (final child in children)
+            _renderSummary(
+              child,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+        ],
+        dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
+    }
     if (!figure.isCustom &&
         _resolvedMoveWording(figure, dialect) != null &&
         !figure.isMeanwhile) {
@@ -471,6 +490,33 @@ class FigureRenderer {
       );
       if (override != null) return override;
     }
+    if (figure.isSequence) {
+      // A sequence renders its children in order as one line. Like the other
+      // containers, `renderCanonical` joins them with the structural id
+      // (`' sequence '`) so the dedupe/FTS key never varies with `dialect`;
+      // display renders read as an English list: "A and B", "A, B, and C".
+      final children = figure.subFigures;
+      if (children.isEmpty) return sequenceMove;
+      final rendered = [
+        for (final child in children)
+          _render(
+            child,
+            dialect,
+            verbose: verbose,
+            decimals: decimals,
+            forCanonical: forCanonical,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          ),
+      ];
+      return forCanonical
+          ? rendered.join(' $sequenceMove ')
+          : _sequenceLine(
+              children,
+              rendered,
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            );
+    }
     if (figure.isModifier) {
       final children = figure.subFigures;
       if (children.isEmpty) return modifierMove;
@@ -517,12 +563,7 @@ class FigureRenderer {
       }
       final renderedModifiers = modifiers.toList();
       if (renderedModifiers.isEmpty) return core;
-      final suffix = renderedModifiers.length == 1
-          ? renderedModifiers.single
-          : renderedModifiers.length == 2
-          ? '${renderedModifiers.first} and ${renderedModifiers.last}'
-          : '${renderedModifiers.take(renderedModifiers.length - 1).join(', ')}, and ${renderedModifiers.last}';
-      return '$core, $suffix';
+      return '$core, ${_andList(renderedModifiers)}';
     }
 
     final def = taxonomy.resolve(figure.move);
@@ -778,8 +819,73 @@ class FigureRenderer {
         : _stripSubjectMark(line);
   }
 
+  /// [parts] as an English list, with a serial comma from three on: `A`,
+  /// `A and B`, `A, B, and C`. Shared by a modifier's modifiers and a
+  /// sequence's children. Fixed structural vocabulary, like " while ".
+  static String _andList(List<String> parts) => switch (parts.length) {
+    0 => '',
+    1 => parts.single,
+    2 => '${parts.first} and ${parts.last}',
+    _ => '${parts.take(parts.length - 1).join(', ')}, and ${parts.last}',
+  };
+
+  /// The display line of a sequence: [lines], its [children]'s display
+  /// renders, as an [_andList], each with its child's note after it.
+  ///
+  /// A step whose subject is the previous step's says it once: "ones balance
+  /// and swing", not "ones balance and ones swing". Only a plain repeat is
+  /// dropped — both steps state the same `who` (an assumed one keeps its
+  /// marker), are taxonomy figures, and both lines begin with that subject — so
+  /// a line the subject does not lead, or one worded by an override that does
+  /// not start with it, is left whole. Display only: the canonical render
+  /// joins every step in full.
+  String _sequenceLine(
+    List<Figure> children,
+    List<String> lines,
+    Dialect dialect, {
+    required bool canonicalizeDiscouragedTerms,
+  }) {
+    final shown = <String>[];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (i > 0) {
+        final prefix = _sharedSubjectPrefix(
+          children[i - 1],
+          children[i],
+          dialect,
+        );
+        if (prefix != null &&
+            lines[i - 1].startsWith(prefix) &&
+            line.startsWith(prefix) &&
+            line.length > prefix.length) {
+          line = line.substring(prefix.length);
+        }
+      }
+      shown.add(
+        _withChildNote(
+          line,
+          children[i],
+          dialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
+      );
+    }
+    return _andList(shown);
+  }
+
+  /// `"<subject> "` when [previous] and [step] are both taxonomy figures that
+  /// state the same subject, else null.
+  String? _sharedSubjectPrefix(Figure previous, Figure step, Dialect dialect) {
+    bool plain(Figure f) => !f.isCustom && !f.isContainer && !f.assumedSubject;
+    if (!plain(previous) || !plain(step)) return null;
+    final who = step.params['who'];
+    if (who is! String || who != previous.params['who']) return null;
+    final subject = _displaySubject(who, dialect);
+    return subject.isEmpty ? null : '$subject ';
+  }
+
   /// [line], the display text of [child], a side of a meanwhile or a part of
-  /// a modifier, with [child]'s own note after it in brackets: `robins
+  /// a modifier or sequence, with [child]'s own note after it in brackets: `robins
   /// allemande right once (1 1/2) while larks orbit`. A top-level figure's
   /// note has a line of its own on every surface, but a child has no row of
   /// its own, so without this its note would be shown nowhere outside the
@@ -860,6 +966,25 @@ class FigureRenderer {
           ),
       ];
       return rendered.join(' while ');
+    }
+    if (figure.isSequence) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return sequenceMove;
+      return _sequenceLine(
+        children,
+        [
+          for (final child in children)
+            _renderGerundive(
+              child,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+        ],
+        dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
     }
     return _renderGerundive(
       figure,

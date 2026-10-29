@@ -23,6 +23,7 @@ import '../../l10n/app_localizations.dart';
 const Set<String> mappedValidationCodes = {
   'phrase_overflow',
   'phrase_underflow',
+  'sequence_exceeds_phrase',
   'orphaned_alt',
   'empty_substitution',
   'dialect_collision',
@@ -65,6 +66,13 @@ String? _localizedValidation(
       final expected = data['expected'];
       return (actual is int && expected is int)
           ? l10n.validationPhraseBeatMismatch(actual, expected)
+          : null;
+    case 'sequence_exceeds_phrase':
+      final position = data['position'];
+      final actual = data['actual'];
+      final limit = data['limit'];
+      return (position is int && actual is int && limit is int)
+          ? l10n.validationSequenceExceedsPhrase(position, actual, limit)
           : null;
     case 'orphaned_alt':
       final position = data['position'];

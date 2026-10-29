@@ -3442,6 +3442,75 @@ void main() {
       expect(find.text('Could not load the dance.'), findsOneWidget);
     });
 
+    testWidgets('Retry reloads the editor from scratch', (tester) async {
+      final failer = _FailOneChoreographersSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+          closeOnTearDown: false,
+        ),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Chase the Squirrel',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+
+      failer.arm();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await tester.pumpAndSettle();
+      expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+      expect(find.text('Could not load the dance.'), findsOneWidget);
+      expect(find.byType(TextFormField), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load the dance.'), findsNothing);
+      expect(
+        find.widgetWithText(TextFormField, 'Chase the Squirrel'),
+        findsOneWidget,
+        reason: 'one title field with the stored title, not two',
+      );
+    });
+
+    testWidgets('Retry after a mid-edit stream error keeps the typed draft', (
+      tester,
+    ) async {
+      final failer = _FailOneChoreographersSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+          closeOnTearDown: false,
+        ),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Typed Title',
+      );
+      failer.arm();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      await tester.pumpAndSettle();
+      expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+      expect(find.text('Could not load the dance.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load the dance.'), findsNothing);
+      expect(find.text('Typed Title'), findsOneWidget);
+    });
+
     testWidgets('a subsequent write recovers the editor after a stream error', (
       tester,
     ) async {

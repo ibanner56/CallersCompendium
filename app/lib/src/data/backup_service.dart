@@ -808,10 +808,11 @@ class BackupService {
   }
 }
 
-/// Suggested filename for an exported backup, dated (UTC) so backups sort and
-/// are easy to tell apart, e.g. `callers-compendium-backup-2026-07-15.json`.
+/// Suggested filename for an exported backup, dated in the device's local time
+/// (the day the user took it, not the UTC day) so backups sort and are easy to
+/// tell apart, e.g. `callers-compendium-backup-2026-07-15.json`.
 String backupFileName(DateTime when) {
-  final d = when.toUtc();
+  final d = when.toLocal();
   String two(int n) => n.toString().padLeft(2, '0');
   return 'callers-compendium-backup-${d.year}-${two(d.month)}-${two(d.day)}.json';
 }

@@ -683,6 +683,42 @@ void main() {
       expect(find.text('larks finish on the left'), findsOneWidget);
     });
 
+    testWidgets('a tap outside keeps the dialog once text is typed', (
+      tester,
+    ) async {
+      await pump(tester);
+      await search(tester, 'swing');
+      await tester.tap(find.byKey(const ValueKey('glossary-entry-swing')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-edit')));
+      await tester.pumpAndSettle();
+
+      // Untouched, the barrier still closes it.
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('glossary-notes-field')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        'Larks finish on the left',
+      );
+      await tester.pump();
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        findsOneWidget,
+      );
+      expect(find.text('Larks finish on the left'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('glossary-notes-field')), findsNothing);
+    });
+
     testWidgets('a note too long to store says so and is not saved', (
       tester,
     ) async {

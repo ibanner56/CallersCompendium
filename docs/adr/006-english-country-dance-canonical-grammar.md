@@ -195,7 +195,7 @@ homonymous records are especially welcome to say so.
 | **Selector** | A token naming dancers: `partners`, `neighbors`, `ones`, `firstCorners`, `role1s`, ... |
 | **Role-neutral** | Stored dances use `role1`/`role2`. Men/women, larks/robins, gents/ladies, or positional terms are applied only when the dance is displayed. |
 | **Unspecified** | "The source did not say." A real stored value, different from any concrete default. |
-| **Container** | A structural figure that groups other figures. There are only two (see §5.6). |
+| **Container** | A structural figure that groups other figures. This proposal uses two of the app's three (see §5.6). |
 | **Defined** / **Open** | A defined movement has parameters and a draft display. An open movement doesn't yet, and is listed in §7.6. |
 
 ## 5. Design principles
@@ -232,7 +232,8 @@ dance whose source was silent must not appear to have said "right".
 "Set and turn single", "cross and cast", "right-hand turn, then left", "star
 right and back by the left", "circle left and right", and "balance and
 swing" are all stored as **two adjacent figures in order**. There is no
-special combined movement and no "sequence" container. Values are not copied
+special combined movement, and this proposal does not use the app's
+`sequence` container (§5.6) for them. Values are not copied
 from the first figure to the second unless the source states them. "Back by
 the left" does not imply the same number of places as the first star unless
 the source says so.
@@ -254,7 +255,16 @@ not *how long*.
 
 ### 5.6 Two structural containers, no more
 
-The app has two containers, shared across dance forms:
+> **Update (October 2026).** Since this proposal circulated, the app has
+> gained a third container for contra, `sequence`: two to four figures danced
+> in order and shown on one line ("ones balance and swing"), mainly so that an
+> ordered run can be one side of a `meanwhile`. It was added at the
+> maintainer's request. It follows the same nesting rule as the other two and
+> must fit one phrase; [domain-model.md](../design/domain-model.md) specifies
+> it. The ECD grammar proposed here still records ordered pairs as adjacent
+> figures (§5.4) and uses only the two containers below.
+
+The ECD grammar uses two containers, shared across dance forms:
 
 - **`meanwhile`**: two or more figures that genuinely happen **at the same
   time**, e.g. "1s cast down **as** 2s lead up". Displayed joined by
@@ -263,9 +273,9 @@ The app has two containers, shared across dance forms:
   as "*X*, *Y*-ing", e.g. "up a double and back, *bending the line*".
 
 Both hold 2–6 child figures, share one authoritative beat count, and may be
-nested only one level (a `meanwhile` inside a `modifier` or the reverse).
-Neither means "and then": ordinary sequence is just the order of figures in
-the list. The container contracts are specified in
+nested only one level (a container inside one of another kind, such as a
+`meanwhile` inside a `modifier`). Neither means "and then": ordinary sequence
+is just the order of figures in the list. The container contracts are specified in
 [domain-model.md](../design/domain-model.md).
 
 A `meanwhile` is used only when the source states concurrency, for example

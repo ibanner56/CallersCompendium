@@ -12,6 +12,7 @@ import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/require_event_date_for_history_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
+import '../../data/show_performed_toggles_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
 import '../../data/venue_call_count_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
@@ -192,6 +193,14 @@ class _ProgramSectionState extends State<ProgramSection> {
     await persistSetting(repos.settings, kRequirePerformedForHistoryKey, value);
   }
 
+  Future<void> _onShowPerformedTogglesChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern: flip the live notifier so an
+    // open program view adds or drops its row toggles immediately, then persist.
+    ShowPerformedTogglesScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kShowPerformedTogglesKey, value);
+  }
+
   Future<void> _onRequireEventDateForHistoryChanged(bool value) async {
     // Same instant-notifier-then-persist pattern as "Require mark performed":
     // every surface reading calling history follows the flip immediately.
@@ -237,6 +246,8 @@ class _ProgramSectionState extends State<ProgramSection> {
       onAutoCommitChanged: _onAutoCommitChanged,
       requirePerformedForHistory: RequirePerformedForHistoryScope.of(context),
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
+      showPerformedToggles: ShowPerformedTogglesScope.of(context),
+      onShowPerformedTogglesChanged: _onShowPerformedTogglesChanged,
       requireEventDateForHistory: RequireEventDateForHistoryScope.of(context),
       onRequireEventDateForHistoryChanged: _onRequireEventDateForHistoryChanged,
       trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
@@ -268,6 +279,8 @@ class _ProgramView extends StatelessWidget {
     required this.onAutoCommitChanged,
     required this.requirePerformedForHistory,
     required this.onRequirePerformedForHistoryChanged,
+    required this.showPerformedToggles,
+    required this.onShowPerformedTogglesChanged,
     required this.requireEventDateForHistory,
     required this.onRequireEventDateForHistoryChanged,
     required this.trackHistoryForAllCallers,
@@ -301,6 +314,8 @@ class _ProgramView extends StatelessWidget {
 
   final bool requirePerformedForHistory;
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
+  final bool showPerformedToggles;
+  final ValueChanged<bool> onShowPerformedTogglesChanged;
   final bool requireEventDateForHistory;
   final ValueChanged<bool> onRequireEventDateForHistoryChanged;
   final bool trackHistoryForAllCallers;
@@ -387,6 +402,14 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(
             l10n.settingsGeneralRequirePerformedForHistorySubtitle,
           ),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-show-performed-toggles'),
+          value: showPerformedToggles,
+          onChanged: onShowPerformedTogglesChanged,
+          title: Text(l10n.settingsGeneralShowPerformedTogglesTitle),
+          subtitle: Text(l10n.settingsGeneralShowPerformedTogglesSubtitle),
           isThreeLine: true,
         ),
         SwitchListTile(

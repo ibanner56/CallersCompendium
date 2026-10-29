@@ -117,4 +117,22 @@ void main() {
     expect(json.name, 'Rory_O_More.json');
     expect(ccshare.json, json.json);
   });
+
+  group('danceShareBundleFileName (OUT-8)', () {
+    test('keeps Unicode letters and drops a trailing underscore', () {
+      expect(
+        danceShareBundleFileName('Contredanse à la française'),
+        'Contredanse_à_la_française.ccshare',
+      );
+      expect(danceShareBundleFileName('春のコントラ'), '春のコントラ.ccshare');
+      expect(
+        danceShareBundleFileName("Ain't She Sweet?", extension: 'json'),
+        'Ain_t_She_Sweet.json',
+      );
+    });
+
+    test('falls back to "dance" when no letter or digit remains', () {
+      expect(danceShareBundleFileName('?!'), 'dance.ccshare');
+    });
+  });
 }
