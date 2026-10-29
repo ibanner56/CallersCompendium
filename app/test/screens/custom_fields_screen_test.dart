@@ -353,7 +353,10 @@ void main() {
     testWidgets('a delete that fails for another reason says so', (
       tester,
     ) async {
-      final failer = FailOnceInterceptor('custom_field_defs', failUpdates: true);
+      final failer = FailOnceInterceptor(
+        'custom_field_defs',
+        failUpdates: true,
+      );
       final repos = CompendiumRepositories(
         openWidgetTestDatabase(
           executor: NativeDatabase.memory().interceptWith(failer),

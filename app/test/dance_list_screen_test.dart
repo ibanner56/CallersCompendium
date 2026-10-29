@@ -2007,10 +2007,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('load-error-retry')));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Something went wrong running the search.'),
-      findsNothing,
-    );
+    expect(find.text('Something went wrong running the search.'), findsNothing);
     expect(find.byType(DanceListTile), findsOneWidget);
   });
 

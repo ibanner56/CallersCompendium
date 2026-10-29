@@ -3632,7 +3632,11 @@ void main() {
           final failer = FailOnceInterceptor('review_queue')..arm();
           await pumpPaired(tester, interceptor: failer);
 
-          expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+          expect(
+            failer.fired,
+            isTrue,
+            reason: 'the injected failure must fire',
+          );
           expect(
             find.byKey(const ValueKey('sync-conflicts-error')),
             findsOneWidget,

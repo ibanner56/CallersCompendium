@@ -52,5 +52,4 @@ class FailOnceInterceptor extends drift.QueryInterceptor {
     }
     return executor.runUpdate(statement, args);
   }
-
 }
