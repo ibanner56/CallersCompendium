@@ -20,7 +20,9 @@ class _Host extends StatefulWidget {
     required this.dialect,
     required this.tags,
     this.onChanged,
+    this.textScale = 1.0,
   });
+  final double textScale;
   final BuilderGroup root;
   final List<Tag> tags;
   final VoidCallback? onChanged;
@@ -38,6 +40,12 @@ class _HostState extends State<_Host> {
     return MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(widget.textScale)),
+        child: child!,
+      ),
       home: Scaffold(
         body: SingleChildScrollView(
           child: AdvancedQueryBuilder(
@@ -79,6 +87,7 @@ Future<void> _pump(
   // the state in which "Has tag" is not offered.
   List<Tag> tags = const [],
   VoidCallback? onChanged,
+  double textScale = 1.0,
 }) async {
   await setScreenSize(tester, screenSize);
   await tester.pumpWidget(
@@ -89,6 +98,7 @@ Future<void> _pump(
       dialect: dialect ?? Dialect.larksRobins,
       tags: tags,
       onChanged: onChanged,
+      textScale: textScale,
     ),
   );
   await tester.pumpAndSettle();
@@ -943,6 +953,52 @@ void _paramChoiceTests() {
       await tester.pumpAndSettle();
       expect(find.text('rightDiagonal'), findsNothing);
       expect(find.text('right diagonal'), findsWidgets);
+    });
+  });
+
+  // UX4-3b: the group headers were a Row with an unflexed label, so at large
+  // text the label pushed the row past the edge of a phone.
+  group('group headers fit a phone at large text (UX4-3b)', () {
+    testWidgets('condition group header at 360px, 2x text', (tester) async {
+      final inner = BuilderGroup();
+      final root = BuilderGroup(children: [inner]);
+      await _pump(
+        tester,
+        root: root,
+        screenSize: const Size(360, 900),
+        textScale: 2.0,
+      );
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getRect(find.byKey(ValueKey('remove-${inner.id}'))).right,
+        lessThanOrEqualTo(360),
+      );
+    });
+
+    testWidgets('figure group header at 360px, 2x text', (tester) async {
+      final group = BuilderFigureGroup(
+        kind: GroupKind.any,
+        children: [BuilderFigure(move: 'swing')],
+      );
+      await _pump(
+        tester,
+        root: BuilderGroup(
+          children: [BuilderThen(before: group, after: BuilderFigure())],
+        ),
+        screenSize: const Size(360, 900),
+        textScale: 2.0,
+      );
+      // The leaf rows' own section dropdown overflows at 2x on a phone; that
+      // is outside UX4-3b (group headers) and is tracked as a follow-up, so
+      // only the header's controls are asserted here.
+      while (tester.takeException() != null) {}
+      for (final key in ['fig-group-kind-${group.id}', 'flatten-${group.id}']) {
+        expect(
+          tester.getRect(find.byKey(ValueKey(key))).right,
+          lessThanOrEqualTo(360),
+          reason: key,
+        );
+      }
     });
   });
 }

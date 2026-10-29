@@ -441,29 +441,32 @@ class _RailSearchButton extends StatelessWidget {
     final hint = isApple ? '\u2318K' : 'Ctrl K';
     return Tooltip(
       message: l10n.navSearchTooltip(hint),
-      child: InkWell(
-        key: const ValueKey('global-search-button'),
-        onTap: onPressed,
-        borderRadius: AppShapes.borderRadiusLarge,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: scheme.secondaryContainer,
-                  shape: BoxShape.circle,
+      child: Semantics(
+        button: true,
+        child: InkWell(
+          key: const ValueKey('global-search-button'),
+          onTap: onPressed,
+          borderRadius: AppShapes.borderRadiusLarge,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: scheme.secondaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.search, color: scheme.onSecondaryContainer),
                 ),
-                child: Icon(Icons.search, color: scheme.onSecondaryContainer),
-              ),
-              const SizedBox(height: 4),
-              Text(l10n.navSearch, style: theme.textTheme.labelMedium),
-              const SizedBox(height: 2),
-              _ShortcutHint(hint),
-            ],
+                const SizedBox(height: 4),
+                Text(l10n.navSearch, style: theme.textTheme.labelMedium),
+                const SizedBox(height: 2),
+                _ShortcutHint(hint),
+              ],
+            ),
           ),
         ),
       ),
@@ -505,30 +508,33 @@ class _RailHelpButton extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Tooltip(
       message: tooltip,
-      child: InkWell(
-        key: const ValueKey('user-guide-button'),
-        onTap: onPressed,
-        borderRadius: AppShapes.borderRadiusLarge,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: scheme.tertiaryContainer,
-                  shape: BoxShape.circle,
+      child: Semantics(
+        button: true,
+        child: InkWell(
+          key: const ValueKey('user-guide-button'),
+          onTap: onPressed,
+          borderRadius: AppShapes.borderRadiusLarge,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: scheme.tertiaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    selected ? Icons.help : Icons.help_outline,
+                    color: scheme.onTertiaryContainer,
+                  ),
                 ),
-                child: Icon(
-                  selected ? Icons.help : Icons.help_outline,
-                  color: scheme.onTertiaryContainer,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(label, style: theme.textTheme.labelMedium),
-            ],
+                const SizedBox(height: 4),
+                Text(label, style: theme.textTheme.labelMedium),
+              ],
+            ),
           ),
         ),
       ),

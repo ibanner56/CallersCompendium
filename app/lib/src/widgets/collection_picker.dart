@@ -19,6 +19,7 @@ import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
+import '../theme/app_spacing.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
 import 'dance_list_tile.dart';
@@ -1014,20 +1015,25 @@ class _CollectionPickerState extends State<CollectionPicker> {
           label: widget.rowAction == PickerRowAction.replace
               ? l10n.collectionPickerReplaceSemantic(entry.dance.title)
               : l10n.collectionPickerAddSemantic(entry.dance.title),
-          child: Stack(
+          // The tile takes the width left over by the row's action buttons
+          // rather than having them painted over its title (UX4-5): at 360px
+          // the buttons used to cover up to ~130px of the first line.
+          child: Row(
             children: [
-              PreviewHoldListener(
-                onPreviewStarted: widget.onPreviewDanceStarted == null
-                    ? null
-                    : () => widget.onPreviewDanceStarted!(entry.dance.id),
-                onPreviewEnded: widget.onPreviewDanceEnded == null
-                    ? null
-                    : () => widget.onPreviewDanceEnded!(entry.dance.id),
-                child: DanceListTile(
-                  key: ValueKey('picker-tile-${entry.dance.id}'),
-                  entry: entry,
-                  onTap: () => _handleAdd(entry.dance.id),
-                  showChevron: false,
+              Expanded(
+                child: PreviewHoldListener(
+                  onPreviewStarted: widget.onPreviewDanceStarted == null
+                      ? null
+                      : () => widget.onPreviewDanceStarted!(entry.dance.id),
+                  onPreviewEnded: widget.onPreviewDanceEnded == null
+                      ? null
+                      : () => widget.onPreviewDanceEnded!(entry.dance.id),
+                  child: DanceListTile(
+                    key: ValueKey('picker-tile-${entry.dance.id}'),
+                    entry: entry,
+                    onTap: () => _handleAdd(entry.dance.id),
+                    showChevron: false,
+                  ),
                 ),
               ),
               // Persistent in-program marker: visible whenever the dance
@@ -1038,69 +1044,58 @@ class _CollectionPickerState extends State<CollectionPicker> {
               // signals something different — this one says "is in the
               // program", the button says "you just tapped add".
               if (inProgramCount > 0)
-                Positioned(
-                  top: 12,
-                  right: widget.onViewDanceDetails == null ? 56 : 104,
-                  child: Semantics(
-                    label: inProgramCount > 1
-                        ? l10n.collectionPickerInProgramCountSemantic(
-                            entry.dance.title,
-                            inProgramCount,
-                          )
-                        : l10n.collectionPickerInProgramSemantic(
-                            entry.dance.title,
-                          ),
-                    excludeSemantics: true,
-                    child: Row(
-                      key: ValueKey('picker-in-program-${entry.dance.id}'),
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (inProgramCount > 1)
-                          Text(
-                            '$inProgramCount',
-                            style: Theme.of(context).textTheme.labelMedium,
-                          ),
-                        const Icon(Icons.playlist_add_check, size: 20),
-                      ],
-                    ),
+                Semantics(
+                  label: inProgramCount > 1
+                      ? l10n.collectionPickerInProgramCountSemantic(
+                          entry.dance.title,
+                          inProgramCount,
+                        )
+                      : l10n.collectionPickerInProgramSemantic(
+                          entry.dance.title,
+                        ),
+                  excludeSemantics: true,
+                  child: Row(
+                    key: ValueKey('picker-in-program-${entry.dance.id}'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (inProgramCount > 1)
+                        Text(
+                          '$inProgramCount',
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                      const Icon(Icons.playlist_add_check, size: 20),
+                    ],
                   ),
                 ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  key: ValueKey('picker-add-${entry.dance.id}'),
-                  tooltip: widget.rowAction == PickerRowAction.replace
-                      ? l10n.collectionPickerReplaceTooltip(entry.dance.title)
-                      : confirming
-                      ? l10n.collectionPickerAddedTooltip(entry.dance.title)
-                      : l10n.collectionPickerAddTooltip(entry.dance.title),
-                  // Both this button and the persistent marker above use
-                  // shape changes, not colour changes — colour is never the
-                  // only signal (`docs/design/ux.md` §4, WCAG 1.4.1). The
-                  // button stays enabled throughout — a dance may legitimately
-                  // appear in a program more than once.
-                  icon: Icon(
-                    widget.rowAction == PickerRowAction.replace
-                        ? Icons.swap_horiz
-                        : confirming
-                        ? Icons.check_circle
-                        : Icons.add_circle_outline,
-                  ),
-                  onPressed: () => _handleAdd(entry.dance.id),
-                ),
-              ),
               if (widget.onViewDanceDetails != null)
-                Positioned(
-                  top: 8,
-                  right: 56,
-                  child: IconButton(
-                    key: ValueKey('picker-details-${entry.dance.id}'),
-                    tooltip: l10n.viewDetails,
-                    icon: const Icon(Icons.visibility_outlined),
-                    onPressed: () => widget.onViewDanceDetails!(entry.dance.id),
-                  ),
+                IconButton(
+                  key: ValueKey('picker-details-${entry.dance.id}'),
+                  tooltip: l10n.viewDetails,
+                  icon: const Icon(Icons.visibility_outlined),
+                  onPressed: () => widget.onViewDanceDetails!(entry.dance.id),
                 ),
+              IconButton(
+                key: ValueKey('picker-add-${entry.dance.id}'),
+                tooltip: widget.rowAction == PickerRowAction.replace
+                    ? l10n.collectionPickerReplaceTooltip(entry.dance.title)
+                    : confirming
+                    ? l10n.collectionPickerAddedTooltip(entry.dance.title)
+                    : l10n.collectionPickerAddTooltip(entry.dance.title),
+                // Both this button and the persistent marker above use
+                // shape changes, not colour changes — colour is never the
+                // only signal (`docs/design/ux.md` §4, WCAG 1.4.1). The
+                // button stays enabled throughout — a dance may legitimately
+                // appear in a program more than once.
+                icon: Icon(
+                  widget.rowAction == PickerRowAction.replace
+                      ? Icons.swap_horiz
+                      : confirming
+                      ? Icons.check_circle
+                      : Icons.add_circle_outline,
+                ),
+                onPressed: () => _handleAdd(entry.dance.id),
+              ),
+              const SizedBox(width: AppSpacing.xs),
             ],
           ),
         );
@@ -1169,36 +1164,39 @@ class _CollectionPickerState extends State<CollectionPicker> {
           label: widget.rowAction == PickerRowAction.replace
               ? l10n.collectionPickerReplaceSemantic(result.name)
               : l10n.collectionPickerAddSemantic(result.name),
-          child: Stack(
+          // Same layout as the local rows: the trailing icons take their own
+          // width instead of covering the title (UX4-5).
+          child: Row(
             children: [
-              PreviewHoldListener(
-                onPreviewStarted:
-                    _onlineImporting || widget.onPreviewOnlineStarted == null
-                    ? null
-                    : () => widget.onPreviewOnlineStarted!(result),
-                onPreviewEnded: widget.onPreviewOnlineEnded == null
-                    ? null
-                    : () => widget.onPreviewOnlineEnded!(result),
-                child: OnlineResultTile(
-                  key: ValueKey(
-                    'picker-online-result-${result.source.name}-${result.id}',
-                  ),
-                  result: result,
-                  onTap: _onlineImporting
+              Expanded(
+                child: PreviewHoldListener(
+                  onPreviewStarted:
+                      _onlineImporting || widget.onPreviewOnlineStarted == null
                       ? null
-                      : () => _importOnlineResult(result),
+                      : () => widget.onPreviewOnlineStarted!(result),
+                  onPreviewEnded: widget.onPreviewOnlineEnded == null
+                      ? null
+                      : () => widget.onPreviewOnlineEnded!(result),
+                  child: OnlineResultTile(
+                    key: ValueKey(
+                      'picker-online-result-${result.source.name}-${result.id}',
+                    ),
+                    result: result,
+                    onTap: _onlineImporting
+                        ? null
+                        : () => _importOnlineResult(result),
+                  ),
                 ),
               ),
               if (_onlineAddedIds.contains((
                 source: result.source,
                 id: result.id,
               )))
-                Positioned(
-                  top: 12,
-                  right: widget.onViewOnlineDetails == null ? 16 : 56,
-                  child: IgnorePointer(
-                    child: Tooltip(
-                      message: l10n.collectionPickerAddedTooltip(result.name),
+                IgnorePointer(
+                  child: Tooltip(
+                    message: l10n.collectionPickerAddedTooltip(result.name),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xs),
                       child: Icon(
                         key: ValueKey(
                           'picker-online-added-${result.source.name}-${result.id}',
@@ -1209,20 +1207,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   ),
                 ),
               if (widget.onViewOnlineDetails != null)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: IconButton(
-                    key: ValueKey(
-                      'picker-online-details-${result.source.name}-${result.id}',
-                    ),
-                    tooltip: l10n.viewDetails,
-                    icon: const Icon(Icons.visibility_outlined),
-                    onPressed: _onlineImporting
-                        ? null
-                        : () => widget.onViewOnlineDetails!(result),
+                IconButton(
+                  key: ValueKey(
+                    'picker-online-details-${result.source.name}-${result.id}',
                   ),
+                  tooltip: l10n.viewDetails,
+                  icon: const Icon(Icons.visibility_outlined),
+                  onPressed: _onlineImporting
+                      ? null
+                      : () => widget.onViewOnlineDetails!(result),
                 ),
+              const SizedBox(width: AppSpacing.xs),
             ],
           ),
         );
