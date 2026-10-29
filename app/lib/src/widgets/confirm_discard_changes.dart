@@ -28,11 +28,12 @@ enum DiscardChangesChoice {
 /// dialect editor offers. The caller does the saving: this only reports the
 /// choice, so a save that fails validation can keep the user in the editor.
 ///
-/// **Layout.** Without [saveLabel], the actions are Keep editing (text) and
-/// Discard (filled, in the destructive style #1919 gave it). With
-/// [saveLabel], they are Cancel (text), Discard (text) and Save (filled).
-/// Which button is primary is the open question UX2-2 / D-1; when it is
-/// decided, only this function's layout changes, not its callers.
+/// **Layout** (maintainer decision D-1, UX2-2): the safe choice is the filled
+/// one and the destructive choice is red text. Without [saveLabel], the actions
+/// are Discard (red text) and Keep editing (filled). With [saveLabel], they are
+/// Cancel (text), Discard (red text) and Save (filled): saving is also safe,
+/// so it keeps the fill it had. Only this function's layout encodes that, not
+/// its callers.
 ///
 /// Returns [DiscardChangesChoice.keepEditing] when the dialog is dismissed
 /// without a choice.
@@ -55,37 +56,37 @@ Future<DiscardChangesChoice> confirmDiscardChanges(
     builder: (dialogContext) {
       void choose(DiscardChangesChoice choice) =>
           Navigator.of(dialogContext).pop(choice);
-      final discardText = Text(discardLabel ?? l10n.commonDiscard);
+      final discardButton = TextButton(
+        key: discardKey,
+        style: destructiveTextButtonStyle(Theme.of(dialogContext).colorScheme),
+        onPressed: () => choose(DiscardChangesChoice.discard),
+        child: Text(discardLabel ?? l10n.commonDiscard),
+      );
       return AlertDialog(
         key: dialogKey,
         title: Text(title ?? l10n.commonDiscardChangesTitle),
         content: Text(message ?? l10n.commonDiscardChangesBody),
         actions: [
-          TextButton(
-            key: keepEditingKey,
-            onPressed: () => choose(DiscardChangesChoice.keepEditing),
-            child: Text(keepEditingLabel ?? l10n.commonKeepEditing),
-          ),
           if (offersSave) ...[
             TextButton(
-              key: discardKey,
-              onPressed: () => choose(DiscardChangesChoice.discard),
-              child: discardText,
+              key: keepEditingKey,
+              onPressed: () => choose(DiscardChangesChoice.keepEditing),
+              child: Text(keepEditingLabel ?? l10n.commonKeepEditing),
             ),
+            discardButton,
             FilledButton(
               key: saveKey,
               onPressed: () => choose(DiscardChangesChoice.save),
               child: Text(saveLabel),
             ),
-          ] else
+          ] else ...[
+            discardButton,
             FilledButton(
-              key: discardKey,
-              style: destructiveFilledButtonStyle(
-                Theme.of(dialogContext).colorScheme,
-              ),
-              onPressed: () => choose(DiscardChangesChoice.discard),
-              child: discardText,
+              key: keepEditingKey,
+              onPressed: () => choose(DiscardChangesChoice.keepEditing),
+              child: Text(keepEditingLabel ?? l10n.commonKeepEditing),
             ),
+          ],
         ],
       );
     },

@@ -36,6 +36,7 @@ import '../diagnostics/error_log.dart';
 import '../search/facet_labels.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/figure_diff_view.dart';
+import '../widgets/notice_card.dart';
 import 'dance_editor_screen.dart';
 import 'import_shorthand_seed_screen.dart';
 import 'published_collection_catalog_screen.dart';
@@ -3314,55 +3315,38 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
   }
 
-  /// An accessible advisory banner shown when a **shared** bundle carries more
-  /// than [kSharedBundleSoftCapEntities] entities (issue #432). It is a soft
-  /// warning, not a block: the Import button stays enabled and the user can
-  /// still proceed. Distinct from the overwrite warning (which uses the error
-  /// palette) — this uses the tertiary palette so "unusually large" reads as
-  /// caution, not error.
   /// The single batch-level notice shown when a connection failure ended the
   /// title lookups early ([TitleListResolution.stoppedAfterConnectionFailure]);
   /// the per-row reasons then read "check your connection" instead of
   /// repeating the explanation under every unsearched title.
   Widget _buildTitleListConnectionBanner(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     final message = l10n.importTitleListConnectionBanner;
     return Semantics(
       container: true,
       liveRegion: true,
       label: l10n.importReviewWarningPrefix(message),
-      child: Container(
-        key: const ValueKey('import-titles-connection-banner'),
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: scheme.tertiaryContainer,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: ExcludeSemantics(
-          child: Row(
-            children: [
-              Icon(Icons.wifi_off, color: scheme.onTertiaryContainer),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onTertiaryContainer,
-                  ),
-                ),
-              ),
-            ],
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: NoticeCard(
+            key: const ValueKey('import-titles-connection-banner'),
+            kind: NoticeKind.warning,
+            icon: Icons.wifi_off,
+            child: Text(message),
           ),
         ),
       ),
     );
   }
 
+  /// An accessible advisory banner shown when a **shared** bundle carries more
+  /// than [kSharedBundleSoftCapEntities] entities (issue #432). It is a soft
+  /// warning, not a block: the Import button stays enabled and the user can
+  /// still proceed. Like the overwrite warning it is a non-blocking notice, so
+  /// it uses the warning (tertiary) palette, not the error one.
   Widget _buildSoftCapWarning(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     final message = l10n.sharedImportSoftCapWarning(
       _effectiveSharedBundle!.entityCount,
     );
@@ -3370,29 +3354,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       container: true,
       liveRegion: true,
       label: l10n.importReviewWarningPrefix(message),
-      child: Container(
-        key: const ValueKey('import-soft-cap-warning'),
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: scheme.tertiaryContainer,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: ExcludeSemantics(
-          child: Row(
-            children: [
-              Icon(Icons.info_outline, color: scheme.onTertiaryContainer),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onTertiaryContainer,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: NoticeCard(
+            key: const ValueKey('import-soft-cap-warning'),
+            kind: NoticeKind.warning,
+            icon: Icons.info_outline,
+            child: Text(
+              message,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ),
@@ -3461,34 +3433,18 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// count to screen readers as a warning.
   Widget _buildOverwriteWarning(BuildContext context, int count) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     final message = l10n.importReviewOverwriteWarning(count);
     return Semantics(
       container: true,
       liveRegion: true,
       label: l10n.importReviewWarningPrefix(message),
-      child: Container(
-        key: const ValueKey('import-overwrite-warning'),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: scheme.errorContainer,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: ExcludeSemantics(
-          child: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onErrorContainer,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+      child: ExcludeSemantics(
+        child: NoticeCard(
+          key: const ValueKey('import-overwrite-warning'),
+          kind: NoticeKind.warning,
+          child: Text(
+            message,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -3500,7 +3456,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// comes from [importIssueMessage], never the issue's English `message`.
   Widget _buildBatchWarnings(BuildContext context, List<ImportIssue> warnings) {
     final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     final seen = <String>{};
     final messages = [
       for (final w in warnings)
@@ -3510,41 +3465,22 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       container: true,
       liveRegion: true,
       label: l10n.importReviewWarningPrefix(messages.join(' ')),
-      child: Card(
-        key: const ValueKey('import-batch-warnings'),
-        color: scheme.errorContainer,
-        child: ExcludeSemantics(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: scheme.onErrorContainer,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (final message in messages)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            messages.length == 1 ? message : '• $message',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: scheme.onErrorContainer,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                    ],
+      child: ExcludeSemantics(
+        child: NoticeCard(
+          key: const ValueKey('import-batch-warnings'),
+          kind: NoticeKind.warning,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final message in messages)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    messages.length == 1 ? message : '• $message',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -3553,25 +3489,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   Widget _buildBatchErrors(BuildContext context, List<ImportError> errors) {
     final l10n = AppLocalizations.of(context);
-    return Card(
+    return NoticeCard(
       key: const ValueKey('import-batch-errors'),
-      color: Theme.of(context).colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.importReviewBatchErrors(errors.length),
-              style: Theme.of(context).textTheme.labelLarge,
+      kind: NoticeKind.error,
+      title: l10n.importReviewBatchErrors(errors.length),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final e in errors)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('• ${importRecordErrorMessage(l10n, e)}'),
             ),
-            for (final e in errors)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text('• ${importRecordErrorMessage(l10n, e)}'),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }

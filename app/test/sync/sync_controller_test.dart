@@ -1903,7 +1903,7 @@ void main() {
       expect(admin.requests, isEmpty);
     });
 
-    test('a metered connection with Sync only on WiFi makes no request, and '
+    test('a metered connection with Sync only on Wi-Fi makes no request, and '
         'does not send the user to the setting', () async {
       admin = reflected();
       network.kind = SyncNetworkKind.metered;
