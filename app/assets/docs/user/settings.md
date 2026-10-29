@@ -510,6 +510,19 @@ without you choosing to.
 When an update is available, a dismissible banner points you to the release so you
 can read what's new before deciding.
 
+How you installed the app decides what Updates offers:
+
+- **Installed from an app store** (iOS, or Android through Google Play): the
+  store updates the app. Updates shows a note saying so, and the app never
+  checks for updates itself.
+- **Portable copy** (the Windows .zip or the Linux .tar.gz): the app checks as
+  usual, but instead of **Download & install update** it tells you to download
+  the new archive from the release. Tap the row (or **View release** on the
+  banner) to open the release page. Replace this copy with the new archive
+  yourself; the app doesn't unpack it for you.
+- **Everything else** (the Windows installer, the Linux AppImage, macOS, and the
+  Android APK from the Releases page) works as described below.
+
 Occasionally a version of the app reaches the end of its support, for example
 when a later release changes something older versions can't keep up with. If an
 update check finds that your version has an end-of-support date, a banner tells
@@ -521,7 +534,7 @@ the **Updates** section. The app remembers it, so it still appears when you're
 offline. Once you've updated, the notice goes away. Versions up to and including
 0.6.0-beta were released before these notices existed and can't show them.
 
-On **desktop**, once an update is found you can **Download & install update**: the
+On **desktop** (a portable copy excepted), once an update is found you can **Download & install update**: the
 app downloads it, verifies it hasn't been tampered with, then hands it to your
 system's installer to finish — it never replaces itself in place. On **macOS**,
 you first choose where to save the disk image. If you pick an existing file and

@@ -1,0 +1,9 @@
+{
+  "id": "plat-5-6-updater-knows-install-kind",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The app now knows how it was installed. Copies from the App Store, TestFlight or Google Play no longer look for updates (the store updates them), and Settings › Updates says so. If you run the Windows zip or the Linux tar.gz, the update message now tells you to download the new archive from the release, instead of offering an installer that would put a second copy on your computer."
+    ]
+  }
+}
