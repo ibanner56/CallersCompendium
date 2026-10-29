@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -22,6 +23,7 @@ _MANIFEST = """\
 """
 
 _VIEW = '<action android:name="android.intent.action.VIEW"/>'
+_SEND_NAME = "android.intent.action.SEND"
 _SEND = '<action android:name="android.intent.action.SEND"/>'
 _DEFAULT = '<category android:name="android.intent.category.DEFAULT"/>'
 _BROWSABLE = '<category android:name="android.intent.category.BROWSABLE"/>'
@@ -87,7 +89,8 @@ def _mutated_repo_manifest() -> None:
     rel = check.ANDROID_ROOT / "app/src/main/AndroidManifest.xml"
     text = (check.REPO_ROOT / rel).read_text(encoding="utf-8")
     needle = '<action android:name="android.intent.action.VIEW"/>'
-    assert text.count(needle) == 1, "expected one VIEW filter in the manifest"
+    views = text.count(needle)
+    assert views == 2, "expected the json and octet-stream VIEW filters"
     with tempfile.TemporaryDirectory() as tmp:
         dest = Path(tmp) / rel
         dest.parent.mkdir(parents=True)
@@ -95,10 +98,29 @@ def _mutated_repo_manifest() -> None:
             text.replace(needle, needle + "\n" + _BROWSABLE), encoding="utf-8"
         )
         errors = check.check(Path(tmp))
-        assert errors and str(rel) in errors[0], errors
+        # Both VIEW filters (json and the PLAT-4 octet-stream one) are caught.
+        assert len(errors) == views and str(rel) in errors[0], errors
         # A tree with no manifest at all is an error, not a silent pass.
         dest.unlink()
         assert check.check(Path(tmp)) != []
+
+
+def _octet_stream_filters() -> None:
+    # PLAT-4: a generic-typed .ccshare must reach the app, from Open with and
+    # from Share, on file:/content: URIs, and none of it may be BROWSABLE.
+    rel = check.ANDROID_ROOT / "app/src/main/AndroidManifest.xml"
+    root = ET.fromstring((check.REPO_ROOT / rel).read_text(encoding="utf-8"))
+    octet = "application/octet-stream"
+    seen: dict[str, set[str]] = {}
+    for filt in root.iter("intent-filter"):
+        mimes = {d.get(f"{check._NS}mimeType") for d in filt.findall("data")}
+        if octet not in mimes:
+            continue
+        assert check._BROWSABLE not in check._names(filt, "category")
+        for action in check._names(filt, "action"):
+            seen[action] = check.local_schemes(filt)
+    assert set(seen) == {check._VIEW, _SEND_NAME}, seen
+    assert seen[check._VIEW] == {"content", "file"}, seen
 
 
 def _repo() -> None:
@@ -111,6 +133,7 @@ def _repo() -> None:
 def main() -> int:
     _cases()
     _mutated_repo_manifest()
+    _octet_stream_filters()
     _repo()
     print("OK: all Android intent-filter guard tests passed")
     return 0

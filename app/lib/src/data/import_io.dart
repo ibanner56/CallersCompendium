@@ -237,15 +237,28 @@ Future<Uint8List?> pickImportUsrFile() async {
 }
 
 /// The file-type filter behind [pickImportFile].
+///
+/// **Android also accepts `application/octet-stream`** (PLAT-4). Android's
+/// picker filters by MIME type, not extension, and nothing on the device knows
+/// `.ccshare`, so a saved share file is usually typed as a generic binary and
+/// would be greyed out under `application/json` alone. The cost is that the
+/// picker then offers any file of an unknown type; the app tells the caller
+/// plainly when what they picked is not a share file, and nothing is imported
+/// before review. Other platforms keep the narrow filter: GTK treats
+/// `application/octet-stream` as a supertype of every file, so adding it there
+/// would show all files.
 @visibleForTesting
-XTypeGroup importJsonTypeGroup({bool? isLinux}) => XTypeGroup(
+XTypeGroup importJsonTypeGroup({bool? isLinux, bool? isAndroid}) => XTypeGroup(
   label: FileDialogLabels.current.fileDialogTypeCompendiumShare,
   extensions: pickerExtensions(['ccshare', 'json'], isLinux),
   uniformTypeIdentifiers: [
     'org.callerscompendium.compendiumApp.share',
     'public.json',
   ],
-  mimeTypes: ['application/json'],
+  mimeTypes: [
+    'application/json',
+    if (isAndroid ?? Platform.isAndroid) 'application/octet-stream',
+  ],
 );
 
 /// The file-type filter behind [pickImportUsrFile].

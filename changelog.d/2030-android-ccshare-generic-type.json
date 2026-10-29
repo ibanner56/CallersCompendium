@@ -1,0 +1,9 @@
+{
+  "id": "2030-android-ccshare-generic-type",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On Android, a saved `.ccshare` file can now be opened with Open with or picked from Settings › General › Import…, even when the phone labels it as a generic file. The app checks the file and says so if it isn't a share file."
+    ]
+  }
+}
