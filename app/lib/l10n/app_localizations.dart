@@ -10919,12 +10919,6 @@ abstract class AppLocalizations {
   /// **'Import undone.'**
   String get importReviewUndone;
 
-  /// Snackbar over the import result when its Undo fails (for example, a locked database). The import may not have been reversed; Undo can be tried again.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn’t undo the import. Check your collection, then try Undo again.'**
-  String get importReviewUndoFailed;
-
   /// Snackbar shown when committing a single record so it can be edited fails.
   ///
   /// In en, this message translates to:

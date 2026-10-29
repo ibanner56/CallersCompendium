@@ -2411,7 +2411,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
                           SnackBar(
                             key: const ValueKey('import-undo-failed'),
-                            content: Text(l10n.importReviewUndoFailed),
+                            content: Text(l10n.commonUndoFailed),
                           ),
                         );
                         return;

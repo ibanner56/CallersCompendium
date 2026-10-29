@@ -7394,10 +7394,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importReviewUndone => 'Import rückgängig gemacht.';
 
   @override
-  String get importReviewUndoFailed =>
-      'Der Import konnte nicht rückgängig gemacht werden. Prüfe deine Sammlung und versuche es dann noch einmal mit „Rückgängig“.';
-
-  @override
   String get importReviewEditError =>
       'Dieser Tanz konnte nicht zum Bearbeiten importiert werden.';
 

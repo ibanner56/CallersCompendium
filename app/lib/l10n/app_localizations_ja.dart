@@ -7011,10 +7011,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importReviewUndone => 'インポートを元に戻しました。';
 
   @override
-  String get importReviewUndoFailed =>
-      'インポートを元に戻せませんでした。コレクションを確認してから、もう一度「元に戻す」をお試しください。';
-
-  @override
   String get importReviewEditError => '編集用にそのダンスをインポートできませんでした。';
 
   @override

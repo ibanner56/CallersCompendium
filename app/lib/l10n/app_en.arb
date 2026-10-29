@@ -9404,10 +9404,6 @@
   "@importReviewUndone": {
     "description": "Snackbar confirming the import was undone."
   },
-  "importReviewUndoFailed": "Couldn’t undo the import. Check your collection, then try Undo again.",
-  "@importReviewUndoFailed": {
-    "description": "Snackbar over the import result when its Undo fails (for example, a locked database). The import may not have been reversed; Undo can be tried again."
-  },
   "importReviewEditError": "Couldn't import that dance to edit.",
   "@importReviewEditError": {
     "description": "Snackbar shown when committing a single record so it can be edited fails."

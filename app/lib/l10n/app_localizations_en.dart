@@ -7281,10 +7281,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importReviewUndone => 'Import undone.';
 
   @override
-  String get importReviewUndoFailed =>
-      'Couldn’t undo the import. Check your collection, then try Undo again.';
-
-  @override
   String get importReviewEditError => 'Couldn\'t import that dance to edit.';
 
   @override

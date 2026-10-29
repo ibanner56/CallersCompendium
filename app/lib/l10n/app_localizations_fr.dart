@@ -7409,10 +7409,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importReviewUndone => 'Import annulé.';
 
   @override
-  String get importReviewUndoFailed =>
-      'Impossible d\'annuler l\'import. Vérifiez votre collection, puis réessayez « Annuler ».';
-
-  @override
   String get importReviewEditError =>
       'Impossible d’importer cette danse à modifier.';
 

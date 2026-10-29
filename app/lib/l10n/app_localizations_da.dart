@@ -7310,10 +7310,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importReviewUndone => 'Import fortrudt.';
 
   @override
-  String get importReviewUndoFailed =>
-      'Importen kunne ikke fortrydes. Tjek din samling, og prøv derefter »Fortryd« igen.';
-
-  @override
   String get importReviewEditError =>
       'Kunne ikke importere den dans til redigering.';
 

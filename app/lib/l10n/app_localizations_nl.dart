@@ -7365,10 +7365,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importReviewUndone => 'Import ongedaan gemaakt.';
 
   @override
-  String get importReviewUndoFailed =>
-      'De import kon niet ongedaan worden gemaakt. Controleer je collectie en probeer ‘Ongedaan maken’ daarna opnieuw.';
-
-  @override
   String get importReviewEditError =>
       'Die dans kon niet worden geïmporteerd om te bewerken.';
 

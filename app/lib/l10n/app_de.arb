@@ -7182,10 +7182,6 @@
   "@importReviewUndone": {
     "x-sourceSha256": "0f526ab50a3ca2a66650ef99fd743de2dbf64d38d995f4c521cde940c3abc4da"
   },
-  "importReviewUndoFailed": "Der Import konnte nicht rückgängig gemacht werden. Prüfe deine Sammlung und versuche es dann noch einmal mit „Rückgängig“.",
-  "@importReviewUndoFailed": {
-    "x-sourceSha256": "b7f07770fb150f9491bc822d2b8fcc5348a2a5a4357cee7642b1f12c34a349e7"
-  },
   "importReviewEditError": "Dieser Tanz konnte nicht zum Bearbeiten importiert werden.",
   "@importReviewEditError": {
     "x-sourceSha256": "efa938acdf31d4dcd903bb981c6319d8b7a56f59d2922faf6078d2826413c32f"
