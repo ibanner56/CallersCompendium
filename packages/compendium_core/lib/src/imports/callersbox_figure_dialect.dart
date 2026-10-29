@@ -2178,8 +2178,40 @@ FigureMatch? _proseAnnotation(String scrubbed) {
   );
   if (match == null) return null;
 
-  return _withAnnotationNote(match, _joinAnnotations(prose));
+  final roller = _rollAwayRoller(match, [
+    for (final body in prose)
+      if (_namedRoleRoller(body) case final role?)
+        _PerRoleChoreo(note: body, nonRollingRole: role),
+  ]);
+  return _withAnnotationNote(
+    match,
+    _joinAnnotations(prose),
+    extraParams: {'who': ?roller},
+    subjectStated: roller != null,
+  );
 }
+
+/// The role that does not roll in a Caller's Companion roll-away note,
+/// `Robins roll R, Larks step L` (scrubbed to `role2s roll R, role1s step L`),
+/// or null: the same reading as the `W roll R, M side-step L` annotation, which
+/// the maintainer asked to extend to it (#1975). Exactly one role rolls and the
+/// other steps; any other wording stays a note only.
+String? _namedRoleRoller(String body) {
+  final clauses = body.split(',');
+  if (clauses.length != 2) return null;
+  final first = _namedRoleClauseRe.firstMatch(clauses[0].trim());
+  final second = _namedRoleClauseRe.firstMatch(clauses[1].trim());
+  if (first == null || second == null) return null;
+  if (first.group(1) == second.group(1)) return null;
+  final firstRolls = first.group(2) == 'roll';
+  final secondRolls = second.group(2) == 'roll';
+  if (firstRolls == secondRolls) return null;
+  return firstRolls ? second.group(1) : first.group(1);
+}
+
+final RegExp _namedRoleClauseRe = RegExp(
+  r'^(role1s|role2s) (roll|step|side-step|step aside)(?: (?:R|L|right|left|Right|Left))?$',
+);
 
 /// Whether [body] is just a dancer tag (`N2`, `P`, `S1`): shorthand the shape
 /// rule would drop, though it names who the figure is with, so it is kept as

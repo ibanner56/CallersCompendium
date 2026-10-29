@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "\"Neighbor Roll Away\" and \"Partner roll away\" now come in as a roll away with your neighbor or partner, instead of one where the neighbors roll each other away. \"Neighbor rollaway w/ half sashay\", as Caller's Companion writes it, now comes in as a roll away too. This applies to imports and to figures you type.",
+      "\"Neighbor Roll Away\" and \"Partner roll away\" now come in as a roll away with your neighbor or partner, instead of one where the neighbors roll each other away. \"Neighbor rollaway w/ half sashay\", as Caller's Companion writes it, now comes in as a roll away too, and a note like \"(Robins roll R, Larks step L)\" sets who rolls the others away. This applies to imports and to figures you type.",
       "An imported 8-beat box circulate now includes its balance; a 4-beat one has none."
     ]
   },
@@ -11,7 +11,7 @@
     "changed": [
       "The shared figure recognizer reads a lone relationship before \"roll away\" as roll_away's whom, leaving who to the default with assumedSubject; it also reads \"rollaway\" and \"w/ half sashay\".",
       "parseFigureLine sets box_circulate's balance: true when the line has 8 beats.",
-      "The CallersBox per-role roll-away annotation fills who on the whom reading and clears assumedSubject."
+      "The CallersBox per-role roll-away annotation fills who on the whom reading and clears assumedSubject, and also reads a role-named note (\"role2s roll R, role1s step L\")."
     ]
   }
 }

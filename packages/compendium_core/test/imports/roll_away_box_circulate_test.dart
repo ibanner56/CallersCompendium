@@ -49,10 +49,39 @@ void main() {
           expect(larks.params['who'], 'role1s');
           expect(larks.params.containsKey('whom'), isFalse);
 
-
           final ones = single('Ones roll away neighbors');
           expect(ones.params['who'], 'ones');
           expect(ones.params['whom'], 'neighbors');
+        });
+
+        test('a note naming the role that steps states the roller', () {
+          // Caller's Companion's wording of the Caller's Box "W roll R, M
+          // side-step L" note (maintainer decision, #1975): the role that
+          // does not roll rolls the other away.
+          for (final (line, who) in [
+            ('Neighbor roll away (Robins roll R, Larks step L)', 'role1s'),
+            (
+              'Neighbor roll away (Larks roll Right, Robins step Left)',
+              'role2s',
+            ),
+          ]) {
+            final f = single(line);
+            expect(f.params['who'], who, reason: line);
+            expect(f.params['whom'], 'neighbors', reason: line);
+            expect(f.assumedSubject, isFalse, reason: line);
+          }
+        });
+
+        test('any other note leaves the roller assumed', () {
+          for (final line in [
+            'Neighbor roll away (Robins roll R, Larks roll L)',
+            'Neighbor roll away (Robins roll R, Robins step L)',
+            'Neighbor roll away (Robins roll L-to-R)',
+          ]) {
+            final f = single(line);
+            expect(f.params.containsKey('who'), isFalse, reason: line);
+            expect(f.assumedSubject, isTrue, reason: line);
+          }
         });
 
         test('a relationship with a dancer after it keeps both slots', () {

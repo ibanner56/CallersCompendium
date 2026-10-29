@@ -1420,14 +1420,20 @@ has to be judged in its own context.
   there still rolls (`Larks roll away`), and a dancer named after `roll away`
   still makes the one before it `who` (`Ones roll away neighbors`). The #1192
   annotation then states the roller and clears the assumption; the repair of
-  stored figures is unchanged. `rollaway` and `w/ half sashay` read too.
+  stored figures is unchanged. Caller's Companion's wording of that note
+  (`Robins roll R, Larks step L`: one role rolls, the other steps) states the
+  roller the same way (maintainer decision); any other note stays a note only,
+  and `Rob roll L` is not read as the robins. `rollaway` and `w/ half sashay`
+  read too.
   **Box circulate balance from beats (#1975, maintainer decision):** no box
   circulate line the shared recognizer reads states a balance, so
   `parseFigureLine` sets `balance: true` when the line has 8 beats. In 4 beats
   it stays absent (no balance), and other counts say nothing. Free-text entry
-  has no beats, so only imports and the re-parse upgrade apply it. An 8-beat
-  box circulate already has its balance, so a balance line before it no longer
-  folds in (Fold 1 never folds into a balanced move) and stays its own figure.
+  has no beats, so only imports and the re-parse upgrade apply it. Fold 1
+  never folds a balance line into a move that already has one, so a balance
+  line before an 8-beat box circulate would now stay its own figure. That
+  follows from the code; no such pair is in the beta tester's file, and the
+  Caller's Box measurement above does not record the box circulates' beats.
   ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
   is likewise promoted from the existing figure note to `turn`, using the
   maintainer mapping `on the left` → `clockwise` and `on the right` →
