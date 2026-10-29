@@ -2012,7 +2012,7 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete the store, or couldn\'t confirm it was deleted. This device is still connected. Check your other devices before trying again.'**
   String get settingsSyncWipeFailed;
 
-  /// Snackbar for SyncAdminOutcome.wipedButStillAttached: the DELETE succeeded but the local clear did not, so the store is irreversibly gone while this device still holds its sync phrase. Must not read as a failure to delete.
+  /// Body of the dialog for SyncAdminOutcome.wipedButStillAttached: the DELETE succeeded but the local clear did not, so the store is irreversibly gone while this device still holds its sync phrase. Must not read as a failure to delete.
   ///
   /// In en, this message translates to:
   /// **'The store was deleted from the server, but this device couldn\'t disconnect from it. The store is gone and can\'t be brought back. Use Disconnect this device to finish.'**
