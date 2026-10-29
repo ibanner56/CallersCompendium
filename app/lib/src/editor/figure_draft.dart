@@ -510,11 +510,12 @@ class FigureDraft {
       note.trim().isNotEmpty;
 
   /// Whether Save leaves this row out although it is more than a blank row
-  /// (AUTH-2): a group that is not complete (fewer than two sides filled in, a
-  /// modifier group with no Core, or a group holding such a group), or a row
-  /// with no move that holds something other than a note. The editor marks
-  /// the row and lists it under Warnings. A blank row, with nothing chosen or
-  /// typed, has nothing to lose and is not counted.
+  /// (AUTH-2): a group that is not complete (a meanwhile, modifier or sequence
+  /// with fewer than two of its figures filled in, a modifier group with no
+  /// Core, or a group holding such a group), or a row with no move that holds
+  /// something other than a note. The editor marks the row and lists it under
+  /// Warnings. A blank row, with nothing chosen or typed, has nothing to lose
+  /// and is not counted.
   bool get isIncomplete =>
       toFigure() == null &&
       !keepsNoteWithoutMove &&

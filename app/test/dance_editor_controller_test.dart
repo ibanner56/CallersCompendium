@@ -2837,6 +2837,22 @@ void main() {
       expect(incompletePositions(controller), [1]);
     });
 
+    test('a phrase warning numbers the same rows, not the figures Save '
+        'builds', () async {
+      FigureDraft step() => FigureDraft.fromFigure(
+        testFigure(move: 'swing', params: const {'beats': 16}),
+      );
+      final controller = await withRows([
+        FigureDraft(meanwhileSides: [swing(), FigureDraft()]),
+        FigureDraft(sequenceFigures: [step(), step()]),
+      ]);
+      final long = controller.warnings.singleWhere(
+        (w) => w.code == 'sequence_exceeds_phrase',
+      );
+      expect(incompletePositions(controller), [1]);
+      expect(long.data['position'], 2);
+    });
+
     test('not a blank row, which has nothing to lose', () async {
       final controller = await withRows([swing(), FigureDraft()]);
       expect(incompletePositions(controller), isEmpty);

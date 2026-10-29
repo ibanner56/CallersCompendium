@@ -912,12 +912,24 @@ class DanceEditorController extends ChangeNotifier {
   /// Rows Save would leave out (AUTH-2) are read from the drafts, not the
   /// figures they build, which no longer hold them, and are listed whatever
   /// the phrase structure.
+  ///
+  /// Every warning numbers rows as the list shows them ("Figure 2 of 5"). A
+  /// phrase warning counts built figures, which leave out those rows and
+  /// expand a compound into several, so its position is mapped back to the
+  /// row that built the figure.
   void recomputeWarnings() {
     try {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
       final issues = <ValidationIssue>[];
       deriveSections(_figures, _phraseStructure, issues: issues);
-      _phraseWarnings = issues;
+      final rowOfFigure = [
+        for (final (row, draft) in figureDrafts.indexed)
+          for (final _ in draft.toFigures(resolveCompound: resolveCompound))
+            row + 1,
+      ];
+      _phraseWarnings = [
+        for (final issue in issues) _numberedByRow(issue, rowOfFigure),
+      ];
     } on FormatException {
       // diagnostics: silent — invalid phrase structure is surfaced by the
       // field validator instead (see the method doc); here it just leaves the
@@ -939,6 +951,24 @@ class DanceEditorController extends ChangeNotifier {
 
   /// The phrase warnings from the last phrase structure that parsed.
   List<ValidationIssue> _phraseWarnings = const [];
+
+  /// [issue], with a built figure's 1-based `position` replaced by the row
+  /// that built it, from [rowOfFigure]. An issue with no position is kept.
+  static ValidationIssue _numberedByRow(
+    ValidationIssue issue,
+    List<int> rowOfFigure,
+  ) {
+    final position = issue.data['position'];
+    if (position is! int || position < 1 || position > rowOfFigure.length) {
+      return issue;
+    }
+    return ValidationIssue(
+      severity: issue.severity,
+      code: issue.code,
+      message: issue.message,
+      data: {...issue.data, 'position': rowOfFigure[position - 1]},
+    );
+  }
 
   // -------------------------------------------------------------------------
   // Snapshot capture / apply

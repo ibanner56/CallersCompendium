@@ -2773,9 +2773,6 @@ void main() {
     });
   });
 
-  // Decision D2 on #1177 (Isaac, orchestration session, 2026-10-16): with
-  // Free-text entry on, a new dance starts empty and Enter on unmatched text
-  // in an existing row's Move box runs the free-text parser.
   // October behaviour audit, AUTH-1, maintainer decision AUTH-1-move-blur =
   // (a): a move name typed into a row's Move box without Enter is applied
   // when the box is left, and anything else is put back. Tapping Save does
@@ -2888,6 +2885,9 @@ void main() {
     });
   });
 
+  // Decision D2 on #1177 (Isaac, orchestration session, 2026-10-16): with
+  // Free-text entry on, a new dance starts empty and Enter on unmatched text
+  // in an existing row's Move box runs the free-text parser.
   group('free-text entry on existing rows and new dances (#1177)', () {
     Future<CompendiumRepositories> freeTextRepos({bool on = true}) async {
       final repos = openTestRepositories();

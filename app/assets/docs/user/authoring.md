@@ -511,10 +511,11 @@ with no move. A row with no move but a note is saved as a custom figure holding
 the note, so the note is not lost.
 
 A row that Save would leave out says so, **Not complete, so Save leaves it
-out**, and is listed under **Warnings** by its figure number. That is a meanwhile
-group with fewer than two sides filled in, a modifier group with no **Core**, a
-group holding such a group, or a row with no move that still holds something
-other than a note, such as a walkthrough step. Fill it in, or remove it, and the
+out**, and is listed under **Warnings** by its figure number. That is a group
+(meanwhile, modifier or sequence) with fewer than two of its figures filled in,
+such as a sequence just added with two blank steps; a modifier group with no
+**Core**; a group holding such a group; or a row with no move that still holds
+something other than a note, such as a walkthrough step. Fill it in, or remove it, and the
 warning goes. A blank row, with nothing chosen or typed, is not listed: there is
 nothing in it to lose.
 
