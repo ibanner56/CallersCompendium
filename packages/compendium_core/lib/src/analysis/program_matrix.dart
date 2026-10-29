@@ -574,7 +574,22 @@ class ProgramMatrix {
   /// immediately after it (see [MatrixRow.alternateGroup]). Rows of its own
   /// group are alternatives to it and are never neighbours. A row with no group
   /// is a group of one, so without groups this is just the row above and below.
+  ///
+  /// A break separates two dances (GIG-8, maintainer decision 2026-10-29): a
+  /// neighbour whose [MatrixRow.section] differs from this row's is dropped when
+  /// both are known. A waltz or note between two dances does not separate them;
+  /// it shares its neighbours' section, and a `null` section (a program with no
+  /// break, or a matrix built without sections) never separates anything.
   Iterable<int> _neighborRowIndices(int rowIndex) sync* {
+    final section = rows[rowIndex].section;
+    for (final r in _adjacentRowIndices(rowIndex)) {
+      final other = rows[r].section;
+      if (section != null && other != null && section != other) continue;
+      yield r;
+    }
+  }
+
+  Iterable<int> _adjacentRowIndices(int rowIndex) sync* {
     final group = rows[rowIndex].alternateGroup;
     bool inGroup(int r, int? g) => g != null && rows[r].alternateGroup == g;
 
