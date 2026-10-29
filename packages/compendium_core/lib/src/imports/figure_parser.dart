@@ -280,6 +280,7 @@ Figure? parseFigureLine(
     final params = <String, Object?>{
       ...match.params,
       if (safeBeats > 0) 'beats': safeBeats,
+      ...?_balanceFromBeats(match, safeBeats),
     };
     final candidate = Figure(
       move: match.moveId,
@@ -295,6 +296,15 @@ Figure? parseFigureLine(
   } catch (_) {
     return fallback(scrubbed);
   }
+}
+
+/// The balance a box circulate's beats imply, since no line the shared
+/// recognizer reads states one: a balance in 8 beats (maintainer decision,
+/// #1975). In 4 it keeps the taxonomy default, no balance; any other count
+/// says nothing about it.
+Map<String, Object?>? _balanceFromBeats(_Match match, int beats) {
+  if (match.moveId != 'box_circulate' || beats != 8) return null;
+  return const {'balance': true};
 }
 
 /// A recognised move: its taxonomy [moveId] and the params extracted from the
@@ -1406,8 +1416,9 @@ _Match? _boxTheGnat(List<String> w) {
 }
 
 // ContraDB `box circulate`. A single "box circulate" line states no balance, so
-// the `balance` flag is left absent (neutral); the CallersBox cross-line merge
-// folds a preceding balance line in as true. `hand` stays on the taxonomy
+// the recognizer leaves the `balance` flag absent; `parseFigureLine` sets it
+// from 8 beats (#1975), and the CallersBox cross-line merge folds a preceding
+// balance line in as true. `hand` stays on the taxonomy
 // default (ContraDB right_hand_spin) — TCB does not write it inline.
 _Match? _boxCirculate(List<String> w) {
   final who = _takeDancer(w);
@@ -2434,20 +2445,35 @@ _Match? _pullBy(List<String> w) {
 
 /// Tier B: TCB writes "Neighbor roll away" / "Partner roll away (W roll R, M
 /// side-step L)" — the styling parenthetical is dropped by `_normalize`. The
-/// stated relationship maps to `who` (matching the canonical ContraDB order
-/// "gentlespoons roll away neighbors with a half sashay …", where the dancer
-/// before "roll away" is `who` and a dancer after it is `whom`). "with a half
+/// canonical ContraDB order is "gentlespoons roll away neighbors with a half
+/// sashay …": the dancer before "roll away" is `who`, a dancer after it
+/// `whom`. A lone relationship before it is `whom` instead, with `who` left
+/// to the default (#1975): neighbors do not roll one another away. "with a half
 /// sashay" sets the `halfSashay` flag. roll_away has NO direction slot, so a
 /// trailing across/along (canonical spelling; TCB's is a stripped annotation)
 /// is consumed and not represented — the taxonomy deliberately omits it.
 _Match? _rollAway(List<String> w) {
-  final who = _takeDancer(w);
-  if (!_consumePhrase(w, ['roll', 'away'])) return null;
-  final who2 = who ?? _takeDancer(w);
-  final whom = _takeDancer(w);
+  final lead = _takeDancer(w);
+  if (!_consumePhrase(w, ['roll', 'away']) &&
+      !_consumePhrase(w, ['rollaway'])) {
+    return null;
+  }
+  final after = _takeDancer(w);
+  String? who;
+  String? whom;
+  if (lead != null && after == null && _rollAwayWith.contains(lead)) {
+    // A relationship before "roll away", with no one after it, is whom the
+    // roll away is with: Caller's Companion's "Neighbor Roll Away" (#1975).
+    // The roller keeps its default.
+    whom = lead;
+  } else {
+    who = lead ?? after;
+    whom = lead == null ? _takeDancer(w) : after;
+  }
   final half =
       _consumePhrase(w, ['with', 'a', 'half', 'sashay']) ||
       _consumePhrase(w, ['with', 'half', 'sashay']) ||
+      _consumePhrase(w, ['w/', 'half', 'sashay']) ||
       _consumePhrase(w, ['half', 'sashay']);
   _consumePhrase(w, ['across']);
   _consumePhrase(w, ['along']);
@@ -2455,11 +2481,31 @@ _Match? _rollAway(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'roll_away',
-    {'who': ?who2, 'whom': ?whom, if (half) 'halfSashay': true},
+    {'who': ?who, 'whom': ?whom, if (half) 'halfSashay': true},
     null,
-    who2 == null,
+    who == null,
   );
 }
+
+/// The relationships a lone dancer set before "roll away" names whom it is
+/// with. Anything else there (a role, a couple, the centers) still rolls.
+const Set<String> _rollAwayWith = {
+  'partners',
+  'neighbors',
+  'shadows',
+  'secondShadows',
+  'prevNeighbors',
+  'nextNeighbors',
+  'thirdNeighbors',
+  'fourthNeighbors',
+  'prevPartners',
+  'nextPartners',
+  'thirdPartners',
+  'fourthPartners',
+  'fifthPartners',
+  'firstCorners',
+  'secondCorners',
+};
 
 /// Tier B: TCB writes "Cross trail through (PR;NL)" — the pass-list annotation
 /// is dropped by `_normalize`, leaving the bare figure. An optional leading

@@ -24,12 +24,18 @@ void main() {
       expect(f.params['who'], 'role1s');
       expect(f.params['whom'], 'neighbors');
       expect(f.note, 'role2s roll right, role1s side-step left');
+      // The annotation states the roller, so it is not assumed.
+      expect(f.assumedSubject, isFalse);
     });
 
-    test('"Partner roll away (across)" → who=partners, dir dropped', () {
+    test('"Partner roll away (across)" → whom=partners, dir dropped', () {
+      // A relationship before "roll away" is whom the roll away is with
+      // (#1975); the roller is the taxonomy default, assumed.
       final f = _parse('Partner roll away (across)');
       expect(f!.move, 'roll_away');
-      expect(f.params['who'], 'partners');
+      expect(f.params['whom'], 'partners');
+      expect(f.params.containsKey('who'), isFalse);
+      expect(f.assumedSubject, isTrue);
     });
 
     test('ambiguous per-role annotations keep generic roll-away params', () {
@@ -41,8 +47,9 @@ void main() {
 
       for (final f in [noRoll, twoRolls, unsupported]) {
         expect(f!.move, 'roll_away');
-        expect(f.params['who'], 'neighbors');
-        expect(f.params.containsKey('whom'), isFalse);
+        expect(f.params['whom'], 'neighbors');
+        expect(f.params.containsKey('who'), isFalse);
+        expect(f.assumedSubject, isTrue);
       }
     });
 
@@ -376,7 +383,7 @@ void main() {
       expect(f.params['beats'], 8);
       final sides = f.subFigures;
       expect(sides.map((s) => s.move), ['long_lines', 'roll_away']);
-      expect(sides[1].params['who'], 'nextNeighbors');
+      expect(sides[1].params['whom'], 'nextNeighbors');
       // Beats ride on the container only.
       expect(sides.every((s) => !s.params.containsKey('beats')), isTrue);
     }

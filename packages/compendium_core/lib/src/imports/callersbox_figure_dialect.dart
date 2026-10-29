@@ -1202,6 +1202,8 @@ _AnnotatedMatch? _annotatedMatch(
 }
 
 /// Rebuilds [match] with [note] attached (and any [extraParams] merged in).
+/// [subjectStated] says the extra params name the subject the recognizer
+/// assumed, so the result no longer assumes it.
 ///
 /// Notes COMBINE ([combineFigureNotes]) rather than one winning: resolving this
 /// with `match.note ?? note` silently discarded the annotation whenever the
@@ -1215,11 +1217,12 @@ FigureMatch _withAnnotationNote(
   FigureMatch match,
   String? note, {
   Map<String, Object?> extraParams = const {},
+  bool subjectStated = false,
 }) => FigureMatch(
   match.moveId,
   params: <String, Object?>{...match.params, ...extraParams},
   note: combineFigureNotes(match.note, note),
-  assumedSubject: match.assumedSubject,
+  assumedSubject: match.assumedSubject && !subjectStated,
 );
 
 /// The dancer set an annotation names as walking FORWARD, or `null` when the
@@ -1992,35 +1995,31 @@ FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
   );
   if (match == null) return null;
 
-  final extraParams = <String, Object?>{};
-  extraParams.addAll(_rollAwayRoleAssignmentParams(match, roleAssignments));
-
+  final roller = _rollAwayRoller(match, roleAssignments);
   return _withAnnotationNote(
     match,
     _joinAnnotations(notes),
-    extraParams: extraParams,
+    extraParams: {'who': ?roller},
+    subjectStated: roller != null,
   );
 }
 
-Map<String, Object?> _rollAwayRoleAssignmentParams(
+/// The role a "Neighbor roll away (W roll R, M side-step L)" annotation names
+/// as rolling the others away: the one that does not roll. The shared
+/// recognizer reads the relationship as `whom` and leaves `who` assumed
+/// (#1975); the annotation states it, so it is no longer assumed.
+String? _rollAwayRoller(
   FigureMatch match,
   List<_PerRoleChoreo> roleAssignments,
 ) {
   if (match.moveId != 'roll_away' ||
-      match.assumedSubject ||
+      !match.assumedSubject ||
       roleAssignments.length != 1 ||
-      match.params.containsKey('whom')) {
-    return const {};
+      match.params.containsKey('who') ||
+      !_callersBoxRollAwayRelationships.contains(match.params['whom'])) {
+    return null;
   }
-
-  final relationship = match.params['who'];
-  final nonRollingRole = roleAssignments.single.nonRollingRole;
-  if (relationship is! String ||
-      !_callersBoxRollAwayRelationships.contains(relationship) ||
-      nonRollingRole == null) {
-    return const {};
-  }
-  return {'who': nonRollingRole, 'whom': relationship};
+  return roleAssignments.single.nonRollingRole;
 }
 
 const Set<String> _callersBoxRollAwayRelationships = {'neighbors', 'partners'};
@@ -2361,9 +2360,10 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
     notes.add(_canonicalSquareBracketNote(body));
   }
 
-  if (!extraParams.containsKey('who') && !extraParams.containsKey('whom')) {
-    extraParams.addAll(_rollAwayRoleAssignmentParams(match, roleAssignments));
-  }
+  final roller = extraParams.containsKey('who')
+      ? null
+      : _rollAwayRoller(match, roleAssignments);
+  if (roller != null) extraParams['who'] = roller;
   if (notes.isEmpty && extraParams.isEmpty) {
     // A square bracket with only code-like parentheses belongs to a later
     // specialist or the normal recognition path; do not claim it here.
@@ -2373,6 +2373,7 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
     match,
     _joinAnnotations(notes),
     extraParams: extraParams,
+    subjectStated: roller != null,
   );
 }
 
