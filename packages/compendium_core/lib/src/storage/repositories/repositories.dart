@@ -237,7 +237,6 @@ class CompendiumRepositories {
        choreographers = choreographers ?? ChoreographerRepository(db),
        tags = TagRepository(db),
        difficultyLevels = DifficultyLevelRepository(db),
-       customFieldDefs = CustomFieldDefRepository(db),
        programs = programs ?? ProgramRepository(db),
        publishedSources = PublishedSourceRepository(db),
        venues = venues ?? VenueRepository(db),
@@ -252,7 +251,15 @@ class CompendiumRepositories {
   final ChoreographerRepository choreographers;
   final TagRepository tags;
   final DifficultyLevelRepository difficultyLevels;
-  final CustomFieldDefRepository customFieldDefs;
+
+  /// Writing a definition that changes whether its values are indexed for the
+  /// search bar (its Searchable setting) reindexes the dances holding one.
+  late final CustomFieldDefRepository customFieldDefs =
+      CustomFieldDefRepository(
+        db,
+        onIndexedValuesChanged: (id) =>
+            dances.reindexDancesHoldingCustomFields([id]),
+      );
   final ProgramRepository programs;
   final PublishedSourceRepository publishedSources;
   final VenueRepository venues;
@@ -937,6 +944,7 @@ class CompendiumRepositories {
         owedFromHistory: normalisationCompletedBefore.isNotEmpty,
         onProgress: onDerivedRebuildProgress,
       );
+      await _repairCustomFieldIndexIfNeeded(alreadyRebuilt: rebuiltThisCall);
       // Last, so it reads records every earlier sweep has finished with. A
       // field a newer version added and this device kept (sync-spec §6.7) may
       // be one this build now syncs; move it into the record before anyone
@@ -1686,6 +1694,46 @@ class CompendiumRepositories {
     // and the next startup retries.
     await _writeSweepMarker(normalisationDerivedIndexRepairDoneKey, '"done"');
     return true;
+  }
+
+  /// One-time repair of the custom-field values the search bar's text index
+  /// carried before it honoured the Searchable setting and left out yes/no
+  /// fields (maintainer decision search-index (a), 2026-10-29). See
+  /// [customFieldIndexRepairDoneKey].
+  ///
+  /// Reindexes only the dances, in the Trash or not, holding a value for a
+  /// field the index now leaves out, rather than the whole library: those are
+  /// the only rows the rule changes. A whole-library rebuild earlier in this
+  /// call has already written every row under the rule, so it owes nothing.
+  ///
+  /// Not a derived rebuild in the sense the other sweeps thread
+  /// (`alreadyRebuilt`): it leaves every other dance's rows as they were, so
+  /// it reports nothing back.
+  Future<void> _repairCustomFieldIndexIfNeeded({
+    required bool alreadyRebuilt,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(customFieldIndexRepairDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return;
+
+    if (!alreadyRebuilt) {
+      // Tombstoned definitions are left out: their values were already kept
+      // out of the index (#1358), so the rule changes nothing for them.
+      final excluded = [
+        for (final row in await (db.select(
+          db.customFieldDefs,
+        )..where((t) => t.deletedAt.isNull())).get())
+          if (!customFieldIndexesValueText(row)) row.id,
+      ];
+      await dances.reindexDancesHoldingCustomFields(excluded);
+    }
+    // Written AFTER success — if the reindex throws, the marker is not written
+    // and the next startup retries.
+    await _writeSweepMarker(customFieldIndexRepairDoneKey, '"done"');
   }
 
   Set<TableInfo<Table, dynamic>> _updatesForTable(String tableName) => {

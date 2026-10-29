@@ -9602,7 +9602,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Exposer ce champ comme filtre dans le panneau de recherche';
+      'Proposer ce champ dans le panneau Filtres et laisser la barre de recherche trouver ses valeurs';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Proposer ce champ dans le panneau Filtres';
 
   @override
   String get customFieldsChoicesLabel => 'Choix *';

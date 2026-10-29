@@ -9474,7 +9474,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Eksponér dette felt som et filter i søgepanelet';
+      'Vis dette felt i panelet Filtre, og lad søgefeltet finde dets værdier';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Vis dette felt i panelet Filtre';
 
   @override
   String get customFieldsChoicesLabel => 'Valg *';

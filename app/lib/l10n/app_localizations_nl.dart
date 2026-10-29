@@ -9540,7 +9540,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Stel dit veld beschikbaar als filter in het zoekpaneel';
+      'Bied dit veld aan in het paneel Filters en laat de zoekbalk de waarden ervan vinden';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Bied dit veld aan in het paneel Filters';
 
   @override
   String get customFieldsChoicesLabel => 'Keuzes *';

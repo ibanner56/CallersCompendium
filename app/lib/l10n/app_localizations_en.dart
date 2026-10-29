@@ -9439,7 +9439,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldsSearchableSubtitle =>
-      'Expose this field as a filter in the search panel';
+      'Offer this field in the Filters panel, and let the search bar find its values';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo =>
+      'Offer this field in the Filters panel';
 
   @override
   String get customFieldsChoicesLabel => 'Choices *';
