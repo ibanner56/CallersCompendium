@@ -11775,6 +11775,30 @@ abstract class AppLocalizations {
   /// **'You have an unsaved draft for this dance. Would you like to restore it?'**
   String get danceEditorUnsavedDraftMessage;
 
+  /// Dialog body when the caller starts a new dance and a draft of a different new dance, never saved, is waiting from an earlier session. Restoring continues that dance; discarding deletes it.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new dance, “{title}”. Would you like to restore it instead of starting a new one?'**
+  String danceEditorUnsavedNewDanceDraftMessage(String title);
+
+  /// Dialog body when the caller starts a new dance and an untitled draft of a different new dance, never saved, is waiting from an earlier session.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new dance, not yet titled. Would you like to restore it instead of starting a new one?'**
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage;
+
+  /// Line in the restore-draft dialog giving when the autosave draft was last written, so the caller can judge how old it is.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft saved {when}.'**
+  String danceEditorUnsavedDraftSavedAt(String when);
+
+  /// Warning in the restore-draft dialog when the saved dance was edited elsewhere (a bulk tag, a rating, a sync, a re-check) after the draft was written; restoring overwrites those later changes.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance has been changed since the draft was saved. Restoring the draft replaces those changes.'**
+  String get danceEditorUnsavedDraftChangedSince;
+
   /// Button label for discarding a draft or unsaved changes.
   ///
   /// In en, this message translates to:

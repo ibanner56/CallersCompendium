@@ -7517,6 +7517,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorUnsavedDraftMessage => 'このダンスに未保存の下書きがあります。復元しますか？';
 
   @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return '別の新しいダンス「$title」の未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'まだタイトルのない、別の新しいダンスの未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return '下書きの保存日時: $when';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      '下書きの保存後に、このダンスは変更されています。下書きを復元すると、それらの変更は置き換えられます。';
+
+  @override
   String get danceEditorDiscard => '破棄';
 
   @override

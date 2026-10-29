@@ -7939,6 +7939,24 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vous avez un brouillon non enregistré pour cette danse. Voulez-vous le restaurer ?';
 
   @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Vous avez un brouillon non enregistré d’une autre nouvelle danse, « $title ». Voulez-vous le restaurer au lieu d’en commencer une nouvelle ?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Vous avez un brouillon non enregistré d’une autre nouvelle danse, encore sans titre. Voulez-vous le restaurer au lieu d’en commencer une nouvelle ?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Brouillon enregistré le $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Cette danse a été modifiée depuis l’enregistrement du brouillon. Restaurer le brouillon remplace ces modifications.';
+
+  @override
   String get danceEditorDiscard => 'Abandonner';
 
   @override

@@ -7799,6 +7799,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'You have an unsaved draft for this dance. Would you like to restore it?';
 
   @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'You have an unsaved draft of another new dance, “$title”. Would you like to restore it instead of starting a new one?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'You have an unsaved draft of another new dance, not yet titled. Would you like to restore it instead of starting a new one?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Draft saved $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'This dance has been changed since the draft was saved. Restoring the draft replaces those changes.';
+
+  @override
   String get danceEditorDiscard => 'Discard';
 
   @override
