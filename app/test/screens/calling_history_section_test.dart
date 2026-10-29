@@ -654,50 +654,73 @@ void main() {
     );
   });
 
-  test('callingHistoryDisplayDate keeps the event date for a stamp copied '
-      'from it, and still converts a real instant', () {
+  // GIG-2 (maintainer decision 2026-10-29): a dated program's row shows its
+  // event date whenever the slot was marked. Before, only a stamp within five
+  // minutes of the event date did; one tapped later showed the tap's day.
+  test('callingHistoryDisplayDate shows the event date of a dated program, '
+      'whenever its slot was marked performed', () {
     final eventDate = DateTime.utc(2026, 10, 24);
-    expect(
-      callingHistoryDisplayDate(
-        DanceCallingRecord(
-          slotId: 's1',
-          programId: 'p1',
-          programTitle: 'T',
-          programUpdatedAt: DateTime.utc(2026, 10, 25),
-          eventDate: eventDate,
-          performedAt: eventDate,
-        ),
-      ),
-      eventDate,
+    DanceCallingRecord marked(DateTime performedAt) => DanceCallingRecord(
+      slotId: 's1',
+      programId: 'p1',
+      programTitle: 'T',
+      programUpdatedAt: performedAt,
+      eventDate: eventDate,
+      performedAt: performedAt,
     );
-    // A re-stamp is bumped a second past the event date per used second.
-    final bumped = eventDate.add(const Duration(seconds: 2));
-    expect(
-      callingHistoryDisplayDate(
-        DanceCallingRecord(
-          slotId: 's1',
-          programId: 'p1',
-          programTitle: 'T',
-          programUpdatedAt: DateTime.utc(2026, 10, 25),
-          eventDate: eventDate,
-          performedAt: bumped,
-        ),
-      ),
+    for (final performedAt in [
+      // Copied from the event date by Status -> Performed (#356).
       eventDate,
-    );
-    final tapped = DateTime.utc(2026, 10, 26, 2, 30);
-    expect(
-      callingHistoryDisplayDate(
-        DanceCallingRecord(
-          slotId: 's1',
-          programId: 'p1',
-          programTitle: 'T',
-          programUpdatedAt: tapped,
-          eventDate: eventDate,
-          performedAt: tapped,
+      // A re-stamp, bumped a second past the event date per used second.
+      eventDate.add(const Duration(seconds: 2)),
+      // Marked past midnight during the dance, in New York.
+      DateTime.utc(2026, 10, 25, 4, 30),
+      // Marked with Mark all performed on the Monday after.
+      DateTime.utc(2026, 10, 26, 13),
+    ]) {
+      expect(
+        callingHistoryDisplayDate(marked(performedAt)),
+        eventDate,
+        reason: 'stamp $performedAt',
+      );
+    }
+  });
+
+  testWidgets('a slot marked performed days later shows the event date', (
+    tester,
+  ) async {
+    final previous = callingHistoryToLocal;
+    callingHistoryToLocal = (instant) {
+      final ny = instant.subtract(const Duration(hours: 4));
+      return DateTime(ny.year, ny.month, ny.day, ny.hour, ny.minute);
+    };
+    addTearDown(() => callingHistoryToLocal = previous);
+    final monday = DateTime.utc(2026, 10, 26, 13);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: CallingHistoryRow(
+            record: DanceCallingRecord(
+              slotId: 's1',
+              programId: 'p1',
+              programTitle: 'Autumn Ball',
+              programUpdatedAt: monday,
+              eventDate: DateTime.utc(2026, 10, 24),
+              performedAt: monday,
+            ),
+          ),
         ),
       ),
-      tapped.toLocal(),
+    );
+    expect(
+      find.textContaining(_systemDate(DateTime(2026, 10, 24))),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(_systemDate(DateTime(2026, 10, 26))),
+      findsNothing,
     );
   });
 

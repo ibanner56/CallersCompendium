@@ -226,8 +226,9 @@ bool _isBlank(List<int> bytes) {
 /// empty body, or a body exceeding [kMaxSignatureBytes]. The body is
 /// **streamed** and the read aborts as soon as the running total exceeds the
 /// cap, so an oversized body is never fully buffered (OWASP A08). Never throws —
-/// a missing signature is a silent no-op the caller turns into "no update"
-/// (fail-closed) rather than an error dialog. The signature is base64 (ASCII),
+/// a missing signature makes the caller fail closed ([UpdateCheckFailure.unauthentic]),
+/// reported by a manual check and silent in the automatic one, never an error
+/// dialog. The signature is base64 (ASCII),
 /// so the bounded bytes are decoded 1:1 to text.
 Future<String?> fetchUpdateManifestSignature(
   UpdateChannel channel, {

@@ -8,7 +8,8 @@
 /// files; this controller only holds state, persists prefs, and calls
 /// [UpdateService]. Honors the ADR-002 §5 privacy contract: auto-check is
 /// opt-in (default off), the banner is gated by a stored dismissed version, and
-/// every failure is a silent no-op.
+/// the automatic check's failures are silent (the manual check reports them
+/// in its status line).
 ///
 /// It also keeps the running build's announced end-of-life date
 /// ([retirementNotice]): found by whichever check runs (manual, or the opt-in
@@ -45,13 +46,24 @@ enum UpdateCheckStatus {
   /// A check is in flight.
   checking,
 
-  /// A check completed and found no newer version — this also covers a silent
-  /// failure (offline/404/malformed), which the privacy contract makes
-  /// indistinguishable from "up to date" by design.
+  /// A check completed and found no newer version. The *automatic* check also
+  /// only reaches here by reading a manifest. A failed *automatic* check leaves
+  /// the status as it was, silently (ADR-002 §5, erratum 2026-10-29); the
+  /// manual check reports a failure as [couldNotCheck] or [newerFormat].
   noUpdate,
 
   /// A check found a strictly-newer version (the banner is now eligible).
   updateAvailable,
+
+  /// A **manual** check could not read the manifest: offline, unreachable,
+  /// unsigned or tampered, or malformed. Says nothing about whether an update
+  /// exists.
+  couldNotCheck,
+
+  /// A **manual** check fetched an authentic manifest in a format this build
+  /// cannot read, which means a newer release exists. There is no artifact or
+  /// banner to offer — the Releases page is the way forward.
+  newerFormat,
 }
 
 /// The state of the desktop assisted-download flow (ADR-002 "Stage 1.5"):
@@ -329,7 +341,7 @@ class UpdateController extends ChangeNotifier {
   /// A concurrent call is ignored while one is in flight. Never throws — every
   /// failure resolves to [AssistedDownloadStatus.failed] with a user-facing
   /// [downloadFailure] (a verification mismatch also deletes the file). This is
-  /// deliberately **not** a silent no-op like the check: it is a security gate
+  /// deliberately **not** a silent no-op like the automatic check: it is a security gate
   /// (ADR-002 §6, "Stage 1.5").
   Future<void> startAssistedDownload() async {
     if (isDownloadInFlight || isAwaitingMacosInstall) return;
@@ -840,14 +852,21 @@ class UpdateController extends ChangeNotifier {
 
   /// Runs a check now (the manual "Check for updates" action, always
   /// available). Concurrent presses are ignored while one is in flight. Never
-  /// throws — a failure resolves to [UpdateCheckStatus.noUpdate].
-  Future<void> checkNow() async {
+  /// throws — a failure resolves to [UpdateCheckStatus.couldNotCheck] or, for
+  /// an authentic manifest this build cannot read,
+  /// [UpdateCheckStatus.newerFormat].
+  Future<void> checkNow() => _check(manual: true);
+
+  Future<void> _check({required bool manual}) async {
     if (_status == UpdateCheckStatus.checking) return;
+    // What the status line said before this check, for an automatic check that
+    // fails: it must leave the line as it found it, not claim "No update found".
+    final statusBefore = _status;
     _status = UpdateCheckStatus.checking;
     notifyListeners();
 
     final requestedChannel = channel;
-    final checked = await _service.checkManifest(
+    final outcome = await _service.checkManifest(
       channel: requestedChannel,
       currentVersion: currentVersion,
       platform: _platform,
@@ -862,16 +881,27 @@ class UpdateController extends ChangeNotifier {
     // could resurrect a withdrawn date over the channel the user now reads.
     if (requestedChannel != channel) return;
 
-    // A failed check (null) leaves the cached notice alone: being offline is
+    // A failed check leaves the cached notice alone: being offline is
     // not evidence that the announcement was withdrawn.
+    final checked = switch (outcome) {
+      UpdateChecked(:final result) => result,
+      UpdateCheckFailed() => null,
+    };
     if (checked != null) await _applyEndOfLife(checked.endOfLife);
     final result = checked?.update;
 
     _available = result;
     _resetDownloadForNewResult();
-    _status = result == null
-        ? UpdateCheckStatus.noUpdate
-        : UpdateCheckStatus.updateAvailable;
+    _status = switch ((result, outcome)) {
+      (UpdateAvailable(), _) => UpdateCheckStatus.updateAvailable,
+      (_, UpdateChecked()) => UpdateCheckStatus.noUpdate,
+      // The automatic check never speaks up about a failure (ADR-002 §5), and
+      // "No update found" would be a claim that no check completed to make.
+      _ when !manual => statusBefore,
+      (_, UpdateCheckFailed(failure: UpdateCheckFailure.unsupportedFormat)) =>
+        UpdateCheckStatus.newerFormat,
+      (_, UpdateCheckFailed()) => UpdateCheckStatus.couldNotCheck,
+    };
     notifyListeners();
   }
 
@@ -879,7 +909,7 @@ class UpdateController extends ChangeNotifier {
   /// off). Wired to app bootstrap so a check runs at most once per launch and
   /// only for opted-in users (ADR-002 §5).
   Future<void> maybeAutoCheck() async {
-    if (_autoCheck) await checkNow();
+    if (_autoCheck) await _check(manual: false);
   }
 
   /// Sets the beta opt-in and persists it. Switching channels clears any

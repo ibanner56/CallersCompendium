@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../data/soft_delete_retention.dart';
+import '../widgets/empty_state.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
@@ -276,17 +277,13 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
           final deleted = snapshot.data ?? <T>[];
           if (deleted.isEmpty) {
             final retention = _retention;
-            return Center(
+            return EmptyState(
               key: const ValueKey('empty-state'),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  retention == null
-                      ? _config.emptyKept!(l10n)
-                      : _config.emptyRetention(l10n, retention.inDays),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+              icon: EmptyState.glyph(context, Icons.delete_outline),
+              title: l10n.recentlyDeletedEmptyTitle,
+              body: retention == null
+                  ? _config.emptyKept!(l10n)
+                  : _config.emptyRetention(l10n, retention.inDays),
             );
           }
           return ListView.builder(

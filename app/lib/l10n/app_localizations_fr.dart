@@ -1858,6 +1858,15 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String settingsUpdatesStatusCouldNotCheck(String version) {
+    return 'Impossible de rechercher des mises à jour pour le moment. Vous utilisez la version $version.';
+  }
+
+  @override
+  String get settingsUpdatesStatusNewerFormat =>
+      'Une version plus récente est disponible sur la page des versions (Releases).';
+
+  @override
   String settingsUpdatesStatusAvailable(String version) {
     return 'La version $version est disponible. Consultez la bannière pour la voir.';
   }
@@ -3877,8 +3886,18 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get collectionEmpty =>
-      'Votre collection est vide. Ajoutez ou importez une danse pour commencer — ou activez la recherche en ligne ci-dessus pour importer depuis une source en ligne.';
+  String get collectionEmptyBody =>
+      'Ajoutez ou importez une danse pour commencer — ou activez la recherche en ligne ci-dessus pour importer depuis une source en ligne.';
+
+  @override
+  String get collectionEmptyTitle => 'Votre collection est vide';
+
+  @override
+  String get collectionImportCardTitle => 'Ajoutez vos danses';
+
+  @override
+  String get collectionImportCardBody =>
+      'Importez les danses que vous avez déjà, ou écrivez la première. « The Baby Rose » est là comme exemple pour vous repérer.';
 
   @override
   String get collectionFiltersTitle => 'Filtres';
@@ -3906,13 +3925,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String searchToolActiveCount(String tool, int count) {
     return '$tool · $count';
   }
-
-  @override
-  String get collectionUseAdvancedQuery => 'Utiliser la recherche avancée';
-
-  @override
-  String get collectionUseAdvancedQuerySubtitle =>
-      'Combinez figures et séquences avec des groupes tout / l’un / aucun.';
 
   @override
   String collectionDanceCount(int count) {
@@ -4481,6 +4493,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceMoreActions => 'Plus d’actions';
+
+  @override
+  String get programsMoreActions => 'Plus d’actions';
 
   @override
   String get danceSectionFigures => 'Figures';
@@ -8982,14 +8997,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionPickerAdvanced => 'Avancé';
 
   @override
-  String get collectionPickerUseAdvancedQuery =>
-      'Utiliser la recherche avancée';
-
-  @override
-  String get collectionPickerAdvancedQueryHelp =>
-      'Combinez figures et séquences avec des groupes tout / l’un / aucun.';
-
-  @override
   String collectionPickerAddSemantic(String title) {
     return 'Ajouter $title au programme';
   }
@@ -9780,6 +9787,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'La corbeille est vide. Les danses supprimées sont conservées ici jusqu’à ce que vous les supprimiez.';
 
   @override
+  String get recentlyDeletedEmptyTitle => 'Rien de supprimé';
+
+  @override
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'La corbeille est vide. Les danses supprimées apparaissent ici pendant $days jours avant d’être supprimées.';
   }
@@ -9819,8 +9829,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get venueManagerClearSearchTooltip => 'Effacer la recherche';
 
   @override
-  String get venueManagerEmpty =>
-      'Aucun lieu pour l’instant. Ajoutez-en un avec le bouton ci-dessous, ou depuis un programme lorsque les lieux réutilisables sont activés.';
+  String get venueManagerEmptyBody =>
+      'Ajoutez-en un ici, ou depuis un programme lorsque les lieux réutilisables sont activés.';
+
+  @override
+  String get venueManagerEmptyTitle => 'Aucun lieu pour l’instant';
 
   @override
   String get venueManagerNoMatches =>
@@ -10210,6 +10223,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get customFiguresEmpty =>
       'Vous n\'avez pas encore créé de figure. Choisissez + pour en ajouter une.';
+
+  @override
+  String get customFiguresEmptyTitle => 'Aucune figure personnalisée';
 
   @override
   String get glossaryAddCustomFigure => 'Ajouter votre propre figure';

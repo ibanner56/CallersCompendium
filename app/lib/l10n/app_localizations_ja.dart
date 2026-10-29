@@ -1752,6 +1752,15 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsUpdatesStatusCouldNotCheck(String version) {
+    return '現在アップデートを確認できませんでした。現在のバージョンは $version です。';
+  }
+
+  @override
+  String get settingsUpdatesStatusNewerFormat =>
+      '新しいバージョンが Releases ページで公開されています。';
+
+  @override
   String settingsUpdatesStatusAvailable(String version) {
     return 'バージョン $version が利用可能です。バナーをご確認ください。';
   }
@@ -3642,8 +3651,18 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get collectionEmpty =>
-      'コレクションは空です。ダンスを追加またはインポートして始めましょう — または上のオンライン検索をオンにしてオンラインソースからインポートしてください。';
+  String get collectionEmptyBody =>
+      'ダンスを追加またはインポートして始めましょう — または上のオンライン検索をオンにしてオンラインソースからインポートしてください。';
+
+  @override
+  String get collectionEmptyTitle => 'コレクションは空です';
+
+  @override
+  String get collectionImportCardTitle => 'ダンスを取り込みましょう';
+
+  @override
+  String get collectionImportCardBody =>
+      'お持ちのダンスをインポートするか、最初の1曲を作成してください。「The Baby Rose」はサンプルとして入っています。';
 
   @override
   String get collectionFiltersTitle => 'フィルター';
@@ -3671,13 +3690,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String searchToolActiveCount(String tool, int count) {
     return '$tool・$count';
   }
-
-  @override
-  String get collectionUseAdvancedQuery => '詳細クエリを使用';
-
-  @override
-  String get collectionUseAdvancedQuerySubtitle =>
-      'フィギュアとシーケンスをすべて/いずれか/なしのグループで組み合わせます。';
 
   @override
   String collectionDanceCount(int count) {
@@ -4220,6 +4232,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceMoreActions => 'その他のアクション';
+
+  @override
+  String get programsMoreActions => 'その他のアクション';
 
   @override
   String get danceSectionFigures => 'フィギュア';
@@ -8522,13 +8537,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionPickerAdvanced => '詳細検索';
 
   @override
-  String get collectionPickerUseAdvancedQuery => '詳細クエリを使用';
-
-  @override
-  String get collectionPickerAdvancedQueryHelp =>
-      'フィギュアとシーケンスをすべて/いずれか/なしのグループで組み合わせます。';
-
-  @override
   String collectionPickerAddSemantic(String title) {
     return '$titleをプログラムに追加';
   }
@@ -9270,6 +9278,9 @@ class AppLocalizationsJa extends AppLocalizations {
       'ゴミ箱は空です。削除したダンスは手動で削除するまでここに保持されます。';
 
   @override
+  String get recentlyDeletedEmptyTitle => '削除されたものはありません';
+
+  @override
   String recentlyDeletedEmptyDancesRetention(int days) {
     return 'ゴミ箱は空です。削除したダンスは削除されるまで$days日間ここに表示されます。';
   }
@@ -9309,8 +9320,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get venueManagerClearSearchTooltip => '検索をクリア';
 
   @override
-  String get venueManagerEmpty =>
-      '会場がまだありません。下のボタンで追加するか、再利用可能な会場をオンにしたプログラムから追加してください。';
+  String get venueManagerEmptyBody =>
+      'ここから追加するか、再利用可能な会場をオンにしたプログラムから追加してください。';
+
+  @override
+  String get venueManagerEmptyTitle => '会場はまだありません';
 
   @override
   String get venueManagerNoMatches => '検索に一致する会場がありません。';
@@ -9683,6 +9697,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get customFiguresEmpty => '自分のフィギュアはまだありません。「+」を選んで追加してください。';
+
+  @override
+  String get customFiguresEmptyTitle => 'カスタムフィギュアはまだありません';
 
   @override
   String get glossaryAddCustomFigure => '自分のフィギュアを追加';
