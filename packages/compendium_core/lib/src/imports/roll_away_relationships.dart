@@ -7,6 +7,7 @@
 const Set<String> rollAwayRelationships = {
   'partners',
   'neighbors',
+  'sameRoles',
   'shadows',
   'secondShadows',
   'prevNeighbors',

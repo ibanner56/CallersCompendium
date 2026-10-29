@@ -33,6 +33,7 @@ void main() {
             ('Neighbors roll away', 'neighbors'),
             ('Partners roll away', 'partners'),
             ('Shadow roll away', 'shadows'),
+            ('Same-role neighbor roll away', 'sameRoles'),
             ('roll away neighbors', 'neighbors'),
           ]) {
             final f = single(line);
