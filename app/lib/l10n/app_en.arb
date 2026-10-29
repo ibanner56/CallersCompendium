@@ -10569,7 +10569,7 @@
       },
       "importGapText": {
         "type": "String",
-        "example": "Couldn't parse this call — kept verbatim as a custom figure."
+        "example": "Couldn't recognize this call — kept exactly as written as a custom figure."
       },
       "progression": {
         "type": "String",
