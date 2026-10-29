@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../widgets/empty_state.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import 'venue_editor_sheet.dart';
@@ -254,12 +255,19 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
       );
     }
     if (_venues.isEmpty) {
-      return Center(
+      return EmptyState(
         key: const ValueKey('venue-manager-empty'),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.venueManagerEmpty, textAlign: TextAlign.center),
-        ),
+        icon: EmptyState.glyph(context, Icons.place_outlined),
+        title: l10n.venueManagerEmptyTitle,
+        body: l10n.venueManagerEmptyBody,
+        actions: [
+          FilledButton.icon(
+            key: const ValueKey('venue-manager-empty-add'),
+            onPressed: _create,
+            icon: const Icon(Icons.add),
+            label: Text(l10n.venueNew),
+          ),
+        ],
       );
     }
     final filtered = _filtered;

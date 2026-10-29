@@ -110,6 +110,7 @@ void main() {
     final dances = await repos.dances.listAll();
     expect(dances, hasLength(1));
     final dance = dances.single;
+    expect(dance.id, kBabyRoseSeedDanceId);
     expect(dance.title, 'The Baby Rose');
     expect(dance.formation.shape, FormationShape.dupleImproper);
     expect(dance.provenance?.source, ProvenanceSource.contradb);

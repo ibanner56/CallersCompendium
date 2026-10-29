@@ -8,6 +8,7 @@ Program sampleProgram({
   String title = 'Spring Dance 2026',
   List<ProgramSlot> slots = const [],
   String? caller,
+  DateTime? eventDate,
   DateTime? createdAt,
   DateTime? updatedAt,
   DateTime? deletedAt,
@@ -16,7 +17,7 @@ Program sampleProgram({
   return Program(
     id: id,
     title: title,
-    eventDate: DateTime.utc(2026, 3, 15),
+    eventDate: eventDate ?? DateTime.utc(2026, 3, 15),
     venue: 'Grange Hall',
     caller: caller,
     slots: slots,
@@ -897,11 +898,15 @@ void main() {
       expect(await repo.lastCalledByDance(), isEmpty);
     });
 
-    test('returns the most recent performedAt across programs', () async {
+    test('returns the most recent call date across programs', () async {
       await makeDance('d1');
+      // Each program is dated the day its slot was marked, so the event date
+      // and the stamp agree (calling_history_call_date_test.dart pins which
+      // one wins when they differ; GIG-2).
       await repo.create(
         sampleProgram(
           id: 'p1',
+          eventDate: DateTime.utc(2026, 1, 1),
           slots: [
             ProgramSlot(
               id: 's1',
@@ -915,6 +920,7 @@ void main() {
       await repo.create(
         sampleProgram(
           id: 'p2',
+          eventDate: DateTime.utc(2026, 3, 1),
           slots: [
             ProgramSlot(
               id: 's2',
@@ -1320,6 +1326,7 @@ void main() {
         await repo.create(
           sampleProgram(
             id: 'p$i',
+            eventDate: date,
             slots: [
               ProgramSlot(
                 id: 's$i',
@@ -1995,6 +2002,7 @@ void main() {
         sampleProgram(
           id: 'p-alice',
           caller: 'Alice',
+          eventDate: DateTime.utc(2026, 3, 1),
           slots: [
             ProgramSlot(
               id: 's-a',
@@ -2019,6 +2027,7 @@ void main() {
         sampleProgram(
           id: 'p-bob',
           caller: 'Bob',
+          eventDate: DateTime.utc(2026, 4, 1),
           slots: [
             ProgramSlot(
               id: 's-b',
@@ -2035,6 +2044,7 @@ void main() {
       await repo.create(
         sampleProgram(
           id: 'p-null',
+          eventDate: DateTime.utc(2026, 5, 1),
           slots: [
             ProgramSlot(
               id: 's-n',
@@ -2117,8 +2127,8 @@ void main() {
         performedOnly: true,
         callerFilter: 'Alice',
       );
-      // Sort is COALESCE(performed_at, ...) DESC: p-null (2026-05-01) before
-      // p-alice (2026-03-01).
+      // Sort is COALESCE(event_date, performed_at, ...) DESC: p-null
+      // (2026-05-01) before p-alice (2026-03-01).
       expect(history.map((r) => r.programId), ['p-null', 'p-alice']);
       expect(
         (await repo.countByDance(callerFilter: 'Alice'))['d1']!.countFor(true),
@@ -2165,6 +2175,7 @@ void main() {
           sampleProgram(
             id: 'p-blank',
             caller: '',
+            eventDate: DateTime.utc(2026, 6, 1),
             slots: [
               ProgramSlot(
                 id: 's-bl',

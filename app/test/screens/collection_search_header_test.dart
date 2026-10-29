@@ -102,11 +102,25 @@ Future<void> _pump(
 double _top(WidgetTester tester, String key) =>
     tester.getRect(find.byKey(ValueKey(key))).top;
 
+/// The Online search icon is vertically centred on the chips and inside the
+/// screen, not wrapped onto a second line.
+void _expectOnlineIconInRow(WidgetTester tester) {
+  final icon = tester.getRect(
+    find.byKey(const ValueKey('online-search-enable')),
+  );
+  final advanced = tester.getRect(find.byKey(const ValueKey('advanced-panel')));
+  expect(icon.center.dy, closeTo(advanced.center.dy, 1));
+  expect(icon.left, greaterThanOrEqualTo(advanced.right));
+  expect(icon.right, lessThanOrEqualTo(390));
+}
+
 void main() {
   setUpAll(_loadAppFonts);
 
   testWidgets('on a phone, Search in sits beside the search box and the '
-      'three search tools share one row', (tester) async {
+      'three search tools and the Online search icon share one row', (
+    tester,
+  ) async {
     await _pump(tester);
 
     expect(tester.takeException(), isNull);
@@ -117,10 +131,11 @@ void main() {
     final toolsTop = _top(tester, 'filters-panel');
     expect(_top(tester, 'by-phrase-panel'), toolsTop);
     expect(_top(tester, 'advanced-panel'), toolsTop);
+    _expectOnlineIconInRow(tester);
   });
 
-  testWidgets('with filters active, the three search tools still share one '
-      'row on a phone', (tester) async {
+  testWidgets('with filters active, the three search tools and the Online '
+      'search icon still share one row on a phone', (tester) async {
     await _pump(tester);
     await tester.tap(find.byKey(const ValueKey('filters-panel')));
     await tester.pumpAndSettle();
@@ -135,6 +150,7 @@ void main() {
     final toolsTop = _top(tester, 'filters-panel');
     expect(_top(tester, 'by-phrase-panel'), toolsTop);
     expect(_top(tester, 'advanced-panel'), toolsTop);
+    _expectOnlineIconInRow(tester);
   });
 
   testWidgets('the results start high on a phone screen', (tester) async {

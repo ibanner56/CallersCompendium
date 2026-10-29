@@ -494,15 +494,18 @@ never updates itself automatically, and no update is ever downloaded or installe
 without you choosing to.
 
 - **Check for updates** — check right now, any time. It shows the version you're
-  on and whether a newer one is available. If it can't reach the update service it
-  reports that no update was found, so a check never interrupts you with
-  an error.
+  on and whether a newer one is available. If it can't check, for example because
+  you're offline, it says so in the same line rather than reporting that nothing
+  was found; it never interrupts you with an error dialog. If the update service
+  has a release in a form this version can't read, the line says a newer version
+  is available from the Releases page.
 - **Beta channel** (off by default) — turn this on to be offered pre-release beta
   versions. Left off, you're only offered stable releases. While Caller's
   Compendium is in beta, every release is a beta release, so turn this on if you
   want the app to tell you about new versions.
 - **Check automatically** (off by default) — when on, the app quietly checks for a
-  newer version as it starts up. Left off, checking only happens when you ask.
+  newer version as it starts up. If that check can't complete, it stays quiet.
+  Left off, checking only happens when you ask.
 
 When an update is available, a dismissible banner points you to the release so you
 can read what's new before deciding.

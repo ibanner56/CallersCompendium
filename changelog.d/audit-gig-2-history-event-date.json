@@ -1,0 +1,14 @@
+{
+  "id": "audit-gig-2-history-event-date",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Calling history dates each call by its program's event date, however late you mark the dances performed. Marking Saturday's dances on Monday no longer records them on Monday, and changing a program's date moves its history with it. A program with no event date is still dated by when you marked the slot performed. The Last called sort follows the same date."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`DanceCallingRecord.effectiveDate`, the calling-history order, `ProgramRepository.lastCalledByDance` and `DanceRepository`'s Last-called sort prefer the program's `eventDate` to the slot's `performedAt`: `COALESCE(event_date, performed_at, updated_at)`."
+    ]
+  }
+}

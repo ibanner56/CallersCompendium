@@ -33,6 +33,24 @@ String callingHistoryCallerClause(
 String callingHistoryAlternateClause({required String slotTable}) =>
     'AND (NOT $slotTable.is_alt OR $slotTable.performed_at IS NOT NULL) ';
 
+/// Returns the date a calling-history query gives one slot, over the
+/// `program_slots` alias [slotTable] and the `programs` alias [programTable].
+///
+/// The program's event date when it has one, else when the slot was marked
+/// performed, else the program's last-updated time (GIG-2, maintainer decision
+/// 2026-10-29). The Dart side of the same rule is
+/// `DanceCallingRecord.effectiveDate`; the two must agree. The history order
+/// and the Last-called sort both use this expression, so they cannot drift.
+///
+/// [slotTable] and [programTable] are internal, trusted SQL aliases, never
+/// user input.
+String callingHistoryDateSql({
+  required String slotTable,
+  required String programTable,
+}) =>
+    'COALESCE($programTable.event_date, $slotTable.performed_at, '
+    '$programTable.updated_at)';
+
 /// Returns the event-date rule for a calling-history query over the `programs`
 /// alias [programTable] (for example `programs` or `p`), or the empty string
 /// when [requireEventDate] is false.

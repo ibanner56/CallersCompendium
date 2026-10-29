@@ -53,9 +53,9 @@ sort by:
   same rules as the "called ×N" count: the
   [calling history settings](./settings.md#calling-history) decide which
   programs count, and an alternate counts only once marked performed. Each
-  dance is dated by when its slot was marked performed, else its program's event
-  date, else when the program was last changed. Dances you have not called come
-  last.
+  dance is dated by its program's event date, else when its slot was marked
+  performed, else when the program was last changed. Dances you have not called
+  come last.
 - **Best match** — how well each dance matches your words. This one is offered
   only for a short search — one or two characters — in **All fields**, with no
   **Filters**, **Advanced** or **By phrase** choices set. If Best match is
@@ -130,7 +130,8 @@ match a role word until you save the dance again; see
 [Write & edit dances](./authoring.md).)
 
 The same search bar can also search The Caller's Box or ContraDB directly: turn
-on **Online search** in the **Advanced** panel, and **Search in** offers
+on **Online search** with the icon at the end of the row of search tools (hover
+over it, or press and hold, for a reminder of what it does), and **Search in** offers
 **Title**, **Author**, and **Figure**. **Author** finds author names on The
 Caller's Box and choreographer names on ContraDB; **Figure** searches the dance
 figures on either one. A ContraDB **Figure** search needs a complete move name,
@@ -139,12 +140,19 @@ name will not work. The [import guide](./imports.md#search-an-archive-online-and
 covers online search step by step.
 
 Under the search bar sit three buttons — **Filters**, **By phrase** and
-**Advanced** — that each open a panel of search tools. One panel is open at a
+**Advanced** — that each open a panel of search tools, followed by the
+**Online search** icon. One panel is open at a
 time: tap a button to open its panel, and tap it again (or another button) to
 close it. Whatever you chose in a closed panel still applies, and its button
 says so: **Filters** and **By phrase** show how many choices are active (for
 example **Filters · 3**), and **Advanced** reads **Advanced (on)** while a
-figure query is in use.
+figure query is in use. The **Advanced** panel's query editor is always
+available; it has no effect until you add a condition, and any condition you
+add applies straight away. To set a query aside, delete its conditions.
+While **Online search** is on, **Filters** and **Advanced** are greyed out,
+because they only apply to your own library; **By phrase** stays available for
+sources that support it. A source selector appears under the row so you can
+choose which archive to search.
 
 ## Narrow things down with filters
 
