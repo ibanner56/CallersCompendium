@@ -6,9 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_doc_view.dart';
+import 'package:compendium_app/src/widgets/readable_width.dart';
 
 import '../../support/fake_url_launcher.dart';
 import '../../support/l10n_harness.dart';
+import '../../support/screen_size.dart';
 
 Future<void> _pumpGuide(WidgetTester tester) async {
   // The guide is embeddable now (no self-Scaffold), so host it in a Scaffold —
@@ -60,6 +62,18 @@ void main() {
   // on every test after the first, so clear the cache before each test to make
   // each one load the guides fresh.
   setUp(rootBundle.clear);
+
+  testWidgets('keeps the guide text to the readable width on a wide window', (
+    tester,
+  ) async {
+    await setScreenSize(tester, const Size(1600, 1000));
+    await _pumpGuide(tester);
+
+    expect(
+      tester.getSize(find.byType(Markdown)).width,
+      lessThanOrEqualTo(kReadableContentWidth),
+    );
+  });
 
   testWidgets('opens on the documentation hub', (tester) async {
     await _pumpGuide(tester);
