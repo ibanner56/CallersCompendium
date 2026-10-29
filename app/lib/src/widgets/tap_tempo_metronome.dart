@@ -179,7 +179,11 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
         ? l10n.performBpmSemantic(bpm)
         : l10n.performNoTempoSemantic;
 
-    return Padding(
+    // Scrolls when the content is taller than the sheet it is shown in: on a
+    // phone in landscape (or at large text) the sheet is capped well below the
+    // content's ~390px, and a bare Column overflows even at default text. The
+    // scroll view is shrink-wrapped, so a roomy sheet still sizes to content.
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -188,7 +192,12 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
             children: [
               Icon(Icons.av_timer, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
-              Text(l10n.performTapTempo, style: theme.textTheme.titleLarge),
+              Expanded(
+                child: Text(
+                  l10n.performTapTempo,
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),

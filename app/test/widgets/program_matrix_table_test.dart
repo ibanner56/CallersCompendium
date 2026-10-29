@@ -1366,4 +1366,24 @@ void main() {
       );
     }
   });
+
+  // UX4-3c: the chip's title was unflexed in a Row(min), so a long title ran
+  // past the edge of a phone.
+  testWidgets('a long dance title ellipsizes in the compact chip (UX4-3c)', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pump(
+      tester,
+      width: 360,
+      dances: [
+        dance('a', 'A Dance With An Extremely Long Title That Cannot Fit', [
+          swing(),
+        ]),
+        dance('b', 'Short', [swing()]),
+      ],
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
