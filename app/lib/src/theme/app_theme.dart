@@ -76,6 +76,7 @@ class AppTheme {
       listTileTheme: components.listTile,
       navigationRailTheme: components.navigationRail,
       navigationBarTheme: components.navigationBar,
+      snackBarTheme: components.snackBar,
       extensions: <ThemeExtension<dynamic>>[extension],
     );
   }

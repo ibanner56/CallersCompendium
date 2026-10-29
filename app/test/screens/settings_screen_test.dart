@@ -1418,13 +1418,13 @@ void main() {
       ) async {
         await _pumpSettings(tester);
         // The section list is the navigation; Device Sync must not be an entry.
-        expect(find.text('DEVICE SYNC'), findsNothing);
+        expect(find.text('Device Sync'), findsNothing);
 
         await tester.tap(
           find.byKey(const ValueKey('settings-nav-experimental')),
         );
         await tester.pumpAndSettle();
-        expect(find.text('DEVICE SYNC'), findsOneWidget);
+        expect(find.text('Device Sync'), findsOneWidget);
         expect(
           find.byKey(const ValueKey('sync-enabled-toggle')),
           findsNothing,
@@ -3420,7 +3420,7 @@ void main() {
         ) async {
           await pump(tester);
 
-          expect(find.text('DEVELOPER OPTIONS'), findsOneWidget);
+          expect(find.text('Developer Options'), findsOneWidget);
           expect(find.byKey(resetTile), findsNothing);
 
           await tester.ensureVisible(
@@ -5725,7 +5725,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('settings-nav-experimental')));
       await tester.pumpAndSettle();
 
-      expect(find.text('GLOSSARY AND CUSTOM FIGURES'), findsOneWidget);
+      expect(find.text('Glossary and Custom Figures'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('experimental-show-glossary')),
         findsNothing,
@@ -5771,7 +5771,7 @@ void main() {
       await _pumpSettings(tester);
       await tester.tap(find.byKey(const ValueKey('settings-nav-experimental')));
       await tester.pumpAndSettle();
-      expect(find.text('GLOSSARY AND CUSTOM FIGURES'), findsOneWidget);
+      expect(find.text('Glossary and Custom Figures'), findsOneWidget);
     });
 
     testWidgets('Custom Figures is independent of Show Glossary: switchable '
