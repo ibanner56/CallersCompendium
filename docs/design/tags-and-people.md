@@ -126,9 +126,17 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
     one entry under the typed name.
   - Merging only one of them would leave a second live entry that the app
     treats as the same name.
-  - A merge of more than two entries runs the pairwise merge below once per
-    loser, in one transaction and with one Undo. The smaller-UUID rule picks
-    the surviving id across all of them.
+  - **The user picks which match to merge into.** The dialog asks, and
+    preselects the match whose bytes equal the typed name, if there is one.
+    The chosen match is the one merged *into* in the sense used below: its
+    fields, such as a tag's colour, are the survivor's. Every other match,
+    and the renamed entry, is a loser.
+  - The losers are merged into it one at a time, in ascending id order, in
+    one transaction and with one Undo. That fixes the order for authors'
+    fill-the-blanks (option (b) below). The dialog's discard list covers
+    every loser.
+  - The smaller-UUID rule still picks the surviving *id*, across all of
+    them.
   - This is a question, not a destructive-action confirm. The user may not
     know the name is taken. `ux.md:201-202` limits *confirms* to actions with
     no Undo, and a merge has an Undo (below).
@@ -319,9 +327,11 @@ the spec. I did not run them.
     are: apply a held row's name from its tombstone while keeping the row
     live, or order natural-key tombstones before renames. Both are spec
     changes, so they belong in D-N2-1's amendment.
-  - It arises only when the survivor takes the *loser's* name, that is, when
-    the smaller id is the entry being renamed. In the other direction the
-    survivor keeps its own name and nothing collides.
+  - It arises whenever the survivor's final name equals, byte for byte, a
+    name a loser held before step 1 freed it. In a two-entry merge, that
+    means the smaller id is the entry being renamed. In a merge of several
+    matches, it can also be a loser that held the typed name's exact bytes.
+    If no loser held those bytes, nothing collides.
 - **A known limit: three-way merges.** A merges L into S while B merges L
   into T. If L has the smallest id on A but T is the smaller on B, A keeps L,
   while B tombstones L and aliases it to T. B's dances that still cite S can
@@ -712,7 +722,10 @@ tests included: S < 150, M 150–400, L 400+.
   - every step of each operation, and its Undo;
   - Undo after a merge whose loser had a prior alias chain, and one whose
     loser had retained sync fields;
-  - a rename whose lookup finds two live matches and a tombstone;
+  - a rename whose lookup finds two live matches with different colours and
+    a tombstone, checking the colour of the entry merged into wins;
+  - a held peer of a multi-match merge, where a loser that is not the
+    renamed entry held the typed name's exact bytes;
   - the two-device cases listed under [Merge](#merge): an offline peer's
     new citation, opposite merges, rename versus merge, apply order, and a
     rewritten tombstone;
