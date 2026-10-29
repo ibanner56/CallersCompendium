@@ -515,6 +515,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         key: const ValueKey('deleted-snackbar'),
         message: l10n.commonDeletedSnack(title),
         undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
         accessibleNavigation: accessibleNavigation,
         onUndo: () => _repos.dances.restore(id, at: DateTime.now().toUtc()),
       );

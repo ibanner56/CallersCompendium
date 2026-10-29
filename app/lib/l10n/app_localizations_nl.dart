@@ -3406,6 +3406,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Het diagnosticslog kon niet worden geëxporteerd.';
 
   @override
+  String get diagnosticsClearFailed =>
+      'Het diagnosticslog kon niet worden gewist.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Diagnosticslog wissen?';
 
   @override
@@ -3493,6 +3497,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get commonUndo => 'Ongedaan maken';
+
+  @override
+  String get commonUndoFailed =>
+      'Dat kon niet ongedaan worden gemaakt. Controleer het resultaat en probeer het opnieuw.';
 
   @override
   String get commonRetry => 'Opnieuw proberen';
@@ -7355,10 +7363,6 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import ongedaan gemaakt.';
-
-  @override
-  String get importReviewUndoFailed =>
-      'De import kon niet ongedaan worden gemaakt. Controleer je collectie en probeer ‘Ongedaan maken’ daarna opnieuw.';
 
   @override
   String get importReviewEditError =>

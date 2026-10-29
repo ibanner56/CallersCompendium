@@ -3351,6 +3351,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get diagnosticsExportFailed => 'Couldn\'t export the diagnostics log.';
 
   @override
+  String get diagnosticsClearFailed => 'Couldn’t clear the diagnostics log.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Clear diagnostics log?';
 
   @override
@@ -3437,6 +3440,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonUndo => 'Undo';
+
+  @override
+  String get commonUndoFailed =>
+      'Couldn’t undo that. Please check the result and try again.';
 
   @override
   String get commonRetry => 'Retry';
@@ -7272,10 +7279,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import undone.';
-
-  @override
-  String get importReviewUndoFailed =>
-      'Couldn’t undo the import. Check your collection, then try Undo again.';
 
   @override
   String get importReviewEditError => 'Couldn\'t import that dance to edit.';

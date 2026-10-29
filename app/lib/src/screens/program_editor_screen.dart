@@ -2460,6 +2460,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       messenger,
       message: message ?? _markedAllPerformedMessage(l10n),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () {
         if (undoGeneration != _bulkUndoGeneration || _saving) return;
@@ -2936,6 +2937,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         messenger,
         message: l10n.programsDeletedSnack(title),
         undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
         accessibleNavigation: accessibleNavigation,
         onUndo: () async {
           // The restore is the notification: every view of a program watches

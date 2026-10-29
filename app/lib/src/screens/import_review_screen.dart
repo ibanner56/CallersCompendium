@@ -1885,7 +1885,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       key: key,
       message: lines.join('\n'),
       undoLabel: l10n.commonUndo,
-      onUndo: () => unawaited(undoShorthandSeed(controller, outcome.added)),
+      undoFailedMessage: l10n.commonUndoFailed,
+      onUndo: () => undoShorthandSeed(controller, outcome.added),
       accessibleNavigation: accessibleNavigation,
     );
   }
@@ -2011,7 +2012,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ?failed,
         ].join(' '),
         undoLabel: l10n.commonUndo,
-        onUndo: () => unawaited(applied.undo()),
+        undoFailedMessage: l10n.commonUndoFailed,
+        onUndo: applied.undo,
         accessibleNavigation: accessibleNavigation,
       );
     } else if (failed != null) {
@@ -2412,7 +2414,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
                           SnackBar(
                             key: const ValueKey('import-undo-failed'),
-                            content: Text(l10n.importReviewUndoFailed),
+                            content: Text(l10n.commonUndoFailed),
                           ),
                         );
                         return;

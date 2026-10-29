@@ -3381,6 +3381,9 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke eksportere diagnostikloggen.';
 
   @override
+  String get diagnosticsClearFailed => 'Kunne ikke rydde diagnostikloggen.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Ryd diagnostiklog?';
 
   @override
@@ -3466,6 +3469,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get commonUndo => 'Fortryd';
+
+  @override
+  String get commonUndoFailed =>
+      'Kunne ikke fortryde det. Kontrollér resultatet, og prøv igen.';
 
   @override
   String get commonRetry => 'Prøv igen';
@@ -7301,10 +7308,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import fortrudt.';
-
-  @override
-  String get importReviewUndoFailed =>
-      'Importen kunne ikke fortrydes. Tjek din samling, og prøv derefter »Fortryd« igen.';
 
   @override
   String get importReviewEditError =>

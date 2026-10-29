@@ -569,7 +569,9 @@ says **No diagnostics to export** instead of producing an empty file.
 ### Clear log
 
 - **Clear log** — deletes the local crash log from this device. The app asks first
-  and is blunt about it: this cannot be undone.
+  and is blunt about it: this cannot be undone. If the log can't be cleared (for
+  example, another program has the file open), the app says so and the entries
+  stay listed.
 
 Filing a bug? A scrubbed log attached to a
 [GitHub issue](https://github.com/ibanner56/CallersCompendium/issues) is the most

@@ -3216,6 +3216,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get diagnosticsExportFailed => '診断ログをエクスポートできませんでした。';
 
   @override
+  String get diagnosticsClearFailed => '診断ログを消去できませんでした。';
+
+  @override
   String get diagnosticsClearLogTitle => '診断ログを削除しますか？';
 
   @override
@@ -3298,6 +3301,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commonUndo => '元に戻す';
+
+  @override
+  String get commonUndoFailed => '元に戻せませんでした。結果を確認して、もう一度お試しください。';
 
   @override
   String get commonRetry => '再試行';
@@ -7003,10 +7009,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'インポートを元に戻しました。';
-
-  @override
-  String get importReviewUndoFailed =>
-      'インポートを元に戻せませんでした。コレクションを確認してから、もう一度「元に戻す」をお試しください。';
 
   @override
   String get importReviewEditError => '編集用にそのダンスをインポートできませんでした。';

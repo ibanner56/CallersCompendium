@@ -3419,6 +3419,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diagnoseprotokoll konnte nicht exportiert werden.';
 
   @override
+  String get diagnosticsClearFailed =>
+      'Diagnoseprotokoll konnte nicht gelöscht werden.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Diagnoseprotokoll löschen?';
 
   @override
@@ -3506,6 +3510,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get commonUndo => 'Rückgängig';
+
+  @override
+  String get commonUndoFailed =>
+      'Das konnte nicht rückgängig gemacht werden. Bitte das Ergebnis prüfen und es erneut versuchen.';
 
   @override
   String get commonRetry => 'Erneut versuchen';
@@ -7384,10 +7392,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import rückgängig gemacht.';
-
-  @override
-  String get importReviewUndoFailed =>
-      'Der Import konnte nicht rückgängig gemacht werden. Prüfe deine Sammlung und versuche es dann noch einmal mit „Rückgängig“.';
 
   @override
   String get importReviewEditError =>

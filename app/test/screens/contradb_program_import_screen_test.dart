@@ -902,6 +902,41 @@ void main() {
     expect(await repos.dances.listAll(), isEmpty);
   });
 
+  testWidgets('an Undo whose rollback fails says so', (tester) async {
+    final repos = openTestRepositories();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+    );
+    await fetchProgram(tester);
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pumpAndSettle();
+    // Taking the imported dances back fails (a full disk, a locked database).
+    for (final event in const ['UPDATE', 'DELETE']) {
+      await repos.db.customStatement(
+        'CREATE TRIGGER fail_dance_$event BEFORE $event ON dances '
+        "BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END",
+      );
+    }
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Couldn’t undo that. Please check the result and try again.'),
+      findsOneWidget,
+    );
+    expect(await repos.dances.listAll(), hasLength(2));
+  });
+
   testWidgets('Undo of a re-import leaves the dances the first import added', (
     tester,
   ) async {

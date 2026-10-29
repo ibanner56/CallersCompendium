@@ -3434,6 +3434,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’exporter le journal de diagnostic.';
 
   @override
+  String get diagnosticsClearFailed =>
+      'Impossible d’effacer le journal de diagnostic.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Effacer le journal de diagnostic ?';
 
   @override
@@ -3521,6 +3525,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get commonUndo => 'Annuler';
+
+  @override
+  String get commonUndoFailed =>
+      'Impossible d’annuler. Vérifiez le résultat et réessayez.';
 
   @override
   String get commonRetry => 'Réessayer';
@@ -7399,10 +7407,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import annulé.';
-
-  @override
-  String get importReviewUndoFailed =>
-      'Impossible d\'annuler l\'import. Vérifiez votre collection, puis réessayez « Annuler ».';
 
   @override
   String get importReviewEditError =>
