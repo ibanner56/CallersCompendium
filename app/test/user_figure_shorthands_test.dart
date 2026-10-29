@@ -815,6 +815,21 @@ void main() {
       expect(controller.userFigureShorthands, [shorthand(token: 'zoomy')]);
     });
 
+    // UX2-1b: the values are read in after the editor opens, and must not
+    // count as an edit.
+    testWidgets('opening one and leaving it untouched does not ask', (
+      tester,
+    ) async {
+      await pump(tester, shorthands: [shorthand()]);
+      await tester.tap(tile('zm'));
+      await tester.pumpAndSettle();
+      expect(find.text('Reads as: robins zoom briskly'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(tile('zm'), findsOneWidget);
+    });
+
     testWidgets('a compound shorthand given a new figure moves to the new '
         'figures\' key', (tester) async {
       final controller = await pump(

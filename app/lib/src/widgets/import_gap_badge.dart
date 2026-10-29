@@ -27,6 +27,9 @@ const String importGapMessage =
 class ImportGapBadge extends StatelessWidget {
   const ImportGapBadge({super.key, this.size});
 
+  /// Minimum width and height of the tap target, in logical pixels.
+  static const double minTapTarget = 24;
+
   /// Optional glyph size; defaults to the ambient body font size, clamped.
   final double? size;
 
@@ -47,10 +50,21 @@ class ImportGapBadge extends StatelessWidget {
         child: InkResponse(
           radius: resolvedSize,
           onTap: () => _showExplanation(context),
-          child: Icon(
-            Icons.report_gmailerrorred,
-            size: resolvedSize,
-            color: theme.colorScheme.tertiary,
+          // The glyph alone is 16px at the default size; keep the hit target
+          // at least [minTapTarget] square without growing the visible icon.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minWidth: minTapTarget,
+              minHeight: minTapTarget,
+            ),
+            // [Icon] is a box of its own size, so it grows to the minimum and
+            // keeps the glyph centered; a [Center] here would instead expand
+            // to fill whatever loose space the parent offers.
+            child: Icon(
+              Icons.report_gmailerrorred,
+              size: resolvedSize,
+              color: theme.colorScheme.tertiary,
+            ),
           ),
         ),
       ),

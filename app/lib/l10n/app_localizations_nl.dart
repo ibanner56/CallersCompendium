@@ -3526,6 +3526,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonCancel => 'Annuleren';
 
   @override
+  String get commonDiscardChangesTitle => 'Wijzigingen verwerpen?';
+
+  @override
+  String get commonDiscardChangesBody => 'Je hebt niet-opgeslagen wijzigingen.';
+
+  @override
+  String get commonKeepEditing => 'Doorgaan met bewerken';
+
+  @override
+  String get commonDiscard => 'Verwerpen';
+
+  @override
   String get commonContinue => 'Doorgaan';
 
   @override

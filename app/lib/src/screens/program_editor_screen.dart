@@ -41,12 +41,12 @@ import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart' show formationDisplayLabel;
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
-import '../theme/destructive_button_style.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/collection_picker.dart';
+import '../widgets/confirm_discard_changes.dart';
 import '../widgets/venue_picker.dart';
 import 'dance_editor_screen.dart';
 import 'dance_detail_screen.dart';
@@ -3068,27 +3068,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<bool> _confirmDiscard() async {
     if (!_dirty) return true;
     final l10n = AppLocalizations.of(context);
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(l10n.programsDiscardTitle),
-        content: Text(l10n.programsDiscardBody),
-        actions: [
-          TextButton(
-            key: const ValueKey('discard-cancel'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.programsKeepEditing),
-          ),
-          FilledButton(
-            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
-            key: const ValueKey('discard-confirm'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.programsDiscard),
-          ),
-        ],
-      ),
+    final choice = await confirmDiscardChanges(
+      context,
+      title: l10n.programsDiscardTitle,
+      message: l10n.programsDiscardBody,
+      keepEditingLabel: l10n.programsKeepEditing,
+      discardLabel: l10n.programsDiscard,
     );
-    return discard ?? false;
+    return choice == DiscardChangesChoice.discard;
   }
 
   @override

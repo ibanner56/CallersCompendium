@@ -3552,6 +3552,22 @@
   "@commonCancel": {
     "x-sourceSha256": "19766ed6ccb2f4a32778eed80d1928d2c87a18d7c275ccb163ec6709d3eb2e27"
   },
+  "commonDiscardChangesTitle": "Abandonner les modifications ?",
+  "@commonDiscardChangesTitle": {
+    "x-sourceSha256": "85bcf41666a53691403e5143716318c50c069dbdd8fde2e2cc589d210f177c06"
+  },
+  "commonDiscardChangesBody": "Vous avez des modifications non enregistrées.",
+  "@commonDiscardChangesBody": {
+    "x-sourceSha256": "4e0a43240e6e697718531c9e4c7b7f1337c9b29f03fc9a316f3ab0649d2bd091"
+  },
+  "commonKeepEditing": "Continuer la modification",
+  "@commonKeepEditing": {
+    "x-sourceSha256": "e76fd2add01005ae11754d75ec97923c1a20a5f42e37d469c80f06a14e433511"
+  },
+  "commonDiscard": "Abandonner",
+  "@commonDiscard": {
+    "x-sourceSha256": "eb1a70e39274bb762b5d7c1adb5debeea2b05e12af28207f21a375b596853273"
+  },
   "commonContinue": "Continuer",
   "@commonContinue": {
     "x-sourceSha256": "31fbef162594de01bab0cd525c51f74de7bcb15063029fa1a54b2cf5944c80d8"
