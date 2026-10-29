@@ -13,10 +13,7 @@ import 'support/test_repositories.dart';
 void main() {
   group('readableContentPadding', () {
     test('adds nothing at or below the readable width', () {
-      expect(
-        readableContentPadding(kReadableContentWidth),
-        EdgeInsets.zero,
-      );
+      expect(readableContentPadding(kReadableContentWidth), EdgeInsets.zero);
       expect(readableContentPadding(360), EdgeInsets.zero);
     });
 
@@ -49,10 +46,7 @@ void main() {
           ),
         ),
       );
-      expect(
-        tester.getSize(find.byKey(key)).width,
-        kReadableContentWidth,
-      );
+      expect(tester.getSize(find.byKey(key)).width, kReadableContentWidth);
       expect(
         tester.getCenter(find.byKey(key)).dx,
         800,
@@ -116,9 +110,15 @@ void main() {
       for (final key in const ['form-field', 'formation-field']) {
         final field = find.byKey(ValueKey(key));
         expect(
-          tester.widget<InputDecorator>(
-            find.descendant(of: field, matching: find.byType(InputDecorator)),
-          ).decoration.labelText,
+          tester
+              .widget<InputDecorator>(
+                find.descendant(
+                  of: field,
+                  matching: find.byType(InputDecorator),
+                ),
+              )
+              .decoration
+              .labelText,
           isNotNull,
           reason: key,
         );

@@ -187,15 +187,13 @@ void main() {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Midwest Folklore'));
 
-    await _pumpDetail(
-      tester,
-      repos,
-      'd1',
-      surfaceSize: const Size(1600, 1200),
-    );
+    await _pumpDetail(tester, repos, 'd1', surfaceSize: const Size(1600, 1200));
 
     final card = find.byType(Card).first;
-    expect(tester.getSize(card).width, lessThanOrEqualTo(kReadableContentWidth));
+    expect(
+      tester.getSize(card).width,
+      lessThanOrEqualTo(kReadableContentWidth),
+    );
     expect(tester.getCenter(card).dx, 800);
   });
 
