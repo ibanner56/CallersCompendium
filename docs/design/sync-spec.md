@@ -444,7 +444,7 @@ MUST be abandoned if a new pairing starts or Device Sync is turned off. It MUST 
 every one of these holds:
 
 1. the connection would permit a pass under §6.12 (online, and not metered while
-   *Sync only on WiFi* is on), and Device Sync is on;
+   *Sync only on Wi-Fi* is on), and Device Sync is on;
 2. `GET /v1/store` succeeds and lists at least one device other than this one;
 3. `GET /v1/manifests/{self}` succeeds (a `404` means there is nothing to do);
 4. every other listed device's manifest is fetched, well formed, and in the
@@ -2643,7 +2643,7 @@ republishes, which is an ordinary upload and needs no special path.
    exactly one `POST /v1/store`, then fresh-attaches and stops; declining leaves
    sync configured but paused so a later user action can reconsider.
    Confirmation is a manual attempt and is subject to §6.12's connection gate,
-   so on a metered connection with *Sync only on WiFi* on it sends nothing and
+   so on a metered connection with *Sync only on Wi-Fi* on it sends nothing and
    the decision stays pending; and a `409` on that `POST` means only that a
    store exists for this `id_key` (§5.3), which on this path can only be another
    holder of the same sync ID, so the client MUST adopt it and fresh-attach
@@ -4237,7 +4237,7 @@ not stored.
 
 Triggers: app start, the app returning to the foreground, a debounced interval
 after a change, a manual "Sync now" (the same pass as an automatic trigger), and the automatic retry
-below. *Sync only on WiFi* defaults to on; on a metered connection automatic
+below. *Sync only on Wi-Fi* defaults to on; on a metered connection automatic
 sync does not run and a manual attempt routes to the setting. Every trigger
 passes the same connection gate, and a pass the gate suppresses runs at the next
 trigger.
@@ -5817,7 +5817,7 @@ know (mutation: decode peers tolerantly), when a peer manifest is in another epo
 (mutation: drop the epoch check), and when no other device is listed (mutation:
 drop that check — the per-entry check then refuses it anyway, so the test asserts
 no manifest was read). Sends nothing offline or on a metered connection with
-*Sync only on WiFi* on, and does not route the user to that setting (mutation:
+*Sync only on Wi-Fi* on, and does not route the user to that setting (mutation:
 reuse the manual-sync gate). Detach returns before the first request, which
 finds the phrase already gone from disk. The device ID is read before the clear
 (mutation: read it after — the clear has erased it, and nothing is ever sent). A new pairing cancels it (mutation: drop the

@@ -732,7 +732,7 @@ The Glossary lists them too, when it is shown. While it is on:
   marked **Rename needed**.
 - If a later version of the app comes with a figure that has the name of one
   of your new figures, your figure's page says so, with two choices.
-  **Rename mine** opens it to give it another name. **Switch to the app's**
+  **Rename mine** opens it to give it another name. **Switch to the app's figure**
   opens a page where you choose which of the app's figure's parameters each of
   yours becomes, and which of its values each of your options becomes; where a
   name matches, it is chosen for you. An option can become any parameter that
@@ -782,7 +782,7 @@ sends nothing anywhere. Turning it on does not send anything by itself; nothing
 is exchanged until you connect a store. The section starts closed while Device
 Sync is off and open while it is on.
 
-- **Sync only on WiFi** is on by default. On a mobile-data connection automatic
+- **Sync only on Wi-Fi** is on by default. On a mobile-data connection automatic
   sync waits, and pressing **Sync now** tells you why. In this section it points
   at this setting; from the sync icon on **Collection** or **Programs** it tells
   you to turn the setting off here in Settings.
@@ -874,8 +874,8 @@ Sync is off and open while it is on.
 - **When your store is almost full** — 80% or more of the space or the number
   of items the server allows — the status warns **Your sync store is almost
   full.** If **Skip unused imported dances** is still off, the warning offers
-  **Stop syncing imported dances**, which turns it on, since imported dances
-  are usually most of what a store holds.
+  a **Skip unused imported dances** button that turns it on, since imported
+  dances are usually most of what a store holds.
 - **Notices** appear under that last-synced line when a sync had something to
   report. A sync can finish successfully and still leave one of these standing,
   which is the point of them: the conditions they name are ones the app will
@@ -983,7 +983,7 @@ skipping it doesn't change what connecting does.
 
 When connecting finishes, the app says so and tells you what actually happened
 to the first sync: that it has finished, that it didn't finish and will try
-again (with the reason, as on the status), or that it's waiting — for WiFi if **Sync only on WiFi** is on and
+again (with the reason, as on the status), or that it's waiting — for Wi-Fi if **Sync only on Wi-Fi** is on and
 you're on mobile data, or for a connection if you're offline. It never claims a
 sync is running while you read it. It repeats there that sync is not a backup,
 and reports any duplicate dances the first connection merged.
@@ -996,7 +996,7 @@ Disconnecting removes this device from the sync store if your other devices
 already have everything from it. If they don't, it stays listed under **Other
 devices** until you remove it there. That removal is one quick try made just
 after the phrase is forgotten, and only on a connection that **Sync only on
-WiFi** would allow; it never holds up disconnecting, and if it can't be made it
+Wi-Fi** would allow; it never holds up disconnecting, and if it can't be made it
 isn't tried again. To reconnect — to the
 same store or a different one — choose **Connect** again; you'll need the phrase,
 so keep it somewhere safe, along with the server address if you changed it.
@@ -1061,9 +1061,9 @@ use instead.
 If a store this device used to sync with is no longer there, the app asks
 before creating a replacement: it may have gone unused past its 30-day limit,
 or it may have been removed — the app can't tell which. Reconnecting re-sends
-your whole library, so it follows **Sync only on WiFi** like everything else:
+your whole library, so it follows **Sync only on Wi-Fi** like everything else:
 on mobile data with that setting on, nothing is sent and the app points you at
-the setting, with the question still waiting once you're back on WiFi. If a
+the setting, with the question still waiting once you're back on Wi-Fi. If a
 reconnection doesn't go through, the question comes back and says so, and you
 can try again or leave it. Declining makes no network request and leaves the choice for later. Sync then **pauses**: the
 status says so and keeps saying so, and automatic syncs stop running rather

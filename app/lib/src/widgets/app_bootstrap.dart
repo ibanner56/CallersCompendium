@@ -392,11 +392,6 @@ class _BootstrapErrorScreenState extends State<_BootstrapErrorScreen> {
                 Text(l10n.appBootstrapError, textAlign: TextAlign.center),
                 const SizedBox(height: 8),
                 Text(
-                  l10n.appBootstrapErrorType(widget.errorType),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
                   l10n.appBootstrapLogHint,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall,

@@ -220,12 +220,6 @@ abstract class AppLocalizations {
   /// **'Could not prepare the collection.'**
   String get appBootstrapError;
 
-  /// Detail line on the startup error screen naming the kind of failure (the error's type name only, never its message).
-  ///
-  /// In en, this message translates to:
-  /// **'Error: {errorType}'**
-  String appBootstrapErrorType(String errorType);
-
   /// Button on the startup error screen that copies the error type and stack trace (not the message) to the clipboard.
   ///
   /// In en, this message translates to:
@@ -397,6 +391,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A backup has been saved. Resetting will replace your current data with a fresh, empty database.'**
   String get migrationBelowFloorResetConfirmBody;
+
+  /// Confirm button of the reset dialog on the below-floor recovery screen, shown after a backup has been saved. Plain "Reset", not the "Back Up + Reset" button that opened the flow: the backup is already done.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get migrationBelowFloorResetConfirmAction;
 
   /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the backup file was written.
   ///
@@ -713,7 +713,7 @@ abstract class AppLocalizations {
   /// Button on one of the user's own figures whose name a figure of the app's now has (#1023): opens a screen that maps the user's figure onto the app's, then switches the dances using it to the app's figure and removes the user's.
   ///
   /// In en, this message translates to:
-  /// **'Switch to the app\'s'**
+  /// **'Switch to the app\'s figure'**
   String get glossaryCustomSwitchToShipped;
 
   /// Title of the screen that maps one of the user's own figures onto the app's figure of the same name (#1023); {name} is the app's figure.
@@ -869,13 +869,13 @@ abstract class AppLocalizations {
   /// Title of the switch limiting automatic sync to unmetered connections.
   ///
   /// In en, this message translates to:
-  /// **'Sync only on WiFi'**
+  /// **'Sync only on Wi-Fi'**
   String get settingsSyncWifiOnlyTitle;
 
-  /// Subtitle of the sync-only-on-WiFi switch.
+  /// Subtitle of the sync-only-on-Wi-Fi switch.
   ///
   /// In en, this message translates to:
-  /// **'On by default. On a mobile-data connection sync waits until you are on WiFi.'**
+  /// **'On by default. On a mobile-data connection sync waits until you are on Wi-Fi.'**
   String get settingsSyncWifiOnlySubtitle;
 
   /// Title of the switch that stops this device from uploading an imported dance that nothing else it publishes currently references.
@@ -1097,7 +1097,7 @@ abstract class AppLocalizations {
   /// Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off.
   ///
   /// In en, this message translates to:
-  /// **'Stop syncing imported dances'**
+  /// **'Skip unused imported dances'**
   String get settingsSyncQuotaExcludeImports;
 
   /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device.
@@ -2012,10 +2012,10 @@ abstract class AppLocalizations {
   /// **'The store was deleted from the server, but this device couldn\'t disconnect from it. The store is gone and can\'t be brought back. Use Disconnect this device to finish.'**
   String get settingsSyncWipeDetachFailed;
 
-  /// Message shown when a manual sync is attempted on a metered connection, pointing at the WiFi-only setting.
+  /// Message shown when a manual sync is attempted on a metered connection, pointing at the Wi-Fi-only setting.
   ///
   /// In en, this message translates to:
-  /// **'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off below to sync now.'**
+  /// **'You are on a mobile-data connection and Sync only on Wi-Fi is on. Turn that setting off below to sync now.'**
   String get settingsSyncMeteredRouted;
 
   /// Message shown when a manual sync is attempted with no network connection.
@@ -2039,7 +2039,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when the toolbar Sync now button is tapped on a metered connection. Unlike settingsSyncMeteredRouted it must not say the setting is 'below': the button lives outside Settings, so nothing is below it.
   ///
   /// In en, this message translates to:
-  /// **'You are on a mobile-data connection and Sync only on WiFi is on. Turn that setting off in Settings to sync now.'**
+  /// **'You are on a mobile-data connection and Sync only on Wi-Fi is on. Turn that setting off in Settings to sync now.'**
   String get commonSyncMeteredBlocked;
 
   /// Title of the button that opens Device Sync pairing when no store is connected.
@@ -2285,7 +2285,7 @@ abstract class AppLocalizations {
   /// Body of the pairing-complete dialog when the §6.12 gate suppressed the first pass as metered. Names the setting responsible, because that is the one thing the user can act on.
   ///
   /// In en, this message translates to:
-  /// **'Your library is connected. The first sync is waiting for WiFi, because Sync only on WiFi is on.'**
+  /// **'Your library is connected. The first sync is waiting for Wi-Fi, because Sync only on Wi-Fi is on.'**
   String get settingsSyncPairingCompleteMetered;
 
   /// Body of the pairing-complete dialog when the §6.12 gate suppressed the first pass because there is no connection.
@@ -2698,7 +2698,7 @@ abstract class AppLocalizations {
   /// Subtitle shown while verifying the download's sha256 integrity. 'sha256' is a technical term kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Checking the sha256 integrity of the download…'**
+  /// **'Checking that the download is complete and unchanged…'**
   String get settingsUpdatesVerifyingSubtitle;
 
   /// Title of the assisted-download tile while handing the verified update to the OS installer.
@@ -3106,7 +3106,7 @@ abstract class AppLocalizations {
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
   ///
   /// In en, this message translates to:
-  /// **'Cute af dark pastel, pink-forward'**
+  /// **'Playful dark pastel, pink-forward'**
   String get appThemeDescriptionCutiePro;
 
   /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
@@ -3910,7 +3910,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the free-text-entry setting, describing what turning it on does.
   ///
   /// In en, this message translates to:
-  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
+  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
   String get settingsDefaultsFreeTextEntrySubtitle;
 
   /// Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689).
@@ -4720,7 +4720,7 @@ abstract class AppLocalizations {
   /// Introductory copy above persisted sync decision rows.
   ///
   /// In en, this message translates to:
-  /// **'These records need a decision before the peer change can be applied.'**
+  /// **'These items need a decision before a change from another device can be applied.'**
   String get syncReviewIntro;
 
   /// Error state shown when loading the persisted sync decision queue fails.
@@ -4816,19 +4816,19 @@ abstract class AppLocalizations {
   /// Safe identity line for the local record in a sync decision.
   ///
   /// In en, this message translates to:
-  /// **'Local record: {id}'**
+  /// **'On this device: {id}'**
   String syncReviewLocalRecord(String id);
 
   /// Safe identity line for the peer candidate in a sync decision.
   ///
   /// In en, this message translates to:
-  /// **'Peer record: {identity}'**
+  /// **'From the other device: {identity}'**
   String syncReviewPeerRecord(String identity);
 
   /// Reason shown for the W14-supported baseline-absence tombstone decision.
   ///
   /// In en, this message translates to:
-  /// **'A peer deleted a matching record that this device created.'**
+  /// **'Another device deleted a matching item that this device created.'**
   String get syncReviewTombstoneReason;
 
   /// Reason shown when fresh attach finds live dances with matching titles but different choreography.
@@ -4870,7 +4870,7 @@ abstract class AppLocalizations {
   /// Explanation shown instead of mutating actions for unsupported persisted sync conflicts.
   ///
   /// In en, this message translates to:
-  /// **'Keep this item until a later sync pass or a supported review flow can handle it.'**
+  /// **'Keep this item for now; a later sync or app update may be able to handle it.'**
   String get syncReviewUnsupportedAction;
 
   /// Button that applies the peer tombstone to a supported sync decision.
@@ -4912,13 +4912,13 @@ abstract class AppLocalizations {
   /// Action error shown when a persisted sync candidate fails integrity validation.
   ///
   /// In en, this message translates to:
-  /// **'The saved peer change is not valid, so it was kept.'**
+  /// **'The saved change from another device is not valid, so it was kept.'**
   String get syncReviewCandidateInvalid;
 
   /// Action error shown when a persisted sync candidate or target changed.
   ///
   /// In en, this message translates to:
-  /// **'The saved peer change is no longer current, so it was kept.'**
+  /// **'The saved change from another device is no longer current, so it was kept.'**
   String get syncReviewCandidateChanged;
 
   /// Action error shown when a supported sync decision's local target disappeared.
@@ -4930,7 +4930,7 @@ abstract class AppLocalizations {
   /// Action error shown when a persisted sync decision would duplicate an existing target.
   ///
   /// In en, this message translates to:
-  /// **'The peer record is already present, so the decision was kept.'**
+  /// **'The item from the other device is already here, so the decision was kept.'**
   String get syncReviewCandidateAlreadyPresent;
 
   /// General settings section header for import actions.
@@ -4960,7 +4960,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the re-check custom figures action.
   ///
   /// In en, this message translates to:
-  /// **'Re-parse imported dances whose figures were kept as custom only because they could not be recognised at import time. Improved parsing upgrades them in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
+  /// **'Re-check imported dances whose figures were kept as custom only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
   String get settingsGeneralReparseCustomFiguresSubtitle;
 
   /// Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows.
@@ -5722,7 +5722,7 @@ abstract class AppLocalizations {
   /// Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t parse this call — kept verbatim as a custom figure.'**
+  /// **'Couldn\'t recognize this call — kept exactly as written as a custom figure.'**
   String get importGapMessage;
 
   /// Title of the dialog explaining an unrecognized (import-gap or free-text) custom figure (shown when the badge is tapped).
@@ -5734,7 +5734,7 @@ abstract class AppLocalizations {
   /// Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments.
   ///
   /// In en, this message translates to:
-  /// **'Unrecognized figure. Couldn\'t parse this call — kept verbatim as a custom figure.'**
+  /// **'Unrecognized figure. Kept exactly as written as a custom figure.'**
   String get importGapSemanticLabel;
 
   /// App-bar title of the Collection screen (phone layout).
@@ -7307,10 +7307,10 @@ abstract class AppLocalizations {
   /// **'Mark all performed'**
   String get programsMarkAllPerformedTooltip;
 
-  /// Label of the save button when the program has unsaved changes; the asterisk marks the dirty state.
+  /// Label of the save button when the program has unsaved changes; it replaces the plain Save label so the dirty state is readable by screen readers too.
   ///
   /// In en, this message translates to:
-  /// **'Save *'**
+  /// **'Save changes'**
   String get programsSaveDirty;
 
   /// Generic Save button label.
@@ -9266,7 +9266,7 @@ abstract class AppLocalizations {
   /// Body text in the resolution dialog shown when a confident title+author match with differing figures is found during a single-dance online import (issue #797). existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'This dance\'s title and caller match \"{existingTitle}\", but its figures are different. How do you want to import it?'**
+  /// **'This dance\'s title and author match \"{existingTitle}\", but its figures are different. How do you want to import it?'**
   String onlineImportVariationDialogBody(String existingTitle);
 
   /// Button label in the issue #797 resolution dialog: import the incoming dance as a new, distinct dance (variation of the matched one).
@@ -9730,6 +9730,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'a Caller\'s Compendium JSON file'**
   String get importSourceLabelGenericJson;
+
+  /// Name of the .json filter in the native backup save/restore file dialogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup (JSON)'**
+  String get fileDialogTypeBackupJson;
+
+  /// Name of the share-file filter (.ccshare / .json) in the native import file dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Compendium share'**
+  String get fileDialogTypeCompendiumShare;
+
+  /// Name of the Caller's Companion .USR filter in the native import file dialog. Product and file-type names; kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Companion .USR'**
+  String get fileDialogTypeCompanionUsr;
+
+  /// Name of the diagnostics-log filter in the native save dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics log'**
+  String get fileDialogTypeDiagnosticsLog;
+
+  /// Name of the update-installer filter (.dmg / .zip) in the macOS native save dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium update'**
+  String get fileDialogTypeMacosUpdate;
 
   /// Name of The Caller's Box online import source (a proper noun), shown in the import-source dropdown and headings.
   ///
@@ -10364,7 +10394,7 @@ abstract class AppLocalizations {
   /// Import note: the source served only metadata (no figures), so the dance was imported as a metadata-only stub.
   ///
   /// In en, this message translates to:
-  /// **'This dance is available as metadata only (no figures); imported as a stub.'**
+  /// **'Only the dance\'s details were available (no figures), so it was imported without figures.'**
   String get importIssueMetadataOnlyStub;
 
   /// Import note: an ambiguous numeric date was interpreted month-first (US ordering); the user should verify. {field} is the localized date-field name (composed/revised).
@@ -10460,7 +10490,7 @@ abstract class AppLocalizations {
   /// Import note: an imported page had no figures table, so a metadata-only stub was created.
   ///
   /// In en, this message translates to:
-  /// **'The page had no figures; imported as a metadata-only stub.'**
+  /// **'The page had no figures, so the dance was imported without figures.'**
   String get importIssueNoFiguresTable;
 
   /// Import note (no position available): a figure couldn't be mapped to the taxonomy and was imported as a custom figure.
@@ -10478,19 +10508,19 @@ abstract class AppLocalizations {
   /// Import note (generic fallback): a figure parameter couldn't be mapped and a taxonomy default was used.
   ///
   /// In en, this message translates to:
-  /// **'A figure parameter couldn\'t be mapped; a taxonomy default was used.'**
+  /// **'One of a figure\'s settings couldn\'t be matched, so its default value was used.'**
   String get importIssueParamUnmapped;
 
   /// Import note: a figure's value for the named taxonomy parameter couldn't be converted, so the taxonomy default was used. {param} is a taxonomy parameter name (a safe internal identifier, e.g. “hand”), not untrusted external text.
   ///
   /// In en, this message translates to:
-  /// **'The {param} parameter couldn\'t be converted; a taxonomy default was used.'**
+  /// **'The {param} setting couldn\'t be converted, so its default value was used.'**
   String importIssueParamValueUnmapped(String param);
 
   /// Import note: a figure supplied more positional parameter values than the taxonomy maps; the surplus was ignored. Both values are the app's own counts.
   ///
   /// In en, this message translates to:
-  /// **'A figure had {provided} parameter values but only {mapped} are mapped; the extras were ignored.'**
+  /// **'A figure had {provided} settings but only {mapped} could be matched; the extras were ignored.'**
   String importIssueParamCountUnmapped(int provided, int mapped);
 
   /// Import note: a Caller's Companion related-dance relationship referenced a dance that wasn't part of this import (not imported this session, or an unresolved/orphan id), so the link was skipped rather than created dangling.
@@ -10892,7 +10922,7 @@ abstract class AppLocalizations {
   /// Import result heading listing program-level notes.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{{count} program note(s):} other{{count} program note(s):}}'**
+  /// **'{count, plural, =1{{count} program note:} other{{count} program notes:}}'**
   String importReviewProgramNotes(int count);
 
   /// Import result heading listing notes about the imported dances, such as a related-dance link that was left out because the related dance was not imported. {count} is how many notes follow.
@@ -10904,13 +10934,13 @@ abstract class AppLocalizations {
   /// Import result heading listing records that failed to import.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{{count} record(s) failed to import:} other{{count} record(s) failed to import:}}'**
+  /// **'{count, plural, =1{{count} record failed to import:} other{{count} records failed to import:}}'**
   String importReviewRecordsFailed(int count);
 
   /// Heading above the list of records that could not be parsed from the import batch.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{{count} record(s) couldn\'t be read (the rest can still be imported):} other{{count} record(s) couldn\'t be read (the rest can still be imported):}}'**
+  /// **'{count, plural, =1{{count} record couldn\'t be read (the rest can still be imported):} other{{count} records couldn\'t be read (the rest can still be imported):}}'**
   String importReviewBatchErrors(int count);
 
   /// Fallback name for an imported program with no title.
@@ -10976,7 +11006,7 @@ abstract class AppLocalizations {
   /// Explanatory body text under the issue #686 variation-diff heading. The title is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'This dance\'s title and caller match \"{title}\", but its figures are different. Review how they differ, then choose how to import it.'**
+  /// **'This dance\'s title and author match \"{title}\", but its figures are different. Review how they differ, then choose how to import it.'**
   String importReviewVariationBody(String title);
 
   /// Per-record option: import this record as a new, distinct dance and (optionally) link it back to the matched dance as a related dance (issue #686). The title is an untrusted local value rendered as plain text.
@@ -11078,7 +11108,7 @@ abstract class AppLocalizations {
   /// Helper text above the figure list explaining type-ahead figure entry.
   ///
   /// In en, this message translates to:
-  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with default params; unmatched text becomes a custom figure.'**
+  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; unmatched text becomes a custom figure.'**
   String get danceEditorFiguresHelp;
 
   /// Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it.
@@ -12443,7 +12473,7 @@ abstract class AppLocalizations {
   /// Helper text explaining lingo-aware styling in a custom figure text field.
   ///
   /// In en, this message translates to:
-  /// **'Move names dotted·underline, role terms underlined, discouraged terms struck through'**
+  /// **'Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough'**
   String get danceEditorLingoStylingHelper;
 
   /// Summary of total figure beats versus the phrase-structure expectation.
@@ -12623,7 +12653,7 @@ abstract class AppLocalizations {
   /// Assisted-download error shown when the downloaded file's sha256 did not match the manifest, so the file was deleted. "sha256" is the literal checksum name and stays as-is. "View release" must match the translation of updateBannerViewRelease.
   ///
   /// In en, this message translates to:
-  /// **'The downloaded update failed its security (sha256) check and was deleted. Try again, or use \"View release\" to download it manually.'**
+  /// **'The downloaded update failed its security check and was deleted. Try again, or use \"View release\" to download it manually.'**
   String get updateDownloadFailureChecksumMismatch;
 
   /// Assisted-download error shown when the verified installer or disk image could not be handed to the operating system. "View release" must match the translation of updateBannerViewRelease.
@@ -13385,7 +13415,7 @@ abstract class AppLocalizations {
   /// Body of the confirm dialog before upgrading custom figures.
   ///
   /// In en, this message translates to:
-  /// **'This will re-parse {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.'**
+  /// **'This will re-check {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.'**
   String reparseConfirmBody(int figureCount, int danceCount);
 
   /// Confirm-dialog action that performs the custom-figure upgrade.
@@ -13421,7 +13451,7 @@ abstract class AppLocalizations {
   /// Intro paragraph on the re-check custom figures screen.
   ///
   /// In en, this message translates to:
-  /// **'Improved figure parsing can upgrade {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Review below, then confirm — nothing changes until you do, and all your tags, ratings, and notes are preserved.'**
+  /// **'Improved figure recognition can upgrade {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Review below, then confirm — nothing changes until you do, and all your tags, ratings, and notes are preserved.'**
   String reparseIntro(int figureCount, int danceCount);
 
   /// Per-dance preview label showing how many figures would be upgraded.
@@ -13445,7 +13475,7 @@ abstract class AppLocalizations {
   /// Body of the empty state when no custom figures can be upgraded.
   ///
   /// In en, this message translates to:
-  /// **'None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure parsing.'**
+  /// **'None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.'**
   String get reparseEmptyBody;
 
   /// Title of the error state when scanning for upgradable figures fails.
@@ -13541,7 +13571,7 @@ abstract class AppLocalizations {
   /// Custom-field type: yes/no boolean.
   ///
   /// In en, this message translates to:
-  /// **'Boolean'**
+  /// **'Yes/No'**
   String get customFieldsTypeBoolean;
 
   /// Custom-field type: single choice from a list.
@@ -13592,10 +13622,10 @@ abstract class AppLocalizations {
   /// **'Key *'**
   String get customFieldsKeyLabel;
 
-  /// Helper text describing the machine-key format.
+  /// Helper text under the Key field of a custom field: what the key is (a short, permanent ID) and which characters it may use.
   ///
   /// In en, this message translates to:
-  /// **'Stable machine key (letters, digits, underscores; must start with a letter or underscore)'**
+  /// **'A short ID for this field. Letters, digits and underscores only; must start with a letter or underscore. Can\'t be changed once the field is used on dances.'**
   String get customFieldsKeyHelper;
 
   /// Helper text when the machine key can't be edited because the field is in use.
@@ -14288,10 +14318,10 @@ abstract class AppLocalizations {
   /// **'Re-import choreography'**
   String get danceReimport;
 
-  /// Source option for choosing a Callers Compendium JSON file for re-import.
+  /// Source option for choosing a Caller's Compendium JSON file for re-import.
   ///
   /// In en, this message translates to:
-  /// **'Callers Compendium JSON'**
+  /// **'Caller\'s Compendium JSON'**
   String get danceReimportJson;
 
   /// Source option, and the title of its dialog, for re-importing one saved dance from a pasted Caller's Box or ContraDB dance link or dance ID number.
