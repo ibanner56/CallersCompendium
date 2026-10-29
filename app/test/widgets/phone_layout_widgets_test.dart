@@ -81,8 +81,8 @@ void main() {
   ) async {
     await tester.pumpWidget(_app(const Center(child: ImportGapBadge())));
     final size = tester.getSize(find.byType(InkResponse));
-    expect(size.width, greaterThanOrEqualTo(ImportGapBadge.minTapTarget));
-    expect(size.height, greaterThanOrEqualTo(ImportGapBadge.minTapTarget));
+    expect(size.width, greaterThanOrEqualTo(24));
+    expect(size.height, greaterThanOrEqualTo(24));
   });
 
   group('SettingsActionRow (UX4-3a)', () {

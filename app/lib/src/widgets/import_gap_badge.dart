@@ -57,12 +57,13 @@ class ImportGapBadge extends StatelessWidget {
               minWidth: minTapTarget,
               minHeight: minTapTarget,
             ),
-            child: Center(
-              child: Icon(
-                Icons.report_gmailerrorred,
-                size: resolvedSize,
-                color: theme.colorScheme.tertiary,
-              ),
+            // [Icon] is a box of its own size, so it grows to the minimum and
+            // keeps the glyph centered; a [Center] here would instead expand
+            // to fill whatever loose space the parent offers.
+            child: Icon(
+              Icons.report_gmailerrorred,
+              size: resolvedSize,
+              color: theme.colorScheme.tertiary,
             ),
           ),
         ),
