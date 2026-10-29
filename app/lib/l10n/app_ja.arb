@@ -2512,9 +2512,9 @@
   "@settingsDefaultsImportTagsTitle": {
     "x-sourceSha256": "b1dd2d836caef6fe35201a4a9633de08a139ef06a2d899cf238a707968aff9b3"
   },
-  "settingsDefaultsImportTagsSubtitle": "単独でインポートした新しいダンスごとに追加されます。プログラムのインポート中に作成されたダンスや、Compendiumアーカイブから復元されたダンスにはタグは付きません。",
+  "settingsDefaultsImportTagsSubtitle": "インポートで新しく作成されたダンスごとに追加されます。共有されたファイルのダンスも含みます。プログラムのインポート中にその枠のために作成されたダンスにはタグは付きません。",
   "@settingsDefaultsImportTagsSubtitle": {
-    "x-sourceSha256": "bd3b68ca22a52c38aa563a2777ac99a8624ec843d438cebd52f12aaec06833db"
+    "x-sourceSha256": "46b3272c3dea055c93ff5cd00a0744ad249390fece3a8e1fdc41014fd5024b00"
   },
   "settingsDefaultsImportTagsEmpty": "まだタグがありません。エディターでダンスにタグを追加してから、ここで選択してください。",
   "@settingsDefaultsImportTagsEmpty": {
@@ -7165,6 +7165,10 @@
   "importReviewUndone": "インポートを元に戻しました。",
   "@importReviewUndone": {
     "x-sourceSha256": "0f526ab50a3ca2a66650ef99fd743de2dbf64d38d995f4c521cde940c3abc4da"
+  },
+  "importReviewUndoFailed": "インポートを元に戻せませんでした。コレクションを確認してから、もう一度「元に戻す」をお試しください。",
+  "@importReviewUndoFailed": {
+    "x-sourceSha256": "b7f07770fb150f9491bc822d2b8fcc5348a2a5a4357cee7642b1f12c34a349e7"
   },
   "importReviewEditError": "編集用にそのダンスをインポートできませんでした。",
   "@importReviewEditError": {

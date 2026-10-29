@@ -3886,7 +3886,7 @@ abstract class AppLocalizations {
   /// Explains which imports the default import tags apply to and which they skip.
   ///
   /// In en, this message translates to:
-  /// **'Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.'**
+  /// **'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.'**
   String get settingsDefaultsImportTagsSubtitle;
 
   /// Shown in place of the tag chips when the user has no tags.
@@ -10894,6 +10894,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import undone.'**
   String get importReviewUndone;
+
+  /// Snackbar over the import result when its Undo fails (for example, a locked database). The import may not have been reversed; Undo can be tried again.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t undo the import. Check your collection, then try Undo again.'**
+  String get importReviewUndoFailed;
 
   /// Snackbar shown when committing a single record so it can be edited fails.
   ///

@@ -3174,7 +3174,7 @@
   "@settingsDefaultsImportTagsTitle": {
     "description": "Title of the Import defaults setting that picks the tags added to newly imported dances."
   },
-  "settingsDefaultsImportTagsSubtitle": "Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.",
+  "settingsDefaultsImportTagsSubtitle": "Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.",
   "@settingsDefaultsImportTagsSubtitle": {
     "description": "Explains which imports the default import tags apply to and which they skip."
   },
@@ -9377,6 +9377,10 @@
   "importReviewUndone": "Import undone.",
   "@importReviewUndone": {
     "description": "Snackbar confirming the import was undone."
+  },
+  "importReviewUndoFailed": "Couldn’t undo the import. Check your collection, then try Undo again.",
+  "@importReviewUndoFailed": {
+    "description": "Snackbar over the import result when its Undo fails (for example, a locked database). The import may not have been reversed; Undo can be tried again."
   },
   "importReviewEditError": "Couldn't import that dance to edit.",
   "@importReviewEditError": {

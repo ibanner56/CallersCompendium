@@ -2544,7 +2544,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Føjes til hver ny dans, du importerer på egen hånd. Danse, der oprettes under import af et program, og danse, der gendannes fra et Compendium-arkiv, får ikke tags.';
+      'Føjes til hver ny dans, en import opretter, også danse fra en fil, nogen har delt med dig. Danse, der oprettes til et programs pladser under import af programmet, får ikke tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -7292,6 +7292,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import fortrudt.';
+
+  @override
+  String get importReviewUndoFailed =>
+      'Importen kunne ikke fortrydes. Tjek din samling, og prøv derefter »Fortryd« igen.';
 
   @override
   String get importReviewEditError =>

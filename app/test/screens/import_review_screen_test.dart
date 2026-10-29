@@ -4147,6 +4147,37 @@ void main() {
       expect(await repos.programs.listAll(), isEmpty);
     });
 
+    testWidgets('a failed Undo says so and can be tried again', (tester) async {
+      final repos = openTestRepositories();
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      // The undo's first write fails.
+      await repos.db.customStatement(
+        'CREATE TRIGGER boom BEFORE DELETE ON programs '
+        "BEGIN SELECT RAISE(ABORT, 'boom'); END",
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('import-undo-failed')), findsOneWidget);
+      expect(
+        tester
+            .widget<TextButton>(
+              find.byKey(const ValueKey('import-undo-button')),
+            )
+            .onPressed,
+        isNotNull,
+      );
+
+      await repos.db.customStatement('DROP TRIGGER boom');
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+
     testWidgets(
       'Done closes the result and keeps the import, as on every other route',
       (tester) async {

@@ -2420,7 +2420,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      '単独でインポートした新しいダンスごとに追加されます。プログラムのインポート中に作成されたダンスや、Compendiumアーカイブから復元されたダンスにはタグは付きません。';
+      'インポートで新しく作成されたダンスごとに追加されます。共有されたファイルのダンスも含みます。プログラムのインポート中にその枠のために作成されたダンスにはタグは付きません。';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -6994,6 +6994,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'インポートを元に戻しました。';
+
+  @override
+  String get importReviewUndoFailed =>
+      'インポートを元に戻せませんでした。コレクションを確認してから、もう一度「元に戻す」をお試しください。';
 
   @override
   String get importReviewEditError => '編集用にそのダンスをインポートできませんでした。';

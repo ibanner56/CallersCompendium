@@ -2524,7 +2524,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.';
+      'Added to each new dance an import creates, including dances from a file someone shared with you. Dances created for a program’s slots while importing a program are not tagged.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -7263,6 +7263,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import undone.';
+
+  @override
+  String get importReviewUndoFailed =>
+      'Couldn’t undo the import. Check your collection, then try Undo again.';
 
   @override
   String get importReviewEditError => 'Couldn\'t import that dance to edit.';

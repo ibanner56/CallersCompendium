@@ -2567,7 +2567,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Wird jedem neuen Tanz hinzugefügt, den du einzeln importierst. Tänze, die beim Import eines Programms entstehen, und Tänze, die aus einem Compendium-Archiv wiederhergestellt werden, erhalten keine Tags.';
+      'Wird jedem neuen Tanz hinzugefügt, den ein Import anlegt, auch Tänzen aus einer Datei, die dir jemand geteilt hat. Tänze, die beim Import eines Programms für seine Plätze angelegt werden, erhalten keine Tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -7375,6 +7375,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import rückgängig gemacht.';
+
+  @override
+  String get importReviewUndoFailed =>
+      'Der Import konnte nicht rückgängig gemacht werden. Prüfe deine Sammlung und versuche es dann noch einmal mit „Rückgängig“.';
 
   @override
   String get importReviewEditError =>

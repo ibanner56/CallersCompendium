@@ -2582,7 +2582,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Ajoutés à chaque nouvelle danse que vous importez seule. Les danses créées lors de l\'import d\'un programme et celles restaurées depuis une archive Compendium ne reçoivent pas de tags.';
+      'Ajoutés à chaque nouvelle danse qu\'un import crée, y compris les danses d\'un fichier qu\'on vous a partagé. Les danses créées pour les emplacements d\'un programme lors de son import ne reçoivent pas de tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -7390,6 +7390,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import annulé.';
+
+  @override
+  String get importReviewUndoFailed =>
+      'Impossible d\'annuler l\'import. Vérifiez votre collection, puis réessayez « Annuler ».';
 
   @override
   String get importReviewEditError =>

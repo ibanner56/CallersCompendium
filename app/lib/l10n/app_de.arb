@@ -2512,9 +2512,9 @@
   "@settingsDefaultsImportTagsTitle": {
     "x-sourceSha256": "b1dd2d836caef6fe35201a4a9633de08a139ef06a2d899cf238a707968aff9b3"
   },
-  "settingsDefaultsImportTagsSubtitle": "Wird jedem neuen Tanz hinzugefügt, den du einzeln importierst. Tänze, die beim Import eines Programms entstehen, und Tänze, die aus einem Compendium-Archiv wiederhergestellt werden, erhalten keine Tags.",
+  "settingsDefaultsImportTagsSubtitle": "Wird jedem neuen Tanz hinzugefügt, den ein Import anlegt, auch Tänzen aus einer Datei, die dir jemand geteilt hat. Tänze, die beim Import eines Programms für seine Plätze angelegt werden, erhalten keine Tags.",
   "@settingsDefaultsImportTagsSubtitle": {
-    "x-sourceSha256": "bd3b68ca22a52c38aa563a2777ac99a8624ec843d438cebd52f12aaec06833db"
+    "x-sourceSha256": "46b3272c3dea055c93ff5cd00a0744ad249390fece3a8e1fdc41014fd5024b00"
   },
   "settingsDefaultsImportTagsEmpty": "Du hast noch keine Tags. Füge im Editor einem Tanz eines hinzu und wähle es dann hier aus.",
   "@settingsDefaultsImportTagsEmpty": {
@@ -7165,6 +7165,10 @@
   "importReviewUndone": "Import rückgängig gemacht.",
   "@importReviewUndone": {
     "x-sourceSha256": "0f526ab50a3ca2a66650ef99fd743de2dbf64d38d995f4c521cde940c3abc4da"
+  },
+  "importReviewUndoFailed": "Der Import konnte nicht rückgängig gemacht werden. Prüfe deine Sammlung und versuche es dann noch einmal mit „Rückgängig“.",
+  "@importReviewUndoFailed": {
+    "x-sourceSha256": "b7f07770fb150f9491bc822d2b8fcc5348a2a5a4357cee7642b1f12c34a349e7"
   },
   "importReviewEditError": "Dieser Tanz konnte nicht zum Bearbeiten importiert werden.",
   "@importReviewEditError": {

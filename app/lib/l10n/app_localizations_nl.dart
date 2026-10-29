@@ -2558,7 +2558,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Wordt toegevoegd aan elke nieuwe dans die je los importeert. Dansen die tijdens het importeren van een programma worden gemaakt en dansen die uit een Compendium-archief worden hersteld, krijgen geen tags.';
+      'Wordt toegevoegd aan elke nieuwe dans die een import maakt, ook dansen uit een bestand dat iemand met je heeft gedeeld. Dansen die bij het importeren van een programma voor de plekken ervan worden gemaakt, krijgen geen tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -7346,6 +7346,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewUndone => 'Import ongedaan gemaakt.';
+
+  @override
+  String get importReviewUndoFailed =>
+      'De import kon niet ongedaan worden gemaakt. Controleer je collectie en probeer ‘Ongedaan maken’ daarna opnieuw.';
 
   @override
   String get importReviewEditError =>

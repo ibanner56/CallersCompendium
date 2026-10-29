@@ -2382,7 +2382,26 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   : () async {
                       if (undoing) return;
                       setButtonState(() => undoing = true);
-                      await onUndo();
+                      try {
+                        await onUndo();
+                      } on Object catch (e, stackTrace) {
+                        // Said, and Undo offered again: the import may still
+                        // be there, so Done must not be the only way out.
+                        logCaughtError(
+                          e,
+                          stackTrace,
+                          source: 'import_review_screen._showResult.undo',
+                        );
+                        if (!dialogContext.mounted) return;
+                        setButtonState(() => undoing = false);
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(
+                            key: const ValueKey('import-undo-failed'),
+                            content: Text(l10n.importReviewUndoFailed),
+                          ),
+                        );
+                        return;
+                      }
                       undone = true;
                       if (dialogContext.mounted) {
                         Navigator.of(dialogContext).pop();
