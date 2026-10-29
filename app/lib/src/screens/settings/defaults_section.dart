@@ -1221,6 +1221,54 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   }
 }
 
+/// Asks for a new difficulty level's name; pops the text typed, or nothing on
+/// Cancel. Owns its controller so it outlives the dialog's closing animation.
+/// Once a name is typed, a tap outside, Escape and Back leave it open.
+class _AddLevelDialog extends StatefulWidget {
+  const _AddLevelDialog();
+
+  @override
+  State<_AddLevelDialog> createState() => _AddLevelDialogState();
+}
+
+class _AddLevelDialogState extends State<_AddLevelDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text.isNotEmpty,
+      child: AlertDialog(
+        title: Text(l10n.commonAdd),
+        content: TextField(
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: l10n.danceEditorLevelLabel),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(_controller.text),
+            child: Text(l10n.commonSave),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Edits the ordered vocabulary used by dance difficulty assignments.
 class DifficultyLevelsEditor extends StatefulWidget {
   const DifficultyLevelsEditor({super.key});
@@ -1302,36 +1350,10 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   }
 
   Future<void> _add() async {
-    final controller = TextEditingController();
     final label = await showDialog<String>(
       context: context,
-      builder: (context) => DirtyDialogGuard(
-        listenable: controller,
-        isDirty: () => controller.text.isNotEmpty,
-        child: AlertDialog(
-          title: Text(AppLocalizations.of(context).commonAdd),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context).danceEditorLevelLabel,
-            ),
-            onSubmitted: (value) => Navigator.of(context).pop(value),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(AppLocalizations.of(context).commonCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              child: Text(AppLocalizations.of(context).commonSave),
-            ),
-          ],
-        ),
-      ),
+      builder: (context) => const _AddLevelDialog(),
     );
-    controller.dispose();
     final normalized = label?.trim() ?? '';
     if (!mounted || normalized.isEmpty) return;
     try {

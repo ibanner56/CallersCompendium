@@ -759,6 +759,11 @@ void main() {
   });
 
   group('adding a difficulty level', () {
+    final dialogField = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    );
+
     Future<void> openAddDialog(WidgetTester tester) async {
       final repos = openTestRepositories();
       await _pumpDefaults(tester, repos);
@@ -771,14 +776,14 @@ void main() {
       tester,
     ) async {
       await openAddDialog(tester);
-      await tester.enterText(find.byType(TextField).last, 'Advanced');
+      await tester.enterText(dialogField, 'Wizard');
       await tester.pump();
 
       await tester.tapAt(const Offset(4, 4));
       await tester.pumpAndSettle();
 
       expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('Advanced'), findsOneWidget);
+      expect(find.text('Wizard'), findsOneWidget);
     });
 
     testWidgets('a tap outside still closes an untouched dialog', (
@@ -794,7 +799,7 @@ void main() {
 
     testWidgets('Cancel still closes it with text typed', (tester) async {
       await openAddDialog(tester);
-      await tester.enterText(find.byType(TextField).last, 'Advanced');
+      await tester.enterText(dialogField, 'Wizard');
 
       await tester.tap(find.text(_l10n(tester).commonCancel));
       await tester.pumpAndSettle();
