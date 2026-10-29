@@ -1,0 +1,13 @@
+{
+  "id": "audit-b16-online-import-reuse-and-undo",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Importing a dance from online search now offers Undo on the message that confirms it. Undo takes the dance back out, or puts your own version back if you chose to update a dance you already had. A dance you have changed since, or added to a program, is kept."
+    ],
+    "fixed": [
+      "Importing a dance from online search, including while adding one to a program, no longer adds a silent second copy of a dance you typed in yourself with the same figures: the app asks first, as it does for a dance from another archive.",
+      "Importing a program from ContraDB now uses a dance you already have with the same figures instead of adding a second copy of it."
+    ]
+  }
+}

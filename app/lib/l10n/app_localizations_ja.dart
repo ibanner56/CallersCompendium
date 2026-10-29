@@ -5908,6 +5908,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String onlineImportUndoKeptChanged(String title) {
+    return '「$title」はインポート後に変更されたため、元に戻す操作では変更しませんでした。';
+  }
+
+  @override
   String onlineImportAlreadyInCollection(String title) {
     return '「$title」はすでにコレクションにあります。';
   }
@@ -5933,7 +5938,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'コレクションには別のソースからの「$existingTitle」がすでにあります。どちらのバージョンもムーブの並びは同じです。';
+    return 'コレクションにはすでに「$existingTitle」があります。どちらのバージョンもムーブの並びは同じです。';
   }
 
   @override
@@ -7526,6 +7531,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String validationIncompleteFigure(int position) {
+    return 'フィギュア$positionは未完成のため、保存しても含まれません。';
+  }
+
+  @override
   String get validationPhraseInvalid => 'そのフレーズ構造は無効です。';
 
   @override
@@ -7934,6 +7944,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get danceEditorCompoundUnavailable =>
       'この自分のフィギュアは展開できません。削除または変更されたか、これらの値を受け付けません。保存すると、名前・拍数・メモ・プログレッションだけが残ります。';
+
+  @override
+  String get danceEditorIncompleteFigure => '未完成のため、保存しても含まれません。';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9090,7 +9103,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customFieldsShowInListSubtitle => 'ダンスリストのタイルにこのフィールドの値を表示します';
 
   @override
-  String get customFieldsSearchableSubtitle => '検索パネルのフィルターとしてこのフィールドを公開します';
+  String get customFieldsSearchableSubtitle =>
+      'このフィールドを「フィルター」パネルに表示し、検索バーでその値を検索できるようにします';
+
+  @override
+  String get customFieldsSearchableSubtitleYesNo => 'このフィールドを「フィルター」パネルに表示します';
 
   @override
   String get customFieldsChoicesLabel => '選択肢 *';

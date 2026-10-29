@@ -168,6 +168,7 @@ export 'src/storage/database.dart'
         callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
         normalisationDerivedIndexRepairDoneKey,
+        customFieldIndexRepairDoneKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;

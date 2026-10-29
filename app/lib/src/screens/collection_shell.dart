@@ -7,13 +7,13 @@ import '../data/dance_reimport.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
-import '../data/online_search_labels.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/online_import_dialogs.dart';
+import '../widgets/online_import_snack_bar.dart';
 import '../published_collections/published_collection_service.dart';
 import 'dance_detail_screen.dart';
 import 'dance_list_screen.dart';
@@ -461,12 +461,21 @@ class _CollectionShellState extends State<CollectionShell> {
           _clearOnlinePreview();
         });
       }
-      messenger?.showSnackBar(
-        SnackBar(
-          key: const ValueKey('online-import-snackbar'),
-          content: Text(onlineImportMessage(l10n, result)),
-        ),
-      );
+      if (messenger != null) {
+        showOnlineImportSnackBar(
+          messenger,
+          l10n: l10n,
+          result: result,
+          repos: repos,
+          accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+          // Undo took the new dance away: clear the pane if it still shows it.
+          onDanceRemoved: () {
+            if (mounted && _selectedDanceId == danceId) {
+              setState(() => _selectedDanceId = null);
+            }
+          },
+        );
+      }
     } on UrlFetchException catch (error, stackTrace) {
       logCaughtError(
         error,

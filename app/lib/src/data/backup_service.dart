@@ -97,17 +97,18 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 ///   (off / weekly / monthly) and the reminder fires from [kLastBackupAtKey],
 ///   which is the value that must stay local. It was denylisted from G.5
 ///   (#167) until the 2026 audit found it `shareable` in the registry and
-///   "must not travel" here at once; the registry's reading was kept. Six of
+///   "must not travel" here at once; the registry's reading was kept. Eight of
 ///   those are named through app-side `k…` duplicates declared above; the
-///   other nine are the core constants exported by `compendium_core`
+///   other ten are the core constants exported by `compendium_core`
 ///   ([derivedRebuildRequiredKey], [purgeCorruptionRepairDoneKey],
 ///   [sectionRuleVersionKey], [inversePairNormalisationDoneKey],
 ///   [starPromenadeHandRemovalDoneKey],
 ///   [gripSingleFileCanonicalInclusionDoneKey], [chainHandBackfillDoneKey],
 ///   [promenadeTurnCircleWordingCanonicalRebuildDoneKey],
-///   [compactDosidoSeesawCanonicalRebuildDoneKey]) named directly — the
+///   [compactDosidoSeesawCanonicalRebuildDoneKey],
+///   [customFieldIndexRepairDoneKey]) named directly — the
 ///   settings ratchet no longer needs a `k`-prefixed twin to see a key, so no
-///   new duplicates are added. All fifteen are `_installState` in
+///   new duplicates are added. All eighteen are `_installState` in
 ///   `settings_registry.dart`: a marker says a pass has run over *this*
 ///   database's rows, which is false on any other install.
 ///   [kUpdateRetirementNoticeKey] is installation state of the same kind: the
@@ -149,6 +150,7 @@ const Set<String> kBackupSettingsDenylist = {
   chainHandBackfillDoneKey,
   promenadeTurnCircleWordingCanonicalRebuildDoneKey,
   compactDosidoSeesawCanonicalRebuildDoneKey,
+  customFieldIndexRepairDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
   kSyncLastUsedFingerprintKey,

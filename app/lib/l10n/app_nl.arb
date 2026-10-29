@@ -6174,6 +6174,10 @@
   "@onlineImportCreated": {
     "x-sourceSha256": "1046761c322aaa709ab5d48f7544427071384167ee4923d9931081d708542d03"
   },
+  "onlineImportUndoKeptChanged": "“{title}” is gewijzigd sinds je hem importeerde, dus Ongedaan maken heeft hem gelaten zoals hij is.",
+  "@onlineImportUndoKeptChanged": {
+    "x-sourceSha256": "8d822645712cbee80a667a24f960d58f9f8cb59aef3ed465d37e68d423ed30d4"
+  },
   "onlineImportAlreadyInCollection": "“{title}” staat al in je collectie.",
   "@onlineImportAlreadyInCollection": {
     "x-sourceSha256": "1f09833ffab5f1b87829b3eddd2c3c82d5e5bfb6a71e01d6f29831d749d221f6"
@@ -6198,9 +6202,9 @@
   "@onlineImportCrossSourceDuplicateDialogTitle": {
     "x-sourceSha256": "5c16452183521ffb00bc920b0e8ed470e4e94ff9b52c0fc34d0a7fdf3ebde745"
   },
-  "onlineImportCrossSourceDuplicateDialogBody": "Je collectie bevat “{existingTitle}” al uit een andere bron. Beide versies hebben dezelfde volgorde van moves.",
+  "onlineImportCrossSourceDuplicateDialogBody": "Je collectie bevat “{existingTitle}” al. Beide versies hebben dezelfde volgorde van moves.",
   "@onlineImportCrossSourceDuplicateDialogBody": {
-    "x-sourceSha256": "be06b09bb5525fba98b551720b7ba2ae96e1ce5608f552819f5e90e63212d8e8"
+    "x-sourceSha256": "c45f669de91f48793a838bd0481355ec1fdda1bfce0d2f1217e7ea24914f7166"
   },
   "onlineImportCrossSourceDuplicateDialogActionDuplicate": "Een tweede kopie importeren",
   "@onlineImportCrossSourceDuplicateDialogActionDuplicate": {
@@ -7762,6 +7766,10 @@
   "@validationSequenceExceedsPhrase": {
     "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
   },
+  "validationIncompleteFigure": "Figuur {position} is niet compleet, dus Opslaan laat hem weg.",
+  "@validationIncompleteFigure": {
+    "x-sourceSha256": "3c52fdb408c5114d40e661e2abc28520d0663fd0e7ff50a1096a901c31915a3a"
+  },
   "validationPhraseInvalid": "Die fraseopbouw is ongeldig.",
   "@validationPhraseInvalid": {
     "x-sourceSha256": "92d3acedb87ed98d680de3f4a8a54a8ad246bf74ccca87209f3e77773e2aa664"
@@ -8157,6 +8165,10 @@
   "danceEditorCompoundUnavailable": "Deze eigen figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijven alleen de naam, de beats, de notitie en de progressie bewaard.",
   "@danceEditorCompoundUnavailable": {
     "x-sourceSha256": "ed634f3cb27197c9dbd7a4c570a64adccedace935c49e3fbf8cbb4c54e532732"
+  },
+  "danceEditorIncompleteFigure": "Niet compleet, dus Opslaan laat hem weg.",
+  "@danceEditorIncompleteFigure": {
+    "x-sourceSha256": "a94c6fd28cd88d631dc65171fee6a1ec2665e1d82ac33275a06a7fc64d24b7f3"
   },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, notitie: {note}} other{}}. Figuur {position} van {total}.",
   "@danceEditorFigureSummarySemantic": {
@@ -9166,9 +9178,13 @@
   "@customFieldsShowInListSubtitle": {
     "x-sourceSha256": "8900c324c019893322e4aa86d5d01bbb3c6b69487a63ae59a208e43c7ad98ce0"
   },
-  "customFieldsSearchableSubtitle": "Stel dit veld beschikbaar als filter in het zoekpaneel",
+  "customFieldsSearchableSubtitle": "Bied dit veld aan in het paneel Filters en laat de zoekbalk de waarden ervan vinden",
   "@customFieldsSearchableSubtitle": {
-    "x-sourceSha256": "aa1b1d3c301410ef4d64d389b82a08aa2fe1e4ca6bf4a22b9ea9a647cc3b95c9"
+    "x-sourceSha256": "0a64c91f696b3be303fa87eceddd659a5632dd657fff9af5ba077acc794c6f33"
+  },
+  "customFieldsSearchableSubtitleYesNo": "Bied dit veld aan in het paneel Filters",
+  "@customFieldsSearchableSubtitleYesNo": {
+    "x-sourceSha256": "b6cbc3e64325fe848e181ad80b67bb44885158e8e622916a949d0aede4691a7a"
   },
   "customFieldsChoicesLabel": "Keuzes *",
   "@customFieldsChoicesLabel": {
