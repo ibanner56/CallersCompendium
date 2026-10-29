@@ -130,7 +130,7 @@ every option below.
 
 | Route | For | Against |
 | --- | --- | --- |
-| **A Dart SQL function** (recommended) | `applyCompendiumSqliteSetup` registers a function, `cc_venue_key(text)`, on every connection (`packages/compendium_core/lib/src/storage/database_setup.dart:37-40`). Both connections the app opens use that setup: the app's (`app/lib/src/data/app_database.dart:152`) and the sync isolate's (`app/lib/src/sync/sync_isolate.dart:466`). The compiler emits `AND p.venue_id IS NULL AND cc_venue_key(p.venue) = ?`. The summary calls the same Dart function. One rule, exact, no extra query. | Every connection must register it, and today only the two production ones run the setup. The test databases (`packages/compendium_core/test/storage/test_database.dart:8`, `:155`; `app/test/support/test_repositories.dart:29`) and the core tools and benchmarks (`packages/compendium_core/tool/write_head_database.dart:55`, `packages/compendium_core/benchmark/search_benchmark.dart:59` and `scalability_benchmark.dart:482`) open without it, and would fail with "no such function". H1 passes the setup at each of them (WAL is a no-op in memory, `database_setup.dart:33-35`). `CompendiumDatabase` asserts the function exists when it opens, so a new connection without the setup fails loudly. |
+| **A Dart SQL function** (recommended) | `applyCompendiumSqliteSetup` registers a function, `cc_venue_key(text)`, on every connection (`packages/compendium_core/lib/src/storage/database_setup.dart:37-40`). Both connections the app opens use that setup: the app's (`app/lib/src/data/app_database.dart:152`) and the sync isolate's (`app/lib/src/sync/sync_isolate.dart:466`). The compiler emits `AND p.venue_id IS NULL AND cc_venue_key(p.venue) = ?`. The summary calls the same Dart function. One rule, exact, no extra query. | Every connection must register it, and today only the two production ones run the setup. The test databases (`packages/compendium_core/test/storage/test_database.dart:8`, `:155`; `app/test/support/test_repositories.dart:29`) and the core tools and benchmarks (`packages/compendium_core/tool/write_head_database.dart:55`, `packages/compendium_core/benchmark/search_benchmark.dart:59` and `scalability_benchmark.dart:482`) open without it, and would fail with "no such function". Only a search with a `text:` venue scope would fail there with "no such function", and many more test files open their own connection. So H1 passes the setup in the two shared test helpers and the tools above (WAL is a no-op in memory, `database_setup.dart:33-35`). Venue-scope tests use those helpers, and one test per production path asserts the function exists. An open-time check was rejected: it would break every other connection site, whether or not it searches by venue. |
 | Resolve to program ids first | `DanceRepository.search` lists live programs and folds their venues in Dart before compiling, so the compiler stays pure. | An extra query on every search. An `IN (…)` list that grows with the venue's history and needs chunking past the bind limit (`_chunkIds`, `dance_repository.dart:3094`). |
 | A stored folded column | Plain indexed SQL. | A schema bump, a migration, a registry entry and a sync review, all to fix a whitespace rule. |
 
@@ -199,8 +199,8 @@ another night is one the caller usually wants to avoid repeating.
 - **Rejected alternatives:**
   - Count back from today everywhere. It is simpler, but wrong for a program
     built two months ahead.
-  - Close the window at the program's date. That would hide a repeat already
-    planned for the following month.
+  - Close the window at the program's date. It would stop hiding a repeat
+    already planned for the following month.
 
 **Cutoff and granularity** (constraint 6). The cutoff is a calendar date, stored
 as `DateTime.utc(y, m, d)` like an event date.
@@ -340,8 +340,10 @@ With the default settings it leaves out every slot not marked performed, which
   `DanceCallCounts` (`program_repository.dart:1042-1061`).
 - FIND-2's evidence also notes that no screen shows the value the Last-called
   sort orders by. The chip shows it, with one exception. The sort keeps B1's
-  `updated_at` fallback, because it needs a date for every called dance. So an
-  "undated" chip sits where the program's last edit puts it in the sort. This is
+  `updated_at` fallback, because it needs a date for every called dance. So
+  whenever a dance's newest counted call has neither an event date nor a
+  performed stamp, the sort places it by that program's last edit. Its chip
+  shows an older date, or "undated". This is
   a cost of Decision 3's recommendation. The alternative, giving the sort the
   recency date too, would drop those dances into the never-called tail, which is
   FIND-2's original complaint.
