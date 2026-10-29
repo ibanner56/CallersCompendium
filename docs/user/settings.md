@@ -91,6 +91,11 @@ the full picture.
 - **Published collections** — browse signed collections from the trusted catalog
   and send one through the review flow. See
   [Imports & migration](./imports.md#import-a-published-collection).
+- **Convert ECD dances?** is a question the app asks when it opens, not a
+  setting here. Choosing **Don't show this again** in it stops the question;
+  answering **Not now** without it asks again next time. A conversion can be
+  undone straight after. See
+  [Imports & migration](./imports.md#dances-tagged-ecd).
 - **Re-check custom figures** — re-reads imported dances whose figures were kept
   as plain custom text only because the app couldn't recognise them at the time.
   You preview and confirm before anything changes, and your tags, ratings, and
@@ -193,6 +198,13 @@ details are handled when you export.
   [alternate](./glossary.md#alt) counts only once you mark that slot performed;
   **Mark all performed** and the **Performed** status skip alternates, so mark
   the ones you used yourself.
+- **Require an event date for calling history** (off) — when on, a program with
+  no event date counts nowhere calling history is read (the "called ×N" count,
+  the **Called** filter, a dance's history list, the **Last called** sort, and
+  the repeated-venues and half summaries) until you give it a date. Duplicated
+  programs and programs another caller sends you arrive without a date. When
+  off, a program counts whether or not it has a date. It applies on top of the
+  other calling-history settings (all must pass).
 - **Track calling history for all callers** (off) — when off *and* you've set a
   [default caller for new programs](#program-defaults), a dance's calling history
   and "called ×N" counts include only programs led by that caller (plus any
@@ -453,8 +465,10 @@ open this group. You can override any of them per dance, and
   dance editor offers them for a dance's form. A list keeps a figure it
   already holds when you change the form.
 - **Move defaults** — preferred parameter values applied automatically when you
-  insert a [move](./glossary.md#move) while writing. These override that move's
-  built-in defaults, and you can still change any parameter afterwards. While
+  insert a [move](./glossary.md#move) while writing, whether you pick it or type
+  it with **Free-text entry**. These override that move's built-in defaults, but
+  not a value you type in the line (`half hey`), and you can still change any
+  parameter afterwards. While
   Custom Figures is on, **Your figures' defaults** lists each of your new
   figures that can be used (not one marked **Needs repair**): a figure keeps its own defaults, the values it starts with and its
   beats, so choosing one opens it to change them.
@@ -569,7 +583,9 @@ says **No diagnostics to export** instead of producing an empty file.
 ### Clear log
 
 - **Clear log** — deletes the local crash log from this device. The app asks first
-  and is blunt about it: this cannot be undone.
+  and is blunt about it: this cannot be undone. If the log can't be cleared (for
+  example, another program has the file open), the app says so and the entries
+  stay listed.
 
 Filing a bug? A scrubbed log attached to a
 [GitHub issue](https://github.com/ibanner56/CallersCompendium/issues) is the most
@@ -708,7 +724,10 @@ The Glossary lists them too, when it is shown. While it is on:
   Trash use it, which keep the line each last stored, and whether your default
   figures use it; they keep its current wording as plain text, like the
   dances. Each dialect's name and wording for it, and its column's place, name
-  and hiding in **Matrix columns**, are removed too. A figure that can no longer be used
+  and hiding in **Matrix columns**, are removed too. Deleting a combination or
+  a new figure also says how many of your shorthands are for it: they stay,
+  and once the figure is gone, typing one is read as an ordinary line (see
+  [Figure shorthands](./authoring.md#figure-shorthands)). A figure that can no longer be used
   is marked **Needs repair**; one whose name is also another figure's is
   marked **Rename needed**.
 - If a later version of the app comes with a figure that has the name of one
@@ -770,6 +789,11 @@ Sync is off and open while it is on.
   A pass that was skipped runs the next time sync is triggered — when you
   change something, open the app, or come back to it — and you do not need
   to do anything.
+- **Closing the app during a sync.** The app says **Closing…**, saves any
+  open editor's draft first, and then gives a sync that is still running up to
+  ten seconds to finish before it closes anyway. Your changes are already saved
+  on this device; a sync cut short this way runs again the next time you open
+  the app.
 - **Skip unused imported dances** is off by default. If you have a large
   imported collection, turning it on cuts what this device uploads — but a
   dance that's actually used in one of your programs, or linked from another

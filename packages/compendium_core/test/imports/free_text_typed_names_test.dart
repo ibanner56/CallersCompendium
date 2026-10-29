@@ -169,11 +169,19 @@ void main() {
   group('caller phrasings', () {
     test('the turn-amount rewrite never changes a line the grammar read', () {
       // The rewritten line does not read cleanly, so the line is read as
-      // typed: the note keeps the user's words.
+      // typed, and the user's words are kept. As typed, the spelled-out turn
+      // amount is one the allemande would ignore, so the whole line stays a
+      // custom rather than a once-around allemande with "one and a half" in
+      // its note (audit F3).
       final f = parseFreeTextFigureEntry(
         'neighbors allemande right one and a half times',
       ).single;
-      expect(f.note, contains('one and a half'));
+      expect(f.isCustom, isTrue);
+      expect(f.customOrigin, CustomOrigin.importGap);
+      expect(
+        f.params['text'],
+        'neighbors allemande right one and a half times',
+      );
     });
 
     test('hey for four, half hey, full hey', () {

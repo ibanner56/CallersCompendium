@@ -28,6 +28,14 @@ void main() {
       'balance and swing petronella',
       'balance and swing with partner',
       '(4) Balance long wave',
+      // A turn amount spelled out, as the figures above spell it in digits
+      // (audit F3).
+      'petronella two times',
+      'petronella three times',
+      'neighbors allemande left three quarters',
+      'circle left one half',
+      'neighbors allemande right and a half',
+      'circle left three quarters around',
     ]) {
       test(line, () {
         final f = parse(line).single;
@@ -65,6 +73,10 @@ void main() {
       ('neighbors swing in the circle', 'swing', 'in the circle'),
       // `once` is what a figure does by default, not a turn it ignores.
       ('Circle left once around', 'circle', 'once around'),
+      // …and so is `one time`, spelled out.
+      ('petronella one time', 'petronella', 'one time'),
+      // A fraction word before anything but a turn word is plain words.
+      ('neighbors balance, a half step', 'balance', 'a half step'),
       // A clause that opens with a move's name but is a hold or a place, not
       // a figure of its own.
       ('partners swing, promenade hold', 'swing', 'promenade hold'),

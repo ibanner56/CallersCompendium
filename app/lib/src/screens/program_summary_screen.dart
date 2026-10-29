@@ -557,6 +557,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       ScaffoldMessenger.of(context),
       message: l10n.programsDeletedSnack(source.title),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
@@ -897,6 +898,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ? l10n.programsMarkedAllPerformedExceptAlternates
           : l10n.programsMarkedAllPerformed,
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () => unawaited(
         _undoMarkAllPerformed(

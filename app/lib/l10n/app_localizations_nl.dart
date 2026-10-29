@@ -2965,6 +2965,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als ingeschakeld, toont de callerhistorie van een dans alleen programma’s waarvan het slot voor die dans als uitgevoerd is gemarkeerd. Als uitgeschakeld, verschijnt een programma zodra het de dans bevat.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Eventdatum vereisen voor callerhistorie';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Als ingeschakeld, telt een programma zonder eventdatum pas mee voor de callerhistorie als je het een datum geeft. Gedupliceerde en ontvangen programma’s komen zonder datum binnen. Als uitgeschakeld, telt een programma mee, of het nu een datum heeft of niet.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Callerhistorie voor alle callers bijhouden';
 
@@ -3406,6 +3414,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Het diagnosticslog kon niet worden geëxporteerd.';
 
   @override
+  String get diagnosticsClearFailed =>
+      'Het diagnosticslog kon niet worden gewist.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Diagnosticslog wissen?';
 
   @override
@@ -3493,6 +3505,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get commonUndo => 'Ongedaan maken';
+
+  @override
+  String get commonUndoFailed =>
+      'Dat kon niet ongedaan worden gemaakt. Controleer het resultaat en probeer het opnieuw.';
 
   @override
   String get commonRetry => 'Opnieuw proberen';
@@ -7362,10 +7378,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importReviewUndone => 'Import ongedaan gemaakt.';
 
   @override
-  String get importReviewUndoFailed =>
-      'De import kon niet ongedaan worden gemaakt. Controleer je collectie en probeer ‘Ongedaan maken’ daarna opnieuw.';
-
-  @override
   String get importReviewEditError =>
       'Die dans kon niet worden geïmporteerd om te bewerken.';
 
@@ -8574,6 +8586,22 @@ class AppLocalizationsNl extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen teruggezet.',
+      one: '1 dans teruggezet.',
+      zero:
+          'Er zijn geen dansen teruggezet: van elke dans zijn sindsdien het type of de tags gewijzigd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Bezig met sluiten…';
 
   @override
   String updateBannerAvailable(String appName, String version) {
@@ -10296,6 +10324,19 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get glossaryCustomDeleteDefaults =>
       'Je standaardfiguren in Instellingen gebruiken hem en behouden zijn huidige formulering als platte tekst.';
+
+  @override
+  String glossaryCustomDeleteShorthands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Je $count afkortingen ervoor blijven, en als je die typt, worden ze als gewone regels gelezen.',
+      one:
+          'Je afkorting ervoor blijft, en als je die typt, wordt hij als een gewone regel gelezen.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String glossaryCustomDeleteUses(int count) {

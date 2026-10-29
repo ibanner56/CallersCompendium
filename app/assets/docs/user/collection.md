@@ -368,6 +368,9 @@ A growing library needs a little housekeeping, and every change here can be
 undone.
 
 - **Duplicate** a dance to spin off a variation without disturbing the original.
+  The copy is titled "(copy)" and is related to the same dances as the original
+  (and joins its group of related dances, if it is in one), with those dances
+  linking back to it.
 - **Add tags** to a single dance from the actions menu on its row (the three
   vertical dots), without entering selection mode. You can pick existing
   tags or create new ones, and the change can be undone.
@@ -394,10 +397,15 @@ across all of them. Tags and level are on the toolbar; the rest are under
 - **Add tunes** — build a short list and add it to every selected dance — or
   **Clear tunes**, which asks you to confirm first.
 - **Edit custom field** — set one of your fields to a value, or choose **Clear
-  this field**.
+  this field**. For a choice field, the **+** button beside the list adds a new
+  option on the spot, just as it does when editing a single dance.
 
 Every batch change is announced to screen readers and can be undone, and the app
-tells you plainly when a change would affect nothing. Selected rows are marked
+tells you plainly when a change would affect nothing. If a change can't be
+saved, the app says so and leaves your selection in place so you can try again;
+if an **Undo** can't be completed, it says that too, and nothing is left
+half-undone. Undoing **Edit custom field** puts back only the field you changed,
+so anything else you have edited in the meantime stays as it is. Selected rows are marked
 with a checkmark and a highlight — never colour alone — so the selection is clear
 however you are reading the screen.
 

@@ -360,16 +360,24 @@ class Dance {
   /// which defaults to [uuidV4]): link ids are globally unique primary keys,
   /// so reusing the source's ids would collide when the copy is persisted.
   /// A link's `targetDanceId` (for `relatedDance` links) is preserved — the
-  /// copy legitimately references the same related dance as the original.
+  /// copy legitimately references the same related dance as the original —
+  /// and so is its [DanceLink.transitive] flag, so a copy of a grouped dance
+  /// is a member of the same group rather than holding plain one-way links.
+  ///
+  /// [newTitle] replaces the title (for the "(copy)" wording); omitted, the
+  /// copy keeps the original's, and a caller that wants a different one passes
+  /// it here rather than updating the copy afterwards, which would be a second
+  /// write that can fail between the two.
   Dance duplicate({
     required String newId,
     required DateTime now,
+    String? newTitle,
     String Function()? newLinkId,
   }) {
     final genLinkId = newLinkId ?? uuidV4;
     return Dance(
       id: newId,
-      title: title,
+      title: newTitle ?? title,
       authorIds: authorIds,
       form: form,
       formation: formation,
@@ -398,6 +406,7 @@ class Dance {
             url: link.url,
             targetDanceId: link.targetDanceId,
             label: link.label,
+            transitive: link.transitive,
           ),
       ],
       sourceCitations: sourceCitations,

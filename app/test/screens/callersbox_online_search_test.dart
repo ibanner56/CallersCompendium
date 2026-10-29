@@ -329,6 +329,75 @@ void main() {
     expect(find.byType(OnlineResultTile), findsOneWidget);
   });
 
+  testWidgets('tapping a result again after Cancel joins the fetch still in '
+      'flight instead of starting a second one', (tester) async {
+    final repos = openTestRepositories();
+    final gate = Completer<String>();
+    var fetches = 0;
+    await _pumpShell(
+      tester,
+      repos,
+      _online(
+        json: (_) {
+          fetches++;
+          return gate.future;
+        },
+      ),
+      size: const Size(500, 900),
+    );
+    await _enableOnline(tester);
+    await _search(tester, 'Money Musk');
+
+    await tester.tap(find.byType(OnlineResultTile));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('online-preview-cancel')));
+    await tester.pumpAndSettle();
+    expect(fetches, 1);
+
+    // The first fetch has not answered; tap the same result again.
+    await tester.tap(find.byType(OnlineResultTile));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('online-preview-loading')),
+      findsOneWidget,
+    );
+    expect(fetches, 1, reason: 'a second fetch started while one was running');
+
+    // The one fetch answers and the second tap's loader resolves to a preview.
+    gate.complete(_danceJson());
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
+    expect(fetches, 1);
+  });
+
+  testWidgets('a finished fetch is not reused by a later tap', (tester) async {
+    final repos = openTestRepositories();
+    var fetches = 0;
+    await _pumpShell(
+      tester,
+      repos,
+      _online(
+        json: (_) async {
+          fetches++;
+          return _danceJson();
+        },
+      ),
+      size: const Size(500, 900),
+    );
+    await _enableOnline(tester);
+    await _search(tester, 'Money Musk');
+
+    await tester.tap(find.byType(OnlineResultTile));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('import-dance')), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(OnlineResultTile));
+    await tester.pumpAndSettle();
+    expect(fetches, 2);
+  });
+
   testWidgets('the loader can be dismissed with Back, and a late failure is '
       'swallowed', (tester) async {
     final repos = openTestRepositories();

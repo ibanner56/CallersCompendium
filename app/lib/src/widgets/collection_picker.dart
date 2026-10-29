@@ -11,6 +11,7 @@ import '../data/contradb_online.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
+import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
@@ -196,6 +197,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   late CompendiumRepositories _repos;
   bool _started = false;
   bool _requirePerformedForHistory = false;
+  bool _requireEventDateForHistory = false;
 
   /// Filter sections hidden in Settings → Defaults (issue #1419), mirrored from
   /// [CollectionFacetsScope] so a newly hidden section's selection is cleared.
@@ -215,6 +217,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final requirePerformedChanged =
         _started && newRequirePerformed != _requirePerformedForHistory;
     _requirePerformedForHistory = newRequirePerformed;
+    final newRequireEventDate = RequireEventDateForHistoryScope.of(context);
+    final requireEventDateChanged =
+        _started && newRequireEventDate != _requireEventDateForHistory;
+    _requireEventDateForHistory = newRequireEventDate;
     final newIgnoreLeadingArticles = SortIgnoreArticlesScope.of(context);
     final ignoreLeadingArticlesChanged =
         _started && newIgnoreLeadingArticles != _ignoreLeadingArticles;
@@ -233,6 +239,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
       _runSearch();
     } else if ((requirePerformedChanged ||
+            requireEventDateChanged ||
             ignoreLeadingArticlesChanged ||
             facetsCleared) &&
         !_onlineEnabled) {
@@ -361,6 +368,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -833,7 +841,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       hasMixer: data.hasMixer,
       hasRating: data.hasRating,
       hasCallingHistory: data.callCounts.values.any(
-        (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+        (counts) =>
+            counts.countFor(
+              _requirePerformedForHistory,
+              requireEventDate: _requireEventDateForHistory,
+            ) >
+            0,
       ),
       authors: data.authors,
       tags: data.tags,

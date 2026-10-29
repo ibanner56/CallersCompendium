@@ -516,6 +516,7 @@ class _ContraDbProgramImportScreenState
         notes,
       ),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.hardDelete([id]);

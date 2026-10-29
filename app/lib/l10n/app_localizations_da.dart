@@ -2940,6 +2940,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret viser en dans\' kaldshistorik kun programmer, hvis slot for den dans er markeret som fremført. Når deaktiveret vises et program, så snart det indeholder dansen.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Kræv en begivenhedsdato til kaldshistorik';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Når aktiveret tæller et program uden begivenhedsdato ikke med i kaldshistorikken, før du giver det en. Duplikerede og modtagne programmer kommer uden dato. Når deaktiveret tæller et program, uanset om det har en dato.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Spor kaldshistorik for alle callere';
 
@@ -3381,6 +3389,9 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke eksportere diagnostikloggen.';
 
   @override
+  String get diagnosticsClearFailed => 'Kunne ikke rydde diagnostikloggen.';
+
+  @override
   String get diagnosticsClearLogTitle => 'Ryd diagnostiklog?';
 
   @override
@@ -3466,6 +3477,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get commonUndo => 'Fortryd';
+
+  @override
+  String get commonUndoFailed =>
+      'Kunne ikke fortryde det. Kontrollér resultatet, og prøv igen.';
 
   @override
   String get commonRetry => 'Prøv igen';
@@ -7308,10 +7323,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importReviewUndone => 'Import fortrudt.';
 
   @override
-  String get importReviewUndoFailed =>
-      'Importen kunne ikke fortrydes. Tjek din samling, og prøv derefter »Fortryd« igen.';
-
-  @override
   String get importReviewEditError =>
       'Kunne ikke importere den dans til redigering.';
 
@@ -8514,6 +8525,22 @@ class AppLocalizationsDa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String startupEcdConvertUndoneSnackbar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ændrede $count danse tilbage.',
+      one: 'Ændrede 1 dans tilbage.',
+      zero:
+          'Ingen danse blev ændret tilbage: hver af dem har fået ændret type eller tags siden.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appClosingMessage => 'Lukker…';
 
   @override
   String updateBannerAvailable(String appName, String version) {
@@ -10225,6 +10252,19 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get glossaryCustomDeleteDefaults =>
       'Dine standardfigurer i Indstillinger bruger den og beholder dens nuværende ordlyd som almindelig tekst.';
+
+  @override
+  String glossaryCustomDeleteShorthands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Dine $count kortformer for den bliver, og når du skriver dem, læses de som almindelige linjer.',
+      one:
+          'Din kortform for den bliver, og når du skriver den, læses den som en almindelig linje.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String glossaryCustomDeleteUses(int count) {

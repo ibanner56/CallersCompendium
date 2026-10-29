@@ -175,6 +175,23 @@ class _GlossaryCustomFigureDetailState
     // Read before anything is awaited: the delete can unmount this page (in
     // the wide Glossary it does).
     final dialects = DialectLibraryScope.maybeOf(context);
+    // Its shorthands stay, and are then read as ordinary lines: say so
+    // (LIFE-13), as the switch dialog says what becomes of them. One whose
+    // token a plain shorthand also has is that one's already.
+    final shorthands = ShorthandMappingsScope.maybeOf(context);
+    final shorthandCount = shorthands == null
+        ? 0
+        : [
+                for (final s in shorthands.compoundShorthands)
+                  if (s.compoundId == widget.entryId) s.normalizedToken,
+                for (final s in shorthands.userFigureShorthands)
+                  if (s.figureId == widget.entryId) s.normalizedToken,
+              ]
+              .where(
+                (token) =>
+                    !shorthands.mappings.any((m) => m.normalizedToken == token),
+              )
+              .length;
     // A figure of your own is used by reference (#1023): say how many dances
     // keep its current wording as plain text (maintainer decision 2).
     final uses = isFigure
@@ -192,13 +209,17 @@ class _GlossaryCustomFigureDetailState
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.glossaryCustomDeleteTitle(name)),
         content: Text(
-          uses == null
-              ? l10n.glossaryCustomDeleteBody
-              : [
-                  l10n.glossaryCustomDeleteUses(uses),
-                  if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
-                  if (inDefaults) l10n.glossaryCustomDeleteDefaults,
-                ].join(' '),
+          [
+            if (uses == null)
+              l10n.glossaryCustomDeleteBody
+            else ...[
+              l10n.glossaryCustomDeleteUses(uses),
+              if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
+              if (inDefaults) l10n.glossaryCustomDeleteDefaults,
+            ],
+            if (shorthandCount > 0)
+              l10n.glossaryCustomDeleteShorthands(shorthandCount),
+          ].join(' '),
           key: const ValueKey('glossary-custom-delete-body'),
         ),
         actions: [

@@ -71,6 +71,7 @@ class FigureListEditor extends StatefulWidget {
     this.onReplaceWithFreeText,
     this.onSubmitCompoundShorthand,
     this.onReplaceWithShorthand,
+    this.isOwnShorthandToken,
     this.shorthandMappings,
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
@@ -194,6 +195,13 @@ class FigureListEditor extends StatefulWidget {
   /// row as before (#1177). Only used when free-text entry is
   /// active; null offers none.
   final int Function(FigureDraft draft, String line)? onReplaceWithShorthand;
+
+  /// Whether [token] is a shorthand for one of the user's own figures, a
+  /// compound or a new figure, that the Move box should take as a shorthand
+  /// on Enter even though it is part of a move's name (see
+  /// [MoveAutocomplete.submitsAsText]); [shorthandMappings] answers for the
+  /// plain ones. Null: none.
+  final bool Function(String token)? isOwnShorthandToken;
 
   /// User-defined shorthand → figure(s) mappings (issue #420) consulted
   /// during free-text entry before the parser (after
@@ -804,6 +812,13 @@ class _FigureListEditorState extends State<FigureListEditor>
     return true;
   }
 
+  /// Whether a Move box's [text] is one of the user's shorthands, of any
+  /// kind, which Enter takes as typed rather than as the first move whose
+  /// name contains it (AUTH-8).
+  bool _isShorthandToken(String text) =>
+      widget.shorthandMappings?.resolve(text) != null ||
+      (widget.isOwnShorthandToken?.call(text) ?? false);
+
   /// Settles the editor after [draft], at [index], was replaced by
   /// [acceptedCount] rows.
   void _afterRowReplaced(FigureDraft draft, int index, int acceptedCount) {
@@ -980,6 +995,10 @@ class _FigureListEditorState extends State<FigureListEditor>
         onSubmitUnmatchedText:
             _freeTextEnabled && widget.onReplaceWithFreeText != null
             ? (line) => _replaceWithFreeText(draft, line)
+            : null,
+        isShorthandToken:
+            _freeTextEnabled && widget.onReplaceWithFreeText != null
+            ? _isShorthandToken
             : null,
         onChanged: widget.onChanged,
         onActivate: () => _toggleDraft(draft.id),
@@ -1394,6 +1413,7 @@ class _FigureDraftCard extends StatefulWidget {
     required this.isOpen,
     required this.rowFocusNode,
     this.onSubmitUnmatchedText,
+    this.isShorthandToken,
     required this.onChanged,
     required this.onActivate,
     required this.onClose,
@@ -1461,6 +1481,11 @@ class _FigureDraftCard extends StatefulWidget {
   /// becomes a stated custom figure; true means it replaced this row (#1177).
   /// See [FigureListEditor.onReplaceWithFreeText].
   final bool Function(String line)? onSubmitUnmatchedText;
+
+  /// Whether Move-box text is a shorthand, sent to [onSubmitUnmatchedText]
+  /// on Enter unless a move is named by it exactly. Null while free-text
+  /// entry is off: shorthands only work with it on.
+  final bool Function(String text)? isShorthandToken;
 
   final VoidCallback onChanged;
 
@@ -2451,6 +2476,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 ).glossaryCustomMarker,
                 onSelected: _onMoveOptionSelected,
                 onCustomSubmitted: widget.allowCustom ? _submitUnmatched : null,
+                submitsAsText: widget.allowCustom
+                    ? widget.isShorthandToken
+                    : null,
                 onCleared: _clearMove,
               ),
               if (def != null) ...[
@@ -2559,6 +2587,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 compoundMarkerLabel: l10n.glossaryCustomMarker,
                 onSelected: _onMoveOptionSelected,
                 onCustomSubmitted: widget.allowCustom ? _submitUnmatched : null,
+                submitsAsText: widget.allowCustom
+                    ? widget.isShorthandToken
+                    : null,
                 onCleared: _clearMove,
               ),
               if (definition != null)
@@ -2657,6 +2688,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 compoundMarkerLabel: l10n.glossaryCustomMarker,
                 onSelected: _onMoveOptionSelected,
                 onCustomSubmitted: widget.allowCustom ? _submitUnmatched : null,
+                submitsAsText: widget.allowCustom
+                    ? widget.isShorthandToken
+                    : null,
                 onCleared: _clearMove,
               ),
               const SizedBox(height: 12),
@@ -2860,7 +2894,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                   moveParamDefaults: widget.moveParamDefaults,
                                   showWordingOverride:
                                       widget.showWordingOverride,
-                                  onChanged: widget.onChanged,
+                                  onChanged: _onSideChanged,
                                   onAdd: () {},
                                   onDelete: (_) => _removeSide(i),
                                   onCollapseMeanwhileGroup:
@@ -2911,7 +2945,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             moveParamDefaults: widget.moveParamDefaults,
                             showWordingOverride: widget.showWordingOverride,
                             userFigureOptions: widget.userFigureOptions,
-                            onChanged: widget.onChanged,
+                            onChanged: _onSideChanged,
                             includeModifier:
                                 widget.allowModifierSelection &&
                                 !isModifier &&
@@ -2966,6 +3000,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
+  /// A side of this group changed: the group's shared count follows its
+  /// sides until the caller types one (AUTH-11, [FigureDraft.syncContainerBeats]).
+  void _onSideChanged() {
+    widget.draft.syncContainerBeats();
+    widget.onChanged();
+  }
+
   /// Appends a fresh blank side, capped at [kMaxMeanwhileSides] — the add-side
   /// button is already hidden at the cap, so this is a defensive no-op guard.
   void _addSide() {
@@ -3017,7 +3058,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       return;
     }
     sides.removeAt(index);
-    widget.onChanged();
+    _onSideChanged();
   }
 
   /// Reorders a side within the group (up/down buttons only — sides don't get
@@ -3027,7 +3068,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final sides = widget.draft.meanwhileSides ?? widget.draft.modifierFigures!;
     final side = sides.removeAt(oldIndex);
     sides.insert(newIndex, side);
-    widget.onChanged();
+    _onSideChanged();
   }
 
   bool _canUngroupNestedContainer(List<FigureDraft> sides, int index) {
@@ -3057,7 +3098,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     sides
       ..removeAt(index)
       ..insertAll(index, children);
-    widget.onChanged();
+    _onSideChanged();
   }
 
   void _collapseNestedContainer(
@@ -3077,7 +3118,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       return;
     }
     sides[index] = remainingSide;
-    widget.onChanged();
+    _onSideChanged();
   }
 
   /// Read-only editor panel for a figure whose move is unknown to the active

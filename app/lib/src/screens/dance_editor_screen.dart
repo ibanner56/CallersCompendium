@@ -171,6 +171,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       if (shutdownController != null) {
         _unregisterShutdownFlush = shutdownController.register(
           _controller.prepareShutdownFlush,
+          flushPending: _controller.flushPendingAutosave,
         );
       }
       _load();
@@ -350,6 +351,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         // diagnostics: silent — per-move param defaults read failed; falls back to empty map.
         _moveParamDefaults = {};
       }
+      _controller.moveParamDefaults = _moveParamDefaults;
 
       // Load the opt-in "Free-text entry" toggle (#419). A read/parse failure
       // falls back to off, so the Add flow keeps its structured behaviour.
@@ -515,6 +517,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         key: const ValueKey('deleted-snackbar'),
         message: l10n.commonDeletedSnack(title),
         undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
         accessibleNavigation: accessibleNavigation,
         onUndo: () => _repos.dances.restore(id, at: DateTime.now().toUtc()),
       );

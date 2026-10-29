@@ -447,6 +447,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       key: const ValueKey('program-deleted-snackbar'),
       message: l10n.programsDeletedSnack(program.title),
       undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(program.id, at: DateTime.now().toUtc());

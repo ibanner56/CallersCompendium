@@ -785,6 +785,171 @@ void main() {
       isTrue,
     );
   });
+
+  group('duplicateDanceWithRelatedLinks', () {
+    String suffix(String title) => '$title (copy)';
+
+    test('writes the titled copy once and links it both ways', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'other', title: 'Other'));
+      await repos.dances.create(
+        _dance(
+          id: 'source',
+          title: 'Source',
+          links: [_related('l1', 'other', label: 'Cousin')],
+        ),
+      );
+      // The old create-then-rename path first wrote the copy under the
+      // original's title. Refusing that write proves the copy goes in with its
+      // own title the first time, so no failure can leave an exact-title twin.
+      await repos.db.customStatement(
+        'CREATE TRIGGER refuse_twin BEFORE INSERT ON dances '
+        "WHEN NEW.id = 'copy' AND NEW.title = 'Source' "
+        "BEGIN SELECT RAISE(ABORT, 'copy written under the original title'); END",
+      );
+
+      final copy = await duplicateDanceWithRelatedLinks(
+        repos,
+        id: 'source',
+        newId: 'copy',
+        now: DateTime.utc(2026, 2, 1),
+        copyTitle: suffix,
+      );
+
+      expect(copy.title, 'Source (copy)');
+      final titles = [for (final d in await repos.dances.listAll()) d.title]
+        ..sort();
+      // No exact-title twin of the original.
+      expect(titles, ['Other', 'Source', 'Source (copy)']);
+      // The copy's relation has its reverse link on the other dance.
+      final other = (await repos.dances.getById('other'))!;
+      expect(other.links.where((l) => l.targetDanceId == 'copy'), hasLength(1));
+      expect(
+        (await repos.dances.getById('copy'))!.links.single.targetDanceId,
+        'other',
+      );
+    });
+
+    test('a copy of a group member joins the transitive group', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'b'));
+      await repos.dances.create(_dance(id: 'c'));
+      await repos.dances.create(_dance(id: 'a'));
+      // Build the group a-b-c through the editor-save path.
+      final a = (await repos.dances.getById('a'))!;
+      await saveDanceWithRelatedLinks(
+        repos,
+        original: a,
+        dance: a.copyWith(
+          links: [
+            _related('ab', 'b', transitive: true),
+            _related('ac', 'c', transitive: true),
+          ],
+          updatedAt: DateTime.utc(2026, 1, 2),
+        ),
+      );
+
+      await duplicateDanceWithRelatedLinks(
+        repos,
+        id: 'a',
+        newId: 'a2',
+        now: DateTime.utc(2026, 2, 1),
+        copyTitle: suffix,
+      );
+
+      for (final id in const ['a', 'b', 'c', 'a2']) {
+        final dance = (await repos.dances.getById(id))!;
+        final others = {'a', 'b', 'c', 'a2'}..remove(id);
+        final linked = {
+          for (final l in dance.links.where((l) => l.transitive))
+            l.targetDanceId,
+        };
+        expect(linked, others, reason: '$id should be linked to the group');
+      }
+    });
+
+    test('a link to a trashed dance is left off the copy', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'gone'));
+      await repos.dances.create(
+        _dance(id: 'source', links: [_related('l1', 'gone')]),
+      );
+      await repos.dances.softDelete('gone', at: DateTime.utc(2026, 1, 5));
+
+      final copy = await duplicateDanceWithRelatedLinks(
+        repos,
+        id: 'source',
+        newId: 'copy',
+        now: DateTime.utc(2026, 2, 1),
+        copyTitle: suffix,
+      );
+
+      expect(copy.links, isEmpty);
+      expect(await repos.dances.getById('copy'), isNotNull);
+    });
+
+    test(
+      'a member of a group too large to reconcile is still copied',
+      () async {
+        final repos = openTestRepositories();
+        final ids = [
+          for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++) 'g$i',
+        ];
+        for (final id in ids) {
+          await repos.dances.create(_dance(id: id));
+        }
+        // One hub linked transitively to every other member: 101 in all.
+        await repos.dances.update(
+          (await repos.dances.getById('g0'))!.copyWith(
+            links: [
+              for (final id in ids.skip(1))
+                _related('l-$id', id, transitive: true),
+            ],
+            updatedAt: DateTime.utc(2026, 1, 2),
+          ),
+        );
+
+        final copy = await duplicateDanceWithRelatedLinks(
+          repos,
+          id: 'g0',
+          newId: 'copy',
+          now: DateTime.utc(2026, 2, 1),
+          copyTitle: suffix,
+        );
+
+        expect(copy.links, hasLength(ids.length - 1));
+        expect(copy.links.any((l) => l.transitive), isFalse);
+        expect(await repos.dances.getById('copy'), isNotNull);
+      },
+    );
+
+    test('a failure part-way leaves no copy behind', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'other'));
+      await repos.dances.create(
+        _dance(id: 'source', links: [_related('l1', 'other')]),
+      );
+      // The reverse link on `other` is written after the copy itself.
+      await repos.db.customStatement(
+        'CREATE TRIGGER fail_other_update BEFORE UPDATE ON dances '
+        "WHEN NEW.id = 'other' "
+        "BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END",
+      );
+
+      await expectLater(
+        duplicateDanceWithRelatedLinks(
+          repos,
+          id: 'source',
+          newId: 'copy',
+          now: DateTime.utc(2026, 2, 1),
+          copyTitle: suffix,
+        ),
+        throwsA(anything),
+      );
+
+      expect(await repos.dances.getById('copy'), isNull);
+    });
+  });
 }
 
 class _RelatedDanceQueryCapture extends drift.QueryInterceptor {

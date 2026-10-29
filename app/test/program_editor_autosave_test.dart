@@ -374,6 +374,42 @@ void main() {
       },
     );
 
+    testWidgets(
+      'a pending-autosave flush writes the edit now and leaves autosave '
+      'running (PLAT-19)',
+      (tester) async {
+        final repos = openTestRepositories();
+        final shutdown = EditorDraftShutdownController();
+        await _pumpEditor(tester, repos, shutdownController: shutdown);
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Backgrounded title',
+        );
+        await shutdown.flushPending();
+        expect(
+          decodeProgramDraft(
+            await repos.settings.get('program_editor_draft:new'),
+          ).title,
+          'Backgrounded title',
+          reason: 'written at once, not 500 ms later',
+        );
+
+        // Not a final flush: an edit after resuming still autosaves.
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Resumed title',
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        expect(
+          decodeProgramDraft(
+            await repos.settings.get('program_editor_draft:new'),
+          ).title,
+          'Resumed title',
+        );
+      },
+    );
+
     testWidgets('structural change (insert break) autosaves the set list', (
       tester,
     ) async {

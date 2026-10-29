@@ -1,0 +1,28 @@
+{
+  "id": "audit-f6-program-dates-in-history",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Settings › Program › Calling history › Require an event date for calling history (off by default). When on, a program with no event date counts nowhere calling history is read: the called count, the Called filter, a dance's history list, the Last called sort, and the repeated-venues and half summaries."
+    ],
+    "changed": [
+      "Duplicating a program now clears its event date, as it already cleared the status, performed marks and pay. The copy no longer adds a second calling-history entry on the original's date.",
+      "A program someone shares with you now arrives as a Draft, with the sender's performed marks and event date cleared, so their gig no longer shows up as your calling history.",
+      "Receiving an updated version of a program you already have now adds it as a new program beside yours. It used to overwrite your copy, including your own date, marks and edits."
+    ]
+  },
+  "core": {
+    "added": [
+      "`DanceCallCounts` carries `dated` and `performedDated` tallies, and `countFor` takes `requireEventDate`.",
+      "`callingHistoryForDance`, `watchCallingHistoryForDance`, `halfCallingStatsForDance`, `lastCalledByDance`, `DanceRepository.search` and `CalledFilter` take `requireEventDate`, applied through the shared `callingHistoryEventDateClause`.",
+      "Settings key `require_event_date_for_history`."
+    ],
+    "changed": [
+      "`Program.duplicate` clears `eventDate`.",
+      "`buildArchivePrograms` imports each program as `ProgramStatus.draft` with slot `performedAt` and `eventDate` cleared, and `CompendiumArchiveImporter.commit` always inserts a new program instead of updating one matched by provenance."
+    ],
+    "removed": [
+      "`CompendiumArchiveImportResult.updatedProgramPriorStates`, `restoredProgramIds`, `programRestoreAt` and `updatedProgramCount`: a shared-file import no longer updates or restores an existing program."
+    ]
+  }
+}
