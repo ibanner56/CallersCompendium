@@ -89,10 +89,19 @@ A rename is an ordinary edit of the row's name. Its existing `upsert` path
 already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
 `choreographer_repository.dart:65-200`).
 
-- **Collision test.** Before writing, look the new name up with
-  `idByName(..., includeDeleted: true)` (or the author equivalent), excluding
-  the row itself. A case-only change ("flowy" to "Flowy") matches only
-  itself, so it is a plain rename.
+- **Collision test.** Before writing, find **every** row, live or
+  tombstoned, whose `naturalKeyMatchKey` equals the new name's, other than
+  the row itself. That needs a new all-matches lookup; `idByName` will not
+  do.
+  - `idByName` returns a single id, with live rows sorted first
+    (`tag_repository.dart:260-280`). On a case-only rename of a live "flowy"
+    to "Flowy", it returns the row itself. That hides a tombstone holding the
+    exact bytes "Flowy", and `upsert` then throws on it
+    (`tag_repository.dart:98-100`, `duplicate_natural_key.dart:97-104`). It
+    also hides a live case-variant whose id sorts after the renamed row, so
+    the merge offer never appears.
+  - A case-only rename is a plain rename only when that lookup finds
+    nothing.
   - The default `idByName` skips tombstones (`tag_repository.dart:260-266`).
     A rename onto a name a tombstone holds would then reach `upsert` and
     throw `DuplicateNaturalKeyError` (`existence.dart:368-383`).
@@ -229,14 +238,24 @@ The steps run in one transaction:
 2. the loser is revived under its old name, and its fields restored;
 3. the captured joins are put back, with author and source positions and
    citation page and number;
-4. the alias is removed, and the setting restored;
-5. every touched dance is bumped again.
+4. what `remapIdentity` changed is put back from its before-image:
+   - the new alias is removed, and the `id_aliases` rows its chain collapse
+     rewrote are restored;
+   - the `retained_sync_fields` of both ids are restored
+     (`moveRetainedSyncFields`, `sync_local_repository.dart:657-684`, deletes
+     the loser's and may copy them to the survivor);
+   - the survivor's `published_records` marker **stays**. §6.6 says a marker
+     is never dropped (`sync-spec.md:3433-3440`), and a pass between the
+     merge and the Undo may have published the survivor in its own right.
+     Over-marking costs only that the purge GC never erases the survivor;
+5. the import-tags setting is restored;
+6. every touched dance is bumped again.
 
 If a sync pass ran in between, the revival stamps above the tombstone (§6.4,
 `sync-spec.md:3036-3040`), so peers converge on the undone state as ordinary
 edits. Sync itself removes aliases only by retirement (`retireAliases`,
 `sync_local_repository.dart:804-833`) and by clearing the baseline (`:522`).
-Removing a single alias is new; T1 adds it.
+Reversing `remapIdentity` is new; T1 adds it.
 
 **This needs no wire change and no capability.** A merge adds no record kind
 and no settings key, so §6.15's gate (`sync-spec.md:4417`) does not apply. It
@@ -668,8 +687,10 @@ tests included: S < 150, M 150–400, L 400+.
     behaviour exactly; its existing tests are the guard.
   - The surviving id by the smaller-UUID rule, and the freeing of the
     loser's name with the suffix.
-  - The alias through `remapIdentity`, and a new single-alias removal for
-    Undo (`sync_local_repository.dart`).
+  - The alias through `remapIdentity`, and an Undo that restores what
+    `remapIdentity` wrote to `id_aliases` and `retained_sync_fields`
+    (`sync_local_repository.dart:752-802`), keeping the publication marker
+    as described under [Merge](#merge).
   - A search-index rebuild for every dance a merge touches, plus the
     `sources` column after a source rename if the check above finds it
     stale.
@@ -677,6 +698,8 @@ tests included: S < 150, M 150–400, L 400+.
     `tag_colors_screen.dart:24-27` and `display_defaults.dart:158`.
 - **Tests:**
   - every step of each operation, and its Undo;
+  - Undo after a merge whose loser had a prior alias chain, and one whose
+    loser had retained sync fields;
   - the two-device cases listed under [Merge](#merge): an offline peer's
     new citation, opposite merges, rename versus merge, apply order, and a
     rewritten tombstone;
