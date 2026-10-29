@@ -75,11 +75,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appBootstrapError => 'コレクションを準備できませんでした。';
 
   @override
-  String appBootstrapErrorType(String errorType) {
-    return 'エラー: $errorType';
-  }
-
-  @override
   String get appBootstrapCopyDetails => '詳細をコピー';
 
   @override
@@ -187,6 +182,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get migrationBelowFloorResetConfirmBody =>
       'バックアップは保存されました。リセットすると、現在のデータが新しい空のデータベースに置き換えられます。';
+
+  @override
+  String get migrationBelowFloorResetConfirmAction => 'リセット';
 
   @override
   String migrationBelowFloorBackupSavedAt(String backupPath) {
@@ -393,7 +391,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossaryCustomRenameMine => '自分のものの名前を変更';
 
   @override
-  String get glossaryCustomSwitchToShipped => 'アプリのものに切り替え';
+  String get glossaryCustomSwitchToShipped => 'アプリのフィギュアに切り替え';
 
   @override
   String userFigureSwitchTitle(String name) {
@@ -510,11 +508,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '初期設定ではオフです。オンにしても、ストアを接続するまで何も送信されません。';
 
   @override
-  String get settingsSyncWifiOnlyTitle => 'WiFi接続時のみ同期';
+  String get settingsSyncWifiOnlyTitle => 'Wi-Fi接続時のみ同期';
 
   @override
   String get settingsSyncWifiOnlySubtitle =>
-      '初期設定ではオンです。モバイルデータ通信中は、WiFiに接続するまで同期を待機します。';
+      '初期設定ではオンです。モバイルデータ通信中は、Wi-Fiに接続するまで同期を待機します。';
 
   @override
   String get settingsSyncExcludeImportsTitle => '未使用の取り込んだダンスをスキップ';
@@ -652,7 +650,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncQuotaNearlyFull => 'ストアの容量がまもなくいっぱいになります。';
 
   @override
-  String get settingsSyncQuotaExcludeImports => '取り込んだダンスの同期をやめる';
+  String get settingsSyncQuotaExcludeImports => '未使用の取り込んだダンスをスキップ';
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
@@ -1397,7 +1395,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncMeteredRouted =>
-      'モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。';
+      'モバイルデータ通信中で、「Wi-Fi接続時のみ同期」がオンです。今すぐ同期するには、下のこの設定をオフにしてください。';
 
   @override
   String get settingsSyncOffline => '現在接続がありません。次の機会に同期が実行されます。';
@@ -1410,7 +1408,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commonSyncMeteredBlocked =>
-      'モバイルデータ通信中で、「WiFi接続時のみ同期」がオンです。今すぐ同期するには、設定でこの設定をオフにしてください。';
+      'モバイルデータ通信中で、「Wi-Fi接続時のみ同期」がオンです。今すぐ同期するには、設定でこの設定をオフにしてください。';
 
   @override
   String get settingsSyncConnectTitle => '接続';
@@ -1554,7 +1552,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingCompleteMetered =>
-      'ライブラリが接続されました。「WiFi接続時のみ同期」がオンのため、最初の同期はWiFiを待っています。';
+      'ライブラリが接続されました。「Wi-Fi接続時のみ同期」がオンのため、最初の同期はWi-Fiを待っています。';
 
   @override
   String get settingsSyncPairingCompleteOffline =>
@@ -1797,7 +1795,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsUpdatesVerifyingTitle => 'ダウンロードを検証中';
 
   @override
-  String get settingsUpdatesVerifyingSubtitle => 'ダウンロードのsha256整合性を確認しています…';
+  String get settingsUpdatesVerifyingSubtitle =>
+      'ダウンロードが完全で、改変されていないことを確認しています…';
 
   @override
   String get settingsUpdatesHandoffTitle => 'インストーラーを準備中';
@@ -2449,7 +2448,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。既存のフィギュアのムーブに1行を入力してEnterキーを押すと、そのフィギュアが置き換えられます。入力した行はフィギュアに解析されます。認識されなかった部分はカスタムフィギュアとして保存され、後で修正できます。開始フィギュアを保存していない場合、新しいダンスはフィギュアなしで始まります。';
+      'オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。既存のフィギュアのムーブに1行を入力してEnterキーを押すと、そのフィギュアが置き換えられます。入力した行はフィギュアに変換されます。認識されなかった部分はカスタムフィギュアとして保存され、後で修正できます。開始フィギュアを保存していない場合、新しいダンスはフィギュアなしで始まります。';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle => 'フィギュアの拍数を積極的に再計算';
@@ -2925,7 +2924,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncReviewEmpty => '確認が必要な同期の判断はありません。';
 
   @override
-  String get syncReviewIntro => 'ピア側の変更を適用する前に、これらのレコードについて判断が必要です。';
+  String get syncReviewIntro => '別のデバイスからの変更を適用する前に、これらの項目について判断が必要です。';
 
   @override
   String get syncReviewLoadFailed => '同期の判断を読み込めませんでした。';
@@ -2976,16 +2975,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String syncReviewLocalRecord(String id) {
-    return 'ローカルレコード: $id';
+    return 'このデバイス: $id';
   }
 
   @override
   String syncReviewPeerRecord(String identity) {
-    return 'ピアのレコード: $identity';
+    return 'もう一方のデバイス: $identity';
   }
 
   @override
-  String get syncReviewTombstoneReason => 'このデバイスで作成した一致するレコードが、ピア側で削除されました。';
+  String get syncReviewTombstoneReason => 'このデバイスで作成した一致する項目が、別のデバイスで削除されました。';
 
   @override
   String get syncReviewDanceAmbiguityReason => 'ライブのダンスは同じタイトルですが、振り付けが異なります。';
@@ -3011,7 +3010,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncReviewUnsupportedAction =>
-      '後の同期パスまたは対応する確認フローで処理できるまで、この項目を保持してください。';
+      '今のところこの項目は保持してください。後の同期やアプリのアップデートで処理できる場合があります。';
 
   @override
   String get syncReviewMergeAction => '統合';
@@ -3032,17 +3031,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncReviewNameNotDistinct => '別の名前を選択してください。';
 
   @override
-  String get syncReviewCandidateInvalid => '保存されたピア側の変更が無効なため、保持しました。';
+  String get syncReviewCandidateInvalid => '別のデバイスから保存された変更が無効なため、保持しました。';
 
   @override
-  String get syncReviewCandidateChanged => '保存されたピア側の変更は最新でないため、保持しました。';
+  String get syncReviewCandidateChanged => '別のデバイスから保存された変更は最新でないため、保持しました。';
 
   @override
   String get syncReviewTargetMissing => 'ローカルレコードが見つからないため、判断を保持しました。';
 
   @override
   String get syncReviewCandidateAlreadyPresent =>
-      'ピアのレコードはすでに存在するため、判断を保持しました。';
+      'もう一方のデバイスの項目はすでに存在するため、判断を保持しました。';
 
   @override
   String get settingsGeneralImportHeader => 'インポート';
@@ -3059,7 +3058,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'インポート時に認識できなかったためカスタムとして保持されたフィギュアを持つインポートされたダンスを再解析します。解析が改善されるとフィギュアがその場でアップグレードされます — タグ、評価、ノートは保持されます。変更前にプレビューして確認できます。';
+      'インポート時に認識できなかったためカスタムとして保持されたフィギュアを持つ、インポート済みのダンスを再確認します。アプリが認識できるようになっていれば、その場でアップグレードされます — タグ、評価、ノートは保持されます。変更前にプレビューして確認できます。';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => '再確認…';
@@ -3503,14 +3502,15 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importGapMessage => 'このコールを解析できませんでした — カスタムフィギュアとして保持されました。';
+  String get importGapMessage =>
+      'このコールを認識できませんでした — 書かれたとおりにカスタムフィギュアとして保持されました。';
 
   @override
   String get importGapDialogTitle => '認識できないフィギュア';
 
   @override
   String get importGapSemanticLabel =>
-      '認識できないフィギュア。このコールを解析できませんでした — カスタムフィギュアとして保持されました。';
+      '認識できないフィギュア。書かれたとおりにカスタムフィギュアとして保持されました。';
 
   @override
   String get collectionScreenTitle => 'コレクション';
@@ -4543,7 +4543,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'すべて実施済みにする';
 
   @override
-  String get programsSaveDirty => '保存 *';
+  String get programsSaveDirty => '変更を保存';
 
   @override
   String get commonSave => '保存';
@@ -4770,7 +4770,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String programsSetListHeader(int count) {
-    return 'セットリスト ($count)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンス',
+    );
+    return 'セットリスト ($_temp0)';
   }
 
   @override
@@ -4807,11 +4812,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsPerformed => '実施済み';
 
   @override
-  String programsSlotCount(int count) {
+  String programsDanceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$countスロット',
+      other: '$count件のダンス',
     );
     return '$_temp0';
   }
@@ -4881,6 +4886,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String programsRemovedSlot(String name) {
     return '「$name」を削除しました。';
+  }
+
+  @override
+  String programsAlternatePromoted(String name) {
+    return '$name が代わりに入ります。';
   }
 
   @override
@@ -5892,7 +5902,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogBody(String existingTitle) {
-    return 'このダンスのタイトルとコーラーは「$existingTitle」と一致しますが、フィギュアが異なります。どのようにインポートしますか？';
+    return 'このダンスのタイトルと作者は「$existingTitle」と一致しますが、フィギュアが異なります。どのようにインポートしますか？';
   }
 
   @override
@@ -6225,6 +6235,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importSourceLabelGenericJson => 'Caller\'s Compendium JSONファイル';
+
+  @override
+  String get fileDialogTypeBackupJson => 'バックアップ (JSON)';
+
+  @override
+  String get fileDialogTypeCompendiumShare => 'Compendium共有ファイル';
+
+  @override
+  String get fileDialogTypeCompanionUsr => 'Caller’s Companion .USR';
+
+  @override
+  String get fileDialogTypeDiagnosticsLog => '診断ログ';
+
+  @override
+  String get fileDialogTypeMacosUpdate => 'Caller’s Compendiumのアップデート';
 
   @override
   String get importSourceLabelCallersBox => 'The Caller\'s Box';
@@ -6692,7 +6717,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importIssueMetadataOnlyStub =>
-      'このダンスはメタデータのみ利用可能です（フィギュアなし）。スタブとしてインポートしました。';
+      'ダンスの詳細情報のみが利用可能で（フィギュアなし）、フィギュアなしでインポートしました。';
 
   @override
   String importIssueDateAssumedMdy(String field) {
@@ -6753,8 +6778,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importIssueBeatsUnreadable => '拍数を読み取れませんでした。0を使用しました。';
 
   @override
-  String get importIssueNoFiguresTable =>
-      'ページにフィギュアがありませんでした。メタデータのみのスタブとしてインポートしました。';
+  String get importIssueNoFiguresTable => 'ページにフィギュアがなかったため、フィギュアなしでインポートしました。';
 
   @override
   String get importIssueMoveFallback =>
@@ -6766,17 +6790,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importIssueParamUnmapped =>
-      'フィギュアのパラメーターをマッピングできませんでした。タクソノミーの既定値を使用しました。';
+  String get importIssueParamUnmapped => 'フィギュアの設定の1つを対応付けられなかったため、既定値を使用しました。';
 
   @override
   String importIssueParamValueUnmapped(String param) {
-    return 'パラメーター$paramを変換できませんでした。タクソノミーの既定値を使用しました。';
+    return '設定「$param」を変換できなかったため、既定値を使用しました。';
   }
 
   @override
   String importIssueParamCountUnmapped(int provided, int mapped) {
-    return 'フィギュアには$provided個のパラメーター値がありましたが、マッピングされているのは$mapped個のみです。余剰分は無視されました。';
+    return 'フィギュアに$provided個の設定がありましたが、対応付けられたのは$mapped個のみです。余った分は無視されました。';
   }
 
   @override
@@ -7130,7 +7153,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importReviewVariationBody(String title) {
-    return 'このダンスのタイトルとコーラーは「$title」と一致しますが、フィギュアが異なります。違いを確認してから、取り込み方法を選択してください。';
+    return 'このダンスのタイトルと作者は「$title」と一致しますが、フィギュアが異なります。違いを確認してから、取り込み方法を選択してください。';
   }
 
   @override
@@ -7198,7 +7221,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'ムーブを入力して（例: \"sw\" → スイング）Enterキーを押すとデフォルトパラメーターで追加されます。一致しないテキストはカスタムフィギュアになります。';
+      'ムーブを入力して（例: \"sw\" → スイング）Enterキーを押すと既定値で追加されます。一致しないテキストはカスタムフィギュアになります。';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
@@ -8191,7 +8214,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorCustomFigureTextLabel => 'カスタムフィギュアのテキスト';
 
   @override
-  String get danceEditorLingoStylingHelper => 'ムーブ名は点線下線、ロール用語は下線、非推奨用語は取り消し線';
+  String get danceEditorLingoStylingHelper =>
+      'ムーブ名は点線の下線、ロール用語は下線、非推奨用語は取り消し線で表示されます';
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -8316,7 +8340,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
-      'ダウンロードしたアップデートがセキュリティ (sha256) チェックに失敗したため、削除されました。もう一度お試しいただくか、「リリースを見る」から手動でダウンロードしてください。';
+      'ダウンロードしたアップデートがセキュリティチェックに失敗したため、削除されました。もう一度お試しいただくか、「リリースを見る」から手動でダウンロードしてください。';
 
   @override
   String get updateDownloadFailureHandoffFailed =>
@@ -8874,7 +8898,7 @@ class AppLocalizationsJa extends AppLocalizations {
       locale: localeName,
       other: '$figureCount件のフィギュア',
     );
-    return '$_temp0内の$_temp1を再解析します。各ダンスのタグ、評価、ノート、その他すべてはそのまま保持されます。既知のムーブが認識されたフィギュアのみが置き換えられます。';
+    return '$_temp0内の$_temp1を再確認します。各ダンスのタグ、評価、ノート、その他すべてはそのまま保持されます。既知のムーブが認識されたフィギュアのみが置き換えられます。';
   }
 
   @override
@@ -8911,7 +8935,7 @@ class AppLocalizationsJa extends AppLocalizations {
       locale: localeName,
       other: '$figureCount件のフィギュア',
     );
-    return 'フィギュア解析の改善により、$_temp0内の$_temp1をアップグレードできます。以下で確認してから承認してください — 承認するまで何も変更されず、タグ、評価、ノートはすべて保持されます。';
+    return 'フィギュア認識の改善により、$_temp0内の$_temp1をアップグレードできます。以下で確認してから承認してください — 承認するまで何も変更されず、タグ、評価、ノートはすべて保持されます。';
   }
 
   @override
@@ -8939,7 +8963,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      '現時点では、インポートされたカスタムフィギュアの中に既知のムーブとして認識できるものはありません。将来のアップデートでフィギュア解析が改善されたら再確認してください。';
+      '現時点では、インポートされたカスタムフィギュアの中に既知のムーブとして認識できるものはありません。将来のアップデートでフィギュアの認識が改善されたら再確認してください。';
 
   @override
   String get reparseErrorTitle => 'フィギュアを確認できませんでした';
@@ -9006,7 +9030,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customFieldsTypeNumber => '数値';
 
   @override
-  String get customFieldsTypeBoolean => 'ブール値';
+  String get customFieldsTypeBoolean => 'はい/いいえ';
 
   @override
   String get customFieldsTypeChoice => '選択肢';
@@ -9036,7 +9060,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get customFieldsKeyHelper =>
-      '安定したマシンキー（文字、数字、アンダースコア；文字またはアンダースコアで始まる必要があります）';
+      'このフィールドの短い識別名です。使えるのは文字・数字・アンダースコアのみで、文字またはアンダースコアで始める必要があります。ダンスで使われ始めると変更できません。';
 
   @override
   String get customFieldsKeyLocked => 'キーはロックされています — フィールドはダンスで使用中';
@@ -9430,7 +9454,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceReimport => '振り付けを再インポート';
 
   @override
-  String get danceReimportJson => 'Callers Compendium JSON';
+  String get danceReimportJson => 'Caller’s Compendium JSON';
 
   @override
   String get danceReimportLinkOrId => 'リンクまたはID';

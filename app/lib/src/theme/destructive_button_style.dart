@@ -19,3 +19,11 @@ ButtonStyle destructiveFilledButtonStyle(ColorScheme scheme) =>
       backgroundColor: scheme.error,
       foregroundColor: scheme.onError,
     );
+
+/// The style for a [TextButton] that takes a destructive action while a safer
+/// choice beside it is the filled primary: the theme's `error` colour as the
+/// label, with no fill (D-1 for the "Discard changes?" dialog).
+///
+/// The label must still name the action; colour is additive only.
+ButtonStyle destructiveTextButtonStyle(ColorScheme scheme) =>
+    TextButton.styleFrom(foregroundColor: scheme.error);

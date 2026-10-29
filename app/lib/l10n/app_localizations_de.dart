@@ -78,11 +78,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appBootstrapError => 'Sammlung konnte nicht vorbereitet werden.';
 
   @override
-  String appBootstrapErrorType(String errorType) {
-    return 'Fehler: $errorType';
-  }
-
-  @override
   String get appBootstrapCopyDetails => 'Details kopieren';
 
   @override
@@ -195,6 +190,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get migrationBelowFloorResetConfirmBody =>
       'Eine Sicherung wurde gespeichert. Das Zurücksetzen ersetzt Ihre aktuellen Daten durch eine neue, leere Datenbank.';
+
+  @override
+  String get migrationBelowFloorResetConfirmAction => 'Zurücksetzen';
 
   @override
   String migrationBelowFloorBackupSavedAt(String backupPath) {
@@ -687,7 +685,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncQuotaExcludeImports =>
-      'Importierte Tänze nicht mehr synchronisieren';
+      'Ungenutzte importierte Tänze überspringen';
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
@@ -1896,7 +1894,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsUpdatesVerifyingSubtitle =>
-      'SHA256-Integrität des Downloads wird überprüft…';
+      'Es wird geprüft, ob der Download vollständig und unverändert ist…';
 
   @override
   String get settingsUpdatesHandoffTitle =>
@@ -2599,7 +2597,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen, und eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur, wenn Sie die Eingabetaste drücken. Die Zeile wird in Figuren geparst; Nichterkanntes wird als benutzerdefinierte Figur gespeichert, die Sie später korrigieren können. Neue Tänze beginnen ohne Figuren, sofern Sie keine Startfiguren gespeichert haben.';
+      'Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen, und eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur, wenn Sie die Eingabetaste drücken. Die Zeile wird in Figuren umgewandelt; Nichterkanntes wird als benutzerdefinierte Figur gespeichert, die Sie später korrigieren können. Neue Tänze beginnen ohne Figuren, sofern Sie keine Startfiguren gespeichert haben.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -3116,7 +3114,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get syncReviewIntro =>
-      'Für diese Datensätze ist eine Entscheidung nötig, bevor die Änderung des Peer-Geräts angewendet werden kann.';
+      'Für diese Einträge ist eine Entscheidung nötig, bevor eine Änderung von einem anderen Gerät angewendet werden kann.';
 
   @override
   String get syncReviewLoadFailed =>
@@ -3169,17 +3167,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String syncReviewLocalRecord(String id) {
-    return 'Lokaler Datensatz: $id';
+    return 'Auf diesem Gerät: $id';
   }
 
   @override
   String syncReviewPeerRecord(String identity) {
-    return 'Peer-Datensatz: $identity';
+    return 'Vom anderen Gerät: $identity';
   }
 
   @override
   String get syncReviewTombstoneReason =>
-      'Ein Peer-Gerät hat einen passenden Datensatz gelöscht, den dieses Gerät erstellt hat.';
+      'Ein anderes Gerät hat einen passenden Eintrag gelöscht, den dieses Gerät erstellt hat.';
 
   @override
   String get syncReviewDanceAmbiguityReason =>
@@ -3207,7 +3205,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get syncReviewUnsupportedAction =>
-      'Behalte diesen Eintrag, bis ein späterer Synchronisierungslauf oder eine unterstützte Prüfung ihn verarbeiten kann.';
+      'Behalte diesen Eintrag vorerst; eine spätere Synchronisierung oder ein App-Update kann ihn eventuell verarbeiten.';
 
   @override
   String get syncReviewMergeAction => 'Zusammenführen';
@@ -3229,11 +3227,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get syncReviewCandidateInvalid =>
-      'Die gespeicherte Änderung des Peer-Geräts ist ungültig und wurde daher behalten.';
+      'Die gespeicherte Änderung von einem anderen Gerät ist ungültig und wurde daher behalten.';
 
   @override
   String get syncReviewCandidateChanged =>
-      'Die gespeicherte Änderung des Peer-Geräts ist nicht mehr aktuell und wurde daher behalten.';
+      'Die gespeicherte Änderung von einem anderen Gerät ist nicht mehr aktuell und wurde daher behalten.';
 
   @override
   String get syncReviewTargetMissing =>
@@ -3241,7 +3239,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get syncReviewCandidateAlreadyPresent =>
-      'Der Peer-Datensatz ist bereits vorhanden; die Entscheidung wurde behalten.';
+      'Der Eintrag vom anderen Gerät ist bereits vorhanden; die Entscheidung wurde behalten.';
 
   @override
   String get settingsGeneralImportHeader => 'Import';
@@ -3259,7 +3257,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Importierte Tänze erneut parsen, deren Figuren nur deshalb als benutzerdefiniert gespeichert wurden, weil sie beim Import nicht erkannt werden konnten. Verbessertes Parsing aktualisiert sie an Ort und Stelle – Ihre Tags, Bewertungen und Notizen bleiben erhalten. Sie können eine Vorschau sehen und bestätigen, bevor etwas geändert wird.';
+      'Importierte Tänze erneut prüfen, deren Figuren nur deshalb als benutzerdefiniert gespeichert wurden, weil sie beim Import nicht erkannt werden konnten. Erkennt die App sie jetzt, werden sie an Ort und Stelle aktualisiert – Ihre Tags, Bewertungen und Notizen bleiben erhalten. Sie können eine Vorschau sehen und bestätigen, bevor etwas geändert wird.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Erneut prüfen…';
@@ -3719,14 +3717,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importGapMessage =>
-      'Dieser Aufruf konnte nicht geparst werden – als benutzerdefinierte Figur wörtlich gespeichert.';
+      'Dieser Aufruf wurde nicht erkannt – genau wie geschrieben als benutzerdefinierte Figur gespeichert.';
 
   @override
   String get importGapDialogTitle => 'Nicht erkannte Figur';
 
   @override
   String get importGapSemanticLabel =>
-      'Nicht erkannte Figur. Dieser Aufruf konnte nicht geparst werden – als benutzerdefinierte Figur wörtlich gespeichert.';
+      'Nicht erkannte Figur. Genau wie geschrieben als benutzerdefinierte Figur gespeichert.';
 
   @override
   String get collectionScreenTitle => 'Sammlung';
@@ -4805,7 +4803,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'Alle als aufgeführt markieren';
 
   @override
-  String get programsSaveDirty => 'Speichern *';
+  String get programsSaveDirty => 'Änderungen speichern';
 
   @override
   String get commonSave => 'Speichern';
@@ -5038,7 +5036,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String programsSetListHeader(int count) {
-    return 'Setliste ($count)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze',
+      one: '1 Tanz',
+    );
+    return 'Setliste ($_temp0)';
   }
 
   @override
@@ -5075,12 +5079,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsPerformed => 'Aufgeführt';
 
   @override
-  String programsSlotCount(int count) {
+  String programsDanceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count Slots',
-      one: '1 Slot',
+      other: '$count Tänze',
+      one: '1 Tanz',
     );
     return '$_temp0';
   }
@@ -5151,6 +5155,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String programsRemovedSlot(String name) {
     return '$name entfernt.';
+  }
+
+  @override
+  String programsAlternatePromoted(String name) {
+    return '$name tritt an seine Stelle.';
   }
 
   @override
@@ -6201,7 +6210,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogBody(String existingTitle) {
-    return 'Titel und Caller dieses Tanzes stimmen mit „$existingTitle“ überein, aber seine Figuren unterscheiden sich. Wie möchten Sie ihn importieren?';
+    return 'Titel und Autor dieses Tanzes stimmen mit „$existingTitle“ überein, aber seine Figuren unterscheiden sich. Wie möchten Sie ihn importieren?';
   }
 
   @override
@@ -6564,6 +6573,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importSourceLabelGenericJson =>
       'einer Caller\'s Compendium JSON-Datei';
+
+  @override
+  String get fileDialogTypeBackupJson => 'Sicherung (JSON)';
+
+  @override
+  String get fileDialogTypeCompendiumShare => 'Compendium-Freigabedatei';
+
+  @override
+  String get fileDialogTypeCompanionUsr => 'Caller’s Companion .USR';
+
+  @override
+  String get fileDialogTypeDiagnosticsLog => 'Diagnoseprotokoll';
+
+  @override
+  String get fileDialogTypeMacosUpdate => 'Caller’s Compendium-Update';
 
   @override
   String get importSourceLabelCallersBox => 'The Caller\'s Box';
@@ -7051,7 +7075,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importIssueMetadataOnlyStub =>
-      'Dieser Tanz ist nur als Metadaten verfügbar (keine Figuren); als Kurzeintrag importiert.';
+      'Nur die Angaben zum Tanz waren verfügbar (keine Figuren), daher wurde er ohne Figuren importiert.';
 
   @override
   String importIssueDateAssumedMdy(String field) {
@@ -7118,7 +7142,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importIssueNoFiguresTable =>
-      'Die Seite hatte keine Figuren; als reiner Metadaten-Kurzeintrag importiert.';
+      'Die Seite hatte keine Figuren, daher wurde der Tanz ohne Figuren importiert.';
 
   @override
   String get importIssueMoveFallback =>
@@ -7131,16 +7155,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importIssueParamUnmapped =>
-      'Ein Figurenparameter konnte nicht zugeordnet werden; ein Taxonomie-Standard wurde verwendet.';
+      'Eine Einstellung einer Figur konnte nicht zugeordnet werden, daher wurde der Standardwert verwendet.';
 
   @override
   String importIssueParamValueUnmapped(String param) {
-    return 'Der Parameter $param konnte nicht konvertiert werden; ein Taxonomie-Standard wurde verwendet.';
+    return 'Die Einstellung $param konnte nicht umgewandelt werden, daher wurde der Standardwert verwendet.';
   }
 
   @override
   String importIssueParamCountUnmapped(int provided, int mapped) {
-    return 'Eine Figur hatte $provided Parameterwerte, aber nur $mapped sind zugeordnet; die überzähligen wurden ignoriert.';
+    return 'Eine Figur hatte $provided Einstellungen, aber nur $mapped konnten zugeordnet werden; die überzähligen wurden ignoriert.';
   }
 
   @override
@@ -7520,7 +7544,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importReviewVariationBody(String title) {
-    return 'Titel und Caller dieses Tanzes stimmen mit „$title“ überein, aber die Figuren unterscheiden sich. Sieh dir an, wie sie sich unterscheiden, und entscheide dann, wie er importiert werden soll.';
+    return 'Titel und Autor dieses Tanzes stimmen mit „$title“ überein, aber die Figuren unterscheiden sich. Sieh dir an, wie sie sich unterscheiden, und entscheide dann, wie er importiert werden soll.';
   }
 
   @override
@@ -7588,7 +7612,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'Geben Sie eine Bewegung ein (z. B. „sw“ → swing) und drücken Sie Eingabe, um sie mit Standardparametern hinzuzufügen; nicht erkannter Text wird eine benutzerdefinierte Figur.';
+      'Geben Sie eine Bewegung ein (z. B. „sw“ → swing) und drücken Sie Eingabe, um sie mit Standardwerten hinzuzufügen; nicht erkannter Text wird eine benutzerdefinierte Figur.';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
@@ -8622,7 +8646,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorLingoStylingHelper =>
-      'Bewegungsnamen gestrichelt unterstrichen, Rollenbegriffe unterstrichen, abgeratene Begriffe durchgestrichen';
+      'Bewegungsnamen werden punktiert unterstrichen, Rollenbegriffe unterstrichen und abgeratene Begriffe durchgestrichen';
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -8751,7 +8775,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
-      'Das heruntergeladene Update hat die Sicherheitsprüfung (sha256) nicht bestanden und wurde gelöscht. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.';
+      'Das heruntergeladene Update hat die Sicherheitsprüfung nicht bestanden und wurde gelöscht. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.';
 
   @override
   String get updateDownloadFailureHandoffFailed =>
@@ -9338,7 +9362,7 @@ class AppLocalizationsDe extends AppLocalizations {
       other: '$danceCount Tänzen',
       one: '1 Tanz',
     );
-    return 'Dadurch werden $_temp0 in $_temp1 neu geparst. Ihre Tags, Bewertungen, Notizen und alles andere bei jedem Tanz bleiben exakt erhalten. Dies ersetzt nur Figuren, die jetzt eine bekannte Bewegung erkennen.';
+    return 'Dadurch werden $_temp0 in $_temp1 erneut geprüft. Ihre Tags, Bewertungen, Notizen und alles andere bei jedem Tanz bleiben exakt erhalten. Dies ersetzt nur Figuren, die jetzt eine bekannte Bewegung erkennen.';
   }
 
   @override
@@ -9379,7 +9403,7 @@ class AppLocalizationsDe extends AppLocalizations {
       other: '$danceCount Tänzen',
       one: '1 Tanz',
     );
-    return 'Verbessertes Figuren-Parsing kann $_temp0 in $_temp1 aktualisieren. Prüfen Sie unten, dann bestätigen – nichts ändert sich, bis Sie es tun, und alle Ihre Tags, Bewertungen und Notizen bleiben erhalten.';
+    return 'Verbesserte Figurenerkennung kann $_temp0 in $_temp1 aktualisieren. Prüfen Sie unten, dann bestätigen – nichts ändert sich, bis Sie es tun, und alle Ihre Tags, Bewertungen und Notizen bleiben erhalten.';
   }
 
   @override
@@ -9409,7 +9433,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'Keine Ihrer benutzerdefinierten Figuren aus Importen kann derzeit als bekannte Bewegung erkannt werden. Schauen Sie nach einem zukünftigen Update wieder nach, das das Figuren-Parsing verbessert.';
+      'Keine Ihrer benutzerdefinierten Figuren aus Importen kann derzeit als bekannte Bewegung erkannt werden. Schauen Sie nach einem zukünftigen Update wieder nach, das die Figurenerkennung verbessert.';
 
   @override
   String get reparseErrorTitle => 'Ihre Figuren konnten nicht geprüft werden';
@@ -9479,7 +9503,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get customFieldsTypeNumber => 'Zahl';
 
   @override
-  String get customFieldsTypeBoolean => 'Boolesch';
+  String get customFieldsTypeBoolean => 'Ja/Nein';
 
   @override
   String get customFieldsTypeChoice => 'Auswahl';
@@ -9511,7 +9535,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customFieldsKeyHelper =>
-      'Stabiler Maschinenschlüssel (Buchstaben, Ziffern, Unterstriche; muss mit einem Buchstaben oder Unterstrich beginnen)';
+      'Eine kurze Kennung für dieses Feld. Nur Buchstaben, Ziffern und Unterstriche; muss mit einem Buchstaben oder Unterstrich beginnen. Lässt sich nicht mehr ändern, sobald das Feld bei Tänzen verwendet wird.';
 
   @override
   String get customFieldsKeyLocked =>
@@ -9924,7 +9948,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceReimport => 'Choreografie erneut importieren';
 
   @override
-  String get danceReimportJson => 'Callers Compendium JSON';
+  String get danceReimportJson => 'Caller’s Compendium JSON';
 
   @override
   String get danceReimportLinkOrId => 'Link oder ID';

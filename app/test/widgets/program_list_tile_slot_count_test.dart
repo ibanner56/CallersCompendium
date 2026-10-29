@@ -28,7 +28,7 @@ Future<void> _pumpTile(WidgetTester tester, Program program) async {
 }
 
 void main() {
-  testWidgets('slot count excludes alternates and the break but keeps stubs', (
+  testWidgets('dance count excludes alternates and the break but keeps stubs', (
     tester,
   ) async {
     await _pumpTile(
@@ -44,10 +44,10 @@ void main() {
     );
 
     // Six rows, but only three planned dances.
-    expect(find.text('3 slots'), findsOneWidget);
+    expect(find.text('3 dances'), findsOneWidget);
   });
 
-  testWidgets('a single planned dance reads "1 slot"', (tester) async {
+  testWidgets('a single planned dance reads "1 dance"', (tester) async {
     await _pumpTile(
       tester,
       _program([
@@ -57,6 +57,6 @@ void main() {
       ]),
     );
 
-    expect(find.text('1 slot'), findsOneWidget);
+    expect(find.text('1 dance'), findsOneWidget);
   });
 }

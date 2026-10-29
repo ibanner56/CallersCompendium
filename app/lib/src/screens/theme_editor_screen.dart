@@ -6,6 +6,7 @@ import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
+import '../widgets/notice_card.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../theme/app_shapes.dart';
@@ -172,7 +173,6 @@ class _AaWarningBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     // `liveRegion: true` makes assistive tech announce the warning when the
     // banner appears — and re-announce when the failing-pair count changes —
@@ -181,30 +181,9 @@ class _AaWarningBanner extends StatelessWidget {
     return Semantics(
       liveRegion: true,
       container: true,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              size: 20,
-              color: theme.colorScheme.onErrorContainer,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                l10n.themeEditorContrastFailing(failing),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onErrorContainer,
-                ),
-              ),
-            ),
-          ],
-        ),
+      child: NoticeCard(
+        kind: NoticeKind.warning,
+        child: Text(l10n.themeEditorContrastFailing(failing)),
       ),
     );
   }

@@ -80,11 +80,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get appBootstrapError => 'De collectie kon niet worden voorbereid.';
 
   @override
-  String appBootstrapErrorType(String errorType) {
-    return 'Fout: $errorType';
-  }
-
-  @override
   String get appBootstrapCopyDetails => 'Details kopiëren';
 
   @override
@@ -196,6 +191,9 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get migrationBelowFloorResetConfirmBody =>
       'Er is een back-up opgeslagen. Door te resetten worden je huidige gegevens vervangen door een nieuwe, lege database.';
+
+  @override
+  String get migrationBelowFloorResetConfirmAction => 'Resetten';
 
   @override
   String migrationBelowFloorBackupSavedAt(String backupPath) {
@@ -412,7 +410,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get glossaryCustomRenameMine => 'Mijn figuur hernoemen';
 
   @override
-  String get glossaryCustomSwitchToShipped => 'Overzetten op die van de app';
+  String get glossaryCustomSwitchToShipped =>
+      'Overzetten op de figuur van de app';
 
   @override
   String userFigureSwitchTitle(String name) {
@@ -688,7 +687,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncQuotaExcludeImports =>
-      'Geïmporteerde dansen niet meer synchroniseren';
+      'Ongebruikte geïmporteerde dansen overslaan';
 
   @override
   String settingsSyncNoticeNewerVersionItems(String items) {
@@ -1895,7 +1894,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsUpdatesVerifyingSubtitle =>
-      'De sha256-integriteit van de download controleren…';
+      'Controleren of de download compleet en ongewijzigd is…';
 
   @override
   String get settingsUpdatesHandoffTitle => 'Installer voorbereiden';
@@ -2590,7 +2589,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld, en een regel die je in de beweging van een bestaande figuur typt vervangt die figuur wanneer je op Enter drukt. De regel wordt geparseerd tot figuur(en); niet-herkende delen worden bewaard als een aangepaste figuur die je later kunt corrigeren. Nieuwe dansen beginnen zonder figuren, tenzij je startfiguren hebt opgeslagen.';
+      'Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld, en een regel die je in de beweging van een bestaande figuur typt vervangt die figuur wanneer je op Enter drukt. De regel wordt omgezet in figuren; niet-herkende delen worden bewaard als een aangepaste figuur die je later kunt corrigeren. Nieuwe dansen beginnen zonder figuren, tenzij je startfiguren hebt opgeslagen.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -3104,7 +3103,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewIntro =>
-      'Voor deze records is een beslissing nodig voordat de wijziging van het peerapparaat kan worden toegepast.';
+      'Voor deze items is een beslissing nodig voordat een wijziging van een ander apparaat kan worden toegepast.';
 
   @override
   String get syncReviewLoadFailed =>
@@ -3157,17 +3156,17 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String syncReviewLocalRecord(String id) {
-    return 'Lokaal record: $id';
+    return 'Op dit apparaat: $id';
   }
 
   @override
   String syncReviewPeerRecord(String identity) {
-    return 'Peerrecord: $identity';
+    return 'Van het andere apparaat: $identity';
   }
 
   @override
   String get syncReviewTombstoneReason =>
-      'Een peer heeft een overeenkomend record verwijderd dat op dit apparaat is gemaakt.';
+      'Een ander apparaat heeft een overeenkomend item verwijderd dat op dit apparaat is gemaakt.';
 
   @override
   String get syncReviewDanceAmbiguityReason =>
@@ -3195,7 +3194,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewUnsupportedAction =>
-      'Bewaar dit item totdat een latere synchronisatie of ondersteunde controle het kan verwerken.';
+      'Bewaar dit item voorlopig; een latere synchronisatie of app-update kan het mogelijk verwerken.';
 
   @override
   String get syncReviewMergeAction => 'Samenvoegen';
@@ -3217,11 +3216,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewCandidateInvalid =>
-      'De opgeslagen wijziging van het peerapparaat is ongeldig en is daarom bewaard.';
+      'De opgeslagen wijziging van een ander apparaat is ongeldig en is daarom bewaard.';
 
   @override
   String get syncReviewCandidateChanged =>
-      'De opgeslagen wijziging van het peerapparaat is niet meer actueel en is daarom bewaard.';
+      'De opgeslagen wijziging van een ander apparaat is niet meer actueel en is daarom bewaard.';
 
   @override
   String get syncReviewTargetMissing =>
@@ -3229,7 +3228,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewCandidateAlreadyPresent =>
-      'Het peerrecord is al aanwezig; de beslissing is bewaard.';
+      'Het item van het andere apparaat is al aanwezig; de beslissing is bewaard.';
 
   @override
   String get settingsGeneralImportHeader => 'Importeren';
@@ -3247,7 +3246,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Herverwerk geïmporteerde dansen waarvan de figuren als aangepast zijn bewaard omdat ze niet herkend konden worden bij het importeren. Verbeterde verwerking actualiseert ze ter plekke — je tags, beoordelingen en notities blijven bewaard. Je bekijkt een voorbeeld en bevestigt voordat er iets wijzigt.';
+      'Controleer geïmporteerde dansen opnieuw waarvan de figuren als aangepast zijn bewaard omdat ze niet herkend konden worden bij het importeren. Kan de app ze nu herkennen, dan worden ze ter plekke bijgewerkt — je tags, beoordelingen en notities blijven bewaard. Je bekijkt een voorbeeld en bevestigt voordat er iets wijzigt.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction =>
@@ -3705,14 +3704,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importGapMessage =>
-      'Deze aanroep kon niet worden geparseerd — woordelijk bewaard als aangepaste figuur.';
+      'Deze aanroep is niet herkend — precies zoals geschreven bewaard als aangepaste figuur.';
 
   @override
   String get importGapDialogTitle => 'Niet-herkende figuur';
 
   @override
   String get importGapSemanticLabel =>
-      'Niet-herkende figuur. Deze aanroep kon niet worden geparseerd — woordelijk bewaard als aangepaste figuur.';
+      'Niet-herkende figuur. Precies zoals geschreven bewaard als aangepaste figuur.';
 
   @override
   String get collectionScreenTitle => 'Collectie';
@@ -4787,7 +4786,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsMarkAllPerformedTooltip => 'Alles markeren als uitgevoerd';
 
   @override
-  String get programsSaveDirty => 'Opslaan *';
+  String get programsSaveDirty => 'Wijzigingen opslaan';
 
   @override
   String get commonSave => 'Opslaan';
@@ -5020,7 +5019,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String programsSetListHeader(int count) {
-    return 'Setlijst ($count)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+    );
+    return 'Setlijst ($_temp0)';
   }
 
   @override
@@ -5057,12 +5062,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsPerformed => 'Uitgevoerd';
 
   @override
-  String programsSlotCount(int count) {
+  String programsDanceCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count slots',
-      one: '1 slot',
+      other: '$count dansen',
+      one: '1 dans',
     );
     return '$_temp0';
   }
@@ -5133,6 +5138,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String programsRemovedSlot(String name) {
     return '$name verwijderd.';
+  }
+
+  @override
+  String programsAlternatePromoted(String name) {
+    return '$name neemt de plaats in.';
   }
 
   @override
@@ -6177,7 +6187,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogBody(String existingTitle) {
-    return 'De titel en caller van deze dans komen overeen met “$existingTitle”, maar de figuren verschillen. Hoe wil je hem importeren?';
+    return 'De titel en auteur van deze dans komen overeen met “$existingTitle”, maar de figuren verschillen. Hoe wil je hem importeren?';
   }
 
   @override
@@ -6539,6 +6549,21 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importSourceLabelGenericJson =>
       'een Caller\'s Compendium JSON-bestand';
+
+  @override
+  String get fileDialogTypeBackupJson => 'Back-up (JSON)';
+
+  @override
+  String get fileDialogTypeCompendiumShare => 'Compendium-deelbestand';
+
+  @override
+  String get fileDialogTypeCompanionUsr => 'Caller’s Companion .USR';
+
+  @override
+  String get fileDialogTypeDiagnosticsLog => 'Diagnoselogboek';
+
+  @override
+  String get fileDialogTypeMacosUpdate => 'Caller’s Compendium-update';
 
   @override
   String get importSourceLabelCallersBox => 'The Caller\'s Box';
@@ -7024,7 +7049,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueMetadataOnlyStub =>
-      'Deze dans is alleen als metadata beschikbaar (geen figuren); geïmporteerd als stub.';
+      'Alleen de gegevens van de dans waren beschikbaar (geen figuren), dus de dans is zonder figuren geïmporteerd.';
 
   @override
   String importIssueDateAssumedMdy(String field) {
@@ -7091,7 +7116,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueNoFiguresTable =>
-      'De pagina had geen figuren; geïmporteerd als metadata-only stub.';
+      'De pagina had geen figuren, dus de dans is zonder figuren geïmporteerd.';
 
   @override
   String get importIssueMoveFallback =>
@@ -7104,16 +7129,16 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueParamUnmapped =>
-      'Een figuurparameter kon niet worden gekoppeld; een taxonomie-standaard is gebruikt.';
+      'Een instelling van een figuur kon niet worden gekoppeld, dus de standaardwaarde is gebruikt.';
 
   @override
   String importIssueParamValueUnmapped(String param) {
-    return 'De parameter $param kon niet worden geconverteerd; een taxonomie-standaard is gebruikt.';
+    return 'De instelling $param kon niet worden omgezet, dus de standaardwaarde is gebruikt.';
   }
 
   @override
   String importIssueParamCountUnmapped(int provided, int mapped) {
-    return 'Een figuur had $provided parameterwaarden maar slechts $mapped zijn toegewezen; de extra waarden zijn genegeerd.';
+    return 'Een figuur had $provided instellingen maar slechts $mapped konden worden gekoppeld; de extra instellingen zijn genegeerd.';
   }
 
   @override
@@ -7408,7 +7433,7 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count programmanotities:',
-      one: '$count programmanotitie(s):',
+      one: '$count programmanotitie:',
     );
     return '$_temp0';
   }
@@ -7430,7 +7455,7 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count records konden niet worden geïmporteerd:',
-      one: '$count record(s) kon niet worden geïmporteerd:',
+      one: '$count record kon niet worden geïmporteerd:',
     );
     return '$_temp0';
   }
@@ -7443,7 +7468,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other:
           '$count records konden niet worden gelezen (de rest kan nog worden geïmporteerd):',
       one:
-          '$count record(s) kon niet worden gelezen (de rest kan nog worden geïmporteerd):',
+          '$count record kon niet worden gelezen (de rest kan nog worden geïmporteerd):',
     );
     return '$_temp0';
   }
@@ -7488,7 +7513,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importReviewVariationBody(String title) {
-    return 'De titel en caller van deze dans komen overeen met \"$title\", maar de figuren verschillen. Bekijk de verschillen en kies vervolgens hoe je hem wilt importeren.';
+    return 'De titel en auteur van deze dans komen overeen met \"$title\", maar de figuren verschillen. Bekijk de verschillen en kies vervolgens hoe je hem wilt importeren.';
   }
 
   @override
@@ -7556,7 +7581,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'Typ een move (bijv. “sw” → swing) en druk op Enter om het toe te voegen met standaardparameters; niet-herkende tekst wordt een aangepaste figuur.';
+      'Typ een move (bijv. “sw” → swing) en druk op Enter om het toe te voegen met standaardwaarden; niet-herkende tekst wordt een aangepaste figuur.';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
@@ -8585,7 +8610,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorLingoStylingHelper =>
-      'Bewegingsnamen gestippeld·onderstreept, roltermen onderstreept, ontmoedigde termen doorgestreept';
+      'Bewegingsnamen krijgen een gestippelde onderstreping, roltermen een onderstreping en ontmoedigde termen een doorhaling';
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -8713,7 +8738,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get updateDownloadFailureChecksumMismatch =>
-      'De gedownloade update is niet door de beveiligingscontrole (sha256) gekomen en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.';
+      'De gedownloade update is niet door de beveiligingscontrole gekomen en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken” om de update handmatig te downloaden.';
 
   @override
   String get updateDownloadFailureHandoffFailed =>
@@ -9298,7 +9323,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$danceCount dansen',
       one: '1 dans',
     );
-    return 'Dit herverwerkt $_temp0 in $_temp1. Je tags, beoordelingen, notities en alles anders van elke dans blijven exact zoals ze zijn. Alleen figuren die nu een bekende move herkennen worden vervangen.';
+    return 'Dit controleert $_temp0 in $_temp1 opnieuw. Je tags, beoordelingen, notities en alles anders van elke dans blijven exact zoals ze zijn. Alleen figuren die nu een bekende move herkennen worden vervangen.';
   }
 
   @override
@@ -9339,7 +9364,7 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$danceCount dansen',
       one: '1 dans',
     );
-    return 'Verbeterde figuurverwerking kan $_temp0 in $_temp1 upgraden. Bekijk hieronder, bevestig dan — er wijzigt niets voordat je dat doet, en al je tags, beoordelingen en notities blijven bewaard.';
+    return 'Verbeterde figuurherkenning kan $_temp0 in $_temp1 upgraden. Bekijk hieronder, bevestig dan — er wijzigt niets voordat je dat doet, en al je tags, beoordelingen en notities blijven bewaard.';
   }
 
   @override
@@ -9369,7 +9394,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'Geen van je aangepaste figuren uit imports kan momenteel worden herkend als bekende move. Kijk later terug nadat een toekomstige update de figuurverwerking verbetert.';
+      'Geen van je aangepaste figuren uit imports kan momenteel worden herkend als bekende move. Kijk later terug nadat een toekomstige update de figuurherkenning verbetert.';
 
   @override
   String get reparseErrorTitle => 'Je figuren konden niet worden gecontroleerd';
@@ -9439,7 +9464,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get customFieldsTypeNumber => 'Getal';
 
   @override
-  String get customFieldsTypeBoolean => 'Boolean';
+  String get customFieldsTypeBoolean => 'Ja/nee';
 
   @override
   String get customFieldsTypeChoice => 'Keuze';
@@ -9469,7 +9494,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsKeyHelper =>
-      'Stabiele machinesleutel (letters, cijfers, underscores; moet beginnen met een letter of underscore)';
+      'Een korte id voor dit veld. Alleen letters, cijfers en underscores; moet beginnen met een letter of underscore. Kan niet meer worden gewijzigd zodra het veld bij dansen wordt gebruikt.';
 
   @override
   String get customFieldsKeyLocked =>
@@ -9877,7 +9902,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceReimport => 'Choreografie opnieuw importeren';
 
   @override
-  String get danceReimportJson => 'Callers Compendium JSON';
+  String get danceReimportJson => 'Caller’s Compendium JSON';
 
   @override
   String get danceReimportLinkOrId => 'Link of id';

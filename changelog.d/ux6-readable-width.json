@@ -1,0 +1,10 @@
+{
+  "id": "ux6-readable-width",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "On a wide window, a dance's detail page, the dance editor, Settings and the user guide now keep their text in a centred column instead of stretching edge to edge, so a figure's beats stay next to its words.",
+      "In the dance editor, Type and Formation are labelled inside their fields, like Title, instead of by a heading above them."
+    ]
+  }
+}

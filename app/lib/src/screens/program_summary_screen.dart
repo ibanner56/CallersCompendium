@@ -487,7 +487,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         for (final s in program.slots)
           if (s.danceId != null) s.danceId!,
       };
-      final loaded = await Future.wait(ids.map(_repos.dances.getById));
+      // A dance in Recently deleted still renders, marked as deleted, and
+      // still reaches the exports (GIG-11): the same lookup as
+      // `resolveDeletedSlotDances`, which Perform uses.
+      final loaded = await Future.wait(
+        ids.map((id) => _repos.dances.getById(id, includeDeleted: true)),
+      );
       for (final dance in loaded) {
         if (dance != null) {
           titles[dance.id] = dance.title;
@@ -597,7 +602,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       deletedDances = await resolveDeletedSlotDances(
         _repos.dances,
         _repos.choreographers,
-        program,
+        program.slots,
         data,
       );
     } finally {
@@ -713,7 +718,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
 
     final theme = Theme.of(context);
-    final slotCount = program.slots.length;
+    final danceCount = program.plannedDanceCount;
     final dateLabel = program.eventDate == null
         ? null
         : formatEventDate(
@@ -818,7 +823,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ],
         const SizedBox(height: 24),
         Text(
-          l10n.programsSetListHeader(slotCount),
+          l10n.programsSetListHeader(danceCount),
           style: theme.textTheme.titleSmall,
         ),
         const SizedBox(height: 8),
@@ -1194,11 +1199,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
   }
 
-  /// Builds the read-only, ordered set list. Primaries are numbered 1..n and
-  /// ALT alternates render indented beneath their primary with an icon + text
-  /// label (never colour alone), per `docs/design/ux.md` §4. Dance rows are
-  /// tappable and open [DanceDetailScreen]; free-text slots are plain,
-  /// non-interactive text. Editing/reordering stays behind the builder FAB.
+  /// Builds the read-only, ordered set list. Planned dances are numbered 1..n
+  /// and the break is not; ALT alternates render indented beneath their
+  /// primary with an icon + text label (never colour alone), per
+  /// `docs/design/ux.md` §4. Dance rows are tappable and open
+  /// [DanceDetailScreen], except a dance in Recently deleted; free-text slots
+  /// are plain, non-interactive text. Editing/reordering stays behind the builder FAB.
   List<Widget> _buildSetList(Program program) {
     if (program.slots.isEmpty) {
       return [
@@ -1216,10 +1222,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
 
     final rows = <Widget>[];
+    // Planned dances are numbered and the break is not, as in the set list's
+    // text and PDF (GIG-10).
     var ordinal = 0;
     for (final group in program.outputGrouped) {
-      ordinal++;
-      rows.add(_slotRow(group.primary, ordinalLabel: '$ordinal'));
+      rows.add(
+        _slotRow(
+          group.primary,
+          ordinalLabel: group.primary.isPlannedDance ? '${++ordinal}' : null,
+        ),
+      );
       for (final alt in group.alternates) {
         rows.add(_slotRow(alt, ordinalLabel: null, indented: true));
       }
@@ -1297,7 +1309,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
     if (danceId != null) {
       final dance = _dances[danceId];
-      final title = dance?.title ?? _danceTitles[danceId];
+      final storedTitle = dance?.title ?? _danceTitles[danceId];
+      // A dance in Recently deleted is marked as Perform marks it, and its row
+      // opens nothing: the dance details read live dances only.
+      final deleted = dance?.isDeleted ?? false;
+      final title = storedTitle == null || !deleted
+          ? storedTitle
+          : '$storedTitle ${l10n.programsDeletedDanceFallback}';
       final performed = slot.performedAt != null;
       final showToggle = title != null && ShowPerformedTogglesScope.of(context);
       if (title == null) {
@@ -1388,18 +1406,21 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
       final rowBody = MergeSemantics(
         child: Semantics(
-          button: true,
+          button: !deleted,
           label: semanticsLabel,
           child: InkWell(
             key: ValueKey('summary-slot-${slot.id}'),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (routeContext) => DanceDetailScreen(
-                  danceId: danceId,
-                  onReimport: (detail) => _beginReimport(routeContext, detail),
-                ),
-              ),
-            ),
+            onTap: deleted
+                ? null
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (routeContext) => DanceDetailScreen(
+                        danceId: danceId,
+                        onReimport: (detail) =>
+                            _beginReimport(routeContext, detail),
+                      ),
+                    ),
+                  ),
             child: ExcludeSemantics(
               child: Container(
                 key: accent != null
@@ -1422,7 +1443,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                   children: [
                     leading,
                     Icon(
-                      Icons.music_note_outlined,
+                      deleted
+                          ? Icons.report_gmailerrorred_outlined
+                          : Icons.music_note_outlined,
                       size: 20,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -1451,10 +1474,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                       ),
                       const SizedBox(width: 4),
                     ],
-                    Icon(
-                      Icons.chevron_right,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    if (!deleted)
+                      Icon(
+                        Icons.chevron_right,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                   ],
                 ),
               ),

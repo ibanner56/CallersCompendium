@@ -51,7 +51,9 @@ bool Function() isJsonExportDesktopPlatform = () =>
 /// so tests can force either branch regardless of the host.
 bool Function() isBundleShareUnsupported = () => Platform.isLinux;
 
-/// The default file-type filter for [saveJsonBundle].
+/// The default file-type filter for [saveJsonBundle]. Its label is the format
+/// name, not prose, so it is the same in every language and stays a literal
+/// (as does [bundleSaveTypeGroup]'s upper-cased extension).
 @visibleForTesting
 XTypeGroup jsonBundleTypeGroup({bool? isLinux}) => XTypeGroup(
   label: 'JSON',

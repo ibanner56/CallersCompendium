@@ -98,7 +98,7 @@ class LinksEditor extends StatelessWidget {
                 IconButton(
                   key: ValueKey('link-remove-${draft.id}'),
                   tooltip: l10n.danceEditorRemoveLinkTooltip,
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.remove_circle_outline),
                   onPressed: () => onRemove(draft),
                 ),
               ],
@@ -213,7 +213,7 @@ class RelatedDancesEditor extends StatelessWidget {
                 IconButton(
                   key: ValueKey('related-dance-remove-${draft.id}'),
                   tooltip: l10n.danceEditorRemoveRelatedDanceTooltip,
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.remove_circle_outline),
                   onPressed: () => onRemove(draft),
                 ),
               ],

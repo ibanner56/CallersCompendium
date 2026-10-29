@@ -113,6 +113,15 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   line.
 - Metadata form with author autocomplete (choreographer table), formation
   picker, custom fields.
+- **Field labels**: a text field or dropdown carries a floating label inside
+  the field (Title, Type, Formation); a chip group (authors, tags) or a
+  repeating group of fields (tunes, links, sources, related dances, custom
+  fields) keeps a heading above it, because a floating label belongs to one
+  field, not a group.
+- **Reading width**: dance detail, this form, the Settings panes and the user
+  guide's text stop growing at 760 px and stay centred, with the scrollbar at
+  the window edge (`widgets/readable_width.dart`; maintainer decision D-8,
+  2026-10-29). The program screens are not yet capped.
 - Autosave drafts; explicit save commits; undo history.
 
 ### 4. Programs list & builder

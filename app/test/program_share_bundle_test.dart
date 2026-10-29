@@ -207,6 +207,26 @@ void main() {
       expect(archive.dances.map((d) => d.id), ['d1']);
     });
 
+    test('embeds a dance in Recently deleted, as a live dance (GIG-11)', () {
+      final trashed = _dance('d1', 'Gone Dance').copyWith(deletedAt: _now);
+      final archive = decodeArchive(
+        buildProgramShareBundle(
+          _program(slots: [_slot(0, danceId: 'd1')]),
+          danceFor: (id) => id == 'd1' ? trashed : null,
+          choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
+          venueFor: (_) => null,
+        ),
+      ).archive;
+
+      // The evening still includes the dance, but what the owner deleted is
+      // not shared.
+      expect(archive.dances.single.title, 'Gone Dance');
+      expect(archive.dances.single.deletedAt, isNull);
+    });
+
     test('a note-only program embeds no dances', () {
       final program = _program(
         slots: [
