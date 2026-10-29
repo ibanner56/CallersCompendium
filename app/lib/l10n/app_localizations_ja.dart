@@ -18,6 +18,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddedModifierAnnouncement => 'モディファイアコンテナを追加しました。';
 
   @override
+  String get danceEditorAddedSequenceAnnouncement => 'シーケンスコンテナを追加しました。';
+
+  @override
   String get navCollection => 'コレクション';
 
   @override
@@ -1185,6 +1188,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get settingsSyncConflictsCheckFailed => '競合を確認できませんでした。';
+
+  @override
   String commonSyncNowConflictsTooltip(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1384,6 +1390,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsSyncWipeDetachFailed =>
       'ストアはサーバーから削除されましたが、このデバイスの接続を解除できませんでした。ストアは失われ、元に戻すことはできません。「このデバイスの接続を解除」で完了してください。';
+
+  @override
+  String get settingsSyncWipeDetachFailedTitle =>
+      'ストアは削除されましたが、このデバイスはまだ接続されています';
 
   @override
   String get settingsSyncMeteredRouted =>
@@ -2302,6 +2312,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '難易度を保存できませんでした。もう一度お試しください。';
 
   @override
+  String settingsDefaultsDifficultyLevelDeleted(String label) {
+    return '「$label」を削除しました。';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'デフォルトバンド';
 
   @override
@@ -2794,6 +2809,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsGeneralRequirePerformedForHistorySubtitle =>
       'オンにすると、ダンスのコーリング履歴には、そのダンスのスロットが「実施済み」とマークされたプログラムのみが表示されます。オフにすると、ダンスを含むプログラムがすぐに表示されます。';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesTitle => '「実施済み」切り替えを表示';
+
+  @override
+  String get settingsGeneralShowPerformedTogglesSubtitle =>
+      'オンにすると、プログラム表示の各ダンスに、エディターを開かずに実施済みかどうかをマークする切り替えが表示されます。オフにすると、行にはダンスが実施済みかどうかだけが表示されます。';
 
   @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
@@ -4185,6 +4207,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceNotFound => 'ダンスが見つかりませんでした。';
 
   @override
+  String get danceLoadError => 'このダンスを読み込めませんでした。';
+
+  @override
   String get danceEditFab => '編集';
 
   @override
@@ -4808,6 +4833,44 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsMarkedPerformed => '実施済みとしてマークしました。';
+
+  @override
+  String programsSummaryPerformedToggleOn(String title) {
+    return '$title：実施済み';
+  }
+
+  @override
+  String programsSummaryPerformedToggleOff(String title) {
+    return '$title：未実施';
+  }
+
+  @override
+  String programsSummaryMarkPerformedTooltip(String title) {
+    return '$titleを実施済みとしてマーク';
+  }
+
+  @override
+  String programsSummaryClearPerformedTooltip(String title) {
+    return '$titleの実施済みマークをクリア';
+  }
+
+  @override
+  String programsSummaryMarkedPerformedSnack(String title) {
+    return '$titleを実施済みとしてマークしました。';
+  }
+
+  @override
+  String programsSummaryClearedPerformedSnack(String title) {
+    return '$titleの実施済みマークをクリアしました。';
+  }
+
+  @override
+  String get programsSummaryPerformedToggleError =>
+      '実施済みマークを更新できませんでした。もう一度お試しください。';
+
+  @override
+  String get programsSummaryUndoPerformedToggleError =>
+      '実施済みマークの変更を取り消せませんでした。';
 
   @override
   String get programsPerformedCleared => '実施済みマークをクリアしました。';
@@ -5665,6 +5728,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String exportMinutesLabel(int count) {
     return '$count分';
+  }
+
+  @override
+  String exportPageOfPages(int page, int pages) {
+    return '$page / $pages ページ';
   }
 
   @override
@@ -7415,6 +7483,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String validationSequenceExceedsPhrase(int position, int actual, int limit) {
+    return 'フィギュア$positionのシーケンスは$actual拍で、1フレーズ（$limit拍）より長くなっています。';
+  }
+
+  @override
   String get validationPhraseInvalid => 'そのフレーズ構造は無効です。';
 
   @override
@@ -7764,6 +7837,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddModifier => 'モディファイアを追加';
 
   @override
+  String get danceEditorAddSequence => 'シーケンスを追加';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'フィギュアリストの末尾にペースト';
 
   @override
@@ -7893,16 +7969,97 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorGroupWithNextAsModifier => '次のフィギュアとモディファイアとしてグループ化';
 
   @override
+  String get danceEditorGroupWithNextAsSequence => '次のフィギュアとシーケンスとしてグループ化';
+
+  @override
   String get danceEditorConvertToMeanwhile => 'Meanwhileに変換';
 
   @override
   String get danceEditorConvertToModifier => 'モディファイアに変換';
 
   @override
+  String get danceEditorConvertToSequence => 'シーケンスに変換';
+
+  @override
   String get danceEditorUngroupMeanwhile => 'Meanwhileのグループ化を解除';
 
   @override
   String get danceEditorUngroupModifier => 'モディファイアのグループ化を解除';
+
+  @override
+  String get danceEditorUngroupSequence => 'シーケンスのグループ化を解除';
+
+  @override
+  String get danceEditorSequenceOptionLabel => 'シーケンス';
+
+  @override
+  String danceEditorSequenceGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'シーケンス（$countフィギュア）',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countフィギュア',
+      one: '1フィギュア',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats拍',
+      one: '1拍',
+    );
+    return 'シーケンスグループ、順に$_temp0、合計$_temp1。';
+  }
+
+  @override
+  String danceEditorSequenceTotalBeats(int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '合計$beats拍',
+      one: '合計1拍',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorSequenceOverPhrase(int beats, int limit) {
+    return 'このシーケンスは$beats拍で、1フレーズ（$limit拍）より長くなっています。';
+  }
+
+  @override
+  String danceEditorSequencePhraseFull(int limit) {
+    return 'これらのフィギュアで1フレーズ（$limit拍）が埋まっています。';
+  }
+
+  @override
+  String danceEditorSequenceStepsCapReached(int max) {
+    return 'シーケンスのフィギュアは最大$max件です。';
+  }
+
+  @override
+  String danceEditorSequenceStepLabel(int number) {
+    return 'フィギュア$number';
+  }
+
+  @override
+  String danceEditorSequenceStepSemantic(int number, int total) {
+    return 'シーケンスの$total件中$number番目のフィギュア。';
+  }
+
+  @override
+  String get danceEditorAddSequenceStep => '次のフィギュアを追加';
+
+  @override
+  String get danceEditorRemoveSequenceStep => 'このフィギュアを削除';
 
   @override
   String danceEditorModifierGroupLabel(num count) {
@@ -8804,6 +8961,11 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$count件のダンス',
     );
     return '「$label」を削除できません: まだ$_temp0で使用されています。すべてのダンスから値を削除してから実行してください。';
+  }
+
+  @override
+  String customFieldsDeleteFailed(String label) {
+    return '「$label」を削除できませんでした。もう一度お試しください。';
   }
 
   @override

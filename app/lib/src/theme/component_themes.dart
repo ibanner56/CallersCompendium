@@ -32,6 +32,7 @@ class ComponentThemes {
     required this.listTile,
     required this.navigationRail,
     required this.navigationBar,
+    required this.snackBar,
   });
 
   final CardThemeData card;
@@ -45,6 +46,14 @@ class ComponentThemes {
   final ListTileThemeData listTile;
   final NavigationRailThemeData navigationRail;
   final NavigationBarThemeData navigationBar;
+  final SnackBarThemeData snackBar;
+
+  /// Every snackbar floats, as the Undo snackbar already does (#463), instead of
+  /// docking to the bottom edge and covering the controls beneath it. The theme
+  /// cannot set a duration, so those still differ by call site.
+  static const SnackBarThemeData _snackBarTheme = SnackBarThemeData(
+    behavior: SnackBarBehavior.floating,
+  );
 
   /// Minimum visual button height, in logical pixels. Comfortably clears the
   /// UX-2 AC of ≥24px while staying below Material's 48px padded tap target
@@ -130,6 +139,7 @@ class ComponentThemes {
         indicatorShape: const StadiumBorder(),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
+      snackBar: _snackBarTheme,
     );
   }
 
@@ -215,6 +225,7 @@ class ComponentThemes {
         indicatorShape: const StadiumBorder(),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
+      snackBar: _snackBarTheme,
     );
   }
 }

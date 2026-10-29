@@ -17,7 +17,7 @@ import '../model/figure.dart';
 /// so existing data and ordinary figures stay byte-for-byte compatible.
 /// `walkthroughOverride` (#411) is written only when present/non-blank and is
 /// soft-clamped on decode. `wordingOverride` is handled the same way. A
-/// Structural container figures (`meanwhile` and `modifier`) additionally carry
+/// Structural container figures (`meanwhile`, `modifier` and `sequence`) carry
 /// their children in `params['figures']`; those children are (de)serialized
 /// recursively through this same codec and the shared beat count lives in
 /// `params['beats']`. This is all additive — there is **no**
@@ -70,7 +70,7 @@ String? unsupportedFigurePath(Object? raw, [String path = 'figures']) {
     }
     final move = entry['move'];
     final params = entry['params'];
-    if ((move == meanwhileMove || move == modifierMove) && params is Map) {
+    if (isContainerMove(move) && params is Map) {
       final nested = unsupportedFigurePath(
         params['figures'],
         '$path.params.figures',
@@ -171,7 +171,7 @@ Figure _figureFromJson(Map<String, Object?> json, int depth) {
   return Figure(
     schemaVersion: schemaVersion,
     move: move,
-    params: move == meanwhileMove || move == modifierMove
+    params: isContainerMove(move)
         ? _decodeContainerParams(
             move,
             params.map((k, v) => MapEntry(k.toString(), v)),
@@ -199,8 +199,8 @@ String? _optionalOverride(Object? raw) {
 /// defensive against untrusted input:
 ///
 /// * non-object / junk entries are ignored;
-/// * only the opposite container may nest, and only one level deep;
-/// * the child count is clamped to [kMaxMeanwhileSides];
+/// * only a container of another kind may nest, and only one level deep;
+/// * the child count is clamped to the kind's [maxContainerChildren];
 /// * deeper or same-kind containers are dropped rather than flattened.
 Map<String, Object?> _decodeContainerParams(
   String move,
@@ -220,14 +220,14 @@ List<Figure> _decodeContainerChildren(
 ) {
   final children = <Figure>[];
   if (raw is! List || depth >= kMaxContainerDepth) return children;
+  final cap = maxContainerChildren(parentMove);
   for (final entry in raw) {
-    if (children.length >= kMaxMeanwhileSides) break;
+    if (children.length >= cap) break;
     if (entry is! Map) continue; // ignore junk; never fabricate
     final map = entry.cast<String, Object?>();
     try {
       final childMove = map['move'];
-      if (childMove is String &&
-          (childMove == meanwhileMove || childMove == modifierMove)) {
+      if (childMove is String && isContainerMove(childMove)) {
         if (childMove == parentMove) continue;
         final child = _figureFromJson(map, depth + 1);
         if (child.isContainer && child.subFigures.isNotEmpty) {

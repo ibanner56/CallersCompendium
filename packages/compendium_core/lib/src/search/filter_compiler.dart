@@ -590,7 +590,8 @@ class FilterCompiler {
     // values — so `a.idx < b.idx` would treat two *simultaneous* sides as
     // one-before-the-other, matching an `X while Y` container for both
     // `Then(X, Y)` and `Then(Y, X)`. `group_idx` is shared by all rows
-    // flattened from one top-level figure (see `_insertDerivedRows`), so two
+    // flattened from one top-level figure, except that a top-level `sequence`
+    // gives each child its own (see `_insertDerivedRows`), so two
     // concurrent sides share a group and the strict `<` excludes them in both
     // directions, while a genuine sequence (distinct, increasing groups) still
     // matches.

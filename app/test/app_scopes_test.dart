@@ -41,6 +41,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
+import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
@@ -91,6 +92,7 @@ const _expectedAppScopeTypes = <Type>[
   ConfirmBeforeDeleteScope,
   ColourDanceThemeScope,
   SetListColorCodingScope,
+  ShowPerformedTogglesScope,
   MatrixCollisionModeScope,
   ProgramMatrixColumnConfigScope,
   DateFormatScope,

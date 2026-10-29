@@ -50,6 +50,7 @@ import '../widgets/brand_mark.dart';
 import '../widgets/by_phrase_panel.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/online_import_dialogs.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/search_panel_bar.dart';
@@ -2968,7 +2969,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Center(child: Text(l10n.collectionSearchError)),
+          child: LoadErrorView(
+            message: l10n.collectionSearchError,
+            onRetry: _runSearch,
+          ),
         ),
       );
     }

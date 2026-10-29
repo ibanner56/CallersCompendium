@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'pdf_page_furniture.dart';
 import 'program_pdf.dart' show loadProgramMatrixMarkerFont, loadProgramPdfTheme;
 
 /// Marker glyphs for the printed matrix. Deliberately distinct SHAPES + a
@@ -30,8 +31,9 @@ const String _presentMark = '✓';
 /// Builds a printable/saveable PDF of the Programming Matrix (ROADMAP §4.4).
 ///
 /// A separate landscape layout from the set-list PDF ([buildProgramPdf]): a
-/// matrix is wide (moves × dances), so it uses `PdfPageFormat.a4.landscape` and
-/// a [pw.Table]. The header row is the dialect-aware column labels (via
+/// matrix is wide (moves × dances), so it lays out [pageFormat] (A4 unless the
+/// print dialog chose otherwise) turned landscape, as a [pw.Table] whose header
+/// row repeats on every page. The header row is the dialect-aware column labels (via
 /// [matrixColumnLabel]); the first column is the dance title; body cells carry
 /// [_debutMark]/[_firstMark]/[_presentMark]/blank markers with the same
 /// semantics as the on-screen [ProgramMatrix]
@@ -71,6 +73,7 @@ Future<Uint8List> buildProgramMatrixPdf(
   pw.Font? markerFont,
   String Function(Formation formation)? formatFormation,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
+  PdfPageFormat pageFormat = PdfPageFormat.a4,
 }) async {
   final fmtDate = formatDate ?? isoDate;
   final fmtFormation = formatFormation ?? _englishFormationLabel;
@@ -91,7 +94,9 @@ Future<Uint8List> buildProgramMatrixPdf(
 
   doc.addPage(
     pw.MultiPage(
-      pageFormat: PdfPageFormat.a4.landscape,
+      pageFormat: pageFormat.landscape,
+      header: (context) => pdfRunningHeader(context, title),
+      footer: (context) => pdfPageFooter(context, labels.pageOf),
       build: (context) => [
         pw.Header(
           level: 0,
@@ -168,6 +173,7 @@ pw.Widget _matrixTable(
   );
 
   final headerRow = pw.TableRow(
+    repeat: true,
     decoration: const pw.BoxDecoration(color: PdfColors.grey300),
     children: [
       headerCell(labels.danceColumn, align: pw.Alignment.centerLeft),

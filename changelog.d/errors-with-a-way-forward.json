@@ -1,0 +1,13 @@
+{
+  "id": "errors-with-a-way-forward",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A load error now offers Retry on the tag colours screen, the Collection search, the dance editor and the program editor, so a passing failure no longer means leaving the screen and coming back.",
+      "A dance that fails to load says \"Couldn't load this dance\" with Retry. Before, it said \"Dance not found\", as if the dance had been deleted.",
+      "Device Sync shows \"Couldn't check for conflicts\" with Retry when the check fails. Before, the row was hidden, which looked the same as having no conflicts.",
+      "When deleting a Device Sync store succeeds but this device can't disconnect from it, a dialog now says so and points to Disconnect this device. Before, the message was a snackbar that disappeared after ten seconds.",
+      "Deleting a custom field that fails for any reason other than being in use now says it couldn't delete the field. Before, nothing happened."
+    ]
+  }
+}

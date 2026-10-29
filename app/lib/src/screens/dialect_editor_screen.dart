@@ -9,6 +9,7 @@ import '../search/facet_labels.dart' show humanizeToken;
 import '../theme/destructive_button_style.dart';
 import '../widgets/collapsible_section.dart';
 import '../widgets/confirm_discard_changes.dart';
+import '../widgets/section_header.dart';
 import '../widgets/wording_condition_notes.dart';
 import '../widgets/app_bar_text_action.dart';
 
@@ -939,30 +940,10 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         onRestoreDefaults: _confirmRestoreDiscouragedDefaults,
       ),
     ),
-    () => _EditorHeader(title: l10n.dialectEditorSectionPreview),
+    () => SectionHeader(title: l10n.dialectEditorSectionPreview),
     () => _DialectPreview(dialect: _working),
     () => const SizedBox(height: 24),
   ];
-}
-
-class _EditorHeader extends StatelessWidget {
-  const _EditorHeader({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        title.toUpperCase(),
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.primary,
-        ),
-      ),
-    );
-  }
 }
 
 /// Two-role editor: singular + plural for role1 and role2. Blank singular drops

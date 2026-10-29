@@ -347,9 +347,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         final figure = contraTaxonomy.normalizeFigureV35(
           figureFromJson(raw.cast<String, Object?>()),
         );
-        if (figure.move == customMove ||
-            figure.move == meanwhileMove ||
-            figure.move == modifierMove) {
+        if (figure.move == customMove || isContainerMove(figure.move)) {
           continue;
         }
         final draft = FigureDraft.fromFigure(figure);

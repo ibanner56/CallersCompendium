@@ -1,10 +1,12 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../editor/figure_draft.dart';
+import '../utils/scroll_to_error.dart';
 import '../widgets/figure_list_editor.dart';
 import '../widgets/shorthand_shadow_warning.dart';
 import '../widgets/app_bar_text_action.dart';
@@ -58,8 +60,14 @@ class _ShorthandMappingEditorScreenState
   /// mapping being edited (if any).
   late final List<FigureDraft> _drafts;
 
-  /// The current validation error shown inline above the editor, or `null`.
-  String? _error;
+  /// The token's validation error, shown on the token field, or `null`.
+  String? _tokenError;
+
+  /// The figure list's validation error, shown above the list, or `null`.
+  String? _figuresError;
+
+  final _scroll = ScrollController();
+  final _figuresErrorKey = GlobalKey();
 
   /// The token and figures as the editor opened, for [_dirty]. The figures are
   /// read back through the drafts, so a mapping that does not round-trip
@@ -82,6 +90,7 @@ class _ShorthandMappingEditorScreenState
   @override
   void dispose() {
     _tokenController.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -89,32 +98,31 @@ class _ShorthandMappingEditorScreenState
   List<Figure> _figures() => [for (final d in _drafts) ?d.toFigure()];
 
   /// Validates the token + figures and returns the edited mapping, or surfaces
-  /// an inline error and keeps the editor open.
+  /// the first problem beside the field it is about and keeps the editor open.
   void _save() {
     final l10n = AppLocalizations.of(context);
     final token = _tokenController.text.trim();
+    final String? tokenError;
     if (token.isEmpty) {
-      setState(() => _error = l10n.shorthandEditorErrorEmpty);
-      return;
+      tokenError = l10n.shorthandEditorErrorEmpty;
+    } else if (token.length > maxShorthandTokenLength) {
+      tokenError = l10n.shorthandEditorErrorTooLong(maxShorthandTokenLength);
+    } else if (widget.hiddenTokens.contains(normalizeShorthandToken(token))) {
+      tokenError = l10n.shorthandEditorErrorDuplicateHidden(token);
+    } else if (widget.existingTokens.contains(normalizeShorthandToken(token))) {
+      tokenError = l10n.shorthandEditorErrorDuplicate(token);
+    } else {
+      tokenError = null;
     }
-    if (token.length > maxShorthandTokenLength) {
-      setState(
-        () =>
-            _error = l10n.shorthandEditorErrorTooLong(maxShorthandTokenLength),
-      );
-      return;
-    }
-    if (widget.hiddenTokens.contains(normalizeShorthandToken(token))) {
-      setState(() => _error = l10n.shorthandEditorErrorDuplicateHidden(token));
-      return;
-    }
-    if (widget.existingTokens.contains(normalizeShorthandToken(token))) {
-      setState(() => _error = l10n.shorthandEditorErrorDuplicate(token));
+    if (tokenError != null) {
+      setState(() => _tokenError = tokenError);
+      scrollToTopForError(context, _scroll);
       return;
     }
     final figures = _figures();
     if (figures.isEmpty) {
-      setState(() => _error = l10n.shorthandEditorErrorNoFigures);
+      setState(() => _figuresError = l10n.shorthandEditorErrorNoFigures);
+      scrollToError(context, _figuresErrorKey);
       return;
     }
     Navigator.of(context).pop(ShorthandMapping(token: token, figures: figures));
@@ -127,12 +135,12 @@ class _ShorthandMappingEditorScreenState
       _tokenController.text.trim() != _initialToken.trim() ||
       !listEquals(_figures(), _initialFigures);
 
-  void _onFiguresChanged() => setState(() => _error = null);
+  void _onFiguresChanged() => setState(() => _figuresError = null);
 
   void _addFigure() {
     setState(() {
       _drafts.add(FigureDraft());
-      _error = null;
+      _figuresError = null;
     });
   }
 
@@ -141,7 +149,7 @@ class _ShorthandMappingEditorScreenState
       ..params['beats'] = 0;
     setState(() {
       _drafts.add(group);
-      _error = null;
+      _figuresError = null;
     });
     return group.id;
   }
@@ -151,7 +159,16 @@ class _ShorthandMappingEditorScreenState
       ..params['beats'] = 0;
     setState(() {
       _drafts.add(group);
-      _error = null;
+      _figuresError = null;
+    });
+    return group.id;
+  }
+
+  Future<String?> _addSequence() async {
+    final group = FigureDraft(sequenceFigures: [FigureDraft(), FigureDraft()]);
+    setState(() {
+      _drafts.add(group);
+      _figuresError = null;
     });
     return group.id;
   }
@@ -159,7 +176,7 @@ class _ShorthandMappingEditorScreenState
   void _deleteFigure(FigureDraft draft) {
     setState(() {
       _drafts.remove(draft);
-      _error = null;
+      _figuresError = null;
     });
   }
 
@@ -168,7 +185,7 @@ class _ShorthandMappingEditorScreenState
       final index = _drafts.indexOf(draft);
       if (index == -1) return;
       _drafts.insert(index + 1, draft.clone());
-      _error = null;
+      _figuresError = null;
     });
   }
 
@@ -176,7 +193,7 @@ class _ShorthandMappingEditorScreenState
     setState(() {
       final draft = _drafts.removeAt(oldIndex);
       _drafts.insert(newIndex, draft);
-      _error = null;
+      _figuresError = null;
     });
   }
 
@@ -204,16 +221,12 @@ class _ShorthandMappingEditorScreenState
           ],
         ),
         body: ListView(
+          controller: _scroll,
+          // An error is scrolled to by its key, and a lazily built list has no
+          // element for a child far outside the viewport. Enough to keep the
+          // whole form built; an infinite extent breaks semantics.
+          scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
           children: [
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Text(
-                  _error!,
-                  key: const ValueKey('shorthand-validation-error'),
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
-              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: TextField(
@@ -223,10 +236,12 @@ class _ShorthandMappingEditorScreenState
                 autofocus: isNew,
                 textInputAction: TextInputAction.done,
                 // Always rebuilds, so the back guard sees the edited token.
-                onChanged: (_) => setState(() => _error = null),
+                onChanged: (_) => setState(() => _tokenError = null),
                 decoration: InputDecoration(
                   labelText: l10n.shorthandEditorTokenLabel,
                   helperText: l10n.shorthandEditorTokenHelper,
+                  errorText: _tokenError,
+                  errorMaxLines: 3,
                   border: const OutlineInputBorder(),
                 ),
               ),
@@ -251,6 +266,16 @@ class _ShorthandMappingEditorScreenState
                 style: theme.textTheme.bodySmall,
               ),
             ),
+            if (_figuresError != null)
+              Padding(
+                key: _figuresErrorKey,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  _figuresError!,
+                  key: const ValueKey('shorthand-validation-error'),
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: FigureListEditor(
@@ -265,6 +290,7 @@ class _ShorthandMappingEditorScreenState
                 onAdd: _addFigure,
                 onAddMeanwhile: _addMeanwhile,
                 onAddModifier: _addModifier,
+                onAddSequence: _addSequence,
                 onDelete: _deleteFigure,
                 onDuplicate: _duplicateFigure,
                 onReorder: _reorderFigure,

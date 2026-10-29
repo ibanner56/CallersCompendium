@@ -889,9 +889,19 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('compound-shorthand-save')));
       await tester.pumpAndSettle();
+      // On the token field itself; the figure's error line is not used.
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('compound-shorthand-token')),
+            )
+            .decoration
+            ?.errorText,
+        isNotNull,
+      );
       expect(
         find.byKey(const ValueKey('compound-shorthand-error')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(controller.compoundShorthands, hasLength(1));
     });

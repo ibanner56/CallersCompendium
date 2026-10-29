@@ -363,10 +363,10 @@ class _TagRow extends StatelessWidget {
           Expanded(
             child: Semantics(
               label: l10n.collectionQueryTagLabel,
-              child: DropdownButton<String>(
+              child: DropdownButtonFormField<String>(
                 key: ValueKey('tag-${node.id}'),
                 isExpanded: true,
-                value: value,
+                initialValue: value,
                 hint: Text(l10n.collectionQueryTagHint),
                 onChanged: (id) {
                   if (id != null && id != node.tagId) {

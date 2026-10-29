@@ -21,6 +21,7 @@ import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/choreographer_details_dialog.dart';
 import '../widgets/confirm_discard_changes.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/published_source_details_dialog.dart';
 import 'dance_editor/dance_editor_controller.dart';
 import 'dance_editor/dance_editor_form.dart';
@@ -61,7 +62,7 @@ class DanceEditorScreen extends StatefulWidget {
 
 class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late CompendiumRepositories _repos;
-  late final DanceEditorController _controller;
+  late DanceEditorController _controller;
   final _formKey = GlobalKey<FormState>();
   final _moreDetailsController = ExpansibleController();
 
@@ -129,8 +130,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// below), mirroring the choreographer caches.
   Map<String, PublishedSource> _sourcesById = {};
 
-  /// The live reference-data subscription, opened once in
-  /// [didChangeDependencies] alongside [_load] and cancelled in [dispose].
+  /// The live reference-data subscription, opened in [didChangeDependencies]
+  /// alongside [_load], reopened by [_retryLoad], and cancelled in [dispose].
   StreamSubscription<DanceEditorReferenceData>? _refDataSub;
 
   /// Resolves once the subscription above has delivered its first event
@@ -141,7 +142,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// benefit (see [_subscribeReferenceData]'s doc). Completed defensively in
   /// [dispose] too, so a widget disposed before the first event arrives does
   /// not leave [_load]'s continuation suspended forever.
-  final Completer<void> _initialReferenceDataReady = Completer<void>();
+  Completer<void> _initialReferenceDataReady = Completer<void>();
 
   @override
   void didChangeDependencies() {
@@ -160,20 +161,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _dependenciesInitialized = true;
       _activeDialect = newDialect;
       _repos = RepositoriesScope.of(context);
-      _controller = DanceEditorController(
-        repositories: _repos,
-        danceId: widget.danceId,
-        dialect: newDialect,
-        initialTitle: widget.initialTitle,
-      );
-      _controller.addListener(_onControllerChanged);
-      final shutdownController = EditorDraftShutdownScope.maybeOf(context);
-      if (shutdownController != null) {
-        _unregisterShutdownFlush = shutdownController.register(
-          _controller.prepareShutdownFlush,
-          flushPending: _controller.flushPendingAutosave,
-        );
-      }
+      _createController();
       _load();
       _subscribeReferenceData();
     } else if (!identical(newDialect, _activeDialect) &&
@@ -181,6 +169,54 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _activeDialect = newDialect;
       _controller.updateDialect(newDialect);
     }
+  }
+
+  void _createController() {
+    _controller = DanceEditorController(
+      repositories: _repos,
+      danceId: widget.danceId,
+      dialect: _activeDialect,
+      initialTitle: widget.initialTitle,
+    );
+    _controller.addListener(_onControllerChanged);
+    final shutdownController = EditorDraftShutdownScope.maybeOf(context);
+    if (shutdownController != null) {
+      _unregisterShutdownFlush = shutdownController.register(
+        _controller.prepareShutdownFlush,
+        flushPending: _controller.flushPendingAutosave,
+      );
+    }
+  }
+
+  /// Retries after a load error.
+  ///
+  /// When the controller finished loading, the error came from the
+  /// reference-data stream failing mid-edit, so the draft it holds is live:
+  /// only that subscription is reopened and the draft is kept.
+  ///
+  /// Otherwise [_load] failed part-way. It appends into the controller's
+  /// collections, so re-running it on the same controller could duplicate
+  /// state; replacing the controller is the one way to start clean. Nothing is
+  /// lost by that: the controller never loaded, so there is no draft in it.
+  void _retryLoad() {
+    if (_loadInFlight) return;
+    if (_controller.loaded) {
+      unawaited(_refDataSub?.cancel());
+      setState(() => _loadError = null);
+      _subscribeReferenceData();
+      return;
+    }
+    _unregisterShutdownFlush?.call();
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
+    unawaited(_refDataSub?.cancel());
+    _initialReferenceDataReady = Completer<void>();
+    setState(() {
+      _loadError = null;
+      _createController();
+    });
+    unawaited(_load());
+    _subscribeReferenceData();
   }
 
   /// Rebuilds the screen whenever the controller's draft/undo/autosave state
@@ -213,7 +249,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// choreographers, tags, all dances and published sources, re-read whenever
   /// a write touches any of them.
   ///
-  /// Started once, alongside [_load], which awaits
+  /// Started alongside [_load] (and reopened by [_retryLoad]), which awaits
   /// [_initialReferenceDataReady] (completed below, on this subscription's
   /// first event) before proceeding to [DanceEditorController.load] — so the
   /// caches above are populated (or the failure already known) before the
@@ -242,9 +278,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// treats a failure: `_loadError` is set and the existing error body at
   /// `_buildBody` renders. The in-memory draft and autosave are untouched by
   /// this (only the *rendered* body changes), so nothing already typed is
-  /// lost — but it is a UX regression, not a null bug, so it should be
-  /// bounded in size the same way `_load` is if this class of failure ever
-  /// turns out to be reachable mid-edit. `cancelOnError: false` so a
+  /// lost. [_retryLoad] is the way out: once the controller has loaded it
+  /// keeps the draft and only reopens this subscription. `cancelOnError: false` so a
   /// subsequent write can still recover the subscription — including when the
   /// *first* event was the failure: `_controller.load` still runs (once
   /// [_initialReferenceDataReady] completes, error or not), so the screen
@@ -316,7 +351,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     super.dispose();
   }
 
+  /// Whether a [_load] is still running. [_retryLoad] does nothing while it is,
+  /// and the Retry button is disabled, so two loads never fill one controller.
+  bool _loadInFlight = false;
+
   Future<void> _load() async {
+    _loadInFlight = true;
     try {
       // `fieldDefs` and `dance` seed [_controller] below and are read once,
       // here — not from [_subscribeReferenceData]'s stream; see that method's
@@ -384,6 +424,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'dance_editor_screen._load');
       if (mounted) setState(() => _loadError = error);
+    } finally {
+      _loadInFlight = false;
+      if (mounted) setState(() {});
     }
   }
 
@@ -396,7 +439,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final formIsValid = _formKey.currentState?.validate() ?? false;
     if (!formIsValid || hasInvalidCustomFieldNumber) {
       if (hasInvalidCustomFieldNumber) _moreDetailsController.expand();
-      // Ensure the user sees the first error even if it is above the fold.
+      // `validate()` has put each message on its own field. Nothing scrolls to
+      // the first one, so it can sit above the fold.
       setState(() {});
       return;
     }
@@ -950,8 +994,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   Widget _buildBody() {
     if (_loadError != null) {
-      return Center(
-        child: Text(AppLocalizations.of(context).danceEditorLoadError),
+      return LoadErrorView(
+        message: AppLocalizations.of(context).danceEditorLoadError,
+        onRetry: _loadInFlight ? null : _retryLoad,
       );
     }
     if (!_controller.loaded) {

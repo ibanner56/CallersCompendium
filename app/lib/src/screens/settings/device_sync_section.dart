@@ -2,7 +2,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart'
-    show SyncReport, syncIdWordCount;
+    show CompendiumRepositories, SyncReport, syncIdWordCount;
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
@@ -55,6 +55,21 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   Object? _conflictCountFor;
   int _conflictGeneration = 0;
 
+  /// [syncConflictCount], logged on failure: the row then reports it, but the
+  /// cause would otherwise reach nobody.
+  Future<int> _countConflicts(CompendiumRepositories repositories) async {
+    try {
+      return await syncConflictCount(repositories);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'device_sync_section._countConflicts',
+      );
+      rethrow;
+    }
+  }
+
   Future<int> _conflictsFor(SyncController controller) {
     final key = (
       controller.running,
@@ -63,7 +78,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     );
     if (_conflictCount == null || key != _conflictCountFor) {
       _conflictCountFor = key;
-      _conflictCount = syncConflictCount(RepositoriesScope.of(context));
+      _conflictCount = _countConflicts(RepositoriesScope.of(context));
     }
     return _conflictCount!;
   }
@@ -675,6 +690,23 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
               FutureBuilder<int>(
                 future: _conflictsFor(controller),
                 builder: (context, snapshot) {
+                  // A failed count is not "no conflicts": hiding the row would
+                  // tell the caller everything is resolved when it is unknown.
+                  if (snapshot.hasError) {
+                    return ListTile(
+                      key: const ValueKey('sync-conflicts-error'),
+                      leading: Icon(
+                        Icons.call_split,
+                        color: theme.colorScheme.error,
+                      ),
+                      title: Text(l10n.settingsSyncConflictsCheckFailed),
+                      trailing: TextButton(
+                        key: const ValueKey('sync-conflicts-retry'),
+                        onPressed: () => setState(() => _conflictGeneration++),
+                        child: Text(l10n.commonRetry),
+                      ),
+                    );
+                  }
                   final count = snapshot.data ?? 0;
                   if (count == 0) return const SizedBox.shrink();
                   return ListTile(

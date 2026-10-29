@@ -2911,7 +2911,9 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   final int idx;
 
   /// Correlation group: all rows flattened from one **top-level** figure share
-  /// this value, and it is monotonic across a dance's top-level figures. Unlike
+  /// this value, and it is monotonic across a dance's top-level figures — except
+  /// that each child of a top-level `sequence` container, being danced in
+  /// order, takes a group of its own. Unlike
   /// [idx] (unique per row, as the `{danceId, idx}` PK requires), [groupIdx] is
   /// deliberately **not** unique — the concurrent sides of a `meanwhile`
   /// container (flattened per side, #590) all carry the container's single
@@ -2925,6 +2927,8 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   final bool progression;
 
   /// Figure `params` as JSON (queried via SQLite JSON1, `params_json ->> ...`).
+  /// A use of a figure of your own (#1023) keeps its reference here only
+  /// while it renders live from its figure.
   final String paramsJson;
 
   /// Rendered canonical text (dialect-free); feeds `dance_fts.figures_text`.

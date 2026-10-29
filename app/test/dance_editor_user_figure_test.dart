@@ -200,6 +200,29 @@ void main() {
     },
   );
 
+  test(
+    'a use inside a sequence counts as a use and keeps its own beats',
+    () async {
+      final repos = openTestRepositories();
+      final entry = zoom();
+      await repos.userGlossary.upsert(entry);
+      final controller = await loaded(repos);
+      controller.figureDrafts.add(
+        FigureDraft(
+          sequenceFigures: [
+            useDraft(entry, beats: 6),
+            FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+          ],
+        ),
+      );
+      expect(controller.hasUserFigureUses, isTrue);
+
+      final sequence = figuresOf(controller.buildDance()).single;
+      expect(sequence.beats, 14);
+      expect(sequence.subFigures.first.params['beats'], 6);
+    },
+  );
+
   test('a use of a figure deleted while the dance was open is saved as plain '
       'text with its line; one this device never had stays a use', () async {
     final repos = openTestRepositories();

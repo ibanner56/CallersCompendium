@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart' show PdfPageFormat;
+import 'package:printing/printing.dart' show LayoutCallback;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -31,6 +33,7 @@ import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
 import 'support/l10n_harness.dart';
+import 'support/pdf_probe.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -3290,6 +3293,35 @@ void main() {
     },
   );
 
+  testWidgets('a failed program read offers Retry, and Retry loads it', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.programs.create(_program(id: 'p1', slots: const []));
+    delayed.programs.failNextRead = true;
+
+    await _pumpBuilder(tester, delayed.repos, programId: 'p1');
+
+    expect(find.text('Could not load the program.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('save-program')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('load-error-retry')).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not load the program.'), findsNothing);
+    expect(find.byKey(const ValueKey('save-program')), findsOneWidget);
+  });
+
+  testWidgets('a program that no longer exists offers no Retry', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+
+    await _pumpBuilder(tester, repos, programId: 'gone');
+
+    expect(find.byKey(const ValueKey('load-error-retry')), findsNothing);
+  });
+
   testWidgets(
     'failed persisted Undo enters a safe state when recovery read fails',
     (tester) async {
@@ -4957,6 +4989,48 @@ void main() {
     focusNode.requestFocus();
     await tester.pump();
     expect(focusNode.hasPrimaryFocus, isTrue);
+  });
+
+  testWidgets('matrix PDF export is laid out landscape on the paper the print '
+      'dialog chose, not A4 (OUT-4)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Matrix Dance',
+        figures: [
+          Figure(move: 'swing'),
+          Figure(move: 'balance'),
+        ],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    LayoutCallback? captured;
+    String? jobName;
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      pdfLayouter: ({required name, required onLayout}) async {
+        jobName = name;
+        captured = onLayout;
+      },
+    );
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-matrix-export-pdf')));
+    await tester.pumpAndSettle();
+
+    expect(captured, isNotNull);
+    expect(pdfMediaBox(await captured!(PdfPageFormat.letter)), (792, 612));
+    // Its own job name, so saving it beside the set-list PDF does not collide.
+    expect(jobName, 'Night_Programming_matrix');
   });
 
   testWidgets('matrix PDF export shows a snackbar and logs when the layouter '

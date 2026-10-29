@@ -426,7 +426,7 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
   }
 
   Widget _sectionLabel(ThemeData theme, String text) => Padding(
-    padding: const EdgeInsets.only(top: 20, bottom: 4),
+    padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.xxs),
     child: Text(
       text,
       style: theme.textTheme.titleSmall?.copyWith(

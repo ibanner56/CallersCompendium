@@ -99,7 +99,5 @@ String danceShareBundleFileName(
   String title, {
   String extension = danceShareBundleExtension,
 }) {
-  final sanitized = replaceUnsafeNameChars(title.trim());
-  final base = sanitized.contains(RegExp(r'[A-Za-z0-9]')) ? sanitized : 'dance';
-  return '$base.$extension';
+  return '${shareFileBaseName(title, fallback: 'dance')}.$extension';
 }

@@ -198,6 +198,11 @@ details are handled when you export.
   [alternate](./glossary.md#alt) counts only once you mark that slot performed;
   **Mark all performed** and the **Performed** status skip alternates, so mark
   the ones you used yourself.
+- **Show mark-performed toggles** (on) — adds a circle to the end of each dance
+  row on a saved program's summary, alternates included, so you can mark that
+  dance performed (or clear the mark) without opening the editor. Marking or
+  clearing offers an **Undo**. Turn it off and rows only show a check on dances
+  already marked performed. The change applies straight away.
 - **Require an event date for calling history** (off) — when on, a program with
   no event date counts nowhere calling history is read (the "called ×N" count,
   the **Called** filter, a dance's history list, the **Last called** sort, and
@@ -442,7 +447,8 @@ open this group. You can override any of them per dance, and
   a different position; renaming keeps existing dances attached to that level.
   A level can't be removed while any dance uses it — including a dance waiting
   in **Recently deleted**. Once no dance uses it, you can remove any level, including
-  the ones that ship with the app.
+  the ones that ship with the app. Removing a level asks nothing first and shows
+  **Undo** for a few seconds, which puts the level back in its place.
 - **Type**, **Formation**, and **Progression** — the starting choices for a new
   dance.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
@@ -674,8 +680,8 @@ The Glossary lists them too, when it is shown. While it is on:
   figure doesn't change, and later changes to the app's figure don't reach
   the copy. Its page says what it was copied from.
 - Build a combination from figures that come with the app, in order, the same
-  way as in the dance editor. Custom figures, meanwhile and modifier groups
-  can't be used as parts.
+  way as in the dance editor. Custom figures and meanwhile, modifier and
+  sequence groups can't be used as parts.
 - Give a new figure its **Wording**, how it reads in a dance: put a parameter
   in braces, such as `{who}`, use `{move}` for the figure's name and `{beats}`
   for its beats, and put a part in square brackets to leave it out when its
@@ -1050,6 +1056,10 @@ devices, but anything that had only ever reached another device through syncing
 won't arrive here. This device disconnects and forgets its phrase; your other
 devices find the store gone the next time they sync and are asked whether to
 start a new one, the same question as any store that's no longer there.
+
+If the store is deleted but this device can't disconnect from it, a message says
+so: the store is gone and can't be brought back, and this device still holds its
+phrase. Choose **Disconnect this device** to finish.
 
 This is what to use if someone else has seen your sync phrase. A leaked phrase
 can't be revoked, and moving your devices to a new phrase doesn't help on its

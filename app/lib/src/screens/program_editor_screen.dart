@@ -54,6 +54,7 @@ import 'dance_reimport_flow.dart';
 import '../widgets/command_palette.dart';
 import 'perform_program_screen.dart';
 import '../widgets/export_guard.dart';
+import '../widgets/load_error_view.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
@@ -856,6 +857,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           },
         );
     return first.future;
+  }
+
+  /// Re-runs [_load] after a failed read. Safe to do without a discard prompt:
+  /// the editor body is not shown while [_loadError] is set, so there is no
+  /// typed input to lose.
+  void _retryLoad() {
+    setState(() {
+      _loadError = null;
+      _loaded = false;
+    });
+    unawaited(_load());
   }
 
   Future<void> _load() async {
@@ -3133,17 +3145,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
     }
     if (_loadError != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            _loadError == _ProgramLoadError.missing
-                ? l10n.programsNoLongerExists
-                : l10n.programsLoadError,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+      final message = _loadError == _ProgramLoadError.missing
+          ? l10n.programsNoLongerExists
+          : l10n.programsLoadError;
+      // Only a failed read can be retried: a program that is gone, or an undo
+      // that could not be recovered, would fail the same way again.
+      return _loadError is _ProgramLoadError
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(message, textAlign: TextAlign.center),
+              ),
+            )
+          : LoadErrorView(message: message, onRetry: _retryLoad);
     }
 
     return LayoutBuilder(
@@ -3254,17 +3268,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
     }
     if (_loadError != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            _loadError == _ProgramLoadError.missing
-                ? l10n.programsNoLongerExists
-                : l10n.programsLoadError,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+      final message = _loadError == _ProgramLoadError.missing
+          ? l10n.programsNoLongerExists
+          : l10n.programsLoadError;
+      // Only a failed read can be retried: a program that is gone, or an undo
+      // that could not be recovered, would fail the same way again.
+      return _loadError is _ProgramLoadError
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(message, textAlign: TextAlign.center),
+              ),
+            )
+          : LoadErrorView(message: message, onRetry: _retryLoad);
     }
 
     final data = _data;
@@ -3442,7 +3458,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       messenger,
       l10n.exportSetListError,
       () => layoutPdf(
-        name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
+        name: programPdfJobName(
+          title,
+          fallback: l10n.exportMatrixPdfFilename,
+          suffix: l10n.exportMatrixPdfFilename,
+          eventDate: eventDate,
+        ),
         onLayout: (format) => buildProgramMatrixPdf(
           matrix,
           taxonomy: taxonomy,
@@ -3462,6 +3483,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
           config: config,
+          pageFormat: format,
         ),
       ),
       source: 'program_editor_screen._exportMatrixPdf',
