@@ -150,7 +150,7 @@ class _ShorthandMappingEditorScreenState
     final group = FigureDraft(sequenceFigures: [FigureDraft(), FigureDraft()]);
     setState(() {
       _drafts.add(group);
-      _error = null;
+      _figuresError = null;
     });
     return group.id;
   }
