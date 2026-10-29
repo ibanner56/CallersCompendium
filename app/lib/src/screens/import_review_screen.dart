@@ -1524,6 +1524,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               _repos.venues,
               _repos.customFieldDefs,
               publishedSources: _repos.publishedSources,
+              difficultyLevels: _repos.difficultyLevels,
             ).commitDances(
               rowBatch,
               now: now,
@@ -1645,6 +1646,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           _repos.venues,
           _repos.customFieldDefs,
           publishedSources: _repos.publishedSources,
+          difficultyLevels: _repos.difficultyLevels,
         );
         // Read up front: a BuildContext must not be used across an async gap,
         // and the commit below is one.
