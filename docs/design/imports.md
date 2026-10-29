@@ -1536,7 +1536,10 @@ has to be judged in its own context.
   corner(s) naming either corner. They do so for every source, not only
   Caller's Companion: the maintainer ruled (2026-10-29) that a first corner is
   the same in contra and squares, so a square's `Allemande left your corner`
-  from The Caller's Box reads the same way. The bare `Corner` and the ordinal
+  from The Caller's Box reads the same way. `resolveDancerSetPhrase` shares
+  the reader, so a Caller's Box `[with corner]` bracket on a balance-the-wave
+  line now keeps the note `with firstCorners`, as `[with partner]` keeps `with
+  partners`, where it was dropped before. The bare `Corner` and the ordinal
   readings are the maintainer's decisions (#1975; the ordinals and the scope
   on 2026-10-29). A bare plural (`allemande left the corners`, ContraDB's
   contra-corners text) may mean both corners in turn, so it is not read. A
