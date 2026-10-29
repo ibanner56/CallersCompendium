@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/theme/set_list_accents.dart';
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
-
 import 'support/l10n_harness.dart';
 
 final _slots = [

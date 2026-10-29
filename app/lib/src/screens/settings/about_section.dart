@@ -1,6 +1,5 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
-
 import '../../app_metadata.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
-
 import '../support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
