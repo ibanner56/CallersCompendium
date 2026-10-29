@@ -335,9 +335,11 @@ class Program {
   final DateTime updatedAt;
   final DateTime? deletedAt;
 
-  /// Import provenance: where this program came from (CC `.USR`), keyed on
-  /// `(source, externalId)` so a re-import dedupes onto the same program rather
-  /// than creating a duplicate. `null` for user-created programs, which never
+  /// Import provenance: where this program came from, keyed on
+  /// `(source, externalId)`. For a CC `.USR` import the key makes a re-import
+  /// dedupe onto the same program rather than create a duplicate. A program
+  /// received in a shared file (`json`) records its origin only: re-receiving
+  /// it adds a new program (F6). `null` for user-created programs, which never
   /// dedupe. Mirrors [Dance.provenance]; like Dance, it is metadata *about the
   /// import* and is deliberately excluded from value equality (`==`/[hashCode]).
   final Provenance? provenance;

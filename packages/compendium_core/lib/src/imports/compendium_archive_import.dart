@@ -945,8 +945,8 @@ class CompendiumArchiveImporter {
   }
 
   /// Reverts a committed [result]: hard-deletes the **inserted** programs (slots
-  /// cascade) and restores every **updated** (re-imported) program to its
-  /// captured prior state, then removes the **inserted** venues, **before**
+  /// cascade) — every program a shared-file import persists is a new one —
+  /// then removes the **inserted** venues, **before**
   /// delegating to [ImportPipeline.undo] for the dances, authors and
   /// updated-dance rollbacks. Idempotent — a second call is a no-op.
   ///
