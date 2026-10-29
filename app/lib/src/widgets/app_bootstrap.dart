@@ -240,7 +240,7 @@ class AppBootstrap extends StatelessWidget {
       case SnapshotFailureCause.unwritableBackupsDir:
         return Icons.folder_off_outlined;
       case SnapshotFailureCause.unknown:
-        return Icons.warning_amber_rounded;
+        return Icons.warning_amber_outlined;
     }
   }
 }
