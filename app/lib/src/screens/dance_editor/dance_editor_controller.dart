@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/widgets.dart';
 
 import '../../data/editor_draft_shutdown_scope.dart';
@@ -47,8 +48,12 @@ class DanceEditorController extends ChangeNotifier {
        walkthroughController = LingoTextEditingController(dialect: dialect),
        phraseController = LingoTextEditingController(dialect: dialect),
        formationDetailController = LingoTextEditingController(dialect: dialect),
-       tuneController = LingoTextEditingController(dialect: dialect) {
+       tuneController = LingoTextEditingController(dialect: dialect),
+       _draftKey = danceId == null
+           ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
+           : danceEditorDraftKey(danceId) {
     freeTextComposer.addListener(_notify);
+    _openDraftKeys.add(_draftKey);
   }
 
   final CompendiumRepositories _repos;
@@ -63,8 +68,8 @@ class DanceEditorController extends ChangeNotifier {
   /// "create a dance from this" program-slot action). Ignored when
   /// [danceId] is non-null (editing an existing dance never reseeds its
   /// title). Applied in [load]'s new-dance branch, in the same position as
-  /// the figures-template seed, so a restored autosave draft still overrides
-  /// it — the seed is a starting point, not a guaranteed final value.
+  /// the figures-template seed. A seeded dance is the slot's own, so [load]
+  /// offers it no other new dance's draft to restore (AUTH-10).
   final String? initialTitle;
 
   /// Renders canonical stored note text back into the active dialect for
@@ -126,6 +131,53 @@ class DanceEditorController extends ChangeNotifier {
         _renderDraftTextRecursively(children);
       }
     }
+  }
+
+  /// [drafts] with their note and custom-figure text rewritten from [from]
+  /// into [to], the same text [_renderDraftTextRecursively] renders and Save
+  /// canonicalizes (AUTH-17). Canonicalizing against the dialect the text was
+  /// written in, rather than the one active at Save, is what keeps a custom
+  /// dialect's role words from being stored literally.
+  static List<FigureDraftSnapshot> _convertDraftText(
+    List<FigureDraftSnapshot> drafts, {
+    required Dialect from,
+    required Dialect to,
+  }) {
+    String convert(String text) =>
+        _noteRenderer.renderFreeText(canonicalizeText(text, from), to);
+
+    void convertAll(Iterable<FigureDraft> drafts) {
+      for (final draft in drafts) {
+        draft.note = convert(draft.note);
+        final text = draft.params['text'];
+        if (draft.move == customMove &&
+            text is String &&
+            text.isNotEmpty &&
+            !isUserFigureDraft(draft)) {
+          draft.params['text'] = convert(text);
+        }
+        if (draft.meanwhileSides case final sides?) convertAll(sides);
+        if (draft.modifierFigures case final children?) convertAll(children);
+      }
+    }
+
+    final converted = [for (final d in drafts) d.toDraft()];
+    convertAll(converted);
+    return [for (final d in converted) FigureDraftSnapshot.fromDraft(d)];
+  }
+
+  /// Whether text written in [a] reads the same in [b]: the conversion reads
+  /// only role terms.
+  static bool _sameRoles(Dialect a, Dialect b) => mapEquals(a.roles, b.roles);
+
+  /// The figure drafts [s] holds, with their text in the active dialect.
+  /// Text written in the active dialect's own role terms is kept as typed.
+  List<FigureDraft> _draftsInActiveDialect(EditorSnapshot s) {
+    final from = s.textDialect;
+    final snapshots = from == null || _sameRoles(from, _activeDialect)
+        ? s.figureDrafts
+        : _convertDraftText(s.figureDrafts, from: from, to: _activeDialect);
+    return [for (final d in snapshots) d.toDraft()];
   }
 
   bool _disposed = false;
@@ -462,23 +514,96 @@ class DanceEditorController extends ChangeNotifier {
   /// counts as unsaved ([dirty]) and Save can add it first.
   final freeTextComposer = FreeTextComposerController();
 
-  String get draftKey => '$kDanceEditorDraftKeyPrefix${danceId ?? 'new'}';
+  /// The settings key this editor autosaves under: the dance's own, or for a
+  /// new dance one made for this editor (AUTH-10), so two new dances never
+  /// share a draft. Restoring another new dance's draft adopts its key.
+  String get draftKey => _draftKey;
+  String _draftKey;
+
+  /// The draft keys of the editors open in this process, and of the drafts
+  /// they are offering, so a new-dance editor never offers, or discards, a
+  /// draft another editor is writing or may take up.
+  static final Set<String> _openDraftKeys = {};
 
   /// A decoded draft snapshot waiting to be restored or discarded.
   /// Set by [load] when a draft exists; cleared by the restore flow.
   EditorSnapshot? _pendingDraft;
   EditorSnapshot? get pendingDraft => _pendingDraft;
 
+  /// The key [pendingDraft] was read from, which [discardPendingDraft]
+  /// removes and [applyRestoredDraft] adopts.
+  String? _pendingDraftKey;
+
+  /// Whether [pendingDraft] is the draft of a different new dance, left by an
+  /// earlier editor, rather than of the dance this editor opened.
+  bool get pendingDraftIsAnotherNewDance =>
+      _pendingDraftKey != null && _pendingDraftKey != _draftKey;
+
+  /// Whether the dance has been saved since [draft] was edited from it, so
+  /// restoring the draft would replace those changes (AUTH-10). False when
+  /// that cannot be told: a new dance, or a draft written before drafts
+  /// recorded the version they were edited from.
+  bool danceChangedSince(EditorSnapshot draft) {
+    final base = draft.baseUpdatedAt;
+    final current = _original?.updatedAt;
+    return base != null && current != null && !base.isAtSameMomentAs(current);
+  }
+
   void _notify() {
     if (!_disposed) notifyListeners();
   }
 
-  /// Pushes the new active dialect into every lingo prose controller.
+  /// Pushes the new active dialect into every lingo prose controller, and
+  /// re-renders the figure notes and custom-figure text into it, so the text
+  /// on screen, and what Save canonicalizes, stay in the dialect Save reads
+  /// them in (AUTH-17). Undo entries record their own dialect and are
+  /// converted when applied.
   void updateDialect(Dialect newDialect) {
+    final previous = _activeDialect;
     _activeDialect = newDialect;
     for (final c in _proseLingoControllers) {
       c.updateDialect(newDialect);
     }
+    if (_sameRoles(previous, newDialect) || figureDrafts.isEmpty) return;
+    final current = [
+      for (final d in figureDrafts) FigureDraftSnapshot.fromDraft(d),
+    ];
+    final converted = _convertDraftText(
+      current,
+      from: previous,
+      to: newDialect,
+    );
+    // A row whose text is replaced loses its caret position, so leave the rows
+    // alone when no text changes, as for a dance whose notes name no roles.
+    if (_sameDraftText(current, converted)) return;
+    figureDrafts
+      ..clear()
+      ..addAll(converted.map((d) => d.toDraft()));
+    _notify();
+  }
+
+  static bool _sameDraftText(
+    List<FigureDraftSnapshot> a,
+    List<FigureDraftSnapshot> b,
+  ) {
+    for (var i = 0; i < a.length; i++) {
+      final x = a[i];
+      final y = b[i];
+      if (x.note != y.note || x.params['text'] != y.params['text']) {
+        return false;
+      }
+      if (!_sameDraftText(
+            x.meanwhileSides ?? const [],
+            y.meanwhileSides ?? const [],
+          ) ||
+          !_sameDraftText(
+            x.modifierFigures ?? const [],
+            y.modifierFigures ?? const [],
+          )) {
+        return false;
+      }
+    }
+    return true;
   }
 
   // -------------------------------------------------------------------------
@@ -575,10 +700,9 @@ class DanceEditorController extends ChangeNotifier {
       // rather than failing the editor load.
 
       // Seed the title from the program-slot "create a dance from this" flow
-      // (issue #881), if one was provided. This runs BEFORE the draft-restore
-      // check below (like the figures template further down), so a restored
-      // autosave draft still overrides it — the seed is a starting point the
-      // user reviews and can edit, never a guaranteed final value.
+      // (issue #881), if one was provided — a starting point the user reviews
+      // and can edit, never a guaranteed final value. The draft-restore check
+      // below offers a seeded dance no other new dance's draft (AUTH-10).
       final seedTitle = initialTitle;
       if (seedTitle != null && seedTitle.isNotEmpty) {
         titleController.text = seedTitle;
@@ -652,17 +776,47 @@ class DanceEditorController extends ChangeNotifier {
     recomputeWarnings();
 
     // Check for an autosaved draft and stage it for a restore/discard prompt.
-    if (!_disposed && await _repos.settings.contains(draftKey)) {
-      final raw = await _repos.settings.get(draftKey);
+    // A new dance's own key is new, so what it can find is a draft another
+    // new-dance editor left: offered as that dance, never as this one. A new
+    // dance started from a program slot is a particular dance, and offers
+    // none.
+    final seeded = initialTitle?.isNotEmpty ?? false;
+    final candidates = dance != null || danceId != null
+        ? [draftKey]
+        : seeded || _disposed
+        ? const <String>[]
+        : [
+            for (final key in await _repos.settings.keysWithPrefix(
+              kDanceEditorDraftKeyPrefix,
+            ))
+              if (isNewDanceEditorDraftKey(key) &&
+                  !_openDraftKeys.contains(key))
+                key,
+          ];
+    for (final key in candidates) {
+      if (_disposed || !await _repos.settings.contains(key)) continue;
+      final raw = await _repos.settings.get(key);
       EditorSnapshot? draftSnapshot;
       try {
         draftSnapshot = decodeDraft(raw, levels: _difficultyLevels);
       } catch (_) {
         // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
-        await _repos.settings.remove(draftKey, permanent: true);
+        await _repos.settings.remove(key, permanent: true);
       }
-      if (draftSnapshot != null && !_disposed) {
+      // Another editor may have taken it up during the reads above.
+      if (draftSnapshot == null || _disposed) continue;
+      if (key != _draftKey && _openDraftKeys.contains(key)) continue;
+      // Of several abandoned new dances, offer the most recent; the rest wait
+      // for the next new dance. One with no save time is the oldest.
+      final pendingSavedAt = _pendingDraft?.savedAt;
+      final savedAt = draftSnapshot.savedAt;
+      if (_pendingDraft == null ||
+          (savedAt != null &&
+              (pendingSavedAt == null || savedAt.isAfter(pendingSavedAt)))) {
+        _releaseOfferedDraftKey();
         _pendingDraft = draftSnapshot;
+        _pendingDraftKey = key;
+        _openDraftKeys.add(key);
       }
     }
 
@@ -678,14 +832,34 @@ class DanceEditorController extends ChangeNotifier {
   // Draft restore
   // -------------------------------------------------------------------------
 
+  /// Gives back the key of another new dance's draft this editor offered and
+  /// did not take up, so a later editor can offer it again.
+  void _releaseOfferedDraftKey() {
+    if (_pendingDraftKey case final key? when key != _draftKey) {
+      _openDraftKeys.remove(key);
+    }
+  }
+
   /// Clears the pending draft marker (called once the restore prompt is shown).
+  /// [discardPendingDraft] and [applyRestoredDraft] still act on the draft's
+  /// key.
   void clearPendingDraft() {
     _pendingDraft = null;
   }
 
   /// Applies a restored draft snapshot and resets the undo stack so the restored
   /// state IS the initial undo floor (the user cannot "undo the restore").
+  ///
+  /// Restoring another new dance's draft continues that dance: this editor
+  /// autosaves under its key from now on, so the draft is replaced rather
+  /// than left behind, and cleared when the dance is saved.
   void applyRestoredDraft(EditorSnapshot draft) {
+    if (_pendingDraftKey case final key? when key != _draftKey) {
+      _openDraftKeys.remove(_draftKey);
+      _draftKey = key;
+      _openDraftKeys.add(key);
+    }
+    _pendingDraftKey = null;
     _applyingSnapshot = true;
     try {
       applySnapshot(draft);
@@ -701,7 +875,10 @@ class DanceEditorController extends ChangeNotifier {
 
   /// Discards a pending autosave draft from storage.
   Future<void> discardPendingDraft() async {
-    await _repos.settings.remove(draftKey, permanent: true);
+    final key = _pendingDraftKey ?? draftKey;
+    await _repos.settings.remove(key, permanent: true);
+    _releaseOfferedDraftKey();
+    _pendingDraftKey = null;
   }
 
   // -------------------------------------------------------------------------
@@ -780,6 +957,7 @@ class DanceEditorController extends ChangeNotifier {
     figureDrafts: List.unmodifiable(
       figureDrafts.map(FigureDraftSnapshot.fromDraft),
     ),
+    textDialect: _activeDialect,
   );
 
   /// Restores working state from [s], resyncing all text controllers.
@@ -862,7 +1040,7 @@ class DanceEditorController extends ChangeNotifier {
     // and the FigureListEditor rebuilds cleanly.
     figureDrafts
       ..clear()
-      ..addAll(s.figureDrafts.map((d) => d.toDraft()));
+      ..addAll(_draftsInActiveDialect(s));
     // A restored or undone placeholder carries the count it had then; the
     // compound may have changed since (#709).
     _refreshPlaceholderBeats();
@@ -992,7 +1170,15 @@ class DanceEditorController extends ChangeNotifier {
   }) {
     if (!_loaded || _disposed) return Future<void>.value();
     final generation = _draftGeneration;
-    final snapshot = preparedSnapshot ?? captureSnapshot();
+    final captured = preparedSnapshot ?? captureSnapshot();
+    // Stamped with the dialect its text is in (AUTH-17), so a restore under
+    // another converts it, and with the time and the dance version it was
+    // edited from (AUTH-10).
+    final snapshot = captured.copyWith(
+      textDialect: captured.textDialect ?? _activeDialect,
+      savedAt: DateTime.now().toUtc(),
+      baseUpdatedAt: _original?.updatedAt,
+    );
     final key = draftKey;
     // Chain onto the tail (rather than racing a fresh write) so overlapping
     // autosaves never write concurrently, and so the tail always reflects
@@ -1812,6 +1998,8 @@ class DanceEditorController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _releaseOfferedDraftKey();
+    _openDraftKeys.remove(_draftKey);
     unawaited(_glossarySubscription?.cancel());
     _undoTimer?.cancel();
     _autosaveTimer?.cancel();

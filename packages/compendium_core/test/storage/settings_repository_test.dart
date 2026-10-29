@@ -114,4 +114,20 @@ void main() {
     await repo.set('b', true);
     expect(await repo.all(), {'a': 1, 'b': true});
   });
+
+  test('keysWithPrefix lists exactly the live keys under a prefix', () async {
+    await repo.set('editor_draft:new', 1);
+    await repo.set('editor_draft:new:a', 2);
+    await repo.set('editor_draft:d1', 3);
+    // `_` in the prefix is a LIKE wildcard; this key matches the pattern but
+    // not the prefix.
+    await repo.set('editorXdraft:new:b', 4);
+    await repo.set('editor_draft:new:gone', 5);
+    await repo.remove('editor_draft:new:gone');
+
+    expect((await repo.keysWithPrefix('editor_draft:new'))..sort(), [
+      'editor_draft:new',
+      'editor_draft:new:a',
+    ]);
+  });
 }

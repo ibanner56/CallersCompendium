@@ -2582,7 +2582,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Ajoutés à chaque nouvelle danse que vous importez seule. Les danses créées lors de l\'import d\'un programme et celles restaurées depuis une archive Compendium ne reçoivent pas de tags.';
+      'Ajoutés à chaque nouvelle danse qu\'un import crée, y compris les danses d\'un fichier qu\'on vous a partagé. Les danses créées pour les emplacements d\'un programme lors de son import ne reçoivent pas de tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -3398,6 +3398,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String backupExportTooLarge(String sizeMb, String limitMb) {
     return 'Votre collection est trop volumineuse pour être exportée en une seule sauvegarde ($sizeMb Mo ; limite $limitMb Mo) ; rien n’a été enregistré. Vos données sont inchangées.';
+  }
+
+  @override
+  String backupExportDiskFull(String neededMb, String freeMb) {
+    return 'L’espace libre est insuffisant pour remplacer cette sauvegarde ($neededMb Mo nécessaires ; $freeMb Mo libres) ; rien n’a été enregistré. Votre sauvegarde précédente est inchangée.';
   }
 
   @override
@@ -4681,6 +4686,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get programsMarkedAllPerformed =>
       'Toutes les danses marquées comme jouées.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternates =>
+      'Toutes les danses marquées comme jouées, sauf les alternatives. Marquez vous-même une alternative si vous l’avez appelée.';
 
   @override
   String programsSavedSnack(String title) {
@@ -6694,6 +6703,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ce fichier ne contenait aucune danse ni aucun programme.';
 
   @override
+  String get archiveIntakeRejectedBackup =>
+      'Ce fichier est une sauvegarde, pas un fichier de partage. Pour l\'importer sur cet appareil, ouvrez Paramètres › Général et choisissez « Restaurer depuis une sauvegarde ».';
+
+  @override
   String get importErrorInsecureScheme =>
       'Les importations doivent utiliser une URL https:// sécurisée.';
 
@@ -7276,36 +7289,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String sharedImportComplete(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count éléments importés.',
-      one: '1 élément importé.',
-      zero: 'Import terminé.',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String sharedImportCompleteWithFailures(int count, int failed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count éléments importés.',
-      one: '1 élément importé.',
-      zero: 'Rien n’a été importé.',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed danses n’ont pas pu être importées.',
-      one: '1 danse n’a pas pu être importée.',
-    );
-    return '$_temp0 $_temp1';
-  }
-
-  @override
   String sharedImportProgramsOnly(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7352,6 +7335,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryFigures(int count) {
+    return 'Figures ajoutées ou mises à jour dans votre glossaire : $count';
+  }
+
+  @override
   String importReviewProgramsUpdated(int count) {
     return '$count mis à jour (ré-importés)';
   }
@@ -7363,6 +7351,17 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other: '$count note(s) de programme :',
       one: '$count note(s) de programme :',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count remarques :',
+      one: '1 remarque :',
     );
     return '$_temp0';
   }
@@ -7402,6 +7401,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importReviewUndone => 'Import annulé.';
 
   @override
+  String get importReviewUndoFailed =>
+      'Impossible d\'annuler l\'import. Vérifiez votre collection, puis réessayez « Annuler ».';
+
+  @override
   String get importReviewEditError =>
       'Impossible d’importer cette danse à modifier.';
 
@@ -7416,6 +7419,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'Impossible de terminer l’import.';
+
+  @override
+  String get importFileNotText =>
+      'Impossible de lire ce fichier : ce n\'est pas du texte que l\'application sait lire. S\'il a été enregistré par une autre application, enregistrez-le à nouveau en texte UTF-8, puis réessayez.';
+
+  @override
+  String get importFileUnreadable =>
+      'Impossible d\'ouvrir ce fichier. Une autre application l\'utilise peut-être, ou il se trouve sur un lecteur qui n\'est pas connecté.';
 
   @override
   String importReviewVariationTitle(String title) {
@@ -7932,6 +7943,24 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceEditorUnsavedDraftMessage =>
       'Vous avez un brouillon non enregistré pour cette danse. Voulez-vous le restaurer ?';
+
+  @override
+  String danceEditorUnsavedNewDanceDraftMessage(String title) {
+    return 'Vous avez un brouillon non enregistré d’une autre nouvelle danse, « $title ». Voulez-vous le restaurer au lieu d’en commencer une nouvelle ?';
+  }
+
+  @override
+  String get danceEditorUnsavedNewDanceDraftUntitledMessage =>
+      'Vous avez un brouillon non enregistré d’une autre nouvelle danse, encore sans titre. Voulez-vous le restaurer au lieu d’en commencer une nouvelle ?';
+
+  @override
+  String danceEditorUnsavedDraftSavedAt(String when) {
+    return 'Brouillon enregistré le $when.';
+  }
+
+  @override
+  String get danceEditorUnsavedDraftChangedSince =>
+      'Cette danse a été modifiée depuis l’enregistrement du brouillon. Restaurer le brouillon remplace ces modifications.';
 
   @override
   String get danceEditorDiscard => 'Abandonner';

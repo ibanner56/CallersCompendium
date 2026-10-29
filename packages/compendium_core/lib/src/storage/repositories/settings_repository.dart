@@ -266,6 +266,23 @@ class SettingsRepository {
     )..where((t) => t.deletedAt.isNull())).get();
     return {for (final r in rows) r.key: jsonDecode(r.valueJson)};
   }
+
+  /// The keys that start with [prefix], without reading their values — for
+  /// keys built at runtime from a prefix, such as the editor autosave drafts,
+  /// whose values can be large.
+  Future<List<String>> keysWithPrefix(String prefix) async {
+    final key = _db.settings.key;
+    final query = _db.selectOnly(_db.settings)
+      ..addColumns([key])
+      // LIKE reads `_` and `%` in the prefix as wildcards, which can only
+      // widen the match; the startsWith below is the exact test.
+      ..where(key.like('$prefix%') & _db.settings.deletedAt.isNull());
+    final rows = await query.get();
+    return [
+      for (final row in rows)
+        if (row.read(key) case final k? when k.startsWith(prefix)) k,
+    ];
+  }
 }
 
 class _WriteTally {

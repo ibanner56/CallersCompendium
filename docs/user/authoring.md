@@ -576,6 +576,12 @@ that dance the app offers you the draft back:
 > **Unsaved draft** — You have an unsaved draft for this dance. Would you like to
 > restore it?
 
+The prompt also says when the draft was saved. If the dance has changed since
+then — a tag or rating set on several dances at once, a change from Device
+Sync, or **Re-check custom figures** — it says so:
+restoring the draft puts back the dance as the draft has it, so those later
+changes are replaced.
+
 Choose **Restore** to pick up where you left off, or **Discard** to start from the
 last saved version.
 
@@ -583,6 +589,17 @@ The draft is written about half a second after you stop typing, and at once
 when you switch away from the app on a phone or tablet, or close it on a
 computer, so even the last few keystrokes are kept. Drafts stay on your device; they are never uploaded, shared,
 or included in exports.
+
+Each new dance keeps its own draft. If a new dance you never saved left one
+behind, the next new dance you start offers it back by its title — *You have an
+unsaved draft of another new dance* — so you can **Restore** it and carry on
+with that dance, or **Discard** it and start fresh. A new dance you start from a
+program slot is that slot's dance, so it does not offer one; the draft waits for
+the next new dance you start from the collection.
+
+A restored draft keeps the beat counts you typed by hand as typed, the same as
+undo and redo do, and figure notes come back in the dialect you use now, even if
+you changed dialects since the draft was saved.
 
 ### Leaving without saving
 

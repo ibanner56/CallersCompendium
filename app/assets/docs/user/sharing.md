@@ -80,8 +80,10 @@ comes along as it is. A link to a related dance comes along when that dance is
 imported from the same file. It also comes along when the recipient already has
 the related dance from an earlier file, as long as that dance is in this file
 too or the sender added it by hand rather than importing it. Otherwise that one
-link is left out, and the rest of the dance still imports. After the import, the confirmation message offers **Undo**. If
-any dance could not be imported, the message says how many.
+link is left out, and the rest of the dance still imports. After the import, a
+summary says what happened to each dance, lists any dance that could not be
+imported and any link that was left out, and offers **Undo** until you choose
+**Done**.
 
 ## Share a program
 
@@ -171,7 +173,9 @@ screen, loaded with the program, its dances, and its venue. Nothing is added
 until the recipient confirms. Any of your own figures the file carries are
 offered to them afterwards, to add to their Glossary or not — see
 [Figures in a shared file](./imports.md#figures-in-a-shared-file). Bringing the same file in twice does not pile up
-duplicate *dances* — the importer matches what is already there.
+duplicate *dances* — the importer matches what is already there. A dance it
+recognises as one you already have defaults to **Skip**, and the program still
+points at your copy of it.
 
 Venues are matched more narrowly. Importing the same program again, or another
 program from the same sender that uses the same venue, reuses the venue the first

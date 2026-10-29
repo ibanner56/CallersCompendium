@@ -23,7 +23,8 @@ const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 /// case-insensitive) **or** whose caller is NULL or blank (unattributed programs
 /// are treated as the user's own; #850 supersedes the original #583 exclusion).
 /// When ON — or when no default caller is set — history tracks every program
-/// that contains the dance, as it always has. This gate is AND-combined with
+/// that contains the dance (an alternate only once marked performed). This
+/// gate is AND-combined with
 /// [kRequirePerformedForHistoryKey], never a replacement.
 const String kTrackHistoryForAllCallersKey = 'track_history_for_all_callers';
 

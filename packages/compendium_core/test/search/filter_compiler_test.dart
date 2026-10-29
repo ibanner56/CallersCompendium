@@ -70,6 +70,7 @@ void main() {
         'EXISTS (SELECT 1 FROM program_slots ps '
         'JOIN programs p ON p.id = ps.program_id '
         'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL '
+        'AND (NOT ps.is_alt OR ps.performed_at IS NOT NULL) '
         'AND ps.performed_at IS NOT NULL '
         'AND (p.caller IS NULL OR TRIM(p.caller) = \'\' '
         'OR LOWER(TRIM(p.caller)) = LOWER(TRIM(?))))',
@@ -83,7 +84,8 @@ void main() {
         pred(filter),
         'NOT (EXISTS (SELECT 1 FROM program_slots ps '
         'JOIN programs p ON p.id = ps.program_id '
-        'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL))',
+        'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL '
+        'AND (NOT ps.is_alt OR ps.performed_at IS NOT NULL)))',
       );
       expect(compiler.compile(filter).binds, isEmpty);
     });

@@ -1,0 +1,10 @@
+{
+  "id": "gig-3-4-program-stale-copies",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Setting a program's status to Performed no longer loses its performed marks when you save the program again or adjust it in Perform.",
+      "An adjustment in Perform, opened from the program builder, now saves only that adjustment. Your other unsaved edits in the builder stay unsaved until you save or discard them, unless Auto-save program changes is on."
+    ]
+  }
+}

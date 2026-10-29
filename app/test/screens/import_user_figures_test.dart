@@ -349,11 +349,45 @@ void main() {
       await tester.pumpAndSettle();
 
       expect((await repos.userGlossary.getById('zoom-id'))?.name, 'zoom');
-      expect(find.text('Imported 2 items.'), findsOneWidget);
+      expect(
+        find.text('Figures added to or updated in your Glossary: 1'),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.text('Undo'));
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
       await tester.pumpAndSettle();
       expect(await repos.dances.listAll(), isEmpty);
+      expect(await repos.userGlossary.getById('zoom-id'), isNull);
+    });
+
+    // A retry after a failed Undo must still take the figures back, not
+    // stop at the dances the first attempt already removed.
+    testWidgets('a retried Undo takes the figures back when the first try '
+        'failed on them', (tester) async {
+      final repos = openTestRepositories();
+      await pumpShared(tester, repos);
+      await tester.tap(
+        find.byKey(const ValueKey('user-figure-import-confirm')),
+      );
+      await tester.pumpAndSettle();
+      await tester.runAsync(
+        () => repos.db.customStatement(
+          'CREATE TRIGGER boom BEFORE DELETE ON user_glossary_entries '
+          "BEGIN SELECT RAISE(ABORT, 'boom'); END",
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('import-undo-failed')), findsOneWidget);
+      expect(await repos.dances.listAll(), isEmpty);
+      expect(await repos.userGlossary.getById('zoom-id'), isNotNull);
+
+      await tester.runAsync(
+        () => repos.db.customStatement('DROP TRIGGER boom'),
+      );
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
       expect(await repos.userGlossary.getById('zoom-id'), isNull);
     });
 
@@ -402,7 +436,7 @@ void main() {
       expect((taken.payload! as Map)['template'], '{move}');
       expect(taken.notes, 'my notes');
 
-      await tester.tap(find.text('Undo'));
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
       await tester.pumpAndSettle();
       final back = (await repos.userGlossary.getById('zoom-id'))!;
       expect((back.payload! as Map)['template'], '{move} mine');
@@ -419,8 +453,12 @@ void main() {
       expect(await repos.dances.listAll(), hasLength(1));
       expect(await repos.userGlossary.getById('zoom-id'), isNull);
       expect(
-        find.byKey(const ValueKey('shared-import-undo-snackbar')),
+        find.byKey(const ValueKey('import-result-dialog')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('import-summary-Figures')),
+        findsNothing,
       );
     });
 

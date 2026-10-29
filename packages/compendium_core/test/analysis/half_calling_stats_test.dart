@@ -9,11 +9,13 @@ void main() {
     String danceId, {
     int? position,
     DateTime? performedAt,
+    bool isAlt = false,
   }) => ProgramSlot(
     id: 's${seq++}',
     position: position ?? seq,
     danceId: danceId,
     performedAt: performedAt,
+    isAlt: isAlt,
   );
 
   ProgramSlot textSlot(String text, {int? position}) =>
@@ -221,6 +223,49 @@ void main() {
     test('empty has no counts', () {
       expect(HalfCallingStats.empty.hasAny, isFalse);
       expect(HalfCallingStats.empty.firstHalfCount, 0);
+    });
+  });
+
+  // GIG-9 / F5: an alternate counts only once it is marked performed, so an
+  // unperformed alternate listed after the last primary is neither counted nor
+  // the evening's closer.
+  group('computeHalfCallingStats — alternates', () {
+    final marked = DateTime.utc(2026, 3, 15);
+
+    List<ProgramSlot> evening({DateTime? altPerformedAt}) => [
+      danceSlot('opener', position: 0),
+      breakSlot(position: 1),
+      danceSlot('chorus-jig', position: 2),
+      danceSlot(
+        'hulls-victory',
+        position: 3,
+        isAlt: true,
+        performedAt: altPerformedAt,
+      ),
+    ];
+
+    test('the last primary closes, not an unperformed alternate', () {
+      final slots = evening();
+      expect(
+        computeHalfCallingStats(danceId: 'chorus-jig', programs: [slots]),
+        const HalfCallingStats(secondHalfCount: 1, closedSecondHalfCount: 1),
+      );
+      expect(
+        computeHalfCallingStats(danceId: 'hulls-victory', programs: [slots]),
+        HalfCallingStats.empty,
+      );
+    });
+
+    test('a performed alternate counts and can close', () {
+      final slots = evening(altPerformedAt: marked);
+      expect(
+        computeHalfCallingStats(danceId: 'hulls-victory', programs: [slots]),
+        const HalfCallingStats(secondHalfCount: 1, closedSecondHalfCount: 1),
+      );
+      expect(
+        computeHalfCallingStats(danceId: 'chorus-jig', programs: [slots]),
+        const HalfCallingStats(secondHalfCount: 1),
+      );
     });
   });
 }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/widgets/command_palette.dart';
 
 import '../support/l10n_harness.dart';
@@ -265,6 +266,108 @@ void main() {
       await tester.pumpAndSettle();
       // The empty state is announced the same way.
       expect(liveRegionWith('No matches for that search.'), findsOneWidget);
+    });
+  });
+
+  group('matching and order (FIND-12)', () {
+    List<String> dancesShown(WidgetTester tester) => [
+      for (final tile in tester.widgetList<ListTile>(
+        find.byWidgetPredicate(
+          (w) =>
+              w is ListTile &&
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith(
+                'command-result-dance-',
+              ),
+        ),
+      ))
+        (tile.key! as ValueKey<String>).value.substring(
+          'command-result-dance-'.length,
+        ),
+    ];
+
+    Future<void> type(WidgetTester tester, String text) async {
+      await tester.enterText(
+        find.byKey(const ValueKey('command-palette-field')),
+        text,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('an exact title is listed before mid-title matches, even '
+        'past the per-group cap', (tester) async {
+      final repos = openTestRepositories();
+      // Ten "...cheyenne..." titles sort ahead of "Hey" alphabetically.
+      for (var i = 0; i < 10; i++) {
+        await repos.dances.create(_dance('c$i', 'Cheyenne $i'));
+      }
+      await repos.dances.create(_dance('hey', 'Hey'));
+      await repos.dances.create(_dance('heyday', 'Heyday Reel'));
+      await _openPalette(tester, repos);
+
+      await type(tester, 'hey');
+
+      expect(dancesShown(tester).take(2), ['hey', 'heyday']);
+    });
+
+    testWidgets('folds diacritics in the title and in the query', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('e', 'École Reel'));
+      await repos.dances.create(_dance('o', 'Other'));
+      await _openPalette(tester, repos);
+
+      await type(tester, 'ecole');
+      expect(dancesShown(tester), ['e']);
+
+      await type(tester, 'ÉCOLE');
+      expect(dancesShown(tester), ['e']);
+    });
+
+    testWidgets('orders case-insensitively, ignoring a leading article', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('a', 'apple Jig'));
+      await repos.dances.create(_dance('b', 'The Banana Reel'));
+      await repos.dances.create(_dance('c', 'Cherry Waltz'));
+      await _openPalette(tester, repos);
+
+      // Binary order would put "The Banana Reel" and "Cherry Waltz" before
+      // "apple Jig", and "The ..." under T.
+      expect(dancesShown(tester), ['a', 'b', 'c']);
+    });
+
+    testWidgets('keeps the article in the order when the setting is off', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('b', 'The Banana Reel'));
+      await repos.dances.create(_dance('c', 'Cherry Waltz'));
+      final holder = ValueNotifier<bool>(false);
+      addTearDown(holder.dispose);
+      await tester.pumpWidget(
+        SortIgnoreArticlesScope(
+          notifier: holder,
+          child: MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            builder: (context, child) =>
+                RepositoriesScope(repositories: repos, child: child!),
+            home: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => showCommandPalette(context),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(dancesShown(tester), ['c', 'b']);
     });
   });
 }

@@ -1,0 +1,22 @@
+{
+  "id": "audit-f13-import-review-followups",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A file someone shared with you now ends its import with the same summary as any other import: what happened to each dance and to its programs, any dance that could not be imported, and Undo until you choose Done. It used to show one count of everything, with Undo for a few seconds.",
+      "The dances a shared file adds now get your default import tags, as every other import from the import screen does.",
+      "After seeding figure shorthands from a Caller's Companion file, the message offers Undo."
+    ],
+    "fixed": [
+      "The import summary now lists its notes, such as a link to a related dance that was left out because that dance was not imported, or a program slot whose dance is not in the file.",
+      "Settings › General › Import… now offers published collections, as the Collection's Import dances does.",
+      "Choosing a file to import that isn't UTF-8 text, or that can't be opened, now says so instead of doing nothing.",
+      "Opening a full backup with the app now says it is a backup and points to Restore from a backup, instead of saying the file had no dances."
+    ]
+  },
+  "core": {
+    "added": [
+      "`CompendiumArchiveImporter.commit` takes `defaultTagIds`, added to each dance the commit creates."
+    ]
+  }
+}
