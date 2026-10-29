@@ -1,5 +1,7 @@
 import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
+import '../dialect/role_canonicalizer.dart';
+import '../dialect/substitution.dart';
 import '../model/enums.dart';
 import '../taxonomy/taxonomy.dart';
 import '../taxonomy/user_figure_use.dart';
@@ -41,6 +43,13 @@ const _rawTextColumns = 'title authors sources custom_values hook notes';
 /// is parenthesised so the column filter covers every term of a multi-term
 /// query, not only the first.
 String _rawColumnsMatch(String query) => '{$_rawTextColumns} : ($query)';
+
+/// One word of a free-text query, as typed and in canonical form
+/// (`FilterCompiler._searchWords`).
+typedef _SearchWord = ({String raw, String canonical});
+
+/// A run of whitespace, where a free-text query splits into words.
+final _whitespace = RegExp(r'\s+');
 
 /// The canonical role tokens stored in `figures_text` (`dialect.dart`), which a
 /// caller never types and must not find by accident.
@@ -142,6 +151,23 @@ class FilterCompiler {
   final SearchEnrichment enrichment;
   final Taxonomy? taxonomy;
   late final Map<String, String> _moveReverse;
+
+  /// The dialect's move names (and the enrichment's) as the search bar reads
+  /// them (FIND-4): each [_moveReverse] key → the taxonomy display name of the
+  /// move it names, which is how `figures_text` stores that move. `null`
+  /// without a [taxonomy] (no display names to map to) or when no key names a
+  /// move it knows; a key whose id it does not know is left out, so that word
+  /// is searched as typed.
+  late final Substitutor? _dialectMoveNames = () {
+    final t = taxonomy;
+    if (t == null) return null;
+    final names = <String, String>{
+      for (final e in _moveReverse.entries)
+        e.key:
+            ?(t.moves[e.value]?.displayName ?? t.aliases[e.value]?.displayName),
+    };
+    return names.isEmpty ? null : Substitutor(names, caseInsensitive: true);
+  }();
 
   /// Compiles [filter] with the given [sort] (default [SearchSort.title]) and
   /// [direction]. When [direction] is omitted it resolves to the sort key's
@@ -403,26 +429,160 @@ class FilterCompiler {
     }
   }
 
+  /// A free-text search (FIND-5): the query is split into words and every
+  /// word must match, each in any field, so "Kaynor petronella" finds a
+  /// Kaynor dance with a petronella in it. A term of several words — a role
+  /// ("Lady Birds"), a move ("do si do") or a dialect's move name — is one
+  /// word, so its spaces still have to match. Each word picks its own index
+  /// (one or two characters: the token-prefix `dance_fts`; more: the trigram
+  /// `dance_substring_fts`) and its own canonical-or-raw match
+  /// ([_compileFullTextWord]).
   String _compileFullText(
     FullTextScope scope,
     String rawQuery,
     List<Object?> binds,
   ) {
-    final isPrefix = ftsQueryScalarLength(rawQuery) <= 2;
+    final words = _searchWords(rawQuery);
+    // Nothing to search for: one empty word, which matches nothing.
+    if (words.isEmpty) {
+      return _compileFullTextWord(scope, (raw: '', canonical: ''), binds);
+    }
+    final predicates = [
+      for (final word in words) _compileFullTextWord(scope, word, binds),
+    ];
+    return predicates.length == 1
+        ? predicates.single
+        : '(${predicates.join(' AND ')})';
+  }
+
+  /// Splits [query] into the words [_compileFullText] ANDs, each as typed
+  /// (`raw`) and as the canonical text the figures are stored in
+  /// (`canonical`).
+  ///
+  /// Everything that rewrites the query is decided on the **whole** query
+  /// before it is split, so a word is never read out of its context:
+  /// - a role term, by [analyzeRoleTerms] ("lead down" keeps its verb, "mad
+  ///   robin" its move);
+  /// - a dialect's move name ([_dialectMoveNames]), which wins over a role
+  ///   word inside it;
+  /// - a taxonomy move name or keyword ([moveKeywordSpans]).
+  ///
+  /// Any of those that spans whitespace is kept as one word. The canonical
+  /// form then applies the role tokens and dialect move names that fall in the
+  /// word, followed by [canonicalizeMoveSearchText], as the whole query used
+  /// to.
+  List<_SearchWord> _searchWords(String query) {
+    final text = query.trim();
+    if (text.isEmpty) return const [];
+    final roles = analyzeRoleTerms(
+      text,
+      dialect,
+      extraRoleSynonyms: enrichment.roleSynonyms,
+    );
+    final dialectMoves = [
+      for (final m
+          in _dialectMoveNames?.matches(text) ??
+              const <({String text, int start})>[])
+        (start: m.start, end: m.start + m.text.length),
+    ];
+    final t = taxonomy;
+    final kept = List.filled(text.length, false);
+    void keep(int start, int end) => kept.fillRange(start, end, true);
+    for (final r in roles) {
+      keep(r.start, r.end);
+    }
+    for (final m in dialectMoves) {
+      keep(m.start, m.end);
+    }
+    if (t != null) {
+      for (final m in moveKeywordSpans(text, t)) {
+        keep(m.start, m.start + m.text.length);
+      }
+    }
+
+    bool inDialectMove(int start, int end) =>
+        dialectMoves.any((m) => start < m.end && m.start < end);
+
+    String canonical(int start, int end) {
+      final out = StringBuffer();
+      var i = start;
+      while (i < end) {
+        final move = dialectMoves.where((m) => m.start == i).firstOrNull;
+        if (move != null) {
+          out.write(
+            _dialectMoveNames!.apply(text.substring(move.start, move.end)),
+          );
+          i = move.end;
+          continue;
+        }
+        // A role with no token (a case-folded match `RoleCanonicalizer` does
+        // not rewrite either) stays as typed.
+        final role = roles
+            .where(
+              (r) =>
+                  r.start == i &&
+                  r.kind == RoleSpanKind.role &&
+                  r.canonical != null &&
+                  !inDialectMove(r.start, r.end),
+            )
+            .firstOrNull;
+        if (role != null) {
+          out.write(role.canonical);
+          i = role.end;
+          continue;
+        }
+        out.write(text[i]);
+        i++;
+      }
+      final roleCanonical = out.toString();
+      final moveCanonical = t == null
+          ? roleCanonical
+          : canonicalizeMoveSearchText(roleCanonical, t);
+      // Stored figure text is single-spaced, so a kept term is too.
+      return moveCanonical.replaceAll(_whitespace, ' ');
+    }
+
+    final words = <_SearchWord>[];
+    int? wordStart;
+    for (var i = 0; i <= text.length; i++) {
+      final breaks =
+          i == text.length || (!kept[i] && _whitespace.hasMatch(text[i]));
+      if (!breaks) {
+        wordStart ??= i;
+      } else if (wordStart != null) {
+        words.add((
+          raw: text.substring(wordStart, i),
+          canonical: canonical(wordStart, i),
+        ));
+        wordStart = null;
+      }
+    }
+    return words;
+  }
+
+  /// One word of a free-text search ([_compileFullText]).
+  ///
+  /// In All fields the word matches its canonical form in any column **or** its
+  /// typed form in the verbatim columns ([_rawTextColumns]), so a title such as
+  /// "Hey Man", an author such as "Robin Hayden" or a note containing "ladies"
+  /// cannot be rewritten away by the role synonym map, while "Robin Hayden
+  /// swing" still finds Robin Hayden's dance with a swing in it.
+  /// `figures_text` stays canonical-only (it is stored canonicalised). The
+  /// word's own length picks the index, so a long word stays a literal
+  /// substring rather than falling back to unicode61 token semantics.
+  String _compileFullTextWord(
+    FullTextScope scope,
+    _SearchWord word,
+    List<Object?> binds,
+  ) {
+    final isPrefix = ftsQueryScalarLength(word.raw) <= 2;
     final table = isPrefix ? 'dance_fts' : 'dance_substring_fts';
     final queryBuilder = isPrefix
         ? toFtsPrefixMatchQuery
         : toFtsSubstringMatchQuery;
-    final canonicalText = canonicalizeText(
-      rawQuery,
-      dialect,
-      extraRoleSynonyms: enrichment.roleSynonyms,
-    );
-    final canonicalSearchText = taxonomy == null
-        ? canonicalText
-        : canonicalizeMoveSearchText(canonicalText, taxonomy!);
+    final canonicalSearchText = word.canonical;
     final canonicalQuery = queryBuilder(canonicalSearchText);
-    final rawTextQuery = queryBuilder(rawQuery);
+    final rawTextQuery = queryBuilder(word.raw);
 
     String columnMatch(String column, String query) {
       binds.add(query);
@@ -437,13 +597,6 @@ class FilterCompiler {
       case FullTextScope.figure:
         return columnMatch('figures_text', canonicalQuery);
       case FullTextScope.omni:
-        // Preserve canonical cross-field matching, but add a raw branch over
-        // the verbatim-stored columns so a title such as "Hey Man", an author
-        // such as "Robin Hayden" or a note containing "ladies" cannot be
-        // rewritten away by the role synonym map. `figures_text` stays
-        // canonical-only (it is stored canonicalised). Both branches use the
-        // active prefix/substr index, so long queries remain literal
-        // substrings rather than falling back to unicode61 token semantics.
         final raw = 'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
         if (!_hasInternalRoleTokenFragment(
           canonicalSearchText,
@@ -455,9 +608,9 @@ class FilterCompiler {
               'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
           return '($canonical OR $raw)';
         }
-        // The query is only a fragment of an internal role token (see
+        // The word is only a fragment of an internal role token (see
         // [_hasInternalRoleTokenFragment]), so `figures_text` is matched only
-        // where the text still holds with the role tokens removed.
+        // where the word still holds with the role tokens removed.
         binds.add(_rawColumnsMatch(canonicalQuery));
         binds.add(_rawColumnsMatch(rawTextQuery));
         binds.add(canonicalQuery);

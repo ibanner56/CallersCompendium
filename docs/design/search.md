@@ -13,8 +13,9 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    It compiles to exactly one parameterized `SELECT` — never an in-memory scan,
    never N per-leaf queries stitched in Dart (ContraDB pitfall #2).
 2. **Search the derived indexes, not the JSON.** Structural predicates hit
-   `dance_figures`; short text prefixes hit `dance_fts`; longer literal
-   substrings hit `dance_substring_fts`; scalars hit `dances` columns. The
+   `dance_figures`; free text is matched word by word, a word of one or two
+   characters as a token prefix in `dance_fts` and a longer one as a literal
+   substring in `dance_substring_fts`; scalars hit `dances` columns. The
    authoritative `figures_json` is never parsed during search.
 3. **Canonical in, canonical matched.** Move names and free-text terms pass
    through `canonicalize()` at the compiler boundary, mirroring how data was
@@ -25,8 +26,11 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    cross-field query and a raw branch matching the query as typed over title,
    authors, sources, custom values, hook and notes (never `figures_text`, which
    is stored canonicalised), so a name or note containing a role word such as
-   "Robin" or "ladies" is found verbatim. Long queries keep the complete
-   input as one literal substring. Online collection search exposes the title,
+   "Robin" or "ladies" is found verbatim. The query is split into words and
+   every word must match, each in any field and each with its own
+   canonical-or-raw choice (2026-10-29, FIND-5; this reverses #1005's
+   one-phrase rule — see "Dialect canonicalization of input"). Online
+   collection search exposes the title,
    author, and figure criteria to Caller's Box and ContraDB, while by-phrase
    criteria remain available only to sources that support them. Caller's Box
    maps the free-text Figure criterion to global positive figure lines;
@@ -486,12 +490,34 @@ Search input is canonicalized at the **compiler boundary**, once, before any
 bind is produced — so storage/search stay dialect-agnostic exactly as writes
 are ([dialect.md](dialect.md) "Canonicalization on input"):
 
-- **`FullTextFilter(query)`**: the query string is run through
-  `canonicalizeText(query, activeDialect)` before it becomes the `MATCH` bind,
-  so a dialect term ("robins", "gents") maps to the canonical role token stored
-  in `dance_fts.figures_text`. FTS operators the user typed (`AND`, `"…"`,
-  `*`) are preserved by the term-only, word-boundary substitutor.
-  A term that is only a *fragment* of an internal role token (`ro`, `rol`,
+- **`FullTextFilter(query)`**: the query is split into words, and the
+  compiler ANDs one predicate per word (`filter_compiler.dart`,
+  `_searchWords`), so "Kaynor petronella" finds a Kaynor dance with a
+  petronella in it (2026-10-29, FIND-5). Everything that rewrites the query is
+  decided on the **whole** query first, so no word is read out of context:
+  - role terms, by the same rewriter as `canonicalizeText(query,
+    activeDialect)` (`analyzeRoleTerms`), so a dialect term ("robins", "gents")
+    maps to the canonical role token stored in `dance_fts.figures_text`, and
+    "lead down" under Leads/Follows keeps its verb;
+  - the active dialect's move names, and those of every saved dialect
+    (`SearchEnrichment.moveSynonyms`), map through the reverse move map to the
+    taxonomy display name the figure text stores, so "buzz" in a dialect that
+    calls the swing "buzz" finds the swing (2026-10-29, FIND-4). A dialect's
+    name wins over a role word inside it and over a taxonomy keyword;
+  - taxonomy move names and keywords map to their display names
+    (`canonicalizeMoveSearchText`), as before.
+
+  A term of several words — a role ("Lady Birds"), a move ("do si do") or a
+  dialect's move name — stays one word, so its spaces must still match.
+  Each word then picks its own index (one or two characters: the token-prefix
+  `dance_fts`; more: the trigram `dance_substring_fts`), and in All fields
+  matches its canonical form in any column **or** its typed form in the
+  verbatim columns, so "Robin Hayden swing" finds Robin Hayden's dance with a
+  swing. A word keeps its punctuation, so `do-si-do` and `(swing` are still
+  literal substrings, and FTS operators the user typed (`AND`, `"…"`, `*`)
+  stay literal. Best match (`bm25`) is unchanged: it is offered only for a
+  whole query of at most two characters, which is always one word.
+  A word that is only a *fragment* of an internal role token (`ro`, `rol`,
   `ole`; not `roll`, not a whole `role1s`) would otherwise match the token in
   nearly every dance, so in the all-fields search `figures_text` is matched
   only where the text still holds with `role1`/`role2`/`role1s`/`role2s`
@@ -542,8 +568,10 @@ tree. This section specifies the mapping; the widget shipped as
 - **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree
   UI is shown until the user opens **Advanced**, which reveals the nested
   group/figure/sequence editor (ez-query lesson).
-- **Figure row pickers**: `move` = taxonomy type-ahead (dialect-aware, same as
-  the editor); `params` = named-param pickers from the move's schema; `section`
+- **Figure row pickers**: `move` = taxonomy type-ahead over the built-in move
+  names and keywords. It does not yet offer a dialect's own move names, as the
+  editor does; the maintainer deferred that (FIND-4, 2026-10-29: "type-aheads
+  later"), while the search bar already reads them; `params` = named-param pickers from the move's schema; `section`
   = dropdown of the dance form's phrase labels (`A1 A2 B1 B2 …`).
 - **Sequence row**: two figure-row editors joined by "then"; each side is a
   `FigureQuery` (a figure leaf, or a `FigureAnd`/`FigureOr` group of figure leaves).
