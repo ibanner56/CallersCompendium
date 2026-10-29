@@ -58,7 +58,9 @@ Future<ShorthandMapping? Function()> _pumpEditor(
 
 /// The error text the token field is showing, or null.
 String? _tokenFieldError(WidgetTester tester) => tester
-    .widget<TextField>(find.byKey(const ValueKey('shorthand-token-field')))
+    .widget<TextField>(
+      find.byKey(const ValueKey('shorthand-token-field'), skipOffstage: false),
+    )
     .decoration
     ?.errorText;
 
@@ -115,7 +117,7 @@ void main() {
       'in view', (tester) async {
     // A short window so the figure list's error is below the fold unless the
     // editor scrolls to it.
-    await tester.binding.setSurfaceSize(const Size(600, 420));
+    await tester.binding.setSurfaceSize(const Size(600, 240));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpEditor(tester);
     await tester.enterText(

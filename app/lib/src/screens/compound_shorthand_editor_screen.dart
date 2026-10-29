@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
@@ -351,6 +352,10 @@ class _CompoundShorthandEditorScreenState
       ),
       body: ListView(
         controller: _scroll,
+        // An error is scrolled to by its key, and a lazily built list has no
+        // element for a child far outside the viewport. Enough to keep the
+        // whole form built; an infinite extent breaks semantics.
+        scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
