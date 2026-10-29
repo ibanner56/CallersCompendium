@@ -154,7 +154,7 @@ class _CompoundShorthandEditorScreenState
   /// Whether leaving now would lose a change: the token, the figure chosen,
   /// or its values.
   bool get _dirty =>
-      _token.text != _initialToken ||
+      _token.text.trim() != _initialToken.trim() ||
       _compoundId != _initialCompoundId ||
       _figureId != _initialFigureId ||
       !_sameValue(_args, _initialArgs) ||

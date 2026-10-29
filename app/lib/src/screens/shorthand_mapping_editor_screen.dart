@@ -124,7 +124,7 @@ class _ShorthandMappingEditorScreenState
   /// token, or a changed figure list. A blank row added and left blank is not
   /// a change, because Save drops it too.
   bool get _dirty =>
-      _tokenController.text != _initialToken ||
+      _tokenController.text.trim() != _initialToken.trim() ||
       !listEquals(_figures(), _initialFigures);
 
   void _onFiguresChanged() => setState(() => _error = null);

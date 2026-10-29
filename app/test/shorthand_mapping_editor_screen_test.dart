@@ -212,6 +212,20 @@ void main() {
       expect(find.byKey(const ValueKey('shorthand-token-field')), findsNothing);
     });
 
+    testWidgets('spaces around the token are not a change, since Save trims '
+        'them', (tester) async {
+      await _pumpEditor(tester, initial: existing());
+      await tester.enterText(
+        find.byKey(const ValueKey('shorthand-token-field')),
+        ' sw ',
+      );
+      await tester.pump();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('shorthand-token-field')), findsNothing);
+    });
+
     testWidgets('a blank row added and left blank is not a change', (
       tester,
     ) async {

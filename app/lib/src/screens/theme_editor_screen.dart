@@ -80,8 +80,8 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   }
 
   /// Whether leaving now would lose a change Save would have kept: a colour,
-  /// or the name. Colours compare by what Save stores, so picking a role's
-  /// current colour again is not a change.
+  /// or the name. Colours compare by what Save stores, so picking a stored
+  /// role's current colour again is not a change.
   bool get _dirty =>
       _savedName != widget.initial.name ||
       !mapEquals(_theme.roles, widget.initial.roles);

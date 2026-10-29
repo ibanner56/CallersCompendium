@@ -470,8 +470,8 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
   /// Whether closing now would lose a change to any value Save keeps.
   bool get _dirty {
     final def = widget.existing;
-    return _labelController.text != (def?.label ?? '') ||
-        _keyController.text != (def?.key ?? '') ||
+    return _labelController.text.trim() != (def?.label ?? '') ||
+        _keyController.text.trim() != (def?.key ?? '') ||
         _type != (def?.type ?? CustomFieldType.text) ||
         !listEquals(_choices, _initialChoices) ||
         _showInList != (def?.showInList ?? false) ||
