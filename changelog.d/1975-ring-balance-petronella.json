@@ -1,0 +1,15 @@
+{
+  "id": "1975-ring-balance-petronella",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "\"Ring balance, spin to the right\", as Caller's Companion writes it, now comes in as a petronella with its balance instead of text, and a bare \"Ring balance\" as balance the ring. This applies to imports and to figures you type. A line that adds another clause after a comma (\"…, face new Neighbors\") still comes in as text for now."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The shared figure recognizer reads \"ring balance\" as balance_the_ring, and a ring balance followed by a spin to the right as petronella with balance: true.",
+      "In free-text entry and the re-parse upgrade, a note that only names the figure's own move (\"(petronella)\" on a petronella) no longer demotes the reading."
+    ]
+  }
+}
