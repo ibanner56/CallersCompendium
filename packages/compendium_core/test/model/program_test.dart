@@ -116,6 +116,27 @@ void main() {
       expect(copy.createdAt, later);
     });
 
+    test('clears the event date but keeps the venue (LIFE-7)', () {
+      // Duplicating last month's program for next month must not give every
+      // dance a second calling-history entry on last month's date.
+      final original = Program(
+        id: 'p1',
+        title: 'Friday night',
+        eventDate: now,
+        venue: 'Grange Hall',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final copy = original.duplicate(
+        newId: 'p2',
+        newSlotId: () => 'new',
+        now: now,
+      );
+      expect(copy.eventDate, isNull);
+      expect(copy.venue, 'Grange Hall');
+    });
+
     test('can retitle the copy', () {
       final p = Program(id: 'p1', title: 'Old', createdAt: now, updatedAt: now);
       expect(

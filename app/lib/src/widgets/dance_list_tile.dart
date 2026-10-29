@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/collection_tile_fields_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -108,11 +109,13 @@ class DanceListTile extends StatelessWidget {
 
     // Mirror the dance-detail calling history: when "Require mark-performed"
     // is on the count reflects performed-only occurrences, otherwise every
-    // occurrence — so the card and the detail history never disagree. Reading
-    // the scope here (rather than at load time) keeps the chip live as the
-    // setting toggles, without reloading the list.
+    // occurrence, and "Require an event date" leaves out undated programs —
+    // so the card and the detail history never disagree. Reading the scopes
+    // here (rather than at load time) keeps the chip live as either setting
+    // toggles, without reloading the list.
     final calledCount = entry.callCounts.countFor(
       RequirePerformedForHistoryScope.of(context),
+      requireEventDate: RequireEventDateForHistoryScope.of(context),
     );
     // Which fields the user wants shown on this row (issue #767).
     // Null means show everything — the call site didn't opt in.

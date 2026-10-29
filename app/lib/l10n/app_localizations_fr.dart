@@ -2994,6 +2994,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Activé : l’historique d’appel d’une danse ne liste que les programmes dont le créneau pour cette danse a été marqué comme joué. Désactivé : un programme apparaît dès qu’il contient la danse.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Exiger une date d’événement pour l’historique d’appel';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Activé : un programme sans date d’événement ne compte pas dans l’historique d’appel tant que vous ne lui en donnez pas une. Les programmes dupliqués et reçus arrivent sans date. Désactivé : un programme compte, qu’il ait une date ou non.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Suivre l’historique d’appel pour tous les callers';
 

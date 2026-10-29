@@ -129,21 +129,34 @@ class VenueCallCount {
 /// How many times a dance has been called, aggregated across every non-deleted
 /// program, produced by [ProgramRepository.countByDance].
 ///
-/// Two tallies are surfaced so a caller can honor the "Require mark-performed
-/// for calling history" setting (ROADMAP G.2) the same way the dance-detail
-/// calling history does — WITHOUT a second query:
+/// Four tallies are surfaced so a caller can honor the "Require mark-performed
+/// for calling history" setting (ROADMAP G.2) and the "Require an event date"
+/// setting the same way the dance-detail calling history does — WITHOUT a
+/// second query, so either toggle takes effect live:
 /// * [all] counts every counted occurrence (one per primary slot referencing
 ///   the dance, plus each alternate slot marked performed; a dance appearing
 ///   twice in one program counts twice), mirroring the detail history's
 ///   DEFAULT (a program appears as soon as it contains the dance).
 /// * [performed] counts only occurrences whose slot was marked performed
 ///   (`performed_at IS NOT NULL`), mirroring the history's `performedOnly` mode.
+/// * [dated] and [performedDated] are the same two tallies restricted to
+///   programs that have an event date, mirroring `requireEventDate`.
 ///
-/// Always `performed <= all`. A dance that has never been called is simply
-/// absent from [countByDance]'s map rather than mapped to a zero record.
+/// Always `performed <= all`, `dated <= all` and
+/// `performedDated <= min(performed, dated)`. A dance that has never been
+/// called is simply absent from [countByDance]'s map rather than mapped to a
+/// zero record.
 @immutable
 class DanceCallCounts {
-  const DanceCallCounts({required this.all, required this.performed});
+  /// [dated] and [performedDated] default to [all] and [performed]: a record
+  /// built without them describes occurrences that all have an event date.
+  const DanceCallCounts({
+    required this.all,
+    required this.performed,
+    int? dated,
+    int? performedDated,
+  }) : dated = dated ?? all,
+       performedDated = performedDated ?? performed;
 
   /// Every occurrence of the dance (one per matching slot), regardless of
   /// whether the slot was marked performed.
@@ -152,23 +165,41 @@ class DanceCallCounts {
   /// Occurrences whose slot was marked performed (`performed_at` set).
   final int performed;
 
-  /// The tally that matches the active calling-history setting: [performed]
-  /// when mark-performed is required, otherwise [all]. Mirrors
-  /// `ProgramRepository.callingHistoryForDance`'s `performedOnly` flag so the
-  /// card's count and the detail history never disagree.
-  int countFor(bool performedOnly) => performedOnly ? performed : all;
+  /// Occurrences in a program with an event date.
+  final int dated;
+
+  /// Occurrences marked performed in a program with an event date.
+  final int performedDated;
+
+  /// The tally that matches the active calling-history settings: performed
+  /// occurrences when mark-performed is required, otherwise every occurrence,
+  /// and in either case only dated programs when [requireEventDate] is set.
+  /// Mirrors `ProgramRepository.callingHistoryForDance`'s `performedOnly` and
+  /// `requireEventDate` flags so the card's count and the detail history never
+  /// disagree.
+  int countFor(bool performedOnly, {bool requireEventDate = false}) =>
+      switch ((performedOnly, requireEventDate)) {
+        (false, false) => all,
+        (true, false) => performed,
+        (false, true) => dated,
+        (true, true) => performedDated,
+      };
 
   @override
   bool operator ==(Object other) =>
       other is DanceCallCounts &&
       other.all == all &&
-      other.performed == performed;
+      other.performed == performed &&
+      other.dated == dated &&
+      other.performedDated == performedDated;
 
   @override
-  int get hashCode => Object.hash(all, performed);
+  int get hashCode => Object.hash(all, performed, dated, performedDated);
 
   @override
-  String toString() => 'DanceCallCounts(all: $all, performed: $performed)';
+  String toString() =>
+      'DanceCallCounts(all: $all, performed: $performed, dated: $dated, '
+      'performedDated: $performedDated)';
 }
 
 /// A dance's calling history together with the half-calling stats derived from
@@ -223,7 +254,9 @@ class ProgramDerivedCounts {
     required this.callCounts,
   });
 
-  /// Same value as [ProgramRepository.lastCalledByDance].
+  /// Same value as [ProgramRepository.lastCalledByDance] with its default
+  /// `requireEventDate: false`. No rendered surface reads this stamp; the
+  /// Last-called sort runs its own query (see [ProgramRepository.lastCalledByDance]).
   final Map<String, DateTime> lastCalled;
 
   /// Same value as [ProgramRepository.countByDance].
@@ -275,6 +308,14 @@ class ProgramRepository {
   static final String _alternateClause = callingHistoryAlternateClause(
     slotTable: 'program_slots',
   );
+
+  /// The event-date rule every derived calling-history query applies when
+  /// "Require an event date" is on. See [callingHistoryEventDateClause].
+  static String _eventDateClause(bool requireEventDate) =>
+      callingHistoryEventDateClause(
+        requireEventDate: requireEventDate,
+        programTable: 'programs',
+      );
 
   /// Persists a new program. Pass [knownVenueIds] on the bulk restore/import
   /// paths to validate a non-null `venueId` against a preloaded live snapshot
@@ -945,16 +986,19 @@ class ProgramRepository {
   /// slot of every non-deleted program, for dances with at least one slot
   /// marked performed; a dance absent from the map has no performed slot — or,
   /// when [callerFilter] is set, none in a program led by that host caller (see
-  /// [callingHistoryForDance]; issue #583).
+  /// [callingHistoryForDance]; issue #583). Pass [requireEventDate] `true` to
+  /// consider only programs that have an event date ("Require an event date").
   ///
   /// This is the performed stamp only. Collection's Last-called sort does not
   /// read it: `DanceRepository.search` orders by each dance's latest history
   /// date under the active calling-history settings instead (FIND-2).
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
-  }) async => _programDerivedRows(
-    _normalizedCallerFilter(callerFilter),
-  ).get().then(_lastCalledFromRows);
+    bool requireEventDate = false,
+  }) async =>
+      _programDerivedRows(_normalizedCallerFilter(callerFilter)).get().then(
+        (rows) => _lastCalledFromRows(rows, requireEventDate: requireEventDate),
+      );
 
   /// Maps dance id → its [DanceCallCounts] across every counted slot (every
   /// primary, plus each alternate marked performed) of every non-deleted
@@ -969,6 +1013,8 @@ class ProgramRepository {
   /// only rows where `performed_at` is non-null) so a caller can honor the
   /// "Require mark-performed for calling history" setting (ROADMAP G.2) exactly
   /// as [callingHistoryForDance] does — see [DanceCallCounts.countFor]. The
+  /// same pair restricted to dated programs serves "Require an event date".
+  /// The
   /// `deleted_at IS NULL` join filter matches both [lastCalledByDance] and
   /// [callingHistoryForDance].
   Future<Map<String, DanceCallCounts>> countByDance({
@@ -997,7 +1043,12 @@ class ProgramRepository {
     'SELECT program_slots.dance_id AS dance_id, '
     'COUNT(*) AS all_count, '
     'COUNT(program_slots.performed_at) AS performed_count, '
-    'MAX(program_slots.performed_at) AS last_called '
+    'COUNT(programs.event_date) AS dated_count, '
+    'COUNT(CASE WHEN programs.event_date IS NOT NULL '
+    'THEN program_slots.performed_at END) AS performed_dated_count, '
+    'MAX(program_slots.performed_at) AS last_called, '
+    'MAX(CASE WHEN programs.event_date IS NOT NULL '
+    'THEN program_slots.performed_at END) AS last_called_dated '
     'FROM program_slots '
     'JOIN programs ON programs.id = program_slots.program_id '
     'WHERE program_slots.dance_id IS NOT NULL '
@@ -1012,9 +1063,19 @@ class ProgramRepository {
   /// Dances with at least one performed slot, mapped to their most recent one.
   /// A NULL `last_called` means every slot for that dance is unperformed, so
   /// the dance is absent from the map rather than present with a null value.
-  Map<String, DateTime> _lastCalledFromRows(List<QueryRow> rows) => {
+  ///
+  /// With [requireEventDate], only slots in a program that has an event date
+  /// are considered, so a dance whose performed slots are all in undated
+  /// programs is absent too.
+  Map<String, DateTime> _lastCalledFromRows(
+    List<QueryRow> rows, {
+    bool requireEventDate = false,
+  }) => {
     for (final row in rows)
-      if (row.read<DateTime?>('last_called') case final lastCalled?)
+      if (row.read<DateTime?>(
+            requireEventDate ? 'last_called_dated' : 'last_called',
+          )
+          case final lastCalled?)
         row.read<String>('dance_id'): asUtc(lastCalled),
   };
 
@@ -1023,6 +1084,8 @@ class ProgramRepository {
       row.read<String>('dance_id'): DanceCallCounts(
         all: row.read<int>('all_count'),
         performed: row.read<int>('performed_count'),
+        dated: row.read<int>('dated_count'),
+        performedDated: row.read<int>('performed_dated_count'),
       ),
   };
 
@@ -1084,6 +1147,10 @@ class ProgramRepository {
   /// (issue #583). `null`/blank means "track all callers" (unchanged). This
   /// gate is AND-combined with [performedOnly], never a replacement.
   ///
+  /// Pass [requireEventDate] `true` to leave out programs that have no event
+  /// date ("Require an event date", off by default). It too is AND-combined
+  /// with the other gates.
+  ///
   /// Calling history is a derived query, never stored (see
   /// `docs/design/domain-model.md`; `docs/design/ux.md` §2 / the dance-detail
   /// wireframe "History"). One record per matching slot, ordered by each
@@ -1093,10 +1160,12 @@ class ProgramRepository {
   Future<List<DanceCallingRecord>> callingHistoryForDance(
     String danceId, {
     bool performedOnly = false,
+    bool requireEventDate = false,
     String? callerFilter,
   }) async => _callingHistoryRows(
     danceId,
     performedOnly: performedOnly,
+    requireEventDate: requireEventDate,
     caller: _normalizedCallerFilter(callerFilter),
   ).get().then(_callingHistoryFromRows);
 
@@ -1106,6 +1175,7 @@ class ProgramRepository {
   Selectable<QueryRow> _callingHistoryRows(
     String danceId, {
     required bool performedOnly,
+    required bool requireEventDate,
     required String? caller,
     bool includeVenues = false,
   }) => _db.customSelect(
@@ -1123,6 +1193,7 @@ class ProgramRepository {
     'WHERE program_slots.dance_id = ? '
     '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
     '$_alternateClause'
+    '${_eventDateClause(requireEventDate)}'
     '${_callerClause(caller)}'
     'AND programs.deleted_at IS NULL '
     'ORDER BY COALESCE('
@@ -1221,7 +1292,8 @@ class ProgramRepository {
   ///    through one, so a write yields exactly one emit.
   /// 4. **Create the stream once, in `State`, never in `build()`.** Rebuilding
   ///    it per frame re-subscribes and re-queries; recreate it only when an
-  ///    argument here changes (`performedOnly`, `callerFilter`).
+  ///    argument here changes (`performedOnly`, `requireEventDate`,
+  ///    `callerFilter`).
   /// 5. **When a view's data is fully reactive, drop its refresh-scope listener
   ///    in the same change.** Leaving it attached means one write both re-emits
   ///    the stream and re-runs the imperative load — reintroducing #340 while
@@ -1231,12 +1303,14 @@ class ProgramRepository {
   Stream<DanceCallingHistory> watchCallingHistoryForDance(
     String danceId, {
     bool performedOnly = false,
+    bool requireEventDate = false,
     String? callerFilter,
   }) {
     final caller = _normalizedCallerFilter(callerFilter);
     return _callingHistoryRows(
       danceId,
       performedOnly: performedOnly,
+      requireEventDate: requireEventDate,
       caller: caller,
       // The section renders a venue label per row, resolved app-side, so it
       // must re-emit when a venue changes (issue #944). The one-shot
@@ -1258,7 +1332,9 @@ class ProgramRepository {
       // `performedOnly` true also one where the dance was never performed —
       // and such a program contributes no counted occurrence to the stats
       // either (`computeHalfCallingStats` skips the same slots), so dropping
-      // it cannot change the result. `program_repository_watch_test.dart`
+      // it cannot change the result. With `requireEventDate` true both sides
+      // leave out an undated program by the same clause.
+      // `program_repository_watch_test.dart`
       // asserts the equality against [halfCallingStatsForDance] under both
       // flags with a never-performed program present, and
       // `calling_history_alternates_test.dart` does so with an
@@ -1290,9 +1366,13 @@ class ProgramRepository {
   /// by default). Program structure — and therefore the derived halves and the
   /// first/last-in-half positions — is always taken from the full slot list,
   /// independent of [performedOnly].
+  ///
+  /// [requireEventDate] mirrors [callingHistoryForDance] too: when true a
+  /// program with no event date contributes nothing.
   Future<HalfCallingStats> halfCallingStatsForDance(
     String danceId, {
     bool performedOnly = false,
+    bool requireEventDate = false,
     String? callerFilter,
   }) async {
     final caller = _normalizedCallerFilter(callerFilter);
@@ -1302,6 +1382,7 @@ class ProgramRepository {
           'FROM program_slots '
           'JOIN programs ON programs.id = program_slots.program_id '
           'WHERE program_slots.dance_id = ? '
+          '${_eventDateClause(requireEventDate)}'
           '${_callerClause(caller)}'
           'AND programs.deleted_at IS NULL',
           variables: [Variable<String>(danceId), ..._callerVariables(caller)],

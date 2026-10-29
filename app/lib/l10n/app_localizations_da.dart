@@ -2940,6 +2940,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret viser en dans\' kaldshistorik kun programmer, hvis slot for den dans er markeret som fremført. Når deaktiveret vises et program, så snart det indeholder dansen.';
 
   @override
+  String get settingsGeneralRequireEventDateForHistoryTitle =>
+      'Kræv en begivenhedsdato til kaldshistorik';
+
+  @override
+  String get settingsGeneralRequireEventDateForHistorySubtitle =>
+      'Når aktiveret tæller et program uden begivenhedsdato ikke med i kaldshistorikken, før du giver det en. Duplikerede og modtagne programmer kommer uden dato. Når deaktiveret tæller et program, uanset om det har en dato.';
+
+  @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
       'Spor kaldshistorik for alle callere';
 

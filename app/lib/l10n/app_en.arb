@@ -3641,6 +3641,14 @@
   "@settingsGeneralRequirePerformedForHistorySubtitle": {
     "description": "Subtitle explaining the require-mark-performed calling history toggle."
   },
+  "settingsGeneralRequireEventDateForHistoryTitle": "Require an event date for calling history",
+  "@settingsGeneralRequireEventDateForHistoryTitle": {
+    "description": "Title of the calling-history settings toggle that leaves programs with no event date out of calling history."
+  },
+  "settingsGeneralRequireEventDateForHistorySubtitle": "When on, a program with no event date doesn’t count toward calling history until you give it one. Duplicated and received programs arrive without a date. When off, a program counts whether or not it has a date.",
+  "@settingsGeneralRequireEventDateForHistorySubtitle": {
+    "description": "Subtitle explaining the require-an-event-date calling history toggle."
+  },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Track calling history for all callers",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
     "description": "Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs)."

@@ -67,6 +67,7 @@ class CallingHistorySection extends StatefulWidget {
     required this.repositories,
     required this.danceId,
     required this.performedOnly,
+    this.requireEventDate = false,
     required this.trackAllCallers,
     this.venueCallCount = kVenueCallCountDefault,
     required this.onOpenProgram,
@@ -78,6 +79,10 @@ class CallingHistorySection extends StatefulWidget {
   /// "Require mark-performed for calling history" (ROADMAP G.2). Changing it
   /// changes the query, so the stream is rebuilt.
   final bool performedOnly;
+
+  /// "Require an event date" for calling history. Changing it changes the
+  /// query, so the stream is rebuilt.
+  final bool requireEventDate;
 
   /// "Track calling history for all callers" (issue #583). Resolves to the
   /// caller filter passed to the query, so a change rebuilds the stream.
@@ -140,6 +145,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
     }
     if (oldWidget.danceId != widget.danceId ||
         oldWidget.performedOnly != widget.performedOnly ||
+        oldWidget.requireEventDate != widget.requireEventDate ||
         oldWidget.trackAllCallers != widget.trackAllCallers ||
         oldWidget.repositories != widget.repositories) {
       setState(() => _history = _watch());
@@ -164,6 +170,7 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
             .watchCallingHistoryForDance(
               widget.danceId,
               performedOnly: widget.performedOnly,
+              requireEventDate: widget.requireEventDate,
               callerFilter: callerFilter,
             )
             .map((history) {

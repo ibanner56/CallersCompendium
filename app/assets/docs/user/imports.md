@@ -298,9 +298,12 @@ bring it in (see [below](#move-your-whole-library-backup-and-restore)).
 This intake is deliberately safe. The file is treated as untrusted input: it is
 size-checked *before* being read, validated against the expected format, and a
 file that fails any check is turned away with a plain message and nothing is
-written. It is also **identity-first** — dances and programs you already have are
-matched and updated in place rather than duplicated, brand-new material is added,
-and nothing is ever deleted.
+written. It is also **identity-first** — dances you already have are matched rather
+than duplicated, brand-new material is added, and nothing is ever deleted. A
+program always arrives as a new one, as a **Draft** with no performed marks or
+event date, even when you already have a copy: your own copy is never
+overwritten (see
+[Share a program with its dances](./sharing.md#share-a-program-with-its-dances)).
 
 #### Figures in a shared file
 

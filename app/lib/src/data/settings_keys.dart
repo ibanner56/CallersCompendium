@@ -14,6 +14,13 @@ const String kAppThemeKey = 'theme_mode';
 /// so a dance's calling history shows every program that contains it.
 const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 
+/// Key used to persist the "Require an event date" calling-history setting.
+/// Stored as a bool; absent/unset means off (`false`), so a program counts
+/// toward calling history whether or not it has an event date. When on, a
+/// program with no event date counts nowhere history is read. AND-combined
+/// with [kRequirePerformedForHistoryKey] and the caller scope.
+const String kRequireEventDateForHistoryKey = 'require_event_date_for_history';
+
 /// Key used to persist the "Track calling history for all callers" General
 /// setting (issue #583). Stored as a bool; absent/unset means off (`false`).
 ///
