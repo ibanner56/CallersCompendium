@@ -763,4 +763,23 @@ void main() {
       expect(find.byType(GlossaryScreen), findsNothing);
     });
   });
+
+  // UX4-6b: the rail's Search and Guide tiles were bare InkWells, so a screen
+  // reader got a label with no "button" role.
+  testWidgets('the rail Search and Guide tiles are announced as buttons', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(1200, 900));
+
+    for (final key in ['global-search-button', 'user-guide-button']) {
+      expect(
+        tester.getSemantics(find.byKey(ValueKey(key))),
+        isSemantics(isButton: true),
+        reason: key,
+      );
+    }
+    handle.dispose();
+  });
 }

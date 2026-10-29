@@ -1,0 +1,14 @@
+{
+  "id": "u6-phone-layout-widgets",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On a phone, the Add a dance picker no longer draws its add, view and in-program buttons over the dance title; the title now has its own room.",
+      "In Perform, the beats label beside each figure stops growing past a fixed size at large text, so the figure keeps its width.",
+      "The Tap tempo sheet scrolls when the screen is too short for it, instead of overflowing, and its title wraps at large text.",
+      "At large text on a phone, Settings rows with a button (Import dances, Re-check custom figures, Back up, Restore) put the button under the description instead of squeezing the title.",
+      "The advanced-search group headers wrap at large text instead of running off the screen, and a long dance title in the program matrix chips is shortened with an ellipsis.",
+      "The import-gap warning icon is easier to tap, and the desktop sidebar's Search and User guide entries are announced as buttons by screen readers."
+    ]
+  }
+}

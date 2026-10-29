@@ -1398,7 +1398,16 @@ class _DanceChip extends StatelessWidget {
               Text(phraseText, style: theme.textTheme.labelSmall),
               const SizedBox(width: 4),
             ],
-            Text(danceTitle, style: theme.textTheme.labelMedium),
+            // Flexible + ellipsis: the chip sits in a Wrap, so its max width is
+            // the row width; a long title must shrink rather than overflow.
+            Flexible(
+              child: Text(
+                danceTitle,
+                style: theme.textTheme.labelMedium,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             // The formation badge is shown only when it's NOT the common
             // duple-improper default — surfacing exactly the atypical
             // formations (Becket, 4x4, …) callers actually need to watch for,

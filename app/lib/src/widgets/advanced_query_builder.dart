@@ -90,34 +90,42 @@ class _GroupView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // The label and the match dropdown wrap onto a second line when
+            // they do not fit beside the remove button (large text, phones).
             Row(
               children: [
-                Semantics(
-                  label: l10n.collectionQueryMatchLabel,
-                  child: DropdownButton<GroupKind>(
-                    key: ValueKey('group-kind-${group.id}'),
-                    value: group.kind,
-                    onChanged: (kind) {
-                      if (kind != null) {
-                        group.kind = kind;
-                        onChanged();
-                      }
-                    },
-                    items: [
-                      for (final kind in GroupKind.values)
-                        DropdownMenuItem(
-                          value: kind,
-                          child: Text(groupKindLabel(l10n, kind)),
+                Expanded(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      Semantics(
+                        label: l10n.collectionQueryMatchLabel,
+                        child: DropdownButton<GroupKind>(
+                          key: ValueKey('group-kind-${group.id}'),
+                          value: group.kind,
+                          onChanged: (kind) {
+                            if (kind != null) {
+                              group.kind = kind;
+                              onChanged();
+                            }
+                          },
+                          items: [
+                            for (final kind in GroupKind.values)
+                              DropdownMenuItem(
+                                value: kind,
+                                child: Text(groupKindLabel(l10n, kind)),
+                              ),
+                          ],
                         ),
+                      ),
+                      Text(
+                        l10n.collectionQueryTheseConditions,
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.collectionQueryTheseConditions,
-                  style: theme.textTheme.bodySmall,
-                ),
-                const Spacer(),
                 if (onRemove != null)
                   IconButton(
                     key: ValueKey('remove-${group.id}'),
@@ -585,7 +593,11 @@ class _FigureGroupEditor extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        // Wraps rather than squeezing: the dropdown, the label and the
+        // "Single figure" button cannot all share one line at large text.
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
           children: [
             Semantics(
               label: l10n.collectionQueryFigureGroupMatch,
@@ -607,12 +619,10 @@ class _FigureGroupEditor extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
             Text(
               l10n.collectionQueryOfTheseFigures,
               style: theme.textTheme.bodySmall,
             ),
-            const Spacer(),
             if (onFlatten != null)
               TextButton(
                 key: ValueKey('flatten-${group.id}'),

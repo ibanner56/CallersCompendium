@@ -34,6 +34,7 @@ import '../../published_collections/published_collection_service.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_action_row.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
@@ -763,11 +764,10 @@ class _GeneralView extends StatelessWidget {
           ),
         ),
         SectionHeader(title: l10n.settingsGeneralImportHeader),
-        ListTile(
+        SettingsActionRow(
           title: Text(l10n.importDances),
           subtitle: Text(l10n.settingsGeneralImportDancesSubtitle),
-          isThreeLine: true,
-          trailing: OutlinedButton.icon(
+          button: OutlinedButton.icon(
             key: const ValueKey('import-dances-button'),
             onPressed: onImportDances,
             icon: const Icon(Icons.file_download_outlined),
@@ -781,11 +781,10 @@ class _GeneralView extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: onPublishedCollections,
         ),
-        ListTile(
+        SettingsActionRow(
           title: Text(l10n.settingsGeneralReparseCustomFiguresTitle),
           subtitle: Text(l10n.settingsGeneralReparseCustomFiguresSubtitle),
-          isThreeLine: true,
-          trailing: OutlinedButton.icon(
+          button: OutlinedButton.icon(
             key: const ValueKey('reparse-custom-figures-button'),
             onPressed: onReparseCustomFigures,
             icon: const Icon(Icons.auto_fix_high_outlined),
@@ -816,22 +815,20 @@ class _GeneralView extends StatelessWidget {
             ).formatMediumDate(lastBackupAt!.toLocal()),
           );
     return [
-      ListTile(
+      SettingsActionRow(
         title: Text(l10n.backupExportTitle),
         subtitle: Text(l10n.backupExportSubtitle),
-        isThreeLine: true,
-        trailing: FilledButton.tonalIcon(
+        button: FilledButton.tonalIcon(
           key: const ValueKey('backup-export-button'),
           onPressed: onExportBackup,
           icon: const Icon(Icons.file_upload_outlined),
           label: Text(l10n.backupExportAction),
         ),
       ),
-      ListTile(
+      SettingsActionRow(
         title: Text(l10n.backupRestoreTitle),
         subtitle: Text(l10n.backupRestoreSubtitle),
-        isThreeLine: true,
-        trailing: OutlinedButton.icon(
+        button: OutlinedButton.icon(
           key: const ValueKey('backup-restore-button'),
           onPressed: onRestoreBackup,
           icon: const Icon(Icons.file_download_outlined),

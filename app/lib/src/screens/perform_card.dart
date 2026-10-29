@@ -1074,6 +1074,14 @@ class _Figures extends StatelessWidget {
   }
 }
 
+/// Upper bound on the text scale of a figure row's beats label (UX4-2).
+///
+/// Maintainer decision D-7 (cap the label's scale vs. stack it under the figure
+/// on narrow screens) is still open; this is the planning document's default.
+/// Swapping to the stacked layout means replacing the label in [_FigureRow]'s
+/// `Row`, and this constant goes away with it.
+const double kBeatsLabelMaxTextScale = 1.3;
+
 class _FigureRow extends StatelessWidget {
   const _FigureRow({
     required this.text,
@@ -1200,12 +1208,18 @@ class _FigureRow extends StatelessWidget {
               const ImportGapBadge(),
               const SizedBox(width: AppSpacing.md),
             ],
-            Text(
-              beatsLabel,
-              textAlign: TextAlign.end,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            // The label sits in the right-hand column of every row, so its
+            // width is subtracted from the figure text on every line. Capped
+            // so the figure keeps its width at large print sizes (UX4-2).
+            MediaQuery.withClampedTextScaling(
+              maxScaleFactor: kBeatsLabelMaxTextScale,
+              child: Text(
+                beatsLabel,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ),
           ],
