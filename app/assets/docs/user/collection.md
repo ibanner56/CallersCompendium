@@ -110,9 +110,10 @@ author, a phrase from the notes — and the list narrows as you type to the danc
 that match **all** of your words. The words don't have to sit together or in the
 same place: **Kaynor petronella** finds a dance by Bob Kaynor that has a
 petronella in it, and **combination nice** still finds *The Nice Combination*.
-Each word can be part of a longer one, so **pet** finds *petronella*. A
-figure or role name of several words, such as **do si do**, counts as one
-word.
+A word of three or more letters can be any part of a longer one, so **ron**
+finds *petronella*; a word of one or two letters finds the start of a word, so
+**pe** finds *petronella* and **et** does not. A figure or role name of several
+words, such as **do si do**, counts as one word.
 
 Search understands your [dialect](./glossary.md#dialect) wording. If you saved or
 imported a dance in one set of words and search in another, the app still finds

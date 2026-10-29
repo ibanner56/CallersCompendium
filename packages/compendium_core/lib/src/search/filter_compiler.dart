@@ -51,6 +51,9 @@ typedef _SearchWord = ({String raw, String canonical});
 /// A run of whitespace, where a free-text query splits into words.
 final _whitespace = RegExp(r'\s+');
 
+/// A letter or digit: what the token-prefix index (`unicode61`) keeps.
+final _letterOrDigit = RegExp(r'[\p{L}\p{N}]', unicode: true);
+
 /// The canonical role tokens stored in `figures_text` (`dialect.dart`), which a
 /// caller never types and must not find by accident.
 const _internalRoleTokens = ['role1', 'role2', 'role1s', 'role2s'];
@@ -443,7 +446,8 @@ class FilterCompiler {
     List<Object?> binds,
   ) {
     final words = _searchWords(rawQuery);
-    // Nothing to search for: one empty word, which matches nothing.
+    // Nothing to search for (no words, or only short punctuation): one empty
+    // word, which matches nothing.
     if (words.isEmpty) {
       return _compileFullTextWord(scope, (raw: '', canonical: ''), binds);
     }
@@ -550,10 +554,13 @@ class FilterCompiler {
       if (!breaks) {
         wordStart ??= i;
       } else if (wordStart != null) {
-        words.add((
-          raw: text.substring(wordStart, i),
-          canonical: canonical(wordStart, i),
-        ));
+        final raw = text.substring(wordStart, i);
+        // A word of one or two characters with no letter or digit ("&",
+        // "-") has no token for the prefix index, so it would match no row
+        // and empty the whole AND; it constrains nothing, so it is dropped.
+        if (ftsQueryScalarLength(raw) > 2 || _letterOrDigit.hasMatch(raw)) {
+          words.add((raw: raw, canonical: canonical(wordStart, i)));
+        }
         wordStart = null;
       }
     }

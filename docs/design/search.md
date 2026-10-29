@@ -513,7 +513,9 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   `dance_fts`; more: the trigram `dance_substring_fts`), and in All fields
   matches its canonical form in any column **or** its typed form in the
   verbatim columns, so "Robin Hayden swing" finds Robin Hayden's dance with a
-  swing. A word keeps its punctuation, so `do-si-do` and `(swing` are still
+  swing. A word of one or two characters with no letter or digit (`&`, `-`)
+  has no token for the prefix index and would empty the AND, so it is
+  dropped. A word keeps its punctuation, so `do-si-do` and `(swing` are still
   literal substrings, and FTS operators the user typed (`AND`, `"…"`, `*`)
   stay literal. Best match (`bm25`) is unchanged: it is offered only for a
   whole query of at most two characters, which is always one word.

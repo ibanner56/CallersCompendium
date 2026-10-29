@@ -3068,6 +3068,32 @@ FROM seq
         ]);
       });
 
+      test('a short word of punctuation alone constrains nothing', () async {
+        await seed();
+        await dances.create(
+          _dance(
+            id: 'rock',
+            title: 'Rock & Roll Reel',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        // "&" has no token for the prefix index, so as a word of its own it
+        // would match no row and empty the whole AND.
+        expect(await dances.search(const FullTextFilter('Rock & Roll')), [
+          'rock',
+        ]);
+        expect(
+          await dances.search(
+            const FullTextFilter('Rock - Roll', scope: FullTextScope.title),
+          ),
+          ['rock'],
+        );
+        // Alone it still matches nothing, as before.
+        expect(await dances.search(const FullTextFilter('&')), isEmpty);
+      });
+
       test('every word must match', () async {
         await seed();
         expect(
