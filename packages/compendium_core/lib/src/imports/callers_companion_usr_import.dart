@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/program.dart';
 import '../model/published_source.dart';
@@ -10,6 +11,8 @@ import '../model/source_citation.dart';
 import '../model/venue.dart';
 import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/dance_repository.dart';
+import '../storage/repositories/difficulty_level_errors.dart';
+import '../storage/repositories/difficulty_level_repository.dart';
 import '../storage/repositories/program_repository.dart';
 import '../storage/repositories/published_source_repository.dart';
 import '../storage/repositories/venue_repository.dart';
@@ -55,7 +58,15 @@ class CcUsrImportResult {
     Map<String, List<String>> linksAddedToEarlierDances = const {},
     List<String> insertedPublishedSourceIds = const [],
     List<String> restoredPublishedSourceIds = const [],
-  }) : insertedPublishedSourceIds = List.unmodifiable(
+    List<String> insertedDifficultyLevelIds = const [],
+    List<String> restoredDifficultyLevelIds = const [],
+  }) : insertedDifficultyLevelIds = List.unmodifiable(
+         insertedDifficultyLevelIds,
+       ),
+       restoredDifficultyLevelIds = List.unmodifiable(
+         restoredDifficultyLevelIds,
+       ),
+       insertedPublishedSourceIds = List.unmodifiable(
          insertedPublishedSourceIds,
        ),
        restoredPublishedSourceIds = List.unmodifiable(
@@ -153,6 +164,15 @@ class CcUsrImportResult {
   /// Tombstoned again on undo (same guard).
   final List<String> restoredPublishedSourceIds;
 
+  /// Ids of the difficulty levels this import created for CC combined levels
+  /// such as "Easy/Intermediate" (#1973). Removed on
+  /// [CallersCompanionUsrImporter.undo] unless a surviving dance uses one.
+  final List<String> insertedDifficultyLevelIds;
+
+  /// Ids of tombstoned difficulty levels this import restored for a combined
+  /// level. Tombstoned again on undo (same guard).
+  final List<String> restoredDifficultyLevelIds;
+
   /// Ids of the programs updated in place (re-imported) by this import.
   List<String> get updatedProgramIds => [
     for (final p in updatedProgramPriorStates) p.id,
@@ -192,13 +212,19 @@ class CallersCompanionUsrImporter {
     this._venues,
     this._customFields, {
     required PublishedSourceRepository publishedSources,
+    required DifficultyLevelRepository difficultyLevels,
     CallersCompanionUsrAdapter? adapter,
   }) : _sources = publishedSources,
+       _levels = difficultyLevels,
        _adapter = adapter ?? CallersCompanionUsrAdapter();
 
   /// Where the published sources behind CC `Reference` citations are matched
   /// and created (#1974), alongside the user-field definitions.
   final PublishedSourceRepository _sources;
+
+  /// Where the difficulty levels behind CC combined levels ("Easy/
+  /// Intermediate") are matched and created (#1973), like the sources.
+  final DifficultyLevelRepository _levels;
 
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
@@ -330,6 +356,8 @@ class CallersCompanionUsrImporter {
       fieldIssues: fieldIssues,
       insertedSourceIds: keptSourcesInserted,
       restoredSourceIds: keptSourcesRestored,
+      insertedLevelIds: keptLevelsInserted,
+      restoredLevelIds: keptLevelsRestored,
     ) = await _commitDancesWithFields(
       batch,
       now: now,
@@ -366,6 +394,7 @@ class CallersCompanionUsrImporter {
       await _pipeline.undo(danceSession);
       await _revertUserFieldDefinitions(keptInserted, keptRestored);
       await _revertPublishedSources(keptSourcesInserted, keptSourcesRestored);
+      await _revertDifficultyLevels(keptLevelsInserted, keptLevelsRestored);
       rethrow;
     }
 
@@ -580,6 +609,8 @@ class CallersCompanionUsrImporter {
           );
         }
       }
+      // Last: only an import that otherwise succeeded moves any level.
+      await _placeLevels([...keptLevelsInserted, ...keptLevelsRestored]);
     } catch (_) {
       await _programs.hardDelete(insertedIds);
       for (final prior in priorStates) {
@@ -592,6 +623,7 @@ class CallersCompanionUsrImporter {
       await _pipeline.undo(danceSession);
       await _revertUserFieldDefinitions(keptInserted, keptRestored);
       await _revertPublishedSources(keptSourcesInserted, keptSourcesRestored);
+      await _revertDifficultyLevels(keptLevelsInserted, keptLevelsRestored);
       // Last, so the older steps above run even if this one throws.
       await _removeLinks(linksAddedToEarlier);
       rethrow;
@@ -611,6 +643,8 @@ class CallersCompanionUsrImporter {
       restoredCustomFieldIds: keptRestored,
       insertedPublishedSourceIds: keptSourcesInserted,
       restoredPublishedSourceIds: keptSourcesRestored,
+      insertedDifficultyLevelIds: keptLevelsInserted,
+      restoredDifficultyLevelIds: keptLevelsRestored,
       customFieldIssues: fieldIssues,
       linksAddedToEarlierDances: linksAddedToEarlier,
     );
@@ -646,6 +680,27 @@ class CallersCompanionUsrImporter {
       resolutions: resolutions,
       defaultTagIds: defaultTagIds,
     );
+    try {
+      await _placeLevels([
+        ...committed.insertedLevelIds,
+        ...committed.restoredLevelIds,
+      ]);
+    } catch (_) {
+      await _pipeline.undo(committed.session);
+      await _revertUserFieldDefinitions(
+        committed.insertedFieldIds,
+        committed.restoredFieldIds,
+      );
+      await _revertPublishedSources(
+        committed.insertedSourceIds,
+        committed.restoredSourceIds,
+      );
+      await _revertDifficultyLevels(
+        committed.insertedLevelIds,
+        committed.restoredLevelIds,
+      );
+      rethrow;
+    }
     return committed.session;
   }
 
@@ -661,6 +716,8 @@ class CallersCompanionUsrImporter {
       List<ImportIssue> fieldIssues,
       List<String> insertedSourceIds,
       List<String> restoredSourceIds,
+      List<String> insertedLevelIds,
+      List<String> restoredLevelIds,
     })
   >
   _commitDancesWithFields(
@@ -696,10 +753,24 @@ class CallersCompanionUsrImporter {
       await _revertUserFieldDefinitions(fields.inserted, fields.restored);
       rethrow;
     }
+    // And the difficulty levels behind CC combined levels (#1973).
+    final ({
+      ImportBatchResult batch,
+      List<String> inserted,
+      List<String> restored,
+    })
+    levels;
+    try {
+      levels = await _resolveDifficultyLevels(sources.batch, now: now);
+    } catch (_) {
+      await _revertUserFieldDefinitions(fields.inserted, fields.restored);
+      await _revertPublishedSources(sources.inserted, sources.restored);
+      rethrow;
+    }
     final ImportSession danceSession;
     try {
       danceSession = await _pipeline.commit(
-        sources.batch,
+        levels.batch,
         now: now,
         newId: newId,
         resolutions: resolutions,
@@ -710,6 +781,7 @@ class CallersCompanionUsrImporter {
     } catch (_) {
       await _revertUserFieldDefinitions(fields.inserted, fields.restored);
       await _revertPublishedSources(sources.inserted, sources.restored);
+      await _revertDifficultyLevels(levels.inserted, levels.restored);
       rethrow;
     }
     // A definition no committed dance ended up using (every dance that carried
@@ -720,7 +792,17 @@ class CallersCompanionUsrImporter {
     final keptRestored = <String>[];
     final keptSourcesInserted = <String>[];
     final keptSourcesRestored = <String>[];
+    final keptLevelsInserted = <String>[];
+    final keptLevelsRestored = <String>[];
     try {
+      for (final id in levels.inserted) {
+        if (await _removeUnusedLevel(id, permanent: true)) continue;
+        keptLevelsInserted.add(id);
+      }
+      for (final id in levels.restored) {
+        if (await _removeUnusedLevel(id, permanent: false)) continue;
+        keptLevelsRestored.add(id);
+      }
       for (final id in sources.inserted) {
         if (await _removeUnusedSource(id, permanent: true)) continue;
         keptSourcesInserted.add(id);
@@ -747,6 +829,7 @@ class CallersCompanionUsrImporter {
       await _pipeline.undo(danceSession);
       await _revertUserFieldDefinitions(fields.inserted, fields.restored);
       await _revertPublishedSources(sources.inserted, sources.restored);
+      await _revertDifficultyLevels(levels.inserted, levels.restored);
       rethrow;
     }
     return (
@@ -756,6 +839,8 @@ class CallersCompanionUsrImporter {
       fieldIssues: fields.issues,
       insertedSourceIds: keptSourcesInserted,
       restoredSourceIds: keptSourcesRestored,
+      insertedLevelIds: keptLevelsInserted,
+      restoredLevelIds: keptLevelsRestored,
     );
   }
 
@@ -894,6 +979,196 @@ class CallersCompanionUsrImporter {
     }
     for (final id in restored) {
       await _removeUnusedSource(id, permanent: false);
+    }
+  }
+
+  /// Matches or creates the difficulty level behind each CC combined level in
+  /// [batch] ("Easy/Intermediate", #1973), and returns [batch] with each such
+  /// dance pointed at it and its [ccNewLevelIssueCode] issue dropped.
+  ///
+  /// The pipeline has already pointed a dance at a live level of that name;
+  /// this resolves the rest, so it also covers levels another record in the
+  /// same file created. A level is matched by name ignoring case and spacing
+  /// ([ccLevelNameKey], maintainer decision): a live one is reused, a
+  /// tombstoned one is restored, and otherwise one is created. A created level
+  /// goes between the levels its span lies between on CC's scale
+  /// ([ccLevelScaleKey], maintainer decision): after the last level below it,
+  /// else before the first level above it, else last.
+  Future<
+    ({ImportBatchResult batch, List<String> inserted, List<String> restored})
+  >
+  _resolveDifficultyLevels(
+    ImportBatchResult batch, {
+    required DateTime now,
+  }) async {
+    bool unresolved(ImportRecordPlan record) =>
+        record.draft.dance.difficultyLevelId == null &&
+        record.draft.difficultyLevelLabel != null &&
+        record.draft.issues.any((i) => i.code == ccNewLevelIssueCode);
+    final labels = <String>{
+      for (final record in batch.records)
+        if (unresolved(record)) record.draft.difficultyLevelLabel!,
+    };
+    if (labels.isEmpty) {
+      return (
+        batch: batch,
+        inserted: const <String>[],
+        restored: const <String>[],
+      );
+    }
+    final idByKey = <String, String>{};
+    final inserted = <String>[];
+    final restored = <String>[];
+    try {
+      final existing = await _levels.listAllWithDeleted();
+      for (final label in labels) {
+        final key = ccLevelNameKey(label);
+        if (idByKey.containsKey(key)) continue;
+        final matches =
+            [
+              for (final item in existing)
+                if (ccLevelNameKey(item.level.label) == key) item,
+            ]..sort((a, b) {
+              if (a.deleted != b.deleted) return a.deleted ? 1 : -1;
+              return a.level.id.compareTo(b.level.id);
+            });
+        if (matches.isNotEmpty) {
+          final match = matches.first;
+          if (match.deleted) {
+            await _levels.restore(match.level.id, at: now);
+            restored.add(match.level.id);
+          }
+          idByKey[key] = match.level.id;
+          continue;
+        }
+        // Created after every level for now: [_placeLevels] moves it once
+        // the import has kept it, so an import that fails or skips the dance
+        // rewrites no other level.
+        final created = await _levels.createCustom(
+          label: label,
+          position: [
+            for (final level in await _levels.listAll()) level.position + 1,
+          ].fold(0, (a, b) => a > b ? a : b),
+        );
+        inserted.add(created.id);
+        idByKey[key] = created.id;
+      }
+    } catch (_) {
+      await _revertDifficultyLevels(inserted, restored);
+      rethrow;
+    }
+
+    ImportRecordPlan rewrite(ImportRecordPlan record) {
+      if (!unresolved(record)) return record;
+      final id = idByKey[ccLevelNameKey(record.draft.difficultyLevelLabel!)]!;
+      return ImportRecordPlan(
+        draft: record.draft.copyWith(
+          dance: record.draft.dance.copyWith(difficultyLevelId: id),
+          issues: [
+            for (final issue in record.draft.issues)
+              if (issue.code != ccNewLevelIssueCode) issue,
+          ],
+        ),
+        verdict: record.verdict,
+      );
+    }
+
+    return (
+      batch: ImportBatchResult(
+        records: [for (final record in batch.records) rewrite(record)],
+        errors: batch.errors,
+        warnings: batch.warnings,
+        dedupeIndex: batch.dedupeIndex,
+      ),
+      inserted: inserted,
+      restored: restored,
+    );
+  }
+
+  /// Places the levels [ids] this import kept (created or restored) among
+  /// the user's levels by CC's scale (maintainer decision, #1973).
+  ///
+  /// The other levels keep their positions, gaps included: a placed level
+  /// takes the position after the level before it, and a level after it moves
+  /// up only while it would collide. So only the levels that have to move are
+  /// written, stamped now rather than with the import's start time.
+  Future<void> _placeLevels(List<String> ids) async {
+    if (ids.isEmpty) return;
+    final moving = ids.toSet();
+    final order = [
+      for (final level in await _levels.listAll())
+        if (!moving.contains(level.id)) level,
+    ];
+    for (final id in ids) {
+      final level = await _levels.getById(id);
+      if (level == null) continue;
+      order.insert(_levelInsertIndex(order, level), level);
+    }
+    final positions = <String, int>{};
+    var last = -1;
+    for (final level in order) {
+      final position = !moving.contains(level.id) && level.position > last
+          ? level.position
+          : last + 1;
+      if (position != level.position) positions[level.id] = position;
+      last = position;
+    }
+    await _levels.setPositions(positions);
+  }
+
+  /// Where [level] goes in [order] (the live levels, by position): after the
+  /// last level that sits below it on CC's scale, else before the first that
+  /// sits above it, else last. "Below" follows the user's own direction: a
+  /// list ordered hardest first is read hardest first. Levels the scale says
+  /// nothing about keep their places around it.
+  static int _levelInsertIndex(
+    List<DifficultyLevel> order,
+    DifficultyLevel level,
+  ) {
+    final own = ccLevelScaleKey(level);
+    if (own == null) return order.length;
+    final known = [for (final other in order) ?ccLevelScaleKey(other)];
+    final sign = known.length >= 2 && known.first > known.last ? -1 : 1;
+    final key = own * sign;
+    final keys = [
+      for (final other in order)
+        if (ccLevelScaleKey(other) case final k?) k * sign else null,
+    ];
+    final below = keys.lastIndexWhere((k) => k != null && k < key);
+    if (below >= 0) return below + 1;
+    final above = keys.indexWhere((k) => k != null && k > key);
+    return above >= 0 ? above : order.length;
+  }
+
+  /// Removes level [id] when no dance uses it, permanently for one this
+  /// import created or back to a tombstone for one it restored, and reports
+  /// whether it did. A tombstoned dance still counts as a use: it can be
+  /// restored.
+  Future<bool> _removeUnusedLevel(String id, {required bool permanent}) async {
+    if (permanent) {
+      if (await _levels.isInUse(id)) return false;
+      await _levels.hardDelete([id]);
+      return true;
+    }
+    try {
+      await _levels.delete(id);
+      return true;
+    } on DifficultyLevelInUse {
+      return false;
+    }
+  }
+
+  /// Reverts the levels [inserted] (removed) and [restored] (tombstoned
+  /// again), leaving any a surviving dance still uses.
+  Future<void> _revertDifficultyLevels(
+    List<String> inserted,
+    List<String> restored,
+  ) async {
+    for (final id in inserted) {
+      await _removeUnusedLevel(id, permanent: true);
+    }
+    for (final id in restored) {
+      await _removeUnusedLevel(id, permanent: false);
     }
   }
 
@@ -1256,6 +1531,11 @@ class CallersCompanionUsrImporter {
     await _revertPublishedSources(
       result.insertedPublishedSourceIds,
       result.restoredPublishedSourceIds,
+    );
+    // After the dances too: a level a dance uses is not removed.
+    await _revertDifficultyLevels(
+      result.insertedDifficultyLevelIds,
+      result.restoredDifficultyLevelIds,
     );
     // Last, so the older steps above run even if this one throws.
     await _removeLinks(result.linksAddedToEarlierDances);

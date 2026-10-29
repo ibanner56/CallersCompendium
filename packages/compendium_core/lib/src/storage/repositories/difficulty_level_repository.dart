@@ -158,6 +158,26 @@ class DifficultyLevelRepository {
     });
   }
 
+  /// Moves the live levels named in [positions] to their new positions,
+  /// writing only those rows, in one transaction. Unlike [reorder] it leaves
+  /// every other level untouched, so an import that places one level does not
+  /// restamp the levels whose place did not change (#1973).
+  Future<void> setPositions(Map<String, int> positions, {DateTime? at}) {
+    final now = resolveStamp(at);
+    return _db.transaction(() async {
+      for (final MapEntry(key: id, value: position) in positions.entries) {
+        await (_db.update(
+          _db.difficultyLevels,
+        )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).write(
+          DifficultyLevelsCompanion(
+            position: Value(position),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+    });
+  }
+
   /// Returns `true` when any dance, including a tombstoned dance, refers to
   /// [id]. A deleted dance can be restored, so it still protects the level.
   Future<bool> isInUse(String id) async {
