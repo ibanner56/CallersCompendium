@@ -477,7 +477,8 @@ void main() {
       expect(emitted.lastCalled, await programs.lastCalledByDance());
       // d2 has been called but never performed, so it carries a tally and no
       // last-called stamp — the case the shared query has to get right, since
-      // `MAX(performed_at)` returns NULL rather than dropping the row.
+      // the last-called `MAX(CASE WHEN performed_at IS NOT NULL …)` returns
+      // NULL rather than dropping the row.
       expect(emitted.callCounts['d2']?.all, 1);
       expect(emitted.lastCalled, isNot(contains('d2')));
     });
