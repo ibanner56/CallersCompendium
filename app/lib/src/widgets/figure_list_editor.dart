@@ -4297,7 +4297,7 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
             child: Row(
               children: [
                 Icon(
-                  Icons.warning_outlined,
+                  Icons.warning_amber_outlined,
                   size: 13,
                   color: Theme.of(context).colorScheme.error,
                 ),

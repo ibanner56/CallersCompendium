@@ -3315,12 +3315,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
   }
 
-  /// An accessible advisory banner shown when a **shared** bundle carries more
-  /// than [kSharedBundleSoftCapEntities] entities (issue #432). It is a soft
-  /// warning, not a block: the Import button stays enabled and the user can
-  /// still proceed. Distinct from the overwrite warning (which uses the error
-  /// palette) — this uses the tertiary palette so "unusually large" reads as
-  /// caution, not error.
   /// The single batch-level notice shown when a connection failure ended the
   /// title lookups early ([TitleListResolution.stoppedAfterConnectionFailure]);
   /// the per-row reasons then read "check your connection" instead of
@@ -3346,6 +3340,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// An accessible advisory banner shown when a **shared** bundle carries more
+  /// than [kSharedBundleSoftCapEntities] entities (issue #432). It is a soft
+  /// warning, not a block: the Import button stays enabled and the user can
+  /// still proceed. Like the overwrite warning it is a non-blocking notice, so
+  /// it uses the warning (tertiary) palette, not the error one.
   Widget _buildSoftCapWarning(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final message = l10n.sharedImportSoftCapWarning(
