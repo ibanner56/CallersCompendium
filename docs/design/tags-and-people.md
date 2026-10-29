@@ -5,8 +5,8 @@ against `origin/main` at `acacb05`; every `file:line` below is for that tree
 unless it names another branch.*
 
 **Status: proposal.** This note decides nothing. The maintainer asked for it
-(below). Everything marked **Recommendation** is this note's author's view,
-with the alternative it rejected; the [Decisions needed](#decisions-needed)
+(below). Everything marked **Recommendation** is my view as the note's
+author, with the alternative I rejected; the [Decisions needed](#decisions-needed)
 list at the end collects what only the maintainer can settle.
 
 ## What is already decided
@@ -46,7 +46,7 @@ Four details shape every proposal below.
 
 1. **Name matching is wider than the index.** The `UNIQUE` index compares
    bytes, but `naturalKeyMatchKey` folds case and composes NFC
-   (`shareable_text.dart:40-52`), and `TagRepository.idByName` uses it
+   (`shareable_text.dart:40-53`), and `TagRepository.idByName` uses it
    (`tag_repository.dart:260-280`). So "Flowy" and "flowy" can both be stored,
    and the app treats them as the same name.
 2. **A tag delete keeps its join rows.** `TagRepository.delete` tombstones the
@@ -54,7 +54,9 @@ Four details shape every proposal below.
    dances (`tag_repository.dart:459-534`). Dance reads hide the tombstoned tag
    (`dance_repository.dart:3386-3410`), and a dance write leaves those rows in
    place (`:726-751`). Re-creating a tag under a deleted tag's name adopts the
-   tombstone (`tag_repository.dart:145-157`), so its old dances get it back.
+   tombstone's id but **clears its join rows** (`existence.dart:385-400`), so
+   the old dances do not get it back. Only a revival under the same id keeps
+   them.
 3. **Author and source deletes are guarded.** Both refuse while a *live*
    dance cites the row (`choreographer_repository.dart:267-291`,
    `published_source_repository.dart:143-161`). Dances in Recently deleted do
@@ -86,9 +88,17 @@ A rename is an ordinary edit of the row's name. Its existing `upsert` path
 already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
 `choreographer_repository.dart:65-200`).
 
-- **Collision test.** Before writing, look the new name up with `idByName`
-  (or the author equivalent), excluding the row itself. A case-only change
-  ("flowy" to "Flowy") matches only itself, so it is a plain rename.
+- **Collision test.** Before writing, look the new name up with
+  `idByName(..., includeDeleted: true)` (or the author equivalent), excluding
+  the row itself. A case-only change ("flowy" to "Flowy") matches only
+  itself, so it is a plain rename.
+  - The default `idByName` skips tombstones (`tag_repository.dart:260-266`).
+    A rename onto a name a tombstone holds would then reach `upsert` and
+    throw `DuplicateNaturalKeyError` (`existence.dart:368-383`).
+  - **Recommendation:** when only a tombstone holds the name, free it first by
+    renaming that tombstone with the suffix described under Merge, then
+    rename. Rejected alternative: refuse, which would block a name the user
+    can no longer see anywhere.
 - **On a collision, offer a merge.** Don't refuse. The dialog says:
   "'Flowy' already exists. Merge 'Flowing' into it?", with **Keep editing**
   and **Merge**.
@@ -109,100 +119,143 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
 ### Merge
 
 A merge moves every citation of the **losing** row onto the **surviving** row,
-then removes the loser. The user picks the survivor: it is the row they merge
-*into*, and on a rename collision it is the row that already holds the name.
+then removes the loser. The user chooses what the merged entry is called and
+holds. The user does not choose which *id* survives:
+
+- **The surviving id is the lexicographically smaller UUID.** sync-spec §6.6
+  requires this of "every 'which record survives' decision"
+  (`sync-spec.md:3230-3232`), because a rule based on "this one" versus "that
+  one" does not converge.
+- This matters for a user merge too. If device A merges L into S while
+  device B, offline, merges S into L, each device's alias would rewrite the
+  other's dances back, bump them and re-upload them on every pass. Neither
+  pending deletion would ever land.
+- With the id rule, both devices keep the same id. The two merges then differ
+  only in the survivor's fields, and last-writer-wins settles that like any
+  edit.
+
+So "Merge 'Flowing' into 'Flowy'" means: the result is called "Flowy" and holds
+"Flowy"'s colour, whichever row's id it keeps. In the rest of this note, the
+**survivor** is that result: the entry the user merged *into*, written under
+the surviving id. The **loser** is the other entry.
 
 The steps run in one transaction:
 
-1. **Re-point the joins.** Every `dance_tags`, `dance_authors` or
+1. **Free the loser's name.** The loser is renamed to `<name>_<suffix>`, where
+   `<suffix>` is the first eight hex digits of its UUID, with hyphens
+   removed. This is the same derivation §6.6 uses for custom-field keys
+   (`sync-spec.md:3377-3382`). Without it, three things go wrong, because the
+   `UNIQUE` index also covers tombstones (§4.1):
+   - **The survivor can't take the name.** When the smaller id belongs to
+     "Flowing", the survivor needs "Flowy", which the loser holds.
+   - **Re-creating the name adopts the merged-away row.** Typing "Bouncey"
+     again would adopt the merged-away tombstone (`existence.dart:401-436`),
+     while the alias still sends every inbound reference to that id onto the
+     survivor.
+   - **A peer's own record gets queued.** A peer that created the name on its
+     own would put the pair in the review queue as "a device deleted
+     something another device still has" (`settings.md:1203-1210`).
+2. **Re-point the joins.** Every `dance_tags`, `dance_authors` or
    `dance_sources` row that names the loser moves to the survivor. Where a
    dance already cites both, the loser's row is dropped. Dances in Recently
    deleted are re-pointed too (trash-policy (b)), so restoring one shows the
    survivor.
-   - Sync's reconciliation already does exactly this in
+   - Sync's reconciliation already does this in
      `CompendiumSyncStorage._rewriteLocalReferences`
      (`sync_storage.dart:5223-5425`).
    - **Recommendation:** extract that method into a storage helper that both
      sync and the user merge call. Rejected alternative: a second copy, which
      would let the two drift.
-2. **Bump every affected dance** (`sync-spec.md` §6.5 I1, `:3093-3094`). Its
+   - The method does no search-index refresh, so the merge must rebuild the
+     index rows of every affected dance itself.
+3. **Bump every affected dance** (`sync-spec.md` §6.5 I1, `:3093-3094`). Its
    serialised `tagIds`, `authorIds` or `sourceCitations` changed. The same
    helper already does this (`sync_storage.dart:5408-5424`).
-3. **Combine the survivor's own fields.** See
+4. **Write the survivor's fields.** It gets the chosen name, and fields
+   combined as described under
    [Merging two authors' private details](#merging-two-authors-private-details)
    and the per-kind rules below.
-4. **Tombstone the loser under its own name.** Do not erase it and do not
-   rename it. Each choice matters for sync:
-   - A rename onto the survivor's name would reach each peer as "another
-     device renamed a record onto a name this device already uses". That
-     sends the peer to the review queue (`sync-spec.md:3246-3262`,
-     `settings.md:1212-1218`), asking the user a question they have already
-     answered.
-   - An erase leaves peers holding the loser live, so the next pass downloads
-     it back (§3.1, `sync-spec.md:148-153`).
+5. **Tombstone the loser.** Do not erase it:
+   - An erase leaves peers holding the loser live. With no tombstone, the next
+     pass downloads it back (§3.1, `sync-spec.md:148-153`), and the alias
+     would then apply that live copy to the survivor.
    - A tombstone is ordinary deletion evidence. A peer whose dances still cite
      the loser holds the deletion pending until the last citation goes
      (§6.8, `sync-spec.md:3724-3734`).
-5. **Write an id alias, loser to survivor,** in `id_aliases`
-   (`SyncLocalRepository.upsertAlias`, `sync_local_repository.dart:582`).
-   - Sync rewrites inbound references through these aliases before applying
-     them (`rewriteSyncInboundReferences`, `sync_reconciliation.dart:60-110`,
-     called from `_rewriteCandidate`, `sync_storage.dart:4012-4033`).
+   - Sync's reconciliation erases its loser (`sync_storage.dart:5181-5182`),
+     and can afford to, because every device reaches the same decision. A
+     user merge is made on one device, so its peers learn of it only through
+     the tombstone.
+6. **Record the alias, loser to survivor,** through
+   `SyncLocalRepository.remapIdentity` (`sync_local_repository.dart:752-802`).
+   Use that, not the bare `upsertAlias`: it also collapses alias chains,
+   moves retained sync fields, and unions publication markers, as §6.6
+   requires (`sync-spec.md:3433-3440`).
+   - Sync rewrites each inbound record through the aliases before applying it:
+     both its references and its **own** id (`_rewriteCandidate`,
+     `sync_storage.dart:4012-4033`; `rewriteSyncInboundReferences`,
+     `sync_reconciliation.dart:60-110`).
    - So when a peer that tagged a dance with the loser *while offline* syncs,
      this device files the tag under the survivor, bumps the dance and
      re-uploads it. The peer then drops its last citation, and its pending
      deletion of the loser lands.
-   - Without the alias, the result depends on how apply treats a dance that
-     cites a local tombstone. I did not trace that path.
-6. **Rewrite `default_import_tag_names`** (tags only). The loser's name is
-   replaced by the survivor's, then de-duplicated. See
+   - A peer's edit *of the loser itself* lands on the survivor too. After the
+     merge they are one entry, so that is the intended reading, but the §6.6
+     amendment must say so.
+7. **Rewrite `default_import_tag_names`** (tags only). The loser's name is
+   replaced by the chosen name, then de-duplicated. See
    [The import-tags setting](#the-import-tags-setting).
 
 **Undo** restores the transaction's before-image:
 
-- the loser is revived, and its fields restored;
+- the loser is revived under its old name, and its fields restored;
 - the captured joins are put back, with author and source positions and
   citation page and number;
 - the survivor's fields are restored;
 - the alias is removed, and the setting restored;
 - every touched dance is bumped again.
 
-If a sync pass ran in between, the revival outranks the tombstone by
-construction (§6.4, `sync-spec.md:3772-3774`), so peers converge on the undone
-state as ordinary edits. Removing an alias is new, because sync only ever
-adds them. The core branch adds it.
+If a sync pass ran in between, the revival stamps above the tombstone (§6.4,
+`sync-spec.md:3036-3040`), so peers converge on the undone state as ordinary
+edits. Sync itself removes aliases only by retirement (`retireAliases`,
+`sync_local_repository.dart:804-833`) and by clearing the baseline (`:522`).
+Removing a single alias is new; T1 adds it.
 
 **This needs no wire change and no capability.** A merge adds no record kind
 and no settings key, so §6.15's gate (`sync-spec.md:4417`) does not apply. It
-uses only tombstones, edits and local aliases, which every build since sync
-shipped already applies. It does need a dated amendment to §6.6's "The remap"
-(`sync-spec.md:3427-3443`). That paragraph names reconciliation as the only
-producer of aliases, and the amendment adds the user merge. That makes the
+uses only edits, tombstones and local aliases, which every build since sync
+shipped already applies.
+
+It does need a dated amendment to §6.6's "The remap"
+(`sync-spec.md:3427-3443`). Today two things write aliases: reconciliation,
+and the fresh-attach dance merge (§6.10, `sync-spec.md:4084-4088`). The
+amendment adds the user merge, together with the rules above. That makes the
 amendment a maintainer decision (D-N2-1).
 
-**What the alias costs.** An alias is retired only once no current peer
-manifest lists the losing id (`sync-spec.md:3430-3431`). A peer that holds a
-pending deletion advertises the loser as a tombstone, so in practice the alias
-lasts as long as the tombstone does. Every later inbound reference to the
-loser is filed under the survivor. That includes a peer that deliberately
-re-creates the loser's name (re-creation adopts the tombstone, `tag_repository.dart:145-157`). Sync's own
-reconciliation aliases have the same property, so this adds no new kind of
-behaviour. But it is a trade-off, and the amendment should say so.
+**What the alias does not cover.** An alias is retired once no current peer
+manifest lists the losing id (`sync-spec.md:3430-3431`), and every alias is
+dropped when the baseline is cleared at an epoch reset. Suppose a peer has
+been offline since before the merge and syncs after either of those. Its old
+citations of the loser then arrive as citations of a local tombstone, and are
+not rewritten. I did not trace what apply does with such a citation. T1 must
+test it and say what it found.
 
-**A concurrent case to test.** Device A merges "Bouncey" into "Bouncy" while
-device B, offline, renames "Bouncey" to "Bouncy!".
+**Cases T1's two-device tests must pin.** I traced these from the code and
+the spec. I did not run them.
 
-- `_rewriteCandidate` resolves an inbound record's **own** id through the
-  aliases, not only its references (`sync_storage.dart:4016-4021`). So on A,
-  B's edit of "Bouncey" is applied to "Bouncy", and may rename the survivor
-  to "Bouncy!".
-- That is arguably right: after the merge they are one tag. But it means a
-  peer's edit to the loser reaches the survivor, and the §6.6 amendment must
-  say so.
-- On B, A's tombstone meets B's edit in §6.4's existence comparison. A rename
-  is an edit, not a revival, so the tombstone should win.
-- I traced this from the code and the spec, not by running it. T1's
-  two-device test must pin the outcome.
+- Opposite merges on two offline devices: both keep the smaller id, and the
+  survivor's fields settle by last-writer-wins.
+- A merge on A while B, offline, renames the loser: B's edit lands on the
+  survivor on A, and the tombstone should win on B (§6.4: a rename is an
+  edit, not a revival).
+- Apply order on a peer. If the survivor's rename onto the loser's old name
+  arrives before the loser's renamed tombstone, the peer sees "renamed onto
+  a name this device already uses" and queues it (§6.6 step 1,
+  `sync-spec.md:3246-3262`). T1 must show that it resolves on a later pass,
+  or else order natural-key tombstones before renames within a batch. This
+  is the open risk in this design.
+- A peer whose advertised tombstone of the loser is rewritten onto the
+  survivor by the alias: that must never tombstone the survivor.
 
 ### Delete
 
@@ -218,21 +271,23 @@ tombstones it. The steps run in one transaction:
 - drop its name from `default_import_tag_names`.
 
 **Recommendation: strip the joins, rather than keep them as
-`TagRepository.delete` does today.** Two reasons:
+`TagRepository.delete` does today.** The reason is sync:
 
-- **Sync.** A dance whose tag is tombstoned no longer lists it in its wire
+- A dance whose tag is tombstoned no longer lists it in its wire
   body (`dance_repository.dart:726-732`), so its serialised content changes
   and I1 requires a bump. A peer applying the bumped dance writes `tagIds`
   without the tag while the tag is still live there, so it deletes the join
-  (`dance_repository.dart:736-741`). Keeping the joins on this device only
-  makes the two devices hold different hidden state.
-- **Surprise.** With the joins kept, typing the deleted name months later
-  revives the old tag, and it reappears on every dance it used to be on.
+  (`dance_repository.dart:736-741`). This holds whatever the apply order,
+  because the peer's pending deletion keeps the tag live until those dances
+  arrive (§6.8).
+- Keeping the joins here therefore leaves the devices holding different
+  hidden state. Only a *revival* of the same tag would show the difference:
+  this device would re-tag the old dances, and its peers would not.
 
-The rejected alternative keeps today's behaviour (joins kept, dances bumped).
-Re-creating a tag would then bring its dances back, which is a kind of
-long-term restore. No UI deletes an in-use tag today, so nothing depends on
-the current behaviour yet.
+The rejected alternative keeps today's behaviour (joins kept, dances bumped),
+under which a revival on this device brings the dances back. No UI deletes an
+in-use tag today, so nothing depends on the current behaviour yet. This is a
+behaviour change that sync sees, so it is D-N2-7.
 
 **Authors and sources.** **Recommendation:** keep the existing guard. Delete
 is offered only for a row no live dance cites. For a row in use, the manager
@@ -269,7 +324,7 @@ delete is already permanent (`settings.md:128-133`).
 
 - **Rename** with merge-on-collision, as above. A tag's colour lives in its
   row, so it survives a rename.
-- **Merge:** the survivor keeps its colour. **Recommendation:** if the
+- **Merge:** the survivor keeps the colour of the tag merged into. **Recommendation:** if the
   survivor has none, it takes the loser's. Rejected alternative: always the
   survivor's, which silently drops a colour the user chose.
 - **Delete**, with the count and Undo, as above.
@@ -452,8 +507,14 @@ Two choices *would* need registry entries in the PR that introduces them:
 
 - **GC option (d).** An edit marker would be `deviceScoped` sync metadata
   about the user's own action, and its subject axis needs a stated reason.
-- **Tags in Recently deleted (D-N2-5).** This needs no column today, but a
-  per-kind retention setting would be a new settings key.
+- **Tags in Recently deleted (D-N2-5).** A delete strips the joins
+  (D-N2-7), so restoring weeks later needs the removed `(dance, tag)` pairs
+  stored somewhere. That is new persisted data and needs entries for its
+  columns. A per-kind retention setting would also be a new settings key.
+
+**The managers' list state is session-only:** the search text, the
+**Not used** filter and the sort. Persisting any of them would add a settings
+key, which needs its own entry.
 
 **Merging author details moves third-party data between rows.** The two rows
 stay in the same egress class (see the table above), so the registry is
@@ -465,15 +526,18 @@ unchanged. The registry's note on `choreographers.email`
 | Operation | What peers receive | Spec text it rests on |
 | --- | --- | --- |
 | Rename | An edit of the row | §6.3; §6.6 step 1 if a peer independently holds the new name |
-| Merge | The loser's tombstone, plus the bumped dances | §6.5 I1; §6.8 pending deletion; §6.6 "The remap" (amended) |
+| Merge | The survivor's edit, the loser's renamed tombstone, and the bumped dances | §6.5 I1; §6.8 pending deletion; §6.6 survivor rule and "The remap" (amended) |
 | Delete (tags) | The tombstone, plus the bumped dances | §6.5 I1; §6.8 |
 | Undo | A revival, plus the bumped dances | §6.4 |
 
 **No new record kind, no new key, no capability.** The commonly-applied
 constraint "§6.6 aliases and §6.15" (`decided-work-plan.md:794`) is met by
 reusing §6.6's alias table and needing nothing from §6.15. The sync "Merge"
-choice (`settings.md:1212-1218`) keeps working as it does. A user merge never
-creates a collision for it to resolve, because the loser keeps its own name.
+choice (`settings.md:1212-1218`) keeps working as it does. Because the loser's
+tombstone gives up its name, a peer that created that name on its own gets no
+"deleted something this device still has" review row
+(`settings.md:1203-1210`). The one collision left is the apply-order risk
+under [Merge](#merge).
 
 ## Docs to change with the code
 
@@ -495,10 +559,15 @@ Each implementation branch updates these in the same PR:
 
 ## Decisions needed
 
-1. **D-N2-1: amend sync-spec §6.6 so a user merge writes an id alias.**
-   Recommendation: yes, with the trade-off stated in the amendment. Without
-   it, an offline peer's citations of the loser are left to however apply
-   treats a citation of a tombstone.
+1. **D-N2-1: amend sync-spec §6.6 for the user merge.** The amendment
+   covers four rules:
+   - the surviving id is the smaller UUID;
+   - the loser's tombstone gives up its name;
+   - the merge records an id alias;
+   - a peer's edit of the loser lands on the survivor.
+
+   Recommendation: yes. Without the alias, an offline peer's citations of
+   the loser are left to however apply treats a citation of a tombstone.
 2. **D-N2-2: merging two authors' private details.** Options (a) the
    survivor's details win whole, (b) fill the blanks and list what is
    discarded, (c) choose per field. Recommendation: (b).
@@ -511,11 +580,22 @@ Each implementation branch updates these in the same PR:
    only, or a Tags tab in Recently deleted. Recommendation: the snackbar only.
 6. **D-N2-6: the purge GC.** Options (a) unchanged, (b) spare rows with
    details, (c) stop it, (d) spare rows the user edited. Recommendation: (b).
+7. **D-N2-7: what a tag delete does to its join rows.** Options: strip them
+   from every dance and bump the dances, or keep them as today and bump
+   only. Recommendation: strip them.
 
-These choices are the author's recommendations, not decisions, but each
-stands unless the maintainer overrules it: a tag delete strips its joins
-rather than keeping them; a merged tag keeps the loser's colour when the
-survivor has none; and a "show these dances" action waits for B15.
+Two smaller choices are my recommendations, not decisions, and the
+implementing branch should confirm them with the maintainer in its PR:
+
+- a merged tag keeps the loser's colour when the survivor has none;
+- a "show these dances" action waits for B15.
+
+**Where the brief's line numbers differ from `acacb05`.** The work plan cites
+`settings.md:1158-1168` for the sync **Merge** choice and `ux.md:186-187` for
+the undo rule. On this tree they are at `settings.md:1200-1225` and
+`ux.md:192-193`, and this note cites those. The plan's B8 constraint applies
+through trash-policy (b): T1 waits for B8, and nothing here counts a trashed
+dance as protecting a row.
 
 ## Proposed branches
 
@@ -524,7 +604,7 @@ tests included: S < 150, M 150–400, L 400+.
 
 | # | Branch | Items | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| T1 | `feat/reference-rename-merge-core` | Core rename, merge, delete and Undo for the three kinds; the shared reference-rewrite helper; the §6.6 amendment | L (~600) | Opus | D-N2-1; B7 and B8 merged; after B12 and B13 on `dance_repository.dart` |
+| T1 | `feat/reference-rename-merge-core` | Core rename, merge, delete and Undo for the three kinds; the shared reference-rewrite helper; the §6.6 amendment | L (~900) | Opus | D-N2-1, D-N2-7; B7 and B8 merged; after B12 and B13 on `dance_repository.dart` |
 | T2 | `feat/tag-manager` | FIND-3: the Tags manager with colours, rename, merge and delete; the import-tags rewrite; retire `TagColorsScreen` | L (~500) | Sonnet | T1; D-N2-3, D-N2-5 |
 | T3 | `feat/author-and-source-managers` | LIFE-5 (a): the Authors and Sources managers; the merge offer in the dance editor; the private-details merge | L (~450) | Opus | T2; D-N2-2, D-N2-4 |
 | T4 | `fix/purge-gc-spares-details` | LIFE-5 (c) | S (~120) | Sonnet | D-N2-6; B7 merged; any order against T1, but serialize the merge on `dance_repository.dart` |
@@ -539,17 +619,21 @@ tests included: S < 150, M 150–400, L 400+.
   - `_rewriteLocalReferences` (`sync_storage.dart:5223-5425`) moves into a
     storage helper that both sync and the merge call. Sync keeps its
     behaviour exactly; its existing tests are the guard.
-  - The alias write, and a new alias removal for Undo
-    (`sync_local_repository.dart`).
-  - Search-index refresh for `authors`, plus `sources` if the check above
-    finds it stale.
+  - The surviving id by the smaller-UUID rule, and the freeing of the
+    loser's name with the suffix.
+  - The alias through `remapIdentity`, and a new single-alias removal for
+    Undo (`sync_local_repository.dart`).
+  - A search-index rebuild for every dance a merge touches, plus the
+    `sources` column after a source rename if the check above finds it
+    stale.
   - The stale comments at `tag_repository.dart:465`,
     `tag_colors_screen.dart:24-27` and `display_defaults.dart:158`.
 - **Tests:**
   - every step of each operation, and its Undo;
-  - a two-device sync test of a merge against an offline peer's new
-    citation;
-  - the concurrent rename-versus-merge case.
+  - the two-device cases listed under [Merge](#merge): an offline peer's
+    new citation, opposite merges, rename versus merge, apply order, and a
+    rewritten tombstone;
+  - a citation from a peer that was offline past alias retirement.
   - Prove each guard can fail (`AGENTS.md`).
 - **Docs:** the sync-spec §6.6 amendment, and the matching `storage.md` text.
 - **Hot files:** `dance_repository.dart` (B7 → B12 → B13), `sync_storage.dart`,
