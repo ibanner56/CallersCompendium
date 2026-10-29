@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/screens/settings/updates_section.dart';
 import 'package:compendium_app/src/update/install_kind.dart';
 import 'package:compendium_app/src/update/semver.dart';
