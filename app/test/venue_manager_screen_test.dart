@@ -84,5 +84,12 @@ void main() {
 
     expect(await repos.venues.getById('v1'), isNull);
     expect(find.byKey(const ValueKey('venue-manager-empty')), findsOneWidget);
+    // The title says it once; the body must not open by repeating it.
+    expect(find.textContaining('No venues yet'), findsOneWidget);
+    expect(find.text('No venues yet'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('venue-manager-empty-add')),
+      findsOneWidget,
+    );
   });
 }

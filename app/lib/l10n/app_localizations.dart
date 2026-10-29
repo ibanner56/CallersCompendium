@@ -6013,11 +6013,29 @@ abstract class AppLocalizations {
   /// **'Duplicated as \"{title}\".'**
   String collectionDuplicatedSnack(String title);
 
-  /// Empty-state message shown in the results area when the collection has no dances.
+  /// Body of the empty-Collection state, under the title; says how to add the first dance.
   ///
   /// In en, this message translates to:
-  /// **'Your collection is empty. Add or import a dance to get started — or turn on Online search above to import from an online source.'**
-  String get collectionEmpty;
+  /// **'Add or import a dance to get started — or turn on Online search above to import from an online source.'**
+  String get collectionEmptyBody;
+
+  /// Title of the empty-Collection state.
+  ///
+  /// In en, this message translates to:
+  /// **'Your collection is empty'**
+  String get collectionEmptyTitle;
+
+  /// Title of the card shown while the sample dance is the only dance in the Collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring your dances in'**
+  String get collectionImportCardTitle;
+
+  /// Body of the card shown while the sample dance is the only dance in the Collection; points at Import dances and New dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.'**
+  String get collectionImportCardBody;
 
   /// Title of the facet filters panel when no filters are active.
   ///
@@ -14222,6 +14240,12 @@ abstract class AppLocalizations {
   /// **'Nothing in the trash. Deleted dances are kept here until you remove them.'**
   String get recentlyDeletedEmptyDancesKept;
 
+  /// Title of the empty Recently deleted lists (dances and programs).
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing deleted'**
+  String get recentlyDeletedEmptyTitle;
+
   /// Empty state for recently-deleted dances with a retention window of {days} days.
   ///
   /// In en, this message translates to:
@@ -14282,11 +14306,17 @@ abstract class AppLocalizations {
   /// **'Clear search'**
   String get venueManagerClearSearchTooltip;
 
-  /// Empty state for the venue manager when no venues exist yet.
+  /// Body of the empty Venues state, under the title; the add button sits right below it.
   ///
   /// In en, this message translates to:
-  /// **'No venues yet. Add one with the button below, or from a program when reusable venues are turned on.'**
-  String get venueManagerEmpty;
+  /// **'Add one here, or from a program when reusable venues are turned on.'**
+  String get venueManagerEmptyBody;
+
+  /// Title of the empty Venues list.
+  ///
+  /// In en, this message translates to:
+  /// **'No venues yet'**
+  String get venueManagerEmptyTitle;
 
   /// Shown in the venue manager when a search yields no matching venues.
   ///
@@ -14917,6 +14947,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You haven\'t made any figures of your own yet. Choose + to add one.'**
   String get customFiguresEmpty;
+
+  /// Title of the empty Custom figures list.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom figures yet'**
+  String get customFiguresEmptyTitle;
 
   /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure.
   ///

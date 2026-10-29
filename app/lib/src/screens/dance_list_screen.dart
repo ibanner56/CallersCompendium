@@ -24,6 +24,7 @@ import '../data/online_search_labels.dart';
 import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
+import '../data/seed_service.dart' show kBabyRoseSeedDanceId;
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
@@ -49,6 +50,7 @@ import '../widgets/batch_tunes_dialog.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/by_phrase_panel.dart';
 import '../widgets/dance_list_tile.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/facet_panel.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/online_import_dialogs.dart';
@@ -2642,8 +2644,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 _buildOnlineResultsSliver()
               else if (collectionEmpty)
                 _buildEmptyCollectionSliver()
-              else
+              else ...[
+                if (_onlyTheSampleDance(data) && !_hasActiveQuery)
+                  _buildImportCardSliver(),
                 _buildResultsSliver(),
+              ],
               // Lets the last row scroll clear of the "New dance" FAB.
               const SliverToBoxAdapter(
                 child: SizedBox(height: AppSpacing.fabClearance),
@@ -2655,21 +2660,74 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
+  /// Whether the first-run sample is the only dance in the Collection. Judged
+  /// from the dance's fixed seed id, so no marker is stored: deleting the
+  /// sample, or adding any dance of one's own, ends it.
+  bool _onlyTheSampleDance(CollectionData data) =>
+      data.dancesById.length == 1 &&
+      data.dancesById.containsKey(kBabyRoseSeedDanceId);
+
+  /// Import and New dance, the two ways to start filling the Collection; shared
+  /// by the empty state and the sample-only card.
+  List<Widget> _startActions(AppLocalizations l10n) => [
+    if (widget.onImport != null)
+      OutlinedButton.icon(
+        key: const ValueKey('collection-empty-import'),
+        onPressed: widget.onImport,
+        icon: const Icon(Icons.file_download_outlined),
+        label: Text(l10n.importDances),
+      ),
+    FilledButton.icon(
+      key: const ValueKey('collection-empty-new-dance'),
+      onPressed: _openNewDance,
+      icon: const Icon(Icons.add),
+      label: Text(l10n.collectionNewDance),
+    ),
+  ];
+
   Widget _buildEmptyCollectionSliver() {
     final l10n = AppLocalizations.of(context);
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: EmptyState(
+        key: const ValueKey('collection-empty'),
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        title: l10n.collectionEmptyTitle,
+        body: l10n.collectionEmptyBody,
+        actions: _startActions(l10n),
+      ),
+    );
+  }
+
+  /// Shown above the list while only the sample dance is present, so a first
+  /// launch points at importing rather than leaving the sample to read as the
+  /// whole app.
+  Widget _buildImportCardSliver() {
+    final l10n = AppLocalizations.of(context);
     return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Center(
+      child: Card(
+        key: const ValueKey('collection-import-card'),
+        margin: const EdgeInsets.all(AppSpacing.md),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BrandMark(
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Text(
+                l10n.collectionImportCardTitle,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: AppSpacing.md),
-              Text(l10n.collectionEmpty, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.xs),
+              Text(l10n.collectionImportCardBody),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: _startActions(l10n),
+              ),
             ],
           ),
         ),
@@ -2980,7 +3038,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Center(child: Text(l10n.collectionNoResults)),
+          child: Column(
+            children: [
+              Text(l10n.collectionNoResults, textAlign: TextAlign.center),
+              if (_hasActiveQuery) ...[
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton.icon(
+                  key: const ValueKey('collection-no-results-clear'),
+                  onPressed: _clearAll,
+                  icon: const Icon(Icons.clear),
+                  label: Text(l10n.collectionClearSearchTooltip),
+                ),
+              ],
+            ],
+          ),
         ),
       );
     }

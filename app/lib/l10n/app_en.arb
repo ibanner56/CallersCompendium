@@ -4782,9 +4782,21 @@
       }
     }
   },
-  "collectionEmpty": "Your collection is empty. Add or import a dance to get started — or turn on Online search above to import from an online source.",
-  "@collectionEmpty": {
-    "description": "Empty-state message shown in the results area when the collection has no dances."
+  "collectionEmptyBody": "Add or import a dance to get started — or turn on Online search above to import from an online source.",
+  "@collectionEmptyBody": {
+    "description": "Body of the empty-Collection state, under the title; says how to add the first dance."
+  },
+  "collectionEmptyTitle": "Your collection is empty",
+  "@collectionEmptyTitle": {
+    "description": "Title of the empty-Collection state."
+  },
+  "collectionImportCardTitle": "Bring your dances in",
+  "@collectionImportCardTitle": {
+    "description": "Title of the card shown while the sample dance is the only dance in the Collection."
+  },
+  "collectionImportCardBody": "Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.",
+  "@collectionImportCardBody": {
+    "description": "Body of the card shown while the sample dance is the only dance in the Collection; points at Import dances and New dance."
   },
   "collectionFiltersTitle": "Filters",
   "@collectionFiltersTitle": {
@@ -12536,6 +12548,10 @@
   "@recentlyDeletedEmptyDancesKept": {
     "description": "Empty state for recently-deleted dances when there is no retention window."
   },
+  "recentlyDeletedEmptyTitle": "Nothing deleted",
+  "@recentlyDeletedEmptyTitle": {
+    "description": "Title of the empty Recently deleted lists (dances and programs)."
+  },
   "recentlyDeletedEmptyDancesRetention": "Nothing in the trash. Deleted dances appear here for {days} days before being removed.",
   "@recentlyDeletedEmptyDancesRetention": {
     "description": "Empty state for recently-deleted dances with a retention window of {days} days.",
@@ -12596,9 +12612,13 @@
   "@venueManagerClearSearchTooltip": {
     "description": "Tooltip for the button that clears the venue manager's search field."
   },
-  "venueManagerEmpty": "No venues yet. Add one with the button below, or from a program when reusable venues are turned on.",
-  "@venueManagerEmpty": {
-    "description": "Empty state for the venue manager when no venues exist yet."
+  "venueManagerEmptyBody": "Add one here, or from a program when reusable venues are turned on.",
+  "@venueManagerEmptyBody": {
+    "description": "Body of the empty Venues state, under the title; the add button sits right below it."
+  },
+  "venueManagerEmptyTitle": "No venues yet",
+  "@venueManagerEmptyTitle": {
+    "description": "Title of the empty Venues list."
   },
   "venueManagerNoMatches": "No venues match your search.",
   "@venueManagerNoMatches": {
@@ -13162,6 +13182,10 @@
   "customFiguresEmpty": "You haven't made any figures of your own yet. Choose + to add one.",
   "@customFiguresEmpty": {
     "description": "Shown on the Custom Figures screen when the user has no figures of their own yet."
+  },
+  "customFiguresEmptyTitle": "No custom figures yet",
+  "@customFiguresEmptyTitle": {
+    "description": "Title of the empty Custom figures list."
   },
   "glossaryAddCustomFigure": "Add your own figure",
   "@glossaryAddCustomFigure": {
