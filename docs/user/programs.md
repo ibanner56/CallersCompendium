@@ -359,8 +359,9 @@ A few practical notes:
   navigate it row by row and column by column.
 - **To take it with you**, use **Export or print matrix as PDF** in the **Matrix**
   tab. This is the matrix's own control, separate from the program's **Export**
-  menu, and it is unavailable while the matrix is empty. The PDF is landscape and
-  carries its own legend — where the screen uses icons, the printed page uses the
+  menu, and it is unavailable while the matrix is empty. The PDF is landscape on
+  the paper you choose in the print dialog, repeats its heading row on every
+  page, and carries its own legend — where the screen uses icons, the printed page uses the
   marks `★` (introduced here), `▸` (dance's first figure), `✓` (present), and `‼`
   (shares beats with an adjacent dance, or same phrase as adjacent dance if
   you've turned the setting off). Columns you have hidden on screen still
@@ -428,9 +429,10 @@ see
 When you share, copy, or export as PDF the app asks **"Include figures?"** —
 choose **Set list only** to keep titles, notes, and the author, or
 **Set list and figures** to append a full card for each dance, showing every
-selected field alongside its figures, after the set list. If none of the
-program's dances have structured figures, the
-question is skipped. If your program is linked to
+selected field alongside its figures, after the set list. A dance with no
+structured figures still gets a card when it has calling notes or a walkthrough
+you've selected. If none of the program's dances have anything to put on a
+card, the question is skipped. If your program is linked to
 a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
 **Share (program + dances)** exports first ask whether to include those
 contacts, and leave them out unless you say otherwise. A venue's street address

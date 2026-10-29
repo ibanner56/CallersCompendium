@@ -1,0 +1,23 @@
+{
+  "id": "audit-f8-export-files-and-pdfs",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Printed and saved PDFs now use the paper size you pick in the print dialog instead of always A4, so a Letter printer no longer shrinks or clips the page. The programming matrix PDF is landscape on that paper.",
+      "A set-list or dance PDF now has \"Page x of y\" on every page and the title running along the top from page two. The programming matrix repeats its heading row on every page.",
+      "\"Set list and figures\" now adds a card for a dance that has calling notes or a walkthrough but no structured figures, when you've selected those fields.",
+      "Backup file names are dated by your device's clock rather than UTC, so an evening backup is no longer named for the next day.",
+      "Shared dance and program files keep the letters of the title in any script, such as \"Contredanse à la française\" or a Japanese title, and no longer end in a stray underscore.",
+      "The programming matrix PDF now suggests its own name, the program title followed by \"Programming matrix\", so it no longer collides with the set-list PDF. Program files and PDFs also end with the event date."
+    ],
+    "added": [
+      "The page footer on exported PDFs is translated into every app language."
+    ]
+  },
+  "core": {
+    "added": [
+      "DanceCardContent.hasBody tells whether a dance has figures, or selected calling notes or a walkthrough, worth a card beneath its title.",
+      "DanceExportLabels, ProgramExportLabels and ProgramMatrixExportLabels gain pageOf, the localizable \"Page x of y\" footer."
+    ]
+  }
+}
