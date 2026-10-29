@@ -4,6 +4,7 @@ import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
+import 'beat_implied_balance.dart';
 import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
 import 'figure_front_end_fan_out.dart';
 import 'figure_text_scrub.dart';
@@ -609,7 +610,9 @@ List<Figure> _parseLine(String trimmed, Taxonomy? taxonomy, Dialect? dialect) {
   if (split.beats > 0 && result.length == 1 && result.single.isCustom) {
     return [_typedCustom(trimmed, split.beats)];
   }
-  return result;
+  // A typed `(8) Box circulate` reads its balance from its beats as an
+  // imported one does (#1975).
+  return withBeatImpliedBalance(trimmed, result);
 }
 
 /// A `;` line in which some clause states a count, read so each count stays on

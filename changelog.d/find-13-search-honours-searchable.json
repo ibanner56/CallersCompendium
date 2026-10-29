@@ -1,0 +1,22 @@
+{
+  "id": "find-13-search-honours-searchable",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Turning a custom field's Searchable setting off now keeps its values out of the search bar as well as the Filters panel, so a private note no longer turns up in an All fields search.",
+      "Searching for \"true\" or \"false\" no longer matches every dance that has a yes/no field set. Find a yes/no value with its filter instead."
+    ],
+    "data_migrations": [
+      "On first launch after updating, the search index is rebuilt for the dances holding a value in a yes/no field or in a field with Searchable off. No dance data is changed."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "`dance_fts.custom_values` and `dance_substring_fts.custom_values` carry only the values of live definitions with `searchable` on and a type other than `boolean` (`customFieldIndexesValueText`)."
+    ],
+    "added": [
+      "`CustomFieldDefRepository.onIndexedValuesChanged`, wired by `CompendiumRepositories`, reindexes the dances holding a value when a non-sync write changes whether a definition's values are indexed; `DanceRepository.reindexDancesHoldingCustomFields` does the reindex.",
+      "A one-shot `ensureMigrated` pass behind `customFieldIndexRepairDoneKey` reindexes the dances an index written before this rule still carries such values for."
+    ]
+  }
+}

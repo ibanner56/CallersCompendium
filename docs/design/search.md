@@ -26,8 +26,11 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    cross-field query and a raw branch matching the query as typed over title,
    authors, sources, custom values, hook and notes (never `figures_text`, which
    is stored canonicalised), so a name or note containing a role word such as
-   "Robin" or "ladies" is found verbatim. The query is split into words and
-   every word must match, each in any field and each with its own
+   "Robin" or "ladies" is found verbatim. Custom values are indexed only for a
+   live definition with `searchable` on, and never for a `boolean` one, whose
+   value would index as "true" or "false" (maintainer decision search-index
+   (a), 2026-10-29; `customFieldIndexesValueText`). The query is split into
+   words and every word must match, each in any field and each with its own
    canonical-or-raw choice (2026-10-29, FIND-5; this reverses #1005's
    one-phrase rule — see "Dialect canonicalization of input"). Online
    collection search exposes the title,

@@ -20,7 +20,6 @@ import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/related_dance_links.dart';
 import '../data/online_search.dart';
-import '../data/online_search_labels.dart';
 import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
@@ -54,6 +53,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/facet_panel.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/online_import_dialogs.dart';
+import '../widgets/online_import_snack_bar.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/online_search_toggle.dart';
 import '../widgets/search_panel_bar.dart';
@@ -1224,21 +1224,30 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // auto-open for a multi-dance result; an unresolved re-import (no id) just
     // confirms with the snackbar.
     final danceId = imported.danceId;
+    Route<void>? landed;
     if (imported.danceCount == 1 && danceId != null) {
-      navigator.push(
-        MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(
-            danceId: danceId,
-            onReimport: _beginReimportRoute,
-          ),
+      landed = MaterialPageRoute<void>(
+        builder: (_) => DanceDetailScreen(
+          danceId: danceId,
+          onReimport: _beginReimportRoute,
         ),
       );
+      navigator.push(landed);
     }
-    messenger.showSnackBar(
-      SnackBar(
-        key: const ValueKey('online-import-snackbar'),
-        content: Text(onlineImportMessage(l10n, imported)),
-      ),
+    showOnlineImportSnackBar(
+      messenger,
+      l10n: l10n,
+      result: imported,
+      repos: _repos,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      // Undo took the new dance away: leave its page rather than show "not
+      // found" where it was. Only while that page is on top: under another
+      // route (its editor, say) removing it would strand that route over a
+      // dance that no longer exists, so it is left to show "not found".
+      onDanceRemoved: () {
+        final route = landed;
+        if (route != null && route.isCurrent) navigator.removeRoute(route);
+      },
     );
   }
 
@@ -1284,11 +1293,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
       if (navigator.canPop()) {
         navigator.pop(result);
       } else {
-        messenger.showSnackBar(
-          SnackBar(
-            key: const ValueKey('online-import-snackbar'),
-            content: Text(onlineImportMessage(l10n, result)),
-          ),
+        showOnlineImportSnackBar(
+          messenger,
+          l10n: l10n,
+          result: result,
+          repos: _repos,
+          accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
         );
       }
     } on UrlFetchException catch (error, stackTrace) {

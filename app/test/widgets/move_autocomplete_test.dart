@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/editor/pending_move_text_controller.dart';
 import 'package:compendium_app/src/widgets/move_autocomplete.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -310,6 +311,266 @@ void main() {
     testWidgets('otherwise the first option, as before', (tester) async {
       final (picked, _) = await submit(tester, 'sw');
       expect(picked?.id, 'swing');
+    });
+  });
+
+  // October behaviour audit, AUTH-1, maintainer decision AUTH-1-move-blur =
+  // (a): leaving a row's Move box without Enter applies an exact move name or
+  // shorthand, as Enter would, and puts anything else back.
+  group('leaving the box (AUTH-1)', () {
+    /// A Move box over a row that holds [rowMove], with a second field to move
+    /// focus to. The row takes what the box applies, as a figure row does, so
+    /// the box is rebuilt with it.
+    Future<
+      ({
+        List<MoveOption> picked,
+        List<String> custom,
+        PendingMoveTextController pending,
+      })
+    >
+    pumpRow(
+      WidgetTester tester, {
+      String rowMove = 'balance',
+      bool commitOnBlur = true,
+      bool allowCustom = true,
+      bool Function(String text)? submitsAsText,
+    }) async {
+      final picked = <MoveOption>[];
+      final custom = <String>[];
+      final pending = PendingMoveTextController();
+      addTearDown(pending.dispose);
+      var current = rowMove;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PendingMoveTextScope(
+              controller: pending,
+              child: StatefulBuilder(
+                builder: (context, setState) => Column(
+                  children: [
+                    MoveAutocomplete(
+                      taxonomy: contraTaxonomy,
+                      initialText: current,
+                      fieldKey: 'move',
+                      commitOnBlur: commitOnBlur,
+                      submitsAsText: submitsAsText,
+                      onSelected: (o) {
+                        picked.add(o);
+                        setState(() => current = o.displayName);
+                      },
+                      onCustomSubmitted: allowCustom
+                          ? (text) {
+                              custom.add(text);
+                              setState(() => current = text);
+                            }
+                          : null,
+                    ),
+                    const TextField(key: ValueKey('elsewhere')),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      return (picked: picked, custom: custom, pending: pending);
+    }
+
+    Finder box() => find.byKey(const ValueKey('move-input'));
+
+    String boxText(WidgetTester tester) =>
+        tester.widget<TextField>(box()).controller!.text;
+
+    Future<void> typeThenLeave(WidgetTester tester, String text) async {
+      await tester.enterText(box(), text);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('elsewhere')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('applies the move named exactly', (tester) async {
+      final row = await pumpRow(tester);
+      await typeThenLeave(tester, 'star');
+      expect([for (final o in row.picked) o.id], ['star']);
+      expect(boxText(tester), 'star');
+    });
+
+    testWidgets('puts back text that only part of a name matches', (
+      tester,
+    ) async {
+      final row = await pumpRow(tester);
+      await typeThenLeave(tester, 'sw');
+      expect(row.picked, isEmpty);
+      expect(row.custom, isEmpty);
+      expect(boxText(tester), 'balance');
+    });
+
+    testWidgets('puts back text that matches nothing, rather than making a '
+        'custom figure', (tester) async {
+      final row = await pumpRow(tester);
+      await typeThenLeave(tester, 'scoop them up');
+      expect(row.custom, isEmpty);
+      expect(boxText(tester), 'balance');
+    });
+
+    testWidgets('applies a shorthand', (tester) async {
+      final row = await pumpRow(tester, submitsAsText: (t) => t == 'rl');
+      await typeThenLeave(tester, 'rl');
+      expect(row.picked, isEmpty);
+      expect(row.custom, ['rl']);
+    });
+
+    testWidgets('does nothing when the box is not set to', (tester) async {
+      final row = await pumpRow(tester, commitOnBlur: false);
+      await typeThenLeave(tester, 'star');
+      expect(row.picked, isEmpty);
+      expect(boxText(tester), 'star');
+    });
+
+    testWidgets('after Enter, applies nothing a second time', (tester) async {
+      final row = await pumpRow(tester);
+      await tester.enterText(box(), 'star');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      final afterEnter = row.picked.length;
+      expect(row.picked.last.id, 'star');
+
+      await tester.tap(find.byKey(const ValueKey('elsewhere')));
+      await tester.pumpAndSettle();
+      expect(row.picked, hasLength(afterEnter));
+    });
+
+    testWidgets('after Enter on a shorthand, applies it only once', (
+      tester,
+    ) async {
+      final row = await pumpRow(tester, submitsAsText: (t) => t == 'rl');
+      await tester.enterText(box(), 'rl');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('elsewhere')));
+      await tester.pumpAndSettle();
+      expect(row.custom, ['rl']);
+    });
+
+    testWidgets('after Enter that applies nothing, leaving still puts the '
+        'text back', (tester) async {
+      final row = await pumpRow(tester, allowCustom: false);
+      await tester.enterText(box(), 'zzz');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(row.picked, isEmpty);
+      expect(boxText(tester), 'balance');
+    });
+
+    testWidgets('settled by the scope while it keeps focus, it still tells '
+        'the scope about what is typed next', (tester) async {
+      final row = await pumpRow(tester);
+      await tester.tap(box());
+      await tester.enterText(box(), 'star');
+      await tester.pumpAndSettle();
+      row.pending.settle();
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(box()).focusNode!.hasFocus, isTrue);
+
+      await tester.enterText(box(), 'swing');
+      await tester.pumpAndSettle();
+      expect(row.pending.hasPendingText, isTrue);
+      row.pending.settle();
+      await tester.pumpAndSettle();
+      expect([for (final o in row.picked) o.id], ['star', 'swing']);
+    });
+
+    testWidgets('a choice from the options wins over the exact name typed', (
+      tester,
+    ) async {
+      final row = await pumpRow(tester);
+      await tester.enterText(box(), 'star');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('move-option-star_through')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('elsewhere')));
+      await tester.pumpAndSettle();
+      expect([for (final o in row.picked) o.id], ['star_through']);
+    });
+
+    testWidgets('tells the scope while text would apply, and the scope can '
+        'settle it', (tester) async {
+      final row = await pumpRow(tester);
+      await tester.tap(box());
+      await tester.enterText(box(), 'sw');
+      await tester.pumpAndSettle();
+      expect(row.pending.hasPendingText, isFalse);
+      await tester.enterText(box(), 'star');
+      await tester.pumpAndSettle();
+      expect(row.pending.hasPendingText, isTrue);
+
+      row.pending.settle();
+      await tester.pumpAndSettle();
+      expect([for (final o in row.picked) o.id], ['star']);
+      expect(row.pending.hasPendingText, isFalse);
+    });
+
+    group('on a phone', () {
+      Future<void> openSheet(WidgetTester tester) async {
+        await tester.tap(box(), warnIfMissed: false);
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsOneWidget);
+      }
+
+      Future<void> closeSheet(WidgetTester tester) async {
+        // The barrier above the sheet, as a tap outside it.
+        await tester.tapAt(const Offset(180, 20));
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsNothing);
+      }
+
+      testWidgets('opening the sheet changes nothing', (tester) async {
+        await setScreenSize(tester, const Size(360, 720));
+        final row = await pumpRow(tester);
+        await openSheet(tester);
+        await closeSheet(tester);
+        expect(row.picked, isEmpty);
+        expect(boxText(tester), 'balance');
+      });
+
+      testWidgets('closing the sheet applies the move named exactly', (
+        tester,
+      ) async {
+        await setScreenSize(tester, const Size(360, 720));
+        final row = await pumpRow(tester);
+        await openSheet(tester);
+        await tester.enterText(box(), 'star');
+        await tester.pumpAndSettle();
+        await closeSheet(tester);
+        expect([for (final o in row.picked) o.id], ['star']);
+      });
+
+      testWidgets('closing the sheet drops text that only part of a name '
+          'matches', (tester) async {
+        await setScreenSize(tester, const Size(360, 720));
+        final row = await pumpRow(tester);
+        await openSheet(tester);
+        await tester.enterText(box(), 'sw');
+        await tester.pumpAndSettle();
+        await closeSheet(tester);
+        expect(row.picked, isEmpty);
+        expect(boxText(tester), 'balance');
+      });
+
+      testWidgets('Enter in the sheet applies once', (tester) async {
+        await setScreenSize(tester, const Size(360, 720));
+        final row = await pumpRow(tester);
+        await openSheet(tester);
+        await tester.enterText(box(), 'star');
+        await tester.pumpAndSettle();
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsNothing);
+        expect([for (final o in row.picked) o.id], ['star']);
+      });
     });
   });
 }

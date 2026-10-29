@@ -2773,6 +2773,118 @@ void main() {
     });
   });
 
+  // October behaviour audit, AUTH-1, maintainer decision AUTH-1-move-blur =
+  // (a): a move name typed into a row's Move box without Enter is applied
+  // when the box is left, and anything else is put back. Tapping Save does
+  // not always take focus from the box, so Save and Back settle it too.
+  group('text left in a Move box (AUTH-1)', () {
+    Future<CompendiumRepositories> seeded() async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          figures: [
+            Figure(move: 'balance', params: const {'beats': 4}),
+            Figure(
+              move: 'swing',
+              params: const {'who': 'partners', 'beats': 8},
+            ),
+          ],
+        ),
+      );
+      return repos;
+    }
+
+    Future<void> typeInMoveBox(WidgetTester tester, String text) async {
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-move-input')));
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        text,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<List<Figure>> saveAndRead(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+    ) async {
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      return figuresOf((await repos.dances.getById('d1'))!);
+    }
+
+    testWidgets('Save applies a move named exactly', (tester) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'star');
+
+      final saved = await saveAndRead(tester, repos);
+      expect([for (final f in saved) f.move], ['star', 'swing']);
+    });
+
+    testWidgets('Save puts back text that only part of a name matches', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'sta');
+
+      final saved = await saveAndRead(tester, repos);
+      expect([for (final f in saved) f.move], ['balance', 'swing']);
+    });
+
+    testWidgets('Back with a move name in the box asks before discarding it', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'star');
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+    });
+
+    testWidgets('Back with text that would be put back leaves without asking', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'sta');
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
+    });
+
+    testWidgets('closing the row applies a move named exactly', (tester) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'star');
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+
+      final saved = await saveAndRead(tester, repos);
+      expect([for (final f in saved) f.move], ['star', 'swing']);
+    });
+
+    testWidgets('opening another row applies a move named exactly', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await typeInMoveBox(tester, 'star');
+      await tester.tap(find.byKey(const ValueKey('figure-1-summary')));
+      await tester.pumpAndSettle();
+
+      final saved = await saveAndRead(tester, repos);
+      expect([for (final f in saved) f.move], ['star', 'swing']);
+    });
+  });
+
   // Decision D2 on #1177 (Isaac, orchestration session, 2026-10-16): with
   // Free-text entry on, a new dance starts empty and Enter on unmatched text
   // in an existing row's Move box runs the free-text parser.

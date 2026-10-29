@@ -761,6 +761,36 @@ void main() {
       },
     );
 
+    testWidgets('a yes/no field\'s Searchable subtitle does not promise the '
+        'search bar', (tester) async {
+      // A yes/no value is never text-indexed (`customFieldIndexesValueText`,
+      // maintainer decision search-index (a)), so its subtitle names the
+      // Filters panel only.
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      String subtitle() =>
+          ((tester
+                      .widget<SwitchListTile>(
+                        find.byKey(const ValueKey('cf-searchable')),
+                      )
+                      .subtitle!)
+                  as Text)
+              .data!;
+      expect(
+        subtitle(),
+        'Offer this field in the Filters panel, and let the search bar find '
+        'its values',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('cf-type')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yes/No').last);
+      await tester.pumpAndSettle();
+
+      expect(subtitle(), 'Offer this field in the Filters panel');
+    });
+
     testWidgets('shareable toggle defaults to on for new fields', (
       tester,
     ) async {

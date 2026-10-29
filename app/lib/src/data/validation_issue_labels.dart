@@ -24,10 +24,16 @@ const Set<String> mappedValidationCodes = {
   'phrase_overflow',
   'phrase_underflow',
   'sequence_exceeds_phrase',
+  incompleteFigureValidationCode,
   'orphaned_alt',
   'empty_substitution',
   'dialect_collision',
 };
+
+/// The [ValidationIssue.code] of a figure row that Save would leave out
+/// because it is not complete (AUTH-2), with its 1-based `position`. Only the
+/// dance editor raises it, from its drafts: no saved dance can hold such a row.
+const String incompleteFigureValidationCode = 'incomplete_figure';
 
 /// Localized message for a [ValidationIssue] surfaced in an editor.
 ///
@@ -67,6 +73,9 @@ String? _localizedValidation(
       return (actual is int && expected is int)
           ? l10n.validationPhraseBeatMismatch(actual, expected)
           : null;
+    case incompleteFigureValidationCode:
+      final position = data['position'];
+      return position is int ? l10n.validationIncompleteFigure(position) : null;
     case 'sequence_exceeds_phrase':
       final position = data['position'];
       final actual = data['actual'];

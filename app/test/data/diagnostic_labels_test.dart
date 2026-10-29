@@ -18,6 +18,7 @@ ValidationIssue _validationIssue(String code) => ValidationIssue(
   data: switch (code) {
     'phrase_overflow' || 'phrase_underflow' => {'actual': 68, 'expected': 64},
     'orphaned_alt' => {'position': 2, 'text': 'Petronella'},
+    incompleteFigureValidationCode => {'position': 3},
     'empty_substitution' => {'source': 'gents'},
     'dialect_collision' => {
       'source': 'gents',
@@ -56,6 +57,19 @@ void main() {
       // In debug (tests run in debug) the raw diagnostic is appended for devs,
       // but the user-facing generic prefix is always present.
       expect(msg, contains(l10n.validationGeneric));
+    });
+
+    test('an incomplete figure names its position (AUTH-2)', () {
+      final msg = validationIssueMessage(
+        l10n,
+        const ValidationIssue(
+          severity: ValidationSeverity.warning,
+          code: incompleteFigureValidationCode,
+          message: 'x',
+          data: {'position': 3},
+        ),
+      );
+      expect(msg, 'Figure 3 is not complete, so Save leaves it out.');
     });
 
     test('orphaned_alt without text uses the un-named variant', () {

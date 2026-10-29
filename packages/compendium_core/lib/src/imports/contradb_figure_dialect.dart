@@ -4,6 +4,7 @@ import '../taxonomy/taxonomy.dart';
 import 'contradb_dancer_vocab.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
+import 'roll_away_relationships.dart';
 import 'while_container.dart';
 
 /// The ContraDB-HTML figure front-end: a set of reverse-parsers that mirror
@@ -1196,10 +1197,23 @@ FigureMatch? _rollAway(String text) {
   final who = _subject(s);
   if (who == null) return null;
   if (!s.eatPhrase('roll away')) return null;
-  final params = <String, Object?>{'who': who};
   final whom = _subject(s);
-  if (whom != null) params['whom'] = whom;
-  return FigureMatch('roll_away', params: params, note: s.note());
+  if (whom == null && rollAwayRelationships.contains(who)) {
+    // ContraDB always renders both; a lone relationship ("Neighbors roll
+    // away") is whom the roll away is with, as the shared reader has it
+    // (#1975), and the roller keeps its default.
+    return FigureMatch(
+      'roll_away',
+      params: {'whom': who},
+      note: s.note(),
+      assumedSubject: true,
+    );
+  }
+  return FigureMatch(
+    'roll_away',
+    params: {'who': who, 'whom': ?whom},
+    note: s.note(),
+  );
 }
 
 /// turnAloneWords: `[<who>] turn alone` (who omitted when everyone).
