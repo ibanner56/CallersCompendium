@@ -80,6 +80,11 @@ final RegExp _unsafeShareNameChars = RegExp(
 
 final RegExp _hasLetterOrDigit = RegExp(r'[\p{L}\p{N}]', unicode: true);
 
+/// The longest base name [shareFileBaseName] returns, in code points. A CJK
+/// letter takes three bytes in UTF-8, and common file systems cap a whole name
+/// at 255 bytes; 64 leaves room for the date and extension.
+const int _maxShareBaseNameRunes = 64;
+
 /// The base (extension-less) file name for a shared dance or program: [title]
 /// with every character outside [_unsafeShareNameChars]'s safe set replaced by
 /// `_`, leading/trailing dots and underscores stripped, or [fallback] when no
@@ -89,7 +94,8 @@ final RegExp _hasLetterOrDigit = RegExp(r'[\p{L}\p{N}]', unicode: true);
 /// is named by the title the user sees and an all-Japanese title would
 /// otherwise collapse to the fallback. It is still path-safe: separators and
 /// control characters never survive, and the result can never be `.`, `..` or a
-/// dotfile. [fallback] is trusted (a code constant), not user input.
+/// dotfile. A title longer than [_maxShareBaseNameRunes] code points is cut.
+/// [fallback] is trusted (a code constant), not user input.
 ///
 /// [eventDate], when given, is appended as `_yyyy-MM-dd` so weekly programs
 /// with the same title export under distinct names.
@@ -98,10 +104,14 @@ String shareFileBaseName(
   required String fallback,
   DateTime? eventDate,
 }) {
-  final cleaned = title
-      .trim()
-      .replaceAll(_unsafeShareNameChars, '_')
-      .replaceAll(_leadingTrailingSeparators, '');
+  final cleaned = String.fromCharCodes(
+    title
+        .trim()
+        .replaceAll(_unsafeShareNameChars, '_')
+        .replaceAll(_leadingTrailingSeparators, '')
+        .runes
+        .take(_maxShareBaseNameRunes),
+  ).replaceAll(_leadingTrailingSeparators, '');
   final base = cleaned.contains(_hasLetterOrDigit) ? cleaned : fallback;
   return eventDate == null ? base : '${base}_${isoDate(eventDate)}';
 }

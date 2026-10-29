@@ -42,7 +42,7 @@ second page on, the dance's or program's title also runs along the top.
 **File names.** A dance or program you share as a file (`.ccshare` or `.json`)
 is named after its title, keeping its letters in any script ("Contredanse à la
 française" stays that way) and replacing characters that can't go in a file name
-with `_`. A program's file name and its PDF's suggested name end with the event
+with `_`, and shortening a very long title. A program's file name and its PDF's suggested name end with the event
 date — `Saturday_Contra_2026-10-31` — so a weekly program doesn't export under
 the same name every time. Backups are named for the day you took them on your
 device's clock.

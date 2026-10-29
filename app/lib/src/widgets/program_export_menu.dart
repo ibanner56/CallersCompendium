@@ -231,7 +231,7 @@ class ProgramExportMenu extends StatelessWidget {
   ///
   /// Returns `null` when the user cancels/dismisses (the caller MUST abort),
   /// `false` for "Set list only", `true` for "Set list and figures". When no
-  /// figures are available the prompt is skipped and `false` is returned
+  /// dance has a card to append the prompt is skipped and `false` is returned
   /// immediately.
   Future<bool?> _figuresConsent(BuildContext context) async {
     if (!_hasFigures(DanceShareFieldsScope.of(context))) return false;

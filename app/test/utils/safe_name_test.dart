@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_app/src/utils/safe_name.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -115,6 +117,22 @@ void main() {
       expect(shareFileBaseName('   ', fallback: 'dance'), 'dance');
       expect(shareFileBaseName('?!/', fallback: 'dance'), 'dance');
       expect(shareFileBaseName('..', fallback: 'dance'), 'dance');
+    });
+
+    test('cuts a long title so the whole name fits a file system', () {
+      final name = shareFileBaseName('あ' * 200, fallback: 'd');
+      expect(name, 'あ' * 64);
+      // The date and extension still fit in 255 bytes of UTF-8.
+      expect(
+        utf8
+            .encode(
+              '${shareFileBaseName('あ' * 200, fallback: 'd', eventDate: DateTime(2026, 3, 9))}.ccshare',
+            )
+            .length,
+        lessThan(255),
+      );
+      // A cut that lands on a separator does not leave one at the end.
+      expect(shareFileBaseName('${'a' * 63}?tail', fallback: 'd'), 'a' * 63);
     });
 
     test('appends the event date', () {

@@ -321,7 +321,8 @@ List<pw.Widget> programAppendixWidgets(
     // A card needs something beneath its title: figures, or (with a built
     // card) the selected calling notes or walkthrough. Without `content` this
     // is the pre-#1434 figures-only appendix.
-    final hasBody = switch (dance.figuresSource) {
+    final hasBody =
+        switch (dance.figuresSource) {
           DecodedFigures(:final figures) => figures.isNotEmpty,
           UnreadableFigures() => false,
         } ||
