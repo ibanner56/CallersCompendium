@@ -78,8 +78,9 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
 
 /// Shows a resolution dialog when a confident title+author match with
 /// **canonically identical** figures is found during a single-dance online
-/// import from a **different source** than the existing collection entry (issue
-/// #811).
+/// import, and the existing collection entry came from a **different source**
+/// (issue #811) or was **entered by hand** (INTAKE-5). Its body names no
+/// source, so it is true of both.
 ///
 /// Three options:
 /// - **Cancel** (FilledButton, primary/safe): nothing is imported.

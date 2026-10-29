@@ -48,7 +48,6 @@ import 'src/data/locale_scope.dart';
 import 'src/data/migration_error_labels.dart';
 import 'src/data/migration_guard.dart';
 import 'src/data/online_search.dart';
-import 'src/data/online_search_labels.dart';
 import 'src/data/persisted_preference.dart';
 import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
@@ -126,6 +125,7 @@ import 'src/widgets/app_closing_overlay.dart';
 import 'src/widgets/command_palette.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
 import 'src/widgets/online_import_dialogs.dart';
+import 'src/widgets/online_import_snack_bar.dart';
 
 AppData _defaultAppDataFactory() => AppData(openAppDatabase());
 
@@ -1493,23 +1493,30 @@ class _CompendiumAppState extends State<CompendiumApp>
     );
     if (!mounted || !navContext.mounted || imported == null) return;
     final danceId = imported.danceId;
+    Route<void>? landed;
     if (imported.danceCount == 1 && danceId != null) {
-      await navigator.push<void>(
-        MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(
-            danceId: danceId,
-            onReimport: _beginIncomingReimport,
-          ),
+      landed = MaterialPageRoute<void>(
+        builder: (_) => DanceDetailScreen(
+          danceId: danceId,
+          onReimport: _beginIncomingReimport,
         ),
       );
+      // Not awaited: the confirmation, and its Undo, belong on the dance's
+      // page, not after the user has left it (INTAKE-5).
+      unawaited(navigator.push(landed));
     }
-    if (!mounted || !navContext.mounted) return;
-    _messengerKey.currentState?.showSnackBar(
-      SnackBar(
-        content: Text(
-          onlineImportMessage(AppLocalizations.of(navContext), imported),
-        ),
-      ),
+    final messenger = _messengerKey.currentState;
+    if (messenger == null) return;
+    showOnlineImportSnackBar(
+      messenger,
+      l10n: AppLocalizations.of(navContext),
+      result: imported,
+      repos: _appData.repositories,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(navContext),
+      onDanceRemoved: () {
+        final route = landed;
+        if (route != null && route.isCurrent) navigator.removeRoute(route);
+      },
     );
   }
 

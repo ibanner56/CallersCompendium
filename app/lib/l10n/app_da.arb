@@ -6158,6 +6158,10 @@
   "@onlineImportCreated": {
     "x-sourceSha256": "1046761c322aaa709ab5d48f7544427071384167ee4923d9931081d708542d03"
   },
+  "onlineImportUndoKeptChanged": "„{title}“ er ændret, siden du importerede den, så Fortryd lod den være som den er.",
+  "@onlineImportUndoKeptChanged": {
+    "x-sourceSha256": "8d822645712cbee80a667a24f960d58f9f8cb59aef3ed465d37e68d423ed30d4"
+  },
   "onlineImportAlreadyInCollection": "„{title}“ er allerede i din samling.",
   "@onlineImportAlreadyInCollection": {
     "x-sourceSha256": "1f09833ffab5f1b87829b3eddd2c3c82d5e5bfb6a71e01d6f29831d749d221f6"
@@ -6182,9 +6186,9 @@
   "@onlineImportCrossSourceDuplicateDialogTitle": {
     "x-sourceSha256": "5c16452183521ffb00bc920b0e8ed470e4e94ff9b52c0fc34d0a7fdf3ebde745"
   },
-  "onlineImportCrossSourceDuplicateDialogBody": "Din samling har allerede „{existingTitle}“ fra en anden kilde. Begge versioner har den samme rækkefølge af bevægelser.",
+  "onlineImportCrossSourceDuplicateDialogBody": "Din samling har allerede „{existingTitle}“. Begge versioner har den samme rækkefølge af bevægelser.",
   "@onlineImportCrossSourceDuplicateDialogBody": {
-    "x-sourceSha256": "be06b09bb5525fba98b551720b7ba2ae96e1ce5608f552819f5e90e63212d8e8"
+    "x-sourceSha256": "c45f669de91f48793a838bd0481355ec1fdda1bfce0d2f1217e7ea24914f7166"
   },
   "onlineImportCrossSourceDuplicateDialogActionDuplicate": "Importér endnu en kopi",
   "@onlineImportCrossSourceDuplicateDialogActionDuplicate": {

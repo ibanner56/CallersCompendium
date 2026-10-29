@@ -20,6 +20,7 @@ class _FakeService implements OnlineSearchService {
     this.failLoadIds = const {},
     this.rowsByTitle = const {},
     this.confidentTitles = const {},
+    this.planFigures = const [],
     this.loadErrors = const {},
     this.searchError,
   });
@@ -42,6 +43,9 @@ class _FakeService implements OnlineSearchService {
   /// (Lower-cased) titles for which [loadPreview] should return a plan whose
   /// verdict is a confident local duplicate (issue #685).
   final Set<String> confidentTitles;
+
+  /// The figures every previewed plan carries.
+  final List<Figure> planFigures;
 
   final loadedIds = <String>[];
   final searchedTitles = <String>[];
@@ -120,7 +124,7 @@ class _FakeService implements OnlineSearchService {
             form: DanceForm.contra,
             formation: const Formation(FormationShape.dupleImproper),
             status: DanceStatus.active,
-            figures: const [],
+            figures: planFigures,
             customFields: const [],
             hook: '',
             createdAt: DateTime.utc(2026, 1, 1),
@@ -454,6 +458,90 @@ void main() {
       resolved.single.resolution,
       ContraDbActivityResolution.linkedContraDb,
     );
+  });
+
+  // ── 2026-10 behaviour audit, INTAKE-3 ─────────────────────────────────────
+  // A dance the user already has, with the same figures, is reused rather than
+  // imported a second time (#685); one whose figures differ is still imported
+  // as its own dance, with no per-dance prompt (#797). The fake plan names
+  // 'local-existing' as its confident candidate, so a real dance under that id
+  // decides which case applies.
+  group('INTAKE-3: an identical dance already in the collection', () {
+    Future<void> seedExisting(
+      CompendiumRepositories repos, {
+      required List<Figure> figures,
+    }) => repos.dances.create(
+      Dance(
+        id: 'local-existing',
+        title: 'Tangled Yarns',
+        form: DanceForm.contra,
+        formation: const Formation(FormationShape.dupleImproper),
+        status: DanceStatus.active,
+        figures: figures,
+        hook: '',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+        // No provenance: typed in by hand, the case the plan names.
+      ),
+    );
+
+    final program = _program([
+      ContraDbProgramActivity.dance(
+        danceId: '42',
+        title: 'Tangled Yarns',
+        note: 'slow walk-through',
+      ),
+    ]);
+
+    final swing = [customFigure('neighbors balance and swing')];
+
+    test('is linked to the slot, and nothing is imported', () async {
+      final repos = openTestRepositories();
+      await seedExisting(repos, figures: swing);
+      final contraDb = _FakeService(
+        OnlineSource.contraDb,
+        confidentTitles: {'tangled yarns'},
+        planFigures: swing,
+      );
+      final rollback = ProgramImportRollback(repos);
+
+      final resolved = await resolveContraDbProgram(
+        program,
+        contraDb: contraDb,
+        callersBox: _FakeService(OnlineSource.callersBox),
+        repos: repos,
+        rollback: rollback,
+      );
+
+      expect(resolved.single.danceId, 'local-existing');
+      expect(
+        resolved.single.resolution,
+        ContraDbActivityResolution.linkedContraDb,
+      );
+      expect(resolved.single.text, 'slow walk-through');
+      expect(contraDb.importedTitles, isEmpty, reason: 'no second copy');
+      expect(rollback.isEmpty, isTrue, reason: 'nothing written to undo');
+    });
+
+    test('with different figures is still imported as its own dance', () async {
+      final repos = openTestRepositories();
+      await seedExisting(repos, figures: swing);
+      final contraDb = _FakeService(
+        OnlineSource.contraDb,
+        confidentTitles: {'tangled yarns'},
+        planFigures: [customFigure('partners balance and swing')],
+      );
+
+      final resolved = await resolveContraDbProgram(
+        program,
+        contraDb: contraDb,
+        callersBox: _FakeService(OnlineSource.callersBox),
+        repos: repos,
+      );
+
+      expect(resolved.single.danceId, 'cdb-tangled yarns');
+      expect(contraDb.importedTitles, ['Tangled Yarns']);
+    });
   });
 
   // ── 2026-10 audit, batch F12 (FAIL-2) ────────────────────────────────────
