@@ -1585,7 +1585,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       builder: (context) => PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationSnapshotConsentTitle),
           content: Text(l10n.migrationSnapshotConsentBody(causeBlock)),
           actions: [
@@ -2092,7 +2092,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationBelowFloorBackupFailedTitle),
           content: Text(
             causeText.isEmpty
@@ -2133,7 +2133,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       builder: (ctx) => PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationBelowFloorResetConfirmTitle),
           content: Text(pathLines.toString()),
           actions: [
@@ -2173,7 +2173,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       builder: (ctx) => PopScope(
         canPop: false,
         child: AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded),
+          icon: const Icon(Icons.warning_amber_outlined),
           title: Text(l10n.migrationBelowFloorResetConfirmTitle),
           content: Text(l10n.migrationBelowFloorResetOnlyConfirmBody),
           actions: [
