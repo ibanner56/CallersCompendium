@@ -395,7 +395,10 @@ come first, then the music, any progression detail, your other notes (under
 video web addresses become links on the dance, a dance with a Caller's Box
 number gets a link to its page there, and a book reference becomes a published
 source cited with its page, reusing a source you already have with the same
-title. In your programs, a dance you marked with a
+title. A dance's **level** comes across too. When you checked more than one
+level, such as Easy and Intermediate, the dance gets a level of its own named
+"Easy/Intermediate", placed between Beginner and Intermediate in your list of
+levels; a level you already have with that name is used instead. In your programs, a dance you marked with a
 break is followed by a **Break** slot, and a set that hid its alternates keeps
 them hidden.
 
