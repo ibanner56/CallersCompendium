@@ -2912,6 +2912,85 @@ void main() {
       expect(programs.single.title, 'Grange Hall');
     });
 
+    // INTAKE-1: a re-import row defaults to Skip (#446) and is left out of the
+    // commit, and a row committed through "Import and edit" is too. The
+    // program slots for those dances must still link to them.
+    testWidgets('re-importing with the default Skip keeps the program slots '
+        'linked to the dances already here', (tester) async {
+      final repos = openTestRepositories();
+      final first = ccUsrBytes();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => first),
+        bytePicker: () async => first,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      final linked = (await repos.programs.listAll()).single.slots
+          .map((s) => s.danceId)
+          .toList();
+      expect(linked.nonNulls, hasLength(2));
+
+      // A fresher export: the same two dances plus a new one.
+      final again = ccUsrBytes(thirdDance: true);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => again),
+        bytePicker: () async => again,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      expect(
+        find.text(
+          lookupAppLocalizations(
+            const Locale('en'),
+          ).importReviewWillImport(1, 3),
+        ),
+        findsOneWidget,
+        reason: 'the two known dances default to Skip',
+      );
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final program = (await repos.programs.listAll()).single;
+      expect(program.slots.map((s) => s.danceId).toList(), linked);
+    });
+
+    testWidgets('a dance committed through Import and edit keeps its program '
+        'slot', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpForEdit(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => ccUsrBytes()),
+        bytePicker: () async => ccUsrBytes(),
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final swing = (await repos.dances.listAll()).singleWhere(
+        (d) => d.title == 'Simplicity Swing',
+      );
+      final slot = (await repos.programs.listAll()).single.slots.first;
+      expect(slot.danceId, swing.id);
+      expect(slot.text, isNull);
+    });
+
     testWidgets('re-importing a Set dedupes onto the existing program and '
         'the dialog reports it as updated', (tester) async {
       final repos = openTestRepositories();
@@ -3668,6 +3747,45 @@ void main() {
         );
       },
     );
+
+    // INTAKE-1, scenario B: a second shared program that uses a dance from
+    // the first plans that dance as a re-import, which defaults to Skip. The
+    // new program's slot must link to the dance already here.
+    testWidgets('a second shared program links its slot to a dance received '
+        'before, which defaults to Skip', (tester) async {
+      final repos = openTestRepositories();
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      final reel = (await repos.dances.listAll()).single;
+
+      final secondProgram = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 20),
+        // A newer title, so the dance would visibly change were it written.
+        dances: [sharedDance('d1', 'Shared Reel (revised)')],
+        programs: [
+          Program(
+            id: 'p2',
+            title: 'Summer Social',
+            slots: [ProgramSlot(id: 's9', position: 0, danceId: 'd1')],
+            createdAt: DateTime.utc(2026, 5, 1),
+            updatedAt: DateTime.utc(2026, 5, 1),
+          ),
+        ],
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await pumpShared(tester, repos, bundleFor(secondProgram));
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final summer = (await repos.programs.listAll()).singleWhere(
+        (p) => p.title == 'Summer Social',
+      );
+      expect(summer.slots.single.danceId, reel.id);
+      expect(summer.slots.single.text, isNull);
+      // Skip still leaves the dance as it is.
+      expect((await repos.dances.listAll()).single.title, 'Shared Reel');
+    });
 
     testWidgets(
       'a dance that fails to import is reported in the undo snackbar, not '
