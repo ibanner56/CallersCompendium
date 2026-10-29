@@ -1,0 +1,11 @@
+{
+  "id": "u9-empty-states",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "While the sample dance is the only dance in your Collection, a \"Bring your dances in\" card offers Import dances and New dance.",
+      "The empty Collection, Programs, Venues, Custom figures and Recently deleted lists now show an icon, a title and a short explanation, with a button to add the first item where there is one.",
+      "\"No dances match your search\" now has a Clear search and filters button."
+    ]
+  }
+}

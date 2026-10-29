@@ -1684,6 +1684,14 @@
   "@settingsUpdatesStatusNoUpdate": {
     "x-sourceSha256": "2e9757f1fa4493e49072e28ddaa942cd7f19700bddac93e8e4455bf517eeb743"
   },
+  "settingsUpdatesStatusCouldNotCheck": "現在アップデートを確認できませんでした。現在のバージョンは {version} です。",
+  "@settingsUpdatesStatusCouldNotCheck": {
+    "x-sourceSha256": "c48a2169576267eccc74760ea9cd1555f18e83690ef1e5b2024c6dc179250c68"
+  },
+  "settingsUpdatesStatusNewerFormat": "新しいバージョンが Releases ページで公開されています。",
+  "@settingsUpdatesStatusNewerFormat": {
+    "x-sourceSha256": "bb2639b21578780a6e05295a5e4cc63e255d0652c55f34d9f2426b34d4e66d4a"
+  },
   "settingsUpdatesStatusAvailable": "バージョン {version} が利用可能です。バナーをご確認ください。",
   "@settingsUpdatesStatusAvailable": {
     "x-sourceSha256": "5d1e28c66662c008396804936f693e48053546929db2a1e30cd27e3f8e725ac3"
@@ -3932,9 +3940,21 @@
   "@collectionDuplicatedSnack": {
     "x-sourceSha256": "1e8abaccfd4d132fe2f88a47470b52b6877382f7f0dbd132e013442a426db6b5"
   },
-  "collectionEmpty": "コレクションは空です。ダンスを追加またはインポートして始めましょう — または上のオンライン検索をオンにしてオンラインソースからインポートしてください。",
-  "@collectionEmpty": {
-    "x-sourceSha256": "0d7c2fd85fb839f0b4ea64b103f4a66ef5ff3e3c167aafda93c8e6755ad1c936"
+  "collectionEmptyBody": "ダンスを追加またはインポートして始めましょう — または上のオンライン検索をオンにしてオンラインソースからインポートしてください。",
+  "@collectionEmptyBody": {
+    "x-sourceSha256": "7604daeeb118f95e9a4422b2efb266011a37a55b91dd0059c9acc8a26227bddc"
+  },
+  "collectionEmptyTitle": "コレクションは空です",
+  "@collectionEmptyTitle": {
+    "x-sourceSha256": "0f86ba83481174dfb5610d2b5df22c92b9cbdc189881b5a4610067ea3756c5ba"
+  },
+  "collectionImportCardTitle": "ダンスを取り込みましょう",
+  "@collectionImportCardTitle": {
+    "x-sourceSha256": "170bbd223c5b8378ad829c259498938702a9e30e61d2babf1d250e4a136cfafd"
+  },
+  "collectionImportCardBody": "お持ちのダンスをインポートするか、最初の1曲を作成してください。「The Baby Rose」はサンプルとして入っています。",
+  "@collectionImportCardBody": {
+    "x-sourceSha256": "649231300ea8176cd514a89b53a1a09c17b3841fc09ce91fe4957c980d954fdf"
   },
   "collectionFiltersTitle": "フィルター",
   "@collectionFiltersTitle": {
@@ -3963,14 +3983,6 @@
   "searchToolActiveCount": "{tool}・{count}",
   "@searchToolActiveCount": {
     "x-sourceSha256": "5b8a6a9e19d0ec31c4463cf80c078271b75f4c627707208de400747487479366"
-  },
-  "collectionUseAdvancedQuery": "詳細クエリを使用",
-  "@collectionUseAdvancedQuery": {
-    "x-sourceSha256": "60f30365a9a0dae2b2f12c870256fe9903ea7578ab6bd0096dc72f5556c1c7eb"
-  },
-  "collectionUseAdvancedQuerySubtitle": "フィギュアとシーケンスをすべて/いずれか/なしのグループで組み合わせます。",
-  "@collectionUseAdvancedQuerySubtitle": {
-    "x-sourceSha256": "11093d62284e858fce6d9304c6f0ce47e880a8358c299a30d722cdb6146df9e7"
   },
   "collectionDanceCount": "{count, plural, other{{count}件のダンス}}",
   "@collectionDanceCount": {
@@ -4514,6 +4526,10 @@
   },
   "danceMoreActions": "その他のアクション",
   "@danceMoreActions": {
+    "x-sourceSha256": "f8d46c2570e70736d62beb6e2e8df321d7cb4842a2b894f2025c47b31871d9f1"
+  },
+  "programsMoreActions": "その他のアクション",
+  "@programsMoreActions": {
     "x-sourceSha256": "f8d46c2570e70736d62beb6e2e8df321d7cb4842a2b894f2025c47b31871d9f1"
   },
   "danceSectionFigures": "フィギュア",
@@ -8650,14 +8666,6 @@
   "@collectionPickerAdvanced": {
     "x-sourceSha256": "9f088dbebd6c3c70a5ddbc2c943b11e4ca9acea5757b0b4f2b32479f0dbb747e"
   },
-  "collectionPickerUseAdvancedQuery": "詳細クエリを使用",
-  "@collectionPickerUseAdvancedQuery": {
-    "x-sourceSha256": "60f30365a9a0dae2b2f12c870256fe9903ea7578ab6bd0096dc72f5556c1c7eb"
-  },
-  "collectionPickerAdvancedQueryHelp": "フィギュアとシーケンスをすべて/いずれか/なしのグループで組み合わせます。",
-  "@collectionPickerAdvancedQueryHelp": {
-    "x-sourceSha256": "11093d62284e858fce6d9304c6f0ce47e880a8358c299a30d722cdb6146df9e7"
-  },
   "collectionPickerAddSemantic": "{title}をプログラムに追加",
   "@collectionPickerAddSemantic": {
     "x-sourceSha256": "31b0e78327b2f411c2987c9643e4c519c6c1dacb775abeba151e07f124a57c10"
@@ -9378,6 +9386,10 @@
   "@recentlyDeletedEmptyDancesKept": {
     "x-sourceSha256": "142d1ca585d677d385a5576c0eb61d09eb1bcba41d100ef3697e79b2a179271f"
   },
+  "recentlyDeletedEmptyTitle": "削除されたものはありません",
+  "@recentlyDeletedEmptyTitle": {
+    "x-sourceSha256": "fa589cb6139b3fa74547d0a2238ab91bbe378689dd6417603341cf19b7ad23a3"
+  },
   "recentlyDeletedEmptyDancesRetention": "ゴミ箱は空です。削除したダンスは削除されるまで{days}日間ここに表示されます。",
   "@recentlyDeletedEmptyDancesRetention": {
     "x-sourceSha256": "c9d92a66a393f687c97281fca98943aeb84880a3567f05db7a68e3288e3b4454"
@@ -9418,9 +9430,13 @@
   "@venueManagerClearSearchTooltip": {
     "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
   },
-  "venueManagerEmpty": "会場がまだありません。下のボタンで追加するか、再利用可能な会場をオンにしたプログラムから追加してください。",
-  "@venueManagerEmpty": {
-    "x-sourceSha256": "2ccce32d3200d8d3b47449cc0ef868f7a3baf3edfcdb79ad86caf72ace8c20c2"
+  "venueManagerEmptyBody": "ここから追加するか、再利用可能な会場をオンにしたプログラムから追加してください。",
+  "@venueManagerEmptyBody": {
+    "x-sourceSha256": "ed699db880ba60a725bb3cf6140ac4ae71a6868601fdb168df1390ca9a263361"
+  },
+  "venueManagerEmptyTitle": "会場はまだありません",
+  "@venueManagerEmptyTitle": {
+    "x-sourceSha256": "fc1231d8a1a94773b4ea5d9463bff9be4e6d56c62f65360f54f56db1c9224cfb"
   },
   "venueManagerNoMatches": "検索に一致する会場がありません。",
   "@venueManagerNoMatches": {
@@ -9841,6 +9857,10 @@
   "@customFiguresEmpty": {
     "description": "Shown on the Custom Figures screen when the user has no figures of their own yet.",
     "x-sourceSha256": "9cb149deb9a7c7ffd120fcd93aa1aac7504a56dc0d1098a31066cf66adc0cce1"
+  },
+  "customFiguresEmptyTitle": "カスタムフィギュアはまだありません",
+  "@customFiguresEmptyTitle": {
+    "x-sourceSha256": "0b22e864054e2a03508be5b48a9504da1e7d5a1305fdbcea9f1d1f7e8f9d707d"
   },
   "glossaryAddCustomFigure": "自分のフィギュアを追加",
   "@glossaryAddCustomFigure": {

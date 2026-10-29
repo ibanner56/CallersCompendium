@@ -2286,6 +2286,20 @@
       }
     }
   },
+  "settingsUpdatesStatusCouldNotCheck": "Couldn't check for updates right now. You're on version {version}.",
+  "@settingsUpdatesStatusCouldNotCheck": {
+    "description": "Status line after a manual check that could not read the update information (offline, unreachable, or unverifiable). Says nothing about whether an update exists.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.4.0"
+      }
+    }
+  },
+  "settingsUpdatesStatusNewerFormat": "A newer version is available from the Releases page.",
+  "@settingsUpdatesStatusNewerFormat": {
+    "description": "Status line after a manual check that found genuine update information in a format this version cannot read, which means a newer release exists. Releases page is the GitHub releases page of the project."
+  },
   "settingsUpdatesStatusAvailable": "Version {version} is available. See the banner to view it.",
   "@settingsUpdatesStatusAvailable": {
     "description": "Status line after a check that found a newer version.",
@@ -4782,9 +4796,21 @@
       }
     }
   },
-  "collectionEmpty": "Your collection is empty. Add or import a dance to get started — or turn on Online search above to import from an online source.",
-  "@collectionEmpty": {
-    "description": "Empty-state message shown in the results area when the collection has no dances."
+  "collectionEmptyBody": "Add or import a dance to get started — or turn on Online search above to import from an online source.",
+  "@collectionEmptyBody": {
+    "description": "Body of the empty-Collection state, under the title; says how to add the first dance."
+  },
+  "collectionEmptyTitle": "Your collection is empty",
+  "@collectionEmptyTitle": {
+    "description": "Title of the empty-Collection state."
+  },
+  "collectionImportCardTitle": "Bring your dances in",
+  "@collectionImportCardTitle": {
+    "description": "Title of the card shown while the sample dance is the only dance in the Collection."
+  },
+  "collectionImportCardBody": "Import dances you already have, or write your first one. \"The Baby Rose\" is here as a sample to look around with.",
+  "@collectionImportCardBody": {
+    "description": "Body of the card shown while the sample dance is the only dance in the Collection; points at Import dances and New dance."
   },
   "collectionFiltersTitle": "Filters",
   "@collectionFiltersTitle": {
@@ -4835,14 +4861,6 @@
         "example": "3"
       }
     }
-  },
-  "collectionUseAdvancedQuery": "Use advanced query",
-  "@collectionUseAdvancedQuery": {
-    "description": "Toggle that enables the boolean advanced-query builder."
-  },
-  "collectionUseAdvancedQuerySubtitle": "Combine figures and sequences with all / any / none groups.",
-  "@collectionUseAdvancedQuerySubtitle": {
-    "description": "Subtitle explaining what the advanced-query builder does."
   },
   "collectionDanceCount": "{count, plural, =1{1 dance} other{{count} dances}}",
   "@collectionDanceCount": {
@@ -5581,6 +5599,10 @@
   "danceMoreActions": "More actions",
   "@danceMoreActions": {
     "description": "Tooltip for the dance detail overflow (⋮) menu on narrow layouts."
+  },
+  "programsMoreActions": "More actions",
+  "@programsMoreActions": {
+    "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate and Delete on the program builder's and summary's narrow toolbars."
   },
   "danceSectionFigures": "Figures",
   "@danceSectionFigures": {
@@ -11588,14 +11610,6 @@
   "@collectionPickerAdvanced": {
     "description": "Collection-picker advanced-search section header."
   },
-  "collectionPickerUseAdvancedQuery": "Use advanced query",
-  "@collectionPickerUseAdvancedQuery": {
-    "description": "Collection-picker toggle enabling the advanced structured query builder."
-  },
-  "collectionPickerAdvancedQueryHelp": "Combine figures and sequences with all / any / none groups.",
-  "@collectionPickerAdvancedQueryHelp": {
-    "description": "Helper text describing the advanced query builder in the collection picker."
-  },
   "collectionPickerAddSemantic": "Add {title} to program",
   "@collectionPickerAddSemantic": {
     "description": "Screen-reader label for the button that adds a dance to the program.",
@@ -12546,6 +12560,10 @@
   "@recentlyDeletedEmptyDancesKept": {
     "description": "Empty state for recently-deleted dances when there is no retention window."
   },
+  "recentlyDeletedEmptyTitle": "Nothing deleted",
+  "@recentlyDeletedEmptyTitle": {
+    "description": "Title of the empty Recently deleted lists (dances and programs)."
+  },
   "recentlyDeletedEmptyDancesRetention": "Nothing in the trash. Deleted dances appear here for {days} days before being removed.",
   "@recentlyDeletedEmptyDancesRetention": {
     "description": "Empty state for recently-deleted dances with a retention window of {days} days.",
@@ -12606,9 +12624,13 @@
   "@venueManagerClearSearchTooltip": {
     "description": "Tooltip for the button that clears the venue manager's search field."
   },
-  "venueManagerEmpty": "No venues yet. Add one with the button below, or from a program when reusable venues are turned on.",
-  "@venueManagerEmpty": {
-    "description": "Empty state for the venue manager when no venues exist yet."
+  "venueManagerEmptyBody": "Add one here, or from a program when reusable venues are turned on.",
+  "@venueManagerEmptyBody": {
+    "description": "Body of the empty Venues state, under the title; the add button sits right below it."
+  },
+  "venueManagerEmptyTitle": "No venues yet",
+  "@venueManagerEmptyTitle": {
+    "description": "Title of the empty Venues list."
   },
   "venueManagerNoMatches": "No venues match your search.",
   "@venueManagerNoMatches": {
@@ -13172,6 +13194,10 @@
   "customFiguresEmpty": "You haven't made any figures of your own yet. Choose + to add one.",
   "@customFiguresEmpty": {
     "description": "Shown on the Custom Figures screen when the user has no figures of their own yet."
+  },
+  "customFiguresEmptyTitle": "No custom figures yet",
+  "@customFiguresEmptyTitle": {
+    "description": "Title of the empty Custom figures list."
   },
   "glossaryAddCustomFigure": "Add your own figure",
   "@glossaryAddCustomFigure": {

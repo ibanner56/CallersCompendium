@@ -23,6 +23,7 @@ import '../data/online_search.dart';
 import '../data/require_event_date_for_history_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
+import '../data/seed_service.dart' show kBabyRoseSeedDanceId;
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
@@ -48,11 +49,13 @@ import '../widgets/batch_tunes_dialog.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/by_phrase_panel.dart';
 import '../widgets/dance_list_tile.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/facet_panel.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/online_import_dialogs.dart';
 import '../widgets/online_import_snack_bar.dart';
 import '../widgets/online_result_tile.dart';
+import '../widgets/online_search_toggle.dart';
 import '../widgets/search_panel_bar.dart';
 import '../widgets/skeleton.dart';
 import '../sync/sync_scope.dart';
@@ -86,7 +89,7 @@ import 'dance_reimport_flow.dart';
 /// reload request and silently done nothing.
 ///
 /// **Caller's Box online search** (`docs/design/callersbox.md`): when the user
-/// turns on the "Online search" switch inside the Advanced panel, the search
+/// turns on the "Online search" icon beside the search tools, the search
 /// text becomes a live query against The Caller's Box and [OnlineResultTile]
 /// rows replace the local results. In split-pane mode the shell passes
 /// [onSelectOnlineDance] so a tapped online result previews in the detail pane;
@@ -237,7 +240,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
-  bool _advancedEnabled = false;
 
   /// Keep the search field and Search in the same widgets when the header
   /// switches between one row and two (a rotation or a window resize), so a
@@ -515,7 +517,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _byPhrase.clear();
       _advancedRoot.children.clear();
       _advancedRoot.kind = GroupKind.all;
-      _advancedEnabled = false;
       _ftsScope = _localFtsScope;
       _onlineEnabled = false;
       // Invalidate any in-flight online search so a late response can't
@@ -800,7 +801,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     facets: _facets,
     scope: _ftsScope,
     byPhrase: _byPhrase,
-    advancedRoot: _advancedEnabled ? _advancedRoot : null,
+    advancedRoot: _advancedRoot,
   );
 
   List<CollectionSort> get _availableSorts => [
@@ -835,7 +836,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         defs: data.customFieldDefs,
         scope: _ftsScope,
         byPhrase: _byPhrase,
-        advancedRoot: _advancedEnabled ? _advancedRoot : null,
+        advancedRoot: _advancedRoot,
         callerFilter: data.callerFilter,
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
@@ -1335,7 +1336,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _byPhrase.clear();
       _advancedRoot.children.clear();
       _advancedRoot.kind = GroupKind.all;
-      _advancedEnabled = false;
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
@@ -1347,7 +1347,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _ftsController.text.trim().isNotEmpty ||
       !_facets.isEmpty ||
       !_byPhrase.isEmpty ||
-      (_advancedEnabled && _advancedRoot.toFilter() != null);
+      _advancedRoot.toFilter() != null;
 
   void _enterSelectionMode([String? initialId]) {
     setState(() {
@@ -2522,7 +2522,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
 
     // A brand-new user with no local dances still needs the search UI so they
-    // can reach the "Online search" toggle (in the Advanced panel) and import
+    // can reach the "Online search" icon (beside the search tools) and import
     // their first dance from The Caller's Box — so the empty-collection message
     // now renders inside the results area rather than replacing the whole body.
     final collectionEmpty = data.dancesById.isEmpty;
@@ -2542,7 +2542,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             : l10n.collectionSearchFieldHint,
         // Dense, like Search in beside it, so the two line up in one row.
         isDense: true,
-        prefixIcon: Icon(_onlineEnabled ? Icons.cloud_outlined : Icons.search),
+        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
         suffixIcon: _hasActiveQuery
             ? IconButton(
                 tooltip: l10n.collectionClearSearchTooltip,
@@ -2641,8 +2641,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   // Which tools appear in which mode is documented on
                   // [_buildSearchPanels]. By-phrase maps onto TCB's own "search
                   // by phrase" fields, so it's offered for the Caller's Box
-                  // source even with an empty local collection, and hidden for
-                  // sources without by-phrase support (ContraDB).
+                  // source even with an empty local collection; for sources
+                  // without by-phrase support (ContraDB) it is greyed out, or
+                  // absent when the collection is empty.
                   _buildSearchPanels(data, collectionEmpty),
                   if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
                   const Divider(height: 1),
@@ -2652,8 +2653,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 _buildOnlineResultsSliver()
               else if (collectionEmpty)
                 _buildEmptyCollectionSliver()
-              else
+              else ...[
+                if (_onlyTheSampleDance(data) && !_hasActiveQuery)
+                  _buildImportCardSliver(),
                 _buildResultsSliver(),
+              ],
               // Lets the last row scroll clear of the "New dance" FAB.
               const SliverToBoxAdapter(
                 child: SizedBox(height: AppSpacing.fabClearance),
@@ -2665,21 +2669,74 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
+  /// Whether the first-run sample is the only dance in the Collection. Judged
+  /// from the dance's fixed seed id, so no marker is stored: deleting the
+  /// sample, or adding any dance of one's own, ends it.
+  bool _onlyTheSampleDance(CollectionData data) =>
+      data.dancesById.length == 1 &&
+      data.dancesById.containsKey(kBabyRoseSeedDanceId);
+
+  /// Import and New dance, the two ways to start filling the Collection; shared
+  /// by the empty state and the sample-only card.
+  List<Widget> _startActions(AppLocalizations l10n) => [
+    if (widget.onImport != null)
+      OutlinedButton.icon(
+        key: const ValueKey('collection-empty-import'),
+        onPressed: widget.onImport,
+        icon: const Icon(Icons.file_download_outlined),
+        label: Text(l10n.importDances),
+      ),
+    FilledButton.icon(
+      key: const ValueKey('collection-empty-new-dance'),
+      onPressed: _openNewDance,
+      icon: const Icon(Icons.add),
+      label: Text(l10n.collectionNewDance),
+    ),
+  ];
+
   Widget _buildEmptyCollectionSliver() {
     final l10n = AppLocalizations.of(context);
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: EmptyState(
+        key: const ValueKey('collection-empty'),
+        icon: BrandMark(
+          size: 64,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        title: l10n.collectionEmptyTitle,
+        body: l10n.collectionEmptyBody,
+        actions: _startActions(l10n),
+      ),
+    );
+  }
+
+  /// Shown above the list while only the sample dance is present, so a first
+  /// launch points at importing rather than leaving the sample to read as the
+  /// whole app.
+  Widget _buildImportCardSliver() {
+    final l10n = AppLocalizations.of(context);
     return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Center(
+      child: Card(
+        key: const ValueKey('collection-import-card'),
+        margin: const EdgeInsets.all(AppSpacing.md),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BrandMark(
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Text(
+                l10n.collectionImportCardTitle,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: AppSpacing.md),
-              Text(l10n.collectionEmpty, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.xs),
+              Text(l10n.collectionImportCardBody),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: _startActions(l10n),
+              ),
             ],
           ),
         ),
@@ -2689,19 +2746,31 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// The search tools that apply to the current mode, as one compact row of
   /// toggles ([SearchPanelBar]). Local filters can't apply to online results,
-  /// and an empty collection has nothing to filter, so Filters is hidden then;
-  /// By phrase is offered for local search and for online sources that support
-  /// it. Advanced is always offered: it hosts the Online search toggle.
+  /// so while online Filters and Advanced stay in the row greyed out (the row
+  /// does not jump, and a choice made in them is still shown as in force for
+  /// when the user returns); an empty collection has nothing to filter, so
+  /// Filters is left out then. By phrase is enabled for local search and for
+  /// online sources that support it, and greyed out for those that do not.
+  ///
+  /// The Online search icon ends the row in both modes: it is how a user
+  /// enters and leaves online mode, so it must not depend on the mode. While
+  /// online, the source selector sits full-width under the row.
   Widget _buildSearchPanels(CollectionData data, bool collectionEmpty) {
     final l10n = AppLocalizations.of(context);
     final filtersActive = _facets.activeCount;
     final byPhraseActive = _byPhraseActiveCount();
-    return SearchPanelBar(
+    final panelBar = SearchPanelBar(
       storageId: 'collection',
+      trailing: OnlineSearchToggle(
+        key: const ValueKey('online-search-enable'),
+        enabled: _onlineEnabled,
+        onChanged: _onOnlineToggled,
+      ),
       panels: [
-        if (!_onlineEnabled && !collectionEmpty)
+        if (!collectionEmpty)
           SearchPanelSpec(
             key: const ValueKey('filters-panel'),
+            enabled: !_onlineEnabled,
             label: filtersActive == 0
                 ? l10n.collectionFiltersTitle
                 : l10n.searchToolActiveCount(
@@ -2713,10 +2782,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 : l10n.collectionFiltersActive(filtersActive),
             builder: (_) => _buildFiltersPanel(data),
           ),
-        if ((_onlineEnabled && _onlineSource.supportsByPhrase) ||
-            (!_onlineEnabled && !collectionEmpty))
+        if (!collectionEmpty ||
+            (_onlineEnabled && _onlineSource.supportsByPhrase))
           SearchPanelSpec(
             key: const ValueKey('by-phrase-panel'),
+            enabled: !_onlineEnabled || _onlineSource.supportsByPhrase,
             label: byPhraseActive == 0
                 ? l10n.collectionByPhraseTitle
                 : l10n.searchToolActiveCount(
@@ -2730,16 +2800,45 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ),
         SearchPanelSpec(
           key: const ValueKey('advanced-panel'),
-          // Online results are not narrowed by the query; only say it is on
-          // where it applies.
-          label:
-              !_onlineEnabled &&
-                  _advancedEnabled &&
-                  _advancedRoot.toFilter() != null
+          enabled: !_onlineEnabled,
+          label: _advancedRoot.toFilter() != null
               ? l10n.collectionAdvancedActive
               : l10n.collectionAdvancedTitle,
           builder: (_) => _buildAdvancedPanel(data),
         ),
+      ],
+    );
+    // The bar is always the Column's first child, so toggling online keeps its
+    // state (open tool, scroll and focus inside a panel) instead of rebuilding it.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        panelBar,
+        if (_onlineEnabled)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
+            child: SegmentedButton<OnlineSource>(
+              key: const ValueKey('online-source-selector'),
+              // Full width, so the sources read as the row's second line.
+              expandedInsets: EdgeInsets.zero,
+              segments: [
+                for (final source in OnlineSource.values)
+                  ButtonSegment<OnlineSource>(
+                    value: source,
+                    label: Text(source.label),
+                  ),
+              ],
+              selected: {_onlineSource},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) =>
+                  _onOnlineSourceChanged(selection.first),
+            ),
+          ),
       ],
     );
   }
@@ -2796,68 +2895,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildAdvancedPanel(CollectionData data) {
-    final l10n = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SwitchListTile(
-          key: const ValueKey('online-search-enable'),
-          contentPadding: EdgeInsets.zero,
-          secondary: const Icon(Icons.cloud_outlined),
-          title: Text(l10n.onlineSearchToggleTitle),
-          subtitle: Text(l10n.onlineSearchToggleSubtitle),
-          value: _onlineEnabled,
-          onChanged: _onOnlineToggled,
-        ),
-        if (_onlineEnabled)
-          Padding(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.xs,
-              bottom: AppSpacing.sm,
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: SegmentedButton<OnlineSource>(
-                key: const ValueKey('online-source-selector'),
-                segments: [
-                  for (final source in OnlineSource.values)
-                    ButtonSegment<OnlineSource>(
-                      value: source,
-                      label: Text(source.label),
-                    ),
-                ],
-                selected: {_onlineSource},
-                showSelectedIcon: false,
-                onSelectionChanged: (selection) =>
-                    _onOnlineSourceChanged(selection.first),
-              ),
-            ),
-          ),
-        SwitchListTile(
-          key: const ValueKey('advanced-enable'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.collectionUseAdvancedQuery),
-          subtitle: Text(l10n.collectionUseAdvancedQuerySubtitle),
-          value: _advancedEnabled,
-          // Disabled while online search is active — the advanced query is a
-          // local-only facet that can't apply to Caller's Box results.
-          onChanged: _onlineEnabled
-              ? null
-              : (value) {
-                  setState(() => _advancedEnabled = value);
-                  _runSearch();
-                },
-        ),
-        if (_advancedEnabled && !_onlineEnabled)
-          AdvancedQueryBuilder(
-            root: _advancedRoot,
-            taxonomy: data.taxonomy,
-            dialect: _dialect,
-            sectionLabels: data.sectionLabels,
-            tags: data.tags,
-            onChanged: _onAdvancedChanged,
-          ),
-      ],
+    return AdvancedQueryBuilder(
+      root: _advancedRoot,
+      taxonomy: data.taxonomy,
+      dialect: _dialect,
+      sectionLabels: data.sectionLabels,
+      tags: data.tags,
+      onChanged: _onAdvancedChanged,
     );
   }
 
@@ -2990,7 +3034,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Center(child: Text(l10n.collectionNoResults)),
+          child: Column(
+            children: [
+              Text(l10n.collectionNoResults, textAlign: TextAlign.center),
+              if (_hasActiveQuery) ...[
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton.icon(
+                  key: const ValueKey('collection-no-results-clear'),
+                  onPressed: _clearAll,
+                  icon: const Icon(Icons.clear),
+                  label: Text(l10n.collectionClearSearchTooltip),
+                ),
+              ],
+            ],
+          ),
         ),
       );
     }

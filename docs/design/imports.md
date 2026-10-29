@@ -771,7 +771,10 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   `square_through` since #799 and every side-slot move since #843): `C1`–`C3` — TCB's *"Corners (square)"* ("the non-partner next
   to you… the person across from you… the remaining person") are a **different
   concept** from its separate *"First/second corners"* entry, which is what
-  `firstCorners`/`secondCorners` model; `P6`+/`P-n` (mixer partners beyond the
+  `firstCorners`/`secondCorners` model (the maintainer has since ruled, on
+  #1975, that a square's corner is the same dancer as a contra first corner;
+  revisiting C1–C3 waits on third corners and opposites becoming dancer sets);
+  `P6`+/`P-n` (mixer partners beyond the
   modelled depth); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
   `TB*` (trail buddy), `SR*`; and a bare `R`/`L` cell, which states a hand but
   no dancer.
@@ -1555,6 +1558,27 @@ has to be judged in its own context.
   starting role's is `rico1` and the other role's `rico2` (maintainer
   decision); any other ricochet keeps the line custom. A bracketed pass list,
   which this reader does not decode, is the note.
+
+  **Caller's Companion dancer names (#1975):** `_takeDancer` (and
+  `_takeLeadingDancer`) read `new neighbor(s)` as `nextNeighbors` and a
+  singular `corner` as `firstCorners`, with `1st`/`first` and `2nd`/`second`
+  corner(s) naming either corner. They do so for every source, not only
+  Caller's Companion: the maintainer ruled (2026-10-29) that a first corner is
+  the same in contra and squares, so a square's `Allemande left your corner`
+  from The Caller's Box reads the same way. `resolveDancerSetPhrase` shares
+  the reader, so a Caller's Box `[with corner]` bracket on a balance-the-wave
+  line now keeps the note `with firstCorners`, as `[with partner]` keeps `with
+  partners`, where it was dropped before. The bare `Corner` and the ordinal
+  readings are the maintainer's decisions (#1975; the ordinals and the scope
+  on 2026-10-29). A bare plural (`allemande left the corners`, ContraDB's
+  contra-corners text) may mean both corners in turn, so it is not read. A
+  numbered corner (`Corner 2 swing`, `Corner 3 Right Shoulder Round`) is not
+  read either: like TCB's C1–C3 pass-list codes it numbers a square's corners,
+  and third corners and opposites are not yet dancer sets.
+  `_foldDancerNumbers` marks its number as it does a dancer number's, so the
+  line stays custom rather than reading the number as an amount. These are
+  context-dependent two-word names, so they live in the reader rather than in
+  `dancerWords`.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on
