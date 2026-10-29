@@ -2357,7 +2357,8 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
   final notes = <String>[];
   final extraParams = <String, Object?>{};
   // A roll away's roller named by a `()` annotation is read first, so a leading
-  // `[Women]` cannot claim `who` against it; the bracket then stays a note.
+  // bracket naming the women cannot claim `who` against it; the bracket then
+  // stays a note.
   final roller = _rollAwayRoller(match, [
     for (final annotation in annotations)
       if (!annotation.isSquare) ...[
@@ -2418,8 +2419,8 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
     match,
     _joinAnnotations(notes),
     extraParams: extraParams,
-    // A leading `[Larks]` states the subject the grammar assumed, as a roller
-    // annotation does.
+    // A leading bracket naming the larks states the subject the grammar
+    // assumed, as a roller annotation does.
     subjectStated: extraParams.containsKey('who'),
   );
 }
