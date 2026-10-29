@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "\"New Neighbor swing\" and \"Corner allemande Left 1.0\", as Caller's Companion writes them, now come in as a swing with your next neighbor and an allemande with your first corner, instead of text. \"1st corner\" and \"2nd corner\" work too. This applies to imports and to figures you type."
+      "\"New Neighbor swing\" and \"Corner allemande Left 1.0\", as Caller's Companion writes them, now come in as a swing with your next neighbor and an allemande with your first corner, instead of text. \"1st corner\" and \"2nd corner\" work too. This applies to every import and to figures you type."
     ]
   },
   "core": {
     "changed": [
-      "The shared figure recognizer reads \"new neighbor(s)\" as nextNeighbors and a singular \"corner\" as firstCorners, with first/1st and second/2nd corner(s) naming either corner."
+      "The shared figure recognizer reads \"new neighbor(s)\" as nextNeighbors and a singular \"corner\" as firstCorners, with first/1st and second/2nd corner(s) naming either corner, for every source. A number after a corner word is not read as an amount."
     ]
   }
 }
