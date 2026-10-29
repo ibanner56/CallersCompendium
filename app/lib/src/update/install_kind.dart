@@ -22,7 +22,7 @@ const bool kPlayStoreBuild = bool.fromEnvironment(
 );
 
 /// The file Inno Setup writes beside the installed executable. The installer
-/// (`packaging/windows/CallersCompendium.iss`) sets no `UninstallFilesDir`, so
+/// (`packaging/windows/CallersCompendium.iss`) leaves the uninstaller in the app folder (no UninstallFilesDir), so
 /// the first uninstaller is always this one; the portable zip has none.
 const String kWindowsUninstallerName = 'unins000.exe';
 
