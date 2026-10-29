@@ -681,6 +681,7 @@ String? _takeDancer(List<String> w) {
       w.removeRange(i, i + 2);
       return 'sameRoles';
     }
+    if (_takeNamedDancerAt(w, i) case final named?) return named;
     final token = dancerWords[w[i]];
     if (token != null) {
       final raw = w.removeAt(i);
@@ -720,6 +721,39 @@ bool _isSameRolePair(List<String> w, int i) =>
     sameRoleQualifiers.contains(w[i]) &&
     (w[i + 1] == 'neighbor' || w[i + 1] == 'neighbors');
 
+/// Removes and returns the dancer set Caller's Companion names at `w[i]`, or
+/// null (#1975): "New Neighbor" is the next neighbors, and "Corner" the first
+/// corners ("1st"/"2nd", "first"/"second" corner name either). A bare plural
+/// ("the corners") may mean both corners in turn, so only the singular is
+/// read; a corner in "contra corners" is the figure, not a dancer.
+String? _takeNamedDancerAt(List<String> w, int i) {
+  final word = w[i];
+  final next = i + 1 < w.length ? w[i + 1] : null;
+  if (word == 'new' && _neighborWords.contains(next)) {
+    w.removeRange(i, i + 2);
+    return 'nextNeighbors';
+  }
+  if (_cornerOrdinals[word] case final corners?
+      when _cornerWords.contains(next)) {
+    w.removeRange(i, i + 2);
+    return corners;
+  }
+  if (word == 'corner' && (i == 0 || w[i - 1] != 'contra')) {
+    w.removeAt(i);
+    return 'firstCorners';
+  }
+  return null;
+}
+
+const Set<String> _cornerWords = {'corner', 'corners'};
+
+const Map<String, String> _cornerOrdinals = {
+  'first': 'firstCorners',
+  '1st': 'firstCorners',
+  'second': 'secondCorners',
+  '2nd': 'secondCorners',
+};
+
 /// Like [_takeDancer] but ONLY matches a dancer set at the FRONT of [w].
 /// Recognizers whose grammar requires a *leading* dancer ("Ones turn contra
 /// corners", "Men give-and-take partner") use this so an unattested word order
@@ -732,6 +766,7 @@ String? _takeLeadingDancer(List<String> w) {
     w.removeRange(0, 2);
     return 'sameRoles';
   }
+  if (_takeNamedDancerAt(w, 0) case final named?) return named;
   final token = dancerWords[w[0]];
   if (token == null) return null;
   final raw = w.removeAt(0);
