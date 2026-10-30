@@ -7,7 +7,9 @@ from the 2026-10 behavior audit. The maintainer answered its five questions on
 `maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`);
 [Decisions](#decisions) quotes them. Conforms to [ux.md](ux.md) "Cross-cutting
 UX rules". Docs-only: this note changes no app code and settles no D-11 question
-(Save, New and header placement).*
+(Save, New and header placement). The Guide citations under "Problem" are for
+`main` at `281fce0`; every other line number dates from the note's first draft
+(2026-10-29) and may have moved since.*
 
 ## Problem
 
@@ -20,8 +22,8 @@ pointer cannot select.
 The audit report says `SelectionArea` appears in the Guide. It does not. There
 is no `SelectionArea` and no `SelectableRegion` anywhere in `app/lib`. The
 Guide renders with `Markdown(selectable: true)`
-(`app/lib/src/screens/user_guide/user_guide_doc_view.dart:154`) and a
-`SelectableText` heading builder (`:221`). That makes each Markdown block its
+(`app/lib/src/screens/user_guide/user_guide_doc_view.dart:173`) and a
+`SelectableText` heading builder (`:244`). That makes each Markdown block its
 own selection island: a drag cannot cross from one paragraph to the next. The
 Guide is a precedent for *whether* to allow selection, not for *how* to build
 it here.
