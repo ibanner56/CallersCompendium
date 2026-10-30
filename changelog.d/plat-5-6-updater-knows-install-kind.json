@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "The app now knows how it was installed. Copies from the App Store, TestFlight or Google Play no longer look for updates (the store updates them), and Settings › Updates says so. If you run the Windows zip or the Linux tar.gz, the update message now tells you to download the new archive from the release, instead of offering an installer that would put a second copy on your computer."
+      "The app now knows how it was installed. Copies from the App Store, TestFlight or Google Play no longer offer updates (the store updates them), and Settings › Updates says so. They still warn you about an end of support if Check automatically is on, and Get update on that warning opens the store. If you run the Windows zip or the Linux tar.gz, the update message now tells you to download the new archive from the release, instead of offering an installer that would put a second copy on your computer."
     ]
   }
 }

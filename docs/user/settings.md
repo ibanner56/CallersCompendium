@@ -513,8 +513,11 @@ can read what's new before deciding.
 How you installed the app decides what Updates offers:
 
 - **Installed from an app store** (iOS, or Android through Google Play): the
-  store updates the app. Updates shows a note saying so, and the app never
-  checks for updates itself.
+  store updates the app. Updates shows a note saying so, with no **Check for
+  updates** button, and the app never offers an update. With **Check
+  automatically** on, it still looks for an end-of-support date; the notice
+  appears here and as a banner, and **Get update** opens the store (TestFlight on
+  iOS, Google Play on Android).
 - **Portable copy** (the Windows .zip or the Linux .tar.gz): the app checks as
   usual, but instead of **Download & install update** it tells you to download
   the new archive from the release. Tap the row (or **View release** on the

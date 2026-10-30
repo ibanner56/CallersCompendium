@@ -247,7 +247,9 @@ Two kinds of copy don't update this way, and the app knows which you have:
 
 - **Installed from an app store.** On **iOS** (TestFlight or the App Store) and
   on Android through **Google Play**, the store updates the app, so it never
-  checks for updates itself and **Settings › Updates** says so.
+  offers an update or a **Check for updates** button, and **Settings › Updates**
+  says so. If you've turned on **Check automatically**, it still looks for an
+  end-of-support date, and **Get update** on that notice opens the store.
 - **Portable copy.** If you run the Windows **.zip** or the Linux **.tar.gz**
   (rather than the Windows installer or the Linux AppImage), the app tells you
   when there's a newer version and sends you to the release to download the new

@@ -141,8 +141,9 @@ head for the guide list to find your way around.
 ### How do I get updates?
 
 If you installed from an app store (the App Store or TestFlight on iOS, or Google
-Play on Android), the store updates the app for you and the app never checks on
-its own.
+Play on Android), the store updates the app for you and the app never offers an
+update. (With **Check automatically** on, it still warns you if your version is
+reaching its end of support.)
 
 Otherwise the app can check for a newer version itself. Open **Settings ›
 Updates** and choose **Check for updates** any time. On desktop it can download

@@ -32,7 +32,8 @@ enum InstallKind {
   standard,
 
   /// Installed from an app store (TestFlight, App Store or Google Play). The
-  /// store updates it, so the app does not check for updates itself.
+  /// store updates it, so the app never offers an update; it only reads the
+  /// release information for an end-of-support date.
   store,
 
   /// Unpacked from the Windows zip or the Linux tar.gz. The update is a new

@@ -2773,13 +2773,13 @@ abstract class AppLocalizations {
   /// **'Your update is ready. Mount the disk image and close the app so you can replace it in Applications.'**
   String get settingsUpdatesMacosReadySubtitle;
 
-  /// Title of the only row in Settings > Updates on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy never checks for updates itself.
+  /// Title of the row in Settings > Updates, in place of the Check for updates action, on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update.
   ///
   /// In en, this message translates to:
   /// **'Updates come from your app store'**
   String get settingsUpdatesStoreTitle;
 
-  /// Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action.
+  /// Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action. It still looks for an end-of-support date.
   ///
   /// In en, this message translates to:
   /// **'This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.'**

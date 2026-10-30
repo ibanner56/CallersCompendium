@@ -223,7 +223,7 @@ class UpdateController extends ChangeNotifier {
   final UpdateArch _arch;
 
   /// How this copy was installed (PLAT-5, PLAT-6). A [InstallKind.store] copy
-  /// never checks; a [InstallKind.portable] copy checks but is pointed at the
+  /// is never offered an update (it reads an end-of-support date only); a [InstallKind.portable] copy checks but is pointed at the
   /// release instead of being handed an installer it cannot use.
   final InstallKind installKind;
 
