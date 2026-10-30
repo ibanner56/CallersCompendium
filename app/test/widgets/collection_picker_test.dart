@@ -470,6 +470,41 @@ void main() {
     expect(find.text('Filters · 1'), findsOneWidget);
   });
 
+  testWidgets('the picker\'s Tags facet requires all tags by default, and '
+      'drops a tag no dance carries any more (FIND-14)', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Both', tagIds: const ['t1', 't2']),
+    );
+    await repos.dances.create(
+      _dance(id: 'b', title: 'Smooth Only', tagIds: const ['t1']),
+    );
+
+    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-filters-panel')),
+    );
+    await _tapVisible(tester, find.byKey(const ValueKey('tag-t1')));
+    await _tapVisible(tester, find.byKey(const ValueKey('tag-t2')));
+    expect(_titles(tester), ['Both']);
+    expect(find.byKey(const ValueKey('facet-tags-match-mode')), findsOneWidget);
+
+    // New data in which no dance carries t2: the picker keeps its state and
+    // drops t2 rather than matching nothing.
+    final stored = await repos.dances.getById('a');
+    await repos.dances.update(stored!.copyWith(tagIds: const ['t1']));
+    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await tester.pumpAndSettle();
+    expect(_titles(tester), ['Both', 'Smooth Only']);
+    expect(find.text('Filters · 1'), findsOneWidget);
+  });
+
   testWidgets('title sort ignores leading articles by default', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'the', title: 'The Apple'));

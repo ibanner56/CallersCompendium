@@ -226,7 +226,7 @@ abstract class AppLocalizations {
   /// **'Could not prepare the collection.'**
   String get appBootstrapError;
 
-  /// Button on the startup error screen that copies the error type and stack trace (not the message) to the clipboard.
+  /// Button on the startup error screen that copies the error type, its stack trace (scrubbed of file paths) and, on the terminal startup screens, their typed details such as version numbers (never the error message) to the clipboard.
   ///
   /// In en, this message translates to:
   /// **'Copy details'**
@@ -244,10 +244,22 @@ abstract class AppLocalizations {
   /// **'Details were also written to the diagnostics log in the app’s support folder.'**
   String get appBootstrapLogHint;
 
-  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered.
+  /// Button on the terminal startup screens (newer data, too-old data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded.
   ///
   /// In en, this message translates to:
-  /// **'This data was created by a newer version of Caller’s Compendium — please update the app.'**
+  /// **'Open the Releases page'**
+  String get appBootstrapReleasesLink;
+
+  /// Second line of the newer-data startup screen. {fileVersion} is the storage format version recorded in the user's data file, {appVersion} the highest storage format version this build can read; both are plain integers. Helps a bug report and tells the user how far behind the app is.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.'**
+  String migrationDowngradeVersions(int fileVersion, int appVersion);
+
+  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened.
+  ///
+  /// In en, this message translates to:
+  /// **'This data was created by a newer version of Caller’s Compendium. Update the app, then reopen it.'**
   String get migrationDowngradeMessage;
 
   /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered.
@@ -4750,7 +4762,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the deleted-dance retention duration setting.
   ///
   /// In en, this message translates to:
-  /// **'Deleted dances and programs are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.'**
+  /// **'Deleted dances and programs are kept for this long before being permanently removed on app launch. With Device Sync this applies on all your devices: a shared item is cleared everywhere, leaving only a small deletion record. Never keeps them until you purge manually.'**
   String get settingsGeneralSoftDeleteRetentionSubtitle;
 
   /// Deleted-dance retention dropdown option showing a fixed number of days. Keep 'days' literal for every value to preserve the current English UI.
@@ -5809,10 +5821,10 @@ abstract class AppLocalizations {
   /// **'Mixer'**
   String get commonMixer;
 
-  /// Tooltip on a tag chip that filters the collection to dances carrying that tag.
+  /// Tooltip on a tag chip (a Collection row, or a dance's detail page). Tapping it adds the tag to the Collection's Tags filter and keeps the rest of the search; from a detail page it also switches to the Collection.
   ///
   /// In en, this message translates to:
-  /// **'Show dances tagged “{tagName}”'**
+  /// **'Add “{tagName}” to the Collection filters'**
   String commonShowDancesTaggedTooltip(String tagName);
 
   /// Snackbar confirming a dance was soft-deleted, quoting its title.
@@ -6336,6 +6348,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Untagged'**
   String get collectionFacetUntagged;
+
+  /// Screen-reader label for the choice under the Tags filter, shown once two or more tags are selected, between requiring all of them and any of them.
+  ///
+  /// In en, this message translates to:
+  /// **'Match tags'**
+  String get collectionFacetTagsMatchLabel;
+
+  /// Segment of the Tags filter's match choice: a dance must carry every selected tag. The default when a second tag is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'All tags'**
+  String get collectionFacetTagsMatchAll;
+
+  /// Tooltip for the 'All tags' segment of the Tags filter's match choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Show dances that have every selected tag'**
+  String get collectionFacetTagsMatchAllTooltip;
+
+  /// Segment of the Tags filter's match choice: a dance needs only one of the selected tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Any tag'**
+  String get collectionFacetTagsMatchAny;
+
+  /// Tooltip for the 'Any tag' segment of the Tags filter's match choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Show dances that have at least one selected tag'**
+  String get collectionFacetTagsMatchAnyTooltip;
 
   /// Filter section heading for the cited-source facet.
   ///

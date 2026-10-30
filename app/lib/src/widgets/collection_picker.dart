@@ -308,6 +308,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
               (dance) => dance.authorIds.contains(id),
             );
       });
+      // A tag no live dance carries has no chip left; see retainTags. The
+      // search below re-runs for any data change.
+      _facets.retainTags([for (final t in widget.data.tags) t.id]);
       dataChanged = true;
     }
     final hostOverrideAdvanced = _results.any((entry) {
