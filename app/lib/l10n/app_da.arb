@@ -3904,10 +3904,6 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
-  "collectionPickerOnlineSearchFieldHint": "Søg online efter danse efter titel…",
-  "@collectionPickerOnlineSearchFieldHint": {
-    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
-  },
   "collectionSearchScopeLabel": "Søg i",
   "@collectionSearchScopeLabel": {
     "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"

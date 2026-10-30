@@ -30,6 +30,7 @@ import '../data/calling_history_caller_filter.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
+import '../search/collection_opening_sort.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/dance_detail_data.dart';
@@ -48,6 +49,7 @@ import '../widgets/batch_tag_dialog.dart';
 import '../widgets/batch_tunes_dialog.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/by_phrase_panel.dart';
+import '../widgets/collection_search_controls.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/facet_panel.dart';
@@ -240,12 +242,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
-
-  /// Keep the search field and Search in the same widgets when the header
-  /// switches between one row and two (a rotation or a window resize), so a
-  /// focused field keeps focus and the keyboard stays up.
-  final _searchFieldKey = GlobalKey();
-  final _searchScopeKey = GlobalKey();
 
   CollectionSort _sort = CollectionSort.title;
 
@@ -691,65 +687,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Future<void> _seedDefaultSort() async {
     if (_defaultSortSeeded || _sortUserSet) return;
     _defaultSortSeeded = true;
-    // A settings read/decode failure must not fail the whole Collection load:
-    // fall back silently to the historical default (title, ascending).
-    SortDefaultSetting<CollectionSort> mode;
-    try {
-      final stored = await _repos.settings.get(kDefaultCollectionSortKey);
-      mode = sortDefaultSettingFromStored(
-        stored,
-        collectionSortFromName,
-        CollectionSort.title,
-      );
-    } catch (_) {
-      // diagnostics: silent — a settings read/decode failure must not fail the
-      // whole Collection load; fall back to the historical default (title,
-      // ascending).
-      return;
-    }
-    if (!mounted || _sortUserSet) return;
-    CollectionSort sort;
-    SortDirection direction;
-    if (mode.isLastUsed) {
-      // "Last used": seed from the list's own last-used sort + direction
-      // (issue #895), not the fixed default. A second settings read, tolerant
-      // of failure the same way as the mode read above.
-      try {
-        final storedSort = await _repos.settings.get(
-          kLastUsedCollectionSortKey,
-        );
-        final storedDirection = await _repos.settings.get(
-          kLastUsedCollectionSortDirectionKey,
-        );
-        sort = collectionSortFromName(storedSort) ?? CollectionSort.title;
-        direction =
-            sortDirectionFromName(storedDirection) ??
-            sort.searchSort.defaultDirection;
-      } catch (_) {
-        // diagnostics: silent — same tolerance as the mode read above; fall
-        // back by returning and leaving the built-in default in place.
-        return;
-      }
-      if (!mounted || _sortUserSet) return;
-    } else {
-      // A fixed default opens in the direction chosen in Settings ▸ Defaults
-      // (issue #1841), or the sort's natural direction when none is stored or
-      // it is unrecognised. Never the last-used direction, so this branch never
-      // reads the last-used keys.
-      sort = mode.sort;
-      direction = sort.searchSort.defaultDirection;
-      try {
-        direction =
-            sortDirectionFromName(
-              await _repos.settings.get(kDefaultCollectionSortDirectionKey),
-            ) ??
-            direction;
-      } catch (_) {
-        // diagnostics: silent — direction read failed; the fixed sort still
-        // applies, in its natural direction.
-      }
-      if (!mounted || _sortUserSet) return;
-    }
+    // A settings read failure must not fail the whole Collection load: the
+    // reader returns null and the historical default (title, ascending) stays.
+    final opening = await readCollectionOpeningSort(_repos.settings);
+    if (opening == null || !mounted || _sortUserSet) return;
+    final (:sort, :direction) = opening;
 
     // Compare the (sort, direction) PAIR, not just the sort key: a key-only
     // comparison skips this `setState` whenever the resolved sort equals the
@@ -804,13 +746,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     advancedRoot: _advancedRoot,
   );
 
-  List<CollectionSort> get _availableSorts => [
-    if (_isBareFullText) CollectionSort.relevance,
-    CollectionSort.title,
-    CollectionSort.author,
-    CollectionSort.recentlyAdded,
-    CollectionSort.lastCalled,
-  ];
+  List<CollectionSort> get _availableSorts =>
+      availableCollectionSorts(bareFullText: _isBareFullText);
 
   Future<void> _runSearch() async {
     final data = _data;
@@ -951,11 +888,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _onlineError = null;
       if (value) {
         _localFtsScope = _ftsScope;
-        if (_ftsScope != FullTextScope.title &&
-            _ftsScope != FullTextScope.author &&
-            _ftsScope != FullTextScope.figure) {
-          _ftsScope = FullTextScope.title;
-        }
+        _ftsScope = onlineFullTextScope(_ftsScope);
       } else {
         _ftsScope = _localFtsScope;
       }
@@ -1017,12 +950,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// text and/or by-phrase figures. Guarded by a sequence number so a slow
   /// response can't overwrite a newer query.
   Future<void> _runOnlineSearch() async {
-    final text = _ftsController.text.trim();
-    final title = _ftsScope == FullTextScope.title ? text : '';
-    final author = _ftsScope == FullTextScope.author ? text : '';
-    final figure = _ftsScope == FullTextScope.figure ? text : '';
-    final phrases = _effectivePhrases();
-    if (title.isEmpty && author.isEmpty && figure.isEmpty && phrases == null) {
+    final query = OnlineSearchQuery.forScope(
+      _ftsController.text,
+      _ftsScope,
+      phrases: _effectivePhrases(),
+    );
+    if (query.isEmpty) {
       setState(() {
         _onlineResults = const [];
         _onlineError = null;
@@ -1037,14 +970,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _onlineError = null;
     });
     try {
-      final results = await _online.search(
-        OnlineSearchQuery(
-          title: title,
-          author: author,
-          figure: figure,
-          phrases: phrases,
-        ),
-      );
+      final results = await _online.search(query);
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlineResults = results;
@@ -2131,34 +2057,17 @@ class _DanceListScreenState extends State<DanceListScreen> {
               onPressed: widget.onImport,
             ),
           if (onBar.contains(_CollectionBarGlyph.sort))
-            PopupMenuButton<CollectionSort>(
-              tooltip: l10n.collectionSortByTooltip(
-                collectionSortLabel(l10n, _sort),
-              ),
-              initialValue: _sort,
-              icon: const Icon(Icons.sort),
+            CollectionSortMenuButton(
+              sort: _sort,
+              sorts: _availableSorts,
               onSelected: _selectSort,
-              itemBuilder: (context) => [
-                for (final option in _availableSorts)
-                  PopupMenuItem(
-                    value: option,
-                    child: Text(collectionSortLabel(l10n, option)),
-                  ),
-              ],
             ),
           if (onBar.contains(_CollectionBarGlyph.groupBy))
             _buildGroupByButton(l10n),
           if (onBar.contains(_CollectionBarGlyph.sortDirection))
-            IconButton(
+            SortDirectionButton(
               key: const ValueKey('collection-sort-direction'),
-              tooltip: _sortDir == SortDirection.ascending
-                  ? l10n.collectionSortAscendingTooltip
-                  : l10n.collectionSortDescendingTooltip,
-              icon: Icon(
-                _sortDir == SortDirection.ascending
-                    ? Icons.arrow_upward
-                    : Icons.arrow_downward,
-              ),
+              direction: _sortDir,
               onPressed: _toggleSortDirection,
             ),
           _buildMoreActions(l10n, onBar),
@@ -2552,37 +2461,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
             : null,
       ),
     );
-    final searchScope = KeyedSubtree(
-      key: ValueKey('collection-search-scope-state-$_onlineEnabled-$_ftsScope'),
-      child: DropdownButtonFormField<FullTextScope>(
-        key: const ValueKey('collection-search-scope'),
-        initialValue: _ftsScope,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: l10n.collectionSearchScopeLabel,
-          isDense: true,
-        ),
-        items: [
-          if (!_onlineEnabled)
-            DropdownMenuItem(
-              value: FullTextScope.omni,
-              child: Text(l10n.collectionSearchScopeOmni),
-            ),
-          DropdownMenuItem(
-            value: FullTextScope.title,
-            child: Text(l10n.collectionSearchScopeTitle),
-          ),
-          DropdownMenuItem(
-            value: FullTextScope.author,
-            child: Text(l10n.collectionSearchScopeAuthor),
-          ),
-          DropdownMenuItem(
-            value: FullTextScope.figure,
-            child: Text(l10n.collectionSearchScopeFigure),
-          ),
-        ],
-        onChanged: _onFtsScopeChanged,
-      ),
+    final searchScope = SearchScopeField(
+      fieldKey: const ValueKey('collection-search-scope'),
+      scope: _ftsScope,
+      online: _onlineEnabled,
+      onChanged: _onFtsScopeChanged,
     );
     return Column(
       children: [
@@ -2596,40 +2479,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
           // Search in sits beside the search box, saving a row above the
           // results, whenever the pane is wide enough at the current text size;
           // a narrow pane or large text stacks it above the box as before.
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final textScale = MediaQuery.textScalerOf(context).scale(1);
-              if (constraints.maxWidth >= 300 * textScale) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: KeyedSubtree(
-                        key: _searchFieldKey,
-                        child: searchField,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      flex: 2,
-                      child: KeyedSubtree(
-                        key: _searchScopeKey,
-                        child: searchScope,
-                      ),
-                    ),
-                  ],
-                );
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  KeyedSubtree(key: _searchScopeKey, child: searchScope),
-                  const SizedBox(height: AppSpacing.xs),
-                  KeyedSubtree(key: _searchFieldKey, child: searchField),
-                ],
-              );
-            },
+          child: SearchFieldWithScope(
+            searchField: searchField,
+            scopeField: searchScope,
           ),
         ),
         Expanded(
