@@ -1664,6 +1664,26 @@ class _CompendiumAppState extends State<CompendiumApp>
         logCaughtError(error, stackTrace, source: 'main.first-run-seed');
       }
     }
+    // Finish any permanent delete the user already chose (LIFE-2): erase the
+    // item, or blank it if Device Sync published it. This is the user's own
+    // decision rather than an expiry, so it runs whatever the retention
+    // setting. It catches items marked by a build that predates blanking, on
+    // this device or a peer. A failure is logged and retried next launch.
+    final sweepNow = (widget.nowOverride ?? () => DateTime.now().toUtc())();
+    try {
+      await _appData.repositories.dances.removePermanentlyDeleted(
+        now: sweepNow,
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'startup.permanent_dances');
+    }
+    try {
+      await _appData.repositories.programs.removePermanentlyDeleted(
+        now: sweepNow,
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'startup.permanent_programs');
+    }
     // Resolve the configured soft-delete retention window (ROADMAP G.4),
     // defaulting to 30 days when unset. A `null` window means "never
     // auto-purge", so the startup sweep is skipped entirely.

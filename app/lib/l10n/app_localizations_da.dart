@@ -9690,6 +9690,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String recentlyDeletedDeletedSyncedSnack(String title) {
+    return '„$title“ slettet permanent. En lille sletningspost gemmes, så dine andre enheder også sletter det.';
+  }
+
+  @override
   String get recentlyDeletedRestore => 'Gendan';
 
   @override
