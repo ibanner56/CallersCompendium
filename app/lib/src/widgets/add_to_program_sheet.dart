@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
+import '../editor/program_slot_rebase.dart';
 import '../utils/undo_snack_bar.dart';
 
 /// Opens a modal bottom sheet listing existing (non-deleted) programs so the
@@ -191,8 +192,8 @@ Widget _buildEmptyPrograms(
 }
 
 /// Appends this dance as a new slot at the end of [program], persists it,
-/// closes the sheet, and confirms with an Undo snackbar that restores the
-/// program's previous slot list (soft/undoable per project convention).
+/// closes the sheet, and confirms with an Undo snackbar that takes the added
+/// slot back out (soft/undoable per project convention).
 Future<void> _selectProgram(
   BuildContext sheetContext,
   Program program, {
@@ -216,8 +217,9 @@ Future<void> _selectProgram(
     position: fresh.slots.length,
     danceId: danceId,
   );
+  final addedSlots = [...fresh.slots, newSlot];
   await repositories.programs.update(
-    fresh.copyWith(slots: [...fresh.slots, newSlot], updatedAt: now),
+    fresh.copyWith(slots: addedSlots, updatedAt: now),
   );
   // The dance's calling history and its "called N times" badge are both derived
   // from program slots (issue #768, gaps 1 and 2). Neither this write nor its
@@ -231,15 +233,32 @@ Future<void> _selectProgram(
     undoLabel: l10n.commonUndo,
     undoFailedMessage: l10n.commonUndoFailed,
     accessibleNavigation: accessibleNavigation,
+    // The prompt can stay up indefinitely with accessible navigation, so the
+    // program may have been edited since (GIG-19). The Undo takes out only the
+    // slot it added, and writes as a compare-and-replace against the program
+    // it read, so an edit made in between, or landing during the Undo, is
+    // kept rather than overwritten with the slot list from before the add.
     onUndo: () async {
-      final current = await repositories.programs.getById(fresh.id);
-      if (current == null) return;
-      await repositories.programs.update(
-        current.copyWith(
-          slots: previousSlots,
+      for (var attempt = 0; attempt < 5; attempt++) {
+        final current = await repositories.programs.getById(fresh.id);
+        if (current == null) return;
+        final replaced = await repositories.programs.replaceIfUnchanged(
+          expected: current,
+          replacement: current.copyWith(
+            slots: renumberSlots(
+              rebaseSlotEdits(
+                before: addedSlots,
+                after: previousSlots,
+                onto: current.slots,
+              ),
+            ),
+          ),
           updatedAt: DateTime.now().toUtc(),
-        ),
-      );
+        );
+        if (replaced) return;
+      }
+      // Reported by showUndoSnackBar as a failed Undo.
+      throw StateError('program "${fresh.id}" kept changing during the Undo');
     },
   );
 }

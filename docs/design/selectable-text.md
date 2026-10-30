@@ -1,10 +1,15 @@
 # Design: Selectable text on desktop
 
-*Design note N5 · v0.1 (2026-10-29). Answers audit finding PLAT-17 ("Dance
-content cannot be selected or copied piecemeal") from the 2026-10 behavior
-audit. Conforms to [ux.md](ux.md) "Cross-cutting UX rules". Docs-only: this note
-changes no app code and settles no D-11 question (Save, New and header
-placement).*
+*Design note N5 · v0.2 (2026-10-30) · **Status: decided, not built.** Answers
+audit finding PLAT-17 ("Dance content cannot be selected or copied piecemeal")
+from the 2026-10 behavior audit. The maintainer answered its five questions on
+2026-10-29/30, each as this note recommended (N5-1 … N5-5 in
+`maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`);
+[Decisions](#decisions) quotes them. Conforms to [ux.md](ux.md) "Cross-cutting
+UX rules". Docs-only: this note changes no app code and settles no D-11 question
+(Save, New and header placement). The Guide citations under "Problem" are for
+`main` at `281fce0`; every other line number dates from the note's first draft
+(2026-10-29) and may have moved since.*
 
 ## Problem
 
@@ -17,8 +22,8 @@ pointer cannot select.
 The audit report says `SelectionArea` appears in the Guide. It does not. There
 is no `SelectionArea` and no `SelectableRegion` anywhere in `app/lib`. The
 Guide renders with `Markdown(selectable: true)`
-(`app/lib/src/screens/user_guide/user_guide_doc_view.dart:154`) and a
-`SelectableText` heading builder (`:221`). That makes each Markdown block its
+(`app/lib/src/screens/user_guide/user_guide_doc_view.dart:173`) and a
+`SelectableText` heading builder (`:244`). That makes each Markdown block its
 own selection island: a drag cannot cross from one paragraph to the next. The
 Guide is a precedent for *whether* to allow selection, not for *how* to build
 it here.
@@ -51,13 +56,13 @@ match the screen (`dance_export_actions.dart:106-118`).
   `InkWell` that opens the dance (`program_summary_screen.dart:1335-1337`), and
   carries a mark-performed toggle (`:925-960`). A drag that starts on a row
   title would compete with that tap for little gain, since the caller wants the
-  titles as a block, which the program export menu already copies. See
-  Decision 2 for the alternative.
+  titles as a block, which the program export menu already copies. Decided:
+  N5-2 = (a), header text only.
 - **Perform: excluded.** The edge zones turn pages on tap
   (`perform_program_screen.dart:1225-1243`), the screen is entered on a
   deliberate gesture and exits on a deliberate one (`ux.md:167-179`), and a
   stray drag mid-set must never change what is on stage. A caller who wants the
-  text copies it from the detail or the summary.
+  text copies it from the detail or the summary. Decided: N5-5 = (a).
 - **Editors and sheets: out of scope.** Their text fields already select.
 
 ### 2. Gesture conflicts
@@ -103,7 +108,7 @@ theme, per the "no colour-only meaning" rule (`ux.md:196-199`).
   the selection from the model. *Trade-off:* the most useful and the most
   code. It gets a model-to-selection mapping the framework does not provide.
 
-**Recommendation: A.** "What you see is what you copy" is the rule users
+**Decided: A** (N5-3 = (a), 2026-10-30, as recommended). "What you see is what you copy" is the rule users
 expect from selection, it agrees with **Copy dance** on dialect and the
 canonical toggle (both use the same `dialect`), and a caller who wants
 canonical text flips the toggle. The two differ in two preferences. A selection
@@ -111,7 +116,8 @@ copy carries "always show verbose figure text" and figure capitalisation,
 because the screen applies both (`figure_table.dart:223-229`); **Copy dance**
 applies neither (`packages/compendium_core/lib/src/export/dance_text.dart:121-122`
 renders `renderSummary`, terse and uncapitalised). That is what Option A means,
-and Decision 3 asks the maintainer to accept it. The user docs say so in one
+and the maintainer accepted it: the option text says "it differs from Copy
+dance on those two settings". The user docs say so in one
 sentence.
 
 ### 4. Desktop only, or phones too?
@@ -128,7 +134,7 @@ sentence.
   the Edit FAB clearance zone (`dance_detail_screen.dart:1070-1076`). It needs
   phone-sized golden and gesture tests this note cannot run.
 
-**Recommendation: A**, with the gate in one place so B is a one-line change
+**Decided: A** (N5-1 = (a), 2026-10-30, as recommended), with the gate in one place so B is a one-line change
 later. Phone work waits for a phone-selection report; the audit finding is a
 desktop one.
 
@@ -162,7 +168,7 @@ the Collection and Programs lists. The selectable regions are the detail and
 summary panes (and on desktop those are the right-hand pane of the split
 view). Neither area contains the other.
 
-**The rule this note proposes, as a recommendation:**
+**The rule. Decided** (N5-4 = (a), 2026-10-30, as recommended):
 
 1. **Inside a selectable region, the selection menu wins.** Right-click on
    detail or summary text shows Copy and Select all.
@@ -182,13 +188,13 @@ visible Copy. That is one more reason rule 1 should hold.
 
 ## Constraints
 
-- **Privacy registry.** The recommended design persists nothing: no setting, no
-  column. If Decision 1 below adds an "allow selection" setting, it is a
-  settings key and must be classified on category, subject and egress in the
-  same PR (`AGENTS.md` "Every persisted field must be classified";
-  `.github/instructions/privacy-registry.instructions.md`). The
-  `perform_text_scale` precedent applies: a screen-bound preference is
-  `deviceLocal`. The subject axis is the app user, but copied text can carry a
+- **Privacy registry.** The decided design persists nothing: no setting, no
+  column. N5-1 = (a) keeps phones unchanged, so no "allow selection" setting
+  arises. Had one been added, it would be a settings key classified on
+  category, subject and egress in the same PR (`AGENTS.md` "Every persisted
+  field must be classified";
+  `.github/instructions/privacy-registry.instructions.md`), and the
+  `perform_text_scale` precedent would make it `deviceLocal`. The subject axis is the app user, but copied text can carry a
   choreographer's name and a venue's contact details out of the app. That is
   the user's own act, the same one **Copy dance** performs, and it is not
   automatic egress.
@@ -230,36 +236,42 @@ islands with `SelectionContainer.disabled`.
   `changelog.d/<id>.json` fragment, since it is user-visible. This note adds
   none.
 
-## Decisions needed
+## Decisions
 
-These choices belong to the maintainer. Each preference is a recommendation.
+The maintainer answered all five on 2026-10-29/30, each as recommended. Each
+entry quotes the decision as `maintainer-decisions-2026-10-30.md` records it.
+The maintainer left no notes on these five.
 
-1. **Scope of platforms.** Desktop only (recommended) or all platforms
-   (question 4). If all, also decide whether to add an "allow selection"
-   setting, which brings registry entries.
-2. **Summary set list.** Keep it outside the selectable region (recommended) or
-   include the dance titles, accepting the tap-versus-drag conflict on rows.
-3. **Copy contents.** Rendered text (recommended), which differs from **Copy
-   dance** on the verbose and capitalisation preferences, or the heavier
-   canonical or toggle options (question 3).
-4. **Right-click precedence.** Selection menu inside selectable content, ⋮ menu
-   on list rows (recommended), as the rule B29 should follow.
-5. **Perform.** Excluded (recommended), or a deliberate "select text" mode
-   inside Perform. The note does not recommend building the mode.
+1. **N5-1, platforms.** "(a) Desktop only. Phones stay exactly as now and keep
+   only Copy dance; turning it on everywhere later is a one-line change."
+2. **N5-2, the summary set list.** "(a) No, header text only. Title, details
+   and notes select; set-list rows keep their taps, and the export menu copies
+   the titles."
+3. **N5-3, copy contents.** "(a) What you see. Copies the wording as shown,
+   including verbose text and capitals; it differs from Copy dance on those two
+   settings."
+4. **N5-4, right-click.** "(a) Copy menu in text, ⋮ on rows. Right-click on
+   dance or summary text shows Copy and Select all; on a list row it opens the
+   ⋮ menu." This binds B29 too.
+5. **N5-5, Perform.** "(a) No, leave Perform out. Nothing on stage changes from
+   a stray drag; callers copy from the dance page or the summary."
 
-## Proposed branch breakdown
+## Branches
 
-Sized like the work plan (see "Sources"). Both items touch only the files named.
+Sized like the work plan (see "Sources"). Each touches only the files named.
+Updated 2026-10-30 for the decisions and for what has merged (`main` at
+`90fe5e8`: F10 #2022 and U7 #2033 have merged; F11 #2040 is open). In the audit
+branch's `design-work-plan.md` these are N5-S1 … N5-S3.
 
 | # | Branch | Main files | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| S1 | `feat/selectable-detail-text` | new `widgets/selectable_content.dart`; `dance_detail_screen.dart`; `widgets/figure_table.dart`; tests; the `ux.md`, `accessibility.md` and user-doc lines; a changelog fragment | M (~250) | Sonnet | Decisions 1, 3, 5. |
-| S2 | `feat/selectable-summary-text` | `program_summary_screen.dart`; tests | S (~100) | Sonnet | S1 (the widget); Decision 2. Sequence after F10, U7 and F11, which edit the summary and the editor (the work plan's hot-files table); after B4 → B5 and B22, which edit the same file. |
-| S3 | `test/selectable-right-click-rule` | one test file in B29's branch | S (~50) | Sonnet | B29 and S1. Folded into B29 if B29 lands later. |
+| S1 | `feat/selectable-detail-text` | new `widgets/selectable_content.dart`; `dance_detail_screen.dart`; `widgets/figure_table.dart`; tests; the `ux.md`, `accessibility.md` and user-doc lines; a changelog fragment | M (~250) | Sonnet | None. N5-1, N5-3 and N5-5 are decided. |
+| S2 | `feat/selectable-summary-text` | `program_summary_screen.dart`; tests | S (~100) | Sonnet | S1 (the widget). N5-2 is decided. After F11 (#2040), and after B4 → B5 and B22, which edit the same file (the work plan's hot-files table). |
+| S3 | `test/selectable-right-click-rule` | one test file in B29's branch | S (~50) | Sonnet | B29 and S1. Folded into B29 if B29 lands later. N5-4 is decided. |
 
 S1 and S2 share no file, but S2 reuses S1's widget, so S2 follows S1. Neither
 edits a privacy or storage path, so neither joins the registry serialisation
-queue unless Decision 1 adds a setting.
+queue: N5-1 added no setting.
 
 ## Sources
 

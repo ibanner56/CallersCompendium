@@ -378,6 +378,13 @@ class CompendiumArchiveImporter {
     preserveCanonicalDifficultyIds: true,
   );
 
+  /// The metadata notes [commit] would raise for [archive], checked at plan
+  /// time without writing anything, so the review can show them before the
+  /// user imports (INTAKE-2): today, a custom field that goes in under a
+  /// suffixed key. Empty when this importer has no metadata repositories.
+  Future<List<ImportIssue>> planMetadataIssues(CompendiumArchive archive) =>
+      _metadata?.preview(archive) ?? Future.value(const []);
+
   /// Commits a planned dance [batch] and then the [archive]'s programs.
   ///
   /// The dances commit first (real pipeline path), yielding the

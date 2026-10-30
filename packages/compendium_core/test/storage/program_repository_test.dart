@@ -627,6 +627,47 @@ void main() {
       expect((await repo.getById('p1'))!.slots.single.text, 'Long break');
     });
 
+    test('replaceIfUnchangedAndReadBack returns the program as stored, '
+        'a token the next compare accepts', () async {
+      final (previous, stored) = await adjust();
+      final written = await repo.replaceIfUnchangedAndReadBack(
+        expected: stored,
+        replacement: previous.copyWith(title: 'Again'),
+        updatedAt: DateTime.utc(2026, 2, 1, 12, 5, 0, 300),
+      );
+      expect(written, await repo.getById('p1'));
+      expect(written!.title, 'Again');
+      expect(written.updatedAt, DateTime.utc(2026, 2, 1, 12, 5));
+      expect(
+        await repo.replaceIfUnchanged(
+          expected: written,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 6),
+        ),
+        isTrue,
+      );
+    });
+
+    test('replaceIfUnchangedAndReadBack writes nothing and returns null '
+        'when the program changed', () async {
+      final (previous, stored) = await adjust();
+      await repo.update(
+        stored.copyWith(
+          title: 'Renamed',
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 1),
+        ),
+      );
+      expect(
+        await repo.replaceIfUnchangedAndReadBack(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        ),
+        isNull,
+      );
+      expect((await repo.getById('p1'))!.title, 'Renamed');
+    });
+
     test('refuses a soft-deleted program', () async {
       final (previous, stored) = await adjust();
       await repo.softDelete('p1', at: DateTime.utc(2026, 2, 1, 12, 1));

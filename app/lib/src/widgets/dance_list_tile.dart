@@ -97,8 +97,8 @@ class DanceListTile extends StatelessWidget {
 
   /// Which data chips to render on this row. When null every chip is shown,
   /// preserving the existing behaviour at all call sites that don't opt in.
-  /// The collection screen passes [CollectionTileFieldsScope.of(context)] here;
-  /// all other call sites leave this null.
+  /// The collection screen and the program picker pass
+  /// [CollectionTileFieldsScope.of(context)] here.
   final Set<CollectionTileField>? visibleFields;
 
   @override

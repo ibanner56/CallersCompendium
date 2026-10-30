@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 
 import '../data/callersbox_online.dart';
 import '../data/collection_facets_scope.dart';
+import '../data/collection_tile_fields_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
@@ -18,10 +19,12 @@ import '../data/sort_ignore_articles_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
+import '../search/collection_opening_sort.dart';
 import '../search/collection_query.dart';
 import '../theme/app_spacing.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
+import 'collection_search_controls.dart';
 import 'dance_list_tile.dart';
 import 'facet_panel.dart';
 import 'online_import_dialogs.dart';
@@ -31,10 +34,17 @@ import 'preview_hold_listener.dart';
 import 'search_panel_bar.dart';
 
 /// A reusable dance picker that reuses the Collection search stack (full-text
-/// search + [FacetPanel] + [ByPhrasePanel] + [AdvancedQueryBuilder] +
-/// [DanceRepository.search]) so the Programs builder can find and add dances
-/// with the same figure-aware filtering as the Collection screen
-/// (`docs/design/ux.md` §4).
+/// search with **Search in** + [FacetPanel] + [ByPhrasePanel] +
+/// [AdvancedQueryBuilder] + [DanceRepository.search] with the Collection's
+/// sorts) so the Programs builder can find and add dances with the same
+/// figure-aware filtering as the Collection screen (`docs/design/ux.md` §4).
+/// Rows show the fields chosen in Settings ▸ Defaults ▸ Collection card fields,
+/// and online search takes the same Search in choices as the Collection's
+/// (FIND-7, PRES-15).
+///
+/// The sort is the picker's own: it opens in the Collection's opening sort
+/// ([readCollectionOpeningSort]) and a change lasts as long as this picker,
+/// never written back to Settings.
 ///
 /// Unlike [DanceListScreen] this is a plain embeddable widget (no [Scaffold]/
 /// app bar): it renders inline as the builder's right pane on wide layouts, or
@@ -171,9 +181,21 @@ class _CollectionPickerState extends State<CollectionPicker> {
   static const Duration _addConfirmation = Duration(milliseconds: 1200);
 
   final _ftsController = TextEditingController();
+  FullTextScope _ftsScope = FullTextScope.omni;
+
+  /// The local Search in choice, restored when online search is turned off
+  /// (online search maps All fields to Title).
+  FullTextScope _localFtsScope = FullTextScope.omni;
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
+
+  CollectionSort _sort = CollectionSort.title;
+  SortDirection _sortDir = CollectionSort.title.searchSort.defaultDirection;
+
+  /// Whether the user picked a sort or direction in this picker, so the async
+  /// opening-sort read cannot overwrite it.
+  bool _sortUserSet = false;
 
   late OnlineSearchService _callersBox;
   late OnlineSearchService _contraDb;
@@ -207,7 +229,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
   bool _ignoreLeadingArticles = true;
 
   List<DanceListEntry> _results = const [];
-  bool _searching = false;
+
+  /// True from the start: the first search waits for the opening-sort read.
+  bool _searching = true;
   Object? _searchError;
   int _searchSeq = 0;
   Timer? _debounceTimer;
@@ -239,7 +263,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _repos = RepositoriesScope.of(context);
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
-      _runSearch();
+      unawaited(_seedSortThenSearch());
     } else if ((requirePerformedChanged ||
             requireEventDateChanged ||
             ignoreLeadingArticlesChanged ||
@@ -262,6 +286,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineSeq++;
       setState(() {
         _onlineEnabled = false;
+        _ftsScope = _localFtsScope;
         _onlineResults = const [];
         _onlineError = null;
         _onlineImportError = null;
@@ -354,8 +379,35 @@ class _CollectionPickerState extends State<CollectionPicker> {
     widget.onAddDance(danceId);
   }
 
+  /// Opens in the Collection's opening sort, then runs the first search.
+  Future<void> _seedSortThenSearch() async {
+    final opening = await readCollectionOpeningSort(_repos.settings);
+    if (!mounted) return;
+    if (opening != null && !_sortUserSet) {
+      _sort = opening.sort;
+      _sortDir = opening.direction;
+    }
+    if (!_onlineEnabled) await _runSearch();
+  }
+
+  /// Whether the query is a bare full-text search, the only case where Best
+  /// match is offered (`docs/design/search.md` decision 6).
+  bool get _isBareFullText => isBareFullText(
+    ftsText: _ftsController.text,
+    facets: _facets,
+    scope: _ftsScope,
+    byPhrase: _byPhrase,
+    advancedRoot: _advancedRoot,
+  );
+
   Future<void> _runSearch() async {
     final data = widget.data;
+    // Best match is only valid for a bare full-text search; fall back as the
+    // Collection does if the query stopped being one.
+    if (_sort == CollectionSort.relevance && !_isBareFullText) {
+      _sort = CollectionSort.title;
+      _sortDir = CollectionSort.title.searchSort.defaultDirection;
+    }
     final seq = ++_searchSeq;
     setState(() {
       _searching = true;
@@ -366,6 +418,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ftsText: _ftsController.text,
         facets: _facets,
         defs: data.customFieldDefs,
+        scope: _ftsScope,
         byPhrase: _byPhrase,
         advancedRoot: _advancedRoot,
         callerFilter: data.callerFilter,
@@ -374,9 +427,16 @@ class _CollectionPickerState extends State<CollectionPicker> {
       );
       final ids = await _repos.dances.search(
         filter,
+        sort: _sort.searchSort,
+        direction: _sortDir,
         dialect: widget.dialect,
         enrichment: widget.enrichment,
         ignoreLeadingArticles: _ignoreLeadingArticles,
+        // The Last-called sort reads the same history as the Called filter
+        // above, as the Collection's does (FIND-2).
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
       );
       if (!mounted || seq != _searchSeq) return;
       final choreographerNamesOverride = {
@@ -429,6 +489,40 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _debounceTimer = Timer(_debounce, _runSearch);
       setState(() {});
     }
+  }
+
+  void _onFtsScopeChanged(FullTextScope? scope) {
+    if (scope == null || scope == _ftsScope) return;
+    _debounceTimer?.cancel();
+    if (_onlineEnabled) {
+      _onlineSeq++;
+    } else {
+      _searchSeq++;
+    }
+    setState(() {
+      _ftsScope = scope;
+      if (!_onlineEnabled) _localFtsScope = scope;
+    });
+    unawaited(_onlineEnabled ? _runOnlineSearch() : _runSearch());
+  }
+
+  void _selectSort(CollectionSort value) {
+    setState(() {
+      _sortUserSet = true;
+      _sort = value;
+      _sortDir = value.searchSort.defaultDirection;
+    });
+    _runSearch();
+  }
+
+  void _toggleSortDirection() {
+    setState(() {
+      _sortUserSet = true;
+      _sortDir = _sortDir == SortDirection.ascending
+          ? SortDirection.descending
+          : SortDirection.ascending;
+    });
+    _runSearch();
   }
 
   void _onFacetsChanged() {
@@ -510,6 +604,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineEnabled = value;
       _onlineError = null;
       _onlineImportError = null;
+      if (value) {
+        _localFtsScope = _ftsScope;
+        _ftsScope = onlineFullTextScope(_ftsScope);
+      } else {
+        _ftsScope = _localFtsScope;
+      }
       if (!value) {
         _onlineResults = const [];
         _onlineSearching = false;
@@ -542,9 +642,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   Future<void> _runOnlineSearch() async {
-    final title = _ftsController.text.trim();
-    final phrases = _effectivePhrases();
-    if (title.isEmpty && phrases == null) {
+    final query = OnlineSearchQuery.forScope(
+      _ftsController.text,
+      _ftsScope,
+      phrases: _effectivePhrases(),
+    );
+    if (query.isEmpty) {
       setState(() {
         _onlineResults = const [];
         _onlineError = null;
@@ -562,9 +665,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineImportError = null;
     });
     try {
-      final results = await _online.search(
-        OnlineSearchQuery(title: title, phrases: phrases),
-      );
+      final results = await _online.search(query);
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlineResults = results;
@@ -712,8 +813,31 @@ class _CollectionPickerState extends State<CollectionPicker> {
   Widget build(BuildContext context) {
     final data = widget.data;
     final l10n = AppLocalizations.of(context);
-    // Picker call sites pass no visibleFields to DanceListTile, so they
-    // default to all-visible — no scope override needed here.
+    final searchField = TextField(
+      key: const ValueKey('picker-search'),
+      controller: _ftsController,
+      onChanged: _onFtsChanged,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        labelText: _onlineEnabled
+            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+            : l10n.collectionPickerSearchLabel,
+        hintText: _onlineEnabled
+            ? l10n.collectionOnlineSearchFieldHint
+            : l10n.collectionSearchFieldHint,
+        // Dense, like Search in beside it, so the two line up in one row.
+        isDense: true,
+        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
+        suffixIcon: _hasActiveQuery
+            ? IconButton(
+                tooltip: l10n.collectionClearSearchTooltip,
+                icon: const Icon(Icons.clear),
+                onPressed: _clearAll,
+              )
+            : null,
+        border: const OutlineInputBorder(),
+      ),
+    );
     return ExcludeFocus(
       excluding: _onlineImporting,
       child: IgnorePointer(
@@ -723,28 +847,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: TextField(
-                key: const ValueKey('picker-search'),
-                controller: _ftsController,
-                onChanged: _onFtsChanged,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  labelText: _onlineEnabled
-                      ? l10n.onlineSearchFieldLabel(_onlineSource.label)
-                      : l10n.collectionPickerSearchLabel,
-                  hintText: _onlineEnabled
-                      ? l10n.collectionPickerOnlineSearchFieldHint
-                      : l10n.collectionSearchFieldHint,
-                  prefixIcon: Icon(
-                    _onlineEnabled ? kOnlineSearchIcon : Icons.search,
-                  ),
-                  suffixIcon: _hasActiveQuery
-                      ? IconButton(
-                          tooltip: l10n.collectionClearSearchTooltip,
-                          icon: const Icon(Icons.clear),
-                          onPressed: _clearAll,
-                        )
-                      : null,
+              child: SearchFieldWithScope(
+                searchField: searchField,
+                scopeField: SearchScopeField(
+                  fieldKey: const ValueKey('picker-search-scope'),
+                  scope: _ftsScope,
+                  online: _onlineEnabled,
+                  onChanged: _onFtsScopeChanged,
                   border: const OutlineInputBorder(),
                 ),
               ),
@@ -930,32 +1039,55 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final l10n = AppLocalizations.of(context);
     final count = _onlineEnabled ? _onlineResults.length : _results.length;
     final searching = _onlineEnabled ? _onlineSearching : _searching;
+    // The sort sits at the end of the count row, the picker's nearest thing to
+    // the Collection's app bar. Online results come in the source's own order,
+    // so it is local-only, like the Filters panel. While local, the sort
+    // buttons' own 48 px height spaces the row.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Semantics(
-              liveRegion: true,
-              child: Text(
-                _onlineEnabled
-                    ? l10n.onlineResultCount(count)
-                    : l10n.collectionDanceCount(count),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+      padding: _onlineEnabled
+          ? const EdgeInsets.fromLTRB(16, 8, 16, 8)
+          : const EdgeInsets.fromLTRB(16, 0, 8, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      _onlineEnabled
+                          ? l10n.onlineResultCount(count)
+                          : l10n.collectionDanceCount(count),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ),
+                if (searching || _onlineImporting) ...[
+                  const SizedBox(width: 8),
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ],
+              ],
             ),
-            if (searching || _onlineImporting) ...[
-              const SizedBox(width: 8),
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ],
+          ),
+          if (!_onlineEnabled) ...[
+            CollectionSortMenuButton(
+              key: const ValueKey('picker-sort'),
+              sort: _sort,
+              sorts: availableCollectionSorts(bareFullText: _isBareFullText),
+              onSelected: _selectSort,
+            ),
+            SortDirectionButton(
+              buttonKey: const ValueKey('picker-sort-direction'),
+              direction: _sortDir,
+              onPressed: _toggleSortDirection,
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -1012,6 +1144,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   child: DanceListTile(
                     key: ValueKey('picker-tile-${entry.dance.id}'),
                     entry: entry,
+                    // The Collection card fields setting covers the picker's
+                    // rows too, like its sibling Collection filters (PRES-15).
+                    visibleFields: CollectionTileFieldsScope.of(context),
                     onTap: () => _handleAdd(entry.dance.id),
                     showChevron: false,
                   ),

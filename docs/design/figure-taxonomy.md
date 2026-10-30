@@ -66,7 +66,7 @@ searchKeywords: [allemande, almond]
 
 | Type | Values | Notes |
 |---|---|---|
-| dancerSet | everyone, larks*, robins*, ones, twos, firstCorners, secondCorners, partners, neighbors, sameRoles, shadows, nextNeighbors, prevNeighbors, nextPartners, prevPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
+| dancerSet | everyone, larks*, robins*, ones, twos, partners, neighbors, sameRoles, shadows, secondShadows, prevNeighbors, nextNeighbors, thirdNeighbors, fourthNeighbors, firstCorners, secondCorners, thirdCorners, opposites, prevPartners, nextPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
 | dancerPair | subset of dancerSet valid for the move | |
 | handedness / shoulder | right, left | |
 | spinDirection | clockwise, counterclockwise | |
@@ -238,12 +238,13 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   (`ParamKind.dancerSet`, default `unspecified`) to `hey`, finally encoding
   ContraDB's deferred `dancer%%N` meeting *target* — WHICH pair you run a partial
   hey until you meet. The value domain is ContraDB `chooser_pairz`
-  (extended at v24 with five mixer partner-series tokens, issue #732)
+  (extended at v24 with five mixer partner-series tokens, issue #732, and at
+  v38 with `thirdCorners` and `opposites`, #1975)
   (`_heyMeetTargetChoices`: `role1s`/`role2s`/`ones`/`twos`/`partners`/
-  `neighbors`/`sameRoles`/`firstCorners`/`secondCorners`/`shadows`/
-  `secondShadows`/`prevNeighbors`/`nextNeighbors`/`thirdNeighbors`/
-  `fourthNeighbors`/`prevPartners`/`nextPartners`/`thirdPartners`/
-  `fourthPartners`/`fifthPartners` + `unspecified`) — **pairs only** (single
+  `neighbors`/`sameRoles`/`shadows`/`secondShadows`/`prevNeighbors`/
+  `nextNeighbors`/`thirdNeighbors`/`fourthNeighbors`/`firstCorners`/
+  `secondCorners`/`thirdCorners`/`opposites`/`prevPartners`/`nextPartners`/
+  `thirdPartners`/`fourthPartners`/`fifthPartners` + `unspecified`) — **pairs only** (single
   dancers, `everyone`, and `centers` are excluded, as ContraDB does). Our
   `length` already carries the meeting *count*
   (`lessThanHalf`=first meeting/%%1, `betweenHalfAndFull`=second/%%2), so
@@ -381,14 +382,16 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     corpus lines as a compound whose children are `allemande ½` +
     `star promenade ½`; ContraDB models no flutterwheel either. The importer
     now emits those children rather than a custom parent.
-  - **What is NOT modeled, and why.** The pass-list codes `C1`–`C3` are TCB's
-    *square* corners ("the non-partner next to you… your opposite… the
-    remaining person"), a different relationship from the ECD *first/second
-    corners* that `ParamVocab.firstCorners`/`secondCorners` model — so they are
-    left unmapped and such lines stay `custom` rather than being approximated
-    onto a token that means something else. The same holds for a mixer's
-    future partners (`P2`+), out-of-range neighbors/shadows, phantoms and trail
-    buddies. See `docs/design/imports.md` for the recognizer rules and
+  - **What is NOT modeled, and why.** Until taxonomy v38 the pass-list codes
+    `C1`–`C3`, TCB's *square* corners ("the non-partner next to you… your
+    opposite… the remaining person"), were left unmapped as a different
+    relationship from the ECD *first/second corners*. v38 maps them to
+    `firstCorners`, `opposites` and `thirdCorners` (#1975: the maintainer ruled
+    that a square's corner is a contra first corner). Codes past `C3`, a
+    mixer's partners beyond the modelled depth (`P6`+), out-of-range
+    neighbors/shadows, phantoms and trail buddies are still left unmapped, and
+    such lines stay `custom` rather than being approximated onto a token that
+    means something else. See `docs/design/imports.md` for the recognizer rules and
     `docs/research/callersbox.md` for the glossary evidence and corpus counts.
 - **v21 (wave-formation balance, issue #295 — subsumes #296):** models The
   Caller's Box's largest custom bucket, the "balance an existing wave" line
@@ -1711,6 +1714,23 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     what the editor actually offers, and changing `balance` there records the
     matching `beats` too (the same +/-4 rule), because a saved default is
     applied to a new figure as plain values.
+  v38 also adds two `pairDancerSets` tokens, `thirdCorners` and `opposites`
+    (#1975, maintainer decisions), and moves the corners after the neighbour
+    series, so the picker reads ... `fourthNeighbors`, `firstCorners`,
+    `secondCorners`, `thirdCorners`, `opposites`, then the mixer partner
+    series. A square's corner is a contra first corner, and The Caller's Box's
+    square corners C1, C2 and C3 are the first corners, the opposites and the
+    third corners. Both tokens are added to `_heyMeetTargetChoices` (and so to
+    the mad robin and butterfly whirl pairs), beyond ContraDB's
+    `chooser_pairz`, as v24 did for the partner series; that is the author's
+    call. Neither has a pair inverse or a compound opposite, the author's
+    call: `invertPairDancerSet` mirrors ContraDB, which has neither token.
+    Purely additive for stored data: no figure's meaning or canonical text
+    changes, and the order of `pairDancerSets` is display order only. A device
+    still on v37 shows the new tokens humanized ("third corners",
+    "opposites"), but its figure editor replaces a value it does not know with
+    the param's default when the figure is opened, so editing such a figure
+    there loses it, as with v24's partner series.
 
 ## Open questions (to resolve during implementation, with user input)
 

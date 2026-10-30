@@ -2762,8 +2762,8 @@ class DanceRepository {
   /// whose six per-dance relationship queries (authors, tags, links, custom
   /// values, sources, provenance) are irrelevant to a figure-only check and
   /// would make this an O(1 + 6N)-query scan. Results are ordered
-  /// case-insensitively by title to match the collection's `COLLATE NOCASE`
-  /// display order.
+  /// by accent-folded title ([foldForTitleMatch]), the order the Collection's
+  /// title sort uses.
   ///
   /// A dance whose stored transcription cannot be decoded is **skipped**, not
   /// raised on (#1347). Bypassing [_toModel] also bypassed [_figureSourceFor],
@@ -2818,7 +2818,8 @@ class DanceRepository {
       }
     }
     previews.sort(
-      (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      (a, b) =>
+          foldForTitleMatch(a.title).compareTo(foldForTitleMatch(b.title)),
     );
     return previews;
   }
@@ -2934,25 +2935,32 @@ class DanceRepository {
   /// regardless of which one is active (the active dialect and legacy synonyms
   /// still win on overlap).
   ///
-  /// [SearchSort.title], [SearchSort.recentlyAdded], [SearchSort.recentlyEdited]
-  /// and (bare-full-text) [SearchSort.relevance] are ordered in SQL;
-  /// [SearchSort.author] and [SearchSort.lastCalled] reuse the Phase 3.1
-  /// orderings and are applied in Dart over the fetched id set. Those two keys
-  /// are **not** columns on `dances`: the first author's name comes from
-  /// `dance_authors` joined to `choreographers`, and the last-called date is an
-  /// aggregate over `program_slots`/`programs` — so they can't be an SQL
-  /// `ORDER BY` here and are computed as a post-fetch step. The post-sort is
-  /// stable, preserving the SQL title base order for ties.
+  /// [SearchSort.recentlyAdded], [SearchSort.recentlyEdited] and
+  /// (bare-full-text) [SearchSort.relevance] are ordered in SQL.
+  /// [SearchSort.title] is ordered in SQL too (`COLLATE NOCASE`, ASCII case
+  /// only) and then re-sorted in Dart over accent-folded keys, unless the
+  /// articles setting is off and every title is ASCII, when the SQL order
+  /// already is the folded order. [SearchSort.author] and
+  /// [SearchSort.lastCalled] reuse the Phase 3.1 orderings and are applied in
+  /// Dart over the fetched id set. The author and last-called keys are **not**
+  /// columns on `dances`: the first author's name comes from `dance_authors`
+  /// joined to `choreographers`, and the last-called date is an aggregate over
+  /// `program_slots`/`programs` — so they can't be an SQL `ORDER BY` here and
+  /// are computed as a post-fetch step. Each post-sort is stable, preserving
+  /// the SQL title base order for ties.
   ///
   /// [callerFilter], [performedOnly] and [requireEventDate] scope
   /// [SearchSort.lastCalled] exactly as they scope a [CalledFilter] and the
   /// "called ×N" count (issue #583's "in lockstep"; FIND-2): pass the same
   /// values. They have no effect on any other sort.
   ///
-  /// When [ignoreLeadingArticles] is `true`, [SearchSort.title] alphabetizes
-  /// with a leading article ("the"/"a"/"an") ignored (see [titleSortKey]) —
-  /// e.g. "The Nice Combination" files under **N**. This is applied as a stable
-  /// Dart post-sort over the SQL base order; other sorts are unaffected.
+  /// [SearchSort.title] and [SearchSort.author] compare accent-folded keys
+  /// ([foldForTitleMatch]), so "École" files with **E**. When
+  /// [ignoreLeadingArticles] is `true`, [SearchSort.title] also ignores a
+  /// leading article ("the"/"a"/"an", see [titleSortKey]) — e.g. "The Nice
+  /// Combination" files under **N**. Both are a stable Dart post-sort over the
+  /// SQL base order (which is ASCII-case-only, `COLLATE NOCASE`); other sorts
+  /// are unaffected.
   ///
   /// [direction] flips the ordering; when omitted it resolves to the sort key's
   /// [SearchSortDirectionX.defaultDirection], preserving the historical order.
@@ -2997,9 +3005,17 @@ class DanceRepository {
           requireEventDate: requireEventDate,
         );
       case SearchSort.title:
-        return ignoreLeadingArticles
-            ? _sortByTitleIgnoringArticles(ids, descending: descending)
-            : ids;
+        // SQL `COLLATE NOCASE` folds only ASCII case, so "École" would file
+        // after Z; [titleSortKey] folds accents in a Dart post-pass. That pass
+        // costs a second query over every result of the default sort, so
+        // without the articles setting it is skipped while no title is
+        // non-ASCII (the SQL order is already the folded order then).
+        if (!ignoreLeadingArticles && !await _anyNonAsciiTitle(ids)) return ids;
+        return _sortByTitle(
+          ids,
+          descending: descending,
+          ignoreLeadingArticles: ignoreLeadingArticles,
+        );
       case SearchSort.recentlyAdded:
       case SearchSort.recentlyEdited:
       case SearchSort.composedOn:
@@ -3009,16 +3025,34 @@ class DanceRepository {
     }
   }
 
-  /// Alphabetizes [ids] by title with a leading article ignored (see
+  /// Whether any dance among [ids] has a non-ASCII title (character count
+  /// differs from byte count). Scans `dances` once in SQL rather than fetching
+  /// the result's titles; the non-ASCII set is normally empty or tiny.
+  Future<bool> _anyNonAsciiTitle(List<String> ids) async {
+    if (ids.isEmpty) return false;
+    final rows = await _db
+        .customSelect(
+          'SELECT id FROM dances '
+          'WHERE length(title) <> length(CAST(title AS BLOB))',
+        )
+        .get();
+    if (rows.isEmpty) return false;
+    final wanted = ids.toSet();
+    return rows.any((r) => wanted.contains(r.read<String>('id')));
+  }
+
+  /// Alphabetizes [ids] by accent-folded title (see [foldForTitleMatch]), with
+  /// a leading article ignored when [ignoreLeadingArticles] (see
   /// [titleSortKey]). [ids] arrive in SQL title (base) order, kept as a stable
   /// tiebreak for equal keys (e.g. "Rose" vs "The Rose" both key to "rose").
   ///
   /// Only the `(id, title)` of the already-filtered [ids] is fetched (via an
   /// `id IN (...)` restriction), so this scales with the result size rather
   /// than the whole library.
-  Future<List<String>> _sortByTitleIgnoringArticles(
+  Future<List<String>> _sortByTitle(
     List<String> ids, {
     bool descending = false,
+    required bool ignoreLeadingArticles,
   }) async {
     if (ids.isEmpty) return ids;
     // Chunked (see [_chunkIds]) so a result past SQLite's bound-variable limit
@@ -3031,9 +3065,10 @@ class DanceRepository {
                 ..where(_db.dances.id.isIn(chunk)))
               .get();
       for (final row in rows) {
-        keys[row.read(_db.dances.id)!] = titleSortKey(
-          row.read(_db.dances.title)!,
-        );
+        final title = row.read(_db.dances.title)!;
+        keys[row.read(_db.dances.id)!] = ignoreLeadingArticles
+            ? titleSortKey(title)
+            : foldForTitleMatch(title);
       }
     }
     final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
@@ -3074,9 +3109,9 @@ class DanceRepository {
           )
           .get();
       for (final r in rows) {
-        names[r.read<String>('dance_id')] = r
-            .read<String>('name')
-            .toLowerCase();
+        names[r.read<String>('dance_id')] = foldForTitleMatch(
+          r.read<String>('name'),
+        );
       }
     }
     // `ids` arrives in title (base) order; keep it as a stable tiebreak since

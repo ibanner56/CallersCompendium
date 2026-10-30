@@ -2073,6 +2073,78 @@ void main() {
       },
     );
 
+    test(
+      'title sort folds accents with or without the articles flag',
+      () async {
+        await dances.create(_dance(id: 'ecole', title: 'École Reel'));
+        await dances.create(_dance(id: 'dog', title: 'Dog Days'));
+        await dances.create(_dance(id: 'fox', title: 'Fox Trot'));
+        // SQL COLLATE NOCASE alone would file É after Z.
+        for (final articles in [false, true]) {
+          expect(
+            await dances.search(
+              const AndFilter([]),
+              sort: SearchSort.title,
+              ignoreLeadingArticles: articles,
+            ),
+            ['dog', 'ecole', 'fox'],
+            reason: 'ignoreLeadingArticles: $articles',
+          );
+          expect(
+            await dances.search(
+              const AndFilter([]),
+              sort: SearchSort.title,
+              direction: SortDirection.descending,
+              ignoreLeadingArticles: articles,
+            ),
+            ['fox', 'ecole', 'dog'],
+            reason: 'descending, ignoreLeadingArticles: $articles',
+          );
+        }
+      },
+    );
+
+    test('ASCII-only titles keep the SQL order; an accented title joins '
+        'without reordering them', () async {
+      // Case, punctuation and surrounding whitespace all differ. The ASCII
+      // shortcut returns the SQL order, so the Dart pass must agree with it.
+      final titles = {
+        'sp': ' Zed',
+        'up': 'apple',
+        'ca': 'Apple Core',
+        'us': 'Apple_Core',
+        'pu': 'Apple-Core',
+        'tr': 'Banana ',
+        'ba': 'Banana',
+      };
+      for (final e in titles.entries) {
+        await dances.create(_dance(id: e.key, title: e.value));
+      }
+      Future<List<String>> order() =>
+          dances.search(const AndFilter([]), sort: SearchSort.title);
+      final ascii = await order();
+      expect(ascii.first, 'sp', reason: 'leading space sorts first in SQL');
+      await dances.create(_dance(id: 'ez', title: 'Éclair'));
+      final mixed = await order();
+      expect(mixed.where((id) => id != 'ez').toList(), ascii);
+    });
+
+    test('author sort folds accents', () async {
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'e', name: 'Émile'));
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'd', name: 'Dana'));
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'f', name: 'Fay'));
+      await dances.create(_dance(id: 'fd', title: 'One', authorIds: ['f']));
+      await dances.create(_dance(id: 'ed', title: 'Two', authorIds: ['e']));
+      await dances.create(_dance(id: 'dd', title: 'Three', authorIds: ['d']));
+      expect(
+        await dances.search(const AndFilter([]), sort: SearchSort.author),
+        ['dd', 'ed', 'fd'],
+      );
+    });
+
     test('title without the flag sorts by literal text', () async {
       await dances.create(_dance(id: 'apple', title: 'The Apple'));
       await dances.create(_dance(id: 'banana', title: 'Banana'));

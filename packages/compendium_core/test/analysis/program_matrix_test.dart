@@ -134,6 +134,15 @@ void main() {
       expect(present.where((k) => k == 'swing:corners'), hasLength(1));
     });
 
+    test('third corners join the corners column; opposites are other', () {
+      // v38 (#1975, the author's call).
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swing('thirdCorners'), swing('opposites')]),
+      ]);
+      expect(colOf(matrix, 'swing:corners'), isNonNegative);
+      expect(colOf(matrix, 'swing:other'), isNonNegative);
+    });
+
     test('an unusual who lands in the other bucket', () {
       final matrix = buildProgramMatrix([
         dance('d1', 'A', [swing('everyone')]),

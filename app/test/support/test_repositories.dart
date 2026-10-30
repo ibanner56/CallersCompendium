@@ -294,6 +294,22 @@ class DelayedProgramRepository extends ProgramRepository {
     );
   }
 
+  /// Held by [holdNextWrite] like [replaceIfUnchanged].
+  @override
+  Future<Program?> replaceIfUnchangedAndReadBack({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) async {
+    await _beforeWrite();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
+    return super.replaceIfUnchangedAndReadBack(
+      expected: expected,
+      replacement: replacement,
+      updatedAt: updatedAt,
+    );
+  }
+
   @override
   Future<int> clearPerformedAtIfMatches({
     required String programId,

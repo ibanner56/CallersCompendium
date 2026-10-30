@@ -2695,6 +2695,12 @@ abstract class AppLocalizations {
   /// **'Check for a newer version in the background when the app starts. Off by default.'**
   String get settingsUpdatesAutoSubtitle;
 
+  /// Subtitle of the automatic-background-check toggle on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update, so the check only looks for an end-of-support date.
+  ///
+  /// In en, this message translates to:
+  /// **'Look for an end-of-support date for this version in the background when the app starts. Off by default.'**
+  String get settingsUpdatesAutoStoreSubtitle;
+
   /// Privacy/behaviour paragraph reassuring the user how the update check and assisted download work.
   ///
   /// In en, this message translates to:
@@ -2772,6 +2778,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your update is ready. Mount the disk image and close the app so you can replace it in Applications.'**
   String get settingsUpdatesMacosReadySubtitle;
+
+  /// Title of the row in Settings > Updates, in place of the Check for updates action, on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates come from your app store'**
+  String get settingsUpdatesStoreTitle;
+
+  /// Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action. It still looks for an end-of-support date.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.'**
+  String get settingsUpdatesStoreSubtitle;
+
+  /// Title of the Settings > Updates row shown when a newer version is found on a portable copy (the Windows zip or the Linux tar.gz). Tapping it opens the release page.
+  ///
+  /// In en, this message translates to:
+  /// **'Portable copy: download the new archive'**
+  String get settingsUpdatesPortableTitle;
+
+  /// Subtitle of the portable-copy row in Settings > Updates. zip is the Windows archive and tar.gz the Linux one; both are file formats, not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy runs from an unpacked archive, so the app can\'t install the update for you. Download the new zip or tar.gz from the release and unpack it.'**
+  String get settingsUpdatesPortableSubtitle;
 
   /// Title of the assisted-download tile in its idle and failed states, offering to download the update.
   ///
@@ -5971,12 +6001,6 @@ abstract class AppLocalizations {
   /// **'Search titles, authors, figures, notes…'**
   String get collectionSearchFieldHint;
 
-  /// Hint text of the collection picker when its online search is limited to titles.
-  ///
-  /// In en, this message translates to:
-  /// **'Search online dances by title…'**
-  String get collectionPickerOnlineSearchFieldHint;
-
   /// Label for the local collection search scope selector.
   ///
   /// In en, this message translates to:
@@ -7355,6 +7379,18 @@ abstract class AppLocalizations {
   /// **'You have an unsaved draft for this program. Would you like to restore it?'**
   String get programsDraftBody;
 
+  /// Dialog body when the caller starts a new program and a draft of a different new program, never saved, is waiting from an earlier session. Restoring continues that program; discarding deletes it.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new program, “{title}”. Would you like to restore it instead of starting a new one?'**
+  String programsDraftAnotherNewProgramBody(String title);
+
+  /// Dialog body when the caller starts a new program and an untitled draft of a different new program, never saved, is waiting from an earlier session.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?'**
+  String get programsDraftAnotherNewProgramUntitledBody;
+
   /// Button that restores the autosaved program draft into the editor.
   ///
   /// In en, this message translates to:
@@ -8558,6 +8594,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can\'t undo: the program has changed since.'**
   String get performUndoNoLongerAvailable;
+
+  /// Snackbar shown in Perform when saving a live program adjustment found that the program had been changed elsewhere (for example by Device Sync) since Perform opened it. The adjustment was saved on top of that change instead of overwriting it, and Perform now shows the updated program.
+  ///
+  /// In en, this message translates to:
+  /// **'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.'**
+  String get performProgramChangedElsewhere;
 
   /// Snackbar message shown after applying a live program adjustment.
   ///
@@ -10480,6 +10522,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
   String get importIssueArchiveNewerSchema;
+
+  /// Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so its values go into the field under the key shown (the user's key plus _2, _3, …), which is created unless an earlier import made it; the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Your custom field \"{label}\" has a different type or other choices in this file, so the file\'s values for it go into the field with the key \"{key}\" instead, which is added if you don\'t have it yet. Your field is unchanged.'**
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key);
+
+  /// Import review warning for a shared file (INTAKE-2), used when the key is held by another field of the same file or by a field the user deleted, so no field is named and no difference is claimed (the file's text is never shown). The values go into a field under a numbered key.
+  ///
+  /// In en, this message translates to:
+  /// **'A custom field in this file could not use its key, which is already taken, so its values go into a field with a numbered key instead.'**
+  String get importIssueArchiveCustomFieldKeyConflictGeneric;
 
   /// Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file.
   ///
@@ -13003,6 +13057,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A newer version of {appName} ({version}) is available.'**
   String updateBannerAvailable(String appName, String version);
+
+  /// Update banner message on a portable copy (the Windows zip or the Linux tar.gz) when a newer version is available. The app can't install it, so the message sends the user to the release page. zip and tar.gz are file formats, not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version of {appName} ({version}) is available. This is a portable copy, so download the new zip or tar.gz from the release.'**
+  String updateBannerPortable(String appName, String version);
 
   /// End-of-support notice (banner and Settings ▸ Updates) before the announced end-of-life date. {date} is already formatted per the user's date-format setting.
   ///
