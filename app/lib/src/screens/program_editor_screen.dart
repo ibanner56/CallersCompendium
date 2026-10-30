@@ -1452,6 +1452,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     await _saveQueueTail;
     try {
       await _repos.settings.remove(_draftKey, permanent: true);
+      // Nothing is left unsaved, so a "Draft not saved" marker would be stale.
+      if (_draftHealth.recordSuccess() && mounted) setState(() {});
     } catch (_) {
       // diagnostics: silent — draft removal best-effort; non-fatal.
     }

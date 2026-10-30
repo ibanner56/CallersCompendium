@@ -5,7 +5,6 @@ import 'package:compendium_core/testing.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import '../support/l10n_harness.dart';
 
 void main() {

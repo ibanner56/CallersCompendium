@@ -7,7 +7,6 @@ import 'package:compendium_app/src/search/called_venue_choices.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/facet_panel.dart';
-
 import '../support/l10n_harness.dart';
 import '../support/screen_size.dart';
 import '../support/test_repositories.dart';

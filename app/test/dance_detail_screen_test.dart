@@ -2,10 +2,8 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:compendium_core/compendium_core.dart';
-
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

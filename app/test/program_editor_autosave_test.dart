@@ -461,6 +461,32 @@ void main() {
       expect(find.byKey(const ValueKey('draft-not-saved')), findsNothing);
     });
 
+    testWidgets('a commit that clears the draft also clears the Draft not '
+        'saved marker', (tester) async {
+      final failing = openTestRepositoriesWithFailingSettings();
+      failing.settings.failWrites = false;
+      await failing.repos.programs.create(_program(id: 'p1', title: 'Before'));
+      await _pumpEditor(
+        tester,
+        failing.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      // The draft write fails, but the auto-commit still saves the program.
+      failing.settings.failWrites = true;
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'After',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final all = await failing.repos.programs.listAll();
+      expect(all.single.title, 'After');
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsNothing);
+    });
+
     testWidgets('repeated draft-write failures log once, by type only', (
       tester,
     ) async {

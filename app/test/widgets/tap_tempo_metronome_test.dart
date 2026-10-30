@@ -2,7 +2,6 @@ import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/widgets/tap_tempo_metronome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import '../support/l10n_harness.dart';
 
 /// Pumps a [TapTempoMetronome] whose clock returns whatever [now] currently
