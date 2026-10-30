@@ -459,6 +459,11 @@ All three match the recommendations. Builds as the UX6-2 branch, after D2.
 
 **Decision:** "Yes, prove it". The option read: "A small session mutates renameDialect to reuse the old stamp and checks the test goes red. If it doesn't, the session strengthens the test in a small PR. A test-only change."
 
+### Wave 3 release condition (2026-10-30 ~14:30 UTC)
+**Decision (maintainer's words):** "Release wave 3 when everything remaining from wave 2 is all-green and ready to merge."
+
+At that time the only wave-2 branch not yet merged or open was B3 (`fix/link-typed-venues`), so wave 3 (B4 → B5, B22, B24, B28 → B29) starts once B3's PR is green and ready to merge.
+
 ## Still open
 
 - Nothing on the decision page.
