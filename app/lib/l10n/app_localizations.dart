@@ -2695,6 +2695,12 @@ abstract class AppLocalizations {
   /// **'Check for a newer version in the background when the app starts. Off by default.'**
   String get settingsUpdatesAutoSubtitle;
 
+  /// Subtitle of the automatic-background-check toggle on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update, so the check only looks for an end-of-support date.
+  ///
+  /// In en, this message translates to:
+  /// **'Look for an end-of-support date for this version in the background when the app starts. Off by default.'**
+  String get settingsUpdatesAutoStoreSubtitle;
+
   /// Privacy/behaviour paragraph reassuring the user how the update check and assisted download work.
   ///
   /// In en, this message translates to:
@@ -2772,6 +2778,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your update is ready. Mount the disk image and close the app so you can replace it in Applications.'**
   String get settingsUpdatesMacosReadySubtitle;
+
+  /// Title of the row in Settings > Updates, in place of the Check for updates action, on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates come from your app store'**
+  String get settingsUpdatesStoreTitle;
+
+  /// Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action. It still looks for an end-of-support date.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.'**
+  String get settingsUpdatesStoreSubtitle;
+
+  /// Title of the Settings > Updates row shown when a newer version is found on a portable copy (the Windows zip or the Linux tar.gz). Tapping it opens the release page.
+  ///
+  /// In en, this message translates to:
+  /// **'Portable copy: download the new archive'**
+  String get settingsUpdatesPortableTitle;
+
+  /// Subtitle of the portable-copy row in Settings > Updates. zip is the Windows archive and tar.gz the Linux one; both are file formats, not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy runs from an unpacked archive, so the app can\'t install the update for you. Download the new zip or tar.gz from the release and unpack it.'**
+  String get settingsUpdatesPortableSubtitle;
 
   /// Title of the assisted-download tile in its idle and failed states, offering to download the update.
   ///
@@ -13021,6 +13051,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A newer version of {appName} ({version}) is available.'**
   String updateBannerAvailable(String appName, String version);
+
+  /// Update banner message on a portable copy (the Windows zip or the Linux tar.gz) when a newer version is available. The app can't install it, so the message sends the user to the release page. zip and tar.gz are file formats, not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version of {appName} ({version}) is available. This is a portable copy, so download the new zip or tar.gz from the release.'**
+  String updateBannerPortable(String appName, String version);
 
   /// End-of-support notice (banner and Settings ▸ Updates) before the announced end-of-life date. {date} is already formatted per the user's date-format setting.
   ///

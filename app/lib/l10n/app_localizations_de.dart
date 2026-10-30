@@ -1884,6 +1884,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Beim App-Start im Hintergrund nach einer neueren Version suchen. Standardmäßig deaktiviert.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Beim Start der App im Hintergrund nach einem Datum für das Ende der Unterstützung dieser Version suchen. Standardmäßig aus.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'Die Update-Prüfung lädt über HTTPS nur eine kleine Versionsdatei herunter – es werden keinerlei Daten über Sie, Ihr Gerät oder Ihre Nutzung übertragen. Es wird nichts automatisch heruntergeladen oder installiert: Sie entscheiden, wann ein Update heruntergeladen wird, es wird vor dem Öffnen verifiziert, und Ihr Systeminstallationsprogramm schließt die Installation ab.';
 
@@ -1930,6 +1934,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsUpdatesMacosReadySubtitle =>
       'Ihr Update ist bereit. Binden Sie das Disk-Image ein und schließen Sie die App, damit Sie sie im Ordner „Programme“ ersetzen können.';
+
+  @override
+  String get settingsUpdatesStoreTitle => 'Updates kommen aus Ihrem App-Store';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Diese Kopie wurde aus einem App-Store installiert, der sie daher auch aktualisiert. Die App sucht nur nach einem Datum für das Ende der Unterstützung, nie nach einer neuen Version.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Portable Kopie: neues Archiv herunterladen';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Diese Kopie läuft aus einem entpackten Archiv, daher kann die App das Update nicht für Sie installieren. Laden Sie das neue zip oder tar.gz vom Release herunter und entpacken Sie es.';
 
   @override
   String get settingsUpdatesDownloadTitle =>
@@ -8883,6 +8902,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'Eine neuere Version von $appName ($version) ist verfügbar.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'Eine neuere Version von $appName ($version) ist verfügbar. Dies ist eine portable Kopie – laden Sie das neue zip oder tar.gz vom Release herunter.';
   }
 
   @override

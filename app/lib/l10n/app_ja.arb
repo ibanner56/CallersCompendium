@@ -1720,6 +1720,10 @@
   "@settingsUpdatesAutoSubtitle": {
     "x-sourceSha256": "714fa486bfaec4f1907d33ca08c2096908d4bdb3ef3ed57405369ae3ced54400"
   },
+  "settingsUpdatesAutoStoreSubtitle": "アプリの起動時に、このバージョンのサポート終了日をバックグラウンドで確認します。初期設定ではオフです。",
+  "@settingsUpdatesAutoStoreSubtitle": {
+    "x-sourceSha256": "3a7d703804b7f49cf78065166a77bb567810a90345b58a283ded6683be7986b0"
+  },
   "settingsUpdatesPrivacyNote": "アップデート確認はHTTPS経由で小さなバージョンファイルをダウンロードするだけで、その他の情報は一切送信されません。ユーザー情報、デバイス情報、使用状況は送信されません。自動でダウンロードやインストールは行われません。アップデートのダウンロードはご自身で選択し、開く前に検証され、システムのインストーラーがインストールを完了します。",
   "@settingsUpdatesPrivacyNote": {
     "x-sourceSha256": "c8815fc787434dbbc8184498535e50532203e8bebe25e8ea4febae05cf99aafb"
@@ -1771,6 +1775,22 @@
   "settingsUpdatesMacosReadySubtitle": "アップデートの準備ができました。ディスクイメージをマウントしてアプリを閉じると、「アプリケーション」フォルダ内で置き換えられます。",
   "@settingsUpdatesMacosReadySubtitle": {
     "x-sourceSha256": "005d5b6d4026d34cd4bb0a4ede76c2fd391bd3598b5fcfd2b21103f543100223"
+  },
+  "settingsUpdatesStoreTitle": "アップデートはアプリストアから届きます",
+  "@settingsUpdatesStoreTitle": {
+    "x-sourceSha256": "53e9be4c9dadaca5e7677a817a615dd6d698146fe548efd09d346ebfa4afc5ad"
+  },
+  "settingsUpdatesStoreSubtitle": "このコピーはアプリストアからインストールされているため、ストアが更新します。アプリが確認するのはサポート終了日だけで、新しいバージョンは確認しません。",
+  "@settingsUpdatesStoreSubtitle": {
+    "x-sourceSha256": "db003b621e3b71c206dd26c0ff18cb86c13b0bee31bae687eefd882f6f3f12ba"
+  },
+  "settingsUpdatesPortableTitle": "ポータブル版：新しいアーカイブをダウンロード",
+  "@settingsUpdatesPortableTitle": {
+    "x-sourceSha256": "47aa3322aff392868cd8336d0caa2bcf41e7f1bc6d13b0ece461f5408f4c00ae"
+  },
+  "settingsUpdatesPortableSubtitle": "このコピーは展開したアーカイブから実行されているため、アプリが代わりにアップデートをインストールすることはできません。リリースから新しい zip または tar.gz をダウンロードして展開してください。",
+  "@settingsUpdatesPortableSubtitle": {
+    "x-sourceSha256": "e81b7be2d5f5dea10b985580086853594ffb5da78c8fbaeb9ffc55c926863fb7"
   },
   "settingsUpdatesDownloadTitle": "アップデートをダウンロードしてインストール",
   "@settingsUpdatesDownloadTitle": {
@@ -8573,6 +8593,10 @@
   "updateBannerAvailable": "{appName}の新しいバージョン（{version}）が利用可能です。",
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"
+  },
+  "updateBannerPortable": "{appName} の新しいバージョン（{version}）があります。これはポータブル版のため、リリースから新しい zip または tar.gz をダウンロードしてください。",
+  "@updateBannerPortable": {
+    "x-sourceSha256": "aadaf3b38beb0a611010e02e3994fad057ac5a933a5b3d1d22674d2d167ceba0"
   },
   "retirementNoticeUpcoming": "このバージョンの{appName}（{version}）のサポートは{date}に終了します。それまでに新しいバージョンに更新してください。",
   "@retirementNoticeUpcoming": {
