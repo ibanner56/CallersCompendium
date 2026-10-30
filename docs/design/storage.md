@@ -912,10 +912,10 @@ and does not leak into what the user sees.
   except for rows Device Sync has published: those are retained as tombstones
   indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1), and
   once expired are **blanked** as Permanently delete blanks them (next bullet),
-  except that `existence_at` advances one tick above its own value rather than
-  to the clock, and the records citing a dance are not rewritten (a cited dance
-  keeps its title until nothing cites it); `sync-spec.md` §3.2 gives the
-  reasons. The
+  except that `existence_at` is left alone (a tie between tombstones takes the
+  mark, `sync-spec.md` §6.4), and the records citing a dance are not rewritten
+  (a cited dance keeps its title until nothing cites it); `sync-spec.md` §3.2
+  gives the reasons. The
   six kinds that became soft-deletable in v25 have no retention sweep yet:
   their tombstones accumulate until Device Sync, which owns retention, adds
   one.

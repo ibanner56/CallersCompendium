@@ -14,9 +14,10 @@
 /// blank its content, with no retirement of the deletion record).
 ///
 /// The retention purge does the same to a published record whose time in the
-/// trash has run out (`DanceRepository.purgeDeleted`), advancing its existence
-/// stamp by one tick rather than to the clock, because expiry is not a new
-/// deletion. Neither it nor the startup sweep rewrites the records citing a
+/// trash has run out (`DanceRepository.purgeDeleted`), but leaves its existence
+/// stamp alone, because expiry is not a new deletion; a tie between tombstones
+/// takes the mark in the merge. Neither it nor the startup sweep rewrites the
+/// records citing a
 /// dance; a cited dance keeps its title until nothing cites it
 /// (`DanceRepository.removePermanentlyDeleted` says why).
 ///

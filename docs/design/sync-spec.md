@@ -388,11 +388,10 @@ The retention purge treats an expired published record the same way, with two
 differences, both the implementer's choices rather than part of the decision
 below:
 
-- `existenceAt` advances one tick above the tombstone's own value, not to the
-  clock. Expiry is not a new deletion, and a clock stamp would let it outrank a
-  revival a peer made after the record went to the trash. Without the tick, a
-  peer holding the same tombstone would tie, keep its own `deletedAt`, and go on
-  listing the record.
+- `existenceAt` is left alone. Expiry is not a new deletion, and any later
+  stamp could outrank, or tie with, a revival a peer made after the record went
+  to the trash. A peer holding the same tombstone ties with it and still takes
+  the mark, by the tie rule in §6.4.
 - It never rewrites the records citing a dance. The purge, like the startup
   sweep that finishes earlier marks, runs before the first sync pass, possibly
   on a device that has been offline for weeks, and restamping its stale copies
@@ -3076,6 +3075,17 @@ causal stamp — a device reviving a record it received as a tombstone stamps
 above that tombstone by construction, so it cannot tie with it — leaving only
 genuinely concurrent transitions on two devices that have not yet seen each
 other's, within one tick of each other.
+
+**Between tombstones, a tie takes the permanent-deletion mark.** When the
+copies tied at the greatest `existenceAt` are all tombstones and one carries
+`deletedAt` = the unix epoch (§3.2, *a permanently deleted record stays
+published*), the existence winner, and so the `deletedAt` every device keeps, is
+that copy. Both copies record the same deletion; the marked one has only gone
+further, and taking the other's `deletedAt` would list the record in Recently
+deleted again. The rule chooses among deleted copies only, so it never decides
+between a tombstone and a revival. *Amended 2026-10-30 (LIFE-2 follow-up); the
+implementer's choice, so that the retention purge need not stamp
+`existenceAt`.*
 
 **"By construction" holds only where the tombstone was applied to the row.** A
 tombstone held pending under §6.8 is deliberately *not* written to the row, so
