@@ -355,6 +355,26 @@ void main() {
       expect((await repos.dances.getById('d1'))!.authorIds, ['c2', 'c1']);
     });
 
+    testWidgets('a name only a deleted author holds is taken, with the '
+        "dialog's other details, and no merge offer", (tester) async {
+      final repos = await seed();
+      // `c1` is credited nowhere, so it can be deleted.
+      final _ = await repos.references.deleteUnused(ReferenceKind.author, 'c1');
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith', website: 'sam.example');
+
+      expect(find.byKey(const ValueKey('library-merge-offer')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('choreographer-duplicate-snackbar')),
+        findsNothing,
+      );
+      final renamed = await repos.choreographers.getById('c2');
+      expect(renamed!.name, 'Pat Smith');
+      expect(renamed.website, 'sam.example');
+      expect(chipLabel(tester, 'c2'), 'Pat Smith');
+    });
+
     testWidgets('after a merge, Save credits the merged author', (
       tester,
     ) async {

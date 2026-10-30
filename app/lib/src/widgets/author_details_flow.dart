@@ -101,8 +101,8 @@ Future<AuthorMerge?> offerAuthorMerge(
       ),
     );
   }
-  // Every holder went between the rename and here: nothing to merge with,
-  // so the caller tries the name again.
+  // Every holder went between the rename and here: nothing to merge with.
+  // Nothing has been written; the caller reports a failed edit.
   if (matches.isEmpty) throw StateError('the authors holding the name went');
   if (!context.mounted) return null;
   final intoId = await showLibraryMergeOffer(
@@ -160,11 +160,14 @@ final class AuthorDetailsMerged extends AuthorDetailsOutcome {
 ///
 /// When the new name is another live author's, offers the merge
 /// ([offerAuthorMerge]) instead of refusing it. **Keep editing** re-opens the
-/// dialog with what was typed. Returns `null` when the user cancels.
+/// dialog with what was typed. When only a deleted author holds the name, the
+/// rename goes through [ReferenceEditRepository.rename], which frees a
+/// tombstone's name rather than refusing it, as the Authors manager's Rename
+/// does. Returns `null` when the user cancels.
 ///
-/// Throws [DuplicateNaturalKeyError] when the name collided but no live
-/// author holds it any more (a sync pass removed it meanwhile), and whatever
-/// the write throws otherwise.
+/// Throws, writing nothing, when the write fails, including when a live
+/// author takes the name or every holder goes between the collision and the
+/// merge offer; the caller reports a failed edit.
 Future<AuthorDetailsOutcome?> editAuthorDetails(
   BuildContext context,
   CompendiumRepositories repos,
@@ -194,7 +197,28 @@ Future<AuthorDetailsOutcome?> editAuthorDetails(
         ))
           if (!match.deleted) match.id,
       ];
-      if (liveIds.isEmpty || !context.mounted) rethrow;
+      if (liveIds.isEmpty) {
+        // Only a deleted author holds the name: `upsert` refuses to take a
+        // tombstone's name, and `rename` frees it first. The dialog's other
+        // details are then saved under the new name, in the same transaction.
+        await repos.transaction(() async {
+          final _ = await repos.references.rename(
+            ReferenceKind.author,
+            existing.id,
+            updated.name,
+          );
+          final renamed = await repos.choreographers.getById(existing.id);
+          if (renamed == null) return;
+          final details = updated.copyWith(name: renamed.name);
+          if (details == renamed) return;
+          // ignore: unused_result
+          await repos.choreographers.upsert(details, localUserEdit: true);
+        });
+        return AuthorDetailsSaved(
+          await repos.choreographers.getById(existing.id) ?? updated,
+        );
+      }
+      if (!context.mounted) return null;
       final merge = await offerAuthorMerge(
         context,
         repos,

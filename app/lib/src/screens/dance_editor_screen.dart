@@ -763,8 +763,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     try {
       outcome = await editAuthorDetails(context, _repos, existing);
     } on DuplicateNaturalKeyError catch (error, stackTrace) {
-      // The name collided, but no live author holds it (a deleted one can),
-      // so there was nothing to merge with. The rename was not saved, so the caches must
+      // A net: a collision with no live holder is renamed over a deleted
+      // one by `editAuthorDetails`, so this is reached only if `upsert`
+      // raises it some other way. The rename was not saved, so the caches must
       // not move (#1348).
       logCaughtError(
         error,
