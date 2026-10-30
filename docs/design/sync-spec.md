@@ -3875,9 +3875,14 @@ holds nothing back, exactly as the local delete guards do not count it.
 > tombstoned venue it links to. Each revival is that record's own existence
 > transition under §6.4, so it outranks the tombstone and every peer revives
 > the record too, whichever device deleted it. It is not one of the
-> cancellations below: a held record stays live, so a tombstoned one carries no
-> hold, and the revival passes `clearPending: false` all the same, because it
-> is derived from another record's restore. A permanently deleted record (the
+> cancellations below: the revival is derived from another record's restore,
+> so it passes `clearPending: false` and leaves any hold in place. A tombstoned
+> record can still carry one, because holds are revalidated lazily: a peer's
+> tombstone held while a live dance cited the record survives a local delete
+> made after that dance was trashed. Restoring the dance then revives the
+> record locally, but this device goes on advertising it as a tombstone, so
+> peers keep it deleted, until the hold resolves by the rules of this section.
+> A permanently deleted record (the
 > epoch `deletedAt` of §3.2) is not in Recently Deleted, and restoring it
 > neither revives it nor anything it names. An archive merge, which
 > overwrites the restored row straight away, revives nothing; nor does the

@@ -1948,7 +1948,8 @@ class DanceRepository {
   /// was in Recently deleted; without the revival the restored dance would hide
   /// its field values, and its next save would fail on the tombstoned level.
   /// Each revival is that record's own `restore`, so it stamps `existence_at`
-  /// and syncs. A reference that is gone outright needs nothing: both are
+  /// and syncs, unless a peer's held tombstone still covers the record (see
+  /// [_reviveReferences]). A reference that is gone outright needs nothing: both are
   /// foreign keys, so an erased level cannot be named and an erased field takes
   /// its values with it. A permanently deleted dance ([isPermanentlyDeleted])
   /// is not in Recently deleted, so this path neither restores it nor revives
@@ -1986,9 +1987,13 @@ class DanceRepository {
   });
 
   /// Revives the tombstoned level and custom-field definitions [row] names;
-  /// see [restore]. A held record stays live, so a tombstoned one has no hold
-  /// to clear, and a revival derived from another record's restore must not
-  /// cancel one anyway (sync-spec §6.8): hence `clearPending: false`.
+  /// see [restore]. A revival derived from another record's restore must not
+  /// cancel a pending peer tombstone (sync-spec §6.8), hence
+  /// `clearPending: false`. A tombstoned record can still carry one: holds are
+  /// revalidated lazily, so a peer's held tombstone survives a local delete
+  /// made after its last live citer was trashed. Such a record is revived here
+  /// but stays advertised as a tombstone, and peers keep it deleted, until the
+  /// hold resolves under §6.8.
   Future<void> _reviveReferences(DanceRow row, {required DateTime at}) async {
     final levelId = row.levelId;
     if (levelId != null &&

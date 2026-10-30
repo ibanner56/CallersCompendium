@@ -1734,7 +1734,8 @@ class ProgramRepository {
   /// may have been deleted while the program was in Recently deleted; without
   /// the revival the restored program would lose its venue (LIFE-4, GIG-17).
   /// The revival is [VenueRepository.restore], so it stamps `existence_at` and
-  /// syncs. A venue that is gone outright is left as it is: the program shows
+  /// syncs, unless a peer's held tombstone still covers the venue (see
+  /// `DanceRepository._reviveReferences`). A venue that is gone outright is left as it is: the program shows
   /// its free-text venue, or none (`resolveVenueLabel`), an unchanged
   /// `venueId` does not block a save (see [_upsert]), and [duplicate] drops
   /// it. Clearing the id here was rejected: a peer's program can name a venue
@@ -1767,7 +1768,7 @@ class ProgramRepository {
                     ))
                   .getSingleOrNull() !=
               null) {
-        // No hold to clear, and none to cancel; see
+        // A derived revival must not cancel a hold; see
         // `DanceRepository._reviveReferences`.
         await VenueRepository(
           _db,
