@@ -1,0 +1,14 @@
+{
+  "id": "b3-link-typed-venues",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "When you turn on reusable venue records, or add a venue, the app offers to link earlier programs whose typed venue matches it, so calling history counts a typed \"Grange\" and a saved \"Grange\" as one hall. The typed text is kept, and programs in Recently deleted are left as they were."
+    ]
+  },
+  "core": {
+    "added": [
+      "`ProgramRepository.linkTypedVenues` and `countTypedVenuePrograms` link live programs that carry a venue only as typed text to a venue record, matching by `VenueKey` and stamping each linked program for Device Sync."
+    ]
+  }
+}
