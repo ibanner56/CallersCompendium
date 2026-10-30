@@ -89,14 +89,20 @@
     "x-sourceSha256": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
   },
   "appBootstrapLogHint": "Detaljer blev også skrevet til diagnostiklogget i appens supportmappe.",
-  "appBootstrapReleasesLink": "Åbn Releases-siden",
-  "migrationDowngradeVersions": "Dine data bruger lagringsformat {fileVersion}. Denne version af appen kan læse op til format {appVersion}.",
   "@appBootstrapLogHint": {
     "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
   },
+  "appBootstrapReleasesLink": "Åbn Releases-siden",
+  "@appBootstrapReleasesLink": {
+    "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
+  },
+  "migrationDowngradeVersions": "Dine data bruger lagringsformat {fileVersion}. Denne version af appen kan læse op til format {appVersion}.",
+  "@migrationDowngradeVersions": {
+    "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
+  },
   "migrationDowngradeMessage": "Disse data blev oprettet med en nyere version af Caller’s Compendium. Opdatér appen, og åbn den derefter igen.",
   "@migrationDowngradeMessage": {
-    "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
+    "x-sourceSha256": "16e745baf449224ab5aedb863ef7ff32aacc237ac5e54e40b8cc9ba5c87a90e7"
   },
   "migrationRelocationBothExist": "Caller’s Compendium blev ikke startet, fordi der blev fundet gemte datafiler både på den nye placering og i en mappe, en tidligere version brugte. Intet blev ændret eller slettet. Behold den kopi, du vil bruge, flyt den anden væk, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en angiver placeringerne.",
   "@migrationRelocationBothExist": {

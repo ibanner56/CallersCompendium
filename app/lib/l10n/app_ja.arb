@@ -89,14 +89,20 @@
     "x-sourceSha256": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
   },
   "appBootstrapLogHint": "詳細は、アプリのサポートフォルダ内の診断ログにも書き込まれました。",
-  "appBootstrapReleasesLink": "Releases ページを開く",
-  "migrationDowngradeVersions": "お使いのデータの保存形式はバージョン {fileVersion} です。このバージョンのアプリは形式 {appVersion} まで読み込めます。",
   "@appBootstrapLogHint": {
     "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
   },
+  "appBootstrapReleasesLink": "Releases ページを開く",
+  "@appBootstrapReleasesLink": {
+    "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
+  },
+  "migrationDowngradeVersions": "お使いのデータの保存形式はバージョン {fileVersion} です。このバージョンのアプリは形式 {appVersion} まで読み込めます。",
+  "@migrationDowngradeVersions": {
+    "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
+  },
   "migrationDowngradeMessage": "このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してから、もう一度開いてください。",
   "@migrationDowngradeMessage": {
-    "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
+    "x-sourceSha256": "16e745baf449224ab5aedb863ef7ff32aacc237ac5e54e40b8cc9ba5c87a90e7"
   },
   "migrationRelocationBothExist": "保存データのファイルが新しい場所と以前のバージョンが使っていたフォルダーの両方で見つかったため、Caller’s Compendium を起動できませんでした。変更や削除は行われていません。残したいほうのコピーを選び、もう一方を別の場所へ移動してから、アプリをもう一度開いてください。FAQの「データはどこに保存されますか？」に保存場所が記載されています。",
   "@migrationRelocationBothExist": {

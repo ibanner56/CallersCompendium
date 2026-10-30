@@ -927,7 +927,7 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
 - **Downgrade protection.** If the file's version is *higher* than the running
   schema (it was written by a newer build), the preflight refuses to open it and
   routes to the `AppBootstrap` error screen ("created by a newer version …
-  please update the app"). drift is forward-only with no `onDowngrade`, so
+  Update the app, then reopen it"). drift is forward-only with no `onDowngrade`, so
   migrating such a file would silently stamp the version down and risk
   corruption; a belt-and-suspenders guard in `MigrationStrategy.onUpgrade`
   (`from > to` throws) backstops any open path that bypasses the preflight.
