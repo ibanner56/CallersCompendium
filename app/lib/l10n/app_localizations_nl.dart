@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -408,7 +407,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count termen konden niet worden toegevoegd: ze zijn te lang, of je woordenlijst is vol.',
-      one: '1 term kon niet worden toegevoegd: hij is te lang, of je woordenlijst is vol.',
+      one:
+          '1 term kon niet worden toegevoegd: hij is te lang, of je woordenlijst is vol.',
     );
     return '$_temp0';
   }
@@ -477,7 +477,8 @@ class AppLocalizationsNl extends AppLocalizations {
           '$count dansen gebruiken je figuur en gaan $name gebruiken. De jouwe wordt uit je woordenlijst verwijderd.',
       one:
           '1 dans gebruikt je figuur en gaat $name gebruiken. De jouwe wordt uit je woordenlijst verwijderd.',
-      zero: 'Geen dans in je collectie gebruikt je figuur. Hij wordt uit je woordenlijst verwijderd.',
+      zero:
+          'Geen dans in je collectie gebruikt je figuur. Hij wordt uit je woordenlijst verwijderd.',
     );
     return '$_temp0';
   }
@@ -7565,7 +7566,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           'Opnieuw importeren vervangt de figuren, formatie en progressie van $count bestaande dansen. Hun beoordelingen, tags en notities blijven.',
-      one: 'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans. De beoordeling, tags en notities blijven.',
+      one:
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans. De beoordeling, tags en notities blijven.',
     );
     return '$_temp0';
   }
@@ -7577,7 +7579,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           'Bij $count daarvan worden ook de titel en auteur uit het bestand overgenomen.',
-      one: 'Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.',
+      one:
+          'Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.',
     );
     return '$_temp0';
   }
@@ -8419,7 +8422,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count figuren toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
-      one: '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
+      one:
+          '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
     );
     return '$_temp0';
   }
@@ -8431,7 +8435,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count figuren toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
-      one: '1 figuur toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
+      one:
+          '1 figuur toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
     );
     return '$_temp0';
   }
@@ -9043,7 +9048,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: '$count dansen teruggezet.',
       one: '1 dans teruggezet.',
-      zero: 'Er zijn geen dansen teruggezet: van elke dans zijn sindsdien het type of de tags gewijzigd.',
+      zero:
+          'Er zijn geen dansen teruggezet: van elke dans zijn sindsdien het type of de tags gewijzigd.',
     );
     return '$_temp0';
   }
@@ -9474,7 +9480,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count oproepknoppen zijn weggelaten omdat hun tekst niet als figuren te lezen is.',
-      one: '1 oproepknop is weggelaten omdat de tekst niet als figuren te lezen is.',
+      one:
+          '1 oproepknop is weggelaten omdat de tekst niet als figuren te lezen is.',
     );
     return '$_temp0';
   }
@@ -9523,7 +9530,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrastparen onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
-      one: '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
+      one:
+          '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
     );
     return '$_temp0';
   }
@@ -10819,7 +10827,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count dansen in de prullenbak gebruiken hem en behouden de regels die ze het laatst opsloegen.',
-      one: '1 dans in de prullenbak gebruikt hem en behoudt de regel die hij het laatst opsloeg.',
+      one:
+          '1 dans in de prullenbak gebruikt hem en behoudt de regel die hij het laatst opsloeg.',
     );
     return '$_temp0';
   }
@@ -10835,7 +10844,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           'Je $count afkortingen ervoor blijven, en als je die typt, worden ze als gewone regels gelezen.',
-      one: 'Je afkorting ervoor blijft, en als je die typt, wordt hij als een gewone regel gelezen.',
+      one:
+          'Je afkorting ervoor blijft, en als je die typt, wordt hij als een gewone regel gelezen.',
     );
     return '$_temp0';
   }
@@ -10847,8 +10857,10 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.',
-      one: '1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.',
-      zero: 'Geen dans in je collectie gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
+      one:
+          '1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.',
+      zero:
+          'Geen dans in je collectie gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
     );
     return '$_temp0';
   }
