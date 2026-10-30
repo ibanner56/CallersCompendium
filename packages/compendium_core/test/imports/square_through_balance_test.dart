@@ -141,6 +141,23 @@ void main() {
     });
   });
 
+  test(
+    'a comma bracket that is not a pass list reaches the per-role reader',
+    () {
+      // It is read as gendered shorthand and rewritten to role tokens (#744),
+      // not kept verbatim as an undecoded pass list.
+      for (final read in [
+        (String line) =>
+            parseFigureLines(line, beats: 8, frontEnd: tcbFigureFrontEnd),
+        (String line) => parseFigureLinesFanOut(line, beats: 8),
+      ]) {
+        final f = read('Square through 2 (W roll R, M side-step L)').single;
+        expect(f.move, 'square_through');
+        expect(f.note, 'role2s roll right, role1s side-step left');
+      }
+    },
+  );
+
   final readers = {
     'import': (String line) => parseFigureLinesFanOut(line, beats: 8),
     'free-text entry': (String line) => parseFreeTextFigureEntry('(8) $line'),

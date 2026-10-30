@@ -3358,6 +3358,9 @@ final RegExp _passListShape = RegExp(
 const String _passCellShape =
     r'(?:(?:ph|tb|srn?|[a-z])-?[0-9]{0,2}|[0-9]{1,2})[rl]~?';
 
+/// One whole cell shaped like [_passCellShape].
+final RegExp _passCell = RegExp('^$_passCellShape\$');
+
 /// Decodes a square through's pass [cells] (`nr`, `pl`, `n2r`, …) of a
 /// square through of [places], or `null` when they do not decode.
 ///
@@ -3498,8 +3501,12 @@ FigureMatch? _decodeSquareThroughPassList(String scrubbed) {
   if (passes == null) {
     // A comma list on a square through with hands that does not decode is
     // kept as the note, not dropped (maintainer decision on #1975). Without
-    // hands, an undecoded list keeps the line custom (#1971).
+    // hands, an undecoded list keeps the line custom (#1971). A comma bracket
+    // that is not a pass list at all (`(W roll R, M side-step L)`, `(optional,
+    // slow)`) is left to the per-role and prose readers after this one, which
+    // turn gendered shorthand into role tokens (#744).
     if (!ccList || withoutHands) return null;
+    if (!_ccPassCells(passText).every(_passCell.hasMatch)) return null;
     return FigureMatch(
       'square_through',
       params: {'places': places},
