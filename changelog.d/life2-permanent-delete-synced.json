@@ -1,0 +1,17 @@
+{
+  "id": "life2-permanent-delete-synced",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Permanently deleting a dance or program that Device Sync has shared now removes it from Recently deleted. Before, it stayed there for good, with all its content, even though the app said it was deleted. Its names, notes and other content are erased from this device, from backups you make from now on, and from your other devices when they next sync; only a small deletion record is kept, so those devices delete it too. Items you permanently deleted in an earlier version are cleaned up the same way the next time the app starts."
+    ],
+    "data_migrations": [
+      "On startup, any shared dance or program you permanently deleted in an earlier version, which stayed in Recently deleted, is reduced to its deletion record and hidden."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `DanceRepository.permanentlyDelete` and `ProgramRepository.permanentlyDelete`, which erase an unpublished record or blank a published one down to its deletion record, and `removePermanentlyDeleted` on both, which finishes every record marked as permanently deleted (`isPermanentlyDeleted`)."
+    ]
+  }
+}

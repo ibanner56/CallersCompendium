@@ -370,6 +370,22 @@ that has selected 100,000 records for publication over its lifetime carries a
 few megabytes.
 An entry MUST be retained even after its record is tombstoned and purged.
 
+**A permanently deleted record stays published.** When the user permanently
+deletes a dance or program this marker names, the client blanks it instead of
+erasing it: the body is reduced to the kind's empty values with a placeholder
+title, `deletedAt` is set to the unix epoch, which is what hides it from
+Recently deleted, and `updatedAt` is stamped after the content it replaces. Its
+`retained_sync_fields` row goes with the content. The record is still a
+tombstone, still in this device's manifest, and its marker
+stays. It goes on advertising the deletion, and because content among copies
+that agree on existence is decided by the greatest `updatedAt` (§6.4), every
+peer replaces its own copy of the body with the blank one. Hiding the record is
+presentation only and changes nothing on the wire.
+
+*Amended 2026-10-30 (LIFE-2): the maintainer decided on 2026-10-29 (round 2,
+`R2-life2-retire`) to hide and blank such a record and not to retire it, so
+the "no retirement" rule above stands unchanged.*
+
 `review_queue` requires a new review surface: `import_review_screen.dart`
 reviews dances only. A generic keep-both-or-merge list suffices; no per-kind
 editors are required.
