@@ -6344,7 +6344,7 @@
   },
   "onlineImportVariationDialogLinkWarning": "Ihre Version von „{existingTitle}“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen und Tags. Sie behält Ihre Bewertung, Ihre benutzerdefinierten Felder, ihren Platz in Ihren Programmen und ihren Calling-Verlauf.",
   "@onlineImportVariationDialogLinkWarning": {
-    "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
+    "x-sourceSha256": "1056677505f70fcc93e4c1e610f1c824a31479de32f29cacbe8fbec1213fcb8c"
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "Sie haben diesen Tanz bereits",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
@@ -6368,7 +6368,7 @@
   },
   "onlineImportPossibleMatchDialogLinkWarning": "Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen und Tags. Er behält Ihre Bewertung, Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
-    "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
+    "x-sourceSha256": "198184a9f1d632e4877e2a250b04522e9893cd1161387dea8599a936ec044ef6"
   },
   "importFigurelessCannotReplace": "Dieser Datensatz enthält keine Figuren und kann daher keinen deiner Tänze ersetzen. Er kann aber weiterhin als neuer Tanz importiert werden.",
   "@importFigurelessCannotReplace": {

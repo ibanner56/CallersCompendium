@@ -6344,7 +6344,7 @@
   },
   "onlineImportVariationDialogLinkWarning": "「{existingTitle}」のあなたのバージョンは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグも含まれます。評価、カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。",
   "@onlineImportVariationDialogLinkWarning": {
-    "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
+    "x-sourceSha256": "1056677505f70fcc93e4c1e610f1c824a31479de32f29cacbe8fbec1213fcb8c"
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "このダンスはすでにあります",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
@@ -6368,7 +6368,7 @@
   },
   "onlineImportPossibleMatchDialogLinkWarning": "選択したダンスは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグも含まれます。評価、カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。",
   "@onlineImportPossibleMatchDialogLinkWarning": {
-    "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
+    "x-sourceSha256": "198184a9f1d632e4877e2a250b04522e9893cd1161387dea8599a936ec044ef6"
   },
   "importFigurelessCannotReplace": "このレコードにはフィギュアがないため、既存のダンスを置き換えることはできません。新しいダンスとしてなら取り込めます。",
   "@importFigurelessCannotReplace": {

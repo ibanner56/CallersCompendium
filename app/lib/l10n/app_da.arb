@@ -6344,7 +6344,7 @@
   },
   "onlineImportVariationDialogLinkWarning": "Din version af „{existingTitle}“ erstattes af onlineposten — inklusive dens titel, figurer, noter og tags. Den beholder din vurdering, dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.",
   "@onlineImportVariationDialogLinkWarning": {
-    "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
+    "x-sourceSha256": "1056677505f70fcc93e4c1e610f1c824a31479de32f29cacbe8fbec1213fcb8c"
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "Du har allerede denne dans",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
@@ -6368,7 +6368,7 @@
   },
   "onlineImportPossibleMatchDialogLinkWarning": "Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter og tags. Den beholder din vurdering, dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
-    "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
+    "x-sourceSha256": "198184a9f1d632e4877e2a250b04522e9893cd1161387dea8599a936ec044ef6"
   },
   "importFigurelessCannotReplace": "Denne post har ingen figurer, så den kan ikke erstatte en af dine danse. Den kan stadig importeres som en ny dans.",
   "@importFigurelessCannotReplace": {
