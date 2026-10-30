@@ -372,6 +372,38 @@ void main() {
       );
     });
 
+    test('a dance whose commit fails keeps its title and the marker '
+        '(#1976)', () async {
+      final failing = _FailingCreateDanceRepository(db, title: 'Petronella');
+      final failingImporter = CallersCompanionUsrImporter(
+        ImportPipeline(failing, choreographers),
+        programs,
+        venues,
+        customFieldDefs,
+        publishedSources: PublishedSourceRepository(db),
+        difficultyLevels: DifficultyLevelRepository(db),
+      );
+      final result = await failingImporter.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+
+      expect(result.danceSession.committedCount, 1);
+      final program = result.programs.single;
+      expect(program.slots[1].danceId, isNull);
+      expect(
+        program.slots[1].text,
+        "Petronella\n\nDance not imported (Caller's Companion dance #7)",
+      );
+      expect(
+        result.programIssues.map((i) => i.code),
+        contains('cc_program_unresolved_dance'),
+      );
+    });
+
     test('undo removes both the programs and the dances (symmetric)', () async {
       final result = await importer.import(
         _ccUsrBytes(),
@@ -1963,5 +1995,22 @@ class _FailingLinkWriteDanceRepository extends DanceRepository {
       throw StateError('simulated related-link write failure');
     }
     return super.update(dance, localUserEdit: localUserEdit);
+  }
+}
+
+/// A [DanceRepository] that refuses to create the dance titled [title], so
+/// that one record of a `.USR` commit fails while the rest commit.
+class _FailingCreateDanceRepository extends DanceRepository {
+  _FailingCreateDanceRepository(CompendiumDatabase db, {required this.title})
+    : super(db, contraTaxonomy);
+
+  final String title;
+
+  @override
+  Future<void> create(Dance dance) {
+    if (dance.title == title) {
+      throw StateError('simulated dance write failure');
+    }
+    return super.create(dance);
   }
 }
