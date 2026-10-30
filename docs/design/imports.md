@@ -618,7 +618,7 @@ declines the collapse.
     with the other unused ones after the `.USR` commit. This supersedes the #1890 rule that a
     re-import replaced the dance's content from the file and merged the
     existing values under the draft's. That merge still applies to a **link**
-    (`_rebuildWithIdentity`'s `keepCustomFieldsFrom`): `DanceRepository.update`
+    (`_rebuildWithIdentity`'s `keepFrom`): `DanceRepository.update`
     deletes every stored value and rewrites only what the dance holds, so a
     value the draft does not carry is kept and the draft wins for a field it
     carries.
