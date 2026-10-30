@@ -473,6 +473,13 @@ This replaces the condition above. The orchestrating session's reading of "the q
 
 Wave 3 starts when each of these is green and ready to merge, or merged. N4-S5 and N4-S6 were not in the queue then and are not part of the gate.
 
+### PR approval for the remaining queue (2026-10-30 ~15:35 UTC)
+**Question:** N3-A2 had pushed and its session asked for direct approval before opening its PR. Approve opening it, and should that approval also cover the remaining queue (B3, the B19 rating follow-up, N4-S3, N2-T2, N2-T3) once each has pushed, passed preflight and been reviewed?
+
+**Decision (maintainer's choice):** "Yes, standing (Recommended)". Its description: "Open N3-A2's PR now, and let every remaining queued branch open its PR once it has pushed, passed preflight and been reviewed, without asking you each time."
+
+This covers those six branches only. It does not cover wave 3, wave 4 or D2.
+
 ## Still open
 
 - Nothing on the decision page.
