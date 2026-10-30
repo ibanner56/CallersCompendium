@@ -133,11 +133,12 @@ Perform mode, and calling history.
   flipping the toggle never discards either.
 - **Manage venues** — browse, edit, and delete your saved venue records. You can
   also add a venue on the fly while editing a program (when reusable venue records
-  are on). Deleting a venue is permanent — unlike a deleted dance, it isn't held
-  for later restore. To keep you from stranding a program, a venue can't be
+  are on). A deleted venue doesn't go to Recently deleted, so you can't restore
+  it on its own. To keep you from stranding a program, a venue can't be
   deleted while any program is still linked to it; change or remove the venue on
   those programs first, then delete it. A program in **Recently deleted**
-  doesn't count, so it won't stop you deleting the venue.
+  doesn't count, so it won't stop you deleting the venue, and restoring that
+  program brings the venue back.
 
 Whether the toggle is on or off, a program that's linked to a saved venue always
 shows and exports that venue's full details (the linked record wins over free
@@ -468,9 +469,10 @@ open this group. You can override any of them per dance, and
   collection filters, and batch actions. Add a level, rename it, or drag it into
   a different position; renaming keeps existing dances attached to that level.
   A level can't be removed while any dance uses it. A dance in **Recently
-  deleted** doesn't count, so it won't stop you removing a level; that dance is
-  then backed up without a level, and shared without one unless the level was
-  one that ships with the app. Once no dance
+  deleted** doesn't count, so it won't stop you removing a level, and restoring
+  that dance brings the level back. Until then, that dance is backed up without
+  a level, and shared without one unless the level was one that ships with the
+  app. Once no dance
   uses it, you can remove any level, including the ones that ship with the app. Removing a level asks nothing first and shows
   **Undo** for a few seconds, which puts the level back in its place.
 - **Type**, **Formation**, and **Progression** — the starting choices for a new

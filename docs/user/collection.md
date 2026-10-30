@@ -456,7 +456,9 @@ already entered stays consistent. The app tells you which ones when you edit a
 field in use. A dance in **Recently deleted** doesn't count: it doesn't lock a
 field's type or keep you from removing a choice it uses. If you change the type,
 or remove that choice, the deleted dance loses its value for the field unless
-the value still fits, and restoring the dance won't bring it back.
+the value still fits, and restoring the dance won't bring it back. It doesn't
+keep you from deleting the whole field either; if you do, restoring the dance
+brings the field back with its value.
 
 ## Keep your collection tidy
 
@@ -494,6 +496,10 @@ undone.
     difference: while a program or another dance still includes it, it keeps
     its title, which they show, and they are left exactly as they are. The
     title goes once nothing includes the dance.
+  - A dance in Recently Deleted doesn't stop you deleting its level or a custom
+    field it uses. Restoring the dance brings back any you deleted meanwhile,
+    so it returns as it was. A restored program brings back its saved
+    [venue](./settings.md#venues) the same way.
 
 ### Change many dances at once
 
