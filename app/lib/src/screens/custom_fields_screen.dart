@@ -260,8 +260,15 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
     );
     if (confirmed != true || !mounted) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await _repos.customFieldDefs.delete(def.id);
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('delete-success-snackbar'),
+          content: Text(l10n.commonDeletedSnack(def.label)),
+        ),
+      );
       // No reload: the delete tombstones the row and the stream re-emits.
     } on CustomFieldInUseException catch (e, st) {
       logCaughtError(e, st, source: 'custom_fields_screen._delete');

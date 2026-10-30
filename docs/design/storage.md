@@ -688,10 +688,11 @@ database already carries it. The steps that can still fire are v36 onward.
   program, as integer minor units so no floating point is stored. The two are
   set together or not at all and the amount is never negative (enforced by
   `Program` and by archive decode); NULL in both (every existing row) means no
-  pay recorded. Shareable, so it syncs and is exported in archives (program
-  share files included, so it reaches other people), but it is
-  not part of the shared program text or PDF and `Program.duplicate` does not
-  copy it. A backup holding pay or a v37 dialect name is written under backup
+  pay recorded. Shareable, so it syncs and is exported in archives and
+  backups, but share files (program share file and Export JSON) omit it
+  (`sanitizeProgramForShare`, maintainer decision R2-out2-export,
+  2026-10-30), and it is not part of the shared program text or PDF and
+  `Program.duplicate` does not copy it. A backup holding pay or a v37 dialect name is written under backup
   envelope v2 (`backupSchemaVersionProgramPay`), so 0.5.2 to 0.5.4 refuse it
   instead of restoring it without them; the core archive version is unchanged,
   so share files are not affected (#1885). Additive `addColumn`s; no back-fill
@@ -858,7 +859,12 @@ rather than deletions:
   already-synced import is a partial rollback by construction.
 - `DanceRepository`'s orphaned-reference GC (#462), which runs inside the
   retention purge and collects reusable rows the purge left unreferenced.
-  Nobody deleted those; they went away as a side effect.
+  Nobody deleted those; they went away as a side effect. Only *bare* rows go
+  (N2-6 (b)): a tag with a colour, an author with a website, notes, email,
+  location or deceased mark, or a source with an author, year, URL or notes
+  survives, unused. The user removes it in the Library managers (N2-T2 and
+  N2-T3), which have not shipped yet; until then only a tag's Undo path deletes
+  a reference row in the app.
 
 **Two consequences follow from soft delete, and both are load-bearing:**
 

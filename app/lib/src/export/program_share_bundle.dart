@@ -234,8 +234,8 @@ String buildProgramShareBundle(
   return encodeArchive(
     CompendiumArchive(
       exportedAt: (now ?? DateTime.now()).toUtc(),
-      programs: [program],
-      dances: dances,
+      programs: [sanitizeProgramForShare(program)],
+      dances: [for (final dance in dances) sanitizeDanceForShare(dance)],
       choreographers: choreographers,
       venues: venues,
       publishedSources: sources,

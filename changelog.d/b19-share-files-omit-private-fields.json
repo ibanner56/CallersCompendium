@@ -1,0 +1,9 @@
+{
+  "id": "b19-share-files-omit-private-fields",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Dance and program share files, and Export JSON, no longer include your program pay, your Perform dialect or your star ratings. They still travel with Device Sync and in your backup."
+    ]
+  }
+}

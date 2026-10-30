@@ -1,0 +1,9 @@
+{
+  "id": "settings-deletes-say-deleted",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Deleting a dialect, theme, shorthand, walkthrough snippet, custom field or custom figure now shows a \"Deleted\" message once it is gone, so you can see the delete went through. Cancelling, or a delete that fails, shows no such message."
+    ]
+  }
+}
