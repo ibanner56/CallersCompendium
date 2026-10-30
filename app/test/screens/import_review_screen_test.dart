@@ -3841,6 +3841,15 @@ void main() {
           type: CustomFieldType.text,
         ),
       );
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'local-card',
+          key: 'card',
+          label: 'Card',
+          type: CustomFieldType.choice,
+          choices: const ['A'],
+        ),
+      );
       final archive = CompendiumArchive(
         exportedAt: DateTime.utc(2026, 7, 15),
         dances: [
@@ -3859,11 +3868,24 @@ void main() {
             label: 'Tempo',
             type: CustomFieldType.number,
           ),
+          CustomFieldDef(
+            id: 'f2',
+            key: 'card',
+            label: 'Card',
+            type: CustomFieldType.choice,
+            choices: const ['A', 'B'],
+          ),
         ],
       );
       final note = l10n.importIssueArchiveCustomFieldKeyConflict(
         'My tempo',
         'tempo_2',
+      );
+      // Same code, other field: a bullet of its own, not folded into the
+      // first.
+      final cardNote = l10n.importIssueArchiveCustomFieldKeyConflict(
+        'Card',
+        'card_2',
       );
 
       await pumpShared(tester, repos, bundleFor(archive));
@@ -3872,8 +3894,9 @@ void main() {
         find.byKey(const ValueKey('import-batch-warnings')),
         findsOneWidget,
       );
-      expect(find.text(note), findsOneWidget);
-      expect(await repos.customFieldDefs.listAll(), hasLength(1));
+      expect(find.text('• $note'), findsOneWidget);
+      expect(find.text('• $cardNote'), findsOneWidget);
+      expect(await repos.customFieldDefs.listAll(), hasLength(2));
 
       await tester.tap(find.byKey(const ValueKey('import-commit-button')));
       await tester.pumpAndSettle();
@@ -3883,7 +3906,13 @@ void main() {
         find.byKey(const ValueKey('import-result-dialog')),
         findsOneWidget,
       );
-      expect(find.text('• $note'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('import-result-dialog')),
+          matching: find.text('• $note'),
+        ),
+        findsOneWidget,
+      );
       final value = (await repos.dances.listAll()).single.customFields.single;
       expect(value.value, 120);
       expect(
