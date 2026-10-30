@@ -283,7 +283,8 @@ without a second change.
   recommend it for the first PR: it would make the bulk path stricter than the
   row path for no stated reason. N4-5's answer did not address it; see
   [Decisions](#decisions), item 5 (no warning: the planner's reading,
-  accepted by the maintainer 2026-10-30).
+  accepted by the maintainer 2026-10-30; `design-work-plan.md` ambiguity 6, on
+  the audit branch).
 
 **Confirmation.** `ux.md:192-193` says to confirm only where Undo is impossible,
 and bulk delete has Undo and a trash. Options:
@@ -386,8 +387,8 @@ must not redesign any of them.
 - **Duplicates.** N3 decided that the single-dance sheet asks before adding a
   dance the program already holds (N3-4 = (b)), with alternates counted
   (N3-6). Bulk reuses that answer. *Planner's reading, accepted by the
-  maintainer 2026-10-30* (`design-work-plan.md` ambiguity 5): one question per
-  program tapped, not one per dance:
+  maintainer 2026-10-30* (`design-work-plan.md` ambiguity 5, on the audit
+  branch): one question per program tapped, not one per dance:
   "4 of 12 dances are already in 'Friday dance'", with **Add all**, **Skip those
   4** and **Cancel**. The marker for a multi-dance selection reads "4 of 12 in
   this program".
@@ -493,6 +494,13 @@ are.
 
 ## Decisions
 
+*Planner's readings.* Where an answer left a detail open, the planning session
+proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
+open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
+under "Design plan / N1–N5". This note labels each one "planner's reading,
+accepted by the maintainer 2026-10-30".
+
 The maintainer answered all six on 2026-10-29/30. Each entry quotes the decision
 as `maintainer-decisions-2026-10-30.md` (on `claude/app-audit-categories-k2pdon`)
 records it, and the maintainer's note verbatim where there is one.
@@ -516,8 +524,8 @@ records it, and the maintainer's note verbatim where there is one.
    N3 were decided the same day, so neither pre-emption happens. The sub-question
    whether delete warns when selected dances appear in programs was not
    answered. The *planner's reading, accepted by the maintainer 2026-10-30*
-   (`design-work-plan.md` ambiguity 6): the note's recommendation, no warning
-   in the first PR. Ambiguity 8, also accepted: "all six together" means the
+   (`design-work-plan.md` ambiguity 6, on the audit branch): the note's
+   recommendation, no warning in the first PR. Ambiguity 8, also accepted: "all six together" means the
    same wave as separate branches, not one PR.
 6. **N4-6, selection bar structure.** "(a) Grouped ⋮ menu, Select all icon.
    Keeps three icons, plus Select all where it fits; the rest go in a grouped

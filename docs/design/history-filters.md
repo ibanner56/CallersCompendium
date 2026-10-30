@@ -470,6 +470,13 @@ Each implementation branch updates these in the same PR:
 
 ## Decisions
 
+*Planner's readings.* Where an answer left a detail open, the planning session
+proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
+open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
+under "Design plan / N1–N5". This note labels each one "planner's reading,
+accepted by the maintainer 2026-10-30".
+
 The maintainer answered every question on 2026-10-29/30. Each entry quotes the
 decision as `maintainer-decisions-2026-10-30.md` (on
 `claude/app-audit-categories-k2pdon`) records it, and the maintainer's own note
