@@ -2065,8 +2065,12 @@ class SyncCoordinator {
           ),
         );
       }
-      peerManifests.add((peerId: peerId, manifest: manifest));
-      peerManifestHashes.add(await _normalizeManifestHashes(manifest));
+      // Only now, so the copy kept above for the next `ETag` request is the
+      // one the peer published. Settings this build withdrew from sync are
+      // left out of the pass entirely (spec §6.7, amended 2026-10-29).
+      final passManifest = withoutWithdrawnSyncSettings(manifest);
+      peerManifests.add((peerId: peerId, manifest: passManifest));
+      peerManifestHashes.add(await _normalizeManifestHashes(passManifest));
     }
     // Kept manifests of devices the store no longer lists, or from another
     // epoch, would never be asked for again. The session keeps its copies, so

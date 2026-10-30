@@ -63,7 +63,8 @@ The **General** section gathers everyday behavior into small groups.
   switch off the app's animations and the fade between themes even when your
   device allows motion. Turning it off stops the app removing its own
   animations, but cannot restore animations your device's setting has already
-  shortened.
+  shortened. This setting belongs to this device: it is not synced to your
+  other devices, but a backup includes it.
 - **Always show verbose figure text** — shows the full spoken-style
   [figure](./glossary.md#figure) wording on screen in the dance view, not only to
   screen readers. Turn it off for the terse notation. This affects the dance view;
@@ -181,7 +182,9 @@ details are handled when you export.
 - **Auto-size Perform cards** (on) — scales each card so it fits the screen in
   [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
   the text yourself using the **A−** and **A+** buttons while performing. See
-  [Perform mode](./perform.md) for more.
+  [Perform mode](./perform.md) for more. Like the stage theme and the text size
+  you pick in Perform, this setting belongs to this device: it is not synced to
+  your other devices, but a backup includes it.
 - **Show timer for individual Perform** (on) — shows an elapsed timer and
   pause/resume control while performing a single dance. Turn it off when you
   want individual Perform to stay timer-free.
@@ -328,7 +331,13 @@ The **Language & region** section handles formats and localization.
   **Day/month/year**, **Month/day/year**, or **Custom…**. A live example shows the
   result, and your choice controls how program event dates appear: in the
   Programs list and editor, in a dance's calling history, and in printed and
-  emailed set lists and PDFs. **System default** always includes the year.
+  emailed set lists and PDFs. **System default** always includes the year and
+  follows your **device's language and region** (not the app language): on a
+  phone set to Danish, an English-language app shows `15.7.2026`. It uses
+  all-numbers dates, so a date never mixes two languages' month names. Where the
+  device language has no variant for your region (English in Denmark, say), you
+  get that language's default order. Pick a fixed format or **Custom…** if you
+  want one layout everywhere.
 
   A custom pattern is built from these tokens:
 
@@ -356,7 +365,9 @@ The **Language & region** section handles formats and localization.
   (currently English, German, French, Japanese, Danish, and Dutch). Changing it
   re-renders the app immediately and is remembered next time you open the app.
   With **System default**, the app follows your device's language when it is one
-  of those bundled languages and otherwise uses English.
+  of those bundled languages and otherwise uses English. The language belongs to
+  this device: it is not synced to your other devices, so each one can use its
+  own, but a backup includes it.
   Your dance content — figure and call wording — is governed by your chosen
   [dialect](./dialects.md), independent of the interface language.
 
@@ -965,9 +976,25 @@ Sync is off and open while it is on.
   opened since doesn't raise this notice: it just shows changes waiting for it
   under **Other devices**. Like every notice, it never blocks anything and goes
   away on its own once the other device catches up.
+
+  This notice can also point the wrong way for a while after an update. A
+  device still on an older version of the app may say an *updated* device
+  isn't taking some of its changes, and that the updated device may need an
+  app update. This happens when the older device has set **App language**,
+  **Reduce motion**, **Auto-size Perform cards** or Perform's stage theme. Those
+  settings now stay on each device, so the updated device leaves them alone. To
+  clear the notice, update the app on the older device.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
+- A few other settings depend on the screen they are used on, so they stay on
+  each device too: **App language**, **Reduce motion**, **Auto-size Perform
+  cards**, and Perform's stage theme and text size. Unlike the sync settings
+  above, a backup includes them. Your theme and custom themes do sync. A
+  device still on an older version of the app keeps syncing these with other
+  older devices, but this device ignores what it sends. Until you update it,
+  that older device may wrongly say this one isn't taking its changes; see
+  **"Needs you"** above.
 
 **Connecting.** Once Device Sync is on, choose **Connect**, then either:
 
@@ -1280,7 +1307,8 @@ The **About** section tells you what you're running and where it comes from.
 
 - App name, **Version**, and the app's tagline.
 - A **User guide** link that opens the built-in offline guides — the same pages
-  you're reading now.
+  you're reading now. The guide is written in English only; when the app is set
+  to another language, each guide page starts with a one-line notice saying so.
 - License info: the app is free software under **AGPL-3.0**, with **View source on
   GitHub**.
 - Bundled-font credits — Fraunces, Atkinson Hyperlegible, and Roboto, under the
