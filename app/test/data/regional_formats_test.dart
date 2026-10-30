@@ -7,6 +7,7 @@ import 'package:flutter/material.dart' show DefaultMaterialLocalizations;
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalMaterialLocalizations;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 void main() {
   // The app registers date symbols for every locale Flutter ships when its
@@ -228,14 +229,43 @@ void main() {
       expect(sys(const Locale('xx', 'YY')), material.formatShortDate(date));
     });
 
-    test('a regional variant Flutter ships is honoured; one it does not '
-        'resolves to the language default', () {
-      // en_GB is a shipped set, so the region counts.
+    test('a shipped regional variant is honoured (en_GB, fr_CA)', () {
       expect(sys(const Locale('en', 'GB')), '15/07/2026');
-      // en_DK is not (documented in formatEventDate): an English device in
-      // Denmark reads US order. This pins that behaviour so a change to it is
-      // deliberate.
-      expect(sys(const Locale('en', 'DK')), '7/15/2026');
+      expect(sys(const Locale('fr', 'CA')), '2026-07-15');
+    });
+
+    test('an English device in a country with no English variant follows the '
+        'country, not US order (en_DK, en_SE, en_NL)', () {
+      expect(sys(const Locale('en', 'DK')), '15.7.2026');
+      expect(sys(const Locale('en', 'SE')), '2026-07-15');
+      expect(sys(const Locale('en', 'NL')), '15-7-2026');
+      expect(sys(const Locale('en', 'DE')), '15.7.2026');
+    });
+
+    test('a country with exactly one shipped variant uses it (en_MX)', () {
+      // es_MX is the only `_MX` set, and has day-first order; plain `en` is US.
+      expect(sys(const Locale('en', 'MX')), '15/7/2026');
+    });
+
+    test('a country with several shipped variants still follows the country '
+        '(de_US, fr_US, de_CA)', () {
+      // The US has en_US and es_US, Canada en_CA and fr_CA, so the
+      // single-variant rule skips them and the table decides.
+      expect(sys(const Locale('de', 'US')), '7/15/2026');
+      expect(sys(const Locale('fr', 'US')), '7/15/2026');
+      expect(sys(const Locale('de', 'CA')), '2026-07-15');
+    });
+
+    test('a multilingual or unlisted country keeps the language default', () {
+      // BE is deliberately not in kRegionDateLocales (nl, fr and de all apply);
+      // a country-code-equals-language-code rule would wrongly pick Belarusian.
+      expect(sys(const Locale('en', 'BE')), '7/15/2026');
+      expect(sys(const Locale('en', 'ZZ')), '7/15/2026');
+    });
+
+    test('a language-only device locale uses the language default', () {
+      expect(sys(const Locale('en')), '7/15/2026');
+      expect(sys(const Locale('da')), '15.7.2026');
     });
 
     test('an invalid custom pattern follows the device locale too', () {
@@ -431,6 +461,40 @@ void main() {
         final order = orderedWeekdays(pref, material);
         expect(order.length, 7);
         expect(order.toSet(), {1, 2, 3, 4, 5, 6, 7});
+      }
+    });
+  });
+
+  group('kRegionDateLocales drift', () {
+    test('every value is a date-symbol locale intl ships', () {
+      for (final MapEntry(:key, :value) in kRegionDateLocales.entries) {
+        expect(
+          DateFormat.localeExists(value),
+          isTrue,
+          reason: '$key maps to $value, which intl has no date symbols for',
+        );
+      }
+    });
+
+    test('every key is an upper-case ISO region code', () {
+      for (final key in kRegionDateLocales.keys) {
+        expect(key, matches(RegExp(r'^[A-Z]{2}$')));
+      }
+    });
+
+    test('no key is dead: a country with exactly one shipped variant is '
+        'resolved before the table', () {
+      // resolveDateLocale takes the single shipped `<language>_<CC>` set first,
+      // so an entry for such a country never runs and would hide a later
+      // change to the shipped list. Countries with several (US, CA) are live.
+      final shipped = DateFormat.allLocalesWithSymbols();
+      for (final key in kRegionDateLocales.keys) {
+        expect(
+          shipped.where((l) => l.toUpperCase().endsWith('_$key')).length,
+          isNot(1),
+          reason:
+              '$key has exactly one shipped variant; drop it from the table',
+        );
       }
     });
   });
