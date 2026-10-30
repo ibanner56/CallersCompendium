@@ -1485,7 +1485,9 @@ class ImportPipeline {
   /// ship canonical ids directly (e.g. the generic archive/JSON adapter) pass
   /// null to preserve them. [keepCustomFieldsFrom] is the dance being
   /// re-imported over: its custom-field values for fields [src] does not carry
-  /// survive.
+  /// survive, and so does its [Dance.rating] when [src] carries none (share
+  /// files leave the sender's rating out, so a missing one must not erase the
+  /// re-importer's own).
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
@@ -1512,7 +1514,7 @@ class ImportPipeline {
     difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,
     mixer: src.mixer,
-    rating: src.rating,
+    rating: src.rating ?? keepCustomFieldsFrom?.rating,
     // Carried through whole, so a re-identified dance keeps a tune list
     // that could not be decoded instead of silently becoming empty.
     tunesSource: src.tunesSource,

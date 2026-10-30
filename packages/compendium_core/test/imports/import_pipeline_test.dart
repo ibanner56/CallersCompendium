@@ -1378,6 +1378,30 @@ void main() {
         expect(await authorNamesOf(id), ['Second Author']);
       });
 
+      test(
+        'reimport keeps the existing rating when the source has none',
+        () async {
+          // Share files leave the sender's rating out, so replacing over a dance
+          // the person already rated must not clear their rating.
+          final first = FakeSourceAdapter([record('fake-1', 'Same')]);
+          final s1 = await pipeline.commit(
+            await pipeline.plan(first, const ImportRequest()),
+            now: now,
+            newId: nextId,
+          );
+          final id = s1.insertedDanceIds.single;
+          await dances.update((await dances.getById(id))!.copyWith(rating: 4));
+
+          final again = FakeSourceAdapter([record('fake-1', 'Same')]);
+          await pipeline.commit(
+            await pipeline.plan(again, const ImportRequest()),
+            now: DateTime.utc(2026, 9, 1),
+            newId: nextId,
+          );
+          expect((await dances.getById(id))!.rating, 4);
+        },
+      );
+
       test('undo removes a choreographer created by the batch', () async {
         final adapter = FakeSourceAdapter([
           record('fake-1', 'A Dance', authorNames: ['Ephemeral Author']),
