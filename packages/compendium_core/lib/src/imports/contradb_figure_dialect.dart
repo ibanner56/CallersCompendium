@@ -1461,11 +1461,11 @@ FigureMatch? _zigZag(String text) {
   final s = _Scan(text);
   final who = _subject(s);
   if (!s.eat('zig')) return null;
-  final turn = _leftRight(s.peek());
+  final turn = _zigZagSide(s.peek());
   if (turn == null) return null;
   s.take();
   if (!s.eat('zag')) return null;
-  if (_leftRight(s.peek()) != null) s.take(); // the (derived) return direction
+  if (_zigZagSide(s.peek()) != null) s.take(); // the (derived) return direction
   final params = <String, Object?>{'slide': turn};
   if (who != null) params['who'] = who;
   return FigureMatch('zig_zag', params: params, note: s.note());
@@ -2111,6 +2111,17 @@ double? _rotation(String? token) =>
 /// Hand/spin direction token → `left`/`right`, else null.
 String? _leftRight(String? token) =>
     (token == 'left' || token == 'right') ? token : null;
+
+/// [_leftRight], plus Caller's Companion's bare `L`/`R` straight after `zig`
+/// and `zag` (`Zig L, Zag R`, maintainer decision on #1975). Only the zig-zag
+/// reads them: elsewhere a lone letter may be a position note.
+String? _zigZagSide(String? token) =>
+    _leftRight(token) ??
+    switch (token) {
+      'l' => 'left',
+      'r' => 'right',
+      _ => null,
+    };
 
 /// Consumes a `<side> shoulder[s]` phrase, returning `left`/`right`, or null
 /// (leaving the cursor put) when the next tokens are not a shoulder phrase.
