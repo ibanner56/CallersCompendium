@@ -715,28 +715,30 @@ void main() {
       },
     );
 
-    test('resolution link keeps the existing rating when the source has none',
-        () async {
-      // Share files leave the sender's rating out, so choosing "Same dance -
-      // replace" over a dance the person already rated must not clear it.
-      final existingId = await seedExisting();
-      await dances.update(
-        (await dances.getById(existingId))!.copyWith(rating: 4),
-      );
-      final batch = await pipeline.plan(
-        FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
-        const ImportRequest(),
-      );
-      await pipeline.commit(
-        batch,
-        now: now,
-        newId: nextId,
-        resolutions: {0: DedupeResolution.link(existingId)},
-      );
-      final updated = (await dances.getById(existingId))!;
-      expect(updated.title, 'Nice Combination');
-      expect(updated.rating, 4);
-    });
+    test(
+      'resolution link keeps the existing rating when the source has none',
+      () async {
+        // Share files leave the sender's rating out, so choosing "Same dance -
+        // replace" over a dance the person already rated must not clear it.
+        final existingId = await seedExisting();
+        await dances.update(
+          (await dances.getById(existingId))!.copyWith(rating: 4),
+        );
+        final batch = await pipeline.plan(
+          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
+          const ImportRequest(),
+        );
+        await pipeline.commit(
+          batch,
+          now: now,
+          newId: nextId,
+          resolutions: {0: DedupeResolution.link(existingId)},
+        );
+        final updated = (await dances.getById(existingId))!;
+        expect(updated.title, 'Nice Combination');
+        expect(updated.rating, 4);
+      },
+    );
 
     test('resolution link updates the chosen existing dance', () async {
       final existingId = await seedExisting();
@@ -1512,19 +1514,6 @@ void main() {
           for (final c in await choreographers.listAll()) c.name,
         ], isNot(contains('Second Author')));
       });
-
-          final id = s1.insertedDanceIds.single;
-          await dances.update((await dances.getById(id))!.copyWith(rating: 4));
-
-          final again = FakeSourceAdapter([record('fake-1', 'Same')]);
-          await pipeline.commit(
-            await pipeline.plan(again, const ImportRequest()),
-            now: DateTime.utc(2026, 9, 1),
-            newId: nextId,
-          );
-          expect((await dances.getById(id))!.rating, 4);
-        },
-      );
 
       test('undo removes a choreographer created by the batch', () async {
         final adapter = FakeSourceAdapter([
