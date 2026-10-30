@@ -761,7 +761,7 @@ class ReferenceEditRepository {
         final current = await _readRow(kind, row.id) as TagRow?;
         await (_db.update(_db.tags)..where((t) => t.id.equals(row.id))).write(
           TagsCompanion(
-            name: Value(row.name),
+            name: Value(normalizeShareableText(row.name)),
             color: Value(row.color),
             updatedAt: Value(_stamp(now, current?.updatedAt)),
           ),
@@ -772,9 +772,13 @@ class ReferenceEditRepository {
           _db.choreographers,
         )..where((t) => t.id.equals(row.id))).write(
           ChoreographersCompanion(
-            name: Value(row.name),
-            website: Value(row.website),
-            notes: Value(row.notes),
+            name: Value(normalizeShareableText(row.name)),
+            website: Value(
+              row.website == null ? null : normalizeShareableText(row.website!),
+            ),
+            notes: Value(
+              row.notes == null ? null : normalizeShareableText(row.notes!),
+            ),
             email: Value(row.email),
             location: Value(row.location),
             deceased: Value(row.deceased),
@@ -787,11 +791,17 @@ class ReferenceEditRepository {
           _db.publishedSources,
         )..where((t) => t.id.equals(row.id))).write(
           PublishedSourcesCompanion(
-            title: Value(row.title),
-            author: Value(row.author),
+            title: Value(normalizeShareableText(row.title)),
+            author: Value(
+              row.author == null ? null : normalizeShareableText(row.author!),
+            ),
             year: Value(row.year),
-            url: Value(row.url),
-            notes: Value(row.notes),
+            url: Value(
+              row.url == null ? null : normalizeShareableText(row.url!),
+            ),
+            notes: Value(
+              row.notes == null ? null : normalizeShareableText(row.notes!),
+            ),
             updatedAt: Value(_stamp(now, current?.updatedAt)),
           ),
         );
@@ -931,8 +941,16 @@ class ReferenceEditRepository {
                   .write(
                     DanceSourcesCompanion(
                       sourceId: Value(join.sourceId),
-                      page: Value(join.page),
-                      number: Value(join.number),
+                      page: Value(
+                        join.page == null
+                            ? null
+                            : normalizeShareableText(join.page!),
+                      ),
+                      number: Value(
+                        join.number == null
+                            ? null
+                            : normalizeShareableText(join.number!),
+                      ),
                     ),
                   );
         if (moved > 0) return;
@@ -983,7 +1001,7 @@ class ReferenceEditRepository {
       // normalization-structure-exempt: writes `updated_at` only, no
       // shareable text.
       await _db.customUpdate(
-        // sync-invariant-exclusion: join-hydrated-body the dance's tag, author or source rows changed.
+        // sync-invariant-exclusion: join-hydrated-body its tag, author or source rows changed.
         'UPDATE ${_db.dances.actualTableName} '
         'SET updated_at = MAX(updated_at + 1, ?) WHERE id = ?',
         variables: [Variable<int>(at), Variable<String>(id)],
