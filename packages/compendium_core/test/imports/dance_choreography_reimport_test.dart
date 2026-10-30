@@ -194,34 +194,58 @@ void main() {
     );
   });
 
-  test('an unreadable incoming transcription keeps the saved figures', () {
+  group('an incoming transcription with no usable figures keeps the saved '
+      'one', () {
     final stamp = DateTime.utc(2026);
-    final existing = Dance(
+    final provenance = Provenance(
+      source: ProvenanceSource.callersbox,
+      externalId: '457',
+      importedAt: stamp,
+    );
+    Dance saved(FigureSource figures) => Dance(
       id: 'saved',
       title: 'Saved',
-      figures: [
-        testFigure(move: customMove, params: {'text': 'kept'}),
-      ],
+      figuresSource: figures,
+      provenance: provenance,
       createdAt: stamp,
       updatedAt: stamp,
     );
-    final incoming = Dance(
+    Dance incoming(FigureSource figures) => Dance(
       id: 'remote',
       title: 'Remote',
-      figuresSource: const UnreadableFigures('{"not": "figures"}'),
+      figuresSource: figures,
       formation: const Formation(FormationShape.becketCw),
       createdAt: stamp,
       updatedAt: stamp,
     );
+    final decoded = DecodedFigures([
+      testFigure(move: customMove, params: {'text': 'kept'}),
+    ]);
+    const unreadable = UnreadableFigures('{"saved": "bytes"}');
+    const incomingUnreadable = UnreadableFigures('{"other": "bytes"}');
 
-    final result = withReimportedChoreography(
-      existing,
-      incoming,
-      updatedAt: DateTime.utc(2026, 2),
-    );
+    for (final (name, existingFigures, incomingFigures) in <(
+      String,
+      FigureSource,
+      FigureSource,
+    )>[
+      ('unreadable over decoded', decoded, incomingUnreadable),
+      ('unreadable over unreadable', unreadable, incomingUnreadable),
+      ('empty over decoded', decoded, DecodedFigures(const [])),
+      ('empty over unreadable', unreadable, DecodedFigures(const [])),
+    ]) {
+      test(name, () {
+        final existing = saved(existingFigures);
+        final result = withReimportedChoreography(
+          existing,
+          incoming(incomingFigures),
+          updatedAt: DateTime.utc(2026, 2),
+        );
 
-    expect(figuresOf(result), figuresOf(existing));
-    expect(result.formation, incoming.formation);
-    expect(result.provenance, existing.provenance);
+        expect(result.figuresSource, existing.figuresSource);
+        expect(result.formation, const Formation(FormationShape.becketCw));
+        expect(result.provenance, provenance);
+      });
+    }
   });
 }

@@ -1,5 +1,4 @@
 import '../model/dance.dart';
-import '../model/figure.dart';
 import '../model/figure_source.dart';
 import '../model/provenance.dart';
 import '../storage/repositories/repositories.dart';
@@ -16,20 +15,20 @@ import '../storage/repositories/repositories.dart';
 /// stay as [existing] has them. [provenance], when given, replaces the
 /// existing provenance; otherwise it is kept.
 ///
-/// An unreadable incoming transcription keeps the existing figures rather than
-/// erasing them.
+/// An incoming transcription that is unreadable, or decoded to no figures,
+/// keeps the existing one whole, an unreadable one included: a source that
+/// sent no usable figures (The Caller's Box withholds them below its `full`
+/// permission tier) must not erase the dance's transcription.
 Dance withReimportedChoreography(
   Dance existing,
   Dance incoming, {
   required DateTime updatedAt,
   Provenance? provenance,
 }) => existing.copyWith(
+  // `null` keeps the existing `figuresSource`, whatever it holds.
   figures: switch (incoming.figuresSource) {
-    DecodedFigures(:final figures) => figures,
-    UnreadableFigures() => switch (existing.figuresSource) {
-      DecodedFigures(:final figures) => figures,
-      UnreadableFigures() => const <Figure>[],
-    },
+    DecodedFigures(:final figures) when figures.isNotEmpty => figures,
+    _ => null,
   },
   formation: incoming.formation,
   progression: incoming.progression,
