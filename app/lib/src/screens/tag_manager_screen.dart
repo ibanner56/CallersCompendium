@@ -150,56 +150,68 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     ];
   }
 
-  Future<void> _rename(LibraryManagerEntry entry) async {
+  /// [initialText] re-opens the dialog with the name typed last time, after
+  /// the user chose **Keep editing** in the merge offer.
+  Future<void> _rename(LibraryManagerEntry entry, {String? initialText}) async {
     final l10n = AppLocalizations.of(context);
     final name = await showLibraryRenameDialog(
       context,
       currentName: entry.name,
       fieldLabel: l10n.tagManagerNameLabel,
+      initialText: initialText,
     );
     if (name == null || !mounted) return;
+    List<String> taken;
     try {
       final edit = await renameTag(_repos, entry.id, name);
       _offerUndo(edit, l10n.tagManagerRenamedSnack(entry.name, name));
-    } on ReferenceNameTakenException catch (taken) {
+      return;
+    } on ReferenceNameTakenException catch (e) {
       // diagnostics: silent — not a failure: the name is taken, and the
-      // merge offer is the answer to it.
-      await _offerMerge(entry, name, taken.liveIds);
+      // merge offer below is the answer to it.
+      taken = e.liveIds;
     } catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'tag_manager_screen._rename');
       _showEditFailed();
+      return;
+    }
+    final keepEditing = !await _offerMerge(entry, name, taken);
+    if (keepEditing && mounted) {
+      await _rename(entry, initialText: name);
     }
   }
 
   /// The rename collided with [liveIds]: offer to merge [entry] and all of
   /// them into one tag under [typedName], into the one the user picks.
-  Future<void> _offerMerge(
+  /// Returns false when the user chose **Keep editing**.
+  Future<bool> _offerMerge(
     LibraryManagerEntry entry,
     String typedName,
     List<String> liveIds,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final matches = <LibraryManagerEntry>[];
-    for (final id in liveIds) {
-      final tag = _tag(id) ?? await _repos.tags.getById(id);
-      if (tag == null) continue;
-      matches.add(
-        LibraryManagerEntry(
-          id: id,
-          name: tag.name,
-          liveDanceCount: _counts?[id] ?? 0,
-        ),
-      );
-    }
-    if (matches.isEmpty || !mounted) return;
-    final intoId = await showLibraryMergeOffer(
-      context,
-      fromName: entry.name,
-      typedName: typedName,
-      matches: matches,
-    );
-    if (intoId == null || !mounted) return;
     try {
+      final matches = <LibraryManagerEntry>[];
+      for (final id in liveIds) {
+        final tag = _tag(id) ?? await _repos.tags.getById(id);
+        if (tag == null) continue;
+        matches.add(
+          LibraryManagerEntry(
+            id: id,
+            name: tag.name,
+            liveDanceCount: _counts?[id] ?? 0,
+          ),
+        );
+      }
+      if (matches.isEmpty || !mounted) return true;
+      final intoId = await showLibraryMergeOffer(
+        context,
+        fromName: entry.name,
+        typedName: typedName,
+        matches: matches,
+      );
+      if (intoId == null) return false;
+      if (!mounted) return true;
       final edit = await mergeTags(
         _repos,
         intoId: intoId,
@@ -216,6 +228,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       logCaughtError(e, stackTrace, source: 'tag_manager_screen._offerMerge');
       _showEditFailed();
     }
+    return true;
   }
 
   Future<void> _mergeInto(LibraryManagerEntry entry) async {

@@ -244,8 +244,13 @@ void main() {
       await rename(tester, a, 'flowy');
 
       expect(find.byKey(const ValueKey('library-merge-offer')), findsOneWidget);
+      // A case variant: the result takes the typed name, and the question
+      // says so.
       expect(
-        find.text('“Flowy” already exists. Merge “Flowing” into it?'),
+        find.text(
+          '“Flowy” already exists. Merge “Flowing” into it and call it '
+          '“flowy”?',
+        ),
         findsOneWidget,
       );
       await tester.tap(find.byKey(const ValueKey('library-merge-offer-merge')));
@@ -259,18 +264,31 @@ void main() {
       expect(rowSubtitle(a, '2 dances'), findsOneWidget);
     });
 
-    testWidgets('Keep editing merges nothing', (tester) async {
+    testWidgets('Keep editing merges nothing and goes back to the typed '
+        'name', (tester) async {
       await tag(a, 'Flowing');
       await tag(b, 'Flowy');
       await _pump(tester, repos);
 
       await rename(tester, a, 'Flowy');
+      expect(
+        find.text('“Flowy” already exists. Merge “Flowing” into it?'),
+        findsOneWidget,
+      );
       await tester.tap(
         find.byKey(const ValueKey('library-merge-offer-keep-editing')),
       );
       await tester.pumpAndSettle();
 
       expect((await liveTags()).map((t) => t.name), ['Flowing', 'Flowy']);
+      final field = find.byKey(const ValueKey('library-rename-field'));
+      expect(field, findsOneWidget, reason: 'the rename dialog is back');
+      expect(tester.widget<TextField>(field).controller!.text, 'Flowy');
+
+      await tester.enterText(field, 'Flowier');
+      await tester.tap(find.byKey(const ValueKey('library-rename-confirm')));
+      await tester.pumpAndSettle();
+      expect((await repos.tags.getById(a))!.name, 'Flowier');
     });
 
     testWidgets('onto a name two case variants hold asks which to merge into, '

@@ -582,6 +582,10 @@ Three choices are T2's own, not maintainer decisions:
 - The merge offer's buttons are **Keep editing** (text) and **Merge**
   (filled), as the add-to-program sheet's **Cancel** / **Add again**, which
   reads D-1's pattern the same way for a question that has an Undo.
+- **Keep editing** in the merge offer re-opens the rename dialog with the
+  typed name, and when the one match differs from the typed name only in
+  case, the offer says the result takes the typed name ("Merge 'Flowing' into
+  it and call it 'flowy'?"), since the merge writes it.
 - Undo puts the import-tags setting back only while it still holds what the
   edit wrote. Rejected: restoring it unconditionally, which would undo a
   change made in Settings, or by a sync pass, between the edit and the

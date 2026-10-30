@@ -102,7 +102,8 @@ sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
 
 - **Rename** it. Every dance with the tag shows the new name. If another tag
   already has that name (ignoring capitals), the app offers to **merge** the two
-  instead.
+  instead, under the name you typed; **Keep editing** takes you back to the
+  name.
 - **Merge into…** another tag, picked from a searchable list. Every dance with
   either tag ends up with the one you picked, which keeps its own colour (or
   takes this tag's, if it had none).
@@ -112,9 +113,10 @@ sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
   [Recently deleted](./settings.md#deleted-items) lose it too, but aren't
   counted).
 
-Each of these happens at once, without asking first, and offers **Undo** in
-the message that follows. That message is the only Undo: a deleted tag doesn't
-go to Recently deleted. If you create a tag with the same name later, it starts
+Each of these happens at once, without asking first. A rename, merge or delete
+offers **Undo** in the message that follows (a colour change has none: pick
+another colour, or **Remove colour**, to change it back). That message is the
+only Undo: a deleted tag doesn't go to Recently deleted. If you create a tag with the same name later, it starts
 with no dances. A rename, merge or delete also updates the
 [tags given to imported dances](./settings.md#import-defaults), and Undo puts
 them back.

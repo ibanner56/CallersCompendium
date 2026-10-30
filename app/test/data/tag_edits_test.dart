@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/tag_edits.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -171,4 +173,95 @@ void main() {
     expect(await importTags(), ['Flowing']);
     expect((await repos.tags.getById(b))!.name, 'Flowing');
   });
+
+  test('Undo of a rename and of a merge puts the setting back', () async {
+    await tag(a, 'Flowy');
+    await tag(b, 'Flowing');
+    await setImportTags(['Flowing', 'Easy', 'Flowy']);
+
+    final renamed = await renameTag(repos, b, 'Flowish');
+    expect(await importTags(), ['Flowish', 'Easy', 'Flowy']);
+    await undoTagEdit(repos, renamed);
+    expect(await importTags(), ['Flowing', 'Easy', 'Flowy']);
+
+    final merged = await mergeTags(repos, intoId: a, otherIds: [b]);
+    expect(await importTags(), ['Flowy', 'Easy']);
+    await undoTagEdit(repos, merged);
+    expect(await importTags(), ['Flowing', 'Easy', 'Flowy']);
+    expect((await repos.tags.listAll()).map((t) => t.name), [
+      'Flowing',
+      'Flowy',
+    ]);
+  });
+
+  test('a failed setting write rolls the tag edit back too', () async {
+    final failer = _FailSettingsWrite();
+    final failing = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(failer),
+      ),
+      contraTaxonomy,
+    );
+    // ignore: unused_result
+    await failing.tags.upsert(
+      Tag(id: a, name: 'Bouncey'),
+      at: t0,
+    );
+    await failing.dances.create(
+      Dance(
+        id: 'one',
+        title: 'One',
+        tagIds: const [a],
+        createdAt: t0,
+        updatedAt: t0,
+      ),
+    );
+    await failing.settings.set(
+      kDefaultImportTagNamesKey,
+      encodeDefaultImportTagNames(['Bouncey']),
+    );
+    failer.armed = true;
+
+    await expectLater(deleteTag(failing, a), throwsA(anything));
+
+    expect(failer.fired, isTrue, reason: 'the injected failure must fire');
+    expect(await failing.tags.getById(a), isNotNull);
+    expect((await failing.dances.getById('one'))!.tagIds, [a]);
+  });
+}
+
+/// Fails every write to `settings` once [armed], so the setting rewrite fails
+/// after the tag edit inside the same transaction has succeeded.
+class _FailSettingsWrite extends drift.QueryInterceptor {
+  bool armed = false;
+  bool fired = false;
+
+  bool _hit(String statement) =>
+      armed && RegExp(r'\bsettings\b').hasMatch(statement);
+
+  @override
+  Future<int> runInsert(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (_hit(statement)) {
+      fired = true;
+      throw Exception('injected settings write failure');
+    }
+    return executor.runInsert(statement, args);
+  }
+
+  @override
+  Future<int> runUpdate(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (_hit(statement)) {
+      fired = true;
+      throw Exception('injected settings write failure');
+    }
+    return executor.runUpdate(statement, args);
+  }
 }

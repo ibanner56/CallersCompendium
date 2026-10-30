@@ -2816,6 +2816,10 @@
   "@libraryManagerMergeOfferOne": {
     "x-sourceSha256": "ade1b4b0efe9e588983277e0a74acb22cdd5059f15b4253d06369e77f87736b8"
   },
+  "libraryManagerMergeOfferOneRenamed": "「{existing}」はすでにあります。「{from}」をそこに統合し、名前を「{name}」にしますか？",
+  "@libraryManagerMergeOfferOneRenamed": {
+    "x-sourceSha256": "8c406476ccba0ed47f90b2adea8b3eef052521a8fe61bd775c93d0b945976947"
+  },
   "libraryManagerMergeOfferSeveral": "「{name}」という名前の項目が複数あります。「{from}」の統合先を選んでください。ほかの項目もそこに統合されます。",
   "@libraryManagerMergeOfferSeveral": {
     "x-sourceSha256": "c512216514abd37359da61a98a255c09ff859b79dc5e0a3bdbce21a041c977ef"

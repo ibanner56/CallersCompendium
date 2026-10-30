@@ -2719,6 +2719,15 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '「$existing」はすでにあります。「$from」をそこに統合し、名前を「$name」にしますか？';
+  }
+
+  @override
   String libraryManagerMergeOfferSeveral(String name, String from) {
     return '「$name」という名前の項目が複数あります。「$from」の統合先を選んでください。ほかの項目もそこに統合されます。';
   }

@@ -2870,6 +2870,15 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '“$existing” bestaat al. “$from” ermee samenvoegen en “$name” noemen?';
+  }
+
+  @override
   String libraryManagerMergeOfferSeveral(String name, String from) {
     return 'Meer dan één item heet al “$name”. Kies het item waarmee “$from” wordt samengevoegd; de andere worden er ook mee samengevoegd.';
   }

@@ -3580,6 +3580,24 @@
       }
     }
   },
+  "libraryManagerMergeOfferOneRenamed": "“{existing}” already exists. Merge “{from}” into it and call it “{name}”?",
+  "@libraryManagerMergeOfferOneRenamed": {
+    "description": "Body of the dialog shown when a rename picks a name another entry already has with different capitals. Merging keeps one entry, under the name typed; it can be undone.",
+    "placeholders": {
+      "existing": {
+        "type": "String",
+        "example": "Flowy"
+      },
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      },
+      "name": {
+        "type": "String",
+        "example": "flowy"
+      }
+    }
+  },
   "libraryManagerMergeOfferSeveral": "More than one entry is already called “{name}”. Choose the one to merge “{from}” into; the others are merged into it too.",
   "@libraryManagerMergeOfferSeveral": {
     "description": "Body of the dialog shown when a rename picks a name that several entries already have (they differ only in capitals). A list of them follows.",

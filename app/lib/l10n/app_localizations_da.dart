@@ -2854,6 +2854,15 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '„$existing“ findes allerede. Flet „$from“ ind i den og kald den „$name“?';
+  }
+
+  @override
   String libraryManagerMergeOfferSeveral(String name, String from) {
     return 'Flere poster hedder allerede „$name“. Vælg den, „$from“ skal flettes ind i; de andre flettes også ind i den.';
   }

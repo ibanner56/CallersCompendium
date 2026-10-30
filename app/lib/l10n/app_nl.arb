@@ -2816,6 +2816,10 @@
   "@libraryManagerMergeOfferOne": {
     "x-sourceSha256": "ade1b4b0efe9e588983277e0a74acb22cdd5059f15b4253d06369e77f87736b8"
   },
+  "libraryManagerMergeOfferOneRenamed": "“{existing}” bestaat al. “{from}” ermee samenvoegen en “{name}” noemen?",
+  "@libraryManagerMergeOfferOneRenamed": {
+    "x-sourceSha256": "8c406476ccba0ed47f90b2adea8b3eef052521a8fe61bd775c93d0b945976947"
+  },
   "libraryManagerMergeOfferSeveral": "Meer dan één item heet al “{name}”. Kies het item waarmee “{from}” wordt samengevoegd; de andere worden er ook mee samengevoegd.",
   "@libraryManagerMergeOfferSeveral": {
     "x-sourceSha256": "c512216514abd37359da61a98a255c09ff859b79dc5e0a3bdbce21a041c977ef"

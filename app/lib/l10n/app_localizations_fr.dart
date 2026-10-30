@@ -2898,6 +2898,15 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '« $existing » existe déjà. Fusionner « $from » dedans et l’appeler « $name » ?';
+  }
+
+  @override
   String libraryManagerMergeOfferSeveral(String name, String from) {
     return 'Plusieurs entrées s’appellent déjà « $name ». Choisissez celle dans laquelle fusionner « $from » ; les autres y sont fusionnées aussi.';
   }

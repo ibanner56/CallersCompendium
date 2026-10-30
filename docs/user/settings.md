@@ -467,9 +467,9 @@ Select **Import defaults** to open this group.
   collection is still imported, but only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
   survives a sync or a merge restore. Renaming or merging a tag in the
   [Tags manager](#library) updates the choice to the new name, and deleting one
-  there removes it from the choice. A tag deleted some other way, such as on
-  another device, stays in the choice until you change it, and imports simply
-  skip it. Dances you create in the editor are not tagged either.
+  there removes it from the choice, on every device you sync. A tag deleted
+  some other way, such as on a device running an older version of the app,
+  stays in the choice until you change it, and imports simply skip it. Dances you create in the editor are not tagged either.
   Choosing tags here does not change dances already in your collection, and
   **Undo** on an import removes the dances it created along with their tags
   (the tags themselves stay).

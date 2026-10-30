@@ -45,8 +45,9 @@ class LibraryManagerAction {
   final IconData icon;
   final VoidCallback onSelected;
 
-  /// Drawn in the theme's error colour. Not a confirm: every manager action
-  /// has an Undo (`docs/design/ux.md`, confirm only what Undo cannot reverse).
+  /// Drawn in the theme's error colour. It opens no confirm: a manager's
+  /// delete offers Undo instead (`docs/design/ux.md`, confirm only what Undo
+  /// cannot reverse).
   final bool destructive;
 }
 
@@ -349,15 +350,22 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
 
 /// Asks for a new name for [currentName]. Returns the trimmed name, or `null`
 /// when the user cancels or leaves it unchanged or blank.
+///
+/// [initialText] seeds the field instead of [currentName]: the name typed
+/// last time, when the user chose **Keep editing** in [showLibraryMergeOffer].
 Future<String?> showLibraryRenameDialog(
   BuildContext context, {
   required String currentName,
   required String fieldLabel,
+  String? initialText,
 }) async {
   final name = await showDialog<String>(
     context: context,
-    builder: (_) =>
-        _RenameDialog(currentName: currentName, fieldLabel: fieldLabel),
+    builder: (_) => _RenameDialog(
+      currentName: currentName,
+      initialText: initialText ?? currentName,
+      fieldLabel: fieldLabel,
+    ),
   );
   if (name == null || name.isEmpty || name == currentName) return null;
   return name;
@@ -366,9 +374,14 @@ Future<String?> showLibraryRenameDialog(
 /// Owns its controller, so it is disposed with the dialog rather than while
 /// the dialog's exit animation still reads it.
 class _RenameDialog extends StatefulWidget {
-  const _RenameDialog({required this.currentName, required this.fieldLabel});
+  const _RenameDialog({
+    required this.currentName,
+    required this.initialText,
+    required this.fieldLabel,
+  });
 
   final String currentName;
+  final String initialText;
   final String fieldLabel;
 
   @override
@@ -377,10 +390,10 @@ class _RenameDialog extends StatefulWidget {
 
 class _RenameDialogState extends State<_RenameDialog> {
   late final TextEditingController _controller =
-      TextEditingController(text: widget.currentName)
+      TextEditingController(text: widget.initialText)
         ..selection = TextSelection(
           baseOffset: 0,
-          extentOffset: widget.currentName.length,
+          extentOffset: widget.initialText.length,
         );
 
   @override
@@ -526,13 +539,15 @@ class _MergePickerDialogState extends State<_MergePickerDialog> {
 ///
 /// [matches] are the live entries holding the name as the app matches names.
 /// With one, the dialog asks "'Flowy' already exists. Merge 'Flowing' into
-/// it?". With several (the `UNIQUE` index compares bytes, so case variants
+/// it?", or names [typedName] as the result when it differs from the
+/// match only in case. With several (the `UNIQUE` index compares bytes, so case variants
 /// can coexist), it lists them and asks which to merge into, preselecting the
 /// one whose bytes equal [typedName]; the rest are merged into it too.
 ///
 /// A question, not a destructive confirm: the merge has an Undo. **Keep
 /// editing** and **Merge**, in D-1's order for the discard dialog. Returns
-/// the id chosen to merge into, or `null` to keep editing.
+/// the id chosen to merge into, or `null` to keep editing; the caller then
+/// re-opens [showLibraryRenameDialog] with the typed name.
 Future<String?> showLibraryMergeOffer(
   BuildContext context, {
   required String fromName,
@@ -588,9 +603,17 @@ class _MergeOfferDialogState extends State<_MergeOfferDialog> {
                       widget.typedName,
                       widget.fromName,
                     )
-                  : l10n.libraryManagerMergeOfferOne(
+                  : widget.matches.single.name == widget.typedName
+                  ? l10n.libraryManagerMergeOfferOne(
                       widget.matches.single.name,
                       widget.fromName,
+                    )
+                  // A case variant: the merged tag takes the typed name, so
+                  // the question says so rather than promise the old one.
+                  : l10n.libraryManagerMergeOfferOneRenamed(
+                      widget.matches.single.name,
+                      widget.fromName,
+                      widget.typedName,
                     ),
             ),
             if (several)

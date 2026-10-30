@@ -4339,6 +4339,16 @@ abstract class AppLocalizations {
   /// **'“{existing}” already exists. Merge “{from}” into it?'**
   String libraryManagerMergeOfferOne(String existing, String from);
 
+  /// Body of the dialog shown when a rename picks a name another entry already has with different capitals. Merging keeps one entry, under the name typed; it can be undone.
+  ///
+  /// In en, this message translates to:
+  /// **'“{existing}” already exists. Merge “{from}” into it and call it “{name}”?'**
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  );
+
   /// Body of the dialog shown when a rename picks a name that several entries already have (they differ only in capitals). A list of them follows.
   ///
   /// In en, this message translates to:

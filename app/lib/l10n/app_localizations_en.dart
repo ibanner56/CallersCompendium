@@ -2833,6 +2833,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '“$existing” already exists. Merge “$from” into it and call it “$name”?';
+  }
+
+  @override
   String libraryManagerMergeOfferSeveral(String name, String from) {
     return 'More than one entry is already called “$name”. Choose the one to merge “$from” into; the others are merged into it too.';
   }

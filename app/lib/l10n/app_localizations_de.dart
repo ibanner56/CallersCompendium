@@ -2878,6 +2878,15 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '„$existing“ gibt es bereits. „$from“ damit zusammenführen und „$name“ nennen?';
+  }
+
+  @override
   String libraryManagerMergeOfferSeveral(String name, String from) {
     return 'Mehrere Einträge heißen bereits „$name“. Wählen Sie den, mit dem „$from“ zusammengeführt wird; die anderen werden ebenfalls damit zusammengeführt.';
   }
