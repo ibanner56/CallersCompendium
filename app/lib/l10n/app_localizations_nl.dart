@@ -4149,6 +4149,66 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetNotCalled => 'Niet gebeld';
 
   @override
+  String get collectionFacetHistoryInert => 'Geldt bij Gebeld of Niet gebeld';
+
+  @override
+  String get collectionFacetVenue => 'Op locatie';
+
+  @override
+  String get collectionFacetVenueAny => 'Elke locatie';
+
+  @override
+  String get collectionFacetVenueUnnamed => 'Naamloze locatie';
+
+  @override
+  String get collectionFacetVenueClear => 'Locatie wissen';
+
+  @override
+  String get collectionFacetVenueSheetTitle => 'Locatie';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s',
+      one: '1 programma',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => 'getypt';
+
+  @override
+  String get collectionFacetWithin => 'Binnen';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'Altijd';
+
+  @override
+  String get collectionFacetWithinNever => 'Nooit gebeld';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count maanden',
+      one: '1 maand',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => 'Sinds een datum…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return 'Sinds $date';
+  }
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override

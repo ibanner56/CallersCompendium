@@ -244,6 +244,152 @@ void main() {
       },
     );
 
+    group('calling-history scopes (N1-H2)', () {
+      final grange = VenueKey.typed('Grange');
+      final today = DateTime.utc(2026, 10, 30);
+
+      CalledFilter built(FacetSelections facets) =>
+          buildCollectionFilter(
+                ftsText: '',
+                facets: facets,
+                defs: defs,
+                today: today,
+              )
+              as CalledFilter;
+
+      test('the venue and window ride on the one chosen polarity', () {
+        final facets = FacetSelections()
+          ..callStatuses.add(false)
+          ..setHistoryVenue(grange, label: 'Grange')
+          ..setHistoryMonths(3);
+        final called = built(facets);
+        expect(called.called, isFalse);
+        expect(called.venue, grange);
+        expect(called.since, DateTime.utc(2026, 7, 30));
+      });
+
+      test('with neither or both polarities a scope changes no result', () {
+        final scoped = FacetSelections()
+          ..setHistoryVenue(grange, label: 'Grange')
+          ..setHistoryMonths(3);
+        final plain = FacetSelections();
+        for (final polarities in [
+          <bool>{},
+          <bool>{true, false},
+        ]) {
+          scoped.callStatuses
+            ..clear()
+            ..addAll(polarities);
+          plain.callStatuses
+            ..clear()
+            ..addAll(polarities);
+          expect(
+            buildCollectionFilter(
+              ftsText: '',
+              facets: scoped,
+              defs: defs,
+              today: today,
+            ),
+            _sameFilterAs(
+              buildCollectionFilter(
+                ftsText: '',
+                facets: plain,
+                defs: defs,
+                today: today,
+              ),
+            ),
+          );
+          // The scopes stay set, inert: out of the count and out of isEmpty.
+          expect(scoped.hasHistoryScope, isTrue);
+          expect(scoped.activeScopeCount, 0);
+          expect(scoped.activeCount, plain.activeCount);
+        }
+        expect(scoped.isEmpty, isFalse, reason: 'both polarities are chosen');
+        scoped.callStatuses.clear();
+        expect(scoped.isEmpty, isTrue);
+        expect(scoped.activeCount, 0);
+      });
+
+      test('an applying scope counts once each, in the total too', () {
+        final facets = FacetSelections()..callStatuses.add(true);
+        expect(facets.activeCount, 1);
+        facets.setHistoryVenue(grange, label: 'Grange');
+        expect(facets.activeCount, 2);
+        facets.setHistoryMonths(1);
+        expect(facets.activeCount, 3);
+        // A window is one scope, whichever way it was chosen.
+        facets.setHistorySince(DateTime(2026, 1, 5));
+        expect(facets.activeCount, 3);
+        expect(facets.activeScopeCount, 2);
+      });
+
+      test('1 month is one calendar month back, not four weeks', () {
+        final facets = FacetSelections()
+          ..callStatuses.add(true)
+          ..setHistoryMonths(1);
+        expect(built(facets).since, DateTime.utc(2026, 9, 30));
+        expect(
+          built(facets).since,
+          isNot(today.subtract(const Duration(days: 28))),
+        );
+      });
+
+      test('calendar months clamp to the shorter month and cross years', () {
+        expect(
+          calendarMonthsBefore(DateTime.utc(2026, 3, 31), 1),
+          DateTime.utc(2026, 2, 28),
+        );
+        expect(
+          calendarMonthsBefore(DateTime.utc(2028, 3, 31), 1),
+          DateTime.utc(2028, 2, 29),
+        );
+        expect(
+          calendarMonthsBefore(DateTime.utc(2026, 2, 15), 3),
+          DateTime.utc(2025, 11, 15),
+        );
+        expect(
+          calendarMonthsBefore(DateTime.utc(2026, 1, 31), 6),
+          DateTime.utc(2025, 7, 31),
+        );
+      });
+
+      test('the cutoff is a calendar date, whatever time today carries', () {
+        final facets = FacetSelections()
+          ..callStatuses.add(true)
+          ..setHistoryMonths(6);
+        final cutoff = facets.historyCutoff(DateTime(2026, 10, 30, 23, 59))!;
+        expect(cutoff, DateTime.utc(2026, 4, 30));
+        expect(cutoff.isUtc, isTrue);
+      });
+
+      test('a chosen date and a preset replace one another', () {
+        final facets = FacetSelections()
+          ..callStatuses.add(true)
+          ..setHistoryMonths(3)
+          ..setHistorySince(DateTime(2026, 5, 17, 14));
+        expect(facets.historyMonths, isNull);
+        expect(built(facets).since, DateTime.utc(2026, 5, 17));
+        facets.setHistoryMonths(6);
+        expect(facets.historySince, isNull);
+      });
+
+      test('clear() and clearing the section drop the scopes', () {
+        FacetSelections scoped() => FacetSelections()
+          ..callStatuses.add(false)
+          ..setHistoryVenue(grange, label: 'Grange')
+          ..setHistoryMonths(3);
+        expect(scoped()..clear(), _hasNoHistoryState);
+        final facets = scoped();
+        expect(facets.clearFacets({CollectionFacetIds.callStatus}), isTrue);
+        expect(facets, _hasNoHistoryState);
+        // A section holding only an inert scope still holds a selection.
+        final inert = scoped()..callStatuses.clear();
+        expect(inert.hasSelectionFor(CollectionFacetIds.callStatus), isTrue);
+        expect(inert.clearFacets({CollectionFacetIds.callStatus}), isTrue);
+        expect(inert, _hasNoHistoryState);
+      });
+    });
+
     test('a single source facet yields an identity SourceIdFilter leaf', () {
       final facets = FacetSelections()..sourceIds.add('s1');
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
@@ -1403,3 +1549,21 @@ void main() {
     );
   });
 }
+
+/// Two filters are equal when they have the same shape; the filter classes
+/// have no `==`, so this compares what the tests care about.
+Matcher _sameFilterAs(DanceFilter expected) => predicate<DanceFilter>(
+  (actual) =>
+      actual.runtimeType == expected.runtimeType &&
+      (actual is! AndFilter ||
+          (actual.children.length == (expected as AndFilter).children.length)),
+  'is shaped like $expected',
+);
+
+final Matcher _hasNoHistoryState = predicate<FacetSelections>(
+  (f) =>
+      f.callStatuses.isEmpty &&
+      !f.hasHistoryScope &&
+      f.historyVenueLabel == null,
+  'holds no calling-history state',
+);

@@ -40,7 +40,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Search bar = unified FTS; **filter panel** for structured search: formation,
   progression, author, tunes, tags (with an "Untagged" chip, and an "All tags
   / Any tag" choice once two are picked, FIND-14), calling history
-  (Called / Not called), custom fields, and figure queries ("contains
+  (Called / Not called, narrowed by venue and time window;
+  `history-filters.md`), custom fields, and figure queries ("contains
   petronella in B1", "chain **then** swing") built with a friendly query
   builder (ContraDB ez-query lesson: common cases one-tap, advanced tree
   behind "advanced").

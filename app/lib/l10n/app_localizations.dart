@@ -6343,6 +6343,90 @@ abstract class AppLocalizations {
   /// **'Not called'**
   String get collectionFacetNotCalled;
 
+  /// Hint under the Calling history filter's venue and time-window choices while neither or both of Called and Not called is selected: the choices are kept but do nothing until exactly one is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies with Called or Not called'**
+  String get collectionFacetHistoryInert;
+
+  /// Label of the venue choice in the Calling history filter: only calls at the chosen venue count.
+  ///
+  /// In en, this message translates to:
+  /// **'At venue'**
+  String get collectionFacetVenue;
+
+  /// Venue choice in the Calling history filter when no venue is chosen, and the list entry that clears the choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Any venue'**
+  String get collectionFacetVenueAny;
+
+  /// Placeholder name for a venue in the Calling history filter whose record is gone and whose programs have no typed venue text.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed venue'**
+  String get collectionFacetVenueUnnamed;
+
+  /// Tooltip of the button that clears the venue chosen in the Calling history filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear venue'**
+  String get collectionFacetVenueClear;
+
+  /// Title of the list of venues, each with a counted call, that the Calling history filter offers.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get collectionFacetVenueSheetTitle;
+
+  /// Under a venue in the Calling history filter's venue list: how many programs at that venue have a counted call.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program} other{{count} programs}}'**
+  String collectionFacetVenuePrograms(int count);
+
+  /// Marks a venue in the Calling history filter's venue list that is only typed text on its programs, not a saved venue. A typed Grange and a saved Grange are separate venues until the old programs are linked.
+  ///
+  /// In en, this message translates to:
+  /// **'typed'**
+  String get collectionFacetVenueTyped;
+
+  /// Label of the time-window choices in the Calling history filter (Within 1 month, Within 3 months, and so on).
+  ///
+  /// In en, this message translates to:
+  /// **'Within'**
+  String get collectionFacetWithin;
+
+  /// Time-window choice in the Calling history filter that sets no window, shown with Called: calls at any time count.
+  ///
+  /// In en, this message translates to:
+  /// **'Any time'**
+  String get collectionFacetWithinAnyTime;
+
+  /// Time-window choice in the Calling history filter that sets no window, shown with Not called: dances that have never been called.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called'**
+  String get collectionFacetWithinNever;
+
+  /// Time-window choice in the Calling history filter: calls in the last {count} calendar months, counted back from today.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month} other{{count} months}}'**
+  String collectionFacetWithinMonths(int count);
+
+  /// Time-window choice in the Calling history filter that opens a date picker: calls on or after the chosen date count.
+  ///
+  /// In en, this message translates to:
+  /// **'Since a date…'**
+  String get collectionFacetWithinSince;
+
+  /// Time-window choice in the Calling history filter once a date is chosen; {date} is that date in the user's date format.
+  ///
+  /// In en, this message translates to:
+  /// **'Since {date}'**
+  String collectionFacetWithinSinceDate(String date);
+
   /// Filter section heading for the difficulty level facet.
   ///
   /// In en, this message translates to:

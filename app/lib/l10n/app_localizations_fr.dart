@@ -4183,6 +4183,67 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionFacetNotCalled => 'Non appelées';
 
   @override
+  String get collectionFacetHistoryInert =>
+      'S\'applique avec Appelées ou Non appelées';
+
+  @override
+  String get collectionFacetVenue => 'Lieu';
+
+  @override
+  String get collectionFacetVenueAny => 'Tous les lieux';
+
+  @override
+  String get collectionFacetVenueUnnamed => 'Lieu sans nom';
+
+  @override
+  String get collectionFacetVenueClear => 'Effacer le lieu';
+
+  @override
+  String get collectionFacetVenueSheetTitle => 'Lieu';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmes',
+      one: '1 programme',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => 'saisi';
+
+  @override
+  String get collectionFacetWithin => 'Depuis moins de';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'À tout moment';
+
+  @override
+  String get collectionFacetWithinNever => 'Jamais appelées';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mois',
+      one: '1 mois',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => 'Depuis une date…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return 'Depuis le $date';
+  }
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override

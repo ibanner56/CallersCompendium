@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/collection_facets_scope.dart';
+import '../search/called_venue_choices.dart';
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
+import 'calling_history_scopes.dart';
 import 'responsive_autocomplete.dart';
 
 /// The one-tap facet filter panel (`docs/design/ux.md` §1). Each section is a
@@ -30,6 +32,7 @@ class FacetPanel extends StatelessWidget {
     required this.hasMixer,
     required this.hasRating,
     this.hasCallingHistory = false,
+    this.venueChoices,
     required this.authors,
     required this.tags,
     required this.citedSources,
@@ -59,6 +62,10 @@ class FacetPanel extends StatelessWidget {
 
   /// Whether any dance has a positive call count in the active history scope.
   final bool hasCallingHistory;
+
+  /// Where the Calling history section's venue chooser reads its rows. Null
+  /// leaves the venue row out of the section.
+  final VenueChoiceSource? venueChoices;
 
   final List<Choreographer> authors;
   final List<Tag> tags;
@@ -285,7 +292,7 @@ class FacetPanel extends StatelessWidget {
           key: const ValueKey('facet-row-call-status'),
           label: l10n.collectionFacetCallStatus,
           sectionId: 'call-status',
-          activeCount: facets.callStatuses.length,
+          activeCount: facets.callStatuses.length + facets.activeScopeCount,
           chips: [
             _chip(
               key: 'call-status-called',
@@ -302,6 +309,11 @@ class FacetPanel extends StatelessWidget {
               onSelected: (s) => toggle(facets.callStatuses, false, s),
             ),
           ],
+          footer: CallingHistoryScopes(
+            facets: facets,
+            venues: venueChoices,
+            onChanged: onChanged,
+          ),
         ),
       );
     }

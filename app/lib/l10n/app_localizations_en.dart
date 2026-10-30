@@ -4091,6 +4091,66 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionFacetNotCalled => 'Not called';
 
   @override
+  String get collectionFacetHistoryInert => 'Applies with Called or Not called';
+
+  @override
+  String get collectionFacetVenue => 'At venue';
+
+  @override
+  String get collectionFacetVenueAny => 'Any venue';
+
+  @override
+  String get collectionFacetVenueUnnamed => 'Unnamed venue';
+
+  @override
+  String get collectionFacetVenueClear => 'Clear venue';
+
+  @override
+  String get collectionFacetVenueSheetTitle => 'Venue';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs',
+      one: '1 program',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => 'typed';
+
+  @override
+  String get collectionFacetWithin => 'Within';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'Any time';
+
+  @override
+  String get collectionFacetWithinNever => 'Never called';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count months',
+      one: '1 month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => 'Since a date…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return 'Since $date';
+  }
+
+  @override
   String get collectionFacetLevel => 'Level';
 
   @override

@@ -5160,6 +5160,80 @@
   "@collectionFacetNotCalled": {
     "description": "Filter chip selecting dances not called in the active history scope."
   },
+  "collectionFacetHistoryInert": "Applies with Called or Not called",
+  "@collectionFacetHistoryInert": {
+    "description": "Hint under the Calling history filter's venue and time-window choices while neither or both of Called and Not called is selected: the choices are kept but do nothing until exactly one is chosen."
+  },
+  "collectionFacetVenue": "At venue",
+  "@collectionFacetVenue": {
+    "description": "Label of the venue choice in the Calling history filter: only calls at the chosen venue count."
+  },
+  "collectionFacetVenueAny": "Any venue",
+  "@collectionFacetVenueAny": {
+    "description": "Venue choice in the Calling history filter when no venue is chosen, and the list entry that clears the choice."
+  },
+  "collectionFacetVenueUnnamed": "Unnamed venue",
+  "@collectionFacetVenueUnnamed": {
+    "description": "Placeholder name for a venue in the Calling history filter whose record is gone and whose programs have no typed venue text."
+  },
+  "collectionFacetVenueClear": "Clear venue",
+  "@collectionFacetVenueClear": {
+    "description": "Tooltip of the button that clears the venue chosen in the Calling history filter."
+  },
+  "collectionFacetVenueSheetTitle": "Venue",
+  "@collectionFacetVenueSheetTitle": {
+    "description": "Title of the list of venues, each with a counted call, that the Calling history filter offers."
+  },
+  "collectionFacetVenuePrograms": "{count, plural, =1{1 program} other{{count} programs}}",
+  "@collectionFacetVenuePrograms": {
+    "description": "Under a venue in the Calling history filter's venue list: how many programs at that venue have a counted call.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "collectionFacetVenueTyped": "typed",
+  "@collectionFacetVenueTyped": {
+    "description": "Marks a venue in the Calling history filter's venue list that is only typed text on its programs, not a saved venue. A typed Grange and a saved Grange are separate venues until the old programs are linked."
+  },
+  "collectionFacetWithin": "Within",
+  "@collectionFacetWithin": {
+    "description": "Label of the time-window choices in the Calling history filter (Within 1 month, Within 3 months, and so on)."
+  },
+  "collectionFacetWithinAnyTime": "Any time",
+  "@collectionFacetWithinAnyTime": {
+    "description": "Time-window choice in the Calling history filter that sets no window, shown with Called: calls at any time count."
+  },
+  "collectionFacetWithinNever": "Never called",
+  "@collectionFacetWithinNever": {
+    "description": "Time-window choice in the Calling history filter that sets no window, shown with Not called: dances that have never been called."
+  },
+  "collectionFacetWithinMonths": "{count, plural, =1{1 month} other{{count} months}}",
+  "@collectionFacetWithinMonths": {
+    "description": "Time-window choice in the Calling history filter: calls in the last {count} calendar months, counted back from today.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "collectionFacetWithinSince": "Since a date…",
+  "@collectionFacetWithinSince": {
+    "description": "Time-window choice in the Calling history filter that opens a date picker: calls on or after the chosen date count."
+  },
+  "collectionFacetWithinSinceDate": "Since {date}",
+  "@collectionFacetWithinSinceDate": {
+    "description": "Time-window choice in the Calling history filter once a date is chosen; {date} is that date in the user's date format.",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "3/14/2026"
+      }
+    }
+  },
   "collectionFacetLevel": "Level",
   "@collectionFacetLevel": {
     "description": "Filter section heading for the difficulty level facet."

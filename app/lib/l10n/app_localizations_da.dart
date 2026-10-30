@@ -4120,6 +4120,67 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionFacetNotCalled => 'Ikke kaldt';
 
   @override
+  String get collectionFacetHistoryInert =>
+      'Gælder sammen med Kaldt eller Ikke kaldt';
+
+  @override
+  String get collectionFacetVenue => 'På spillested';
+
+  @override
+  String get collectionFacetVenueAny => 'Alle spillesteder';
+
+  @override
+  String get collectionFacetVenueUnnamed => 'Unavngivet spillested';
+
+  @override
+  String get collectionFacetVenueClear => 'Ryd spillested';
+
+  @override
+  String get collectionFacetVenueSheetTitle => 'Spillested';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer',
+      one: '1 program',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => 'indtastet';
+
+  @override
+  String get collectionFacetWithin => 'Inden for';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'Når som helst';
+
+  @override
+  String get collectionFacetWithinNever => 'Aldrig kaldt';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count måneder',
+      one: '1 måned',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => 'Siden en dato…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return 'Siden $date';
+  }
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override
