@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -408,7 +407,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count termer kunne ikke tilføjes: de er for lange, eller din ordliste er fuld.',
-      one: '1 term kunne ikke tilføjes: den er for lang, eller din ordliste er fuld.',
+      one:
+          '1 term kunne ikke tilføjes: den er for lang, eller din ordliste er fuld.',
     );
     return '$_temp0';
   }
@@ -476,7 +476,8 @@ class AppLocalizationsDa extends AppLocalizations {
           '$count danse bruger din figur og vil bruge $name i stedet. Din fjernes fra din ordliste.',
       one:
           '1 dans bruger din figur og vil bruge $name i stedet. Din fjernes fra din ordliste.',
-      zero: 'Ingen dans i din samling bruger din figur. Den fjernes fra din ordliste.',
+      zero:
+          'Ingen dans i din samling bruger din figur. Den fjernes fra din ordliste.',
     );
     return '$_temp0';
   }
@@ -7422,7 +7423,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Denne import indeholder $count elementer – mere end forventet for en normal deling.',
-      one: 'Denne import indeholder 1 element – mere end forventet for en normal deling.',
+      one:
+          'Denne import indeholder 1 element – mere end forventet for en normal deling.',
     );
     return '$_temp0';
   }
@@ -8223,7 +8225,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Tilføjede $count figurer. Skriv en anden, eller tryk Escape for at afslutte.',
-      one: 'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
+      one:
+          'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
     );
     return '$_temp0';
   }
@@ -8235,7 +8238,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Tilføjede $count figurer. Skriv en anden, eller vælg Afslut tilføjelse, når du er færdig.',
-      one: 'Tilføjede 1 figur. Skriv en anden, eller vælg Afslut tilføjelse, når du er færdig.',
+      one:
+          'Tilføjede 1 figur. Skriv en anden, eller vælg Afslut tilføjelse, når du er færdig.',
     );
     return '$_temp0';
   }
@@ -8844,7 +8848,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other: 'Ændrede $count danse tilbage.',
       one: 'Ændrede 1 dans tilbage.',
-      zero: 'Ingen danse blev ændret tilbage: hver af dem har fået ændret type eller tags siden.',
+      zero:
+          'Ingen danse blev ændret tilbage: hver af dem har fået ændret type eller tags siden.',
     );
     return '$_temp0';
   }
@@ -9272,7 +9277,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count opkaldsknapper blev udeladt, fordi deres tekst ikke kan læses som figurer.',
-      one: '1 opkaldsknap blev udeladt, fordi dens tekst ikke kan læses som figurer.',
+      one:
+          '1 opkaldsknap blev udeladt, fordi dens tekst ikke kan læses som figurer.',
     );
     return '$_temp0';
   }
@@ -9321,7 +9327,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
-      one: '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
+      one:
+          '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
     );
     return '$_temp0';
   }
@@ -10575,7 +10582,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count danse i papirkurven bruger den og beholder de linjer, de sidst gemte.',
-      one: '1 dans i papirkurven bruger den og beholder den linje, den sidst gemte.',
+      one:
+          '1 dans i papirkurven bruger den og beholder den linje, den sidst gemte.',
     );
     return '$_temp0';
   }
@@ -10591,7 +10599,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Dine $count kortformer for den bliver, og når du skriver dem, læses de som almindelige linjer.',
-      one: 'Din kortform for den bliver, og når du skriver den, læses den som en almindelig linje.',
+      one:
+          'Din kortform for den bliver, og når du skriver den, læses den som en almindelig linje.',
     );
     return '$_temp0';
   }
@@ -10603,7 +10612,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count danse bruger den. Den fjernes fra din ordliste, og dansene beholder deres nuværende ordlyd som almindelig tekst.',
-      one: '1 dans bruger den. Den fjernes fra din ordliste, og dansen beholder sin nuværende ordlyd som almindelig tekst.',
+      one:
+          '1 dans bruger den. Den fjernes fra din ordliste, og dansen beholder sin nuværende ordlyd som almindelig tekst.',
       zero:
           'Ingen dans i din samling bruger den. Den fjernes fra din ordliste.',
     );
