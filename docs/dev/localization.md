@@ -320,8 +320,9 @@ it carries the year and shows no month names that could mix with the app
 language. `resolveDateLocale` picks the `intl` set: the full language-and-region
 tag if Flutter ships it (`en_GB`), else the one shipped `_<CC>` variant for the
 country (`en_MX` → `es_MX`), else the small `kRegionDateLocales` table for
-single-convention countries (`en_DK` → `da`, guarded by a drift test against
-`intl`'s locale list), else the language's default. `intl` has no region data to
+single-convention countries (`en_DK` → `da`; also the US and Canada, which have
+several shipped sets so the single-variant rule skips them), guarded by a drift
+test against `intl`'s locale list, else the language's default. `intl` has no region data to
 derive this from. An `intl`-unresolvable tag falls back to
 `MaterialLocalizations.formatShortDate`. Date symbols for every Flutter-shipped
 locale are registered when `GlobalMaterialLocalizations` first loads, so the
