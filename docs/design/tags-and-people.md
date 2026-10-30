@@ -517,6 +517,9 @@ wire change.
     an empty `page` or `number` on that citation takes the loser's. Rejected
     alternative: drop the loser's citation whole, which is what
     `_rewriteLocalReferences` does today (`sync_storage.dart:5291-5318`).
+    *As built by T3 (2026-10-30):* the citation kept takes the page and number
+    of the merged-into source's citation, filled from the others' when empty;
+    see "What T3 built" under [The manager screens](#the-manager-screens).
 - **Delete** only when unused, as above.
 - **Not proposed:** a "possible duplicates" hint by folded title. It is close
   to the dropped FIND-9, and the maintainer can ask for it separately.
@@ -615,8 +618,13 @@ decisions:
   which does neither, and has no Undo.
 - **The citation fill** is the user merge's only. The shared
   `rewriteLocalReferences` still keeps the survivor's citation as it stands,
-  so sync's reconciliation is unchanged. Undo empties a filled page or number
-  only while it still reads as the merge left it.
+  so sync's reconciliation is unchanged. The kept citation takes the page and
+  number of the merged-into source's citation, as the merged entry takes that
+  source's fields, and each empty one from the others in id order. A locator
+  the two disagree on is dropped without being listed: listing it would mean
+  one line per dance. Undo puts the locator back only while it still reads as
+  the merge left it. Rejected: the survivor id's citation winning, which
+  would keep the merged-away source's page when it held the smaller id.
 - **A rename typed in the details dialog** that collides offers the merge with
   the dialog's other values taking part: they are saved under the old name
   first, in the merge's transaction, so the merge fills from them and an Undo

@@ -4,7 +4,7 @@
   "app": {
     "added": [
       "Authors and Sources managers, under Settings › General › Library, list every author and every published source with the number of dances that use it. As in the Tags manager you can search, show only the entries no dance uses, and sort by name or by number of dances. From an entry's menu you can rename it, merge it into another, or edit its details; an entry no dance uses can also be deleted. Rename, merge and delete offer Undo.",
-      "Merging two authors or two sources keeps the details of the one you merge into and fills any it leaves empty from the other. Where both hold different values, the app lists the ones it will drop and asks first. For a source, a dance that cited both keeps one citation, with an empty page or number filled from the other.",
+      "Merging two authors or two sources keeps the details of the one you merge into and fills any it leaves empty from the other. Where both hold different values, the app lists the ones it will drop and asks first. For a source, a dance that cited both keeps one citation, with the page and number it had for the source you merged into, and an empty one filled from the other.",
       "A source's row shows its author and year, so sources with the same title can be told apart."
     ],
     "changed": [
@@ -18,7 +18,7 @@
       "`ChoreographerRepository.watchAll` and `PublishedSourceRepository.watchAll` stream the live rows."
     ],
     "changed": [
-      "A source merge fills an empty page or number on the citation a dance keeps from the citation it drops, and its Undo empties them again."
+      "A source merge gives the citation a dance keeps the page and number of its citation of the source merged into, each filled from the dropped citation when empty, and its Undo puts them back."
     ]
   }
 }
