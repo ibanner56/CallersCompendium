@@ -9800,6 +9800,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String recentlyDeletedDeletedSyncedSnack(String title) {
+    return '„$title“ dauerhaft gelöscht. Ein kleiner Löschvermerk bleibt erhalten, damit deine anderen Geräte es ebenfalls löschen.';
+  }
+
+  @override
   String get recentlyDeletedRestore => 'Wiederherstellen';
 
   @override

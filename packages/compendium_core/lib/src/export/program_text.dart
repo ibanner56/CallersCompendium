@@ -30,7 +30,7 @@ import 'export_labels.dart';
 ///   preserving the pre-venue-entity behavior.
 /// - [formatDate] formats [Program.eventDate]; defaults to an ISO `yyyy-MM-dd`
 ///   date. The app passes `formatEventDate` under the
-///   user's Date format setting (System follows the device locale's numeric
+///   user's Date format setting (System follows the device region's numeric
 ///   date).
 /// - [authorNamesFor] resolves a slot's `danceId` to its already-resolved
 ///   choreographer *names* (issue #1434) — same privacy contract as
