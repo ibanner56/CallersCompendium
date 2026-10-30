@@ -2762,8 +2762,8 @@ class DanceRepository {
   /// whose six per-dance relationship queries (authors, tags, links, custom
   /// values, sources, provenance) are irrelevant to a figure-only check and
   /// would make this an O(1 + 6N)-query scan. Results are ordered
-  /// case-insensitively by title to match the collection's `COLLATE NOCASE`
-  /// display order.
+  /// by accent-folded title ([foldForTitleMatch]), the order the Collection's
+  /// title sort uses.
   ///
   /// A dance whose stored transcription cannot be decoded is **skipped**, not
   /// raised on (#1347). Bypassing [_toModel] also bypassed [_figureSourceFor],
@@ -2935,15 +2935,19 @@ class DanceRepository {
   /// regardless of which one is active (the active dialect and legacy synonyms
   /// still win on overlap).
   ///
-  /// [SearchSort.title], [SearchSort.recentlyAdded], [SearchSort.recentlyEdited]
-  /// and (bare-full-text) [SearchSort.relevance] are ordered in SQL;
-  /// [SearchSort.author] and [SearchSort.lastCalled] reuse the Phase 3.1
-  /// orderings and are applied in Dart over the fetched id set. Those two keys
-  /// are **not** columns on `dances`: the first author's name comes from
-  /// `dance_authors` joined to `choreographers`, and the last-called date is an
-  /// aggregate over `program_slots`/`programs` — so they can't be an SQL
-  /// `ORDER BY` here and are computed as a post-fetch step. The post-sort is
-  /// stable, preserving the SQL title base order for ties.
+  /// [SearchSort.recentlyAdded], [SearchSort.recentlyEdited] and
+  /// (bare-full-text) [SearchSort.relevance] are ordered in SQL.
+  /// [SearchSort.title] is ordered in SQL too (`COLLATE NOCASE`, ASCII case
+  /// only) and then re-sorted in Dart over accent-folded keys, unless the
+  /// articles setting is off and every title is ASCII, when the SQL order
+  /// already is the folded order. [SearchSort.author] and
+  /// [SearchSort.lastCalled] reuse the Phase 3.1 orderings and are applied in
+  /// Dart over the fetched id set. The author and last-called keys are **not**
+  /// columns on `dances`: the first author's name comes from `dance_authors`
+  /// joined to `choreographers`, and the last-called date is an aggregate over
+  /// `program_slots`/`programs` — so they can't be an SQL `ORDER BY` here and
+  /// are computed as a post-fetch step. Each post-sort is stable, preserving
+  /// the SQL title base order for ties.
   ///
   /// [callerFilter], [performedOnly] and [requireEventDate] scope
   /// [SearchSort.lastCalled] exactly as they scope a [CalledFilter] and the
