@@ -6342,7 +6342,7 @@
   "@onlineImportVariationDialogActionLink": {
     "x-sourceSha256": "7a89241607bf07561ac5217d1fead66bc5c4636e6f94a7608108da241cd65443"
   },
-  "onlineImportVariationDialogLinkWarning": "Votre version de « {existingTitle} » sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
+  "onlineImportVariationDialogLinkWarning": "Votre version de « {existingTitle} » sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel et ses tags. Elle conserve votre note, vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
   "@onlineImportVariationDialogLinkWarning": {
     "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
   },
@@ -6366,7 +6366,7 @@
   "@onlineImportPossibleMatchDialogBody": {
     "x-sourceSha256": "c23d4f0bdd76d65aa431c58419d8a497eca0ed5d84d68e16e2ebee368fc2b303"
   },
-  "onlineImportPossibleMatchDialogLinkWarning": "La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
+  "onlineImportPossibleMatchDialogLinkWarning": "La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel et ses tags. Elle conserve votre note, vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
     "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
   },

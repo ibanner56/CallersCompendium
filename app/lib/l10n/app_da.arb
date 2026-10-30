@@ -6342,7 +6342,7 @@
   "@onlineImportVariationDialogActionLink": {
     "x-sourceSha256": "7a89241607bf07561ac5217d1fead66bc5c4636e6f94a7608108da241cd65443"
   },
-  "onlineImportVariationDialogLinkWarning": "Din version af „{existingTitle}“ erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.",
+  "onlineImportVariationDialogLinkWarning": "Din version af „{existingTitle}“ erstattes af onlineposten — inklusive dens titel, figurer, noter og tags. Den beholder din vurdering, dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.",
   "@onlineImportVariationDialogLinkWarning": {
     "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
   },
@@ -6366,7 +6366,7 @@
   "@onlineImportPossibleMatchDialogBody": {
     "x-sourceSha256": "c23d4f0bdd76d65aa431c58419d8a497eca0ed5d84d68e16e2ebee368fc2b303"
   },
-  "onlineImportPossibleMatchDialogLinkWarning": "Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.",
+  "onlineImportPossibleMatchDialogLinkWarning": "Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter og tags. Den beholder din vurdering, dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
     "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
   },

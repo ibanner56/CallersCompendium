@@ -1172,10 +1172,11 @@ void main() {
     );
 
     test(
-      'confident match + link resolution: preserves dance id, overwrites user data',
+      'confident match + link resolution: preserves dance id and the existing rating when the record carries none',
       () async {
-        // Documents the intentional data-loss: link overwrites the existing
-        // dance's fields (rating, figures, etc.) with the incoming draft.
+        // Link replaces the existing dance's content with the incoming draft,
+        // but a record that carries no rating (Caller's Box never does) leaves
+        // the caller's own rating alone (maintainer decision, 2026-10-30).
         // The dance id is preserved so program-slot calling history still
         // references the same dance (call history is derived, not stored on
         // the dance record).
@@ -1193,11 +1194,42 @@ void main() {
           now: now,
         );
 
-        // Dance id is preserved (program slots continue to reference it).
         final updated = await repos.dances.getById(existing.id);
         expect(updated, isNotNull);
-        // Rating was overwritten by the incoming draft (which carries none).
-        expect(updated!.rating, isNull);
+        // Content was replaced...
+        expect(figuresOf(updated!), isNot(figuresOf(existing)));
+        // ...but the rating the draft does not carry was kept.
+        expect(updated.rating, 4);
+      },
+    );
+
+    test(
+      'confident match + link resolution: a rating the record carries overwrites the existing one',
+      () async {
+        final repos = openTestRepositories();
+        final existing = await seedDance(repos, rating: 4);
+
+        final base = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('partners balance and swing')],
+        );
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: base.draft.dance.copyWith(rating: 2),
+            raw: base.draft.raw,
+            issues: base.draft.issues,
+            authorNames: base.draft.authorNames,
+          ),
+          verdict: base.verdict,
+        );
+        await CallersBoxOnline().import(
+          repos,
+          plan,
+          ambiguousResolution: DedupeResolution.link(existing.id),
+          now: now,
+        );
+
+        expect((await repos.dances.getById(existing.id))!.rating, 2);
       },
     );
 

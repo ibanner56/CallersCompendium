@@ -6386,7 +6386,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
+    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de titel, figuren, callnotities en tags. De dans behoudt je beoordeling, je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
   }
 
   @override
@@ -6412,7 +6412,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
+      'De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities en tags. De dans behoudt je beoordeling, je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
 
   @override
   String get importFigurelessCannotReplace =>
