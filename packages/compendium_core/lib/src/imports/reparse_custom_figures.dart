@@ -192,8 +192,8 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   // user text. (A `wordingOverride` is never persisted on a custom, #1394, so
   // there is nothing of it to carry.)
   // The stored custom is a whole import line, so unless it is a `;` line its
-  // beats are the figure's own and imply a box circulate's balance as they do
-  // on import (#1975).
+  // beats are the figure's own and imply a box circulate's or square
+  // through's balance as they do on import (#1975).
   return beatImpliedBalance(line.text, parsed).copyWith(
     note: _mergeNotes(figure.note, parsed.note),
     walkthroughOverride: figure.walkthroughOverride,

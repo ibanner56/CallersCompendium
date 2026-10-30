@@ -610,8 +610,8 @@ List<Figure> _parseLine(String trimmed, Taxonomy? taxonomy, Dialect? dialect) {
   if (split.beats > 0 && result.length == 1 && result.single.isCustom) {
     return [_typedCustom(trimmed, split.beats)];
   }
-  // A typed `(8) Box circulate` reads its balance from its beats as an
-  // imported one does (#1975).
+  // A typed `(8) Box circulate` or `(8) Square through 2` reads its balance
+  // from its beats as an imported one does (#1975).
   return withBeatImpliedBalance(trimmed, result);
 }
 

@@ -90,7 +90,7 @@ void main() {
       final f = _parse('Square through 3 without hands', beats: 8).single;
       expect(f.move, 'square_through');
       expect(f.params['places'], 3);
-      // No balance-and-pull, and an import never gains an unstated balance.
+      // No balance-and-pull, whatever the beats.
       expect(f.params['balance'], isFalse);
       expect(f.note, 'without hands');
     });
@@ -126,10 +126,13 @@ void main() {
       );
     });
 
-    test('a comma list on a square through with hands is not read', () {
+    test('a comma list on a square through with hands is read (#1975)', () {
+      // Maintainer decision on #1975: the list is read when it decodes.
       final f = _parse('Square through 3 (NL, PR, NL)', beats: 8).single;
       expect(f.move, 'square_through');
-      expect(f.params.containsKey('who2'), isFalse);
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['who2'], 'partners');
+      expect(f.params['hand'], 'left');
     });
 
     test("Caller's Companion's comma pass list is read too (#1971)", () {
