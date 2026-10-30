@@ -1,0 +1,14 @@
+{
+  "id": "2040-matrix-break-separates",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The program matrix no longer flags the last dance before a break and the first dance after it as sharing beats with an adjacent dance (or sharing a phrase). A break separates two dances; a waltz or a note between two dances does not."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`ProgramMatrix.isCollision` skips a neighbouring row in a different numbered section, so dances either side of a break are never adjacent. Rows without a section, and slots in the same section, are compared as before."
+    ]
+  }
+}
