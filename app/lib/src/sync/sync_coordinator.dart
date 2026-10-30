@@ -285,12 +285,30 @@ class SyncCoordinatorSnapshot {
 /// resolution did. An eager collapse would also throw for a cycle that no
 /// queried address touches.
 final class SyncAliasMap {
-  const SyncAliasMap(this._byKind);
+  const SyncAliasMap(this._byKind, {this.heldLosers = const {}});
 
   final Map<SyncRecordKind, Map<String, String>> _byKind;
 
+  /// Losing ids this device still holds a row for: a user merge's loser,
+  /// which it keeps as a tombstone (`CompendiumSyncStorage.heldAliasLosers`).
+  final Set<SyncRecordAddress> heldLosers;
+
   /// Each kind's losing id to the id it was merged into, one link at a time.
   Map<SyncRecordKind, Map<String, String>> get links => _byKind;
+
+  /// Where [candidate], found at [address], is merged and published.
+  ///
+  /// As [resolve], except that a tombstone at a held loser's address stays
+  /// there. That tombstone is how peers learn of a user merge (sync-spec §6.6,
+  /// "The remap", amended 2026-10-30): resolved onto the survivor it would be
+  /// left out of the manifest, and a peer's copy of it would be compared
+  /// against the survivor.
+  SyncRecordAddress resolveCandidate(
+    SyncRecordAddress address,
+    SyncMergeCandidate? candidate,
+  ) => candidate?.blob.deletedAt != null && heldLosers.contains(address)
+      ? address
+      : resolve(address);
 
   SyncRecordAddress resolve(SyncRecordAddress address) {
     final links = _byKind[address.kind];
@@ -513,7 +531,10 @@ final class CompendiumSyncCoordinatorStore
       byKind.putIfAbsent(row.kind, () => <String, String>{})[row.losingId] =
           row.survivingId;
     }
-    return SyncAliasMap(byKind);
+    return SyncAliasMap(
+      byKind,
+      heldLosers: byKind.isEmpty ? const {} : await storage.heldAliasLosers(),
+    );
   }
 
   @override
@@ -3216,7 +3237,7 @@ class SyncCoordinator {
     final normalized = <SyncRecordAddress, SyncMergeCandidate?>{};
     final sources = <SyncRecordAddress, SyncRecordAddress>{};
     for (final entry in candidates.entries) {
-      final address = aliases.resolve(entry.key);
+      final address = aliases.resolveCandidate(entry.key, entry.value);
       if (_shouldReplaceNormalizedAddress(
         sources[address],
         entry.key,
@@ -3238,7 +3259,13 @@ class SyncCoordinator {
     for (final kindEntry in manifest.records.entries) {
       for (final entry in kindEntry.value.entries) {
         final source = (kind: kindEntry.key, recordId: entry.key);
-        final address = aliases.resolve(source);
+        // A held loser's tombstone is published under its own id
+        // ([SyncAliasMap.resolveCandidate]), so a peer's entry there is
+        // compared under that id too. Folded into the survivor, the peer
+        // would never be seen to carry it (§6.9's survey, the only reader).
+        final address = aliases.heldLosers.contains(source)
+            ? source
+            : aliases.resolve(source);
         if (_shouldReplaceNormalizedAddress(
           sources[address],
           source,
