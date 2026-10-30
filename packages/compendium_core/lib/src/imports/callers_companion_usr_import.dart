@@ -1140,10 +1140,11 @@ class CallersCompanionUsrImporter {
     return above >= 0 ? above : order.length;
   }
 
-  /// Removes level [id] when no dance uses it, permanently for one this
+  /// Removes level [id] when no live dance uses it, permanently for one this
   /// import created or back to a tombstone for one it restored, and reports
-  /// whether it did. A tombstoned dance still counts as a use: it can be
-  /// restored.
+  /// whether it did. A dance in Recently deleted does not count as a use (the
+  /// trash does not protect); `hardDelete` tombstones rather than erases a
+  /// level such a dance still names.
   Future<bool> _removeUnusedLevel(String id, {required bool permanent}) async {
     if (permanent) {
       if (await _levels.isInUse(id)) return false;
