@@ -114,8 +114,12 @@ disappeared.
 That retention outranks the forfeiture rule above, and "retain" means **leave
 the row alone**, not "tombstone it instead of erasing it". Every venue read
 filters `deleted_at IS NULL` and the program writer refuses to link a
-tombstoned venue, so a tombstone orphans the referencing program exactly as an
-erasure does; a published *and* still-referenced row is therefore kept live.
+tombstoned venue, so a tombstone orphans a live referencing program exactly as
+an erasure does; a published *and* still-referenced row is therefore kept live.
+*Amended 2026-10-30 (B9):* for a program in Recently Deleted the two now
+differ, because restoring the program revives a tombstoned venue (§6.8, as
+amended the same day) but cannot bring back an erased one. That is a further
+reason to retain the row, not a reason to tombstone it.
 Forfeiture exists to stop a peer re-downloading a row this device erased,
 which a row nobody deleted cannot trigger.
 
@@ -3839,8 +3843,11 @@ holds nothing back, exactly as the local delete guards do not count it.
 > hold, and the revival passes `clearPending: false` all the same, because it
 > is derived from another record's restore. A permanently deleted record (the
 > epoch `deletedAt` of §3.2) is not in Recently Deleted, and restoring it
-> neither revives it nor anything it names. Archive merges and imports, which
-> overwrite the restored row straight away, revive nothing.
+> neither revives it nor anything it names. An archive merge, which
+> overwrites the restored row straight away, revives nothing; nor does the
+> Caller's Companion import, whose undo would not re-tombstone a revived venue,
+> so a program it restores keeps a link to a venue deleted meanwhile, as
+> before.
 
 A pending tombstone is cancelled by exactly two things, and by nothing else.
 

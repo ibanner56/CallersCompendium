@@ -353,7 +353,9 @@ class VenueRepository {
   /// retain one in any sense the referencing program can observe — every venue
   /// read filters `deleted_at IS NULL` ([getById], [listAll], [watchAll]) and
   /// `ProgramRepository` refuses to link a tombstoned venue, so tombstoning
-  /// orphans the reference exactly as erasing it would. An earlier version
+  /// orphans a live program's reference exactly as erasing it would. (A
+  /// program in Recently deleted gets a tombstoned venue back when it is
+  /// restored, but not an erased one: `ProgramRepository.restore`.) An earlier version
   /// tombstoned every published id before computing [stillReferenced], which
   /// made the retention rule apply to erasure only.
   ///
@@ -377,8 +379,8 @@ class VenueRepository {
       // caller has already removed every referencing program.
       //
       // Computed FIRST, so it gates the tombstone below as well as the erase.
-      // A tombstone is not retention: a referencing program cannot see a
-      // tombstoned venue any more than an erased one.
+      // A tombstone is not retention: a live referencing program cannot see
+      // a tombstoned venue any more than an erased one.
       final stillReferenced = <String>{};
       for (final chunk in _chunkIds(list)) {
         final rows =

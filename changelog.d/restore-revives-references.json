@@ -9,7 +9,7 @@
   },
   "core": {
     "changed": [
-      "`DanceRepository.restore` revives, in its transaction, the tombstoned difficulty level and custom-field definitions the dance names, and `ProgramRepository.restore` revives the tombstoned venue the program links to. Neither restores, or revives anything for, a permanently deleted record. A new `reviveReferences` parameter (default `true`) turns this off; the archive merge and the Caller's Companion import pass `false`, since they overwrite the row straight away. `ProgramRepository.duplicate` no longer copies a `venueId` that names no live venue (LIFE-4)."
+      "`DanceRepository.restore` revives, in its transaction, the tombstoned difficulty level and custom-field definitions the dance names, and `ProgramRepository.restore` revives the tombstoned venue the program links to. Neither restores, or revives anything for, a permanently deleted record. A new `reviveReferences` parameter (default `true`) turns this off; the archive merge passes `false`, since it overwrites the row straight away, and so does the Caller's Companion import, whose undo would not re-tombstone a revived venue. `ProgramRepository.duplicate` no longer copies a `venueId` that names no live venue (LIFE-4)."
     ]
   }
 }

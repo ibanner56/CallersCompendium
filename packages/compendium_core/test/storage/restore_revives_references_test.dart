@@ -102,6 +102,8 @@ void main() {
       await repos.dances.restore('d1', at: restored);
 
       expect(await repos.customFieldDefs.getById('f1'), isNotNull);
+      // Revived before the search index is rebuilt, so search finds it.
+      expect(await repos.dances.searchText('lyrical'), ['d1']);
       expect((await repos.dances.getById('d1'))!.customFields, [
         CustomFieldValue(fieldId: 'f1', value: 'lyrical'),
       ]);

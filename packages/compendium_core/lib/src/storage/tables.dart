@@ -532,8 +532,9 @@ class Venues extends Table {
   /// published venue is tombstoned instead (sync-spec.md §3.1 forfeiture),
   /// **unless** a surviving program row still names it, in which case it is
   /// left live: retention outranks forfeiture, because a tombstoned venue is
-  /// invisible to every venue read and orphans that program's `venue_id`
-  /// exactly as an erasure would (issue #1357).
+  /// invisible to every venue read and orphans a live program's `venue_id`
+  /// exactly as an erasure would (issue #1357). Only a program restored from
+  /// Recently deleted brings a tombstoned venue back.
   DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
   DateTimeColumn get existenceAt => dateTime().nullable()();
