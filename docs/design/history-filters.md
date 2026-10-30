@@ -10,6 +10,15 @@ note's recommendation (N1-4 and N1-6), and the maintainer's note on N1-2 changes
 its presets. The text below now follows the answers. A choice still marked **Recommendation** is this note's,
 not the maintainer's, and a reviewer can overturn it.*
 
+*Update, 2026-10-30: H1 is built* (`claude/called-filter-scopes`): the
+`CalledFilter` scopes, `VenueKey`, `cc_venue_key`, `callingHistoryRecencyDateSql`
+with `DanceCallingRecord.recencyDate`, and `ProgramRepository.calledVenues`.
+Two departures from Q1, both the implementer's call: H1 does not pass the setup
+to `tool/write_head_database.dart`, which only creates the schema for a dump
+and never searches (passing it would switch the dumped file to WAL for no
+query); and it passes the setup to the benchmarks' timed connections, not
+their schema-only ones. H2 and H3 are not built.
+
 **The gap.** A caller building tonight's program for the Grange wants a dance
 they have not called at the Grange, or not called in the last few months. The
 app cannot express either today:
