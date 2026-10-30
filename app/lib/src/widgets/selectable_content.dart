@@ -15,8 +15,8 @@ import 'package:flutter/rendering.dart' show SelectedContent;
 /// phones later is a change to [selectionEnabledOnThisPlatform] alone.
 ///
 /// A copy is what the screen shows (N5-3 = a): the active dialect, the verbose
-/// text and capitalisation preferences. It differs from **Copy dance** on those
-/// two preferences.
+/// text, capitalisation and decimal-turns preferences. It differs from
+/// **Copy dance** on those three (decimal turns only when verbose text is off).
 ///
 /// Flutter joins the text of separate [Text] widgets with no separator, so wrap
 /// each block of prose in a [SelectableLine] to end it with a newline in a copy.

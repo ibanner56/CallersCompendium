@@ -294,6 +294,8 @@ neighbor". A `ListView` owns the delegate that does the joining
 `SelectableLine`, a per-block wrapper that ends its text with a newline, and
 applies it to the title, authors, section headings, hook and calling notes
 (`_CrossReferenceText`, which also keeps a link inside its sentence) and each
-figure line and note. The formation chips, the warnings card, section labels
-such as `A1` and the calling history still copy without a break; wrapping them
-is a follow-up, not a change to any decision above.
+figure line and note. These still copy without a break: the formation chips,
+the warnings card, section labels such as `A1`, the calling history, link rows,
+the tunes line, custom-field lines, source-citation rows, and the progression,
+mixer, provenance and status lines in the header card. Wrapping them is a
+follow-up, not a change to any decision above.

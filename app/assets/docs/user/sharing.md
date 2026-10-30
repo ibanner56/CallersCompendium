@@ -30,8 +30,9 @@ the dance's **More actions** menu.) There are five actions:
 **Copying a selection instead.** On Windows, macOS and Linux you can also drag
 across part of a dance's page and press **Ctrl-C** (**Cmd-C** on macOS). That copy
 is what the page shows: it follows the canonical-text toggle and your dialect,
-like **Copy dance**, but it also carries **Always show verbose figure text** and
-figure capitalization when those are on, which **Copy dance** never applies.
+like **Copy dance**, but it also carries **Always show verbose figure text**,
+figure capitalization and **Show turns as decimals** when those are on, which
+**Copy dance** never applies. (Decimal turns show only while verbose text is off.)
 
 **Export / print PDF** is a real print path, not a save-to-PDF shortcut: your
 operating system's own dialog opens, and from there you can send it to a printer,
