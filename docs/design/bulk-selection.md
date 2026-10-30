@@ -281,7 +281,8 @@ without a second change.
   single-row delete does not either. A "used in N programs" line in the
   confirmation is possible (one query over `program_slots`), but we do not
   recommend it for the first PR: it would make the bulk path stricter than the
-  row path for no stated reason. It is listed as a decision.
+  row path for no stated reason. N4-5's answer did not address it; see
+  [Decisions](#decisions), item 5 (my reading: no warning).
 
 **Confirmation.** `ux.md:192-193` says to confirm only where Undo is impossible,
 and bulk delete has Undo and a trash. Options:
@@ -362,7 +363,7 @@ Undo of a replace is a second multi-field restore. Remove can come later.
 **Dependencies.** The picker and the create dialog are private to the dance
 editor (`screens/dance_editor_screen.dart:801-840`; the citations editor is
 `dance_editor_form.dart:756`), so a reusable picker has to be extracted first.
-N2 has decided how sources are renamed and merged (N2-3, N2-4), and an add-only
+N2 has decided how sources are renamed and merged (N2-1, N2-4), and an add-only
 batch writes plain citations, so it pre-empts none of that. N4-5 builds it with
 the others rather than last. T3 (N2's Authors and Sources managers) also edits
 `dance_editor_screen.dart`, so the two branches serialize their merges there.
@@ -534,12 +535,15 @@ guard tests, docs and waves.
 | S2 | `feat/selection-keeps-groups` | Keep grouping while selecting; section checkbox with semantics | `screens/dance_list_screen.dart` (`:2994`, `:3055`), ARBs, tests | S–M (~200) | Sonnet | S1 |
 | S3 | `feat/batch-delete` | `softDeleteMany`, `restoreMany`, Delete in the menu, confirmation through *Confirm before delete*, snackbar, failure path | `dance_repository.dart` (`:1882`, `:1914`), `dance_list_screen.dart`, `utils/confirm_delete.dart`, ARBs, core and widget tests | M (~350) | Opus (transaction, sync tombstones, shares the restore path with B9) | S1, B9 |
 | S4 | `feat/batch-status` | Status: one core method, one dialog; the grouped ⋮ menu | `dance_repository.dart` (beside `:2482`), a new batch dialog, `dance_list_screen.dart` (`:159`, `:2330`), ARBs, tests | M (~220) | Sonnet | S1 |
-| S5 | `feat/batch-add-to-program` | Add to program for a list of dances, in list order; the multi-dance "already contains" question | `widgets/add_to_program_sheet.dart` and N3's list widget, `dance_list_screen.dart`, ARBs, tests | M (~350) | Sonnet | S4 (the grouped menu), N3-A2 (the list widget), F11 |
+| S5 | `feat/batch-add-to-program` | Add to program for a list of dances, in list order; the multi-dance "already contains" question | `widgets/add_to_program_sheet.dart` and N3's list widget, `dance_list_screen.dart`, ARBs, tests | M (~350) | Opus (a multi-slot append and its Undo) | S4 (the grouped menu), N3-A2 (the list widget), F11 |
 | S6 | `feat/batch-add-source` | Add source (add only); extract the editor's source picker | `screens/dance_editor_screen.dart` (`:801-840`), `dance_repository.dart`, new picker widget, ARBs, tests | M–L (~450) | Sonnet | S4; serialize with T3 on `dance_editor_screen.dart` |
 
-S4 was `feat/batch-details` (status, mixer and mixed level, ~400). With mixer and
-mixed level dropped it is renamed and shrinks to ~220: one core method and one
-dialog, plus the menu restructure every later action needs.
+S4 was `feat/batch-details` (status, mixer and mixed level, ~400), the name the
+decisions file's N4-6 entry still uses. With mixer and mixed level dropped, *my
+call* renames it and it shrinks to ~220: one core method and one dialog, plus the
+menu restructure every later action needs. S5 changes model from Sonnet to Opus
+under the work plan's rule, because it adds a transactional multi-slot write
+and its Undo.
 
 **Order.** S1, then S2, S3 and S4 in parallel (they edit different parts of the
 selection bar, so serialise their merges), then S5 and S6 after S4 and their

@@ -68,7 +68,7 @@ building" (`docs/user/collection.md:306`).
 
 | Constraint | Source | What it means here |
 | --- | --- | --- |
-| Undo everywhere; confirm only where Undo is impossible. | `ux.md:207-208` (was `:192-193` at `acacb05`) | A duplicate add is not destructive and has an Undo. The maintainer chose to ask first anyway (N3-4 = (b)), knowing the option text said it "breaks the rule" (§4.3). |
+| Undo everywhere; confirm only where Undo is impossible. | `ux.md:192-193` (`:207-208` at `90fe5e8`) | A duplicate add is not destructive and has an Undo. The maintainer chose to ask first anyway (N3-4 = (b)), knowing the option text said it "breaks the rule" (§4.3). |
 | The sheet's Undo is fixed by F11 (GIG-19), which makes it compare-and-replace. | `batch-plan.md:256-263` (F11), `:263` (GIG-19) | This note must not redesign it. The sheet branch lands after F11, and takes F11's Undo as given. |
 | Counts use `plannedDanceCount`. | `batch-plan.md:238-247` (F10, GIG-10); `program.dart:370` | The sheet's subtitle reads that getter. F10 edits `add_to_program_sheet.dart:107-116`, so the sheet branch lands after F10. |
 | Phone layout follows U7. | `decided-work-plan.md:841-854` (N3) | U7 had not merged at `acacb05`. The sheet branch lands after it (§7). |
@@ -221,7 +221,7 @@ today agree only because nobody has changed either.
 | | Option | Trade-off |
 | --- | --- | --- |
 | A | Add anyway, with the marker as the only warning. (This note's recommendation; not chosen.) | Matches the picker, which adds on every tap and shows the count. A repeated dance (a reprise, a second-half repeat) is legitimate. Undo is one tap. |
-| B | Add anyway but ask first ("Already in Friday dance. Add again?"). **(Decided, N3-4)** | Safer for a mis-tap. Violates "confirm only where Undo is impossible" (`ux.md:207-208`) and adds a step to a legitimate repeat. |
+| B | Add anyway but ask first ("Already in Friday dance. Add again?"). **(Decided, N3-4)** | Safer for a mis-tap. Violates "confirm only where Undo is impossible" (`ux.md:192-193`) and adds a step to a legitimate repeat. |
 | C | Block the tap. | Removes a legitimate action. Rejected. |
 
 **Decided: B, ask first** (N3-4 = (b), 2026-10-30). *This differs from this
@@ -243,7 +243,7 @@ confirm in its PR:
 - An alternate-only match asks too, because N3-6 counts alternates.
 - No "don't ask again" box: that would be a settings key with a registry entry
   (§4.6), and nothing asked for one.
-- **The rule it bends.** `ux.md:207-208` limits *destructive* confirms to
+- **The rule it bends.** `ux.md:192-193` limits *destructive* confirms to
   actions with no Undo. Adding a dance is not destructive, so the rule is not
   broken word for word, but the option text treats this as an exception, and
   so should the docs: §5 adds a line to `ux.md` saying the sheet asks before
@@ -349,7 +349,7 @@ callers are unchanged.
 - `docs/design/ux.md` §1 and §2 (`:59-60`, `:71`): one line each saying the sheet
   groups, searches and marks, and that it asks before adding a dance a program
   already holds (N3-4). That line also goes beside the cross-cutting confirm
-  rule (`:207-208`) as a named exception. No other section changes.
+  rule (`:207-208` at `90fe5e8`) as a named exception. No other section changes.
 - `docs/user/collection.md:306`: describe the grouping, the marker and the
   always-available "new program" row. `docs/user/` is the single source of the
   in-app bundle, so the `user-docs` gate covers it.
@@ -384,14 +384,13 @@ design note's own numbers, N3-1 and N3-2, collide with the decision IDs).
 
 | # | Branch | Items | Main files | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- | --- |
-| N3-1 | `feat/add-to-program-contains-and-new` | Marker with alternates (§4.3, N3-6), the ask-first dialog for a marked program (N3-4), shared `Program` count getter, picker switched to it, pinned New row (§4.4, N3-5), subtitle on `plannedDanceCount` if F10 has not already moved it | `widgets/add_to_program_sheet.dart`, `widgets/collection_picker.dart` (the count source only), `program_editor_screen.dart` (`_danceSlotCounts`, now `:2302`, → the getter), `packages/compendium_core/lib/src/model/program.dart`, six ARBs, `docs/user/collection.md`, `docs/design/ux.md`, `changelog.d/` | M (~330) | Sonnet | F11 (#2040, edits the sheet's Undo). F10 (#2022) and U7 (#2033) have merged. |
+| N3-1 | `feat/add-to-program-contains-and-new` | Marker with alternates (§4.3, N3-6), the ask-first dialog for a marked program (N3-4), shared `Program` count getter, picker switched to it, pinned New row (§4.4, N3-5), subtitle on `plannedDanceCount` if F10 has not already moved it | `widgets/add_to_program_sheet.dart`, `widgets/collection_picker.dart` (the count source only), `program_editor_screen.dart` (`_danceSlotCounts`, `:2302` at `90fe5e8`, → the getter), `packages/compendium_core/lib/src/model/program.dart`, six ARBs, `docs/user/collection.md`, `docs/design/ux.md`, `changelog.d/` | M (~330) | Sonnet | F11 (#2040, edits the sheet's Undo). F10 (#2022) and U7 (#2033) have merged. |
 | N3-2 | `feat/add-to-program-order-and-search` | Grouping (N3-1) and order (N3-2) (§4.2), status on rows, search above about 8 programs over titles and venues (§4.1, N3-3), available-height sizing (§4.5), extract the list widget (§4.8) | `widgets/add_to_program_sheet.dart`, a new list widget beside it, `program_status_chip.dart` (reuse only), six ARBs, `docs/user/collection.md`, `docs/user/programs.md`, `changelog.d/` | M (~350) | Sonnet | N3-1 (same file) |
 
 **Why two.** The first is a self-contained correctness improvement (a marker
 that answers "will I duplicate this?", and a button that is always there). The
 second changes the list's shape and adds the layout work. Splitting keeps each
-diff reviewable and lets the first ship if the maintainer wants a different
-answer on grouping.
+diff reviewable.
 
 **Hot files.** `add_to_program_sheet.dart` is edited by F10 (`:107-116`, merged)
 and F11 (`:233-241`, open as #2040) first. Both N3 branches must merge after F11,

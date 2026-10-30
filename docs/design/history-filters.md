@@ -5,9 +5,9 @@
 `design-history-filters` on 2026-10-29, and answered all nine of this note's
 questions on 2026-10-29/30 (N1-1 … N1-9 in
 `maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`).
-[Decisions](#decisions) quotes each answer. Three answers differ from this
-note's recommendation (N1-2's note, N1-4 and N1-6), and the text below now
-follows the answers. A choice still marked **Recommendation** is this note's,
+[Decisions](#decisions) quotes each answer. Two answers differ from this
+note's recommendation (N1-4 and N1-6), and the maintainer's note on N1-2 changes
+its presets. The text below now follows the answers. A choice still marked **Recommendation** is this note's,
 not the maintainer's, and a reviewer can overturn it.*
 
 **The gap.** A caller building tonight's program for the Grange wants a dance
@@ -38,7 +38,9 @@ with no `sort:` argument (`collection_picker.dart:374-379`).
 - Duplicate venue records and venue merging.
 - Saved searches, which the app does not have.
 
-Line numbers are for `origin/main` at `296b594`.
+Line numbers are for `origin/main` at `296b594`, except where a line says
+`90fe5e8` (the tree the 2026-10-30 decisions were recorded against; B1 moved
+much of `calling_history_scope.dart` and `program_repository.dart`).
 
 ## Constraints
 
@@ -63,9 +65,10 @@ These come from `decided-work-plan.md` ("Design notes" and N1) on
    event date when there is one, and the tap time only for undated programs. B1
    carried it out in #2032 as `COALESCE(event_date, performed_at, updated_at)`.
    The last fallback, `updated_at`, is B1's own choice, not part of the decision.
-   *Update, 2026-10-30 (`main` at `90fe5e8`):* B1 put the expression in one
-   helper, `callingHistoryDateSql`
-   (`packages/compendium_core/lib/src/storage/calling_history_scope.dart:47-52`).
+   *Update, 2026-10-30 (all line numbers in this paragraph and the next are at
+   `90fe5e8`):* B1 put the expression in one helper, `callingHistoryDateSql`
+   (`packages/compendium_core/lib/src/storage/calling_history_scope.dart:47-52`;
+   the event-date clause in constraint 1 is now at `:65-68`).
    History order (`program_repository.dart:1263`) and the Last-called sort
    (`dance_repository.dart:3126`) read it, and its Dart twin is
    `DanceCallingRecord.effectiveDate` (`program_repository.dart:82`).
@@ -173,7 +176,7 @@ say 1mo, 3mo, 6mo, or since a date on top of that, 1 year is a long while."
   1 year". *My reading:* "1mo" is a calendar month, counted like the other two.
 - **Since a date…** opens the date picker.
 - **Never called.** The maintainer's note asks for this as a choice in the same
-  control. *My reading* (listed as an open ambiguity in `design-work-plan.md`):
+  control. *My reading* (listed as an open ambiguity in `design-work-plan.md`, beside `decided-work-plan.md` on the audit branch):
   it is the control's "no window" state, labelled so that it reads as "dances
   that have never been called" when **Not called** is chosen. Today's **Not
   called** with no scope already selects exactly those dances, so this adds a
@@ -328,8 +331,8 @@ marker** (N1-7 = (a), 2026-10-30, as recommended).
 being edited, and "in program ×N" shows that program separately.
 - Under N1-6 (Q3), the new chip and the marker leave out the whole edited
   program.
-- N1-6's question covered "called ×N" too, so the picker's "called ×N" follows
-  the same rule, and one row never says "called ×1" beside no last-called date.
+- *My reading:* the question this note put (Decision 6) covered "called ×N",
+  so the picker's "called ×N" follows the same rule, and one row never says "called ×1" beside no last-called date.
   This changes what the picker's count shows: a dance in this program and
   nowhere else reads as uncalled, with "in program ×N" beside it. Collection's
   count is unchanged.
@@ -509,7 +512,7 @@ there these branches are N1-H1, N1-H2 and N1-H3.
 | --- | --- | --- | --- | --- | --- | --- |
 | H1 | `feat/called-filter-scopes` | `CalledFilter` gains `venue`, `since` and `currentProgramId` (the whole program, N1-6). The `cc_venue_key` function, registered per connection and used by the summary too. The recency date variant of B1's `callingHistoryDateSql`, without `updated_at` (N1-3). A query that lists the venue keys with a counted call. Lockstep tests: the venue scope against the repeated-venues summary, the recency scope against the call date, and SQL against the Dart `effectiveDate`. `search.md`. | `filter.dart`, `filter_compiler.dart`, `calling_history_scope.dart`, `database_setup.dart`, `dance_repository.dart`, `program_repository.dart`, the test-database helpers and core tools listed in Q1 | L (~450) | Opus: it changes the one definition of "called". | B1 (merged, #2032). Hot files: after B7 → B13 on `dance_repository.dart` (B11 and B12 have merged), and in the `program_repository.dart` chain after B9 and B3, before B4 (B9 → B3 → **H1** → B4 → B5). No ARB, no changelog. |
 | H2 | `feat/history-filter-controls` | The Filters panel's Calling history section gains **At venue** and **Within** (1 month, 3 months, 6 months, Since a date…, and the never-called choice, N1-2), with the inert state and hint. The venue chooser. Active counts. ARB keys in all six files. `collection.md`. Changelog fragment. Both surfaces get it, because `FacetPanel` is shared (`dance_list_screen.dart:2738`, `collection_picker.dart:834`). | `facet_panel.dart`, `collection_query.dart`, `collection_data.dart`, and both `FacetPanel` hosts: `dance_list_screen.dart` (venue keys) and `collection_picker.dart` (wiring). ARBs. | M (~400) | Sonnet | H1. After B14 → B15, which own both host files. |
-| H3 | `feat/picker-history-context` | `programContext` (id and venue, no date: N1-4). The Not called here chip. `currentProgramId` on the picker's scopes, row values and "called ×N" (N1-6). `lastCalledFor` and the bulk-count variants. `CollectionTileField.lastCalled` (allow-list unchanged, N1-8) and the here marker. ARBs. `programs.md` and `settings.md`. Changelog fragment saying where to turn the chip on. | `collection_picker.dart`, `dance_list_tile.dart`, `collection_tile_fields_scope.dart`, `dance_list_entry.dart`, `collection_data.dart`, `program_repository.dart`, `program_editor_screen.dart` (three mounts), `perform_adjust_sheet.dart` | L (~500) | Opus: two hot files and the last-called value. | H1, H2, B14. F11 (#2040) for the editor mounts, so W3. Hot files: one open PR in the `program_editor_screen.dart` group (B4 → B5, B24, B29), and after B5 in the `program_repository.dart` chain. |
+| H3 | `feat/picker-history-context` | `programContext` (id and venue, no date: N1-4). The Not called here chip. `currentProgramId` on the picker's scopes, row values and "called ×N" (N1-6). `lastCalledFor` and the bulk-count variants. `CollectionTileField.lastCalled` (allow-list unchanged, N1-8) and the here marker. ARBs. `programs.md` and `settings.md`. Changelog fragment saying where to turn the chip on. | `collection_picker.dart`, `dance_list_tile.dart`, `collection_tile_fields_scope.dart`, `dance_list_entry.dart`, `collection_data.dart`, `program_repository.dart`, `program_editor_screen.dart` (three mounts), `perform_adjust_sheet.dart` | L (~500) | Sonnet: read-only aggregates and widgets, with no transaction, sync or schema change (the work plan's model rule; the note first said Opus). | H1, H2, B14. F11 (#2040) for the editor mounts, so W3. Hot files: one open PR in the `program_editor_screen.dart` group (B4 → B5, B24, B29), and after B5 in the `program_repository.dart` chain. |
 
 H1 can start now: B1 has landed. It merges after B3. H2 follows H1 and B15. H3
 lands in W3.

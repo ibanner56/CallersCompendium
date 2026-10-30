@@ -663,8 +663,8 @@ on these seven.
 
 1. **D-N2-1 = N2-1, amend sync-spec §6.6.** "(a) Yes, amend sync-spec §6.6.
    Merges record an alias, so a device that tagged dances offline lands on the
-   merged entry; T1 must still choose the fix for one open risk." The
-   amendment covers the five rules: the surviving id is the smaller UUID; the
+   merged entry; T1 must still choose the fix for one open risk." This note's
+   amendment (its scope, not the decision's wording) covers five rules: the surviving id is the smaller UUID; the
    loser's tombstone gives up its name; the merge records an id alias; a peer's
    edit of the loser lands on the survivor; and the fix T1 settles for a peer
    that holds the loser's deletion pending (see [Merge](#merge)).
@@ -713,7 +713,7 @@ merged; B7 is in flight; B8 and B13 have not started). In the audit branch's
 | # | Branch | Items | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- |
 | T1 | `feat/reference-rename-merge-core` | Core rename, merge, delete and Undo for the three kinds; the shared reference-rewrite helper; the §6.6 amendment, including T1's chosen fix for the held-peer risk | L (~900) | Opus | B7 and B8 merged; after B13 on `dance_repository.dart` (B12 has merged). D-N2-1 and D-N2-7 are decided. |
-| T2 | `feat/tag-manager` | FIND-3: the Tags manager with colours, rename, merge and delete; the import-tags rewrite; retire `TagColorsScreen` | L (~500) | Sonnet | T1. D-N2-3 and D-N2-5 are decided. |
+| T2 | `feat/tag-manager` | FIND-3: the Tags manager with colours, rename, merge and delete; the import-tags rewrite; retire `TagColorsScreen` | L (~500) | Opus: the import-tags rewrite shares a transaction and an Undo with T1's operations (the work plan's model rule; the note first said Sonnet). | T1. D-N2-3 and D-N2-5 are decided. |
 | T3 | `feat/author-and-source-managers` | LIFE-5 (a): the Authors and Sources managers; the merge offer in the dance editor; the private-details merge | L (~450) | Opus | T2. D-N2-2 and D-N2-4 are decided. Serialize with N4-S6 on `dance_editor_screen.dart`. |
 | T4 | `fix/purge-gc-spares-details` | LIFE-5 (c) | S (~120) | Sonnet | B7 merged; any order against T1, but serialize the merge on `dance_repository.dart`. D-N2-6 is decided. |
 
