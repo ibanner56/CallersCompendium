@@ -1986,7 +1986,9 @@ class DanceRepository {
   /// pointing at a purged dance is set to `NULL` (the slot's `text`, if any,
   /// survives as a tombstone caption). Reusable `choreographers` /
   /// `published_sources` / `tags` rows left unreferenced after the cascade
-  /// are garbage-collected in the same transaction (#462, #1199).
+  /// are garbage-collected in the same transaction (#462, #1199) — but only
+  /// *bare* ones: a row holding a detail survives, unused (see
+  /// [_garbageCollectOrphanedRefs]).
   ///
   /// When [onlyIds] is non-null the purge is restricted to those ids: a row
   /// outside the set is left alone even if it is past the cutoff. The manual
