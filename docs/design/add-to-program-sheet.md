@@ -301,6 +301,17 @@ U7 owns the phone-layout rules for shared widgets. This note states what the
 sheet needs; U7's result decides the exact margins and any shared sheet
 helper, so the build reads U7's merged code first (§7).
 
+*As built (N3-A2; the build's call, not the maintainer's):* the sheet opens with
+`useSafeArea` so it stays below the status bar, and with the keyboard up it takes
+the height above the keyboard. The title and the pinned New row are capped at 45%
+of the sheet and scroll in place past that, so at 200% text on a 360×640 screen
+with a 300 px keyboard the New row can scroll out of view and the search field
+and one row keep their room. That departs from N3-5's "always visible" for this
+one case. Rejected: letting the header overflow (it overflowed by 163 px in the
+test), and shrinking the list to nothing. If the maintainer wants the row always
+pinned, the alternative is to drop the title with the keyboard up; that is open
+for the maintainer, not decided here.
+
 On desktop and wide layouts the sheet stays a bottom sheet. Changing it to a
 dialog or a popover is a separate question and no finding asks for it.
 

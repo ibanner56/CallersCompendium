@@ -20,8 +20,10 @@ import 'add_to_program_list.dart';
 /// tapping it asks before adding the dance again (§4.3).
 ///
 /// The sheet is sized from the height the screen has left once the on-screen
-/// keyboard is up, so the pinned row, the search field and a few rows stay
-/// visible while the caller types (§4.5).
+/// keyboard is up, so at normal text sizes the pinned row, the search field and
+/// a few rows stay visible while the caller types. At large text sizes the title
+/// and the pinned row scroll in place within 45% of the sheet, so the search
+/// field and the list keep their room (§4.5, "As built").
 ///
 /// Extracted from `DanceDetailScreen` so the Collection list's row action menu
 /// ([DanceListTile]) and the detail screen share the exact same flow (identical
@@ -157,7 +159,8 @@ Future<void> showAddToProgramSheet(
 }
 
 /// The pinned first row, outside the scrolling list so it stays in reach with a
-/// long list or the keyboard up (N3-5): creates a new program seeded with this
+/// long list or the keyboard up at normal text sizes (N3-5; at large text it
+/// scrolls in place with the title, see [showAddToProgramSheet]): creates a new program seeded with this
 /// dance.
 Widget _buildCreateRow(
   BuildContext sheetContext, {

@@ -392,9 +392,11 @@ void main() {
     });
 
     for (final (name, scale) in [('', 1.0), (' at 200% text', 2.0)]) {
-      testWidgets('at 360×640 with the keyboard up and a notch$name, the New '
-          'row, the search field and a program row are all visible between '
-          'the status bar and the keyboard', (tester) async {
+      testWidgets('at 360×640 with the keyboard up and a notch$name, '
+          '${scale == 1 ? 'the New row, ' : ''}the search field and a program '
+          'row are visible between the status bar and the keyboard', (
+        tester,
+      ) async {
         final repos = openTestRepositories();
         for (var i = 0; i < 12; i++) {
           await repos.programs.create(_program('p$i'));
