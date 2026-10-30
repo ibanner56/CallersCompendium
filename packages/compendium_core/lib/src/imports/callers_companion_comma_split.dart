@@ -342,6 +342,12 @@ String? _endFacingValue(String move, String facing) {
 
 /// Each unit's beats, or `null` when the line's beats leave nothing for the
 /// last. A line with no beats gives every unit none.
+///
+/// A figure whose default is 0 beats, a formation such as form short waves
+/// without its balance, takes none, and the last figure that takes beats takes
+/// the rest (maintainer decision on #1975: form short waves is a zero-count
+/// figure, so `(8) Circle Left 3/4, make short waves` is the circle in 8).
+/// Every 0-beat default counts the same, the author's call.
 List<int?>? _shareBeats(
   List<_Unit> units, {
   required int beats,
@@ -349,16 +355,23 @@ List<int?>? _shareBeats(
 }) {
   if (parts.length >= 2 && parts.length == units.length) return parts;
   if (beats <= 0) return List.filled(units.length, null);
-  final shares = <int?>[];
+  final defaults = [for (final unit in units) unit.defaultBeats];
+  final last = defaults.lastIndexWhere((d) => d > 0);
+  if (last < 0) return null;
   var used = 0;
-  for (var k = 0; k < units.length - 1; k++) {
-    shares.add(units[k].defaultBeats);
-    used += units[k].defaultBeats;
+  for (var k = 0; k < last; k++) {
+    used += defaults[k];
   }
   final rest = beats - used;
   if (rest <= 0) return null;
-  shares.add(rest);
-  return shares;
+  return [
+    for (var k = 0; k < units.length; k++)
+      k == last
+          ? rest
+          : defaults[k] > 0
+          ? defaults[k]
+          : null,
+  ];
 }
 
 Figure _withBeats(Figure figure, int? beats) {

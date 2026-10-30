@@ -2081,6 +2081,75 @@ void main() {
       );
     });
 
+    testWidgets('ticking balance on form short waves saves its 4 beats', (
+      tester,
+    ) async {
+      // Its beats follow its balance (#1975) though it seeds none: saving
+      // `balance: true` alone would seed a balanced figure with 0 beats.
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'form_short_waves': {'axis': 'rightDiagonal'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      final balanceSwitch = find.byWidgetPredicate(
+        (w) =>
+            w is Switch &&
+            w.key == const ValueKey('move-default-form_short_waves-balance'),
+      );
+
+      await tester.tap(balanceSwitch);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'form_short_waves': {
+            'axis': 'rightDiagonal',
+            'balance': true,
+            'beats': 4,
+          },
+        },
+      );
+    });
+
+    testWidgets('unticking balance on a Rory O\'More saves its 4 beats', (
+      tester,
+    ) async {
+      // Its beats follow its balance (8 with, 4 without) though it seeds none.
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'rory_o_more': {'slide': 'left'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Switch &&
+              w.key == const ValueKey('move-default-rory_o_more-balance'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'rory_o_more': {'slide': 'left', 'balance': false, 'beats': 4},
+        },
+      );
+    });
+
     testWidgets('removing a move override persists and hides its card', (
       tester,
     ) async {
