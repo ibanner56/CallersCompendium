@@ -70,6 +70,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Side panel/tabs: calling notes, links (source/video/related), calling
   history (from performed programs), custom fields.
 - Actions: edit, duplicate, add-to-program, print/share, Perform this dance.
+- Text selection (desktop only, N5-S1; `docs/design/selectable-text.md`): on
+  Windows, macOS and Linux the body is one `SelectableContent` region, so a drag
+  selects across the title, hook, figures, notes and links, and a secondary tap
+  shows Copy / Select all. Tag chips, the beats column and the import-gap badge
+  are `SelectionContainer.disabled`; phones and Perform are unchanged.
 
 ### 3. Dance editor
 - **Keyboard-first figure entry** (the CC "Insert Call" lesson): type-ahead
