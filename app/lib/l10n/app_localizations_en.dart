@@ -3681,7 +3681,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Show dances tagged “$tagName”';
+    return 'Add “$tagName” to the Collection filters';
   }
 
   @override
@@ -4088,6 +4088,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Untagged';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Match tags';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'All tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Show dances that have every selected tag';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Any tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Show dances that have at least one selected tag';
 
   @override
   String get collectionFacetSource => 'Source';

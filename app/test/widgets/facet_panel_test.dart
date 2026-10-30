@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/facet_panel.dart';
@@ -420,6 +421,91 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('source-s1')));
     await tester.pump();
     expect(facets.sourceIds, {'s2'});
+  });
+
+  group('Tags match mode (FIND-14)', () {
+    final tags = [
+      Tag(id: 't1', name: 'smooth'),
+      Tag(id: 't2', name: 'energetic'),
+      Tag(id: 't3', name: 'zesty'),
+    ];
+    const toggleKey = ValueKey('facet-tags-match-mode');
+    final l10n = AppLocalizationsEn();
+
+    Future<void> tapKey(WidgetTester tester, Key key) async {
+      await tester.ensureVisible(find.byKey(key));
+      await tester.tap(find.byKey(key));
+      await tester.pump();
+    }
+
+    testWidgets('the choice appears with the second tag, defaulting to all; '
+        'a third tag keeps the chosen mode', (tester) async {
+      final facets = FacetSelections();
+      var changes = 0;
+      await _pump(tester, facets, tags: tags, onChanged: () => changes++);
+
+      expect(find.byKey(toggleKey), findsNothing);
+      await tapKey(tester, const ValueKey('tag-t1'));
+      expect(find.byKey(toggleKey), findsNothing, reason: 'one tag');
+
+      await tapKey(tester, const ValueKey('tag-t2'));
+      expect(find.byKey(toggleKey), findsOneWidget);
+      expect(
+        tester.widget<SegmentedButton<bool>>(find.byKey(toggleKey)).selected,
+        {true},
+      );
+
+      await tester.tap(find.text(l10n.collectionFacetTagsMatchAny));
+      await tester.pump();
+      expect(facets.tagsMatchAll, isFalse);
+      expect(changes, 3);
+
+      await tapKey(tester, const ValueKey('tag-t3'));
+      expect(facets.tagsMatchAll, isFalse);
+      expect(
+        tester.widget<SegmentedButton<bool>>(find.byKey(toggleKey)).selected,
+        {false},
+      );
+
+      // Back to one tag hides it; a new second tag starts at all again.
+      await tapKey(tester, const ValueKey('tag-t3'));
+      await tapKey(tester, const ValueKey('tag-t2'));
+      expect(find.byKey(toggleKey), findsNothing);
+      await tapKey(tester, const ValueKey('tag-t2'));
+      expect(facets.tagsMatchAll, isTrue);
+    });
+
+    testWidgets('Untagged does not count toward showing the choice', (
+      tester,
+    ) async {
+      final facets = FacetSelections()
+        ..untagged = true
+        ..tagIds.add('t1');
+      await _pump(tester, facets, tags: tags, onChanged: () {});
+      expect(find.byKey(toggleKey), findsNothing);
+    });
+
+    testWidgets('a screen reader hears the choice and each segment', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      final facets = FacetSelections()..tagIds.addAll(['t1', 't2']);
+      await _pump(tester, facets, tags: tags, onChanged: () {});
+
+      expect(
+        find.bySemanticsLabel(l10n.collectionFacetTagsMatchLabel),
+        findsOneWidget,
+      );
+      expect(
+        find.byTooltip(l10n.collectionFacetTagsMatchAllTooltip),
+        findsOneWidget,
+      );
+      expect(
+        find.byTooltip(l10n.collectionFacetTagsMatchAnyTooltip),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
   });
 
   testWidgets('a collapsed section stays collapsed when a filter is applied '

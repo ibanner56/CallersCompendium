@@ -583,8 +583,8 @@ tree. This section specifies the mapping; the widget shipped as
 | One-tap facet: Formation | `FormationFilter(shape)` |
 | One-tap facet: Progression | `ProgressionFilter(progression)` |
 | One-tap facet: Author | `AuthorFilter(choreographerId)` |
-| One-tap facet: Tunes | `TunesFilter(query)` per entered value, **AND-ed within the facet** (a dance must match every value) — the only facet that is not OR-within; each leaf is a case-insensitive substring over the dance's tune list and never matches a dance whose stored `tunes_json` is undecodable (#1420) |
-| One-tap facet: Tag(s) | `TagFilter(tagId)` per selected tag, OR-ed within the facet (open Q7); the facet's **Untagged** chip adds `UntaggedFilter()` to that same OR group (issue #1422). The chip shows exactly when the Tags section does |
+| One-tap facet: Tunes | `TunesFilter(query)` per entered value, **AND-ed within the facet** (a dance must match every value), unlike the OR-within facets (Tags follows its **All tags / Any tag** choice, below); each leaf is a case-insensitive substring over the dance's tune list and never matches a dance whose stored `tunes_json` is undecodable (#1420) |
+| One-tap facet: Tag(s) | `TagFilter(tagId)` per selected tag, combined by the facet's **All tags / Any tag** choice (`FacetSelections.tagsMatchAll`, Q7): AND-ed by default, OR-ed under **Any tag**. The choice shows once two tags are selected; selecting a second tag resets it to **All tags**, and later tags keep it. The facet's **Untagged** chip (issue #1422) is always an OR alternative: `OrFilter([AndFilter(tags), UntaggedFilter()])` under **All tags**, one flat OR group under **Any tag**. Without Untagged, all-of tags are flattened into the top-level AND. The chip shows exactly when the Tags section does |
 | One-tap facet: Status | `StatusFilter(status)` |
 | One-tap facet: Level | `LevelFilter(level)` — multiple levels OR-ed |
 | One-tap facet: Mixed level | `MixedLevelFilter(true)` |
@@ -594,7 +594,7 @@ tree. This section specifies the mapping; the widget shipped as
 | **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
 | Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
 | Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers |
-| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, which the OR-only Tag facet cannot |
+| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 
 - **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree
@@ -674,12 +674,17 @@ Flagged for coordinator/user input before 3.2b:
    is offered only for a bare short Omni `FullTextFilter`; scoped,
    long-substring, and other trees use the fixed sort allow-list. A blended
    ranking can be revisited later.
-7. **Multi-tag facet semantics** *(minor)*. When the user picks several tags in
-   the Tag facet: AND (has all) or OR (has any)? Proposed: OR within a single
-   facet, AND across facets (standard faceted-search behaviour). Implemented
-   that way; the facet's **Untagged** chip (issue #1422) is one more member of
-   the OR group, so `Untagged` + `TagA` lists untagged dances plus dances with
-   `TagA`, and the group still ANDs with every other facet.
+7. **Multi-tag facet semantics** *(decided, FIND-14)*. When the user picks
+   several tags in the Tag facet: AND (has all) or OR (has any)? First shipped
+   as OR. The maintainer's 2026-10-30 decision on FIND-14 (entry R2-tag-tap in
+   the 2026-10 behaviour audit's `maintainer-decisions-2026-10-30.md`) made it
+   the user's choice: an **All tags / Any tag** toggle shown once two tags are selected,
+   **All tags** by default each time a second tag is added, later tags keeping
+   the current choice. The facet's **Untagged** chip (issue #1422) stays an OR
+   alternative in either mode, so `Untagged` + `TagA` + `TagB` under **All
+   tags** lists untagged dances plus dances with both tags, and the group still
+   ANDs with every other facet. The choice is session state, like every facet
+   selection; nothing persists it.
 8. **Migration rebuild wiring** *(implementation, 3.2b)*. Whether the v2
    backfill runs `rebuildAllDerived()` from within `onUpgrade` (needs
    repository/taxonomy access) or via inline SQL + a post-open integrity pass.

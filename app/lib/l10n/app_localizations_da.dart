@@ -3711,7 +3711,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Vis danse tagget „$tagName“';
+    return 'Føj „$tagName“ til filtrene i Samling';
   }
 
   @override
@@ -4117,6 +4117,23 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Uden tags';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Krav til tags';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'Alle tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Vis danse, der har alle de valgte tags';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Mindst ét tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Vis danse, der har mindst ét af de valgte tags';
 
   @override
   String get collectionFacetSource => 'Kilde';

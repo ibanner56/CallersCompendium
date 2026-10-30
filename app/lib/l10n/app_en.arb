@@ -4620,9 +4620,9 @@
   "@commonMixer": {
     "description": "Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator."
   },
-  "commonShowDancesTaggedTooltip": "Show dances tagged “{tagName}”",
+  "commonShowDancesTaggedTooltip": "Add “{tagName}” to the Collection filters",
   "@commonShowDancesTaggedTooltip": {
-    "description": "Tooltip on a tag chip that filters the collection to dances carrying that tag.",
+    "description": "Tooltip on a tag chip (a Collection row, or a dance's detail page). Tapping it adds the tag to the Collection's Tags filter and keeps the rest of the search; from a detail page it also switches to the Collection.",
     "placeholders": {
       "tagName": {
         "type": "String",
@@ -5147,6 +5147,26 @@
   "collectionFacetUntagged": "Untagged",
   "@collectionFacetUntagged": {
     "description": "Filter chip in the tags facet selecting dances that have no tag."
+  },
+  "collectionFacetTagsMatchLabel": "Match tags",
+  "@collectionFacetTagsMatchLabel": {
+    "description": "Screen-reader label for the choice under the Tags filter, shown once two or more tags are selected, between requiring all of them and any of them."
+  },
+  "collectionFacetTagsMatchAll": "All tags",
+  "@collectionFacetTagsMatchAll": {
+    "description": "Segment of the Tags filter's match choice: a dance must carry every selected tag. The default when a second tag is selected."
+  },
+  "collectionFacetTagsMatchAllTooltip": "Show dances that have every selected tag",
+  "@collectionFacetTagsMatchAllTooltip": {
+    "description": "Tooltip for the 'All tags' segment of the Tags filter's match choice."
+  },
+  "collectionFacetTagsMatchAny": "Any tag",
+  "@collectionFacetTagsMatchAny": {
+    "description": "Segment of the Tags filter's match choice: a dance needs only one of the selected tags."
+  },
+  "collectionFacetTagsMatchAnyTooltip": "Show dances that have at least one selected tag",
+  "@collectionFacetTagsMatchAnyTooltip": {
+    "description": "Tooltip for the 'Any tag' segment of the Tags filter's match choice."
   },
   "collectionFacetSource": "Source",
   "@collectionFacetSource": {

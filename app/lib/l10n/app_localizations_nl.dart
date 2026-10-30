@@ -3739,7 +3739,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Dansen met tag “$tagName” tonen';
+    return '“$tagName” toevoegen aan de filters van de Collectie';
   }
 
   @override
@@ -4146,6 +4146,23 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Zonder tags';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Tags matchen';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'Alle tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Dansen tonen die alle gekozen tags hebben';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Minstens één tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Dansen tonen die minstens één van de gekozen tags hebben';
 
   @override
   String get collectionFacetSource => 'Bron';

@@ -1,0 +1,10 @@
+{
+  "id": "audit-b15-tag-chip-adds-filter",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Selecting a tag chip on a dance now adds that tag to the Collection's Tags filter instead of replacing your whole search, so the words you typed, your other filters, By phrase and Advanced all stay.",
+      "Once you pick two or more tags, the Tags filter lets you choose between All tags, where a dance must have every tag, and Any tag, where one is enough. All tags is the starting choice each time you pick a second tag; tags after that follow whichever choice is showing."
+    ]
+  }
+}

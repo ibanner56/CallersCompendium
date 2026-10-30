@@ -3804,9 +3804,9 @@
   "@commonMixer": {
     "x-sourceSha256": "8ae012d51747c9a3e51613b1ba8305b377fcada7de30e2b7156d51c19f0b89e0"
   },
-  "commonShowDancesTaggedTooltip": "Vis danse tagget „{tagName}“",
+  "commonShowDancesTaggedTooltip": "Føj „{tagName}“ til filtrene i Samling",
   "@commonShowDancesTaggedTooltip": {
-    "x-sourceSha256": "5cb90a2d82c572c009f47e69f98fd959bc405c30b4058939243bc9085dc531a7"
+    "x-sourceSha256": "adf80e5ef33018bef6fbff7c25afa94e668c259ccfc1c44c00f2ebdc74b06bab"
   },
   "commonDeletedSnack": "„{title}“ slettet.",
   "@commonDeletedSnack": {
@@ -4155,6 +4155,26 @@
   "collectionFacetUntagged": "Uden tags",
   "@collectionFacetUntagged": {
     "x-sourceSha256": "9a28cbfaf271bc2dcfc7142f739445d8dc755b1e465b399ad96ba02e87fc9927"
+  },
+  "collectionFacetTagsMatchLabel": "Krav til tags",
+  "@collectionFacetTagsMatchLabel": {
+    "x-sourceSha256": "f815c8eb1c0528d683edad42bc05ee6804c8cec5c4b70b6f1393b2d795b01825"
+  },
+  "collectionFacetTagsMatchAll": "Alle tags",
+  "@collectionFacetTagsMatchAll": {
+    "x-sourceSha256": "7c39c16dce7332ed63e1c6ac2bd05afc8c22405c748a705c022eb0da86c43a16"
+  },
+  "collectionFacetTagsMatchAllTooltip": "Vis danse, der har alle de valgte tags",
+  "@collectionFacetTagsMatchAllTooltip": {
+    "x-sourceSha256": "483a3fe3057b0a7ad9a6e764902ef12489654d566bb3a98ef81e0612b5a420ee"
+  },
+  "collectionFacetTagsMatchAny": "Mindst ét tag",
+  "@collectionFacetTagsMatchAny": {
+    "x-sourceSha256": "092b9712bdd44445e888caf684749b183dd04ddc813c6c97e38abc65e3db0be9"
+  },
+  "collectionFacetTagsMatchAnyTooltip": "Vis danse, der har mindst ét af de valgte tags",
+  "@collectionFacetTagsMatchAnyTooltip": {
+    "x-sourceSha256": "8a4c10a619b2a7a86fd1bb6352b0672ca97b842c2a8cbe193709faa8b36160d1"
   },
   "collectionFacetSource": "Kilde",
   "@collectionFacetSource": {
