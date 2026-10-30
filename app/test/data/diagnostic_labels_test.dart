@@ -120,6 +120,7 @@ void main() {
       'cc_date_assumed_mdy',
       'cc_date_reduced_precision',
       'cc_missing_title',
+      'cc_new_level',
       'cc_inactive_level',
       'cc_program_empty_slot',
       'cc_program_unparsed_date',
@@ -163,6 +164,7 @@ void main() {
         'cc_unparsed_date' || 'cc_date_assumed_mdy' => {'field': 'composed'},
         'cc_date_reduced_precision' => {'field': 'composed', 'year': 2004},
         'contradb_param_unmapped' => {'param': 'hand'},
+        'cc_new_level' => {'level': 'Easy/Intermediate'},
         _ => const <String, Object?>{},
       };
       for (final code in mappedImportIssueCodes) {

@@ -879,7 +879,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     // The dialect library owns dialect state; the active dialect flows out
     // through [_dialectNotifier] (read by every existing ActiveDialectScope
     // consumer) via [_syncActiveDialect], so the rest of the app is unchanged.
-    _dialectLibrary = DialectLibraryController(_appData.repositories.settings);
+    _dialectLibrary = DialectLibraryController(
+      _appData.repositories.settings,
+      programs: _appData.repositories.programs,
+    );
     _dialectLibrary.addListener(_syncActiveDialect);
     _shorthandMappings = ShorthandMappingsController(
       _appData.repositories.settings,

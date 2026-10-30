@@ -30,9 +30,11 @@ String toFtsPrefixMatchQuery(String raw) {
   return tokens.map((t) => '"${t.replaceAll('"', '""')}"*').join(' ');
 }
 
-/// Builds a literal substring query for the FTS5 trigram tokenizer. The whole
-/// input stays one phrase: splitting it would turn punctuation-spanning and
-/// mid-token searches into a different query.
+/// Builds a literal substring query for the FTS5 trigram tokenizer. The input
+/// stays one phrase, punctuation and all, so a mid-token search such as `ronel`
+/// or `do-si-do` matches literally. The search bar hands it one word at a
+/// time (or one term of several words, such as "do si do"): the compiler has
+/// already split the query and ANDs the words (`FilterCompiler`, FIND-5).
 String toFtsSubstringMatchQuery(String raw) {
   final text = raw.trim();
   if (text.isEmpty) return '""';
