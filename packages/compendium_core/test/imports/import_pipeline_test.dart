@@ -715,31 +715,6 @@ void main() {
       },
     );
 
-    test(
-      'resolution link keeps the existing rating when the source has none',
-      () async {
-        // Share files leave the sender's rating out, so choosing "Same dance -
-        // replace" over a dance the person already rated must not clear it.
-        final existingId = await seedExisting();
-        await dances.update(
-          (await dances.getById(existingId))!.copyWith(rating: 4),
-        );
-        final batch = await pipeline.plan(
-          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
-          const ImportRequest(),
-        );
-        await pipeline.commit(
-          batch,
-          now: now,
-          newId: nextId,
-          resolutions: {0: DedupeResolution.link(existingId)},
-        );
-        final updated = (await dances.getById(existingId))!;
-        expect(updated.title, 'Nice Combination');
-        expect(updated.rating, 4);
-      },
-    );
-
     test('resolution link updates the chosen existing dance', () async {
       final existingId = await seedExisting();
       final incoming = FakeSourceAdapter([

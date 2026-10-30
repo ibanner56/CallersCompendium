@@ -4,9 +4,6 @@
   "app": {
     "changed": [
       "Dance and program share files, and Export JSON, no longer include your program pay, your Perform dialect or your star ratings. They still travel with Device Sync and in your backup."
-    ],
-    "fixed": [
-      "Replacing a dance you already have from a file with no rating leaves your own star rating as it was."
     ]
   }
 }
