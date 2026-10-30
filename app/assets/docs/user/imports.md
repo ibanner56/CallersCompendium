@@ -389,8 +389,9 @@ location: "2024/04/20 - NEFFA Contra Party". A set with no location is named by
 its date alone, and one with no date by its location. Importing a set again
 renames its program the same way. A slot keeps the name of the caller
 Caller's Companion recorded for it only when the set's slots name more than
-one caller, or a caller other than the set's own; on a set you called yourself
-throughout, the repeated name is left out.
+one caller, or a caller other than the one named on the set itself; on a set
+you called yourself throughout, with your name on the set, the repeated name is
+left out.
 
 Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app

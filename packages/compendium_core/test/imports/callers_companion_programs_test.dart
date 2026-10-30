@@ -149,6 +149,34 @@ void main() {
     expect(result.programs.single.title, '2020/03/14');
   });
 
+  test('pads the year to four digits', () {
+    final result = build(
+      _archive([
+        CcSet(
+          recordId: '1',
+          location: 'Hall',
+          eventDate: '0999-01-02',
+          items: const [],
+        ),
+      ]),
+    );
+    expect(result.programs.single.title, '0999/01/02 - Hall');
+  });
+
+  test('a blank Location titles the set by its date alone', () {
+    final result = build(
+      _archive([
+        CcSet(
+          recordId: '1',
+          location: '   ',
+          eventDate: '3/14/2020',
+          items: const [],
+        ),
+      ]),
+    );
+    expect(result.programs.single.title, '2020/03/14');
+  });
+
   test('titles a set with no date by its Location alone', () {
     final result = build(
       _archive([
@@ -226,6 +254,36 @@ void main() {
         'Lisa',
         null,
       ]);
+    });
+
+    test('the set caller matches in other written forms', () {
+      expect(slotCallers('Smith, Michael', ['Michael', 'Michael']), [
+        null,
+        null,
+      ]);
+      expect(slotCallers('J. Michael Smith', ['Michael']), [null]);
+      expect(slotCallers('Mary Kate Olsen', ['Mary Kate']), [null]);
+      expect(slotCallers('Mary-Kate Olsen', ['Mary-Kate']), [null]);
+      expect(slotCallers('Michaela Smith', ['Michael']), ['Michael']);
+    });
+
+    test("a skipped empty item's caller does not count", () {
+      final result = build(
+        _archive([
+          CcSet(
+            recordId: '1',
+            caller: 'Michael Smith',
+            items: [
+              CcSetItem(order: 0, danceRecordId: '0', guestCaller: 'Michael'),
+              CcSetItem(order: 1, guestCaller: 'Lisa'),
+            ],
+          ),
+        ]),
+        danceIds: {'0': 'd0'},
+      );
+      final slots = result.programs.single.slots;
+      expect(slots, hasLength(1));
+      expect(slots.single.guestCaller, isNull);
     });
 
     test('kept when the set has no caller', () {

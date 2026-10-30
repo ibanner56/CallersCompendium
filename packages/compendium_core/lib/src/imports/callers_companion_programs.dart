@@ -60,7 +60,6 @@ CcProgramsResult buildCcPrograms(
     final (eventDate, dateIssue) = _parseEventDate(set.eventDate, set.recordId);
     if (dateIssue != null) issues.add(dateIssue);
     final title = _titleFor(set, eventDate);
-    final keepSlotCallers = _keepsSlotCallers(set);
 
     final slots = <ProgramSlot>[];
     var position = 0;
@@ -137,13 +136,17 @@ CcProgramsResult buildCcPrograms(
           danceId: danceId,
           text: text,
           isAlt: item.isAlt,
-          guestCaller: keepSlotCallers ? _cleanLine(item.guestCaller) : null,
+          guestCaller: _cleanLine(item.guestCaller),
           danceMinutes: item.minutes,
         ),
       );
       if (item.breakAfter) breakPending = true;
     }
     if (breakPending) addBreak();
+    // Decided on the slots built, so a skipped item's caller does not count.
+    final keptSlots = _keepsSlotCallers(slots, set.caller)
+        ? slots
+        : [for (final slot in slots) slot.copyWith(clearGuestCaller: true)];
 
     programs.add(
       Program(
@@ -156,7 +159,7 @@ CcProgramsResult buildCcPrograms(
         dancerLevel: _cleanLine(set.dancerLevel),
         notes: _cleanNote(set.notes) ?? '',
         hideAlternates: set.hideAlternates,
-        slots: slots,
+        slots: keptSlots,
         createdAt: timestamp,
         updatedAt: timestamp,
         // Provenance keyed on the CC `zk_Set_ID` (carried as [CcSet.recordId]),
@@ -178,11 +181,12 @@ CcProgramsResult buildCcPrograms(
 
 /// The program title for [set], dated [eventDate] (its parsed `Date`).
 ///
-/// CC Sets have no title field. CC itself names a set by its
-/// `zi_DateLocation_c` calculation, `YYYY/MM/DD - Location`, so the program
-/// takes that ("2024/04/20 - NEFFA Contra Party", maintainer decision on
-/// #1976): just the date when there is no Location, and just the Location when
-/// the date is missing or did not parse.
+/// A [CcSet.title] wins, though the `.USR` reader never sets one: CC Sets have
+/// no title field. CC itself names a set by its `zi_DateLocation_c`
+/// calculation, `YYYY/MM/DD - Location`, so the program takes that
+/// ("2024/04/20 - NEFFA Contra Party", maintainer decision on #1976), or just
+/// the date when there is no Location. Without a parsed date it is the
+/// Location, else "Caller's Companion set — <raw date>", else the set's id.
 String _titleFor(CcSet set, DateTime? eventDate) {
   final title = _cleanLine(set.title);
   if (title != null) return title;
@@ -199,31 +203,49 @@ String _titleFor(CcSet set, DateTime? eventDate) {
   return "Caller's Companion set #${set.recordId}";
 }
 
-/// Whether [set]'s slots keep their `SetItem.Caller` names (#1976).
+/// Whether [slots], built from a set whose `Caller` is [setCaller], keep their
+/// `SetItem.Caller` names (#1976).
 ///
 /// CC fills a slot's caller with a first name ("Michael"), the set's own
 /// caller's included, so on a set one person called every slot just repeats
 /// them. The maintainer's rule (#1976, 2026-10-28, clarified 2026-10-30): keep
 /// the slots' callers when they name more than one caller, or when a name is
-/// not the set's own caller, matched case-insensitively against the set's
-/// `Caller` whole or by its first word. A set with no `Caller` keeps a name, as
-/// nothing else records who called.
-bool _keepsSlotCallers(CcSet set) {
+/// not the set's own caller. A name is the set's caller when its words appear,
+/// in order, among the set caller's words, ignoring case and `,`/`.`: "Michael"
+/// and "Michael Smith" for "Michael Smith", also "Michael" for "Smith, Michael"
+/// or "J. Michael Smith", and "Mary Kate" for "Mary Kate Olsen". A set with no
+/// `Caller` keeps a lone name, as nothing else records who called.
+bool _keepsSlotCallers(List<ProgramSlot> slots, String? setCaller) {
   final names = <String>{
-    for (final item in set.items)
-      if (_cleanLine(item.guestCaller) case final name?) _callerKey(name),
-  };
+    for (final slot in slots)
+      if (slot.guestCaller case final name?) _callerWords(name).join(' '),
+  }..remove('');
   if (names.length > 1) return true;
   if (names.isEmpty) return false;
-  final setCaller = _cleanLine(set.caller);
-  if (setCaller == null) return true;
-  final whole = _callerKey(setCaller);
-  final first = whole.split(' ').first;
-  return names.single != whole && names.single != first;
+  final caller = _cleanLine(setCaller);
+  if (caller == null) return true;
+  return !_containsRun(_callerWords(caller), names.single.split(' '));
 }
 
-String _callerKey(String name) =>
-    name.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+/// [name] lower-cased and split into words, `,` and `.` dropped.
+List<String> _callerWords(String name) => name
+    .toLowerCase()
+    .replaceAll(RegExp('[,.]'), ' ')
+    .split(' ')
+    .where((w) => w.isNotEmpty)
+    .toList();
+
+/// Whether [run] appears, in order and adjacent, within [words].
+bool _containsRun(List<String> words, List<String> run) {
+  for (var i = 0; i + run.length <= words.length; i++) {
+    var j = 0;
+    while (j < run.length && words[i + j] == run[j]) {
+      j++;
+    }
+    if (j == run.length) return true;
+  }
+  return false;
+}
 
 (DateTime?, ImportIssue?) _parseEventDate(String? raw, String recordId) {
   final value = raw?.trim() ?? '';
