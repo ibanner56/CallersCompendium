@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**106 settings keys**: 69 shareable, 8 device-local, 27 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**106 settings keys**: 65 shareable, 12 device-local, 27 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -500,9 +500,9 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `active_dialect` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect_ref` | `dpv:NonPersonalData` | app user | shareable |  |
 | `aggressive_beats_update` | `dpv:NonPersonalData` | app user | shareable |  |
-| `app_locale` | `dpv:NonPersonalData` | app user | shareable |  |
+| `app_locale` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: a phone and the laptop driving a projector can want different interface languages, and a synced change would re-render the other device mid-session. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `auto_commit_program_changes` | `dpv:NonPersonalData` | app user | shareable |  |
-| `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | shareable |  |
+| `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: whether a Perform card should fit the screen depends on the screen, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `backup_reminder_cadence` | `dpv:NonPersonalData` | app user | shareable |  |
 | `canonical_discouraged_terms` | `dpv:NonPersonalData` | app user | shareable |  |
 | `canonical_figure_text` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -546,11 +546,11 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `last_used_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `matrix_exact_beat_collision` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable | No longer read or written by this version (Perform lost its canonical toggle). Kept classified and travelling so older-version peers and backups, which still use it, round-trip it unchanged. |
-| `perform_stage_mode` | `dpv:NonPersonalData` | app user | shareable |  |
+| `perform_stage_mode` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: the stage theme is chosen for the lighting a screen is read under, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | **device-local** | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector, but it may travel in a user-controlled local backup. |
 | `program_dance_share_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `program_matrix_columns` | `dpv:NonPersonalData` | app user | shareable |  |
-| `reduce_motion` | `dpv:NonPersonalData` | app user | shareable |  |
+| `reduce_motion` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: an override set against one screen or one device's system Reduce Motion setting is not an answer for another. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `require_event_date_for_history` | `dpv:NonPersonalData` | app user | shareable |  |
 | `require_performed_for_history` | `dpv:NonPersonalData` | app user | shareable |  |
 | `seed.initialCollection.completed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |

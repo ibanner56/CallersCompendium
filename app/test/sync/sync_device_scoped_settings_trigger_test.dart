@@ -73,8 +73,27 @@ void main() {
     expect(passes, 0);
   });
 
+  test('a screen-bound setting is per-device: its write schedules no pass, '
+      'while the app theme still syncs', () async {
+    // settings-sync-scope (2026-10-29): language, motion and the Perform
+    // screen settings stay on each device; theme keeps syncing.
+    for (final MapEntry(:key, :value) in const {
+      'app_locale': 'de',
+      'reduce_motion': true,
+      'auto_size_perform_cards': false,
+      'perform_stage_mode': false,
+    }.entries) {
+      await repos.settings.set(key, value);
+      await settle();
+      expect(passes, 0, reason: key);
+    }
+    await repos.settings.set('theme_mode', 'dark');
+    await settle();
+    expect(passes, 1);
+  });
+
   test('a shareable write schedules exactly one pass', () async {
-    await repos.settings.set('reduce_motion', true);
+    await repos.settings.set('confirm_before_delete', true);
     await settle();
     expect(passes, 1);
   });
@@ -87,10 +106,10 @@ void main() {
   });
 
   test('removing a shareable key permanently schedules a pass', () async {
-    await repos.settings.set('reduce_motion', true);
+    await repos.settings.set('confirm_before_delete', true);
     await settle();
     passes = 0;
-    await repos.settings.remove('reduce_motion', permanent: true);
+    await repos.settings.remove('confirm_before_delete', permanent: true);
     await settle();
     expect(passes, 1);
   });
@@ -99,7 +118,7 @@ void main() {
       'pass', () async {
     await repos.db.transaction(() async {
       await repos.settings.set('window_frame', {'x': 2});
-      await repos.settings.set('reduce_motion', false);
+      await repos.settings.set('confirm_before_delete', false);
     });
     await settle();
     expect(passes, 1);
@@ -132,7 +151,7 @@ void main() {
     await settle();
     expect(passes, 0);
 
-    await repos.settings.set('reduce_motion', true);
+    await repos.settings.set('confirm_before_delete', true);
     await settle();
     expect(passes, 1);
   });
@@ -144,7 +163,7 @@ void main() {
     await controller.setWifiOnly(false);
     await settle();
     expect(passes, 0, reason: 'the controller\'s own write is bookkeeping');
-    await repos.settings.set('reduce_motion', true);
+    await repos.settings.set('confirm_before_delete', true);
     await settle();
     expect(passes, 1);
   });

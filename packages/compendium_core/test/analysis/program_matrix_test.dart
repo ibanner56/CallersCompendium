@@ -921,6 +921,80 @@ void main() {
     });
   });
 
+  group('isCollision — breaks separate dances (GIG-8)', () {
+    Figure fig(String id) => testFigure(move: id, params: {'beats': 16});
+    Dance d(String id, String moveId) => dance(id, id, [fig(moveId)]);
+
+    for (final mode in MatrixCollisionMode.values) {
+      group('${mode.name} mode', () {
+        ProgramMatrix build(
+          List<Dance> dances,
+          List<int?>? sections, [
+          List<int>? groups,
+        ]) => buildProgramMatrix(
+          dances,
+          sections: sections,
+          alternateGroups: groups,
+          collisionMode: mode,
+        );
+
+        test('dances either side of a break do not collide', () {
+          final m = build(
+            [d('d1', 'balance'), d('d2', 'balance')],
+            const [1, 2],
+          );
+          final c = m.columns.indexWhere((c) => c.moveId == 'balance');
+          expect(m.isCollision(0, c), isFalse);
+          expect(m.isCollision(1, c), isFalse);
+        });
+
+        test('dances in one section still collide', () {
+          final m = build(
+            [d('d1', 'balance'), d('d2', 'balance')],
+            const [1, 1],
+          );
+          final c = m.columns.indexWhere((c) => c.moveId == 'balance');
+          expect(m.isCollision(0, c), isTrue);
+          expect(m.isCollision(1, c), isTrue);
+        });
+
+        test('a null section never separates', () {
+          final m = build(
+            [d('d1', 'balance'), d('d2', 'balance')],
+            const [1, null],
+          );
+          final c = m.columns.indexWhere((c) => c.moveId == 'balance');
+          expect(m.isCollision(0, c), isTrue);
+        });
+
+        test(
+          'an alternate across the break is skipped, one before it is not',
+          () {
+            // Section 1: d1, d2a/d2b (alts). Section 2: d3.
+            final m = build(
+              [
+                d('d1', 'balance'),
+                d('d2a', 'circle'),
+                d('d2b', 'balance'),
+                d('d3', 'balance'),
+              ],
+              const [1, 1, 1, 2],
+              const [0, 1, 1, 2],
+            );
+            final c = m.columns.indexWhere((c) => c.moveId == 'balance');
+            expect(m.isCollision(0, c), isTrue, reason: 'd1 vs alt d2b');
+            expect(m.isCollision(2, c), isTrue, reason: 'd2b vs d1');
+            expect(
+              m.isCollision(3, c),
+              isFalse,
+              reason: 'd3 is past the break',
+            );
+          },
+        );
+      });
+    }
+  });
+
   group('isCollision — alternate groups (issue #1413)', () {
     // Every dance is a single 16-beat figure at beat 0, so two dances that use
     // the same move collide under BOTH modes; which pairs are compared is the

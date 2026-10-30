@@ -148,7 +148,9 @@ Map<String, Object?> _prune(
 
 /// Whether a setting [key] this build does not sync may still be kept whole
 /// for a newer version. The two transport keys never may: they are never
-/// adopted from a peer, and republishing one would repoint the store.
+/// adopted from a peer, and republishing one would repoint the store. A
+/// withdrawn setting never gets here: it is dropped before apply instead
+/// (`syncWithdrawnSettingKeys`).
 bool isRetainableSettingKey(String key) {
   final egress = classifySettingsKey(key)?.egress;
   return egress != EgressClass.shareable &&
