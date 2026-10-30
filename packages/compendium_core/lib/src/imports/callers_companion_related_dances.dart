@@ -46,21 +46,17 @@ class CcRelatedDanceLinksResult {
 ///   `relatedDance` links (fetched by the caller before this call), used to
 ///   dedupe against links a prior import of the same archive already added.
 ///
-///   **Honest caveat on when this actually fires:** `CallersCompanionUsrImporter`
-///   commits every CC dance through `ImportPipeline`'s `create`/`reimport`/
-///   `link`/`duplicate` actions, and ALL of them rebuild the dance's content —
-///   including its `links` — wholesale from the freshly-parsed draft (which
-///   never carries links; consistent with re-import's "overwrite, don't
-///   merge" philosophy for every other field). So by the time this builder's
-///   caller fetches a candidate source dance, its links have *already* been
-///   reset to empty by that same commit — [existingLinksByDanceId] is
-///   therefore empty for every dance this commit rebuilt. The exception is a
-///   dance from `earlierDanceIds`: this commit did not rebuild it, and the
-///   person may have added a related link to it in the editor since, so for
-///   it the dedupe is what stops a second copy of the same link. For the
-///   rest, re-import duplication is prevented structurally by the
-///   full-overwrite step, and the check is a safety net if the importer's
-///   commit path ever stops fully rebuilding a dance's links.
+///   **When this actually fires:** `CallersCompanionUsrImporter` commits
+///   every CC dance through `ImportPipeline`. A dance it inserts is new and a
+///   `link` rebuilds the dance's content — including its `links` —
+///   wholesale from the freshly-parsed draft (which never carries links), so
+///   [existingLinksByDanceId] is empty for those. A `reimport` replaces only
+///   the choreography (INTAKE-7) and keeps the dance's links, but the importer
+///   adds no `Dance_Related` link to a re-imported dance at all. The dedupe
+///   therefore matters for a dance from `earlierDanceIds`: this commit did not
+///   rebuild it, and the person may have added a related link to it in the
+///   editor since, so the dedupe is what stops a second copy of the same link.
+///   For the rest it is a safety net.
 ///
 /// **Directional only** (issue #688 decision): each `Dance_Related` row
 /// produces exactly one directed link, on the SOURCE dance, pointing at the

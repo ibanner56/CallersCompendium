@@ -12,6 +12,7 @@ import '../storage/repositories/choreographer_repository.dart';
 import '../storage/repositories/dance_repository.dart';
 import '../storage/repositories/difficulty_level_repository.dart';
 import 'callers_companion_mapping.dart';
+import 'dance_choreography_reimport.dart';
 import 'dedupe.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -24,6 +25,10 @@ enum CommitAction {
   create,
 
   /// Update an existing dance matched by exact `(source, externalId)`.
+  ///
+  /// Only its choreography and provenance change (see
+  /// [withReimportedChoreography]); everything the caller keeps on the dance
+  /// stays (INTAKE-7).
   reimport,
 
   /// Update an existing dance the caller chose to link a fuzzy match to.
@@ -639,7 +644,9 @@ class ImportPipeline {
   /// by their index into `batch.records`; an ambiguous record with no
   /// resolution is skipped (never guessed). New/duplicate inserts get a fresh
   /// id from [newId]; re-imports/links update the matched dance, preserving its
-  /// `createdAt`.
+  /// `createdAt`. A re-import writes only the draft's choreography and
+  /// provenance onto it ([withReimportedChoreography]); a link writes the
+  /// whole draft.
   ///
   /// [defaultTagIds] are added to every dance this commit **creates**
   /// (create / duplicate / variation), after any tags the draft already
@@ -771,16 +778,20 @@ class ImportPipeline {
         }
 
         // Resolve the record's author names to Choreographer ids, creating rows
-        // as needed. Done before the write so both create and reimport/link
-        // paths get real authorIds. Reimport/link REPLACES authors wholesale
-        // (consistent with re-import's overwrite of dance content).
-        final authorResolutions = await _resolveAuthors(
-          plan.draft.authorNames,
-          nameToId: nameToId,
-          newId: newId,
-          createdChoreographerIds: createdChoreographerIds,
-          revivedChoreographerIds: revivedChoreographerIds,
-        );
+        // as needed. Done before the write so both create and link paths get
+        // real authorIds. A link REPLACES authors wholesale (consistent with its
+        // overwrite of dance content). A re-import keeps the dance's authors
+        // (INTAKE-7), so it resolves none: a row minted for it would credit no
+        // dance.
+        final authorResolutions = action == CommitAction.reimport
+            ? const <AuthorResolution>[]
+            : await _resolveAuthors(
+                plan.draft.authorNames,
+                nameToId: nameToId,
+                newId: newId,
+                createdChoreographerIds: createdChoreographerIds,
+                revivedChoreographerIds: revivedChoreographerIds,
+              );
         // Only override authorIds when the draft actually carried author NAMES
         // to resolve (the free-text adapters). Drafts that ship canonical
         // authorIds directly and no names (e.g. the generic archive/JSON
@@ -890,8 +901,38 @@ class ImportPipeline {
               authorResolutions: authorResolutions,
             ),
           );
+        } else if (action == CommitAction.reimport) {
+          // A re-import refreshes only the choreography (figures, formation,
+          // progression) and the provenance, from every source: the caller's
+          // own title, notes, rating, tags, links, authors and custom fields
+          // are never overwritten (maintainer decisions, 2026-10-29 and
+          // 2026-10-30, INTAKE-7). The draft's links are not written either,
+          // so none are held back for it.
+          final id = targetId!;
+          // Non-null: a missing target `continue`d before authors were resolved.
+          final existing = prior!;
+          if (priorCapturedFor.add(id)) priorStates.add(existing);
+          await _dances.update(
+            withReimportedChoreography(
+              existing,
+              plan.draft.dance,
+              updatedAt: now,
+              provenance: prov,
+            ),
+          );
+          if (plan.draft.raw.externalId case final externalId?) {
+            writtenIdByExternalId[externalId] = id;
+          }
+          committed.add(
+            CommittedRecord(
+              action: action,
+              danceId: id,
+              externalId: plan.draft.raw.externalId,
+              authorResolutions: authorResolutions,
+            ),
+          );
         } else {
-          // reimport / link: update the matched dance in place.
+          // link: update the matched dance in place, replacing its content.
           final id = targetId!;
           // Non-null: a missing target `continue`d before authors were resolved.
           final existing = prior!;
@@ -1477,14 +1518,14 @@ class ImportPipeline {
 
   /// Rebuilds [src] under a different identity/timestamps/provenance. Used to
   /// reassign an import's id (fresh insert) or re-target it onto an existing
-  /// dance (re-import/link) without the caller having to reconstruct every
+  /// dance (link) without the caller having to reconstruct every
   /// field. All content fields are carried over verbatim, except [authorIds]
   /// which may be overridden with the pipeline's resolved ids. When
   /// [authorIds] is null the draft's own ids are kept — free-text adapters
   /// resolve names at commit and pass the resolved list, while adapters that
   /// ship canonical ids directly (e.g. the generic archive/JSON adapter) pass
   /// null to preserve them. [keepCustomFieldsFrom] is the dance being
-  /// re-imported over: its custom-field values for fields [src] does not carry
+  /// linked over: its custom-field values for fields [src] does not carry
   /// survive.
   Dance _rebuildWithIdentity(
     Dance src, {
@@ -1519,7 +1560,7 @@ class ImportPipeline {
     // A source that carries no custom fields (every adapter but the native
     // archive and the CC user fields) must not erase the ones the person added
     // to the dance since: `DanceRepository.update` deletes every stored value
-    // and rewrites only what the dance carries. On a re-import the draft's value
+    // and rewrites only what the dance carries. On a link the draft's value
     // wins for a field it carries; every other stored value is kept.
     customFields: [
       ...src.customFields,
