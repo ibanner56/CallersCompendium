@@ -480,6 +480,13 @@ Wave 3 starts when each of these is green and ready to merge, or merged. N4-S5 a
 
 This covers those six branches only. It does not cover wave 3, wave 4 or D2.
 
+### PR approval for wave 3 (2026-10-30 ~21:05 UTC)
+**Question:** Wave 3 is building (B4, B22, B24, B28). Should these, and B5 once B4 merges, open their PRs on their own once each has pushed, passed the full preflight and been reviewed?
+
+**Decision (maintainer's choice):** "Yes, standing (Recommended)". Its description: "Each wave-3 branch (B4, B5, B22, B24, B28) opens its PR once it has pushed, passed preflight and been reviewed, without asking you each time. Hot-file ordering (B4 first) still applies. B29 isn't included, because it waits on D2."
+
+Wave 3 itself started at about 20:33 UTC, when the revised gate above was met: N4-S3 (#2083) and N2-T3 (#2084) were green and ready to merge, and every other gate branch had merged.
+
 ## Still open
 
 - Nothing on the decision page.
