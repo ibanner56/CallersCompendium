@@ -194,6 +194,7 @@ class ShorthandMappingsScreen extends StatelessWidget {
     if (index < 0 || index >= mappings.length) return;
     final token = mappings[index].token;
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -212,7 +213,11 @@ class ShorthandMappingsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true) await controller.removeAt(index);
+    if (confirmed != true) return;
+    await controller.removeAt(index);
+    messenger?.showSnackBar(
+      SnackBar(content: Text(l10n.commonDeletedSnack(token))),
+    );
   }
 }
 
@@ -369,6 +374,7 @@ class _CompoundShorthandsSectionState
     int? userFigureIndex,
   }) async {
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
     final controller = widget.controller;
     final token = compoundIndex != null
         ? controller.compoundShorthands[compoundIndex].token
@@ -398,6 +404,9 @@ class _CompoundShorthandsSectionState
     } else {
       await controller.removeUserFigureAt(userFigureIndex!);
     }
+    messenger?.showSnackBar(
+      SnackBar(content: Text(l10n.commonDeletedSnack(token))),
+    );
   }
 
   @override
