@@ -1,5 +1,3 @@
-import 'dart:ui' show PointerDeviceKind;
-
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -234,6 +232,7 @@ void main() {
 
     detailTest('a tag chip click still filters the Collection', (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
       await repos.dances.create(
         _dance(id: 'd1', title: 'Tagged', tagIds: ['t1']),
@@ -246,6 +245,7 @@ void main() {
 
     detailTest('the tag names stay out of a copy', (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'zesty-tag'));
       await repos.dances.create(
         _dance(id: 'd1', title: 'Tagged', tagIds: ['t1'], hook: 'a hook'),
