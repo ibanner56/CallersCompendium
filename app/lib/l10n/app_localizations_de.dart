@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -407,8 +408,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Begriffe konnten nicht hinzugefügt werden: Sie sind zu lang, oder dein Glossar ist voll.',
-      one:
-          '1 Begriff konnte nicht hinzugefügt werden: Er ist zu lang, oder dein Glossar ist voll.',
+      one: '1 Begriff konnte nicht hinzugefügt werden: Er ist zu lang, oder dein Glossar ist voll.',
     );
     return '$_temp0';
   }
@@ -476,8 +476,7 @@ class AppLocalizationsDe extends AppLocalizations {
           '$count Tänze verwenden deine Figur und werden stattdessen $name verwenden. Deine wird aus deinem Glossar entfernt.',
       one:
           '1 Tanz verwendet deine Figur und wird stattdessen $name verwenden. Deine wird aus deinem Glossar entfernt.',
-      zero:
-          'Kein Tanz in deiner Sammlung verwendet deine Figur. Sie wird aus deinem Glossar entfernt.',
+      zero: 'Kein Tanz in deiner Sammlung verwendet deine Figur. Sie wird aus deinem Glossar entfernt.',
     );
     return '$_temp0';
   }
@@ -1269,8 +1268,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Einträge wurden auf zwei Geräten geändert und warten auf deine Wahl.',
-      one:
-          '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
+      one: '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
     );
     return '$_temp0';
   }
@@ -4736,6 +4734,36 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get programsDanceInThisProgram => 'In diesem Programm';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'In diesem Programm ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'Bereits in diesem Programm';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '„$danceTitle“ ist bereits $count-mal in „$programTitle“. Erneut hinzufügen?',
+      one: '„$danceTitle“ ist bereits in „$programTitle“. Erneut hinzufügen?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'Erneut hinzufügen';
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return '„$danceTitle“ zu $programTitle hinzugefügt.';
   }
@@ -7488,8 +7516,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Dieser Import enthält $count Elemente — mehr als für eine normale Freigabe erwartet.',
-      one:
-          'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
+      one: 'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
     );
     return '$_temp0';
   }
@@ -8300,8 +8327,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
-      one:
-          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
+      one: '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
     );
     return '$_temp0';
   }
@@ -8313,8 +8339,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Hinzufügen beenden“, wenn Sie fertig sind.',
-      one:
-          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Hinzufügen beenden“, wenn Sie fertig sind.',
+      one: '1 Figur hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Hinzufügen beenden“, wenn Sie fertig sind.',
     );
     return '$_temp0';
   }
@@ -8930,8 +8955,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: '$count Tänze wurden zurückgesetzt.',
       one: '1 Tanz wurde zurückgesetzt.',
-      zero:
-          'Kein Tanz wurde zurückgesetzt: Bei jedem wurden seitdem Typ oder Tags geändert.',
+      zero: 'Kein Tanz wurde zurückgesetzt: Bei jedem wurden seitdem Typ oder Tags geändert.',
     );
     return '$_temp0';
   }
@@ -9364,8 +9388,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Aufruf-Schaltflächen wurden ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.',
-      one:
-          '1 Aufruf-Schaltfläche wurde ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.',
+      one: '1 Aufruf-Schaltfläche wurde ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.',
     );
     return '$_temp0';
   }
@@ -9415,8 +9438,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Kontrastpaare unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
-      one:
-          '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
+      one: '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
     );
     return '$_temp0';
   }
@@ -10683,8 +10705,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Tänze im Papierkorb verwenden sie und behalten die zuletzt gespeicherten Zeilen.',
-      one:
-          '1 Tanz im Papierkorb verwendet sie und behält die zuletzt gespeicherte Zeile.',
+      one: '1 Tanz im Papierkorb verwendet sie und behält die zuletzt gespeicherte Zeile.',
     );
     return '$_temp0';
   }
@@ -10700,8 +10721,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Deine $count Abkürzungen dafür bleiben, und wenn du sie eingibst, werden sie als gewöhnliche Zeilen gelesen.',
-      one:
-          'Deine Abkürzung dafür bleibt, und wenn du sie eingibst, wird sie als gewöhnliche Zeile gelesen.',
+      one: 'Deine Abkürzung dafür bleibt, und wenn du sie eingibst, wird sie als gewöhnliche Zeile gelesen.',
     );
     return '$_temp0';
   }
@@ -10713,10 +10733,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Tänze verwenden sie. Sie wird aus deinem Glossar entfernt, und diese Tänze behalten ihren aktuellen Wortlaut als einfachen Text.',
-      one:
-          '1 Tanz verwendet sie. Sie wird aus deinem Glossar entfernt, und dieser Tanz behält seinen aktuellen Wortlaut als einfachen Text.',
-      zero:
-          'Kein Tanz in deiner Sammlung verwendet sie. Sie wird aus deinem Glossar entfernt.',
+      one: '1 Tanz verwendet sie. Sie wird aus deinem Glossar entfernt, und dieser Tanz behält seinen aktuellen Wortlaut als einfachen Text.',
+      zero: 'Kein Tanz in deiner Sammlung verwendet sie. Sie wird aus deinem Glossar entfernt.',
     );
     return '$_temp0';
   }

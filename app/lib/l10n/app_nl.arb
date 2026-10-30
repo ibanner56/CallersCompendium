@@ -4752,6 +4752,26 @@
   "@programsAddDanceToProgramSemantic": {
     "x-sourceSha256": "9fa501db30d27eee1a7bf66b0b21f4b0199c64d3916d360bd1a732eaa9fecb97"
   },
+  "programsDanceInThisProgram": "In dit programma",
+  "@programsDanceInThisProgram": {
+    "x-sourceSha256": "d89bcdd00f3d2fadec89bf242fe294cdaef8bcd2ef2715290ab59880f6cf35bf"
+  },
+  "programsDanceInThisProgramCount": "In dit programma ×{count}",
+  "@programsDanceInThisProgramCount": {
+    "x-sourceSha256": "0532a02041eea24333369f6c5c913c5ccc0d438ee717be5a2711aff816ab0261"
+  },
+  "programsAddAgainTitle": "Al in dit programma",
+  "@programsAddAgainTitle": {
+    "x-sourceSha256": "f99872aa4d82f914408cba53f419d396218e55ec34b2757febfd2835fde9027c"
+  },
+  "programsAddAgainBody": "{count, plural, =1{“{danceTitle}” staat al in “{programTitle}”. Opnieuw toevoegen?} other{“{danceTitle}” staat al {count} keer in “{programTitle}”. Opnieuw toevoegen?}}",
+  "@programsAddAgainBody": {
+    "x-sourceSha256": "489e328703df7401f74e0d08100e3ed5f693229fa2296e272b58d3bf737011c9"
+  },
+  "programsAddAgain": "Opnieuw toevoegen",
+  "@programsAddAgain": {
+    "x-sourceSha256": "7cfbee3aafa052fb0bd1adaa3e07514abc389966d5adec7e1a88ce02e15e9b25"
+  },
   "programsAddedToProgramSnack": "“{danceTitle}” toegevoegd aan {programTitle}.",
   "@programsAddedToProgramSnack": {
     "x-sourceSha256": "80a71e4a1d5d7d8f1858dc54e752818e283b20a13edb4ab07ae108a42ea6d946"

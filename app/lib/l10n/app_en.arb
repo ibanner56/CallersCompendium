@@ -5946,6 +5946,46 @@
       }
     }
   },
+  "programsDanceInThisProgram": "In this program",
+  "@programsDanceInThisProgram": {
+    "description": "Marker in an add-to-program sheet row's subtitle: the program already holds this dance once, as a main slot or an alternate."
+  },
+  "programsDanceInThisProgramCount": "In this program ×{count}",
+  "@programsDanceInThisProgramCount": {
+    "description": "Marker in an add-to-program sheet row's subtitle: the program already holds this dance more than once (main slots and alternates both count).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "programsAddAgainTitle": "Already in this program",
+  "@programsAddAgainTitle": {
+    "description": "Title of the dialog the add-to-program sheet shows before adding a dance a program already holds."
+  },
+  "programsAddAgainBody": "{count, plural, =1{\"{danceTitle}\" is already in \"{programTitle}\". Add it again?} other{\"{danceTitle}\" is already in \"{programTitle}\" {count} times. Add it again?}}",
+  "@programsAddAgainBody": {
+    "description": "Body of the dialog the add-to-program sheet shows before adding a dance a program already holds. The count includes alternates.",
+    "placeholders": {
+      "danceTitle": {
+        "type": "String",
+        "example": "Chorus Jig"
+      },
+      "programTitle": {
+        "type": "String",
+        "example": "Friday Night Contra"
+      },
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "programsAddAgain": "Add again",
+  "@programsAddAgain": {
+    "description": "Primary button of the add-to-program sheet's already-in-this-program dialog: adds the dance a second time."
+  },
   "programsAddedToProgramSnack": "Added \"{danceTitle}\" to {programTitle}.",
   "@programsAddedToProgramSnack": {
     "description": "Confirmation snackbar after appending a dance to an existing program.",

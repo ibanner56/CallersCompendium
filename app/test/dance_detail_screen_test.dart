@@ -2180,6 +2180,166 @@ void main() {
       expect(restored.slots.map((s) => s.id), ['s0', 's9']);
     });
 
+    group('already-in-this-program marker and ask-first prompt', () {
+      Future<CompendiumRepositories> seed(
+        WidgetTester tester, {
+        required List<ProgramSlot> p1Slots,
+      }) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Zesty'));
+        await repos.dances.create(_dance(id: 'other', title: 'Other Dance'));
+        await repos.programs.create(
+          program(id: 'p1', title: 'Barn Dance', slots: p1Slots),
+        );
+        await repos.programs.create(program(id: 'p2', title: 'Contra Jam'));
+        await _pumpDetail(tester, repos, 'd1');
+        await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+        await tester.pumpAndSettle();
+        return repos;
+      }
+
+      final primary = [ProgramSlot(id: 's0', position: 0, danceId: 'd1')];
+      final alternateOnly = [
+        ProgramSlot(id: 's0', position: 0, danceId: 'other'),
+        ProgramSlot(id: 's1', position: 1, danceId: 'd1', isAlt: true),
+      ];
+
+      testWidgets('a held dance is marked, an unheld one is not', (
+        tester,
+      ) async {
+        await seed(tester, p1Slots: primary);
+
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('program-pick-p1')),
+            matching: find.textContaining('In this program'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('program-pick-p2')),
+            matching: find.textContaining('In this program'),
+          ),
+          findsNothing,
+        );
+      });
+
+      testWidgets('an alternate-only match is marked, with its count', (
+        tester,
+      ) async {
+        await seed(
+          tester,
+          p1Slots: [
+            ...alternateOnly,
+            ProgramSlot(id: 's2', position: 2, danceId: 'd1', isAlt: true),
+          ],
+        );
+
+        expect(find.textContaining('In this program ×2'), findsOneWidget);
+      });
+
+      testWidgets('tapping a marked program asks; Add again adds one slot', (
+        tester,
+      ) async {
+        final repos = await seed(tester, p1Slots: primary);
+
+        await tester.tap(find.byKey(const ValueKey('program-pick-p1')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('add-again-dialog')), findsOneWidget);
+        expect(
+          find.text('"Zesty" is already in "Barn Dance". Add it again?'),
+          findsOneWidget,
+        );
+        expect((await repos.programs.getById('p1'))!.slots, hasLength(1));
+
+        await tester.tap(find.byKey(const ValueKey('add-again-confirm')));
+        await tester.pumpAndSettle();
+
+        final updated = await repos.programs.getById('p1');
+        expect(updated!.slots, hasLength(2));
+        expect(updated.slots.last.danceId, 'd1');
+        expect(
+          find.byKey(const ValueKey('added-to-program-snackbar')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('program-pick-p1')), findsNothing);
+      });
+
+      testWidgets('Cancel adds nothing and leaves the sheet open', (
+        tester,
+      ) async {
+        final repos = await seed(tester, p1Slots: primary);
+
+        await tester.tap(find.byKey(const ValueKey('program-pick-p1')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('add-again-cancel')));
+        await tester.pumpAndSettle();
+
+        expect((await repos.programs.getById('p1'))!.slots, hasLength(1));
+        expect(find.byKey(const ValueKey('add-again-dialog')), findsNothing);
+        expect(find.byKey(const ValueKey('program-pick-p1')), findsOneWidget);
+        expect(find.byKey(const ValueKey('program-pick-p2')), findsOneWidget);
+      });
+
+      testWidgets('an alternate-only match asks too', (tester) async {
+        final repos = await seed(tester, p1Slots: alternateOnly);
+
+        await tester.tap(find.byKey(const ValueKey('program-pick-p1')));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('add-again-dialog')), findsOneWidget);
+        expect((await repos.programs.getById('p1'))!.slots, hasLength(2));
+      });
+
+      testWidgets('an unmarked program adds at once, with no dialog', (
+        tester,
+      ) async {
+        final repos = await seed(tester, p1Slots: primary);
+
+        await tester.tap(find.byKey(const ValueKey('program-pick-p2')));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('add-again-dialog')), findsNothing);
+        expect((await repos.programs.getById('p2'))!.slots, hasLength(1));
+        expect(
+          find.byKey(const ValueKey('added-to-program-snackbar')),
+          findsOneWidget,
+        );
+      });
+    });
+
+    for (final n in [0, 1, 100]) {
+      testWidgets('the New program row is pinned with $n programs', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Zesty'));
+        for (var i = 0; i < n; i++) {
+          await repos.programs.create(program(id: 'p$i', title: 'Prog $i'));
+        }
+        await _pumpDetail(tester, repos, 'd1');
+        await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+        await tester.pumpAndSettle();
+
+        final create = find.byKey(const ValueKey('add-to-program-create'));
+        expect(create, findsOneWidget);
+        // Pinned: outside the scrolling list, so it is not a list item.
+        expect(
+          find.descendant(of: find.byType(ListView), matching: create),
+          findsNothing,
+        );
+
+        await tester.tap(create);
+        await tester.pumpAndSettle();
+        expect(await repos.programs.listAll(), hasLength(n + 1));
+        expect(
+          find.byKey(const ValueKey('created-program-snackbar')),
+          findsOneWidget,
+        );
+      });
+    }
+
     testWidgets('empty program list shows teaching state and can create', (
       tester,
     ) async {

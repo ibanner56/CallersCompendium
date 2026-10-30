@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -4477,6 +4478,35 @@ class AppLocalizationsJa extends AppLocalizations {
   ) {
     return '「$danceTitle」を$programTitle（$details）に追加';
   }
+
+  @override
+  String get programsDanceInThisProgram => 'このプログラムに含まれています';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'このプログラムに含まれています ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'すでにこのプログラムにあります';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '「$danceTitle」はすでに「$programTitle」に$count回入っています。もう一度追加しますか？',
+      one: '「$danceTitle」はすでに「$programTitle」にあります。もう一度追加しますか？',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'もう一度追加';
 
   @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {

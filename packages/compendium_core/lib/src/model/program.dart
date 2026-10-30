@@ -382,6 +382,29 @@ class Program {
   static int plannedDanceCountOf(Iterable<ProgramSlot> slots) =>
       slots.where((s) => s.isPlannedDance).length;
 
+  /// How many slots hold [danceId], **alternates included** (N3-6): the
+  /// "will I add this twice?" count behind the add-to-program sheet's
+  /// "In this program" marker and the builder picker's "in program ×N".
+  ///
+  /// Deliberately not the calling-history rule, under which an alternate counts
+  /// only once performed. Break and free-text slots carry no dance id and never
+  /// match, so a text slot that names the dance is not detected.
+  int danceSlotCount(String danceId) =>
+      danceSlotCountsOf(slots)[danceId] ?? 0;
+
+  /// [danceSlotCount] for every dance in a working slot list, such as the
+  /// builder's unsaved edits, without constructing a [Program]. Dances absent
+  /// from [slots] are absent from the map.
+  static Map<String, int> danceSlotCountsOf(Iterable<ProgramSlot> slots) {
+    final counts = <String, int>{};
+    for (final slot in slots) {
+      final danceId = slot.danceId;
+      if (danceId == null) continue;
+      counts[danceId] = (counts[danceId] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   /// The set-list number of each slot in a **position-ordered** [slots] list,
   /// as a parallel list (same length/order): planned dances
   /// ([ProgramSlot.isPlannedDance]) are numbered `1..n`, and alternates and
