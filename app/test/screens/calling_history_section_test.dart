@@ -1,3 +1,6 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/regional_formats.dart';
@@ -9,6 +12,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
+
+/// The System date format (PLAT-12): the device locale's numeric date.
+String _systemDate(DateTime d) =>
+    DateFormat.yMd(PlatformDispatcher.instance.locale.toString()).format(d);
 
 /// Tests for the app's first reactive read (issue #768).
 ///
@@ -637,19 +644,12 @@ void main() {
         ),
       ),
     );
-    final localizations = MaterialLocalizations.of(
-      tester.element(find.byType(CallingHistoryRow)),
-    );
     expect(
-      find.textContaining(
-        localizations.formatShortDate(DateTime(2026, 10, 24)),
-      ),
+      find.textContaining(_systemDate(DateTime(2026, 10, 24))),
       findsOneWidget,
     );
     expect(
-      find.textContaining(
-        localizations.formatShortDate(DateTime(2026, 10, 23)),
-      ),
+      find.textContaining(_systemDate(DateTime(2026, 10, 23))),
       findsNothing,
     );
   });
@@ -714,19 +714,12 @@ void main() {
         ),
       ),
     );
-    final localizations = MaterialLocalizations.of(
-      tester.element(find.byType(CallingHistoryRow)),
-    );
     expect(
-      find.textContaining(
-        localizations.formatShortDate(DateTime(2026, 10, 24)),
-      ),
+      find.textContaining(_systemDate(DateTime(2026, 10, 24))),
       findsOneWidget,
     );
     expect(
-      find.textContaining(
-        localizations.formatShortDate(DateTime(2026, 10, 26)),
-      ),
+      find.textContaining(_systemDate(DateTime(2026, 10, 26))),
       findsNothing,
     );
   });
@@ -788,15 +781,12 @@ void main() {
         ),
       ),
     );
-    final localizations = MaterialLocalizations.of(
-      tester.element(find.byType(CallingHistoryRow)),
-    );
     expect(
-      find.textContaining(localizations.formatShortDate(DateTime(2026, 10, 3))),
+      find.textContaining(_systemDate(DateTime(2026, 10, 3))),
       findsOneWidget,
     );
     expect(
-      find.textContaining(localizations.formatShortDate(DateTime(2026, 10, 4))),
+      find.textContaining(_systemDate(DateTime(2026, 10, 4))),
       findsNothing,
     );
   });
