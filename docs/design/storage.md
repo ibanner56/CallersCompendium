@@ -910,7 +910,11 @@ and does not leak into what the user sees.
 - All writes in transactions via repository layer; dance/program soft deletes
   purge after a configurable retention (default 30 days) via startup sweep,
   except for rows Device Sync has published: those are retained as tombstones
-  indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1). The
+  indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1), and
+  once expired are **blanked** exactly as Permanently delete blanks them (next
+  bullet), except that `existence_at` is not restamped: expiry is not a new
+  deletion, and restamping would let it outrank a revival a peer made since.
+  The
   six kinds that became soft-deletable in v25 have no retention sweep yet:
   their tombstones accumulate until Device Sync, which owns retention, adds
   one.

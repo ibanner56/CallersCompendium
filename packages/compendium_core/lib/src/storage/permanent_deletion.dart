@@ -13,6 +13,10 @@
 /// maintainer chose this on 2026-10-29 (LIFE-2 option (a); round 2, `R2-life2-retire` (a): hide it and
 /// blank its content, with no retirement of the deletion record).
 ///
+/// The retention purge does the same to a published record whose time in the
+/// trash has run out (`DanceRepository.purgeDeleted`), but without a fresh
+/// existence stamp, because expiry is not a new deletion.
+///
 /// ## How a permanently deleted tombstone is recognised
 ///
 /// Its `deleted_at` is [permanentlyDeletedAt], the unix epoch. That is the

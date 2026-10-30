@@ -384,9 +384,18 @@ is carried on the envelope like any other, so it hides the record on every peer
 running a build that knows the mark, and after a restore. An older build shows
 it in Recently deleted under the placeholder title.
 
+The retention purge treats an expired published record the same way, with one
+difference: it does not restamp `existenceAt`. Expiry is not a new deletion,
+and a fresh stamp would let it outrank a revival a peer made after the record
+went to the trash. Only `updatedAt` advances, which is enough for the blank body
+to replace the content on every peer that holds the tombstone.
+
 *Amended 2026-10-30 (LIFE-2): the maintainer decided on 2026-10-29 (round 2,
 `R2-life2-retire`) to hide and blank such a record and not to retire it, so
 the "no retirement" rule above stands unchanged.*
+
+*Amended 2026-10-30 (LIFE-2 follow-up): the retention purge now blanks an
+expired published record too, as described above.*
 
 `review_queue` requires a new review surface: `import_review_screen.dart`
 reviews dances only. A generic keep-both-or-merge list suffices; no per-kind
