@@ -178,6 +178,13 @@ see where the dances came from.
 4. Confirm the import when you are ready. Nothing is added until you commit it,
    and the same review flow lets you skip items you do not want.
 
+Importing a newer version of a collection you already have offers
+**Re-import onto** for its dances, which updates only their figures, formation
+and progression, as for any other source (see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
+A corrected title, credit or note in the new version does not reach a dance you
+already have.
+
 If the catalog or a collection cannot be loaded, the message tells you which of
 three things happened: the catalog **could not be reached** (check your
 connection), it **needs a newer app version** (update the app), or it is
@@ -543,8 +550,8 @@ For step-by-step backup and restore, see
 
 Importing from a file or a URL opens the **import review** screen, and nothing
 touches your collection until you commit there — except **Import and edit**,
-which imports that one dance right away (and replaces the matched dance if the
-row is a Re-import or Link; you are asked first). It works the same whichever
+which imports that one dance right away (and, if the row is a Re-import or
+Link, updates the matched dance as that choice would; you are asked first). It works the same whichever
 source you pick:
 
 1. **Choose a source and give it something to read** — pick the source, then add
@@ -656,9 +663,11 @@ made since you first imported.
 Everything else on the dance is yours and stays as it is: its title, authors,
 calling notes, walkthrough, status, rating, tags, links, tunes, custom fields and
 source citations. Your own ratings, tags and notes are never overwritten by a
-re-import, whatever the file: a share file or other Caller's Compendium file, a
-Caller's Companion `.USR` file, ContraDB or The Caller's Box. Only the dance's
-record of where it came from is updated, to the version you re-imported.
+re-import, whatever the source: a share file or other Caller's Compendium file,
+a published collection, a Caller's Companion `.USR` file, ContraDB or The
+Caller's Box. Only the dance's record of where it came from is updated, to the
+version you re-imported. If the incoming version has no figures the app can
+read, your figures are kept.
 
 Dances already in your collection show **Re-import** and **Skip** choices in the
 review list, and **Skip** is the default, so choose **Re-import** on the ones you

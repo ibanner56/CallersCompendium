@@ -194,17 +194,30 @@ related-dance resolution, and a `.USR` import adds no `Dance_Related` link to a
 dance its batch re-imported. Known gap: a `.USR` dance re-imported earlier by
 the review's **Import and edit** is passed to the batch commit only as an
 `earlierDanceIds` entry, which does not say how it was written, so it still
-receives the file's `Dance_Related` links (added, never replacing its own). An unreadable incoming transcription keeps the saved
-figures. A share file's tags, custom-field definitions and published sources
-are still committed as the archive references them (`ShareMetadataImporter`), so
-one that only re-imported rows use is left unused, as one only skipped rows use
-already was. `withReimportedChoreography` (`compendium_core`) is the one helper both
-paths use; the detail screen's **Re-import choreography**
-(`replaceDanceChoreography`, moved into core from the app) adds a stale-preview
-check and writes no provenance.
+receives the file's `Dance_Related` links (added, never replacing its own).
+
+An unreadable incoming transcription keeps the saved figures, and so does one
+that decoded to no figures (The Caller's Box serves none below its `full`
+tier): a re-import never erases a transcription, an unreadable one included.
+
+A share file's tags, custom-field definitions and published sources are still
+committed as the archive references them (`ShareMetadataImporter`), reusing a
+live match or **reviving** a deleted one. So one that only re-imported rows use
+is left unused — and, if the receiver had deleted it, brought back — as one
+only skipped rows use already was. Dropping unused metadata after the commit,
+as the `.USR` importer does, is a follow-up.
+
+`withReimportedChoreography` (`compendium_core`) is the one helper both paths
+use; the detail screen's **Re-import choreography** (`replaceDanceChoreography`,
+moved into core from the app) adds a stale-preview check and writes no
+provenance.
 
 This applies to every source that reaches the pipeline: `.ccshare` and other
-Compendium archives, Caller's Companion `.USR`, ContraDB and The Caller's Box.
+Compendium archives, published collections, Caller's Companion `.USR`, ContraDB
+and The Caller's Box. For a published collection it means a newer version's
+corrected title, credit or notes do not reach a dance already imported, while
+its provenance records the new version.
+
 The maintainer chose the choreography-only update for batch re-import
 (*batch-reimport*, 2026-10-29: "Batch re-import replaces only figures,
 formation and progression, like the detail-page version") and then extended it

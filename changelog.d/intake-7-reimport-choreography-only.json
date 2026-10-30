@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Re-import onto in the import review now replaces only a dance's figures, formation and progression, as Re-import choreography on a dance already did, whatever the file or source: a share file, a Caller's Compendium file, a Caller's Companion .USR file, ContraDB or The Caller's Box. Your title, authors, notes, walkthrough, status, rating, tags, links, tunes, custom fields and source citations stay as they are. Before, a re-import replaced the whole dance, and a Caller's Box or ContraDB re-import erased your rating, tags and links."
+      "Re-import onto in the import review now replaces only a dance's figures, formation and progression, as Re-import choreography on a dance already did, whatever the file or source: a share file, a Caller's Compendium file, a published collection, a Caller's Companion .USR file, ContraDB or The Caller's Box. If the incoming version has no figures the app can read, your figures are kept. Your title, authors, notes, walkthrough, status, rating, tags, links, tunes, custom fields and source citations stay as they are. Before, a re-import replaced the whole dance, and a Caller's Box or ContraDB re-import erased your rating, tags and links."
     ]
   },
   "core": {
     "changed": [
-      "`ImportPipeline.commit` writes a `CommitAction.reimport` with the new `withReimportedChoreography`: only figures, formation and progression come from the draft, plus a fresh provenance. It resolves no author names and holds back none of the draft's links for a re-import. `CommitAction.link` is unchanged.",
+      "`ImportPipeline.commit` writes a `CommitAction.reimport` with the new `withReimportedChoreography`: only figures, formation and progression come from the draft, plus a fresh provenance; an unreadable or empty incoming figure list keeps the dance's own. It resolves no author names and holds back none of the draft's links for a re-import. `CommitAction.link` is unchanged.",
       "`replaceDanceChoreography` and `DanceReimportResult` moved from the app into `compendium_core`, beside `withReimportedChoreography`."
     ]
   }
