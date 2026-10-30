@@ -3861,6 +3861,24 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Alle $count auswählen';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Alle $count abwählen';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected ausgewählt ($hidden nicht angezeigt)';
+  }
+
+  @override
+  String get collectionDeselectNotShown => 'Nicht angezeigte abwählen';
+
+  @override
   String get collectionAddTags => 'Tags hinzufügen';
 
   @override

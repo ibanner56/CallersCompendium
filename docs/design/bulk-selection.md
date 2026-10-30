@@ -1,7 +1,7 @@
 # Design: Bulk selection
 
-*Design note N4 for audit finding FIND-8 · v0.2 (2026-10-30) · **Status: decided,
-not built.** The maintainer chose "design note now" for `design-bulk-select` in
+*Design note N4 for audit finding FIND-8 · v0.2 (2026-10-30) · **Status: decided;
+S1 (Select all, the not-shown count) built, the rest not.** The maintainer chose "design note now" for `design-bulk-select` in
 `maintainer-decisions-2026-10-29.md`, and answered this note's six questions on
 2026-10-29/30 (N4-1 … N4-6 in `maintainer-decisions-2026-10-30.md`). Those are
 quoted under [Decisions](#decisions). One answer differs from the
@@ -182,8 +182,10 @@ fixes the information, not the data. In detail:
      toggle's handler is `_onOnlineToggled` (`:944`).
 - When `_searchError != null` the search failed and `_results` was set to empty
   (`:871`). The "not shown" count must not read as "all 14 are hidden". The
-  batch actions are disabled while the error shows, and the count line is
-  replaced by the error.
+  batch actions are disabled while the error shows. *Built in S1 (implementer's
+  call, not a maintainer decision):* the "not shown" suffix is hidden and the
+  count line is kept, not replaced, because the error already renders in the
+  list; replacing it was rejected as a second place to show one failure.
 - Implementation shape: move the set, the "not shown" arithmetic and the
   reconcile rule into a small `CollectionSelection` class
   (`app/lib/src/search/collection_selection.dart`) so that the policy is a pure

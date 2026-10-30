@@ -3818,6 +3818,24 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Vælg alle $count';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Fravælg alle $count';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected valgt ($hidden ikke vist)';
+  }
+
+  @override
+  String get collectionDeselectNotShown => 'Fravælg dem, der ikke vises';
+
+  @override
   String get collectionAddTags => 'Tilføj tags';
 
   @override

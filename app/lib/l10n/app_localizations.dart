@@ -5983,6 +5983,30 @@ abstract class AppLocalizations {
   /// **'{count} selected'**
   String collectionSelectedCount(int count);
 
+  /// Tooltip and menu label for the selection-bar action that selects every dance in the current results. {count} is the number of dances in the results.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all {count}'**
+  String collectionSelectAllTooltip(int count);
+
+  /// Tooltip and menu label for the selection-bar action that clears the selection of every dance in the current results, shown when they are all selected. {count} is the number of dances in the results.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all {count}'**
+  String collectionDeselectAllTooltip(int count);
+
+  /// Added after the result count while selecting, when some selected dances are hidden by the current search or filters: how many are selected in all, and how many of those the list does not show.
+  ///
+  /// In en, this message translates to:
+  /// **'{selected} selected ({hidden} not shown)'**
+  String collectionSelectionNotShown(int selected, int hidden);
+
+  /// Button beside the result count that drops the selected dances the current search or filters hide, keeping the ones on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect those not shown'**
+  String get collectionDeselectNotShown;
+
   /// Batch action (tooltip and dialog title) for adding tags to the selected dances.
   ///
   /// In en, this message translates to:
