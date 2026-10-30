@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_call_count_scope.dart';
@@ -49,6 +50,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   if (requireEventDate == null) addTearDown(eventDate.dispose);
   final trackAllCallers = ValueNotifier<bool>(false);
   final showPerformedToggles = ValueNotifier<bool>(true);
+  final markAllSetsStatus = ValueNotifier<bool>(true);
   final autoCommit = ValueNotifier<bool>(initialAutoCommit);
   final venueCalls = ValueNotifier<int>(kVenueCallCountDefault);
   onScopeNotifiers?.call(autoCommit, venueCalls);
@@ -62,6 +64,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   addTearDown(requirePerformed.dispose);
   addTearDown(trackAllCallers.dispose);
   addTearDown(showPerformedToggles.dispose);
+  addTearDown(markAllSetsStatus.dispose);
   addTearDown(autoCommit.dispose);
   addTearDown(customThemes.dispose);
 
@@ -109,7 +112,10 @@ Future<ValueNotifier<bool>> _pumpProgram(
       ),
       home: ShowPerformedTogglesScope(
         notifier: showPerformedToggles,
-        child: const SettingsScreen(),
+        child: MarkAllSetsStatusScope(
+          notifier: markAllSetsStatus,
+          child: const SettingsScreen(),
+        ),
       ),
     ),
   );
@@ -213,6 +219,27 @@ void main() {
 
     expect(tester.widget<SwitchListTile>(tile).value, isFalse);
     expect(await repos.settings.get(kShowPerformedTogglesKey), isFalse);
+  });
+
+  testWidgets('"Mark all performed sets the status" defaults on, and '
+      'flipping it persists', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    final tile = find.byKey(const ValueKey('general-mark-all-sets-status'));
+    await tester.scrollUntilVisible(
+      tile,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+    expect(find.text('Mark all performed sets the status'), findsOneWidget);
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+    expect(await repos.settings.get(kMarkAllSetsStatusKey), isFalse);
   });
 
   testWidgets('matrix-columns entry point opens the editor screen', (

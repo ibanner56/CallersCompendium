@@ -4775,6 +4775,18 @@ abstract class AppLocalizations {
   /// **'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.'**
   String get settingsGeneralShowPerformedTogglesSubtitle;
 
+  /// Title of the setting that makes Mark all performed also set the program status to Performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all performed sets the status'**
+  String get settingsGeneralMarkAllSetsStatusTitle;
+
+  /// Subtitle explaining the Mark all performed sets the status setting.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, Mark all performed also sets the program status to Performed, and Undo puts both back. When off, the status stays as it was.'**
+  String get settingsGeneralMarkAllSetsStatusSubtitle;
+
   /// Title of the calling-history settings toggle that leaves programs with no event date out of calling history.
   ///
   /// In en, this message translates to:
@@ -7691,6 +7703,18 @@ abstract class AppLocalizations {
   /// **'Marked all dances performed except alternates. Mark an alternate yourself if you called it.'**
   String get programsMarkedAllPerformedExceptAlternates;
 
+  /// Confirmation (snackbar and screen-reader announcement) after Mark all performed marked every dance and also set the program status to Performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed and set the status to Performed.'**
+  String get programsMarkedAllPerformedSetStatus;
+
+  /// Confirmation after Mark all performed marked every dance except alternates and also set the program status to Performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed except alternates, and set the status to Performed. Mark an alternate yourself if you called it.'**
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus;
+
   /// Snackbar confirming the program was saved, quoting its title.
   ///
   /// In en, this message translates to:
@@ -8038,6 +8062,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Status'**
   String get programsStatusFieldLabel;
+
+  /// Helper text under the program status dropdown when Mark all performed does not set the status.
+  ///
+  /// In en, this message translates to:
+  /// **'Choosing Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.'**
+  String get programsStatusHelper;
+
+  /// Helper text under the program status dropdown when the Mark all performed sets the status setting is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Choosing Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.'**
+  String get programsStatusHelperMarkAllSetsStatus;
 
   /// Title of the toggle that hides alternate (ALT) slots from the exported set list.
   ///

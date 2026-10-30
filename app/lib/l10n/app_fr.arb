@@ -3104,6 +3104,14 @@
   "@settingsGeneralShowPerformedTogglesSubtitle": {
     "x-sourceSha256": "c72198d2bb64ea770c17a1f45239591d056d391a276ee7c416ddba46d5e53c48"
   },
+  "settingsGeneralMarkAllSetsStatusTitle": "Tout marquer comme joué change le statut",
+  "@settingsGeneralMarkAllSetsStatusTitle": {
+    "x-sourceSha256": "53147c7a4cf23b7008fac77293870b25247cb606e0f385422ff0826732577c8e"
+  },
+  "settingsGeneralMarkAllSetsStatusSubtitle": "Activé : Tout marquer comme joué passe aussi le statut du programme à Joué, et Annuler rétablit les deux. Désactivé : le statut ne change pas.",
+  "@settingsGeneralMarkAllSetsStatusSubtitle": {
+    "x-sourceSha256": "da417909311921606b25fd52ae79bfbf8808d642ecdcb4601651ef092379141a"
+  },
   "settingsGeneralRequireEventDateForHistoryTitle": "Exiger une date d’événement pour l’historique d’appel",
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "x-sourceSha256": "f62790f3e48e6bd9f8b81f3fee8782bbeba76923cdb1d175e50df7d053afe6a2"
@@ -5040,6 +5048,14 @@
   "@programsMarkedAllPerformedExceptAlternates": {
     "x-sourceSha256": "08a8256620a4cffa6d30dd9cab22983d46fe20c5f9d9024d3780368cb60d0017"
   },
+  "programsMarkedAllPerformedSetStatus": "Toutes les danses marquées comme jouées, et statut passé à Joué.",
+  "@programsMarkedAllPerformedSetStatus": {
+    "x-sourceSha256": "1ebf7244ed74255d35173bc284d75f422d7ed311ed7e882a776c1648c694dce2"
+  },
+  "programsMarkedAllPerformedExceptAlternatesSetStatus": "Toutes les danses marquées comme jouées, sauf les alternatives, et statut passé à Joué. Marquez vous-même une alternative si vous l’avez appelée.",
+  "@programsMarkedAllPerformedExceptAlternatesSetStatus": {
+    "x-sourceSha256": "24986b5a297d93c532027de52734b64b2972c2aab6abe1514b245dcec4077a86"
+  },
   "programsSavedSnack": "« {title} » enregistré.",
   "@programsSavedSnack": {
     "x-sourceSha256": "85c0b6df8f1e4d9391ec79a51940c1a00a83a46320b7799ffc412d8d0e9615bb"
@@ -5271,6 +5287,14 @@
   "programsStatusFieldLabel": "Statut",
   "@programsStatusFieldLabel": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
+  },
+  "programsStatusHelper": "Choisir Joué marque comme jouée chaque danse non marquée, sauf les alternatives. Revenir à un autre statut conserve les marques.",
+  "@programsStatusHelper": {
+    "x-sourceSha256": "b8d1dfd22305f71ed01d531531501e40bf0a4f470154d5b01d89d11fd82dac72"
+  },
+  "programsStatusHelperMarkAllSetsStatus": "Choisir Joué marque comme jouée chaque danse non marquée, sauf les alternatives, et Tout marquer comme joué choisit ce statut. Revenir à un autre statut conserve les marques.",
+  "@programsStatusHelperMarkAllSetsStatus": {
+    "x-sourceSha256": "14174717fd7f7b66356a918c7d6c0b5dd8b4220ed4ed5e6e96c0e1cc3161bd75"
   },
   "programsHideAlternatesTitle": "Masquer les alternatives dans la liste de sets",
   "@programsHideAlternatesTitle": {

@@ -357,6 +357,16 @@ final Map<String, DataClassification> settingsClassifications = {
         "arm's length is wrong on a laptop driving a projector, but it may "
         'travel in a user-controlled local backup.',
   ),
+  'mark_all_sets_status': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'A behaviour preference: whether Mark all performed also sets the '
+        "program's status (GIG-12). It names no person and holds no content, "
+        'and it follows the caller rather than the screen, so it travels like '
+        'the other calling-history rules beside it.',
+  ),
   'require_event_date_for_history': _preference,
   'require_performed_for_history': _preference,
   'show_performed_toggles': _preference,

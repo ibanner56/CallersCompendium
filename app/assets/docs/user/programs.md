@@ -286,7 +286,12 @@ A program carries the details of its event:
 - **Pay**, an amount and currency under **More details**, shown on the
   program's summary but never in the shared program text or PDF;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
-  Programs list;
+  Programs list. Choosing **Performed** marks every unmarked dance in the
+  program performed, except alternates, and that writes calling history.
+  Changing the status back later keeps the marks: clear them one by one if
+  you chose Performed by mistake. **Mark all performed** also sets the status
+  to Performed, unless you turn that off (see
+  [Track what you have called](#track-what-you-have-called));
 - **Hide alternates in set list**, which leaves alternates out of the summary,
   the PDF, and exported set lists while the builder still shows every slot; and
 - **Perform dialect**, the [dialect](./dialects.md#give-a-program-its-own-dialect)
@@ -548,6 +553,14 @@ phone, or wherever the summary pane is narrow, it is in the **More actions** (�
 menu, with **Duplicate** and **Delete**. Mark all performed skips alternates,
 and so does setting a program's status to **Performed**: mark the alternates you
 used yourself.
+
+Mark all performed also sets the program's status to **Performed**, even when
+every dance was already marked, so a finished gig doesn't stay a Draft on the
+Programs list. Its **Undo** puts the marks and the status back together, unless
+you changed the status yourself in the meantime. Clearing a mark later doesn't
+change the status. To keep the status separate, turn off **Mark all performed
+sets the status** in
+[Settings › Program › Calling history](./settings.md#calling-history).
 
 Calling history dates each call by the program's **event date**, however late
 you mark it. Mark Saturday's dances on Monday morning and the history still says

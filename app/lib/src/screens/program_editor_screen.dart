@@ -14,6 +14,7 @@ import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/editor_draft_shutdown_scope.dart';
+import '../data/mark_all_sets_status_scope.dart';
 import '../data/matrix_collision_mode_scope.dart';
 import '../data/program_matrix_column_config_scope.dart';
 import '../data/program_auto_commit_scope.dart';
@@ -258,6 +259,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Set<String>? _pendingBulkUndoSlotIds;
   Program? _pendingBulkUndoBaseline;
   DateTime? _pendingBulkUndoTimestamp;
+
+  /// The status Mark all performed replaced when it also set Performed
+  /// (GIG-12), so Undo can put it back; `null` when it left the status alone.
+  ProgramStatus? _pendingBulkUndoPriorStatus;
   bool? _pendingBulkUndoWasDirty;
   int? _pendingBulkUndoEditGeneration;
   int _bulkUndoGeneration = 0;
@@ -1302,6 +1307,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final bulkUndoActionToken = _pendingBulkUndoActionToken;
       final bulkUndoSlotIds = _pendingBulkUndoSlotIds;
       final bulkUndoTimestamp = _pendingBulkUndoTimestamp;
+      final bulkUndoPriorStatus = _pendingBulkUndoPriorStatus;
       try {
         final persisted = await _persistDraft(draft);
         _autoCommitPersistedGeneration = generation;
@@ -1309,11 +1315,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             bulkUndoActionToken != null &&
             bulkUndoSlotIds != null &&
             bulkUndoTimestamp != null &&
-            persisted.slots.any(
-              (slot) =>
-                  bulkUndoSlotIds.contains(slot.id) &&
-                  slot.performedAt == bulkUndoTimestamp,
-            )) {
+            (persisted.slots.any(
+                  (slot) =>
+                      bulkUndoSlotIds.contains(slot.id) &&
+                      slot.performedAt == bulkUndoTimestamp,
+                ) ||
+                (bulkUndoPriorStatus != null &&
+                    persisted.status == ProgramStatus.performed))) {
           _persistedBulkUndoActionToken = bulkUndoActionToken;
         }
         if (!mounted) return _AutoCommitOutcome.notCommitted(generation);
@@ -1792,6 +1800,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _pendingBulkUndoSlotIds = null;
     _pendingBulkUndoBaseline = null;
     _pendingBulkUndoTimestamp = null;
+    _pendingBulkUndoPriorStatus = null;
     _pendingBulkUndoWasDirty = null;
     _pendingBulkUndoEditGeneration = null;
     _pendingBulkUndoActionToken = null;
@@ -2639,6 +2648,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final wasDirty = _dirty;
     final l10n = AppLocalizations.of(context);
     final markedSlotIds = <String>{};
+    // GIG-12: while "Mark all performed sets the status" is on (the default),
+    // the action also sets Performed — even with every primary already marked
+    // — and remembers the status it replaced for Undo.
+    final priorStatus =
+        MarkAllSetsStatusScope.read(context) &&
+            _status != ProgramStatus.performed
+        ? _status
+        : null;
     setState(() {
       final updatedSlots = <ProgramSlot>[];
       for (final s in _slots) {
@@ -2652,11 +2669,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         }
       }
       _slots = updatedSlots;
-      if (markedSlotIds.isNotEmpty) {
+      if (priorStatus != null) _status = ProgramStatus.performed;
+      if (markedSlotIds.isNotEmpty || priorStatus != null) {
         _pendingBulkUndoTimestamp = now;
       }
     });
-    if (markedSlotIds.isEmpty) {
+    if (markedSlotIds.isEmpty && priorStatus == null) {
       // Every primary was already marked: say why the alternates still are not,
       // rather than doing nothing visible. There is nothing to undo.
       if (_slots.any(_isUnmarkedAlternate)) {
@@ -2676,6 +2694,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _markDirty();
     final actionToken = ++_bulkUndoActionToken;
     _pendingBulkUndoSlotIds = {...markedSlotIds};
+    _pendingBulkUndoPriorStatus = priorStatus;
     _pendingBulkUndoWasDirty = wasDirty;
     _pendingBulkUndoEditGeneration = _editGeneration;
     _pendingBulkUndoActionToken = actionToken;
@@ -2692,15 +2711,22 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       s.danceId != null && s.isAlt && s.performedAt == null;
 
   /// What Mark all performed reports: it says so when it left an alternate
-  /// unmarked, so the caller knows to mark the one they used.
-  String _markedAllPerformedMessage(AppLocalizations l10n) =>
-      _slots.any(_isUnmarkedAlternate)
-      ? l10n.programsMarkedAllPerformedExceptAlternates
-      : l10n.programsMarkedAllPerformed;
+  /// unmarked, so the caller knows to mark the one they used, and when it also
+  /// set the status, so the caller knows Undo puts that back too.
+  String _markedAllPerformedMessage(AppLocalizations l10n) => switch ((
+    _slots.any(_isUnmarkedAlternate),
+    _pendingBulkUndoPriorStatus != null,
+  )) {
+    (true, true) => l10n.programsMarkedAllPerformedExceptAlternatesSetStatus,
+    (true, false) => l10n.programsMarkedAllPerformedExceptAlternates,
+    (false, true) => l10n.programsMarkedAllPerformedSetStatus,
+    (false, false) => l10n.programsMarkedAllPerformed,
+  };
 
   void _showBulkUndoSnackBar({String? message}) {
     final markedSlotIds = _pendingBulkUndoSlotIds;
     final actionTimestamp = _pendingBulkUndoTimestamp;
+    final priorStatus = _pendingBulkUndoPriorStatus;
     final wasDirty = _pendingBulkUndoWasDirty;
     final actionEditGeneration = _pendingBulkUndoEditGeneration;
     final actionToken = _pendingBulkUndoActionToken;
@@ -2727,12 +2753,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _bulkUndoSnackBar = null;
         _pendingBulkUndoSlotIds = null;
         _pendingBulkUndoTimestamp = null;
+        _pendingBulkUndoPriorStatus = null;
         _pendingBulkUndoWasDirty = null;
         _pendingBulkUndoEditGeneration = null;
         unawaited(
           _undoMarkAllPerformed(
             markedSlotIds,
             actionTimestamp,
+            priorStatus: priorStatus,
             actionToken: actionToken,
             wasDirty: wasDirty,
             actionEditGeneration: actionEditGeneration,
@@ -2747,6 +2775,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _bulkUndoSnackBar = null;
         _pendingBulkUndoSlotIds = null;
         _pendingBulkUndoTimestamp = null;
+        _pendingBulkUndoPriorStatus = null;
         _pendingBulkUndoWasDirty = null;
         _pendingBulkUndoEditGeneration = null;
         _pendingBulkUndoActionToken = null;
@@ -2761,6 +2790,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _bulkUndoSnackBar = null;
     _pendingBulkUndoSlotIds = null;
     _pendingBulkUndoTimestamp = null;
+    _pendingBulkUndoPriorStatus = null;
     _pendingBulkUndoWasDirty = null;
     _pendingBulkUndoEditGeneration = null;
     _pendingBulkUndoActionToken = null;
@@ -2770,6 +2800,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _undoMarkAllPerformed(
     Set<String> markedSlotIds,
     DateTime actionTimestamp, {
+    required ProgramStatus? priorStatus,
     required int actionToken,
     required bool wasDirty,
     required int actionEditGeneration,
@@ -2789,6 +2820,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ? slot.copyWith(clearPerformedAt: true)
               : slot,
       ];
+      // A status changed since the action is the caller's, and stays.
+      if (priorStatus != null && _status == ProgramStatus.performed) {
+        _status = priorStatus;
+      }
     });
     if (autoCommitHadPersisted || autoCommitWasInFlight) {
       _autosaveTimer?.cancel();
@@ -2814,6 +2849,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           slotIds: markedSlotIds,
           performedAt: actionTimestamp,
           updatedAt: DateTime.now().toUtc(),
+          restoreStatus: priorStatus,
         );
       } catch (error, stackTrace) {
         logCaughtError(
@@ -3122,6 +3158,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _bulkUndoSnackBar = null;
       _pendingBulkUndoSlotIds = null;
       _pendingBulkUndoTimestamp = null;
+      _pendingBulkUndoPriorStatus = null;
       _pendingBulkUndoWasDirty = null;
       _pendingBulkUndoEditGeneration = null;
       _pendingBulkUndoActionToken = null;
@@ -4436,6 +4473,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           initialValue: _status,
           decoration: InputDecoration(
             labelText: l10n.programsStatusFieldLabel,
+            // GIG-12: say what Performed writes, and that Mark all performed
+            // sets it while that setting is on.
+            helperText: MarkAllSetsStatusScope.of(context)
+                ? l10n.programsStatusHelperMarkAllSetsStatus
+                : l10n.programsStatusHelper,
+            helperMaxLines: 4,
             border: const OutlineInputBorder(),
           ),
           items: [

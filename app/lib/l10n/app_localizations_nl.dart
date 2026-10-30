@@ -3141,6 +3141,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als ingeschakeld, heeft elke dans in de programmaweergave een schakelaar om die als uitgevoerd te markeren of niet, zonder de editor te openen. Als uitgeschakeld, tonen de rijen alleen of een dans is uitgevoerd.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Alles markeren als uitgevoerd zet de status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'Als ingeschakeld, zet Alles markeren als uitgevoerd ook de programmastatus op Uitgevoerd, en Ongedaan maken zet beide terug. Als uitgeschakeld, blijft de status zoals hij was.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Eventdatum vereisen voor callerhistorie';
 
@@ -5048,6 +5056,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd. Markeer een alternatief zelf als je het hebt gecalld.';
 
   @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Alle dansen gemarkeerd als uitgevoerd en de status op Uitgevoerd gezet.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd en de status op Uitgevoerd gezet. Markeer een alternatief zelf als je het hebt gecalld.';
+
+  @override
   String programsSavedSnack(String title) {
     return '“$title” opgeslagen.';
   }
@@ -5238,6 +5254,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Kies je Uitgevoerd, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd. Zet je de status terug, dan blijven de markeringen staan.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Kies je Uitgevoerd, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd, en Alles markeren als uitgevoerd zet deze status. Zet je de status terug, dan blijven de markeringen staan.';
 
   @override
   String get programsHideAlternatesTitle =>
