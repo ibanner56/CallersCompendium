@@ -9837,6 +9837,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String recentlyDeletedDeletedSyncedSnack(String title) {
+    return '« $title » définitivement supprimé. Une petite trace de suppression est conservée pour que vos autres appareils le suppriment aussi.';
+  }
+
+  @override
   String get recentlyDeletedRestore => 'Restaurer';
 
   @override

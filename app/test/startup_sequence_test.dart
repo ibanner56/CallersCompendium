@@ -34,7 +34,7 @@ import 'package:compendium_app/src/data/dialect_library_controller.dart'
     show kCustomDialectsKey;
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
-    show kSoftDeleteRetentionKey;
+    show kSoftDeleteRetentionKey, kSoftDeleteRetentionNever;
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/data/migration_error_labels.dart';
@@ -341,6 +341,76 @@ void main() {
         ),
         isNotNull,
       );
+    },
+  );
+
+  testWidgets(
+    'startup blanks a synced item an older build permanently deleted, even '
+    'when deleted items are kept forever (LIFE-2)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final fixedNow = DateTime.utc(2026, 6, 1);
+      await appData.repositories.settings.set(
+        kSoftDeleteRetentionKey,
+        kSoftDeleteRetentionNever,
+      );
+      await appData.repositories.dances.create(
+        Dance(
+          id: 'removed',
+          title: 'Private Dance',
+          callingNotes: 'Private notes',
+          createdAt: fixedNow.subtract(const Duration(days: 60)),
+          updatedAt: fixedNow.subtract(const Duration(days: 60)),
+        ),
+      );
+      await appData.repositories.programs.create(
+        Program(
+          id: 'removed',
+          title: 'Private Gig',
+          notes: 'Private notes',
+          createdAt: fixedNow.subtract(const Duration(days: 60)),
+          updatedAt: fixedNow.subtract(const Duration(days: 60)),
+        ),
+      );
+      await appData.repositories.syncLocal.markPublishedAll(const [
+        (kind: SyncRecordKind.dance, recordId: 'removed'),
+        (kind: SyncRecordKind.program, recordId: 'removed'),
+      ]);
+      // What "Permanently delete" left behind before blanking.
+      await appData.repositories.dances.softDelete(
+        'removed',
+        at: permanentlyDeletedAt,
+      );
+      await appData.repositories.programs.softDelete(
+        'removed',
+        at: permanentlyDeletedAt,
+      );
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          nowOverride: () => fixedNow,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      final dance = await appData.repositories.dances.getById(
+        'removed',
+        includeDeleted: true,
+      );
+      expect(dance!.title, blankedRecordTitle);
+      expect(dance.callingNotes, isEmpty);
+      final program = await appData.repositories.programs.getById(
+        'removed',
+        includeDeleted: true,
+      );
+      expect(program!.title, blankedRecordTitle);
+      expect(program.notes, isEmpty);
     },
   );
 

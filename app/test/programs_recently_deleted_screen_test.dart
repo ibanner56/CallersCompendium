@@ -161,4 +161,30 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'Permanently delete on a synced program hides it and says a deletion '
+    'record stays (LIFE-2)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Synced Gig'));
+      await repos.syncLocal.markPublished(
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+      );
+      await repos.programs.softDelete('p1', at: _now);
+      await _pump(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('permanent-delete-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('confirm-permanent-delete')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('restore-p1')), findsNothing);
+      expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
+      final kept = await repos.programs.getById('p1', includeDeleted: true);
+      expect(kept!.title, blankedRecordTitle);
+      expect(find.textContaining('deletion record is kept'), findsOneWidget);
+    },
+  );
 }
