@@ -433,9 +433,11 @@ class ShareMetadataImporter {
     }
 
     // Every field tries its own key before any field moves to a numbered one,
-    // so where a field lands never depends on the order of the file: a file
-    // carrying both `tempo` and its own `tempo_2` keeps `tempo_2` for the
-    // latter either way. A file may list the same definition twice; it is
+    // so a field that can keep its key is never moved to make room for one
+    // that clashes: a file carrying both `tempo` and its own `tempo_2` keeps
+    // `tempo_2` for the latter in either order. (Two fields of one file whose
+    // keys are canonically equal still compete in file order; `claimedBy`
+    // keeps them apart.) A file may list the same definition twice; it is
     // planned once.
     final clashes =
         <(CustomFieldDef, ({CustomFieldDef field, bool deleted}))>[];

@@ -9,7 +9,7 @@
   },
   "core": {
     "changed": [
-      "`ShareMetadataImporter` matches a custom field on its canonical key, type and, for a choice field, the set of choices. A field that differs goes to `<receiver key>_2`, `_3`, … (a compatible row already there is reused, two fields of one file never share a row, and every field tries its own key first, so the result does not depend on the order of the file) and is noted as an `archive_custom_field_key_conflict` `ImportIssue` on the new `ShareMetadataImportResult.issues`, instead of throwing a `StateError`. Its `data` carries the receiver's own `label` and the new `key`, or nothing when the key is held by another field of the same file or by a deleted field.",
+      "`ShareMetadataImporter` matches a custom field on its canonical key, type and, for a choice field, the set of choices. A field that differs goes to `<receiver key>_2`, `_3`, … (a compatible row already there is reused, two fields of one file never share a row, and every field tries its own key first, so a field that can keep its key is never moved to make room for one that clashes) and is noted as an `archive_custom_field_key_conflict` `ImportIssue` on the new `ShareMetadataImportResult.issues`, instead of throwing a `StateError`. Its `data` carries the receiver's own `label` and the new `key`, or nothing when the key is held by another field of the same file or by a deleted field.",
       "`ShareMetadataImporter.preview` and `CompendiumArchiveImporter.planMetadataIssues` return those notes at plan time without writing."
     ]
   }
