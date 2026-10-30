@@ -178,26 +178,38 @@ class DifficultyLevelRepository {
     });
   }
 
-  /// Returns `true` when any dance, including a tombstoned dance, refers to
-  /// [id]. A deleted dance can be restored, so it still protects the level.
-  Future<bool> isInUse(String id) async {
-    final row =
-        await (_db.select(_db.dances)
-              ..where((t) => t.levelId.equals(id))
-              ..limit(1))
-            .getSingleOrNull();
-    return row != null;
-  }
+  /// Returns `true` when any **live** dance refers to [id].
+  ///
+  /// A dance in Recently deleted does not count: the trash does not protect
+  /// what its records use (the maintainer's trash-policy decision, 2026-10-29,
+  /// option b), as for every other referential guard.
+  Future<bool> isInUse(String id) async => await referenceCount(id) > 0;
 
-  /// How many dances, including tombstoned ones, refer to [id]; the number
-  /// behind [isInUse], for a message that has to say how many.
+  /// How many live dances refer to [id]; the number behind [isInUse] and
+  /// [delete]'s guard, for a message that has to say how many.
   Future<int> referenceCount(String id) async {
     final references = _db.dances.id.count();
     return (_db.selectOnly(_db.dances)
           ..addColumns([references])
-          ..where(_db.dances.levelId.equals(id)))
+          ..where(
+            _db.dances.levelId.equals(id) & _db.dances.deletedAt.isNull(),
+          ))
         .map((row) => row.read(references) ?? 0)
         .getSingle();
+  }
+
+  /// Whether any dance at all, a tombstoned one included, still names [id] in
+  /// `dances.level_id`. Not a guard: [hardDelete] asks it because that foreign
+  /// key has no `ON DELETE` action, so erasing a level a trashed dance names
+  /// would fail.
+  Future<bool> _namedByAnyDance(String id) async {
+    final row =
+        await (_db.selectOnly(_db.dances)
+              ..addColumns([_db.dances.id])
+              ..where(_db.dances.levelId.equals(id))
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null;
   }
 
   Future<List<({DifficultyLevel level, bool deleted})>>
@@ -214,17 +226,16 @@ class DifficultyLevelRepository {
     ];
   }
 
-  /// Tombstones a level only when no dance refers to it.
+  /// Tombstones a level only when no live dance refers to it.
   ///
   /// The reference count and delete share a transaction, mirroring the
   /// custom-field and venue guards: no dance can acquire a reference in the
-  /// check-then-delete gap.
+  /// check-then-delete gap. A dance in Recently deleted does not hold the
+  /// level back (see [isInUse]); it keeps its `level_id`, which still names the
+  /// tombstoned row.
   Future<void> delete(String id, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      // Deliberately counts tombstoned dances too, unlike the other
-      // referential guards: [isInUse] states the policy for this kind — a
-      // deleted dance can be restored, so it still protects its level.
       final count = await referenceCount(id);
       if (count > 0) {
         throw DifficultyLevelInUse(id: id, count: count);
@@ -266,13 +277,23 @@ class DifficultyLevelRepository {
     }
   });
 
+  /// Erases each of [ids], for an import's rollback.
+  ///
+  /// Throws [DifficultyLevelInUse] for a level a live dance uses, as [delete]
+  /// does. A level that is a published sync record, or that a dance in
+  /// Recently deleted still names, is tombstoned instead of erased, as
+  /// `ChoreographerRepository.delete` does with `permanent` (issue #1357):
+  /// erasing it would break that dance's `level_id`.
   Future<void> hardDelete(Iterable<String> ids) => _db.transaction(() async {
     for (final id in ids) {
-      if (await isPublishedSyncRecord(
-        _db,
-        kind: SyncRecordKind.difficultyLevel,
-        recordId: id,
-      )) {
+      final count = await referenceCount(id);
+      if (count > 0) throw DifficultyLevelInUse(id: id, count: count);
+      if (await _namedByAnyDance(id) ||
+          await isPublishedSyncRecord(
+            _db,
+            kind: SyncRecordKind.difficultyLevel,
+            recordId: id,
+          )) {
         await stampExistenceTransition(
           _db,
           table: _db.difficultyLevels,

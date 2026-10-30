@@ -3721,7 +3721,7 @@ abstract class AppLocalizations {
   /// **'A level named \"{label}\" already exists.'**
   String settingsDefaultsDifficultyLevelDuplicate(String label);
 
-  /// Snackbar when deleting a difficulty level that dances (including deleted ones that can be restored) still use. {label} is the level's display name, never its id; {count} is the number of dances.
+  /// Snackbar when deleting a difficulty level that live dances still use; dances in Recently deleted don't count. {label} is the level's display name, never its id; {count} is the number of dances.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 dance uses {label}. Change it first.} other{{count} dances use {label}. Change them first.}}'**

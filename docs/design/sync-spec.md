@@ -142,8 +142,17 @@ that refusal differently, and both are deliberate:
 | --- | --- |
 | `venues` (soft reference, no FK) | retained **live** — the surviving program has no other way to show its venue |
 | cascading parents (FK cascade) | **tombstoned** — the join row survives for the owner's restore, and the parent still leaves every live view, which is what import rollback needs |
+| `difficulty_levels` (FK, no `ON DELETE` action) | **tombstoned**, as a cascading parent — the erasure would fail the foreign key, and the tombstone keeps `dances.level_id` valid |
 
 A **live** owner blocks either kind outright, with a `StateError`.
+
+*Amended 2026-10-30:* the `difficulty_levels` row was added when the local
+level guard stopped counting tombstoned dances (§6.8, amended the same day).
+Until then, import rollback asked a guard that counted them before calling
+`DifficultyLevelRepository.hardDelete`, so the hatch never met this case.
+`hardDelete` now enforces both itself: it refuses a level a live dance uses,
+with `DifficultyLevelInUse`, and tombstones one that only a tombstoned dance
+names.
 
 A hard delete is permitted **only** where the record can never have been
 published to a peer and has no conservative publication-attempt marker. A
@@ -3832,10 +3841,28 @@ be applied. Such a device MUST:
 - **not** advance its baseline entry for that record;
 - apply the deletion when its last citation goes.
 
-For difficulty levels the citation count includes **tombstoned** dances: a
-deleted dance can be restored, so it still holds its level, exactly as
-`DifficultyLevelRepository.delete` refuses a delete while any dance, live or in
-Recently Deleted, uses the level. Every other kind counts live owners only.
+Every kind counts live owners only. A dance or program in Recently Deleted
+holds nothing back, exactly as the local delete guards do not count it.
+
+> **Amended 2026-10-30, by the maintainer's decision.** This paragraph made
+> difficulty levels the exception: their citation count included
+> **tombstoned** dances, because a deleted dance can be restored, matching a
+> `DifficultyLevelRepository.delete` that refused while any dance, live or in
+> Recently Deleted, used the level. On 2026-10-29 the maintainer decided that
+> the trash does not protect what its records use (trash-policy, option b). On
+> 2026-10-30 they chose to amend the documents to match rather than reverse
+> that decision (R2-trash-docs, option a). Both are recorded in
+> `docs/dev/audits/2026-10-behavior/` on the audit branch. The local guard and
+> this count changed together, so an inbound level tombstone is still held
+> pending exactly when a local delete would be refused.
+>
+> A dance in Recently Deleted keeps its `level_id`, which then names a
+> tombstoned level; the tombstone is applied as a tombstone, never an erasure,
+> so the reference stays valid. A peer on an older build still counts its
+> tombstoned dances, so it may hold pending a level tombstone that this build
+> applies. That is the ordinary pending state above: it advertises the
+> tombstone, and it converges once that peer's trashed dance is purged or
+> stops citing the level.
 
 A pending tombstone is cancelled by exactly two things, and by nothing else.
 

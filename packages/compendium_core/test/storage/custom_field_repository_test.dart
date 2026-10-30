@@ -480,6 +480,218 @@ void main() {
   });
 
   group('creating onto a live natural key', _liveKeyCollisionOnCreate);
+
+  // The maintainer's trash-policy decision (2026-10-29, option b): a dance in
+  // Recently deleted does not protect what it uses. Every guard ignores it, and
+  // a field edit drops the trashed values that no longer fit instead.
+  group('trash does not protect a field', () {
+    final created = DateTime.utc(2026);
+    final trashed = DateTime.utc(2026, 2);
+    final edited = DateTime.utc(2026, 3);
+
+    Future<void> seedField(CustomFieldDef def) async {
+      // ignore: unused_result
+      await repo.upsert(def, at: created);
+    }
+
+    Future<void> seedDance(
+      String id,
+      Object value, {
+      bool inTrash = false,
+    }) async {
+      await dances.create(
+        Dance(
+          id: id,
+          title: id,
+          customFields: [CustomFieldValue(fieldId: 'f1', value: value)],
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      if (inTrash) await dances.softDelete(id, at: trashed);
+    }
+
+    Future<Map<String, String?>> valuesByDance() async {
+      final rows = await (db.select(
+        db.customFieldValues,
+      )..where((t) => t.fieldId.equals('f1'))).get();
+      return {
+        for (final row in rows)
+          row.danceId: row.valueText ?? row.valueNum?.toString(),
+      };
+    }
+
+    Future<DateTime> updatedAt(String danceId) async => (await (db.select(
+      db.dances,
+    )..where((t) => t.id.equals(danceId))).getSingle()).updatedAt;
+
+    CustomFieldDef field(
+      CustomFieldType type, {
+      List<String>? choices,
+      bool shareable = true,
+    }) => CustomFieldDef(
+      id: 'f1',
+      key: 'feel',
+      label: 'Feel',
+      type: type,
+      choices: choices,
+      shareable: shareable,
+    );
+    final text = field(CustomFieldType.text);
+    final choice = field(
+      CustomFieldType.choice,
+      choices: const ['driving', 'lyrical'],
+    );
+
+    test('isInUse ignores a value only a trashed dance holds', () async {
+      await seedField(text);
+      await seedDance('trashed', 'a note', inTrash: true);
+      expect(await repo.isInUse('f1'), isFalse);
+
+      await seedDance('live', 'another note');
+      expect(await repo.isInUse('f1'), isTrue);
+    });
+
+    test(
+      'listUsedChoiceValues ignores a choice only a trashed dance holds',
+      () async {
+        await seedField(choice);
+        await seedDance('trashed', 'lyrical', inTrash: true);
+        await seedDance('live', 'driving');
+        expect(await repo.listUsedChoiceValues('f1'), {'driving'});
+      },
+    );
+
+    test('a type change drops the trashed dance\'s value, so the dance still '
+        'reads and restores', () async {
+      await seedField(text);
+      await seedDance('trashed', 'a note', inTrash: true);
+
+      // ignore: unused_result
+      await repo.upsert(field(CustomFieldType.number), at: edited);
+
+      expect(await valuesByDance(), isEmpty);
+      // A text value under a number field does not decode: without the drop
+      // this read throws.
+      expect(
+        (await dances.getById('trashed', includeDeleted: true))!.customFields,
+        isEmpty,
+      );
+      await dances.restore('trashed', at: edited);
+      expect((await dances.getById('trashed'))!.customFields, isEmpty);
+    });
+
+    test('a type change restamps the trashed dance whose published body lost '
+        'the value', () async {
+      await seedField(text);
+      await seedDance('trashed', 'a note', inTrash: true);
+      final before = await updatedAt('trashed');
+
+      // ignore: unused_result
+      await repo.upsert(field(CustomFieldType.number), at: edited);
+
+      expect((await updatedAt('trashed')).isAfter(before), isTrue);
+    });
+
+    test(
+      'a private field\'s dropped value does not restamp the dance',
+      () async {
+        // Its value was never on the wire, so the body did not change (I2).
+        final private = field(CustomFieldType.text, shareable: false);
+        await seedField(private);
+        await seedDance('trashed', 'a note', inTrash: true);
+        final before = await updatedAt('trashed');
+
+        // ignore: unused_result
+        await repo.upsert(
+          field(CustomFieldType.number, shareable: false),
+          at: edited,
+        );
+
+        expect(await valuesByDance(), isEmpty);
+        expect(await updatedAt('trashed'), before);
+      },
+    );
+
+    test('removing a choice drops it only from trashed dances', () async {
+      await seedField(choice);
+      await seedDance('trashed-kept', 'driving', inTrash: true);
+      await seedDance('trashed-dropped', 'lyrical', inTrash: true);
+      await seedDance('live', 'driving');
+      final keptBefore = await updatedAt('trashed-kept');
+
+      // ignore: unused_result
+      await repo.upsert(
+        field(CustomFieldType.choice, choices: ['driving']),
+        at: edited,
+      );
+
+      expect(await valuesByDance(), {
+        'trashed-kept': 'driving',
+        'live': 'driving',
+      });
+      expect(
+        await updatedAt('trashed-kept'),
+        keptBefore,
+        reason: 'a dance whose value still fits keeps its body and its stamp',
+      );
+      expect((await updatedAt('trashed-dropped')).isAfter(keptBefore), isTrue);
+    });
+
+    test(
+      'a change between text and choice keeps a value that still fits',
+      () async {
+        await seedField(choice);
+        await seedDance('trashed', 'lyrical', inTrash: true);
+
+        // ignore: unused_result
+        await repo.upsert(field(CustomFieldType.text), at: edited);
+
+        expect(await valuesByDance(), {'trashed': 'lyrical'});
+      },
+    );
+
+    test(
+      'a change from text to choice drops a value outside the options',
+      () async {
+        await seedField(text);
+        await seedDance('trashed-kept', 'driving', inTrash: true);
+        await seedDance('trashed-dropped', 'a note', inTrash: true);
+
+        // ignore: unused_result
+        await repo.upsert(choice, at: edited);
+
+        expect(await valuesByDance(), {'trashed-kept': 'driving'});
+      },
+    );
+
+    test('a change between number and boolean drops the value', () async {
+      // Both store `value_num`, but 2.5 read as a boolean is `true`: the value
+      // would change under the dance rather than survive.
+      await seedField(field(CustomFieldType.number));
+      await seedDance('trashed', 2.5, inTrash: true);
+
+      // ignore: unused_result
+      await repo.upsert(field(CustomFieldType.boolean), at: edited);
+
+      expect(await valuesByDance(), isEmpty);
+    });
+
+    test('a live dance\'s value is never dropped by a field edit', () async {
+      // The editor locks the type while a live dance holds a value; this write
+      // is not where that is enforced, so it must leave live values alone.
+      await seedField(choice);
+      await seedDance('live', 'lyrical');
+
+      // ignore: unused_result
+      await repo.upsert(
+        field(CustomFieldType.choice, choices: ['driving']),
+        at: edited,
+      );
+
+      expect(await valuesByDance(), {'live': 'lyrical'});
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------

@@ -647,6 +647,13 @@ is no longer any code path that migrates from them.
   discarded. The foreign key and repository write guard reject dangling IDs;
   repository deletion is transactional and refuses a level used by any dance,
   including a tombstoned dance that could be restored later.
+  *Amended 2026-10-30:* deletion now refuses only a level a **live** dance
+  uses. By the maintainer's trash-policy decision (2026-10-29, option b), a
+  dance in Recently Deleted no longer protects its level, as it already did not
+  protect its tags, authors, sources, custom fields or venue. Such a dance keeps
+  its `level_id`, naming the tombstoned row. Because the foreign key has no
+  `ON DELETE` action, `DifficultyLevelRepository.hardDelete` (an import's
+  rollback) tombstones rather than erases a level only such a dance names.
 ### Supported (v35 and later)
 
 These are the versions a database can still be stamped at. v35 is the floor:

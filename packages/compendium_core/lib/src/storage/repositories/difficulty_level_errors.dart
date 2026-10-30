@@ -33,8 +33,8 @@ class DifficultyLevelLabelDuplicate extends StateError {
   final String label;
 }
 
-/// A level cannot be deleted because [count] dances (including deleted ones
-/// that can be restored) still refer to it.
+/// A level cannot be deleted because [count] live dances still refer to it.
+/// Dances in Recently deleted are not counted.
 ///
 /// [id] is an internal identifier. Screens MUST NOT surface it or [toString]
 /// (CWE-209); they show the level's display label in their own localized
