@@ -110,7 +110,7 @@ the pinned New row and a title bar, so below that there is little to search
 for. *(My estimate; the build should check it at 360×640.)*
 
 **What it matches.** Title and the resolved venue label, folded with
-`foldForTitleMatch` (`packages/compendium_core/lib/src/search/title_match.dart:21`).
+`foldForTitleMatch` (`packages/compendium_core/lib/src/search/title_sort_key.dart`).
 That helper is the one the command palette already uses on program titles
 (`command_palette.dart:162`), so the sheet adds no seventh matcher to the six
 the audit counted (`FIND.md`, cross-cutting pattern 1). Order within results
