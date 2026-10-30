@@ -2676,6 +2676,33 @@ void main() {
       expect(saved.slots.single.performedAt, called);
     });
 
+    testWidgets('persisted status-only Undo after a later edit', (
+      tester,
+    ) async {
+      final called = DateTime.utc(2025, 12, 31, 20);
+      final repos = await seed(performedAt: called);
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+      await _expandMoreDetails(tester);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      // An edit after the commit moves the edit generation on, so only the
+      // action token can tell Undo that the status reached the store.
+      await tester.enterText(
+        find.byKey(const ValueKey('program-notes')),
+        'Great crowd',
+      );
+      await tester.pump();
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.status, ProgramStatus.draft);
+      expect(saved.notes, 'Great crowd');
+    });
+
     testWidgets('leaves the status alone with the setting off', (tester) async {
       final repos = await seed();
       await _pumpBuilder(
