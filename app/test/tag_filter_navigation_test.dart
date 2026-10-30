@@ -461,4 +461,39 @@ void main() {
       expect(find.text('Filters · 3'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'a selected tag that no dance carries any more is dropped, so it cannot '
+    'hide every dance under "all tags" (FIND-14)',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+      final both = _dance(id: 'd1', title: 'Both', tagIds: const ['t1', 't2']);
+      await repos.dances.create(both);
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Smooth Only', tagIds: const ['t1']),
+      );
+
+      await _pumpShell(tester, repos, size: const Size(1300, 1400));
+      await tester.tap(find.byKey(const ValueKey('filters-panel')));
+      await tester.pumpAndSettle();
+      for (final key in ['tag-t1', 'tag-t2']) {
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+      }
+      expect(_listedTitles(tester), ['Both']);
+
+      // The only dance with t2 loses it: t2's chip goes, and so does t2.
+      final stored = await repos.dances.getById('d1');
+      await repos.dances.update(stored!.copyWith(tagIds: const ['t1']));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('tag-t2')), findsNothing);
+      expect(_listedTitles(tester).toSet(), {'Both', 'Smooth Only'});
+      expect(find.text('Filters · 1'), findsOneWidget);
+      expect(find.byKey(const ValueKey('facet-tags-match-mode')), findsNothing);
+    },
+  );
 }

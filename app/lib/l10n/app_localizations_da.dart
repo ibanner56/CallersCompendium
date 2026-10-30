@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -4113,7 +4112,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vis danse, der har alle de valgte tags';
 
   @override
-  String get collectionFacetTagsMatchAny => 'Ét tag';
+  String get collectionFacetTagsMatchAny => 'Mindst ét tag';
 
   @override
   String get collectionFacetTagsMatchAnyTooltip =>

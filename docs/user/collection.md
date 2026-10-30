@@ -311,7 +311,8 @@ The detail view brings together:
   the dance is flagged (for example, deprecated or broken).
 - **The figures**, laid out by section (A1, A2, B1, B2), each with a beats column
   and a marker showing where the [progression](./glossary.md#progression) happens.
-- **Tags** — select one to show every dance with that tag.
+- **Tags** — select one to add it to the Collection's **Tags** filter; see
+  [Filter by tags](#filter-by-tags).
 - **A Canonical switch** — flip between your dialect and the neutral, shared
   wording without changing the saved dance. It appears once you turn on
   **Canonical figure text** in

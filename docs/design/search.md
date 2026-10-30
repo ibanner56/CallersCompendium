@@ -663,8 +663,9 @@ Flagged for coordinator/user input before 3.2b:
    ranking can be revisited later.
 7. **Multi-tag facet semantics** *(decided, FIND-14)*. When the user picks
    several tags in the Tag facet: AND (has all) or OR (has any)? First shipped
-   as OR. The maintainer's 2026-10-30 decision (R2-tag-tap) made it the user's
-   choice: an **All tags / Any tag** toggle shown once two tags are selected,
+   as OR. The maintainer's 2026-10-30 decision on FIND-14 (entry R2-tag-tap in
+   the 2026-10 behaviour audit's `maintainer-decisions-2026-10-30.md`) made it
+   the user's choice: an **All tags / Any tag** toggle shown once two tags are selected,
    **All tags** by default each time a second tag is added, later tags keeping
    the current choice. The facet's **Untagged** chip (issue #1422) stays an OR
    alternative in either mode, so `Untagged` + `TagA` + `TagB` under **All

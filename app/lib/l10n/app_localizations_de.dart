@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -4146,7 +4145,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionFacetUntagged => 'Ohne Tags';
 
   @override
-  String get collectionFacetTagsMatchLabel => 'Tags abgleichen';
+  String get collectionFacetTagsMatchLabel => 'Tag-Übereinstimmung';
 
   @override
   String get collectionFacetTagsMatchAll => 'Alle Tags';
@@ -4156,7 +4155,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tänze anzeigen, die alle gewählten Tags haben';
 
   @override
-  String get collectionFacetTagsMatchAny => 'Ein Tag';
+  String get collectionFacetTagsMatchAny => 'Mind. ein Tag';
 
   @override
   String get collectionFacetTagsMatchAnyTooltip =>

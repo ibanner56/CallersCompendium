@@ -635,8 +635,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// derived from that same source?
   void _onCollectionData(CollectionData data) {
     final previous = _data;
+    final tagsDropped = _facets.retainTags([for (final t in data.tags) t.id]);
     final searchAffected =
         previous == null ||
+        tagsDropped ||
         !mapEquals(previous.dancesById, data.dancesById) ||
         !listEquals(previous.customFieldDefs, data.customFieldDefs) ||
         (_facets.callStatuses.isNotEmpty &&

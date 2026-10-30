@@ -4160,7 +4160,7 @@
   "@collectionFacetTagsMatchAllTooltip": {
     "x-sourceSha256": "483a3fe3057b0a7ad9a6e764902ef12489654d566bb3a98ef81e0612b5a420ee"
   },
-  "collectionFacetTagsMatchAny": "Eén tag",
+  "collectionFacetTagsMatchAny": "Minstens één tag",
   "@collectionFacetTagsMatchAny": {
     "x-sourceSha256": "092b9712bdd44445e888caf684749b183dd04ddc813c6c97e38abc65e3db0be9"
   },

@@ -909,6 +909,13 @@ void main() {
       expect(facets.tagsMatchAll, isTrue);
     });
 
+    test('retainTags drops tags no longer offered and reports it', () {
+      final facets = FacetSelections()..tagIds.addAll(['t1', 't2']);
+      expect(facets.retainTags(['t1', 't2', 't3']), isFalse);
+      expect(facets.retainTags(['t1']), isTrue);
+      expect(facets.tagIds, {'t1'});
+    });
+
     test('the mode is not a selection: it never counts or makes non-empty', () {
       final facets = FacetSelections()..tagsMatchAll = false;
       expect(facets.isEmpty, isTrue);

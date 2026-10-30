@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -4142,7 +4141,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dansen tonen die alle gekozen tags hebben';
 
   @override
-  String get collectionFacetTagsMatchAny => 'Eén tag';
+  String get collectionFacetTagsMatchAny => 'Minstens één tag';
 
   @override
   String get collectionFacetTagsMatchAnyTooltip =>

@@ -121,6 +121,19 @@ class FacetSelections {
     return true;
   }
 
+  /// Drops every selected tag not in [listed], the tags the Tags facet offers
+  /// (those a live dance carries). Returns whether anything was dropped.
+  ///
+  /// A selected tag whose last dance loses it has no chip left to deselect,
+  /// and under [tagsMatchAll] it would hide every dance, so the host calls
+  /// this whenever its collection data changes.
+  bool retainTags(Iterable<String> listed) {
+    final keep = listed.toSet();
+    final before = tagIds.length;
+    tagIds.removeWhere((id) => !keep.contains(id));
+    return tagIds.length != before;
+  }
+
   /// The Tags facet's "Untagged" chip: dances with no live tag. It never
   /// clears, or is cleared by, a tag chip, and it is always an OR alternative
   /// to the selected tags, in either [tagsMatchAll] mode: "untagged, or has

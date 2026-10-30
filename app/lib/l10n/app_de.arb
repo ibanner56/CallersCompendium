@@ -4148,7 +4148,7 @@
   "@collectionFacetUntagged": {
     "x-sourceSha256": "9a28cbfaf271bc2dcfc7142f739445d8dc755b1e465b399ad96ba02e87fc9927"
   },
-  "collectionFacetTagsMatchLabel": "Tags abgleichen",
+  "collectionFacetTagsMatchLabel": "Tag-Übereinstimmung",
   "@collectionFacetTagsMatchLabel": {
     "x-sourceSha256": "f815c8eb1c0528d683edad42bc05ee6804c8cec5c4b70b6f1393b2d795b01825"
   },
@@ -4160,7 +4160,7 @@
   "@collectionFacetTagsMatchAllTooltip": {
     "x-sourceSha256": "483a3fe3057b0a7ad9a6e764902ef12489654d566bb3a98ef81e0612b5a420ee"
   },
-  "collectionFacetTagsMatchAny": "Ein Tag",
+  "collectionFacetTagsMatchAny": "Mind. ein Tag",
   "@collectionFacetTagsMatchAny": {
     "x-sourceSha256": "092b9712bdd44445e888caf684749b183dd04ddc813c6c97e38abc65e3db0be9"
   },
