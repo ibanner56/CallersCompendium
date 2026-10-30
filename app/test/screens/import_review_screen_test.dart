@@ -651,7 +651,7 @@ void main() {
       tester.getSemantics(
         find.descendant(of: box, matching: find.byType(Checkbox)),
       ),
-      containsSemantics(
+      isSemantics(
         label:
             'Also update title and credit\n'
             'Takes this file\'s title and author credit for "Old Title". '
