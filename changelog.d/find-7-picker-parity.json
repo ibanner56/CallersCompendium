@@ -1,0 +1,13 @@
+{
+  "id": "find-7-picker-parity",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The dance picker you use while building a program now has the Collection's Search in and Sort controls. It opens in your Collection sort order, and a sort you choose while picking lasts until you close the picker.",
+      "Online search in the dance picker can now search by author or figure as well as title, chosen with Search in, as in the Collection."
+    ],
+    "changed": [
+      "Settings › Defaults › Collection card fields now also chooses what the program dance picker's rows show."
+    ]
+  }
+}

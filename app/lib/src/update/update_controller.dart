@@ -31,6 +31,7 @@ import 'artifact_downloader.dart';
 import 'artifact_handoff.dart';
 import 'artifact_verifier.dart';
 import 'current_platform.dart';
+import 'install_kind.dart';
 import 'semver.dart';
 import 'update_config.dart';
 import 'update_manifest.dart';
@@ -165,6 +166,7 @@ class UpdateController extends ChangeNotifier {
     SemVer? currentVersion,
     UpdatePlatform? platform,
     UpdateArch? arch,
+    InstallKind? installKind,
     ArtifactDownloader? downloader,
     ArtifactVerifier? verifier,
     ArtifactHandoff? handoff,
@@ -181,6 +183,14 @@ class UpdateController extends ChangeNotifier {
                const SemVer(major: 0, minor: 0, patch: 0)),
        _platform = platform ?? currentUpdatePlatform(),
        _arch = arch ?? currentUpdateArch(),
+       // Detection reads the real process, so it only means something for the
+       // real platform: a test that fakes [platform] gets the standard channel
+       // unless it names an [installKind].
+       installKind =
+           installKind ??
+           (platform == null
+               ? detectInstallKind(platform: currentUpdatePlatform())
+               : InstallKind.standard),
        _downloader = downloader ?? downloadArtifact,
        _verifier = verifier ?? verifyArtifactSha256,
        _handoff = handoff ?? handoffArtifactToOs,
@@ -212,6 +222,21 @@ class UpdateController extends ChangeNotifier {
   final UpdatePlatform _platform;
   final UpdateArch _arch;
 
+  /// How this copy was installed (PLAT-5, PLAT-6). A [InstallKind.store] copy
+  /// is never offered an update (it reads an end-of-support date only); a [InstallKind.portable] copy checks but is pointed at the
+  /// release instead of being handed an installer it cannot use.
+  final InstallKind installKind;
+
+  /// Whether this copy is ever offered an update. A store copy is updated by
+  /// its store, so it is not: its check reads the release information for an
+  /// end-of-support date only (maintainer decision, 2026-10-30).
+  bool get offersUpdates => installKind != InstallKind.store;
+
+  /// Where the end-of-support "Get update" action goes on a store copy: its
+  /// store listing. `null` on every other copy, which opens the release.
+  String? get storeListingUrl =>
+      installKind == InstallKind.store ? storeListingUrlFor(_platform) : null;
+
   bool _betaChannel = false;
   bool _autoCheck = false;
   SemVer? _dismissedVersion;
@@ -234,9 +259,14 @@ class UpdateController extends ChangeNotifier {
   /// Whether the automatic background check is enabled (default off).
   bool get autoCheck => _autoCheck;
 
-  /// The channel the check fetches, derived from [betaChannel].
-  UpdateChannel get channel =>
-      _betaChannel ? UpdateChannel.beta : UpdateChannel.stable;
+  /// The channel the check fetches, derived from [betaChannel]. A store copy
+  /// has no channel choice (it is never offered an update), so it reads the
+  /// channel its own build was released on, whatever a beta preference stored
+  /// before it was a store copy says.
+  UpdateChannel get channel {
+    final beta = offersUpdates ? _betaChannel : currentVersion.isPreRelease;
+    return beta ? UpdateChannel.beta : UpdateChannel.stable;
+  }
 
   /// The last version the user dismissed from the banner, or `null`.
   SemVer? get dismissedVersion => _dismissedVersion;
@@ -327,6 +357,8 @@ class UpdateController extends ChangeNotifier {
   /// "Download & install" exactly when this is non-null.
   UpdateArtifact? get downloadableArtifact {
     if (!isDesktopUpdatePlatform(_platform)) return null;
+    // A portable copy cannot take the installer the manifest names.
+    if (installKind != InstallKind.standard) return null;
     return _available?.artifact;
   }
 
@@ -850,12 +882,14 @@ class UpdateController extends ChangeNotifier {
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
 
-  /// Runs a check now (the manual "Check for updates" action, always
-  /// available). Concurrent presses are ignored while one is in flight. Never
+  /// Runs a check now (the manual "Check for updates" action, available on
+  /// every build but a store one, which does nothing: [offersUpdates]).
+  /// Concurrent presses are ignored while one is in flight. Never
   /// throws — a failure resolves to [UpdateCheckStatus.couldNotCheck] or, for
   /// an authentic manifest this build cannot read,
   /// [UpdateCheckStatus.newerFormat].
-  Future<void> checkNow() => _check(manual: true);
+  Future<void> checkNow() =>
+      offersUpdates ? _check(manual: true) : Future.value();
 
   Future<void> _check({required bool manual}) async {
     if (_status == UpdateCheckStatus.checking) return;
@@ -888,6 +922,13 @@ class UpdateController extends ChangeNotifier {
       UpdateCheckFailed() => null,
     };
     if (checked != null) await _applyEndOfLife(checked.endOfLife);
+    if (!offersUpdates) {
+      // A store copy reads the release information for its end-of-support
+      // date only: no update offer, and no status line to speak of.
+      _status = statusBefore;
+      notifyListeners();
+      return;
+    }
     final result = checked?.update;
 
     _available = result;

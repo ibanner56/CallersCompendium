@@ -1,0 +1,14 @@
+{
+  "id": "2039-sort-folds-accents",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Sorting by title or author, in the Collection and in the Programs list, now ignores accents, so a title starting with É sorts with E instead of after Z."
+    ]
+  },
+  "core": {
+    "changed": [
+      "titleSortKey folds accents like foldForTitleMatch, and the title and author sorts compare folded keys instead of relying on SQL COLLATE NOCASE."
+    ]
+  }
+}

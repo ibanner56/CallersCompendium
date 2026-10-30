@@ -479,7 +479,7 @@ void main() {
   group(
     'must stay custom — dancers the taxonomy deliberately does not map',
     () {
-      // `P6`+, negative `P-n`, phantoms, square corners and the free-form
+      // `P6`+, negative `P-n`, phantoms, a "next corner" and the free-form
       // positional phrases have no faithful token; approximating them onto one
       // that means someone else would be worse than declining.
       // (`P1`/`P2`/`P4` now have tokens — see "attested subject" test above.)

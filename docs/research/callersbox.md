@@ -166,9 +166,12 @@ and `pull by direction`.
   English Country Dance. First corners are man one and woman two. Second corners
   are woman one and man two."
 
-The last two entries are why `C1`–`C3` are **not** mapped: `ParamVocab`'s
+The last two entries are why `C1`–`C3` were long **not** mapped: `ParamVocab`'s
 `firstCorners`/`secondCorners` model the ECD *First/second corners*, a different
-relationship from TCB's square corners. Mapping them would fabricate.
+relationship from TCB's square corners. Since taxonomy v38 they are mapped
+(#1975): the maintainer ruled that a square's corner is a contra first corner,
+and added `opposites` and `thirdCorners`, so C1, C2 and C3 are `firstCorners`,
+`opposites` and `thirdCorners`. `C4`+ is still declined.
 `P0`, `P2`–`P5` have vocabulary tokens (taxonomy v24, issue #732) and the
 importer now maps them (issue #732, PR E). `P6`+, every `P-n`,
 `N5`+/`N-1`/`S3`+ have no token, and `Ph*` (phantoms) / `TB*`
@@ -191,7 +194,7 @@ their pass count. The 196 declines break down as:
 
 | reason | lines | detail |
 |---|---|---|
-| unmappable pass code | 115 | square corners `C1`–`C7` 55 · mixer partner series `P6`+/`P-n` 18 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
+| unmappable pass code | 115 | square corners `C1`–`C7` 55 (`C1`–`C3` map since taxonomy v38, #1975; not re-measured) · mixer partner series `P6`+/`P-n` 18 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
 | leftover prose outside the pass list | 56 | a second parenthetical 17 · a `[…]` qualifier 16 · other prose/`;`-tail 9 · `Progressive grand right and left` 8 · `Same-role grand right and left` 6 |
 | no pass list at all | 3 | |
 | degenerate list (`(N1R)`, `(N1R;;N2L)`) | 2 | |

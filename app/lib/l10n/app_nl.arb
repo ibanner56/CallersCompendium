@@ -1728,6 +1728,10 @@
   "@settingsUpdatesAutoSubtitle": {
     "x-sourceSha256": "714fa486bfaec4f1907d33ca08c2096908d4bdb3ef3ed57405369ae3ced54400"
   },
+  "settingsUpdatesAutoStoreSubtitle": "Zoek bij het opstarten van de app op de achtergrond naar een einddatum van de ondersteuning voor deze versie. Standaard uit.",
+  "@settingsUpdatesAutoStoreSubtitle": {
+    "x-sourceSha256": "3a7d703804b7f49cf78065166a77bb567810a90345b58a283ded6683be7986b0"
+  },
   "settingsUpdatesPrivacyNote": "De updatecontrole downloadt alleen een klein versiebestand via HTTPS — er worden nooit gegevens over jou, je apparaat of je gebruik verstuurd. Er wordt niets automatisch gedownload of geïnstalleerd: jij kiest wanneer je een update downloadt, het wordt geverifieerd voordat het wordt geopend, en je systeeminstaller voltooit de installatie.",
   "@settingsUpdatesPrivacyNote": {
     "x-sourceSha256": "c8815fc787434dbbc8184498535e50532203e8bebe25e8ea4febae05cf99aafb"
@@ -1779,6 +1783,22 @@
   "settingsUpdatesMacosReadySubtitle": "Je update is klaar. Koppel de schijfkopie aan en sluit de app zodat je deze in Programma's kunt vervangen.",
   "@settingsUpdatesMacosReadySubtitle": {
     "x-sourceSha256": "005d5b6d4026d34cd4bb0a4ede76c2fd391bd3598b5fcfd2b21103f543100223"
+  },
+  "settingsUpdatesStoreTitle": "Updates komen uit je appstore",
+  "@settingsUpdatesStoreTitle": {
+    "x-sourceSha256": "53e9be4c9dadaca5e7677a817a615dd6d698146fe548efd09d346ebfa4afc5ad"
+  },
+  "settingsUpdatesStoreSubtitle": "Deze kopie is geïnstalleerd vanuit een appstore, dus de store werkt hem bij. De app zoekt alleen naar een einddatum van de ondersteuning, nooit naar een nieuwe versie.",
+  "@settingsUpdatesStoreSubtitle": {
+    "x-sourceSha256": "db003b621e3b71c206dd26c0ff18cb86c13b0bee31bae687eefd882f6f3f12ba"
+  },
+  "settingsUpdatesPortableTitle": "Draagbare kopie: download het nieuwe archief",
+  "@settingsUpdatesPortableTitle": {
+    "x-sourceSha256": "47aa3322aff392868cd8336d0caa2bcf41e7f1bc6d13b0ece461f5408f4c00ae"
+  },
+  "settingsUpdatesPortableSubtitle": "Deze kopie draait vanuit een uitgepakt archief, dus de app kan de update niet voor je installeren. Download de nieuwe zip of tar.gz van de release en pak hem uit.",
+  "@settingsUpdatesPortableSubtitle": {
+    "x-sourceSha256": "e81b7be2d5f5dea10b985580086853594ffb5da78c8fbaeb9ffc55c926863fb7"
   },
   "settingsUpdatesDownloadTitle": "Update downloaden en installeren",
   "@settingsUpdatesDownloadTitle": {
@@ -3912,10 +3932,6 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
-  "collectionPickerOnlineSearchFieldHint": "Zoek online naar dansen op titel…",
-  "@collectionPickerOnlineSearchFieldHint": {
-    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
-  },
   "collectionSearchScopeLabel": "Zoeken in",
   "@collectionSearchScopeLabel": {
     "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"
@@ -4832,6 +4848,14 @@
   "@programsDraftBody": {
     "x-sourceSha256": "c7f0f1a362476a5fd3dc3339ad8b7208aebe3d297ff8e4c340e9f28f40070aa8"
   },
+  "programsDraftAnotherNewProgramBody": "Je hebt een niet-opgeslagen concept van een ander nieuw programma, ‘{title}’. Wil je het herstellen in plaats van een nieuw te beginnen?",
+  "@programsDraftAnotherNewProgramBody": {
+    "x-sourceSha256": "7fef500f5f004887e99ac40cec6c9bd12e3cd990df20b751f3a8b7de584d5ee3"
+  },
+  "programsDraftAnotherNewProgramUntitledBody": "Je hebt een niet-opgeslagen concept van een ander nieuw programma, nog zonder titel. Wil je het herstellen in plaats van een nieuw te beginnen?",
+  "@programsDraftAnotherNewProgramUntitledBody": {
+    "x-sourceSha256": "2ad41d85f235c3184fcf33a6400608446a19671bfcec3d592f0431761cb670d3"
+  },
   "programsDraftRestore": "Herstellen",
   "@programsDraftRestore": {
     "x-sourceSha256": "a76e13b9839270eb73ed11417f7d8acca55df0ad52065799361631d0fff74f27"
@@ -5633,6 +5657,10 @@
   "performUndoNoLongerAvailable": "Kan niet ongedaan maken: het programma is sindsdien gewijzigd.",
   "@performUndoNoLongerAvailable": {
     "x-sourceSha256": "b3e205dcae09a94dc4693a675f528a7f6aad490523457c362ed13b6d48e7f9c9"
+  },
+  "performProgramChangedElsewhere": "Dit programma was elders gewijzigd sinds Uitvoeren werd geopend. Uitvoeren toont nu de nieuwste versie, met jouw wijziging.",
+  "@performProgramChangedElsewhere": {
+    "x-sourceSha256": "616c3dbe3deede99d9d6a64423eaa11100c10df1383c1c1430edbe78fe933e93"
   },
   "performProgramAdjustedSnack": "Programma aangepast.",
   "@performProgramAdjustedSnack": {
@@ -8569,6 +8597,10 @@
   "updateBannerAvailable": "Een nieuwere versie van {appName} ({version}) is beschikbaar.",
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"
+  },
+  "updateBannerPortable": "Er is een nieuwere versie van {appName} ({version}) beschikbaar. Dit is een draagbare kopie, dus download de nieuwe zip of tar.gz van de release.",
+  "@updateBannerPortable": {
+    "x-sourceSha256": "aadaf3b38beb0a611010e02e3994fad057ac5a933a5b3d1d22674d2d167ceba0"
   },
   "retirementNoticeUpcoming": "De ondersteuning voor deze versie van {appName} ({version}) stopt op {date}. Werk vóór die datum bij naar een nieuwere versie.",
   "@retirementNoticeUpcoming": {

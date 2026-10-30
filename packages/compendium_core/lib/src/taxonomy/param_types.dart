@@ -61,8 +61,6 @@ abstract final class ParamVocab {
     'role2s',
     'ones',
     'twos',
-    'firstCorners',
-    'secondCorners',
     'partners',
     'neighbors',
     'sameRoles',
@@ -72,6 +70,14 @@ abstract final class ParamVocab {
     'nextNeighbors',
     'thirdNeighbors',
     'fourthNeighbors',
+    // v38 (#1975, maintainer decisions): the corners and opposites sit below
+    // the neighbour series in the picker. A square's corner is a contra first
+    // corner, and The Caller's Box's square corners C1, C2 and C3 are the
+    // first corners, the opposites and the third corners.
+    'firstCorners',
+    'secondCorners',
+    'thirdCorners',
+    'opposites',
     // Mixer partner series (issue #732, v24): a mixer's previous / successive
     // partners beyond the current one (P1 = `partners`). Named to parallel the
     // neighbour series above; `prevPartners` covers P0 (the partner before your

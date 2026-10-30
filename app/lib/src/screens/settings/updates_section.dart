@@ -5,21 +5,28 @@ import '../../app_metadata.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../update/artifact_handoff.dart';
+import '../../update/install_kind.dart';
 import '../../update/macos_update_prompt.dart';
 import '../../update/retirement_banner.dart';
 import '../../update/update_controller.dart';
 import '../../update/update_failure_labels.dart';
 import '../../update/update_scope.dart';
+import '../../utils/launch_external_url.dart';
 import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 
 /// The Updates settings section (ADR-002 §4/§5, "Stage 1.5"): a manual "Check
-/// for updates" action (always available), a beta-channel opt-in (default off →
-/// stable), and an automatic background-check opt-in (default off). On
+/// for updates" action (on every copy but a store one), a beta-channel opt-in
+/// (default off → stable; not on a store copy), and an automatic background-check opt-in (default off). On
 /// **desktop**, once a newer version with a downloadable artifact is found, it
 /// also offers an assisted "Download & install" flow (download → sha256 verify →
 /// OS-handoff) with progress, cancel, and a clear error; **mobile** never shows
-/// it (the banner's "View release" link is mobile's only path).
+/// it (the banner's "View release" link is mobile's only path). A **portable**
+/// copy is pointed at the release for the new archive (PLAT-6). A **store**
+/// copy (PLAT-5) gets a note that its store updates it in place of the check and
+/// the Beta channel switch, keeps the Check automatically switch (reworded: it
+/// now only looks for an end-of-support date), and shows the end-of-support
+/// notice when one is known.
 ///
 /// Reads the [UpdateController] via [UpdateScope.of] so it rebuilds live as a
 /// check progresses or a pref flips; mutations go through the controller, which
@@ -56,37 +63,68 @@ class UpdatesSection extends StatelessWidget {
             trailing: const Icon(Icons.open_in_new),
             onTap: () => openRetirementUpdatePage(context, controller),
           ),
-        ListTile(
-          key: const ValueKey('updates-check-now'),
-          leading: const Icon(Icons.system_update_alt),
-          title: Text(l10n.settingsUpdatesCheckNowTitle),
-          subtitle: Text(_statusText(l10n, controller)),
-          trailing: checking
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.refresh),
-          onTap: checking ? null : controller.checkNow,
-        ),
+        // A store copy is updated by its store: it gets a note instead of the
+        // check (PLAT-5), and only its end-of-support notice above.
+        if (!controller.offersUpdates)
+          ListTile(
+            key: const ValueKey('updates-store'),
+            leading: const Icon(Icons.storefront_outlined),
+            title: Text(l10n.settingsUpdatesStoreTitle),
+            subtitle: Text(l10n.settingsUpdatesStoreSubtitle),
+          )
+        else
+          ListTile(
+            key: const ValueKey('updates-check-now'),
+            leading: const Icon(Icons.system_update_alt),
+            title: Text(l10n.settingsUpdatesCheckNowTitle),
+            subtitle: Text(_statusText(l10n, controller)),
+            trailing: checking
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            onTap: checking ? null : controller.checkNow,
+          ),
         if (controller.canAssistDownload)
           _downloadTile(context, controller, theme),
-        SectionHeader(title: l10n.settingsUpdatesChannelHeader),
-        SwitchListTile(
-          key: const ValueKey('updates-beta-toggle'),
-          secondary: const Icon(Icons.science_outlined),
-          title: Text(l10n.settingsUpdatesBetaTitle),
-          subtitle: Text(l10n.settingsUpdatesBetaSubtitle),
-          value: controller.betaChannel,
-          onChanged: controller.setBetaChannel,
-        ),
+        if (controller.installKind == InstallKind.portable &&
+            controller.foundUpdate != null)
+          ListTile(
+            key: const ValueKey('updates-portable'),
+            leading: const Icon(Icons.folder_zip_outlined),
+            title: Text(l10n.settingsUpdatesPortableTitle),
+            subtitle: Text(l10n.settingsUpdatesPortableSubtitle),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => launchExternalUrl(
+              context,
+              controller.foundUpdate!.releaseNotesUrl,
+            ),
+          ),
+        // A store copy is never offered a pre-release, so the switch would
+        // promise updates it can't get.
+        if (controller.offersUpdates) ...[
+          SectionHeader(title: l10n.settingsUpdatesChannelHeader),
+          SwitchListTile(
+            key: const ValueKey('updates-beta-toggle'),
+            secondary: const Icon(Icons.science_outlined),
+            title: Text(l10n.settingsUpdatesBetaTitle),
+            subtitle: Text(l10n.settingsUpdatesBetaSubtitle),
+            value: controller.betaChannel,
+            onChanged: controller.setBetaChannel,
+          ),
+        ],
         SectionHeader(title: l10n.settingsUpdatesAutoHeader),
         SwitchListTile(
           key: const ValueKey('updates-auto-toggle'),
           secondary: const Icon(Icons.schedule_outlined),
           title: Text(l10n.settingsUpdatesAutoTitle),
-          subtitle: Text(l10n.settingsUpdatesAutoSubtitle),
+          subtitle: Text(
+            controller.offersUpdates
+                ? l10n.settingsUpdatesAutoSubtitle
+                : l10n.settingsUpdatesAutoStoreSubtitle,
+          ),
           value: controller.autoCheck,
           onChanged: controller.setAutoCheck,
         ),
