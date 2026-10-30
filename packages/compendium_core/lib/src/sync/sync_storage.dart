@@ -24,6 +24,7 @@ import '../serialization/archive_entity_codec.dart';
 import '../sync/canonical_json.dart';
 import '../storage/database.dart';
 import '../storage/existence.dart';
+import '../storage/reference_rewrite.dart';
 import '../storage/repositories/repositories.dart';
 import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/sync_local_repository.dart';
@@ -1311,7 +1312,8 @@ final class CompendiumSyncStorage
       sourceBlob: merge.winner.blob,
     );
     for (final losingId in merge.losingIds) {
-      await _rewriteLocalReferences(
+      await rewriteLocalReferences(
+        _db,
         SyncRecordKind.dance,
         losingId,
         merge.winner.blob.id,
@@ -2498,7 +2500,7 @@ final class CompendiumSyncStorage
   /// the merge action below pass a non-null `localIdentity` for the losing
   /// side. [resolveReviewQueue]'s own merge passes `null` for its candidate,
   /// correctly, because there the candidate is not a local row; copying that
-  /// here would leave `_rewriteLocalReferences` repointing join rows at an id
+  /// here would leave `rewriteLocalReferences` repointing join rows at an id
   /// whose row is still standing under its own identity.
   Future<void> _resolveNaturalKeyRenameCollision({
     required ReviewQueueRow currentRow,
@@ -3936,7 +3938,7 @@ final class CompendiumSyncStorage
             // "a peer renamed it" case, where only one side is a pre-existing
             // local row (the both-known case returned above). Passing null
             // here skipped `_migrateLocalIdentity`/`_deleteIdentityRow`, so
-            // `_rewriteLocalReferences` repointed join rows at an id that has
+            // `rewriteLocalReferences` repointed join rows at an id that has
             // no row yet (reconciliation runs before any record is written),
             // which fails the foreign key and rolls the batch back — or, with
             // foreign keys off, leaves the local row as a ghost under the
@@ -4261,11 +4263,11 @@ final class CompendiumSyncStorage
       if (targetIdentity == null) {
         await _migrateLocalIdentity(kind, losingId, target);
       } else {
-        await _rewriteLocalReferences(kind, losingId, target);
+        await rewriteLocalReferences(_db, kind, losingId, target);
         await _deleteIdentityRow(kind, losingId);
       }
     }
-    await _rewriteLocalReferences(kind, losingId, target);
+    await rewriteLocalReferences(_db, kind, losingId, target);
     await _remapPendingDeletions(
       kind: kind,
       losingId: losingId,
@@ -5281,7 +5283,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.figureNote:
         return;
     }
-    await _rewriteLocalReferences(kind, losingId, survivingId);
+    await rewriteLocalReferences(_db, kind, losingId, survivingId);
     await _deleteIdentityRow(kind, losingId);
     _naturalKeyIndex?.removeId(kind, losingId);
   }
@@ -5320,210 +5322,6 @@ final class CompendiumSyncStorage
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
         return;
-    }
-  }
-
-  Future<void> _rewriteLocalReferences(
-    SyncRecordKind kind,
-    String losingId,
-    String survivingId,
-  ) async {
-    if (losingId == survivingId) return;
-    final affectedDances = <String>{};
-    switch (kind) {
-      case SyncRecordKind.choreographer:
-        final rows = await (_db.select(
-          _db.danceAuthors,
-        )..where((row) => row.choreographerId.equals(losingId))).get();
-        affectedDances.addAll(rows.map((row) => row.danceId));
-        for (final row in rows) {
-          final existing =
-              await (_db.select(_db.danceAuthors)..where(
-                    (table) =>
-                        table.danceId.equals(row.danceId) &
-                        table.choreographerId.equals(survivingId),
-                  ))
-                  .getSingleOrNull();
-          if (existing != null) {
-            await (_db.delete(_db.danceAuthors)..where(
-                  (table) =>
-                      table.danceId.equals(row.danceId) &
-                      table.choreographerId.equals(losingId),
-                ))
-                .go();
-          } else {
-            await (_db.update(_db.danceAuthors)..where(
-                  (table) =>
-                      table.danceId.equals(row.danceId) &
-                      table.choreographerId.equals(losingId),
-                ))
-                .write(
-                  DanceAuthorsCompanion(choreographerId: Value(survivingId)),
-                );
-          }
-        }
-      case SyncRecordKind.tag:
-        final rows = await (_db.select(
-          _db.danceTags,
-        )..where((row) => row.tagId.equals(losingId))).get();
-        affectedDances.addAll(rows.map((row) => row.danceId));
-        for (final row in rows) {
-          final existing =
-              await (_db.select(_db.danceTags)..where(
-                    (table) =>
-                        table.danceId.equals(row.danceId) &
-                        table.tagId.equals(survivingId),
-                  ))
-                  .getSingleOrNull();
-          if (existing != null) {
-            await (_db.delete(_db.danceTags)..where(
-                  (table) =>
-                      table.danceId.equals(row.danceId) &
-                      table.tagId.equals(losingId),
-                ))
-                .go();
-          } else {
-            await (_db.update(_db.danceTags)..where(
-                  (table) =>
-                      table.danceId.equals(row.danceId) &
-                      table.tagId.equals(losingId),
-                ))
-                .write(DanceTagsCompanion(tagId: Value(survivingId)));
-          }
-        }
-      case SyncRecordKind.publishedSource:
-        final rows = await (_db.select(
-          _db.danceSources,
-        )..where((row) => row.sourceId.equals(losingId))).get();
-        affectedDances.addAll(rows.map((row) => row.danceId));
-        for (final row in rows) {
-          final existing =
-              await (_db.select(_db.danceSources)..where(
-                    (table) =>
-                        table.danceId.equals(row.danceId) &
-                        table.sourceId.equals(survivingId),
-                  ))
-                  .getSingleOrNull();
-          if (existing != null) {
-            await (_db.delete(_db.danceSources)..where(
-                  (table) =>
-                      table.danceId.equals(row.danceId) &
-                      table.sourceId.equals(losingId),
-                ))
-                .go();
-          } else {
-            await (_db.update(_db.danceSources)..where(
-                  (table) =>
-                      table.danceId.equals(row.danceId) &
-                      table.sourceId.equals(losingId),
-                ))
-                .write(DanceSourcesCompanion(sourceId: Value(survivingId)));
-          }
-        }
-      case SyncRecordKind.customFieldDef:
-        final rows = await (_db.select(
-          _db.customFieldValues,
-        )..where((row) => row.fieldId.equals(losingId))).get();
-        affectedDances.addAll(rows.map((row) => row.danceId));
-        for (final row in rows) {
-          final existing =
-              await (_db.select(_db.customFieldValues)..where(
-                    (table) =>
-                        table.danceId.equals(row.danceId) &
-                        table.fieldId.equals(survivingId),
-                  ))
-                  .getSingleOrNull();
-          if (existing != null) {
-            await (_db.delete(_db.customFieldValues)..where(
-                  (table) =>
-                      table.danceId.equals(row.danceId) &
-                      table.fieldId.equals(losingId),
-                ))
-                .go();
-          } else {
-            await (_db.update(_db.customFieldValues)..where(
-                  (table) =>
-                      table.danceId.equals(row.danceId) &
-                      table.fieldId.equals(losingId),
-                ))
-                .write(CustomFieldValuesCompanion(fieldId: Value(survivingId)));
-          }
-        }
-      case SyncRecordKind.difficultyLevel:
-        final rows = await (_db.select(
-          _db.dances,
-        )..where((row) => row.levelId.equals(losingId))).get();
-        affectedDances.addAll(rows.map((row) => row.id));
-        for (final row in rows) {
-          await (_db.update(
-            _db.dances,
-          )..where((table) => table.id.equals(row.id))).write(
-            DancesCompanion(
-              levelId: Value(survivingId),
-              updatedAt: Value(row.updatedAt),
-            ),
-          );
-        }
-      case SyncRecordKind.dance:
-        final slotRows = await (_db.select(
-          _db.programSlots,
-        )..where((row) => row.danceId.equals(losingId))).get();
-        final affectedPrograms = slotRows.map((row) => row.programId).toSet();
-        await (_db.update(_db.programSlots)
-              ..where((row) => row.danceId.equals(losingId)))
-            .write(ProgramSlotsCompanion(danceId: Value(survivingId)));
-
-        final linkOwners = await (_db.select(
-          _db.danceLinks,
-        )..where((row) => row.targetDanceId.equals(losingId))).get();
-        final linkOwnerIds = linkOwners
-            .map((row) => row.danceId)
-            .where((id) => id != losingId)
-            .toSet();
-        await (_db.update(_db.danceLinks)
-              ..where((row) => row.targetDanceId.equals(losingId)))
-            .write(DanceLinksCompanion(targetDanceId: Value(survivingId)));
-
-        final now = DateTime.now().toUtc();
-        for (final programId in affectedPrograms) {
-          final row = await (_db.select(
-            _db.programs,
-          )..where((table) => table.id.equals(programId))).getSingleOrNull();
-          if (row == null) continue;
-          await (_db.update(
-            _db.programs,
-          )..where((table) => table.id.equals(programId))).write(
-            ProgramsCompanion(
-              updatedAt: Value(
-                nextExistenceStamp(now: now, current: row.updatedAt),
-              ),
-            ),
-          );
-        }
-        affectedDances.addAll(linkOwnerIds);
-      case SyncRecordKind.program:
-      case SyncRecordKind.venue:
-      case SyncRecordKind.setting:
-      case SyncRecordKind.glossaryEntry:
-      case SyncRecordKind.figureNote:
-        return;
-    }
-    if (affectedDances.isEmpty) return;
-    final now = DateTime.now().toUtc();
-    for (final danceId in affectedDances) {
-      final row = await (_db.select(
-        _db.dances,
-      )..where((table) => table.id.equals(danceId))).getSingleOrNull();
-      if (row == null) continue;
-      await (_db.update(
-        _db.dances,
-      )..where((table) => table.id.equals(danceId))).write(
-        DancesCompanion(
-          updatedAt: Value(
-            nextExistenceStamp(now: now, current: row.updatedAt),
-          ),
-        ),
-      );
     }
   }
 
@@ -6075,7 +5873,7 @@ final class CompendiumSyncStorage
   /// nothing else (#1920).
   ///
   /// Reconciliation's rewrites need nothing extra: the dances
-  /// [_rewriteLocalReferences] repoints now cite the survivor, whose record
+  /// [rewriteLocalReferences] repoints now cite the survivor, whose record
   /// is the one the batch applies, so they are found through it.
   ///
   /// The mapping is what [DanceRepository.rebuildAllDerived] reads, not what
