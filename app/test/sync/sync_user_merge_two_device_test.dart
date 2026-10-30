@@ -27,13 +27,23 @@ void main() {
   late InMemorySyncDevice a;
   late InMemorySyncDevice b;
   // Every user write is stamped a few seconds after the last, so two
-  // devices' edits never tie (a tie is a conflict choice, §6.3).
+  // devices' edits never tie (a tie is a conflict choice, §6.3). It starts at
+  // the real clock, so each one is also later than the writes sync stamps
+  // from the real clock as it applies: started any earlier, which of the two
+  // is newer would depend on the second the test ran in.
   late DateTime clock;
   DateTime tick() => clock = clock.add(const Duration(seconds: 5));
 
   setUp(() {
     final now = DateTime.now().toUtc();
-    clock = DateTime.utc(now.year, now.month, now.day, now.hour, now.minute);
+    clock = DateTime.utc(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute,
+      now.second,
+    );
     server = InMemorySyncServer();
     a = InMemorySyncDevice(
       server,
@@ -109,7 +119,11 @@ void main() {
       await a.sync();
       expect(await reviews(a), isEmpty, reason: 'device A, round $round');
       expect(await reviews(b), isEmpty, reason: 'device B, round $round');
+      // What each device publishes covers tombstones and stamps too, which
+      // the live view below does not.
       final state =
+          '${server.manifestOf(a.deviceId)!.records} '
+          '${server.manifestOf(b.deviceId)!.records} '
           '${await liveTags(a)} ${await danceTags(a)} '
           '${await liveTags(b)} ${await danceTags(b)}';
       if (state == previous) return;
