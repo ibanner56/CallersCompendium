@@ -126,7 +126,7 @@ void main() {
     expect(result.programs.single.title, "Caller's Companion set #42");
   });
 
-  test('derives the title from Location when the set has no title', () {
+  test('titles a set as CC does, YYYY/MM/DD - Location (#1976)', () {
     final result = build(
       _archive([
         CcSet(
@@ -138,15 +138,99 @@ void main() {
       ]),
     );
     final program = result.programs.single;
-    expect(program.title, 'Grange Hall');
+    expect(program.title, '2020/03/14 - Grange Hall');
     expect(program.venue, 'Grange Hall');
   });
 
-  test('falls back to the date-based title when there is no Location', () {
+  test('titles a set with no Location by its date alone', () {
     final result = build(
       _archive([CcSet(recordId: '1', eventDate: '3/14/2020', items: const [])]),
     );
-    expect(result.programs.single.title, "Caller's Companion set — 3/14/2020");
+    expect(result.programs.single.title, '2020/03/14');
+  });
+
+  test('titles a set with no date by its Location alone', () {
+    final result = build(
+      _archive([
+        CcSet(recordId: '1', location: 'Grange Hall', items: const []),
+      ]),
+    );
+    expect(result.programs.single.title, 'Grange Hall');
+  });
+
+  test('an unparseable date leaves the Location as the title', () {
+    final result = build(
+      _archive([
+        CcSet(
+          recordId: '1',
+          location: 'Grange Hall',
+          eventDate: 'spring',
+          items: const [],
+        ),
+      ]),
+    );
+    expect(result.programs.single.title, 'Grange Hall');
+  });
+
+  test('an unparseable date and no Location keep the raw date', () {
+    final result = build(
+      _archive([CcSet(recordId: '1', eventDate: 'spring', items: const [])]),
+    );
+    expect(result.programs.single.title, "Caller's Companion set — spring");
+  });
+
+  group('per-slot callers (#1976)', () {
+    List<String?> slotCallers(String? setCaller, List<String?> names) {
+      final result = build(
+        _archive([
+          CcSet(
+            recordId: '1',
+            caller: setCaller,
+            items: [
+              for (final (i, name) in names.indexed)
+                CcSetItem(order: i, danceRecordId: '$i', guestCaller: name),
+            ],
+          ),
+        ]),
+        danceIds: {for (var i = 0; i < names.length; i++) '$i': 'd$i'},
+      );
+      return [for (final s in result.programs.single.slots) s.guestCaller];
+    }
+
+    test('dropped when every slot names the set caller by first name', () {
+      expect(slotCallers('Michael Smith', ['Michael', 'michael', null]), [
+        null,
+        null,
+        null,
+      ]);
+    });
+
+    test('dropped when every slot names the set caller in full', () {
+      expect(
+        slotCallers('Michael Smith', ['Michael  Smith', 'Michael Smith']),
+        [null, null],
+      );
+    });
+
+    test('kept when the slots name more than one caller', () {
+      expect(slotCallers('Michael Smith', ['Michael', 'Lisa', null]), [
+        'Michael',
+        'Lisa',
+        null,
+      ]);
+    });
+
+    test('kept when the only name is not the set caller', () {
+      expect(slotCallers('Michael Smith', [null, 'Lisa', null]), [
+        null,
+        'Lisa',
+        null,
+      ]);
+    });
+
+    test('kept when the set has no caller', () {
+      expect(slotCallers(null, ['Michael', 'Michael']), ['Michael', 'Michael']);
+    });
   });
 
   test('an impossible calendar date (2/31) is rejected as unparseable', () {

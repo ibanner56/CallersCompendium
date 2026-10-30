@@ -57,10 +57,10 @@ CcProgramsResult buildCcPrograms(
   final programs = <Program>[];
 
   for (final set in archive.sets) {
-    final title = _titleFor(set);
-
     final (eventDate, dateIssue) = _parseEventDate(set.eventDate, set.recordId);
     if (dateIssue != null) issues.add(dateIssue);
+    final title = _titleFor(set, eventDate);
+    final keepSlotCallers = _keepsSlotCallers(set);
 
     final slots = <ProgramSlot>[];
     var position = 0;
@@ -137,7 +137,7 @@ CcProgramsResult buildCcPrograms(
           danceId: danceId,
           text: text,
           isAlt: item.isAlt,
-          guestCaller: _cleanLine(item.guestCaller),
+          guestCaller: keepSlotCallers ? _cleanLine(item.guestCaller) : null,
           danceMinutes: item.minutes,
         ),
       );
@@ -176,16 +176,54 @@ CcProgramsResult buildCcPrograms(
   return CcProgramsResult(programs: programs, issues: issues);
 }
 
-String _titleFor(CcSet set) {
+/// The program title for [set], dated [eventDate] (its parsed `Date`).
+///
+/// CC Sets have no title field. CC itself names a set by its
+/// `zi_DateLocation_c` calculation, `YYYY/MM/DD - Location`, so the program
+/// takes that ("2024/04/20 - NEFFA Contra Party", maintainer decision on
+/// #1976): just the date when there is no Location, and just the Location when
+/// the date is missing or did not parse.
+String _titleFor(CcSet set, DateTime? eventDate) {
   final title = _cleanLine(set.title);
   if (title != null) return title;
-  // CC Sets have no title field; the Location is the de-facto event name.
   final location = _cleanLine(set.location);
+  if (eventDate != null) {
+    final y = eventDate.year.toString().padLeft(4, '0');
+    final m = eventDate.month.toString().padLeft(2, '0');
+    final d = eventDate.day.toString().padLeft(2, '0');
+    return location == null ? '$y/$m/$d' : '$y/$m/$d - $location';
+  }
   if (location != null) return location;
   final date = _cleanLine(set.eventDate);
   if (date != null) return "Caller's Companion set — $date";
   return "Caller's Companion set #${set.recordId}";
 }
+
+/// Whether [set]'s slots keep their `SetItem.Caller` names (#1976).
+///
+/// CC fills a slot's caller with a first name ("Michael"), the set's own
+/// caller's included, so on a set one person called every slot just repeats
+/// them. The maintainer's rule (#1976, 2026-10-28, clarified 2026-10-30): keep
+/// the slots' callers when they name more than one caller, or when a name is
+/// not the set's own caller, matched case-insensitively against the set's
+/// `Caller` whole or by its first word. A set with no `Caller` keeps a name, as
+/// nothing else records who called.
+bool _keepsSlotCallers(CcSet set) {
+  final names = <String>{
+    for (final item in set.items)
+      if (_cleanLine(item.guestCaller) case final name?) _callerKey(name),
+  };
+  if (names.length > 1) return true;
+  if (names.isEmpty) return false;
+  final setCaller = _cleanLine(set.caller);
+  if (setCaller == null) return true;
+  final whole = _callerKey(setCaller);
+  final first = whole.split(' ').first;
+  return names.single != whole && names.single != first;
+}
+
+String _callerKey(String name) =>
+    name.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
 (DateTime?, ImportIssue?) _parseEventDate(String? raw, String recordId) {
   final value = raw?.trim() ?? '';

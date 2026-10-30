@@ -384,6 +384,14 @@ says how many programs the file includes, and they are imported even when you
 leave every dance at **Skip** — so importing a fresher export just to pick up new
 sets works when you already have all its dances.
 
+Each program is named the way Caller's Companion names the set, by its date and
+location: "2024/04/20 - NEFFA Contra Party". A set with no location is named by
+its date alone, and one with no date by its location. Importing a set again
+renames its program the same way. A slot keeps the name of the caller
+Caller's Companion recorded for it only when the set's slots name more than
+one caller, or a caller other than the set's own; on a set you called yourself
+throughout, the repeated name is left out.
+
 Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app
 brought your dances over with their titles, authors and notes but an empty body.

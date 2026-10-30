@@ -1,0 +1,15 @@
+{
+  "id": "1976-cc-program-titles-callers",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A program imported from a Caller's Companion set is named the way Caller's Companion names it, by date and location, such as \"2024/04/20 - NEFFA Contra Party\".",
+      "An imported Caller's Companion set no longer repeats its own caller's name on every slot. Slot callers are kept only when the set names more than one caller, or a caller other than its own."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`buildCcPrograms` titles a program `YYYY/MM/DD - Location` (Location alone without a parsed date, the date alone without a Location), and keeps `ProgramSlot.guestCaller` only when a set's slots name more than one caller or one other than the set's `Caller`."
+    ]
+  }
+}
