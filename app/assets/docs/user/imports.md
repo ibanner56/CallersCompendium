@@ -716,9 +716,15 @@ edit** during review.
 file still point at it. When a `.USR` file or a shared program uses a dance the
 review recognised as one you already have and you left it at **Skip**, or one you
 brought in with **Import and edit**, its place in the program links to the dance
-in your collection. A dance that is not brought in and was not recognised —
-including a **Possible match** you skip — still becomes a *Dance not imported*
-note in the program.
+in your collection. In a shared program, a dance that is not brought in and
+was not recognised — including a **Possible match** you skip — still becomes a
+*Dance not imported* note in the program. From a `.USR` file, such a dance's
+place in the program shows its title instead, so the program still reads as
+you planned it, and you can make the dance from that slot later. If the app
+could not write the dance, the slot shows its title and a *Dance not imported*
+line, and the import says so. A slot for a dance you deleted in Caller's
+Companion is left out of the program, as Caller's Companion has nothing left to
+show for it; the import result notes it.
 
 Re-importing replaces that dance's figures, formation, and progression with the
 incoming version's (and its title and credit, if you ticked the box), so if you

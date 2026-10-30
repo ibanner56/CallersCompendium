@@ -406,9 +406,20 @@ class CallersCompanionUsrImporter {
       rethrow;
     }
 
+    // What a slot whose dance did not commit shows (#1976): the dance's title,
+    // and whether it failed rather than being left out.
     final built = buildCcPrograms(
       archive,
       danceIdByCcRowId: slotDanceIdByCcRowId,
+      danceTitleByCcRowId: {
+        for (final plan in batch.records)
+          ?plan.draft.raw.externalId: plan.draft.dance.title,
+      },
+      failedCcRowIds: {
+        for (final record in danceSession.records)
+          if (!record.succeeded) ?record.externalId,
+        for (final error in batch.errors) ?error.externalId,
+      },
       newId: mintId,
       newSlotId: newSlotId ?? uuidV4,
       now: now,

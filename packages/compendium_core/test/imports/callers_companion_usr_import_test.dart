@@ -352,7 +352,9 @@ void main() {
       expect(loaded, isNotNull);
       expect(loaded!.title, 'Grange Hall');
       expect(loaded.eventDate, DateTime.utc(2020, 3, 14));
-      expect(loaded.slots, hasLength(4));
+      // The slot naming dance #99, which the file does not have, is left out:
+      // it was deleted in Caller's Companion (#1976).
+      expect(loaded.slots, hasLength(3));
 
       // Slots resolve to the *new* Compendium dance ids the commit minted.
       expect(loaded.slots[0].danceId, byExternal['4']);
@@ -360,14 +362,13 @@ void main() {
       // Text-only break slot.
       expect(loaded.slots[2].danceId, isNull);
       expect(loaded.slots[2].text, 'Waltz break');
-      // Reference to a dance absent from the file degrades to a placeholder.
-      expect(loaded.slots[3].danceId, isNull);
-      expect(loaded.slots[3].text, contains('99'));
       expect(
-        result.programIssues.any(
-          (i) => i.code == 'cc_program_unresolved_dance',
-        ),
-        isTrue,
+        result.programIssues.map((i) => i.code),
+        contains('cc_program_deleted_dance'),
+      );
+      expect(
+        result.programIssues.map((i) => i.code),
+        isNot(contains('cc_program_unresolved_dance')),
       );
     });
 
@@ -486,10 +487,11 @@ void main() {
       expect(byExternal.containsKey('7'), isFalse);
 
       final program = result.programs.single;
-      // #1 and #3 resolve to the correct new ids; the skipped middle degrades.
+      // #1 and #3 resolve to the correct new ids; the skipped middle is its
+      // title, with no marker (#1976).
       expect(program.slots[0].danceId, byExternal['4']);
       expect(program.slots[1].danceId, isNull);
-      expect(program.slots[1].text, contains('7'));
+      expect(program.slots[1].text, 'Petronella');
       expect(program.slots[2].danceId, byExternal['13']);
     });
 
@@ -540,15 +542,14 @@ void main() {
       expect(byExternal.keys, ['4']);
 
       final program = result.programs.single;
-      // The committed dance resolves; the skipped one degrades to a placeholder.
+      // The committed dance resolves; the skipped one is its title, with no
+      // marker and no warning (#1976).
       expect(program.slots[0].danceId, byExternal['4']);
       expect(program.slots[1].danceId, isNull);
-      expect(program.slots[1].text, contains('7'));
+      expect(program.slots[1].text, 'Petronella');
       expect(
-        result.programIssues.any(
-          (i) => i.code == 'cc_program_unresolved_dance',
-        ),
-        isTrue,
+        result.programIssues.map((i) => i.code),
+        isNot(contains('cc_program_unresolved_dance')),
       );
 
       // Undo still reverts the one dance and the program.
@@ -745,12 +746,15 @@ void main() {
           isNull,
           reason: 'no "Dance not imported" placeholder for a dance we have',
         );
-        // Only the dance that truly is not in the collection (#99) is a note.
+        // The dance not in the file (#99) is left out, and nothing is a
+        // "not imported" note (#1976).
         expect(
-          second.programIssues
-              .where((i) => i.code == 'cc_program_unresolved_dance')
-              .length,
-          1,
+          second.programIssues.map((i) => i.code),
+          isNot(contains('cc_program_unresolved_dance')),
+        );
+        expect(
+          second.programIssues.map((i) => i.code),
+          contains('cc_program_deleted_dance'),
         );
         expect(
           (await dances.getById(swingId))!.title,

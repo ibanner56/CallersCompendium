@@ -40,9 +40,12 @@ class CcUsrArchive {
     this.relatedDancePairs = const [],
     required this.warnings,
     this.warningCodes = const [],
+    this.danceRecordIds,
   });
 
   /// One entry per CC `Dance` row, in file order.
+  ///
+  /// Empty after [withoutDances]; [danceRecordIds] outlives it.
   final List<CcDanceEntry> dances;
 
   /// One entry per CC `Set` row, each carrying its ordered [CcSetItem]s.
@@ -70,6 +73,12 @@ class CcUsrArchive {
   /// Non-fatal notes (missing tables, guessed column names, reader warnings).
   final List<String> warnings;
 
+  /// Every `zk_Dance_ID` in the file's `Dance` table, or `null` when that is
+  /// not known: the file is cut short, or has no `Dance` table. A `SetItem`
+  /// naming an id outside a known set names a dance deleted in Caller's
+  /// Companion (#1976), which `buildCcPrograms` leaves out.
+  final Set<String>? danceRecordIds;
+
   /// Typed twin of the notes in [warnings] that the user should hear about:
   /// each a [CcUsrWarningCodes] value, distinct, in first-seen order. The prose
   /// is English for logs; the app localizes from these codes. Notes that need
@@ -90,6 +99,7 @@ class CcUsrArchive {
     relatedDancePairs: relatedDancePairs,
     warnings: warnings,
     warningCodes: warningCodes,
+    danceRecordIds: danceRecordIds,
   );
 }
 
@@ -384,6 +394,10 @@ CcUsrArchive extractCcUsrArchive(
     relatedDancePairs: relatedDancePairs,
     warnings: warnings.messages,
     warningCodes: warnings.codes,
+    // A cut-short file is missing its later dances, which are not deleted.
+    danceRecordIds: db.truncated || _findTable(db, _danceTableNames) == null
+        ? null
+        : Set.unmodifiable(danceIds),
   );
 }
 

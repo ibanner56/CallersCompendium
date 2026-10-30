@@ -685,6 +685,21 @@ declines the collapse.
   has its own break slot there. A slot with no dance that carries the flag is
   the break itself. `Set.SetList_HideALT` is `Program.hideAlternates`,
   re-applied from the file on re-import like the program's other fields.
+- **Dances that did not commit (#1976).** A set slot whose CC dance resolves to
+  no dance (not in the batch's commit, an earlier Edit, or a skipped re-import
+  row's target) is built by `buildCcPrograms` from what the importer passes it,
+  per the maintainer's decisions on #1976 (2026-10-30): a dance the import left
+  out (Skip, or an ambiguous row an unattended import skipped) becomes a text
+  slot holding its title (`danceTitleByCcRowId`, from the batch's drafts), with
+  no marker or issue; one whose commit or plan failed (`failedCcRowIds`, from
+  the session's failed records and the batch's errors) becomes its title, a
+  blank line, then the `Dance not imported (Caller's Companion dance #N)` marker,
+  with a `cc_program_unresolved_dance` warning; and one whose `zk_Dance_ID` is
+  not in the file's `Dance` table (`CcUsrArchive.danceRecordIds`: deleted in
+  CC) is left out with a `cc_program_deleted_dance` info issue, its `Break`
+  flag still placing the break. `danceRecordIds` is `null` for a cut-short file
+  or one with no `Dance` table, whose missing dances are not deleted; their
+  slots keep the marker.
 - **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
   before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
   the same definition, published-source and difficulty-level steps as `commit`
@@ -692,8 +707,8 @@ declines the collapse.
   repository) but builds no programs or links, and has no undo. The screen keeps
   each such dance's `zk_Dance_ID` → dance id and passes it to the batch `commit`
   as `earlierDanceIds`, so set slots and `Dance_Related` pairs naming it resolve
-  to it rather than becoming "not imported" placeholders; an entry whose dance
-  no longer exists is ignored, and the batch's own dance wins for a CC id it
+  to it rather than becoming "not imported" placeholders (see *Dances that did
+  not commit*, below); an entry whose dance no longer exists is ignored, and the batch's own dance wins for a CC id it
   also commits. The CC ids among them that the Edit re-imported go as
   `earlierReimportedCcIds`, and those dances get no `Dance_Related` link, as a
   dance the batch re-imports gets none — unless another row of the batch

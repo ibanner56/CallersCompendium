@@ -293,4 +293,23 @@ void main() {
       expect(adapter.batchWarnings, isEmpty);
     });
   });
+
+  group('CcUsrArchive.danceRecordIds (#1976)', () {
+    test('a complete file lists every dance id, after withoutDances too', () {
+      final archive = readCcUsrArchive(_usrBytes());
+      expect(archive.danceRecordIds, hasLength(40));
+      expect(archive.withoutDances().danceRecordIds, archive.danceRecordIds);
+    });
+
+    test('a cut-short file does not claim to know its dances', () {
+      final full = _usrBytes();
+      final half = Uint8List.sublistView(full, 0, full.length ~/ 2);
+      expect(readCcUsrArchive(half).danceRecordIds, isNull);
+    });
+
+    test('a file with no Dance table does not claim to know its dances', () {
+      final archive = extractCcUsrArchive(_db(const []));
+      expect(archive.danceRecordIds, isNull);
+    });
+  });
 }

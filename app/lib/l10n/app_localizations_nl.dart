@@ -7170,6 +7170,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een lege plek in een programma is overgeslagen.';
 
   @override
+  String get importIssueProgramDeletedDance =>
+      'Een programma verwees naar een dans die in Caller\'s Companion is verwijderd; de plek is weggelaten.';
+
+  @override
   String get importIssueProgramUnresolvedDance =>
       'Een programma verwees naar een dans die niet is geïmporteerd; de plek is als tekstplaatshouder bewaard.';
 

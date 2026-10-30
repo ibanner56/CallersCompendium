@@ -1,0 +1,16 @@
+{
+  "id": "1976-cc-placeholders",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When you leave a dance out of a Caller's Companion import, its place in your programs shows the dance's title instead of a \"Dance not imported\" note. If the dance could not be written, the slot shows its title as well as the note.",
+      "A program slot for a dance you deleted in Caller's Companion is left out when you import the set, and the import result notes it."
+    ]
+  },
+  "core": {
+    "added": [
+      "`CcUsrArchive.danceRecordIds` lists the file's `zk_Dance_ID`s, or is `null` when the file is cut short or has no `Dance` table.",
+      "`buildCcPrograms` takes `danceTitleByCcRowId` and `failedCcRowIds`, and raises `cc_program_deleted_dance` for a slot naming a dance not in the file."
+    ]
+  }
+}

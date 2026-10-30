@@ -43,9 +43,24 @@ class CcProgramsResult {
 /// date, or an empty slot degrades to an [ImportIssue] + a graceful fallback
 /// (a text slot noting the missing dance, a null date, a skipped empty slot) —
 /// never a throw.
+///
+/// **A dance that did not commit** (maintainer decisions on #1976,
+/// 2026-10-30): a slot naming a CC dance [danceIdByCcRowId] does not resolve
+/// becomes
+/// - nothing, with an info issue, when the dance is not in the file's `Dance`
+///   table ([CcUsrArchive.danceRecordIds]): it was deleted in Caller's
+///   Companion;
+/// - its title then a `Dance not imported (…)` line, with a warning, when it
+///   is in [failedCcRowIds]: its commit failed;
+/// - its title alone, from [danceTitleByCcRowId], when the import left it out
+///   (Skip in review, or an ambiguous row an unattended import skipped);
+/// - the `Dance not imported (…)` line alone, with a warning, when there is
+///   no title to give.
 CcProgramsResult buildCcPrograms(
   CcUsrArchive archive, {
   required Map<String, String> danceIdByCcRowId,
+  Map<String, String> danceTitleByCcRowId = const {},
+  Set<String> failedCcRowIds = const {},
   String Function()? newId,
   String Function()? newSlotId,
   DateTime? now,
@@ -94,25 +109,51 @@ CcProgramsResult buildCcPrograms(
           addBreak();
         }
       }
-      if (item.danceRecordId != null) {
-        danceId = danceIdByCcRowId[item.danceRecordId];
-        if (danceId == null) {
-          // The referenced dance was not imported/committed; keep the slot as
-          // a placeholder text note rather than dropping it silently.
-          text =
-              cleanBreakText ??
-              "$kUnresolvedDanceMarkerPrefix"
-                  "Caller's Companion dance #${item.danceRecordId})";
+      if (item.danceRecordId case final ccId?) {
+        danceId = danceIdByCcRowId[ccId];
+        final known = archive.danceRecordIds;
+        if (danceId == null && known != null && !known.contains(ccId)) {
+          // Deleted in Caller's Companion: nothing to show (#1976, 5c). Its
+          // break still follows it.
           issues.add(
             ImportIssue(
-              severity: ImportIssueSeverity.warning,
-              code: 'cc_program_unresolved_dance',
+              severity: ImportIssueSeverity.info,
+              code: 'cc_program_deleted_dance',
               message:
-                  'Set "$title" references dance '
-                  '#${item.danceRecordId}, which was not imported; kept the '
-                  'slot as a text placeholder.',
+                  'Set "$title" references dance #$ccId, which is not in the '
+                  'file; left the slot out.',
             ),
           );
+          if (item.breakAfter) breakPending = true;
+          continue;
+        }
+        if (danceId == null) {
+          final danceTitle = _cleanLine(danceTitleByCcRowId[ccId]);
+          final marker =
+              "$kUnresolvedDanceMarkerPrefix"
+              "Caller's Companion dance #$ccId)";
+          if (cleanBreakText == null &&
+              danceTitle != null &&
+              !failedCcRowIds.contains(ccId)) {
+            // Left out of the import on purpose: the title reads as the slot.
+            text = danceTitle;
+          } else {
+            // The marker sits on its own line, after a blank line, as
+            // `danceTitleFromSlotNote` expects. A slot's own text, which a
+            // real file never gives a dance slot, wins as before.
+            text =
+                cleanBreakText ??
+                (danceTitle == null ? marker : '$danceTitle\n\n$marker');
+            issues.add(
+              ImportIssue(
+                severity: ImportIssueSeverity.warning,
+                code: 'cc_program_unresolved_dance',
+                message:
+                    'Set "$title" references dance #$ccId, which was not '
+                    'imported; kept the slot as a text placeholder.',
+              ),
+            );
+          }
         }
       } else {
         text = cleanBreakText;
