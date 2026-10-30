@@ -1742,9 +1742,10 @@ class ProgramRepository {
   /// permanently deleted program ([isPermanentlyDeleted]) is not in Recently
   /// deleted, so this path neither restores it nor revives anything for it.
   ///
-  /// Pass `reviveReferences: false` only from a caller that overwrites the
-  /// program straight after reviving it (an archive merge, an import), so its
-  /// stale venue must not come back with it.
+  /// Pass `reviveReferences: false` only from a caller that must not bring
+  /// the venue back: the archive merge, which overwrites the program straight
+  /// after reviving it, and the Caller's Companion re-import, whose undo would
+  /// not re-tombstone a revived venue.
   Future<void> restore(
     String id, {
     required DateTime at,

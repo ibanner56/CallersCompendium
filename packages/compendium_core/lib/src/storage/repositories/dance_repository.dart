@@ -1955,8 +1955,8 @@ class DanceRepository {
   /// anything for it.
   ///
   /// Pass `reviveReferences: false` only from a caller that overwrites the
-  /// dance straight after reviving it (an archive merge, an import), so its
-  /// stale references must not come back with it.
+  /// dance straight after reviving it (the archive merge), so its stale
+  /// references must not come back with it.
   Future<void> restore(
     String id, {
     required DateTime at,
