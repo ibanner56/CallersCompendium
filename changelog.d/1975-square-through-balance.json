@@ -1,0 +1,17 @@
+{
+  "id": "1975-square-through-balance",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A square through on a line of its own, imported or typed, now includes its balance when its beats leave room for one (square through 2 in 8 beats) and leaves it out when they do not (square through 2 in 4, or 3 in 8). A line that says \"without hands\" still has none.",
+      "\"Partner R-hand balance, square through 2\" and \"Neighbor Right-hand balance and square through two\", as Caller's Companion writes them, now come in as one square through with its balance, started by that pair with that hand, instead of text. A pass list after it, such as \"(PR, N2L)\" or \"(Neighbor R, Partner L)\", says who comes second, and \"to new Neighbors\" is kept as a note.",
+      "A Caller's Companion pass list on a square through with hands, such as \"Square through 3 (NL, PR, NL)\", now sets who passes and by which hand. Before, the list was dropped and the square through showed partners by the right; one that cannot be read is now kept as a note."
+    ]
+  },
+  "core": {
+    "changed": [
+      "withBeatImpliedBalance also sets square_through's balance from a whole line's beats (true when beats >= 2 x places + 4), unless the figure states a balance or the line says \"without hands\"; for the Caller's Box it runs on a standalone line only, after the cross-line merge, so a preceding balance line still folds in.",
+      "The CallersBox front end reads \"<who> <side>-hand balance, square through <n>\" as one square_through with balance: true, and reads a comma pass list on a square through with hands, including spaced and spelled cells, and leaves its balance to the beats; a comma list that does not decode becomes the note."
+    ]
+  }
+}

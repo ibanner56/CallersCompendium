@@ -455,7 +455,9 @@ void main() {
     test(
       'a square through pass list still decodes with balance: false',
       () async {
-        final f = await _importTcbLine('(16) Square through 2 (N2R;SL)');
+        // 4 beats: too short for a balance by the beat rule (#1975), so the
+        // decoder's `balance: false` stands.
+        final f = await _importTcbLine('(4) Square through 2 (N2R;SL)');
         expect(f.move, 'square_through');
         expect(f.params['balance'], false);
         expect(f.params['who'], 'nextNeighbors');

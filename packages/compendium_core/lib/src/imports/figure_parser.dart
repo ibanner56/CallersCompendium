@@ -2635,8 +2635,8 @@ _Match? _squareThrough(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match('square_through', {
     'places': ?places,
-    // Passing without hands is no balance-and-pull, and an import never gains
-    // a balance its line does not state (#1969, #1971).
+    // Passing without hands is no balance-and-pull, so the line states that
+    // there is none, and the beat rule leaves it so (#1971, #1975).
     if (withoutHands) 'balance': false,
   }, withoutHands ? 'without hands' : null);
 }

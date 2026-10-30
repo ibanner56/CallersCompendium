@@ -21,9 +21,10 @@ import '../figures_support.dart';
 /// decoder) reads the pass codes: odd passes name `who`, even passes name
 /// `who2`, hands alternate to give the base `hand`, and `balance: false` is
 /// emitted explicitly so the recognizer does not inherit the taxonomy default
-/// of `true`. A preceding balance line is then folded into the square_through
-/// as `balance: true` by [_foldBalanceIntoMove] (#804), matching ContraDB's
-/// shape for the same choreography.
+/// of `true`. On a standalone line the beats may then give a balance (#1975;
+/// see `square_through_balance_test.dart`). A preceding balance line is folded
+/// into the square_through as `balance: true` by [_foldBalanceIntoMove] (#804),
+/// matching ContraDB's shape for the same choreography.
 ///
 /// The reference dance is **Tangled Yarns** by Isaac Banner
 /// (TCB dance 18623 / ContraDB 2210); its B1 compound is reproduced verbatim

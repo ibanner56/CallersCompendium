@@ -39,10 +39,10 @@ import 'while_container.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// **Pre-recognizer ordering.** The first thirteen entries (through
+/// **Pre-recognizer ordering.** The first fourteen entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
 /// require a successful resolution to their own move, so in most cases
-/// order is not correctness-critical.  Three overlapping anchor pairs each
+/// order is not correctness-critical.  Four overlapping anchor pairs each
 /// resolve safely without a fixed ordering:
 ///
 /// 1. `_balanceHandAnnotation` and `_balancePairHandAnnotation` share the
@@ -62,6 +62,13 @@ import 'while_container.dart';
 ///    declines it because the full "single file promenade …" phrase does
 ///    not resolve to `promenade`.  Listed specific-first.
 ///
+/// 4. `_handBalanceSquareThrough` shares `square through` with
+///    `_squareThroughPassList` and `balance` with `_balanceHandAnnotation`, but
+///    it needs a `<who> <side>-hand balance` lead before the square through,
+///    which neither of the others accepts: the pass-list decoder needs exactly
+///    `square through <n>` outside the list, and a `(RH)`-style cell is not
+///    the `R-hand` word.
+///
 /// **The final entries are order-dependent.** `_bracketAnnotation` runs before
 /// the parenthetical handlers because it must combine a square bracket with an
 /// adjacent `(…)` annotation on the same figure. It reuses their synthesis and
@@ -72,6 +79,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
     _circulate,
+    _handBalanceSquareThrough,
     _squareThroughPassList,
     _balanceHandAnnotation,
     _balancePairHandAnnotation,
@@ -3142,6 +3150,96 @@ FigureMatch? _circulate(String scrubbed) {
   );
 }
 
+/// Caller's Companion's square through with its balance stated:
+/// `Partner R-hand balance, square through 2`, `Neighbor Right-hand balance
+/// and square through two` (#1975).
+///
+/// The line is one square through with `balance: true`; the pair that
+/// balances is the first pull, so it is `who`, and the balance's hand is
+/// `hand` (maintainer decision on #1975). The count is a digit or `two` to
+/// `four`, as the tester's file writes both; the author chose that range.
+///
+/// What follows the count:
+///   * a comma pass list (`(PR, N2L)`, `(Neighbor R, Partner L)`) gives
+///     `who2` when it decodes and agrees with the balance's pair and hand;
+///     otherwise it is kept as the note rather than dropped (maintainer
+///     decision on #1975);
+///   * any other bracket is a note: `(to new Neighbor)`, `(twice)`; reading
+///     every such bracket as a note was the author's call;
+///   * a trailing `, to <whom>` naming one dancer set is a note: `, to New
+///     Neighbors`.
+///
+/// Anything else after the count keeps the line custom, as does a lead that
+/// is not one dancer set.
+FigureMatch? _handBalanceSquareThrough(String scrubbed) {
+  final m = _handBalanceThenSquareThrough.firstMatch(scrubbed);
+  if (m == null) return null;
+  final who = resolveDancerSetPhrase(m[1]!);
+  if (who == null) return null;
+  final hand = m[2]!.toLowerCase().startsWith('r') ? 'right' : 'left';
+  final count = m[3]!.toLowerCase();
+  final places = _countWords[count] ?? int.tryParse(count);
+  if (places == null || places < 2 || places > 10) return null;
+
+  var rest = m[4]!.trim();
+  String? listNote;
+  String? who2;
+  final bracket = _leadingBracket.firstMatch(rest);
+  if (bracket != null) {
+    final body = bracket[1]!.trim();
+    rest = bracket[2]!.trim();
+    final passes = body.contains(',')
+        ? _decodeSquareThroughPasses(_ccPassCells(body.toLowerCase()), places)
+        : null;
+    if (passes != null && passes.who == who && passes.hand == hand) {
+      who2 = passes.who2;
+    } else {
+      listNote = body;
+    }
+  }
+  if (rest.startsWith(',')) rest = rest.substring(1).trim();
+  if (rest.isNotEmpty) {
+    // Only where it ends: `to <whom>`. Another clause (`to new neighbors and
+    // swing`) keeps the line custom.
+    final whom = _toWhomTail.firstMatch(rest);
+    if (whom == null || resolveDancerSetPhrase(whom[1]!) == null) return null;
+  }
+
+  return FigureMatch(
+    'square_through',
+    params: {
+      'places': places,
+      'who': who,
+      'who2': ?who2,
+      'hand': hand,
+      'balance': true,
+    },
+    note: combineFigureNotes(listNote, rest.isEmpty ? null : rest),
+  );
+}
+
+/// `<who> <side>-hand balance`, then `,` or `and`, then `square through <n>`
+/// and the rest of the line. The lead is bounded, so the scan stays linear.
+final RegExp _handBalanceThenSquareThrough = RegExp(
+  r'^\s*([a-z][a-z0-9 ]{0,39}?)\s+(right|left|r|l)[\s-]*hand\s+balance'
+  r'\s*(?:,\s*(?:and\s+)?|and\s+)square\s+thr(?:ough|u)\s+'
+  r'(\d{1,2}|two|three|four)\b(.{0,160})$',
+  caseSensitive: false,
+);
+
+/// A bracket opening the text after a square through's count, and the rest.
+final RegExp _leadingBracket = RegExp(r'^\(([^()\[\]]{0,120})\)(.*)$');
+
+/// A trailing `to <whom>` clause, kept as the note when `<whom>` is one
+/// dancer set.
+final RegExp _toWhomTail = RegExp(
+  r'^to\s+([a-z0-9 ]{1,40})$',
+  caseSensitive: false,
+);
+
+/// The count words a stated-balance square through may use.
+const Map<String, int> _countWords = {'two': 2, 'three': 3, 'four': 4};
+
 /// Decodes TCB's `Square through <n> (<pass list>)` shorthand into a structured
 /// `square_through`, reading the parenthetical pass codes that
 /// [_stripAnnotations] would otherwise drop before recognition (#799).
@@ -3169,13 +3267,15 @@ FigureMatch? _circulate(String scrubbed) {
 ///   * hands strictly alternate by position parity → the base `hand` (position
 ///     1's hand).
 ///
-/// **`balance: false` explicitly (import fidelity).** TCB writes the balance as
-/// a SEPARATE preceding line, never inline on a square-through line, so a
-/// standalone `Square through <n> (…)` carries NO balance. `square_through`'s
-/// MoveDef defaults `balance: true`, so — mirroring [_roryOMore] — we emit
-/// `false` rather than inheriting a balance the source never stated. (This
-/// pre-recognizer does not itself fold a preceding balance line in; a preceding
-/// `<who> balance` remains its own figure, matching TCB's two-line source.)
+/// **`balance: false` explicitly.** TCB writes the balance as a SEPARATE
+/// preceding line, never inline on a square-through line, so the line itself
+/// states none. `square_through`'s MoveDef defaults `balance: true`, so —
+/// mirroring [_roryOMore] — we emit `false` rather than inheriting a balance
+/// the source never stated. On a standalone line the beat rule then replaces
+/// it (`withBeatImpliedBalance`, maintainer decision on #1975): square through
+/// 2 in 8 beats is balanced. Inside a compound it stands, and a preceding
+/// `<who> balance` child folds in. (This pre-recognizer does not itself fold a
+/// preceding balance line in.)
 ///
 /// **Conservative / prefer-custom (returns `null` → shared/custom path) when:**
 ///   * there is no single `(...)` pass list (a second parenthetical also
@@ -3185,7 +3285,10 @@ FigureMatch? _circulate(String scrubbed) {
 ///     2..10 — so an `interrupted`/`modified` qualifier, a trailing `-`
 ///     clause, an inline `balance`, or any other prose stays out. The one
 ///     exception is Caller's Companion's comma-separated list (`(NR, PL, NR)`,
-///     #1971): the words after it become the note (`… to new Neighbor`);
+///     #1971): the words after it become the note (`… to new Neighbor`), and
+///     its cells may be spaced or spelled out ([_ccPassCells]). On a square
+///     through with hands, a comma list that does not decode is kept as the
+///     note instead of declining (#1975);
 ///   * the cell count does not equal `n` (a square through of `n` has `n`
 ///     passes; a mismatch is an unmodeled variant);
 ///   * any cell is not `<people-code><R|L>` with the people code present in
@@ -3255,58 +3358,19 @@ final RegExp _passListShape = RegExp(
 const String _passCellShape =
     r'(?:(?:ph|tb|srn?|[a-z])-?[0-9]{0,2}|[0-9]{1,2})[rl]~?';
 
-FigureMatch? _decodeSquareThroughPassList(String scrubbed) {
-  final lower = scrubbed.toLowerCase();
-  final open = lower.indexOf('(');
-  if (open == -1) return null;
-  final close = lower.indexOf(')', open + 1);
-  if (close == -1) return null;
-  // A second parenthetical means extra structure we do not model -> decline.
-  if (lower.indexOf('(', close + 1) != -1) return null;
-  // Measure the span before taking the substring — see
-  // [_boundedPassListCellsIn]. `passText` is used for more than the cell split
-  // here, so the same O(1) bound is applied inline rather than via that helper.
-  if (close - open - 1 > _maxPassListChars) return null;
-  final passText = lower.substring(open + 1, close);
-  // Caller's Companion writes the pass list with commas (`(NR, PL, NR)`) and
-  // its own words after it (`… (NR, PL, NR) to new Neighbor`), which become
-  // the note (#1971). A TCB list never has a comma, and keeps its exact rule.
-  final ccList = !passText.contains(';') && passText.contains(',');
-  final after = scrubbed.substring(close + 1).trim();
-  final outside = ccList
-      ? lower.substring(0, open)
-      : '${lower.substring(0, open)} ${lower.substring(close + 1)}';
-
-  // Outside the pass list must be EXACTLY "square through <n>", optionally
-  // followed by "without hands" (+ filler).
-  final outWords = outside
-      .split(_wsRe)
-      .map(_stripEdgePunct)
-      .where((w) => w.isNotEmpty && !_filler.contains(w))
-      .toList();
-  final withoutHands =
-      outWords.length == 5 &&
-      outWords[3] == 'without' &&
-      outWords[4] == 'hands';
-  if (outWords.length != 3 && !withoutHands) return null;
-  // The comma list is read only for the circular hey (#1971), and words after
-  // it that open another clause (`, then balance`, `and swing`) are a second
-  // figure, not a note, so the line stays custom.
-  if (ccList && (!withoutHands || _nextClause.hasMatch(after))) return null;
-  if (outWords[0] != 'square' || outWords[1] != 'through') return null;
-  final places = int.tryParse(outWords[2]);
-  // A square through has at least 2 passes; the upper bound mirrors the shared
-  // recognizer's 1..10 places domain.
-  if (places == null || places < 2 || places > 10) return null;
-
-  final cells = ccList
-      ? passText.split(',').map((c) => c.trim()).toList()
-      : _boundedPassListCells(passText);
-  // "Square through n" is exactly n passes; a mismatch is an unmodeled variant.
-  // The OWASP cell bound is enforced pre-split by [_boundedPassListCells]; here
-  // `== places` (places <= 10) already constrains the count.
+/// Decodes a square through's pass [cells] (`nr`, `pl`, `n2r`, …) of a
+/// square through of [places], or `null` when they do not decode.
+///
+/// Odd 1-based passes must all name `who` and even ones `who2`, and the hands
+/// must alternate; `hand` is the first pass's. The cell count must equal
+/// [places] (a square through of `n` is `n` passes; a mismatch is an
+/// unmodeled variant). The OWASP cell bound is enforced pre-split by the
+/// callers; here `== places` (places <= 10) already constrains the count.
+({String who, String? who2, String hand})? _decodeSquareThroughPasses(
+  List<String>? cells,
+  int places,
+) {
   if (cells == null || cells.length != places) return null;
-
   String? who;
   String? who2;
   String? handBase;
@@ -3349,6 +3413,104 @@ FigureMatch? _decodeSquareThroughPassList(String scrubbed) {
     }
   }
   if (who == null || handBase == null) return null;
+  return (who: who, who2: who2, hand: handBase);
+}
+
+/// The cells of a Caller's Companion comma pass list, each as a TCB code:
+/// `NR`, `P R` and `N1 L` as written, and `Neighbor R` / `Partner L` with the
+/// relationship spelled out (#1975). A cell that is none of these is kept as
+/// written, so it does not decode. The list's length is bounded by the caller.
+List<String> _ccPassCells(String passText) => [
+  for (final cell in passText.split(',')) _ccPassCode(cell.trim()),
+];
+
+String _ccPassCode(String cell) {
+  final m = _ccPassCell.firstMatch(cell);
+  if (m == null) return cell;
+  return '${_ccPassPerson[m[1]!] ?? m[1]!}${m[2] ?? ''}${m[3]![0]}';
+}
+
+/// One comma-list cell: a code or a spelled relationship, an optional number,
+/// then the side. Matched against the lowercased cell.
+final RegExp _ccPassCell = RegExp(
+  r'^(neighbou?rs?|partners?|shadows?|[a-z]{1,3}?)\s*(\d{1,2})?\s*(right|left|r|l)$',
+);
+
+/// The spelled relationships a comma-list cell may name, as TCB codes.
+const Map<String, String> _ccPassPerson = {
+  'neighbor': 'n',
+  'neighbors': 'n',
+  'neighbour': 'n',
+  'neighbours': 'n',
+  'partner': 'p',
+  'partners': 'p',
+  'shadow': 's',
+  'shadows': 's',
+};
+
+FigureMatch? _decodeSquareThroughPassList(String scrubbed) {
+  final lower = scrubbed.toLowerCase();
+  final open = lower.indexOf('(');
+  if (open == -1) return null;
+  final close = lower.indexOf(')', open + 1);
+  if (close == -1) return null;
+  // A second parenthetical means extra structure we do not model -> decline.
+  if (lower.indexOf('(', close + 1) != -1) return null;
+  // Measure the span before taking the substring — see
+  // [_boundedPassListCellsIn]. `passText` is used for more than the cell split
+  // here, so the same O(1) bound is applied inline rather than via that helper.
+  if (close - open - 1 > _maxPassListChars) return null;
+  final passText = lower.substring(open + 1, close);
+  // Caller's Companion writes the pass list with commas (`(NR, PL, NR)`) and
+  // its own words after it (`… (NR, PL, NR) to new Neighbor`), which become
+  // the note (#1971). A TCB list never has a comma, and keeps its exact rule.
+  final ccList = !passText.contains(';') && passText.contains(',');
+  final after = scrubbed.substring(close + 1).trim();
+  final outside = ccList
+      ? lower.substring(0, open)
+      : '${lower.substring(0, open)} ${lower.substring(close + 1)}';
+
+  // Outside the pass list must be EXACTLY "square through <n>", optionally
+  // followed by "without hands" (+ filler).
+  final outWords = outside
+      .split(_wsRe)
+      .map(_stripEdgePunct)
+      .where((w) => w.isNotEmpty && !_filler.contains(w))
+      .toList();
+  final withoutHands =
+      outWords.length == 5 &&
+      outWords[3] == 'without' &&
+      outWords[4] == 'hands';
+  if (outWords.length != 3 && !withoutHands) return null;
+  // Words after a comma list that open another clause (`, then balance`,
+  // `and swing`) are a second figure, not a note, so the line stays custom.
+  if (ccList && _nextClause.hasMatch(after)) return null;
+  if (outWords[0] != 'square' || outWords[1] != 'through') return null;
+  final places = int.tryParse(outWords[2]);
+  // A square through has at least 2 passes; the upper bound mirrors the shared
+  // recognizer's 1..10 places domain.
+  if (places == null || places < 2 || places > 10) return null;
+
+  final passes = _decodeSquareThroughPasses(
+    ccList ? _ccPassCells(passText) : _boundedPassListCells(passText),
+    places,
+  );
+  if (passes == null) {
+    // A comma list on a square through with hands that does not decode is
+    // kept as the note, not dropped (maintainer decision on #1975). Without
+    // hands, an undecoded list keeps the line custom (#1971).
+    if (!ccList || withoutHands) return null;
+    return FigureMatch(
+      'square_through',
+      params: {'places': places},
+      note: combineFigureNotes(
+        scrubbed.substring(open + 1, close).trim(),
+        after.isEmpty ? null : after,
+      ),
+    );
+  }
+  final (:who, :who2, :hand) = passes;
+  final handBase = hand;
 
   final note = ccList && after.isNotEmpty ? after : null;
   if (withoutHands) {
@@ -3368,8 +3530,10 @@ FigureMatch? _decodeSquareThroughPassList(String scrubbed) {
       'who': who,
       'who2': ?who2,
       'hand': handBase,
-      // Import fidelity: TCB never inlines the balance on a square-through line.
-      'balance': false,
+      // A Caller's Box line states no balance; the beat rule may give one (see
+      // above). A Caller's Companion comma list says nothing either way, so it
+      // is left to the beat rule like a square through with no list.
+      if (!ccList) 'balance': false,
     },
     note: note,
   );
