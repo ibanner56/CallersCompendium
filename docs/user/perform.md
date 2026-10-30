@@ -18,9 +18,9 @@ New to the app? Start with the [Getting started guide](./getting-started.md).
 
 Perform mode is not a navigation tab — you step into it when it is time to call,
 and step back out deliberately when you are done. On a phone or tablet it
-fills the whole screen: the status bar and the navigation bar hide while you
-perform, and come back when you exit. Swipe in from the edge to see them for a
-moment. On a computer, Perform opens in the app window, and **Full screen**
+fills the whole screen: the status bar, and on Android the navigation bar, hide
+while you perform and come back when you exit. On Android, swipe in from the
+edge to see them for a moment. On a computer, Perform opens in the app window, and **Full screen**
 takes it over the whole display (see [Set the stage](#set-the-stage)).
 
 - To call a **single dance**, open it from your
@@ -99,7 +99,7 @@ the band. **Show walkthrough** — which appears when the dance has a
 walkthrough written — lays it over the card until you close it.
 
 **Full screen.** On a computer, this takes the window over the whole display,
-with no title bar, taskbar or Dock, and back again. The keyboard does the same:
+covering the taskbar or Dock, and back again. The keyboard does the same:
 **F11** on Windows and Linux, **Ctrl-Cmd-F** on macOS. **Esc** also leaves full
 screen. It never leaves Perform, which always asks first. When you exit Perform,
 the window goes back to how it was when you came in. If you close the app while

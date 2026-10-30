@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/foundation.dart';
@@ -290,24 +292,25 @@ void main() {
       expect(backend.windowFullScreen, isTrue);
     });
 
-    testWidgets('the toggle follows the OS, and exit restores the entry state', (
-      tester,
-    ) async {
-      final backend = _install(_FakeBackend(PerformFullScreenSupport.window));
-      await _pushPerform(tester, await _programScreen());
+    testWidgets(
+      'the toggle follows the OS, and exit restores the entry state',
+      (tester) async {
+        final backend = _install(_FakeBackend(PerformFullScreenSupport.window));
+        await _pushPerform(tester, await _programScreen());
 
-      backend.osChange(true);
-      await tester.pumpAndSettle();
-      expect(_toggleSelected(tester), isTrue);
+        backend.osChange(true);
+        await tester.pumpAndSettle();
+        expect(_toggleSelected(tester), isTrue);
 
-      backend.osChange(false);
-      await tester.pumpAndSettle();
-      expect(_toggleSelected(tester), isFalse);
+        backend.osChange(false);
+        await tester.pumpAndSettle();
+        expect(_toggleSelected(tester), isFalse);
 
-      // Left as it was found: nothing to undo.
-      await _exitPerform(tester, 'perform-program-exit');
-      expect(backend.calls, isEmpty);
-    });
+        // Left as it was found: nothing to undo.
+        await _exitPerform(tester, 'perform-program-exit');
+        expect(backend.calls, isEmpty);
+      },
+    );
 
     testWidgets('narrow windows offer the toggle in the overflow menu', (
       tester,
@@ -341,7 +344,40 @@ void main() {
       await _exitPerform(tester, 'perform-program-exit');
       expect(backend.windowFullScreen, isFalse);
     });
+
+    testWidgets('a toggle still in flight at exit is undone once it lands', (
+      tester,
+    ) async {
+      final backend = _GatedBackend();
+      _install(backend);
+      await _pushPerform(tester, await _programScreen());
+
+      await tester.tap(find.byKey(const ValueKey('perform-full-screen')));
+      await tester.pump();
+      expect(backend.calls, ['window:true']);
+
+      await _exitPerform(tester, 'perform-program-exit');
+      backend.gate.complete();
+      await tester.pumpAndSettle();
+      expect(backend.calls, ['window:true', 'window:false']);
+      expect(backend.windowFullScreen, isFalse);
+    });
   });
+}
+
+/// Holds an enter in flight until [gate] completes, as a slow platform call
+/// would.
+class _GatedBackend extends _FakeBackend {
+  _GatedBackend() : super(PerformFullScreenSupport.window);
+
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<void> setWindowFullScreen(bool on) async {
+    calls.add('window:$on');
+    if (on) await gate.future;
+    osChange(on);
+  }
 }
 
 /// A window whose state cannot be read on entry: the mixin must still take

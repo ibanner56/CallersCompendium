@@ -321,9 +321,16 @@ mixin PerformFullScreenMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
+  /// Records the window's state. The field is kept even once the view is
+  /// unmounted: a toggle that lands after [dispose] queued its restore must
+  /// still tell that restore what to undo.
   void _onWindowFullScreenChanged(bool on) {
-    if (!mounted || on == _performFullScreen) return;
-    setState(() => _performFullScreen = on);
+    if (on == _performFullScreen) return;
+    if (mounted) {
+      setState(() => _performFullScreen = on);
+    } else {
+      _performFullScreen = on;
+    }
   }
 
   /// Runs [op] after every operation already queued. Never throws, and
