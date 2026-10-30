@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_app/src/screens/settings/updates_section.dart';
 import 'package:compendium_app/src/update/install_kind.dart';
+import 'package:compendium_app/src/update/retirement_banner.dart';
 import 'package:compendium_app/src/update/semver.dart';
 import 'package:compendium_app/src/update/update_banner.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
@@ -14,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
+import '../support/fake_url_launcher.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
@@ -24,6 +26,7 @@ const _manifest = '''
   "version": "0.2.0",
   "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.2.0",
   "pubDate": "2026-08-01T00:00:00Z",
+  "retirements": [{"through": "0.1.0", "endOfLife": "2099-01-31"}],
   "artifacts": [
     {"platform": "windows", "arch": "x64", "url": "https://example.com/a.exe", "sha256": "x", "size": 1}
   ]
@@ -77,33 +80,120 @@ Future<void> _pump(
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
-  group('store build', () {
-    test('never fetches the manifest, manually or automatically', () async {
+  group('store build (end-of-support notice only)', () {
+    test('has no manual check', () async {
+      final repos = openTestRepositories();
+      final made = _make(repos, InstallKind.store);
+      addTearDown(made.controller.dispose);
+      await made.controller.load();
+
+      await made.controller.checkNow();
+
+      expect(made.fetched, isEmpty);
+      expect(made.controller.offersUpdates, isFalse);
+    });
+
+    test('a newer release is never offered', () async {
       final repos = openTestRepositories();
       final made = _make(repos, InstallKind.store);
       addTearDown(made.controller.dispose);
       await made.controller.load();
       await made.controller.setAutoCheck(true);
 
-      await made.controller.checkNow();
       await made.controller.maybeAutoCheck();
 
-      expect(made.fetched, isEmpty);
-      expect(made.controller.checksForUpdates, isFalse);
-      expect(made.controller.status, UpdateCheckStatus.idle);
+      expect(made.fetched, [UpdateChannel.stable]);
       expect(made.controller.foundUpdate, isNull);
+      expect(made.controller.bannerUpdate, isNull);
+      expect(made.controller.canAssistDownload, isFalse);
+      expect(made.controller.status, UpdateCheckStatus.idle);
     });
 
-    testWidgets('Settings shows only the store note', (tester) async {
+    test('the end-of-support date still arrives', () async {
+      final repos = openTestRepositories();
+      final made = _make(repos, InstallKind.store);
+      addTearDown(made.controller.dispose);
+      await made.controller.load();
+      await made.controller.setAutoCheck(true);
+
+      await made.controller.maybeAutoCheck();
+
+      expect(made.controller.retirementNotice, isNotNull);
+      expect(made.controller.retirementBanner, isNotNull);
+    });
+
+    test('Get update targets the store listing', () {
+      final repos = openTestRepositories();
+      expect(
+        _make(
+          repos,
+          InstallKind.store,
+          platform: UpdatePlatform.ios,
+        ).controller.storeListingUrl,
+        kTestFlightUrl,
+      );
+      expect(
+        _make(
+          repos,
+          InstallKind.store,
+          platform: UpdatePlatform.android,
+        ).controller.storeListingUrl,
+        kPlayStoreUrl,
+      );
+      expect(
+        _make(repos, InstallKind.standard).controller.storeListingUrl,
+        isNull,
+      );
+    });
+
+    testWidgets('Get update opens the store, not the release', (tester) async {
+      final launcher = installFakeUrlLauncher();
+      final repos = openTestRepositories();
+      final made = _make(
+        repos,
+        InstallKind.store,
+        platform: UpdatePlatform.android,
+      );
+      addTearDown(made.controller.dispose);
+      await _pump(tester, made.controller, const RetirementBanner());
+      await made.controller.setAutoCheck(true);
+      await made.controller.maybeAutoCheck();
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('retirement-banner-update')));
+      await tester.pump();
+
+      expect(launcher.launchedUrls, [kPlayStoreUrl]);
+    });
+
+    testWidgets('Settings: store note and End of support, no check, no offer', (
+      tester,
+    ) async {
       final repos = openTestRepositories();
       final made = _make(repos, InstallKind.store);
       addTearDown(made.controller.dispose);
       await _pump(tester, made.controller, const UpdatesSection());
+      await made.controller.setAutoCheck(true);
+      await made.controller.maybeAutoCheck();
+      await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('updates-store')), findsOneWidget);
+      expect(find.byKey(const ValueKey('updates-retirement')), findsOneWidget);
       expect(find.byKey(const ValueKey('updates-check-now')), findsNothing);
-      expect(find.byKey(const ValueKey('updates-beta-toggle')), findsNothing);
-      expect(find.byKey(const ValueKey('updates-auto-toggle')), findsNothing);
+      expect(find.byKey(const ValueKey('updates-download')), findsNothing);
+      expect(find.byKey(const ValueKey('updates-portable')), findsNothing);
+    });
+
+    testWidgets('no update banner for a newer release', (tester) async {
+      final repos = openTestRepositories();
+      final made = _make(repos, InstallKind.store);
+      addTearDown(made.controller.dispose);
+      await _pump(tester, made.controller, const UpdateBanner());
+      await made.controller.setAutoCheck(true);
+      await made.controller.maybeAutoCheck();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('update-banner')), findsNothing);
     });
   });
 

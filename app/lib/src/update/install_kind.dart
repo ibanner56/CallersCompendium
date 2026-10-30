@@ -81,3 +81,19 @@ InstallKind detectInstallKind({
       return exists(uninstaller) ? InstallKind.standard : InstallKind.portable;
   }
 }
+
+/// Where a store copy's end-of-support "Get update" goes (maintainer decision,
+/// 2026-10-30). iOS has only the TestFlight public link (no App Store listing
+/// exists yet, `docs/dev/store-submission/app-store.md`); Android is the Play
+/// listing for the app's package id (`app/android/app/build.gradle.kts`).
+/// Swap these when a public listing exists.
+const String kTestFlightUrl = 'https://testflight.apple.com/join/REgW311w';
+const String kPlayStoreUrl =
+    'https://play.google.com/store/apps/details?id=org.callerscompendium.compendiumApp';
+
+/// The store listing for [platform], or `null` where there is no store build.
+String? storeListingUrlFor(UpdatePlatform platform) => switch (platform) {
+  UpdatePlatform.ios => kTestFlightUrl,
+  UpdatePlatform.android => kPlayStoreUrl,
+  _ => null,
+};

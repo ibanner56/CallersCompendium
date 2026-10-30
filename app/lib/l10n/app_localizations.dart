@@ -2782,7 +2782,7 @@ abstract class AppLocalizations {
   /// Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action.
   ///
   /// In en, this message translates to:
-  /// **'This copy was installed from an app store, so the store updates it. The app does not check for updates itself.'**
+  /// **'This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.'**
   String get settingsUpdatesStoreSubtitle;
 
   /// Title of the Settings > Updates row shown when a newer version is found on a portable copy (the Windows zip or the Linux tar.gz). Tapping it opens the release page.

@@ -1776,9 +1776,9 @@
   "@settingsUpdatesStoreTitle": {
     "x-sourceSha256": "53e9be4c9dadaca5e7677a817a615dd6d698146fe548efd09d346ebfa4afc5ad"
   },
-  "settingsUpdatesStoreSubtitle": "このコピーはアプリストアからインストールされているため、ストアが更新します。アプリ自身はアップデートを確認しません。",
+  "settingsUpdatesStoreSubtitle": "このコピーはアプリストアからインストールされているため、ストアが更新します。アプリが確認するのはサポート終了日だけで、新しいバージョンは確認しません。",
   "@settingsUpdatesStoreSubtitle": {
-    "x-sourceSha256": "093623a78644306c458f20a6b289c8584a9e6f3f5f5b6277cf10c3301a43c618"
+    "x-sourceSha256": "db003b621e3b71c206dd26c0ff18cb86c13b0bee31bae687eefd882f6f3f12ba"
   },
   "settingsUpdatesPortableTitle": "ポータブル版：新しいアーカイブをダウンロード",
   "@settingsUpdatesPortableTitle": {

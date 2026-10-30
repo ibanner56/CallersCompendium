@@ -1928,7 +1928,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsUpdatesStoreSubtitle =>
-      'Denne kopi blev installeret fra en appbutik, så butikken opdaterer den. Appen søger ikke selv efter opdateringer.';
+      'Denne kopi blev installeret fra en appbutik, så butikken opdaterer den. Appen leder kun efter en dato for ophør af support, aldrig efter en ny version.';
 
   @override
   String get settingsUpdatesPortableTitle =>

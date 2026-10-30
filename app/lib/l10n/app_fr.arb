@@ -1776,9 +1776,9 @@
   "@settingsUpdatesStoreTitle": {
     "x-sourceSha256": "53e9be4c9dadaca5e7677a817a615dd6d698146fe548efd09d346ebfa4afc5ad"
   },
-  "settingsUpdatesStoreSubtitle": "Cette copie a été installée depuis une boutique d'applications, qui se charge donc de la mettre à jour. L'application ne recherche pas elle-même les mises à jour.",
+  "settingsUpdatesStoreSubtitle": "Cette copie a été installée depuis une boutique d'applications, qui se charge donc de la mettre à jour. L'application ne recherche qu'une éventuelle date de fin de prise en charge, jamais de nouvelle version.",
   "@settingsUpdatesStoreSubtitle": {
-    "x-sourceSha256": "093623a78644306c458f20a6b289c8584a9e6f3f5f5b6277cf10c3301a43c618"
+    "x-sourceSha256": "db003b621e3b71c206dd26c0ff18cb86c13b0bee31bae687eefd882f6f3f12ba"
   },
   "settingsUpdatesPortableTitle": "Copie portable : téléchargez la nouvelle archive",
   "@settingsUpdatesPortableTitle": {

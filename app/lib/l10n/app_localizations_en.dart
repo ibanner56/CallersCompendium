@@ -1914,7 +1914,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsUpdatesStoreSubtitle =>
-      'This copy was installed from an app store, so the store updates it. The app does not check for updates itself.';
+      'This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.';
 
   @override
   String get settingsUpdatesPortableTitle =>

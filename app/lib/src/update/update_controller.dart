@@ -227,9 +227,15 @@ class UpdateController extends ChangeNotifier {
   /// release instead of being handed an installer it cannot use.
   final InstallKind installKind;
 
-  /// Whether this copy checks for updates at all: a store copy is updated by
-  /// its store, so it neither fetches the manifest nor shows a banner.
-  bool get checksForUpdates => installKind != InstallKind.store;
+  /// Whether this copy is ever offered an update. A store copy is updated by
+  /// its store, so it is not: its check reads the release information for an
+  /// end-of-support date only (maintainer decision, 2026-10-30).
+  bool get offersUpdates => installKind != InstallKind.store;
+
+  /// Where the end-of-support "Get update" action goes on a store copy: its
+  /// store listing. `null` on every other copy, which opens the release.
+  String? get storeListingUrl =>
+      installKind == InstallKind.store ? storeListingUrlFor(_platform) : null;
 
   bool _betaChannel = false;
   bool _autoCheck = false;
@@ -872,15 +878,15 @@ class UpdateController extends ChangeNotifier {
       '${date.day.toString().padLeft(2, '0')}';
 
   /// Runs a check now (the manual "Check for updates" action, available on
-  /// every build but a store one, which does nothing: [checksForUpdates]).
+  /// every build but a store one, which does nothing: [offersUpdates]).
   /// Concurrent presses are ignored while one is in flight. Never
   /// throws — a failure resolves to [UpdateCheckStatus.couldNotCheck] or, for
   /// an authentic manifest this build cannot read,
   /// [UpdateCheckStatus.newerFormat].
-  Future<void> checkNow() => _check(manual: true);
+  Future<void> checkNow() =>
+      offersUpdates ? _check(manual: true) : Future.value();
 
   Future<void> _check({required bool manual}) async {
-    if (!checksForUpdates) return;
     if (_status == UpdateCheckStatus.checking) return;
     // What the status line said before this check, for an automatic check that
     // fails: it must leave the line as it found it, not claim "No update found".
@@ -911,6 +917,13 @@ class UpdateController extends ChangeNotifier {
       UpdateCheckFailed() => null,
     };
     if (checked != null) await _applyEndOfLife(checked.endOfLife);
+    if (!offersUpdates) {
+      // A store copy reads the release information for its end-of-support
+      // date only: no update offer, and no status line to speak of.
+      _status = statusBefore;
+      notifyListeners();
+      return;
+    }
     final result = checked?.update;
 
     _available = result;

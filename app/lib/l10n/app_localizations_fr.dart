@@ -1946,7 +1946,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsUpdatesStoreSubtitle =>
-      'Cette copie a été installée depuis une boutique d\'applications, qui se charge donc de la mettre à jour. L\'application ne recherche pas elle-même les mises à jour.';
+      'Cette copie a été installée depuis une boutique d\'applications, qui se charge donc de la mettre à jour. L\'application ne recherche qu\'une éventuelle date de fin de prise en charge, jamais de nouvelle version.';
 
   @override
   String get settingsUpdatesPortableTitle =>

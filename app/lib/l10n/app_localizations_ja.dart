@@ -1836,7 +1836,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsUpdatesStoreSubtitle =>
-      'このコピーはアプリストアからインストールされているため、ストアが更新します。アプリ自身はアップデートを確認しません。';
+      'このコピーはアプリストアからインストールされているため、ストアが更新します。アプリが確認するのはサポート終了日だけで、新しいバージョンは確認しません。';
 
   @override
   String get settingsUpdatesPortableTitle => 'ポータブル版：新しいアーカイブをダウンロード';

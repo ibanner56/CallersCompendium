@@ -23,7 +23,9 @@ import '../../widgets/section_header.dart';
 /// OS-handoff) with progress, cancel, and a clear error; **mobile** never shows
 /// it (the banner's "View release" link is mobile's only path). A **store**
 /// copy shows only a note that its store updates it, and a **portable** copy is
-/// pointed at the release for the new archive (PLAT-5, PLAT-6).
+/// pointed at the release for the new archive (PLAT-5, PLAT-6). A store copy
+/// has no check or update offer, but still reads and shows an end-of-support
+/// notice.
 ///
 /// Reads the [UpdateController] via [UpdateScope.of] so it rebuilds live as a
 /// check progresses or a pref flips; mutations go through the controller, which
@@ -40,22 +42,6 @@ class UpdatesSection extends StatelessWidget {
     final status = controller.status;
     final checking = status == UpdateCheckStatus.checking;
     final retirement = controller.retirementNotice;
-
-    // A store copy is updated by its store and never checks (PLAT-5): no
-    // check, channel or auto-check controls, which would all do nothing.
-    if (!controller.checksForUpdates) {
-      return ReadableListView(
-        children: [
-          SectionHeader(title: l10n.settingsUpdatesHeader),
-          ListTile(
-            key: const ValueKey('updates-store'),
-            leading: const Icon(Icons.storefront_outlined),
-            title: Text(l10n.settingsUpdatesStoreTitle),
-            subtitle: Text(l10n.settingsUpdatesStoreSubtitle),
-          ),
-        ],
-      );
-    }
 
     return ReadableListView(
       children: [
@@ -76,20 +62,30 @@ class UpdatesSection extends StatelessWidget {
             trailing: const Icon(Icons.open_in_new),
             onTap: () => openRetirementUpdatePage(context, controller),
           ),
-        ListTile(
-          key: const ValueKey('updates-check-now'),
-          leading: const Icon(Icons.system_update_alt),
-          title: Text(l10n.settingsUpdatesCheckNowTitle),
-          subtitle: Text(_statusText(l10n, controller)),
-          trailing: checking
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.refresh),
-          onTap: checking ? null : controller.checkNow,
-        ),
+        // A store copy is updated by its store: it gets a note instead of the
+        // check (PLAT-5), and only its end-of-support notice above.
+        if (!controller.offersUpdates)
+          ListTile(
+            key: const ValueKey('updates-store'),
+            leading: const Icon(Icons.storefront_outlined),
+            title: Text(l10n.settingsUpdatesStoreTitle),
+            subtitle: Text(l10n.settingsUpdatesStoreSubtitle),
+          )
+        else
+          ListTile(
+            key: const ValueKey('updates-check-now'),
+            leading: const Icon(Icons.system_update_alt),
+            title: Text(l10n.settingsUpdatesCheckNowTitle),
+            subtitle: Text(_statusText(l10n, controller)),
+            trailing: checking
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            onTap: checking ? null : controller.checkNow,
+          ),
         if (controller.canAssistDownload)
           _downloadTile(context, controller, theme),
         if (controller.installKind == InstallKind.portable &&

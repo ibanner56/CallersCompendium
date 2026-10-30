@@ -1935,7 +1935,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsUpdatesStoreSubtitle =>
-      'Deze kopie is geïnstalleerd vanuit een appstore, dus de store werkt hem bij. De app zoekt zelf niet naar updates.';
+      'Deze kopie is geïnstalleerd vanuit een appstore, dus de store werkt hem bij. De app zoekt alleen naar een einddatum van de ondersteuning, nooit naar een nieuwe versie.';
 
   @override
   String get settingsUpdatesPortableTitle =>

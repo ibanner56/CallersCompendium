@@ -1776,9 +1776,9 @@
   "@settingsUpdatesStoreTitle": {
     "x-sourceSha256": "53e9be4c9dadaca5e7677a817a615dd6d698146fe548efd09d346ebfa4afc5ad"
   },
-  "settingsUpdatesStoreSubtitle": "Diese Kopie wurde aus einem App-Store installiert, der sie daher auch aktualisiert. Die App sucht nicht selbst nach Updates.",
+  "settingsUpdatesStoreSubtitle": "Diese Kopie wurde aus einem App-Store installiert, der sie daher auch aktualisiert. Die App sucht nur nach einem Datum für das Ende der Unterstützung, nie nach einer neuen Version.",
   "@settingsUpdatesStoreSubtitle": {
-    "x-sourceSha256": "093623a78644306c458f20a6b289c8584a9e6f3f5f5b6277cf10c3301a43c618"
+    "x-sourceSha256": "db003b621e3b71c206dd26c0ff18cb86c13b0bee31bae687eefd882f6f3f12ba"
   },
   "settingsUpdatesPortableTitle": "Portable Kopie: neues Archiv herunterladen",
   "@settingsUpdatesPortableTitle": {

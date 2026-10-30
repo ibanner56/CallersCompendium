@@ -1936,7 +1936,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsUpdatesStoreSubtitle =>
-      'Diese Kopie wurde aus einem App-Store installiert, der sie daher auch aktualisiert. Die App sucht nicht selbst nach Updates.';
+      'Diese Kopie wurde aus einem App-Store installiert, der sie daher auch aktualisiert. Die App sucht nur nach einem Datum für das Ende der Unterstützung, nie nach einer neuen Version.';
 
   @override
   String get settingsUpdatesPortableTitle =>

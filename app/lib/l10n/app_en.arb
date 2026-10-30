@@ -2396,7 +2396,7 @@
   "@settingsUpdatesStoreTitle": {
     "description": "Title of the only row in Settings > Updates on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy never checks for updates itself."
   },
-  "settingsUpdatesStoreSubtitle": "This copy was installed from an app store, so the store updates it. The app does not check for updates itself.",
+  "settingsUpdatesStoreSubtitle": "This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.",
   "@settingsUpdatesStoreSubtitle": {
     "description": "Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action."
   },
