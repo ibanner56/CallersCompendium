@@ -92,9 +92,17 @@
   "@appBootstrapLogHint": {
     "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
   },
-  "migrationDowngradeMessage": "Diese Daten wurden mit einer neueren Version von Caller’s Compendium erstellt – bitte aktualisiere die App.",
+  "appBootstrapReleasesLink": "Releases-Seite öffnen",
+  "@appBootstrapReleasesLink": {
+    "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
+  },
+  "migrationDowngradeVersions": "Deine Daten verwenden Speicherformat {fileVersion}. Diese Version der App liest bis Format {appVersion}.",
+  "@migrationDowngradeVersions": {
+    "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
+  },
+  "migrationDowngradeMessage": "Diese Daten wurden mit einer neueren Version von Caller’s Compendium erstellt. Aktualisiere die App und öffne sie dann erneut.",
   "@migrationDowngradeMessage": {
-    "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
+    "x-sourceSha256": "16e745baf449224ab5aedb863ef7ff32aacc237ac5e54e40b8cc9ba5c87a90e7"
   },
   "migrationRelocationBothExist": "Caller’s Compendium wurde nicht gestartet, weil gespeicherte Datendateien am neuen Speicherort und zusätzlich in einem Ordner gefunden wurden, den eine frühere Version verwendet hat. Es wurde nichts geändert oder gelöscht. Behalte die gewünschte Kopie, verschiebe die andere an einen anderen Ort und öffne die App dann erneut. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ nennt die Speicherorte.",
   "@migrationRelocationBothExist": {
@@ -3088,9 +3096,9 @@
   "@settingsGeneralSoftDeleteRetentionTitle": {
     "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. Mit der Gerätesynchronisierung gilt das auf all Ihren Geräten: Ein geteilter Eintrag wird überall geleert, nur ein kleiner Löschvermerk bleibt. „Nie“ behält sie, bis Sie sie manuell bereinigen.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
-    "x-sourceSha256": "e9121427d1a14e56df8a472c097142bf74ac95a239c8ba1756f1ef77e8a1ea76"
+    "x-sourceSha256": "6c4f9fdb230a5e41d5afc9b1d4d34e6fe145156254be79776a35fe1fbdb48151"
   },
   "settingsGeneralSoftDeleteRetentionDays": "{days} Tage",
   "@settingsGeneralSoftDeleteRetentionDays": {

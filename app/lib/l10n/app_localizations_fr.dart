@@ -91,8 +91,26 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les détails ont aussi été écrits dans le journal de diagnostic, dans le dossier de support de l’application.';
 
   @override
+  String get appBootstrapReleasesLink =>
+      'Ouvrir la page des versions (Releases)';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Vos données utilisent le format de stockage $fileVersionString. Cette version de l’application lit jusqu’au format $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'Ces données ont été créées avec une version plus récente de Caller’s Compendium — veuillez mettre à jour l\'application.';
+      'Ces données ont été créées avec une version plus récente de Caller’s Compendium. Mettez à jour l’application, puis rouvrez-la.';
 
   @override
   String get migrationRelocationBothExist =>
@@ -3132,7 +3150,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Les danses et programmes supprimés sont conservés pendant cette durée avant d’être définitivement supprimés au lancement de l’application. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.';
+      'Les danses et programmes supprimés sont conservés pendant cette durée avant d’être définitivement supprimés au lancement de l’application. Avec la synchronisation des appareils, cela s’applique à tous vos appareils : un élément partagé est vidé partout, seule une petite trace de suppression subsiste. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

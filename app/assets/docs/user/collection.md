@@ -423,8 +423,11 @@ undone.
   - A device still on an older version of the app shows that deletion record
     in its Recently Deleted as an untitled "—" entry until you update it. Don't
     restore it there: it is empty.
-  - A shared dance is not purged automatically: it stays in Recently Deleted
-    until you restore it or delete it permanently.
+  - A shared dance left in Recently Deleted is cleared the same way when the
+    window you chose in Settings runs out, on all your devices. One
+    difference: while a program or another dance still includes it, it keeps
+    its title, which they show, and they are left exactly as they are. The
+    title goes once nothing includes the dance.
 
 ### Change many dances at once
 

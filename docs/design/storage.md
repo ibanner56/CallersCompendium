@@ -923,7 +923,12 @@ and does not leak into what the user sees.
 - All writes in transactions via repository layer; dance/program soft deletes
   purge after a configurable retention (default 30 days) via startup sweep,
   except for rows Device Sync has published: those are retained as tombstones
-  indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1). The
+  indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1), and
+  once expired are **blanked** as Permanently delete blanks them (next bullet),
+  except that `existence_at` is left alone (a tie between tombstones takes the
+  mark, `sync-spec.md` §6.4), and the records citing a dance are not rewritten
+  (a cited dance keeps its title until nothing cites it); `sync-spec.md` §3.2
+  gives the reasons. The
   six kinds that became soft-deletable in v25 have no retention sweep yet:
   their tombstones accumulate until Device Sync, which owns retention, adds
   one.
@@ -937,7 +942,8 @@ and does not leak into what the user sees.
   retirement). Program slots and related-dance links that cited a blanked dance
   get what a purge would leave them, and their owners are restamped. A startup
   sweep finishes every marked row whatever the retention setting, which also
-  blanks rows marked by builds that predate blanking. See
+  blanks rows marked by builds that predate blanking; being automatic and
+  pre-sync, it leaves citers alone and a cited dance keeps its title. See
   `lib/src/storage/permanent_deletion.dart`.
 
 ### Migration safety (app-layer preflight)
@@ -952,7 +958,7 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
 - **Downgrade protection.** If the file's version is *higher* than the running
   schema (it was written by a newer build), the preflight refuses to open it and
   routes to the `AppBootstrap` error screen ("created by a newer version …
-  please update the app"). drift is forward-only with no `onDowngrade`, so
+  Update the app, then reopen it"). drift is forward-only with no `onDowngrade`, so
   migrating such a file would silently stamp the version down and risk
   corruption; a belt-and-suspenders guard in `MigrationStrategy.onUpgrade`
   (`from > to` throws) backstops any open path that bypasses the preflight.
@@ -999,3 +1005,18 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   the snapshot is stamped at the older `user_version`, opening it with the build
   that created the backup migrates it forward again; if the migration itself was
   the problem, open it with the matching older app version instead.
+
+**The four terminal startup screens (amendment, 2026-10-30).** The downgrade,
+below-floor, snapshot-aborted and relocation-blocked outcomes above each render
+a terminal `AppBootstrap` screen. Every one offers **Copy details** and a link
+to the Releases page; none offers Retry or a "Check again". Copy details is the
+error's type, typed discriminators (storage versions, the failure cause or
+reason as an enum name, each conflicting copy's folder and size) and the stack
+scrubbed by `CrashRedactor`; it never includes the error's own message, which
+can carry a path or text from the database that just failed (CWE-209). The
+reason for no re-run (maintainer decision R2-check-again, 2026-10-30): whatever
+the caller does to clear the cause, the app has to be reopened afterwards, so
+each screen's copy says to reopen it. A re-run could succeed for the last two
+outcomes (the caller frees disk space, or moves a copy aside), so this was a
+choice rather than a necessity; it was rejected to keep these screens strictly
+terminal.

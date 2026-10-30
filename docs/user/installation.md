@@ -79,7 +79,20 @@ the app won't start and a terminal shows a message that a `GLIBC_` version was
      `~/.local/share/applications/`, and `compendium_app.png` into
      `~/.local/share/icons/hicolor/512x512/apps/`. Then edit the copied
      `.desktop` file so its `Exec=` line gives the full path to
-     `compendium_app` in the folder where you extracted it.
+     `compendium_app` in the folder where you extracted it, keeping the `%f`
+     at the end.
+  4. Optional: so double-clicking a `.ccshare` share file opens it in the app,
+     do step 3, then copy `org.callerscompendium.compendiumApp.xml` from the
+     folder into `~/.local/share/mime/packages/` and run
+     `update-mime-database ~/.local/share/mime` and
+     `update-desktop-database ~/.local/share/applications`.
+
+Neither Linux download sets up the `.ccshare` file type by itself, because
+neither has an installer. The AppImage carries the same file type inside it:
+an AppImage integration tool, such as AppImageLauncher, may register it when it
+adds the app to your menu, but that depends on the tool. Without it, open
+share files from **Settings › General › Import…**, or run the AppImage with the
+file's path.
 
 > **AppImage won't open?** The AppImage needs a `fusermount` (or `fusermount3`)
 > program, which some recent distributions don't install by default. If you see
@@ -128,9 +141,15 @@ There are two downloads for Windows (x64).
      [The first-time security warning](#the-first-time-security-warning-explained)
      below.
   3. Follow the installer, then open Caller's Compendium from your Start menu.
+
+  The installer also registers `.ccshare` share files, so double-clicking one
+  opens it in the app's import review. Uninstalling removes that again.
 - **Portable copy** (`...-windows-x64.zip`) — no installer needed.
   1. Unzip the folder somewhere convenient.
   2. Open `compendium_app.exe` inside that folder to run it.
+
+  The portable copy doesn't register `.ccshare` files; open them from
+  **Settings › General › Import…**.
 
 ## Install on Android
 

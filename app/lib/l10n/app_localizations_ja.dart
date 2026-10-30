@@ -84,8 +84,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appBootstrapLogHint => '詳細は、アプリのサポートフォルダ内の診断ログにも書き込まれました。';
 
   @override
+  String get appBootstrapReleasesLink => 'Releases ページを開く';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'お使いのデータの保存形式はバージョン $fileVersionString です。このバージョンのアプリは形式 $appVersionString まで読み込めます。';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してください。';
+      'このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してから、もう一度開いてください。';
 
   @override
   String get migrationRelocationBothExist =>
@@ -2924,7 +2941,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      '削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。';
+      '削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。デバイス同期を使っている場合はすべてのデバイスに適用され、共有された項目はどこでも消去されて小さな削除記録だけが残ります。「削除しない」を選択すると手動で削除するまで保持されます。';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

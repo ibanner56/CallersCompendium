@@ -88,8 +88,25 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Details wurden auch in das Diagnoseprotokoll im Support-Ordner der App geschrieben.';
 
   @override
+  String get appBootstrapReleasesLink => 'Releases-Seite öffnen';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Deine Daten verwenden Speicherformat $fileVersionString. Diese Version der App liest bis Format $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'Diese Daten wurden mit einer neueren Version von Caller’s Compendium erstellt – bitte aktualisiere die App.';
+      'Diese Daten wurden mit einer neueren Version von Caller’s Compendium erstellt. Aktualisiere die App und öffne sie dann erneut.';
 
   @override
   String get migrationRelocationBothExist =>
@@ -3112,7 +3129,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. „Nie“ behält sie, bis Sie sie manuell bereinigen.';
+      'Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. Mit der Gerätesynchronisierung gilt das auf all Ihren Geräten: Ein geteilter Eintrag wird überall geleert, nur ein kleiner Löschvermerk bleibt. „Nie“ behält sie, bis Sie sie manuell bereinigen.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
