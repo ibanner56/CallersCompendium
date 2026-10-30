@@ -310,7 +310,8 @@ class CallersCompanionUsrImporter {
   /// dedupe and OWASP-hardening rationale). A pair with an unresolved
   /// endpoint is skipped with a warning [ImportIssue] on
   /// [CcUsrImportResult.relatedDanceLinkIssues] — never a dangling
-  /// `targetDanceId`.
+  /// `targetDanceId`. A dance [batch] re-imports gets no links: a re-import
+  /// replaces only the choreography (INTAKE-7).
   ///
   /// **Dances committed earlier (the review's per-row Edit):**
   /// [earlierDanceIds] maps the CC `zk_Dance_ID` of each dance an earlier
@@ -597,6 +598,12 @@ class CallersCompanionUsrImporter {
           for (final r in danceSession.records)
             if (r.succeeded && r.danceId != null) r.danceId!,
         };
+        // A re-import replaces only a dance's choreography (INTAKE-7), so a
+        // dance this batch re-imported gets none of the file's links.
+        final reimportedDanceIds = {
+          for (final r in danceSession.records)
+            if (r.succeeded && r.action == CommitAction.reimport) r.danceId!,
+        };
         final linkResult = buildCcRelatedDanceLinks(
           archive,
           danceIdByCcRowId: danceIdByCcRowId,
@@ -605,6 +612,7 @@ class CallersCompanionUsrImporter {
         );
         relatedDanceLinkIssues.addAll(linkResult.issues);
         for (final entry in linkResult.newLinksByDanceId.entries) {
+          if (reimportedDanceIds.contains(entry.key)) continue;
           final dance = dancesById[entry.key];
           if (dance == null) continue; // fetched dance vanished; skip safely
           if (!sessionDanceIds.contains(entry.key)) {

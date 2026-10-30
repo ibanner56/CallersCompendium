@@ -1842,9 +1842,12 @@ class ProgramRepository {
   }
 
   /// Hard-deletes unpublished soft-deleted programs whose `deletedAt` is older
-  /// than [retention] (default 30 days per `docs/design/storage.md`). Published
-  /// programs remain as tombstones so peers retain deletion evidence. Physical
-  /// deletes cascade slots automatically (FK).
+  /// than [retention] (default 30 days per `docs/design/storage.md`). A
+  /// published program cannot be erased, so an expired one is blanked instead,
+  /// as "Permanently delete" blanks it; its deletion record stays so peers
+  /// retain deletion evidence. See `DanceRepository._markExpiredPublished` for
+  /// why that leaves `existence_at` alone. Returns how many programs it erased.
+  /// Physical deletes cascade slots automatically (FK).
   ///
   /// When [onlyIds] is non-null the purge is restricted to those ids: a row
   /// outside the set is left alone even if it is past the cutoff. The manual
@@ -1887,6 +1890,33 @@ class ProgramRepository {
         kind: SyncRecordKind.program,
         recordIds: rows.map((row) => row.id),
       );
+      final expiredPublished = [
+        for (final row in rows)
+          if (publishedIds.contains(row.id) &&
+              !isPermanentlyDeleted(row.deletedAt))
+            row.id,
+      ];
+      if (expiredPublished.isNotEmpty) {
+        // Leaves `existence_at` alone: see
+        // `DanceRepository._markExpiredPublished`.
+        // The mark changes the body, so it stamps content too; see
+        // `DanceRepository._markExpiredPublished`.
+        for (final chunk in _chunkIds(expiredPublished)) {
+          await _db.customUpdate(
+            'UPDATE ${_db.programs.actualTableName} '
+            'SET deleted_at = ?, updated_at = MAX(updated_at + 1, ?) '
+            'WHERE id IN (${List.filled(chunk.length, '?').join(', ')})',
+            variables: [
+              Variable<int>(unixSeconds(permanentlyDeletedAt)),
+              Variable<int>(unixSeconds(now)),
+              for (final id in chunk) Variable<String>(id),
+            ],
+            updates: {_db.programs},
+            updateKind: UpdateKind.update,
+          );
+        }
+        await removePermanentlyDeleted(now: now, onlyIds: expiredPublished);
+      }
       final erasableIds = [
         for (final row in rows)
           if (!publishedIds.contains(row.id)) row.id,

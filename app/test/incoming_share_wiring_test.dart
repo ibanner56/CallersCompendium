@@ -18,7 +18,7 @@ import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show MethodChannel, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'support/noop_sync_transport.dart';
 import 'support/sync_test_network.dart';
@@ -297,6 +297,104 @@ void main() {
     },
   );
 
+  testWidgets(
+    'desktop opens while a review is showing wait, and only the latest '
+    'opens after that review closes',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const platformChannel = MethodChannel(IncomingFileChannel.channelName);
+      messenger.setMockMethodCallHandler(platformChannel, (_) async => null);
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(platformChannel, null),
+      );
+      final appData = openTestAppData();
+      final tempDir = Directory.systemTemp.createTempSync('desktop-coalesce-');
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      File share(String name) =>
+          File('${tempDir.path}/$name')..writeAsStringSync(_validBundleJson());
+      final first = share('first.ccshare');
+      final second = share('second.ccshare');
+      final third = share('third.ccshare');
+      final readPaths = <String>[];
+      final channel = IncomingFileChannel();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: channel,
+          incomingFileReader: (path) async {
+            readPaths.add(path);
+            return Uint8List.fromList(utf8.encode(_validBundleJson()));
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Future<void> open(File file) async {
+        await tester.runAsync(() async {
+          channel.openDesktopPath(file.path);
+          await channel.desktopOpensSettled;
+        });
+        await tester.pumpAndSettle();
+      }
+
+      await open(first);
+      await open(second);
+      await open(third);
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(readPaths, [first.path]);
+
+      Navigator.of(tester.element(find.byType(ImportReviewScreen))).pop();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(readPaths, [first.path, third.path]);
+    },
+  );
+
+  testWidgets(
+    'a desktop open the app will not read shows the unreadable snackbar '
+    'without reading anything',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final readPaths = <String>[];
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialFileFuture: Future.value(
+              const IncomingFile.rejected(IncomingFileRejection.unreadable),
+            ),
+          ),
+          incomingFileReader: (path) async {
+            readPaths.add(path);
+            return Uint8List(0);
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppLocalizationsEn().archiveIntakeRejectedUnreadable),
+        findsOneWidget,
+      );
+      expect(readPaths, isEmpty);
+      expect(find.byType(ImportReviewScreen), findsNothing);
+    },
+  );
+
   testWidgets('a rejected shared file removes its staging copy', (
     tester,
   ) async {
@@ -414,6 +512,63 @@ void main() {
       await tester.pump();
 
       expect(stagedFile.existsSync(), isFalse);
+    },
+  );
+
+  // PLAT-3: a second launch on Windows or Linux forwards a double-clicked
+  // file over the unauthenticated single-instance channel. It must land on
+  // import review like any other shared file, commit nothing, and leave the
+  // user's file where it was.
+  testWidgets(
+    'a desktop open delivered while running opens import review, commits '
+    'nothing and keeps the file',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final tempDir = Directory.systemTemp.createTempSync('desktop-open-');
+      addTearDown(() {
+        if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+      });
+      final shared = File('${tempDir.path}/Spring Fling.ccshare')
+        ..writeAsStringSync(_validBundleJson());
+      // Windows and Linux have no native side; answer the cold-start pull with
+      // no file, as there, so the app counts itself ready.
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const platformChannel = MethodChannel(IncomingFileChannel.channelName);
+      messenger.setMockMethodCallHandler(platformChannel, (_) async => null);
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(platformChannel, null),
+      );
+      final channel = IncomingFileChannel();
+      var deletionCalled = false;
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: channel,
+          incomingFileReader: _readerFor(_validBundleJson()),
+          incomingFileDeleter: (path) async => deletionCalled = true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(ImportReviewScreen), findsNothing);
+
+      // The path check stats the real file, so run it outside fake time.
+      await tester.runAsync(() async {
+        channel.openDesktopPath(shared.path);
+        await channel.desktopOpensSettled;
+      });
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(await appData.repositories.programs.listAll(), isEmpty);
+      expect(await appData.repositories.dances.listAll(), isEmpty);
+      expect(deletionCalled, isFalse);
+      expect(shared.existsSync(), isTrue);
     },
   );
 

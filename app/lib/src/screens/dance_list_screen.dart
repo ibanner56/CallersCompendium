@@ -323,8 +323,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool _dataSubscribed = false;
 
   /// The app-level tag-filter coordinator (issue #414). When a tag chip is
-  /// tapped (here, on a dance detail, or on a list row), this list applies a
-  /// single-tag filter. Tracked so the listener is swapped correctly.
+  /// tapped (here, on a dance detail, or on a list row), this list adds the
+  /// tag to its Tags facet. Tracked so the listener is swapped correctly.
   CollectionFilterController? _filterController;
 
   /// The seq of the last tag-filter request applied, so a repeat request (even
@@ -460,7 +460,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
 
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
-    // anywhere publishes a request; this list reacts by applying a single-tag
+    // anywhere publishes a request; this list reacts by adding the tag to its
     // filter. Registers a rebuild dependency; the controller is stable across
     // the app's lifetime, so this attaches once.
     final filter = CollectionFilterScope.maybeOf(context);
@@ -488,11 +488,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
   }
 
-  /// Reacts to an app-level "filter the Collection to this tag" request (issue
-  /// #414). Applies a **single-tag** filter that *replaces* the current query:
-  /// arriving from a dance detail with unknown prior filter state, a clean
-  /// "show every dance with this tag" result is the predictable behavior (the
-  /// user can then clear it via the Filters panel). Handled once per request.
+  /// Reacts to an app-level tag request (issue #414) by adding the tag to the current search ([_applyExternalTagFilter]).
+  /// Handled once per request.
   void _onTagFilterRequested() {
     final request = _filterController?.pending;
     if (request == null || request.seq == _lastFilterSeq) return;
@@ -501,18 +498,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
     _applyExternalTagFilter(request.tagId);
   }
 
-  /// Replaces the current search with a single-tag facet filter for [tagId] and
-  /// re-runs the search. Clears the text query, other facets, by-phrase and
-  /// advanced state, and exits online mode so the (local) filtered list is what
-  /// the user lands on.
+  /// Adds [tagId] to the Tags facet and re-runs the search (FIND-14). The text
+  /// query, every other facet, By phrase and Advanced are kept; a second tag
+  /// defaults the facet to "all tags", and a later one keeps the user's choice
+  /// ([FacetSelections.setTag]). Online mode is left, because tags filter only
+  /// the local library.
   void _applyExternalTagFilter(String tagId) {
     _debounceTimer?.cancel();
     setState(() {
-      _ftsController.clear();
-      _facets.clear();
-      _byPhrase.clear();
-      _advancedRoot.children.clear();
-      _advancedRoot.kind = GroupKind.all;
       _ftsScope = _localFtsScope;
       _onlineEnabled = false;
       // Invalidate any in-flight online search so a late response can't
@@ -521,7 +514,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
-      _facets.tagIds.add(tagId);
+      _facets.setTag(tagId, selected: true);
     });
     _runSearch();
   }
@@ -641,8 +634,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// derived from that same source?
   void _onCollectionData(CollectionData data) {
     final previous = _data;
+    // Every path that changes the offered tags also changes a dance today, so
+    // `tagsDropped` is a safeguard: dropping a tag must never skip the search.
+    final tagsDropped = _facets.retainTags([for (final t in data.tags) t.id]);
     final searchAffected =
         previous == null ||
+        tagsDropped ||
         !mapEquals(previous.dancesById, data.dancesById) ||
         !listEquals(previous.customFieldDefs, data.customFieldDefs) ||
         (_facets.callStatuses.isNotEmpty &&

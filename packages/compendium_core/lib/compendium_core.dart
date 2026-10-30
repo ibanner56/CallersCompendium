@@ -34,6 +34,7 @@ export 'src/imports/callersbox_figure_dialect.dart';
 export 'src/imports/compendium_archive_import.dart';
 export 'src/imports/callersbox_search.dart';
 export 'src/imports/callers_companion_text_adapter.dart';
+export 'src/imports/dance_choreography_reimport.dart';
 export 'src/imports/dedupe.dart';
 export 'src/imports/contradb_adapter.dart';
 export 'src/imports/contradb_figure_dialect.dart';

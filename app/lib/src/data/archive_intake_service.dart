@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
 
+import 'import_io.dart' show ImportFileTooLargeException, readCappedBytes;
+
 /// Hard cap on the size of an incoming shared archive, in bytes.
 ///
 /// A received file is **untrusted input** (OWASP): AirDrop / "Open with" hands
@@ -136,7 +138,10 @@ class ArchiveIntakeValidation {
 /// collection without the user confirming first (issue #432).
 ///
 /// Validation (OWASP — the file is untrusted):
-/// - **Size cap** enforced before the file is read into memory.
+/// - **Size cap** enforced while the file is read, whatever length it reports.
+/// - **Read deadline** ([readTimeout]): a read that never finishes, such as a
+///   named pipe with no writer or a hung network drive, is rejected as
+///   unreadable, so intake always ends and the next file can follow.
 /// - Bytes must decode as UTF-8 text.
 /// - The text must decode as a **well-formed** [CompendiumArchive]; a root that
 ///   isn't a Compendium archive is rejected.
@@ -149,17 +154,24 @@ class ArchiveIntakeService {
   ArchiveIntakeService({
     ArchiveByteReader? readBytes,
     this.maxBytes = kMaxIncomingArchiveBytes,
+    this.readTimeout = const Duration(seconds: 30),
   }) : _injectedReader = readBytes;
 
   final ArchiveByteReader? _injectedReader;
   final int maxBytes;
+
+  /// Longest a file read may take before it is rejected as unreadable. Far
+  /// above the time to read [maxBytes] from any local disk.
+  final Duration readTimeout;
 
   /// Reads the file at [path], then validates it. Any read failure is rejected
   /// gracefully; an oversized file is rejected without being read into memory.
   Future<ArchiveIntakeValidation> validateFromPath(String path) async {
     final Uint8List bytes;
     try {
-      bytes = await (_injectedReader ?? _readFileWithCap)(path);
+      bytes = await (_injectedReader ?? _readFileWithCap)(
+        path,
+      ).timeout(readTimeout);
     } on OversizedArchiveException {
       // diagnostics: silent — surfaced via ArchiveIntakeValidation.rejected(tooLarge) to the intake screen
       return ArchiveIntakeValidation.rejected(
@@ -252,12 +264,37 @@ class ArchiveIntakeService {
     return root is Map && root.containsKey('backupContainer');
   }
 
+  /// Reads [path], stopping once more than [maxBytes] have arrived
+  /// ([readCappedBytes]). The reported length is only a fast path and a buffer
+  /// size hint: a device, a `/proc` file or a FUSE file can report 0 and
+  /// stream without end, and a file can grow after it was measured, so the
+  /// read itself is what is capped. Length and read share one open handle, so
+  /// both see the same file.
   Future<Uint8List> _readFileWithCap(String path) async {
-    final file = File(path);
-    final length = await file.length();
-    if (length > maxBytes) {
-      throw OversizedArchiveException(length);
+    final file = await File(path).open();
+    try {
+      final length = await file.length();
+      if (length > maxBytes) {
+        throw OversizedArchiveException(length);
+      }
+      return await readCappedBytes(
+        _chunks(file),
+        maxBytes: maxBytes,
+        sizeHint: length,
+      );
+    } on ImportFileTooLargeException catch (error) {
+      // diagnostics: silent — rethrown as the intake's own oversize signal
+      throw OversizedArchiveException(error.length);
+    } finally {
+      await file.close();
     }
-    return file.readAsBytes();
+  }
+
+  static Stream<List<int>> _chunks(RandomAccessFile file) async* {
+    while (true) {
+      final chunk = await file.read(64 * 1024);
+      if (chunk.isEmpty) return;
+      yield chunk;
+    }
   }
 }
