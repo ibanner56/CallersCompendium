@@ -195,3 +195,59 @@ List<String> _splitOnCommaWithSuffixProtection(String field) {
 bool _isWordChar(int codeUnit) =>
     (codeUnit >= 0x41 && codeUnit <= 0x5A) || // A-Z
     (codeUnit >= 0x61 && codeUnit <= 0x7A); // a-z
+
+/// The spellings of an unnamed-others credit [peelUnnamedOthers] recognises,
+/// lower-cased, whitespace collapsed.
+const List<String> _unnamedOthers = [
+  'and others',
+  '& others',
+  'et al.',
+  'et al',
+];
+
+/// [rawFields] with any "and others" credit taken off, and whether one was
+/// (#1976).
+///
+/// Caller's Companion credits a dance to "Rick Mohr" and "And Others", which
+/// [splitAuthorNames] would read as an author named "Others". The maintainer's
+/// decision (#1976, 2026-10-30) is to credit only the named authors and keep
+/// "and others" as a note. A field that is only such a credit (`And Others`,
+/// `& others`, `et al.`, `Others`) is dropped, and one that ends with it
+/// (`Rick Mohr and others`, `Rick Mohr, et al.`) keeps the names before it.
+/// Matching is case-insensitive and fixed-string, so it cannot backtrack.
+({List<String?> fields, bool hadOthers}) peelUnnamedOthers(
+  Iterable<String?> rawFields,
+) {
+  var hadOthers = false;
+  final fields = <String?>[];
+  for (final raw in rawFields) {
+    if (raw == null) {
+      fields.add(null);
+      continue;
+    }
+    final field = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final lower = field.toLowerCase();
+    if (lower == 'others') {
+      hadOthers = true;
+      continue;
+    }
+    String? kept = raw;
+    for (final credit in _unnamedOthers) {
+      if (lower == credit) {
+        kept = null;
+      } else if (lower.endsWith(' $credit') || lower.endsWith(',$credit')) {
+        var end = field.length - credit.length;
+        while (end > 0 && (field[end - 1] == ' ' || field[end - 1] == ',')) {
+          end--;
+        }
+        kept = field.substring(0, end);
+      } else {
+        continue;
+      }
+      hadOthers = true;
+      break;
+    }
+    if (kept != null) fields.add(kept);
+  }
+  return (fields: fields, hadOthers: hadOthers);
+}

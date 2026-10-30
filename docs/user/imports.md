@@ -418,6 +418,12 @@ description of the starting position ("Long Waves, R-hand to Neighbor") is kept
 as the formation's detail.
 Alternates in your sets come across as alternates.
 
+A dance Caller's Companion credits to a choreographer **"and others"** (such
+as "Rick Mohr" and "And Others") is credited to the people it names, and the
+credit is kept as a line in its calling notes: "Choreography: Rick Mohr and
+others". No choreographer called "Others" is made. "& others" and "et al."
+are read the same way.
+
 Your **notes and sources** come across with each dance. Your calling notes
 come first, then the music, any progression detail, your other notes (under
 "Other notes:"), and where the dance came from (under "Source:"). Source and

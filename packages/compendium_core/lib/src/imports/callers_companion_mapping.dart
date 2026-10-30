@@ -369,7 +369,9 @@ CcDanceMapping mapCallersCompanionDance(
   // ONE shared canonical splitter (#685) so a combined "Alice and Bob" string
   // and a pre-split ["Alice", "Bob"] array both normalize identically. Never
   // fabricates ids; blank/duplicate names are dropped.
-  final authorNames = splitAuthorNames(record.authors, issues: issues);
+  // "And Others" credits nobody: it becomes a note, not an author (#1976).
+  final (:fields, :hadOthers) = peelUnnamedOthers(record.authors);
+  final authorNames = splitAuthorNames(fields, issues: issues);
 
   // Level → shipped difficulty-level id (+ mixedLevel), best-effort.
   final (
@@ -423,8 +425,9 @@ CcDanceMapping mapCallersCompanionDance(
   issues.addAll(userFieldPlan.issues);
 
   // Notes: the caller's own calling notes, Music, an unmapped-type note, any
-  // extra source notes, the other notes, and last the non-link source, as the
-  // Caller's Box and ContraDB importers end with "Imported from …" (#1974).
+  // extra source notes, the other notes, an "and others" credit (#1976), and
+  // last the non-link source, as the Caller's Box and ContraDB importers end
+  // with "Imported from …" (#1974).
   final notes = _joinNotes([
     if ((record.callingNotes ?? '').trim().isNotEmpty)
       record.callingNotes!.trim(),
@@ -436,6 +439,10 @@ CcDanceMapping mapCallersCompanionDance(
     if ((record.notes ?? '').trim().isNotEmpty) record.notes!.trim(),
     if ((record.otherNotes ?? '').trim().isNotEmpty)
       'Other notes: ${record.otherNotes!.trim()}',
+    if (hadOthers)
+      authorNames.isEmpty
+          ? 'Choreography: others, not named'
+          : 'Choreography: ${authorNames.join(', ')} and others',
     if ((record.from ?? '').trim().isNotEmpty) 'Source: ${record.from!.trim()}',
   ]);
 
