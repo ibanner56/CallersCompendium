@@ -50,6 +50,9 @@
     "balance": {
       "note": "A dance figure: step and balance toward/away from a partner. The step sense, not financial/equilibrium 'balance'."
     },
+    "beat": {
+      "note": "One count of the music, the unit a figure's length is counted in (an 8-beat swing). NEVER a bar or measure: the app has no bar concept. de: Schlag/Schläge (not Takt/Takte, which means bar or time signature)."
+    },
     "swing": {
       "note": "A buoyant rotating figure danced with a partner. The dance figure, not a playground swing or musical swing."
     },
