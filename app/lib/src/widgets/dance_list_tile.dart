@@ -89,8 +89,8 @@ class DanceListTile extends StatelessWidget {
   /// [selectionMode]) the ⋮ menu exposes an "Add tags" action.
   final VoidCallback? onAddTags;
 
-  /// Called with a tag's id when its chip is tapped, to filter the Collection
-  /// to that tag (issue #414). When null (e.g. the Programs dance picker) the
+  /// Called with a tag's id when its chip is tapped, to add that tag to the
+  /// Collection's Tags filter (issue #414, FIND-14). When null (e.g. the Programs dance picker) the
   /// tag chips stay non-interactive. Ignored while in [selectionMode], where
   /// the whole row drives batch selection.
   final void Function(String tagId)? onTagTap;

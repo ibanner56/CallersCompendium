@@ -138,8 +138,10 @@ class FacetSelections {
   /// clears, or is cleared by, a tag chip, and it is always an OR alternative
   /// to the selected tags, in either [tagsMatchAll] mode: "untagged, or has
   /// every selected tag" (see [buildCollectionFilter]). AND-ing it would make
-  /// any selection that includes a tag match nothing. A separate flag rather than a sentinel id in
-  /// [tagIds]: a sentinel could collide with a real tag id and would leak into
+  /// any selection that includes a tag match nothing.
+  ///
+  /// A separate flag rather than a sentinel id in [tagIds]: a sentinel could
+  /// collide with a real tag id and would leak into
   /// every consumer that treats [tagIds] as real tags (the external tag filter,
   /// tag-name lookups).
   bool untagged = false;
@@ -494,8 +496,9 @@ DanceFilter buildCollectionFilter({
     ]);
   }
   addOr([for (final id in facets.sourceIds) SourceIdFilter(id)]);
-  // AND within the facet, unlike every facet above: one branch per entered
-  // value, each already a top-level AND operand, so no OR/AND group is built.
+  // AND within the facet, like Tags under All tags above: one branch per
+  // entered value, each already a top-level AND operand, so no OR/AND group is
+  // built.
   for (final tune in facets.tunes) {
     branches.add(TunesFilter(tune));
   }

@@ -583,7 +583,7 @@ tree. This section specifies the mapping; the widget shipped as
 | One-tap facet: Formation | `FormationFilter(shape)` |
 | One-tap facet: Progression | `ProgressionFilter(progression)` |
 | One-tap facet: Author | `AuthorFilter(choreographerId)` |
-| One-tap facet: Tunes | `TunesFilter(query)` per entered value, **AND-ed within the facet** (a dance must match every value) — the only facet that is not OR-within; each leaf is a case-insensitive substring over the dance's tune list and never matches a dance whose stored `tunes_json` is undecodable (#1420) |
+| One-tap facet: Tunes | `TunesFilter(query)` per entered value, **AND-ed within the facet** (a dance must match every value), unlike the OR-within facets (Tags follows its **All tags / Any tag** choice, below); each leaf is a case-insensitive substring over the dance's tune list and never matches a dance whose stored `tunes_json` is undecodable (#1420) |
 | One-tap facet: Tag(s) | `TagFilter(tagId)` per selected tag, combined by the facet's **All tags / Any tag** choice (`FacetSelections.tagsMatchAll`, Q7): AND-ed by default, OR-ed under **Any tag**. The choice shows once two tags are selected; selecting a second tag resets it to **All tags**, and later tags keep it. The facet's **Untagged** chip (issue #1422) is always an OR alternative: `OrFilter([AndFilter(tags), UntaggedFilter()])` under **All tags**, one flat OR group under **Any tag**. Without Untagged, all-of tags are flattened into the top-level AND. The chip shows exactly when the Tags section does |
 | One-tap facet: Status | `StatusFilter(status)` |
 | One-tap facet: Level | `LevelFilter(level)` — multiple levels OR-ed |

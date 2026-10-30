@@ -488,8 +488,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
   }
 
-  /// Reacts to an app-level "filter the Collection to this tag" request (issue
-  /// #414) by adding the tag to the current search ([_applyExternalTagFilter]).
+  /// Reacts to an app-level tag request (issue #414) by adding the tag to the current search ([_applyExternalTagFilter]).
   /// Handled once per request.
   void _onTagFilterRequested() {
     final request = _filterController?.pending;
