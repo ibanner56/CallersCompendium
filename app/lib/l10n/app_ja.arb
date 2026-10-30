@@ -3096,9 +3096,9 @@
   "@settingsGeneralSoftDeleteRetentionTitle": {
     "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。デバイス同期を使っている場合はすべてのデバイスに適用され、共有された項目はどこでも消去されて小さな削除記録だけが残ります。「削除しない」を選択すると手動で削除するまで保持されます。",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
-    "x-sourceSha256": "e9121427d1a14e56df8a472c097142bf74ac95a239c8ba1756f1ef77e8a1ea76"
+    "x-sourceSha256": "6c4f9fdb230a5e41d5afc9b1d4d34e6fe145156254be79776a35fe1fbdb48151"
   },
   "settingsGeneralSoftDeleteRetentionDays": "{days}日間",
   "@settingsGeneralSoftDeleteRetentionDays": {

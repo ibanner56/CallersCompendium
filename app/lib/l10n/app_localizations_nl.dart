@@ -3119,7 +3119,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Nooit bewaart ze totdat je ze handmatig opschoont.';
+      'Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Met apparaatsynchronisatie geldt dit op al je apparaten: een gedeeld item wordt overal leeggemaakt en alleen een kleine verwijderingsnotitie blijft over. Nooit bewaart ze totdat je ze handmatig opschoont.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

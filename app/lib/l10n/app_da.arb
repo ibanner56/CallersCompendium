@@ -3096,9 +3096,9 @@
   "@settingsGeneralSoftDeleteRetentionTitle": {
     "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Med enhedssynkronisering gælder det på alle dine enheder: et delt element ryddes overalt, og kun en lille sletningspost bliver tilbage. Aldrig bevarer dem, indtil du renser manuelt.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
-    "x-sourceSha256": "e9121427d1a14e56df8a472c097142bf74ac95a239c8ba1756f1ef77e8a1ea76"
+    "x-sourceSha256": "6c4f9fdb230a5e41d5afc9b1d4d34e6fe145156254be79776a35fe1fbdb48151"
   },
   "settingsGeneralSoftDeleteRetentionDays": "{days} dage",
   "@settingsGeneralSoftDeleteRetentionDays": {

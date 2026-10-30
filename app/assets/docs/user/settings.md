@@ -81,8 +81,11 @@ the full picture.
 
 - **Keep deleted items for** — choose **30 days**, **90 days**, or **Never**
   (default is **30 days**). Deleted dances and deleted programs are held for
-  this long and then purged, except one that [Device Sync](#device-sync) has
-  already shared, which stays until you delete it permanently. Choosing
+  this long and then purged. If you use [Device Sync](#device-sync), the
+  setting syncs and applies on all your devices: when a shared item's time is
+  up, its content is erased everywhere, as if you had deleted it permanently,
+  and only a small deletion record is kept (with the dance's title, while a
+  program or another dance still includes it). Choosing
   **Permanently delete** on one item in **Recently deleted** removes only that
   item. For how soft-delete and restore
   work, see [Collection & search](./collection.md).

@@ -3094,7 +3094,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.';
+      'Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Med enhedssynkronisering gælder det på alle dine enheder: et delt element ryddes overalt, og kun en lille sletningspost bliver tilbage. Aldrig bevarer dem, indtil du renser manuelt.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

@@ -2941,7 +2941,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      '削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。';
+      '削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。デバイス同期を使っている場合はすべてのデバイスに適用され、共有された項目はどこでも消去されて小さな削除記録だけが残ります。「削除しない」を選択すると手動で削除するまで保持されます。';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {

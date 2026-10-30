@@ -4762,7 +4762,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the deleted-dance retention duration setting.
   ///
   /// In en, this message translates to:
-  /// **'Deleted dances and programs are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.'**
+  /// **'Deleted dances and programs are kept for this long before being permanently removed on app launch. With Device Sync this applies on all your devices: a shared item is cleared everywhere, leaving only a small deletion record. Never keeps them until you purge manually.'**
   String get settingsGeneralSoftDeleteRetentionSubtitle;
 
   /// Deleted-dance retention dropdown option showing a fixed number of days. Keep 'days' literal for every value to preserve the current English UI.

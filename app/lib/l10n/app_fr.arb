@@ -3096,9 +3096,9 @@
   "@settingsGeneralSoftDeleteRetentionTitle": {
     "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "Les danses et programmes supprimés sont conservés pendant cette durée avant d’être définitivement supprimés au lancement de l’application. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "Les danses et programmes supprimés sont conservés pendant cette durée avant d’être définitivement supprimés au lancement de l’application. Avec la synchronisation des appareils, cela s’applique à tous vos appareils : un élément partagé est vidé partout, seule une petite trace de suppression subsiste. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
-    "x-sourceSha256": "e9121427d1a14e56df8a472c097142bf74ac95a239c8ba1756f1ef77e8a1ea76"
+    "x-sourceSha256": "6c4f9fdb230a5e41d5afc9b1d4d34e6fe145156254be79776a35fe1fbdb48151"
   },
   "settingsGeneralSoftDeleteRetentionDays": "{days} jours",
   "@settingsGeneralSoftDeleteRetentionDays": {
