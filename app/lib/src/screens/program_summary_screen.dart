@@ -22,6 +22,8 @@ import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
 import '../diagnostics/error_log.dart';
+import '../editor/perform_adjustment_write.dart';
+import '../editor/program_slot_rebase.dart';
 import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
@@ -60,12 +62,17 @@ class ProgramSummaryScreen extends StatefulWidget {
   const ProgramSummaryScreen({
     super.key,
     required this.programId,
+    this.performResumeStore,
     this.callersBoxOnline,
     this.contraDbOnline,
     this.reimportPicker,
   });
 
   final String programId;
+
+  /// See [ProgramSummaryPane.performResumeStore]. This screen is the open
+  /// program, so it drops the program's resume state when it closes.
+  final PerformResumeStore? performResumeStore;
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
@@ -76,6 +83,14 @@ class ProgramSummaryScreen extends StatefulWidget {
 
 class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
   late String _programId = widget.programId;
+
+  @override
+  void dispose() {
+    // This route is popped only when the caller leaves the program: a rotation
+    // keeps it, since it sits on the root navigator.
+    widget.performResumeStore?.forget(_programId);
+    super.dispose();
+  }
 
   Future<void> _openBuilder() async {
     final result = await Navigator.of(context).push<String>(
@@ -110,9 +125,13 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       programId: _programId,
       showAppBar: true,
       prominentPerform: true,
+      performResumeStore: widget.performResumeStore,
       onOpenBuilder: _openBuilder,
       onDeleted: () => Navigator.of(context).pop(),
-      onNavigateTo: (id) => setState(() => _programId = id),
+      onNavigateTo: (id) {
+        widget.performResumeStore?.forget(_programId);
+        setState(() => _programId = id);
+      },
       callersBoxOnline: widget.callersBoxOnline,
       contraDbOnline: widget.contraDbOnline,
       reimportPicker: widget.reimportPicker,
@@ -145,6 +164,7 @@ class ProgramSummaryPane extends StatefulWidget {
     required this.onNavigateTo,
     this.showAppBar = false,
     this.prominentPerform = false,
+    this.performResumeStore,
     this.callersBoxOnline,
     this.contraDbOnline,
     this.reimportPicker,
@@ -163,6 +183,11 @@ class ProgramSummaryPane extends StatefulWidget {
   /// Renders a prominent full-width "Perform this program" button (Perform-first)
   /// in place of the compact perform icon button, for the narrow read view.
   final bool prominentPerform;
+
+  /// Where Perform's place and clock are kept between launches (GIG-14): the
+  /// Programs shell's store, which outlives this pane, so a rotation across
+  /// the split breakpoint does not lose them. `null` keeps them in this pane.
+  final PerformResumeStore? performResumeStore;
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
@@ -197,12 +222,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   bool _resolvingPerform = false;
   Object? _error;
 
-  /// In-memory Perform resume state (issue #434) — same pattern as
-  /// [ProgramEditorScreen]. Perform is pushed on top of this summary, so this
-  /// survives that navigation: the Perform view hands back its live position +
-  /// clock on exit and the next launch threads it back in, so re-entry resumes
-  /// rather than resetting to slot 1 with a fresh clock.
-  PerformResumeState? _performResume;
+  /// In-memory Perform resume state (issue #434), used when the host passes no
+  /// [ProgramSummaryPane.performResumeStore]. Perform is pushed on top of this
+  /// summary, so this survives that navigation: the Perform view hands back
+  /// its live position + clock on exit and the next launch threads it back
+  /// in, so re-entry resumes rather than resetting to slot 1 with a fresh
+  /// clock.
+  final PerformResumeStore _ownPerformResume = PerformResumeStore();
+
+  PerformResumeStore get _performResume =>
+      widget.performResumeStore ?? _ownPerformResume;
 
   /// For prose and formation labels only; a dance's figures go to
   /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
@@ -613,9 +642,18 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // the stored program against (flows-1). Keyed by the adjusted program's
     // identity, so a stale Undo cannot match a later adjustment's write.
     final storedAfterWrite = Expando<Program>();
+    final resumeStore = _performResume;
+    final resume = resumeStore[program.id];
+    // The stored program Perform's copy is based on: the one it opens with,
+    // then each adjustment's write as stored (GIG-6). Writes run one after
+    // another, so each compares with the one before it rather than finding
+    // its own earlier write "changed elsewhere".
+    var performBase = program;
+    Future<void> performWrites = Future<void>.value();
     // Resolved before the push: the route may rebuild after this screen has
     // gone, when its context can no longer be read.
     final renderer = UserFiguresScope.rendererOf(context);
+    final repos = _repos;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         // Ctrl-K is suppressed while this route is on top ([performRouteName]).
@@ -627,43 +665,90 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           authorNameOverrides: deletedDances.authorNames,
           difficultyLevels: _difficultyLevels,
           renderer: renderer,
-          // Resume where the caller left off (issue #434).
-          initialGroup: _performResume?.groupIndex ?? 0,
-          initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,
-          initialSlotStartSeconds: _performResume?.slotStartSeconds ?? 0,
-          initialPaused: _performResume?.paused ?? false,
+          // Resume where the caller left off (issue #434), from the shell's
+          // store when there is one, so the place survives this pane being
+          // rebuilt by a rotation across the breakpoint (GIG-14).
+          initialGroup: resume?.groupIndex ?? 0,
+          initialElapsedSeconds: resume?.elapsedSeconds ?? 0,
+          initialSlotStartSeconds: resume?.slotStartSeconds ?? 0,
+          initialPaused: resume?.paused ?? false,
           initialWalkthroughEndedAtSlotSeconds:
-              _performResume?.walkthroughEndedAtSlotSeconds,
-          initialWalkthroughEndedSlotId: _performResume?.walkthroughEndedSlotId,
-          onExit: (state) => _performResume = state,
+              resume?.walkthroughEndedAtSlotSeconds,
+          initialWalkthroughEndedSlotId: resume?.walkthroughEndedSlotId,
+          onExit: (state) => resumeStore[program.id] = state,
           // This is the real in-event path: the program is saved, so in-event
           // adjustments (`docs/design/ux.md` §5) persist immediately via the
           // repository (bumping `updatedAt`, and possibly the slot count). The
           // summary and the coexisting Programs list both re-render from their
           // own subscriptions, so neither needs telling.
-          onProgramChanged: (updated) async {
-            storedAfterWrite[updated] = await _repos.programs.updateAndReadBack(
-              updated,
+          //
+          // Only the adjustment's own change is written, onto the program as
+          // stored and as a compare-and-replace, so a change that landed while
+          // Perform was open (Device Sync, typically) is kept rather than
+          // overwritten by Perform's copy; Perform is then handed the newer
+          // program to show (GIG-6). Uses the repository rather than this
+          // pane, which may itself have closed by then.
+          onProgramChanged: (before, updated) async {
+            final queued = performWrites.then(
+              (_) =>
+                  writePerformAdjustment(
+                    repos.programs,
+                    programId: program.id,
+                    expected: performBase,
+                    before: before.slots,
+                    after: updated.slots,
+                  ).then((write) {
+                    performBase = write.stored;
+                    return write;
+                  }),
             );
-            if (!mounted) return;
+            performWrites = queued.then<void>(
+              (_) {},
+              // diagnostics: silent — the failure is logged below, where this write is awaited; the next write only needs the queue to move on.
+              onError: (_) {},
+            );
+            final PerformAdjustmentWrite write;
+            try {
+              write = await queued;
+            } on Object catch (error, stackTrace) {
+              // export-guard: exempt — Perform adjustment write, not an export
+              // diagnostics: logged — Perform keeps the change on screen.
+              // `Object`: a program deleted meanwhile fails with a StateError.
+              logCaughtError(
+                error,
+                stackTrace,
+                source: 'program_summary_screen._performPersist',
+              );
+              return null;
+            }
+            storedAfterWrite[updated] = write.stored;
             // The write itself is what reloads this pane and every other view
             // of these slots — the coexisting program list, the Collection's
             // "called N times" badge, a mounted dance detail's calling history.
             // Calling `_load` here as well would load this pane twice for one
             // adjustment (issue #340).
+            return write.changedUnderneath ? write.stored : null;
           },
           // The "Program adjusted" Undo after leaving Perform restores only
           // while the stored program still equals, field for field, what that
           // adjustment's write stored; the compare and the restore are one
           // transaction, so no edit or sync apply can slip between them
-          // (flows-1). Uses the repository rather than this pane, which may
-          // itself have closed by then.
+          // (flows-1). It reverses only the adjustment's own change, so a
+          // change from elsewhere that the write was applied on top of stays.
           restoreIfUnchanged: (previous, adjusted) async {
             final expected = storedAfterWrite[adjusted];
             if (expected == null) return false;
-            return _repos.programs.replaceIfUnchanged(
+            return repos.programs.replaceIfUnchanged(
               expected: expected,
-              replacement: previous,
+              replacement: expected.copyWith(
+                slots: renumberSlots(
+                  rebaseSlotEdits(
+                    before: adjusted.slots,
+                    after: previous.slots,
+                    onto: expected.slots,
+                  ),
+                ),
+              ),
               updatedAt: DateTime.now().toUtc(),
             );
           },

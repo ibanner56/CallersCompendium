@@ -24,6 +24,7 @@ import 'app_shell_search_scope.dart';
 import 'contradb_program_import_screen.dart';
 import 'plaintext_program_import_screen.dart';
 import 'program_editor_screen.dart';
+import 'perform_program_screen.dart' show PerformResumeStore;
 import 'program_summary_screen.dart';
 import 'recently_deleted_screen.dart';
 
@@ -51,6 +52,7 @@ class ProgramsListScreen extends StatefulWidget {
     this.onSelectProgram,
     this.onCreateProgram,
     this.selectedProgramId,
+    this.performResumeStore,
   });
 
   final void Function(String programId)? onSelectProgram;
@@ -60,6 +62,10 @@ class ProgramsListScreen extends StatefulWidget {
   final VoidCallback? onCreateProgram;
 
   final String? selectedProgramId;
+
+  /// Handed to the summary this list opens in narrow mode: see
+  /// [ProgramSummaryPane.performResumeStore].
+  final PerformResumeStore? performResumeStore;
 
   @override
   State<ProgramsListScreen> createState() => _ProgramsListScreenState();
@@ -335,7 +341,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         // "Ignore leading articles when sorting" governs this list too.
         String key(Program p) => ignoreLeadingArticles
             ? titleSortKey(p.title)
-            : p.title.toLowerCase();
+            : foldForTitleMatch(p.title);
         programs.sort((a, b) => flip(key(a).compareTo(key(b))));
       case ProgramSort.recentlyUpdated:
         // Ascending base (oldest-first); the default direction (descending)
@@ -383,7 +389,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     // own to perform (issue #768).
     await Navigator.of(context).push<String>(
       MaterialPageRoute<String>(
-        builder: (_) => ProgramSummaryScreen(programId: id),
+        builder: (_) => ProgramSummaryScreen(
+          programId: id,
+          performResumeStore: widget.performResumeStore,
+        ),
       ),
     );
   }

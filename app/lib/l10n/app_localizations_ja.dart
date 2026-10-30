@@ -1786,6 +1786,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'アプリ起動時にバックグラウンドで新バージョンを確認します。デフォルトはオフです。';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'アプリの起動時に、このバージョンのサポート終了日をバックグラウンドで確認します。初期設定ではオフです。';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'アップデート確認はHTTPS経由で小さなバージョンファイルをダウンロードするだけで、その他の情報は一切送信されません。ユーザー情報、デバイス情報、使用状況は送信されません。自動でダウンロードやインストールは行われません。アップデートのダウンロードはご自身で選択し、開く前に検証され、システムのインストーラーがインストールを完了します。';
 
@@ -1830,6 +1834,20 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsUpdatesMacosReadySubtitle =>
       'アップデートの準備ができました。ディスクイメージをマウントしてアプリを閉じると、「アプリケーション」フォルダ内で置き換えられます。';
+
+  @override
+  String get settingsUpdatesStoreTitle => 'アップデートはアプリストアから届きます';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'このコピーはアプリストアからインストールされているため、ストアが更新します。アプリが確認するのはサポート終了日だけで、新しいバージョンは確認しません。';
+
+  @override
+  String get settingsUpdatesPortableTitle => 'ポータブル版：新しいアーカイブをダウンロード';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'このコピーは展開したアーカイブから実行されているため、アプリが代わりにアップデートをインストールすることはできません。リリースから新しい zip または tar.gz をダウンロードして展開してください。';
 
   @override
   String get settingsUpdatesDownloadTitle => 'アップデートをダウンロードしてインストール';
@@ -4534,6 +4552,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsDraftBody => 'このプログラムに未保存の下書きがあります。復元しますか？';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return '別の新しいプログラム「$title」の未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'まだタイトルのない、別の新しいプログラムの未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？';
+
+  @override
   String get programsDraftRestore => '復元';
 
   @override
@@ -5351,6 +5378,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get performUndoNoLongerAvailable => '元に戻せません。その後プログラムが変更されています。';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'パフォームを開いた後に、このプログラムが別の場所で変更されていました。パフォームには、あなたの変更を含む最新の版が表示されています。';
 
   @override
   String get performProgramAdjustedSnack => 'プログラムを調整しました。';
@@ -8440,6 +8471,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return '$appNameの新しいバージョン（$version）が利用可能です。';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return '$appName の新しいバージョン（$version）があります。これはポータブル版のため、リリースから新しい zip または tar.gz をダウンロードしてください。';
   }
 
   @override

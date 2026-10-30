@@ -145,6 +145,8 @@ void main() {
       await repos.programs.create(program('a', 'Autumn Ball', when));
       await repos.programs.create(program('b', 'The Spring Fling', when));
       await repos.programs.create(program('c', 'Summer Social', when));
+      // FIND-15: É files with E, not after Z.
+      await repos.programs.create(program('d', 'Éclat Gala', when));
       final notifier = ValueNotifier<bool>(ignoreArticles);
       addTearDown(notifier.dispose);
       await tester.pumpWidget(
@@ -169,6 +171,7 @@ void main() {
       await pumpWithSetting(tester, ignoreArticles: true);
       expect(tileTitles(tester), [
         'Autumn Ball',
+        'Éclat Gala',
         'The Spring Fling',
         'Summer Social',
       ]);
@@ -178,6 +181,7 @@ void main() {
       await pumpWithSetting(tester, ignoreArticles: false);
       expect(tileTitles(tester), [
         'Autumn Ball',
+        'Éclat Gala',
         'Summer Social',
         'The Spring Fling',
       ]);

@@ -56,7 +56,10 @@ direction the list opens with, see
   option appears, and the program moves to **Recently deleted** (in the **More actions** menu in the
   **Programs** toolbar), where you can
   restore it later, exactly as with
-  [dances](./collection.md#keep-your-collection-tidy).
+  [dances](./collection.md#keep-your-collection-tidy). Deleting from the
+  builder saves any edits you haven't saved yet first, so the program you
+  restore, or bring back with **Undo**, is the one you were editing. If you
+  cleared the title, it keeps its saved title.
 
 ### Build from a list of titles
 
@@ -182,6 +185,20 @@ hold a result to show its details in the program pane, or hold a dance slot to
 show its details in the picker pane; letting go puts the pane back. On a narrow
 screen, details open on top of the picker, so your search is still there when
 you close them.
+
+### Unsaved drafts
+
+While you build, the app keeps a draft of your changes on this device, so a
+program you were building when the app closed isn't lost. The next time you
+open that program, the app offers the draft back — **Restore** to pick up
+where you left off, or **Discard** to start from the last saved version. Drafts
+stay on your device; they are never uploaded, shared, or included in backups.
+
+Each new program keeps its own draft, so two new programs never overwrite each
+other's. If a new program you never saved left one behind, the next new
+program you start offers it back by its title — *You have an unsaved draft of
+another new program* — so you can **Restore** it and carry on with that
+program, or **Discard** it and start fresh.
 
 ### Kinds of slots
 

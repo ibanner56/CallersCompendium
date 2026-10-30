@@ -12,6 +12,23 @@
   contract is unchanged. The accepted text below is left as written; read
   "fails silently" as applying to the automatic check only. The maintainer
   decided this (`update-check-wording`, option (c), 2026-10-29).
+- **Erratum (2026-10-29)**: Stage 1 and Stage 1.5 above describe one channel
+  for every build, and say mobile "deep-links to the store/release page". The
+  manifest only describes the sideloaded release channel, so the updater now
+  detects how the running copy was installed (`install_kind.dart`). A copy
+  installed from an app store (iOS, or the Google Play bundle) is updated by its
+  store and **never offers an update**: it has no Check for updates action, no
+  update banner, and nothing it fetches can produce one. It does still read the
+  release information, under the same opt-in **Check automatically** as every
+  other copy, for an end-of-support date only; that notice's "Get update" opens
+  the store listing. A
+  portable copy (the Windows zip, the Linux tar.gz) still checks but is told to
+  download the new archive from the release instead of being handed an
+  installer, which would install a second copy. Detection is local and read-only
+  and adds no request, so the privacy contract is unchanged. The accepted text
+  is left as written. The maintainer decided this (`updater-install-kind`,
+  option (a), 2026-10-29; the end-of-support part, "Notice only, in #2045",
+  2026-10-30).
 - **Roadmap item**: 7.1
 - **Deciders**: @ibanner56
 

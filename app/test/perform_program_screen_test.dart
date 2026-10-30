@@ -2164,7 +2164,10 @@ void main() {
                       program: program,
                       data: data,
                       renderer: _renderer,
-                      onProgramChanged: (p) async => changed.add(p),
+                      onProgramChanged: (_, p) async {
+                        changed.add(p);
+                        return null;
+                      },
                       restoreIfUnchanged: restoreIfUnchanged,
                     ),
                   ),

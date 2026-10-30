@@ -2096,6 +2096,90 @@ void main() {
       expect(restored.slots.single.danceId, 'other');
     });
 
+    testWidgets('undo keeps an edit made to the program after the add '
+        '(GIG-19)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Zesty'));
+      await repos.dances.create(_dance(id: 'other', title: 'Other Dance'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'other')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+      await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-pick-p1')));
+      await tester.pumpAndSettle();
+
+      // While the prompt is up, the program is edited elsewhere: the added
+      // dance moved first, a break added, and a guest caller set.
+      final added = (await repos.programs.getById('p1'))!;
+      final addedSlot = added.slots.last;
+      await repos.programs.update(
+        added.copyWith(
+          slots: [
+            addedSlot.copyWith(position: 0),
+            added.slots.first.copyWith(position: 1, guestCaller: 'Sam'),
+            ProgramSlot(id: 's9', position: 2, text: 'Break'),
+          ],
+          updatedAt: added.updatedAt.add(const Duration(minutes: 1)),
+        ),
+      );
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final restored = (await repos.programs.getById('p1'))!;
+      expect(restored.slots.map((s) => s.id), ['s0', 's9']);
+      expect(restored.slots.map((s) => s.position), [0, 1]);
+      expect(restored.slots.first.guestCaller, 'Sam');
+    });
+
+    testWidgets('a write landing while the add Undo is in flight is not '
+        'overwritten (GIG-19)', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await repos.dances.create(_dance(id: 'd1', title: 'Zesty'));
+      await repos.dances.create(_dance(id: 'other', title: 'Other Dance'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'other')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+      await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-pick-p1')));
+      await tester.pumpAndSettle();
+      final added = (await repos.programs.getById('p1'))!;
+
+      // Hold the Undo's write, land another edit, then let the Undo finish.
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.text('Undo'));
+      await tester.pump();
+      await delayed.programs.writeStarted;
+      await repos.programs.update(
+        added.copyWith(
+          slots: [
+            ...added.slots,
+            ProgramSlot(id: 's9', position: 2, text: 'Break'),
+          ],
+          updatedAt: added.updatedAt.add(const Duration(minutes: 1)),
+        ),
+      );
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final restored = (await repos.programs.getById('p1'))!;
+      expect(restored.slots.map((s) => s.id), ['s0', 's9']);
+    });
+
     testWidgets('empty program list shows teaching state and can create', (
       tester,
     ) async {

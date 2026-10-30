@@ -177,6 +177,7 @@ String _roleVariant(Object? who) {
       return 'twos';
     case 'firstCorners':
     case 'secondCorners':
+    case 'thirdCorners':
       return 'corners';
     case 'sameRoles':
       return 'same';
