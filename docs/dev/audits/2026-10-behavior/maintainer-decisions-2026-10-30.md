@@ -2,7 +2,7 @@
 
 The maintainer (ibanner56) recorded these answers on the decision page https://claude.ai/artifact/MRVAeqpyG34SKbv48Xomdy between 2026-10-29 22:33 UTC and 2026-10-30 00:47 UTC. Each entry quotes the chosen option's label and text as the page showed it, and the maintainer's own note verbatim where they left one. Entries marked *(differs from the recommendation)* are where the maintainer chose another option than the page recommended.
 
-Four further decisions were made in conversation with the orchestrating session on 2026-10-29/30 and relayed to the branch sessions; they are recorded at the end.
+Further decisions were made in conversation with the orchestrating session on 2026-10-29/30 and relayed to the branch sessions; they are recorded at the end.
 
 
 ## Round 2 (follow-ups to the 2026-10-29 decisions)
@@ -404,6 +404,25 @@ These were asked through a question dialog and answered by the maintainer direct
 **Decision:** "Accept all 8 (Recommended)". The option read: "Builders follow these readings, labelled as the planner's reading that you accepted."
 
 The design notes label each one "planner's reading, accepted by the maintainer 2026-10-30". The readings themselves are in `design-work-plan.md`; this entry records only that the maintainer accepted them.
+
+### B7 / LIFE-2: retention auto-purge and items that have synced (2026-10-30 ~02:10 UTC)
+**Question:** B7 (#2053) makes Permanently delete blank a published (synced) dance or program. The Recently deleted retention auto-purge still skips published items, so they stay in the trash for ever. Should retention blank them too, given that one device's retention would then clear the item from every device's trash?
+
+**Decision:** "Blank on retention too". The option read: "Follow-up branch: retention treats an expired synced item like Permanently delete. The settings text says it applies to all your devices." The "(Recommended)" tag and its reason were the orchestrating session's. Rejected: "Keep skipping synced items" and "Shortest setting wins" (which needs the setting synced).
+
+Built in the B7 follow-up branch `claude/fix-retention-blanks-synced`.
+
+### Wave 3 (2026-10-30 ~02:10 UTC)
+**Question:** when #2040 (F11) merges, start wave 3 (B4 → B5, B22, B24, B28 → B29)?
+
+**Decision:** "Hold wave 3". Do not start wave 3 until the maintainer says so.
+
+### Windows CompanyName: release blocker from #1986 (2026-10-30 ~02:20 UTC)
+**Question:** #1986 (F17, after v0.8.1-beta) changed `app/windows/runner/Runner.rc` CompanyName from "org.callerscompendium" to "Caller's Compendium contributors". On Windows, path_provider builds the cache and support folders from CompanyName\ProductName, so the next release would open an empty library for existing Windows users. How should it be fixed?
+
+**Decision:** "Revert CompanyName". The option read: "One-line fix: CompanyName goes back to \"org.callerscompendium\"; the new LegalCopyright text stays. Every folder stays where v0.8.1 put it. Add a test pinning CompanyName with a comment on why, and fix the storage.md and FAQ paths. Opened under your standing approval as a fix PR." Rejected: keeping the new name and migrating the old folders.
+
+Built in #2057.
 
 ## Still open
 
