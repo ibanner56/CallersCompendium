@@ -221,7 +221,8 @@ class ProgramExportMenu extends StatelessWidget {
 
   /// Returns `true` if any dance reachable via [danceFor] in this program has a
   /// card body to append ([DanceCardContent.hasBody]): figures, or calling
-  /// notes or a walkthrough among the selected fields. When `false` the
+  /// notes, a walkthrough, a hook or source citations among the selected
+  /// fields. When `false` the
   /// "Include figures?" prompt is skipped and all text/PDF paths proceed as
   /// set-list-only.
   bool _hasFigures(Set<DanceShareField> fields) => _orderedExportDances().any(
