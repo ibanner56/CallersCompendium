@@ -5,10 +5,14 @@ against `origin/main` at `acacb05`, and re-checked after merging `main` at
 `296b594`. Every `file:line` below is for `296b594` unless it names another
 branch. Of the files cited, only `ux.md` moved between the two.*
 
-**Status: proposal.** This note decides nothing. The maintainer asked for it
-(below). Everything marked **Recommendation** is my view as the note's
-author, with the alternative I rejected; the [Decisions needed](#decisions-needed)
-list at the end collects what only the maintainer can settle.
+**Status: decided, not built.** The maintainer asked for this note (below), and
+on 2026-10-29/30 answered all seven of its questions, each as the note
+recommended (N2-1 … N2-7 in `maintainer-decisions-2026-10-30.md` on
+`claude/app-audit-categories-k2pdon`; this note's D-N2-*n* is the file's
+N2-*n*). [Decisions](#decisions) quotes them. N2-1 leaves one choice to T1: the
+fix for the open risk under [Merge](#merge). Everything still marked
+**Recommendation** without a decision beside it is my view as the note's
+author, with the alternative I rejected.
 
 ## What is already decided
 
@@ -285,8 +289,8 @@ shipped already applies.
 It does need a dated amendment to §6.6's "The remap"
 (`sync-spec.md:3427-3443`). Today two things write aliases: reconciliation,
 and the fresh-attach dance merge (§6.10, `sync-spec.md:4084-4088`). The
-amendment adds the user merge, together with the rules above. That makes the
-amendment a maintainer decision (D-N2-1).
+amendment adds the user merge, together with the rules above. The maintainer
+approved the amendment (D-N2-1 = N2-1 (a), 2026-10-30); T1 writes it.
 
 **What the alias does not cover.** An alias is retired once no current peer
 manifest lists the losing id (`sync-spec.md:3430-3431`), and every alias is
@@ -326,7 +330,10 @@ the spec. I did not run them.
   - T1 must settle this before it builds anything else. The candidate fixes
     are: apply a held row's name from its tombstone while keeping the row
     live, or order natural-key tombstones before renames. Both are spec
-    changes, so they belong in D-N2-1's amendment.
+    changes, so they belong in D-N2-1's amendment. N2-1's decision text says
+    so: "T1 must still choose the fix for one open risk." Choosing it is T1's
+    call, stated with its rejected alternative in the PR, not a maintainer
+    decision.
   - It arises whenever the survivor's final name equals, byte for byte, a
     name a loser held before step 1 freed it. In a two-entry merge, that
     means the smaller id is the entry being renamed. In a merge of several
@@ -354,8 +361,8 @@ tombstones it. The steps run in one transaction:
 - tombstone the tag (`TagRepository.delete`, default path);
 - drop its name from `default_import_tag_names`.
 
-**Recommendation: strip the joins, rather than keep them as
-`TagRepository.delete` does today.** The reason is sync:
+**Decided: strip the joins, rather than keep them as `TagRepository.delete`
+does today** (D-N2-7 = N2-7 (a), 2026-10-30, as recommended). The reason is sync:
 
 - A dance whose tag is tombstoned no longer lists it in its wire
   body (`dance_repository.dart:726-732`), so its serialised content changes
@@ -370,10 +377,12 @@ tombstones it. The steps run in one transaction:
 
 The rejected alternative keeps today's behaviour (joins kept, dances bumped),
 under which a revival on this device brings the dances back. No UI deletes an
-in-use tag today, so nothing depends on the current behaviour yet. This is a
-behaviour change that sync sees, so it is D-N2-7.
+in-use tag today, so nothing depends on the current behaviour yet. The option
+text names the consequence: "bringing the tag back does not re-tag old
+dances".
 
-**Authors and sources.** **Recommendation:** keep the existing guard. Delete
+**Authors and sources. Decided:** keep the existing guard (D-N2-4 = N2-4 (a),
+2026-10-30, as recommended). Delete
 is offered only for a row no live dance cites. For a row in use, the manager
 offers **Merge into…** instead.
 
@@ -382,8 +391,6 @@ offers **Merge into…** instead.
 - The rejected alternative strips the credit like a tag. It would need
   per-dance positions renumbered, plus a warning for dances left with no
   author.
-
-The decision is D-N2-4.
 
 **The count and the Undo.** The manager shows each row's count of live
 dances before the user acts, and the delete reports it afterwards: "Deleted
@@ -399,8 +406,8 @@ delete is already permanent (`settings.md:128-133`).
 - `ux.md:201`'s "restore within 30 days" would need tags in Recently deleted.
 - Restoring a tag weeks later onto dances edited since would be a merge of
   its own.
-- **Recommendation:** snackbar Undo only. Rejected alternative: a Tags tab in
-  Recently deleted. The decision is D-N2-5.
+- **Decided:** snackbar Undo only (D-N2-5 = N2-5 (a), 2026-10-30, as
+  recommended). Not chosen: a Tags tab in Recently deleted.
 
 ## Per kind
 
@@ -447,7 +454,7 @@ details have to go somewhere or be discarded. The options:
 | (b) **Fill the blanks** | Each empty field on the survivor takes the loser's value. Where both hold different values, the survivor's wins, and the merge dialog lists what will be discarded. `deceased` is set if either row sets it. | Keeps everything that doesn't conflict, and shows the rest before it goes | A longer dialog when the rows conflict |
 | (c) Choose per field | Where both hold values, the dialog asks which to keep for each field | Full control | The most UI, and on a phone it is a form inside a dialog |
 
-**Recommendation: (b).** It doesn't create data: every value it keeps was
+**Decided: (b)** (D-N2-2 = N2-2 (b), 2026-10-30, as recommended). It doesn't create data: every value it keeps was
 already on this device. Notes are not concatenated, because joining two
 people's notes is a guess about whether they are the same person, and the
 merge already says they are.
@@ -467,8 +474,6 @@ wire change.
 
 - This matches the sync merge's existing warning (`settings.md:1220-1223`).
 - The user docs must say it in the same words.
-
-The choice between (a), (b) and (c) is D-N2-2.
 
 ### Sources
 
@@ -500,8 +505,8 @@ One shared list screen, used three times: **Tags**, **Authors**, **Sources**.
 - (b) The same three entries in Collection's ⋮ menu.
 - (c) Both.
 
-**Recommendation: (a).** It adds nothing to the Collection toolbar, which B14
-and B15 are already changing. The decision is D-N2-3.
+**Decided: (a)** (D-N2-3 = N2-3 (a), 2026-10-30, as recommended). It adds
+nothing to the Collection toolbar, which B14 and B15 are already changing.
 
 **Layout, phone first:**
 
@@ -542,8 +547,16 @@ The question: should the GC spare rows the user has edited? The options:
 | (c) Stop the GC | Uncited rows stay until the user deletes them in the manager | One rule for everyone: published rows are never collected today either (`dance_repository.dart:2255-2296`) | Bare rows from imports pile up |
 | (d) Spare rows "the user edited" | The audit's wording, taken literally | Exact | Needs a per-row edit marker: a new column, a migration, and a registry entry on all three axes |
 
-**Recommendation: (b).** The test reads only data that is already there, so
-it adds no persisted field.
+**Decided: (b)** (D-N2-6 = N2-6 (b), 2026-10-30, as recommended). The test
+reads only data that is already there, so it adds no persisted field.
+
+The decision text summarises the details as "a colour, website, notes or
+email". *Planner's reading, accepted by the maintainer 2026-10-30*
+(`design-work-plan.md` ambiguity 7, on the audit branch): it is the
+option's short form, and the full list in the table above stands, so an
+author's location or deceased mark, and a source's author, year or URL, also
+spare a row. Rejected: the narrower list, which would erase a source with a URL
+the user typed.
 
 - The third-party-data cost is real. An author's email outlives their last
   dance until the user deletes the author.
@@ -552,7 +565,7 @@ it adds no persisted field.
 - Imported details count as details. An author whose website came from a
   ContraDB import is spared too. The user chose that import.
 
-The decision is D-N2-6. Whatever is chosen, the doc comment on
+The doc comment on
 `_garbageCollectOrphanedRefs` (`dance_repository.dart:2194-2250`) and
 `storage.md:847-849` must describe the new rule.
 
@@ -591,7 +604,7 @@ Two choices *would* need registry entries in the PR that introduces them:
 
 - **GC option (d).** An edit marker would be `deviceScoped` sync metadata
   about the user's own action, and its subject axis needs a stated reason.
-- **Tags in Recently deleted (D-N2-5).** A delete strips the joins
+- **Tags in Recently deleted (D-N2-5, not chosen).** A delete strips the joins
   (D-N2-7), so restoring weeks later needs the removed `(dance, tag)` pairs
   stored somewhere. That is new persisted data and needs entries for its
   columns. A per-kind retention setting would also be a new settings key.
@@ -642,34 +655,46 @@ Each implementation branch updates these in the same PR:
 - `docs/design/storage.md:847-849`: the GC rule (D-N2-6).
 - The code comments listed under [How it works today](#how-it-works-today).
 
-## Decisions needed
+## Decisions
 
-1. **D-N2-1: amend sync-spec §6.6 for the user merge.** The amendment
-   covers five rules:
-   - the surviving id is the smaller UUID;
-   - the loser's tombstone gives up its name;
-   - the merge records an id alias;
-   - a peer's edit of the loser lands on the survivor;
-   - the fix T1 settles for a peer that holds the loser's deletion pending
-     (see [Merge](#merge)).
+*Planner's readings.* Where an answer left a detail open, the planning session
+proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
+open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
+under "Design plan / N1–N5". This note labels each one "planner's reading,
+accepted by the maintainer 2026-10-30".
 
-   Recommendation: yes. Without the alias, an offline peer's citations of
-   the loser are left to however apply treats a citation of a tombstone.
-2. **D-N2-2: merging two authors' private details.** Options (a) the
-   survivor's details win whole, (b) fill the blanks and list what is
-   discarded, (c) choose per field. Recommendation: (b).
-3. **D-N2-3: where the managers live.** Options (a) Settings → General →
-   Library, (b) Collection's ⋮ menu, (c) both. Recommendation: (a).
-4. **D-N2-4: deleting an author or source that dances still cite.** Options:
-   keep the guard and offer Merge instead, or strip the credit like a tag.
-   Recommendation: keep the guard.
-5. **D-N2-5: how long a tag delete can be undone.** Options: the snackbar
-   only, or a Tags tab in Recently deleted. Recommendation: the snackbar only.
-6. **D-N2-6: the purge GC.** Options (a) unchanged, (b) spare rows with
-   details, (c) stop it, (d) spare rows the user edited. Recommendation: (b).
-7. **D-N2-7: what a tag delete does to its join rows.** Options: strip them
-   from every dance and bump the dances, or keep them as today and bump
-   only. Recommendation: strip them.
+The maintainer answered all seven on 2026-10-29/30, each as recommended. Each
+entry quotes the decision as `maintainer-decisions-2026-10-30.md` (on
+`claude/app-audit-categories-k2pdon`) records it. The maintainer left no notes
+on these seven.
+
+1. **D-N2-1 = N2-1, amend sync-spec §6.6.** "(a) Yes, amend sync-spec §6.6.
+   Merges record an alias, so a device that tagged dances offline lands on the
+   merged entry; T1 must still choose the fix for one open risk." This note's
+   amendment (its scope, not the decision's wording) covers five rules: the surviving id is the smaller UUID; the
+   loser's tombstone gives up its name; the merge records an id alias; a peer's
+   edit of the loser lands on the survivor; and the fix T1 settles for a peer
+   that holds the loser's deletion pending (see [Merge](#merge)).
+2. **D-N2-2 = N2-2, merging two authors' private details.** "(b) Fill the
+   blanks, list what's dropped. Empty fields take the other author's values,
+   and the dialog lists conflicting values it will drop; a longer dialog on
+   conflict."
+3. **D-N2-3 = N2-3, where the managers live.** "(a) Settings, General,
+   Library. Three new Library entries, and Tag colours in Appearance opens the
+   Tags manager; nothing added to Collection."
+4. **D-N2-4 = N2-4, deleting an author or source still cited.** "(a) No, offer
+   Merge into instead. Delete appears only for unused entries; an entry in use
+   offers a merge, so no dance loses its credit."
+5. **D-N2-5 = N2-5, how long a tag delete can be undone.** "(a) Only from the
+   Undo snackbar. Undo lasts as long as the snackbar, and nothing new is
+   stored."
+6. **D-N2-6 = N2-6, the purge GC.** "(b) Keep entries that hold details. Bare
+   entries go; ones with a colour, website, notes or email stay as Not used,
+   keeping third-party contact data."
+7. **D-N2-7 = N2-7, what a tag delete does to its join rows.** "(a) Remove it
+   from every dance. Each dance loses the tag and is updated, so all devices
+   agree; bringing the tag back does not re-tag old dances."
 
 Two smaller choices are my recommendations, not decisions, and the
 implementing branch should confirm them with the maintainer in its PR:
@@ -685,17 +710,20 @@ cites the current lines. The plan's B8 constraint applies
 through trash-policy (b): T1 waits for B8, and nothing here counts a trashed
 dance as protecting a row.
 
-## Proposed branches
+## Branches
 
 The format and sizes follow `decided-work-plan.md`. Size counts changed lines,
-tests included: S < 150, M 150–400, L 400+.
+tests included: S < 150, M 150–400, L 400+. Updated 2026-10-30 for the decisions
+and for what has merged (`main` at `90fe5e8`: B12 #2037 and B23 #2035 have
+merged; B7 is in flight; B8 and B13 have not started). In the audit branch's
+`design-work-plan.md` these are N2-T1 … N2-T4.
 
 | # | Branch | Items | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| T1 | `feat/reference-rename-merge-core` | Core rename, merge, delete and Undo for the three kinds; the shared reference-rewrite helper; the §6.6 amendment | L (~900) | Opus | D-N2-1, D-N2-7; B7 and B8 merged; after B12 and B13 on `dance_repository.dart` |
-| T2 | `feat/tag-manager` | FIND-3: the Tags manager with colours, rename, merge and delete; the import-tags rewrite; retire `TagColorsScreen` | L (~500) | Sonnet | T1; D-N2-3, D-N2-5 |
-| T3 | `feat/author-and-source-managers` | LIFE-5 (a): the Authors and Sources managers; the merge offer in the dance editor; the private-details merge | L (~450) | Opus | T2; D-N2-2, D-N2-4 |
-| T4 | `fix/purge-gc-spares-details` | LIFE-5 (c) | S (~120) | Sonnet | D-N2-6; B7 merged; any order against T1, but serialize the merge on `dance_repository.dart` |
+| T1 | `feat/reference-rename-merge-core` | Core rename, merge, delete and Undo for the three kinds; the shared reference-rewrite helper; the §6.6 amendment, including T1's chosen fix for the held-peer risk | L (~900) | Opus | B7 and B8 merged; after B13 on `dance_repository.dart` (B12 has merged). D-N2-1 and D-N2-7 are decided. |
+| T2 | `feat/tag-manager` | FIND-3: the Tags manager with colours, rename, merge and delete; the import-tags rewrite; retire `TagColorsScreen` | L (~500) | Opus: the import-tags rewrite shares a transaction and an Undo with T1's operations (the work plan's model rule; the note first said Sonnet). | T1. D-N2-3 and D-N2-5 are decided. |
+| T3 | `feat/author-and-source-managers` | LIFE-5 (a): the Authors and Sources managers; the merge offer in the dance editor; the private-details merge | L (~450) | Opus | T2. D-N2-2 and D-N2-4 are decided. Serialize with N4-S6 on `dance_editor_screen.dart`. |
+| T4 | `fix/purge-gc-spares-details` | LIFE-5 (c) | S (~120) | Sonnet | B7 merged; any order against T1, but serialize the merge on `dance_repository.dart`. D-N2-6 is decided. |
 
 ### T1 `feat/reference-rename-merge-core`
 
@@ -763,12 +791,14 @@ tests included: S < 150, M 150–400, L 400+.
   "author" (D-3). Renaming the existing "Choreographer details" title is
   U4's job, so coordinate with U4 rather than duplicate it.
 - **Docs:** `authoring.md:582-597`, `settings.md:1220-1223`.
-- **Hot files:** `dance_editor_screen.dart`, which B23 also edits; the ARBs.
+- **Hot files:** `dance_editor_screen.dart`, which B23 edited (merged, #2035)
+  and N4-S6 also edits; the ARBs.
 
 ### T4 `fix/purge-gc-spares-details`
 
 - **Scope:** the candidate filter in `_garbageCollectOrphanedRefs`
-  (`dance_repository.dart:2251-2316`), following D-N2-6.
+  (`dance_repository.dart:2251-2316`), following D-N2-6 (b): spare a row that
+  holds any detail in the table under [The purge GC](#the-purge-gc-life-5-option-c).
 - **Tests:** the existing `dance_hard_delete_test.dart` watcher guard still
   passes, and a new test shows a coloured tag surviving the purge.
 - **Docs:** `storage.md:847-849`, and the method's doc comment.

@@ -1,5 +1,3 @@
-import 'package:unorm_dart/unorm_dart.dart';
-
 import 'title_sort_key.dart';
 
 /// How well a title matches a typed query, best first. Used by surfaces that
@@ -14,19 +12,6 @@ enum TitleMatchRank {
 
   /// The query appears somewhere else in the title ("Cheyenne" for `hey`).
   substring,
-}
-
-/// Lowercases [text] and strips combining marks, so "École" and "ecole" compare
-/// equal, as they do in the Collection's FTS index (`remove_diacritics`).
-String foldForTitleMatch(String text) {
-  final decomposed = nfd(text.toLowerCase());
-  final buf = StringBuffer();
-  for (final unit in decomposed.runes) {
-    // U+0300–U+036F: the Combining Diacritical Marks block.
-    if (unit >= 0x300 && unit <= 0x36F) continue;
-    buf.writeCharCode(unit);
-  }
-  return buf.toString();
 }
 
 /// Ranks [title] against [query], or returns `null` when it does not match.

@@ -2334,6 +2334,10 @@
   "@settingsUpdatesAutoSubtitle": {
     "description": "Subtitle explaining the automatic-background-check toggle."
   },
+  "settingsUpdatesAutoStoreSubtitle": "Look for an end-of-support date for this version in the background when the app starts. Off by default.",
+  "@settingsUpdatesAutoStoreSubtitle": {
+    "description": "Subtitle of the automatic-background-check toggle on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update, so the check only looks for an end-of-support date."
+  },
   "settingsUpdatesPrivacyNote": "The update check downloads a small version file over HTTPS and nothing else — no data about you, your device, or your usage is ever sent. Nothing is downloaded or installed automatically: you choose when to download an update, it is verified before it opens, and your system installer completes the install.",
   "@settingsUpdatesPrivacyNote": {
     "description": "Privacy/behaviour paragraph reassuring the user how the update check and assisted download work."
@@ -2391,6 +2395,22 @@
   "settingsUpdatesMacosReadySubtitle": "Your update is ready. Mount the disk image and close the app so you can replace it in Applications.",
   "@settingsUpdatesMacosReadySubtitle": {
     "description": "Subtitle of the macOS update row that resumes installation after the user deferred the post-download prompt."
+  },
+  "settingsUpdatesStoreTitle": "Updates come from your app store",
+  "@settingsUpdatesStoreTitle": {
+    "description": "Title of the row in Settings > Updates, in place of the Check for updates action, on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update."
+  },
+  "settingsUpdatesStoreSubtitle": "This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.",
+  "@settingsUpdatesStoreSubtitle": {
+    "description": "Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action. It still looks for an end-of-support date."
+  },
+  "settingsUpdatesPortableTitle": "Portable copy: download the new archive",
+  "@settingsUpdatesPortableTitle": {
+    "description": "Title of the Settings > Updates row shown when a newer version is found on a portable copy (the Windows zip or the Linux tar.gz). Tapping it opens the release page."
+  },
+  "settingsUpdatesPortableSubtitle": "This copy runs from an unpacked archive, so the app can't install the update for you. Download the new zip or tar.gz from the release and unpack it.",
+  "@settingsUpdatesPortableSubtitle": {
+    "description": "Subtitle of the portable-copy row in Settings > Updates. zip is the Windows archive and tar.gz the Linux one; both are file formats, not translated."
   },
   "settingsUpdatesDownloadTitle": "Download & install update",
   "@settingsUpdatesDownloadTitle": {
@@ -6056,6 +6076,20 @@
   "@programsDraftBody": {
     "description": "Body of the dialog offering to restore an autosaved program draft."
   },
+  "programsDraftAnotherNewProgramBody": "You have an unsaved draft of another new program, “{title}”. Would you like to restore it instead of starting a new one?",
+  "@programsDraftAnotherNewProgramBody": {
+    "description": "Dialog body when the caller starts a new program and a draft of a different new program, never saved, is waiting from an earlier session. Restoring continues that program; discarding deletes it.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Spring Fling"
+      }
+    }
+  },
+  "programsDraftAnotherNewProgramUntitledBody": "You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?",
+  "@programsDraftAnotherNewProgramUntitledBody": {
+    "description": "Dialog body when the caller starts a new program and an untitled draft of a different new program, never saved, is waiting from an earlier session."
+  },
   "programsDraftRestore": "Restore",
   "@programsDraftRestore": {
     "description": "Button that restores the autosaved program draft into the editor."
@@ -7226,6 +7260,10 @@
   "performUndoNoLongerAvailable": "Can't undo: the program has changed since.",
   "@performUndoNoLongerAvailable": {
     "description": "Snackbar shown when the user taps Undo on a live program adjustment after leaving Perform, but the program was edited in the meantime, so the undo is refused to keep that later edit."
+  },
+  "performProgramChangedElsewhere": "This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.",
+  "@performProgramChangedElsewhere": {
+    "description": "Snackbar shown in Perform when saving a live program adjustment found that the program had been changed elsewhere (for example by Device Sync) since Perform opened it. The adjustment was saved on top of that change instead of overwriting it, and Perform now shows the updated program."
   },
   "performProgramAdjustedSnack": "Program adjusted.",
   "@performProgramAdjustedSnack": {
@@ -11442,6 +11480,18 @@
   "updateBannerAvailable": "A newer version of {appName} ({version}) is available.",
   "@updateBannerAvailable": {
     "description": "Update banner message when a newer version is available (idle/cancelled state).",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateBannerPortable": "A newer version of {appName} ({version}) is available. This is a portable copy, so download the new zip or tar.gz from the release.",
+  "@updateBannerPortable": {
+    "description": "Update banner message on a portable copy (the Windows zip or the Linux tar.gz) when a newer version is available. The app can't install it, so the message sends the user to the release page. zip and tar.gz are file formats, not translated.",
     "placeholders": {
       "appName": {
         "type": "String"

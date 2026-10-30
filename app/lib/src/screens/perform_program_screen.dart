@@ -12,6 +12,7 @@ import '../data/dialect_library_scope.dart';
 import '../data/perform_text_scale.dart';
 import '../data/program_dialect.dart';
 import '../data/repositories_scope.dart';
+import '../editor/program_slot_rebase.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
 import '../utils/undo_snack_bar.dart';
@@ -55,8 +56,10 @@ import 'settings_screen.dart'
 
 /// Snapshot of a Perform session's resumable state (issue #434). Purely a UI
 /// concern (never persisted to the domain model, per ADR-001): the launching
-/// screen holds the latest snapshot in memory so a re-entry restores the
-/// caller's place and clock instead of resetting to slot 1 with a fresh timer.
+/// screen, or for the Programs summary the Programs shell
+/// ([PerformResumeStore]), holds the latest snapshot in memory so a re-entry
+/// restores the caller's place and clock instead of resetting to slot 1 with
+/// a fresh timer.
 @immutable
 class PerformResumeState {
   const PerformResumeState({
@@ -112,6 +115,29 @@ class PerformResumeState {
     walkthroughEndedAtSlotSeconds,
     walkthroughEndedSlotId,
   );
+}
+
+/// The latest [PerformResumeState] of each program, by program id, for a
+/// holder that outlives the screen launching Perform (GIG-14).
+///
+/// The wide Programs summary pane is rebuilt whenever the window crosses the
+/// split breakpoint, for example when a tablet is rotated, while Perform,
+/// on the root navigator, carries on. A resume state kept in that pane would
+/// be lost with it, so the Programs shell keeps them here instead, and drops a
+/// program's state when that program is closed.
+class PerformResumeStore {
+  final Map<String, PerformResumeState> _states = {};
+
+  /// The resume state saved for [programId], or `null` when there is none.
+  PerformResumeState? operator [](String programId) => _states[programId];
+
+  /// Saves [state] as the resume state for [programId].
+  void operator []=(String programId, PerformResumeState state) =>
+      _states[programId] = state;
+
+  /// Drops the resume state saved for [programId], when that program is
+  /// closed, so the next Perform of it starts fresh.
+  void forget(String programId) => _states.remove(programId);
 }
 
 class PerformProgramScreen extends StatefulWidget {
@@ -177,22 +203,33 @@ class PerformProgramScreen extends StatefulWidget {
   final void Function(PerformResumeState state)? onExit;
 
   /// Persists an in-event adjustment (`docs/design/ux.md` §5). Called with the
-  /// new [Program] — a fresh `updatedAt` — after every reorder / insert / note /
-  /// mark-performed edit made from the "adjust" sheet. When null (e.g. an
-  /// unsaved draft with no owner to persist through), adjustments stay in-view
-  /// only. The screen always updates its own live state first, so the reading
-  /// view reflects the change regardless.
-  final Future<void> Function(Program updated)? onProgramChanged;
+  /// program as Perform showed it [before] the adjustment and the new
+  /// [Program] — a fresh `updatedAt` — after every reorder / insert / note /
+  /// mark-performed edit made from the "adjust" sheet, and after its Undo.
+  /// When null (e.g. an unsaved draft with no owner to persist through),
+  /// adjustments stay in-view only. The screen always updates its own live
+  /// state first, so the reading view reflects the change regardless.
+  ///
+  /// The owner writes only the change from [before] to [updated], and as a
+  /// compare-and-replace (GIG-6, `writePerformAdjustment`). When the stored
+  /// program had changed since Perform's copy was taken, for example by
+  /// Device Sync, it returns the program Perform should show instead: the
+  /// newer program with the adjustment applied. Perform then shows it and
+  /// tells the caller. Otherwise it returns `null`.
+  final Future<Program?> Function(Program before, Program updated)?
+  onProgramChanged;
 
   /// Performs the "Program adjusted" Undo once this screen has closed:
-  /// restores [previous] only if the owner's program is still exactly what
-  /// the adjustment [adjusted] left, and returns whether it restored.
+  /// reverses the change from [previous] to [adjusted] only if the owner's
+  /// program is still exactly what that adjustment left, and returns whether
+  /// it did.
   ///
-  /// That Undo puts back the program as it was before the adjustment (the
-  /// builder reverses only the adjustment's own change, keeping its other
-  /// unsaved edits). The prompt can outlive this screen (indefinitely with accessible
-  /// navigation), and by the time it is tapped the program may have been
-  /// edited elsewhere; restoring the snapshot would overwrite that edit. The
+  /// That Undo reverses only the adjustment's own change, so a change from
+  /// elsewhere that the adjustment was written on top of (GIG-6), and the
+  /// builder's other unsaved edits, stay. The prompt can outlive this screen
+  /// (indefinitely with accessible navigation), and by the time it is tapped
+  /// the program may have been edited elsewhere; reversing the change then
+  /// could overwrite that edit. The
   /// check and the restore must therefore be one atomic step on the owner's
   /// side (for a stored program, [ProgramRepository.replaceIfUnchanged]), so
   /// that no write can land between them (flows-1). When this returns false,
@@ -216,6 +253,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// The latest [PerformProgramScreen.onProgramChanged] write, so an Undo
   /// after exit checks the stored program only once that write has landed.
   Future<void> _pendingPersist = Future<void>.value();
+
+  /// The adjustment whose Undo prompt [_undoPrompt] is showing: the program
+  /// before it and after it. Cleared once that Undo runs or its prompt
+  /// closes, so a later notice that the program changed elsewhere does not
+  /// offer it again.
+  ({Program previous, Program updated})? _undoable;
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _undoPrompt;
 
   /// Cached navigable groups. [Program.grouped] walks the whole slot list and
   /// allocates a fresh unmodifiable list on every call, and the build/helpers
@@ -767,12 +811,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// Swaps in an edited [updated] program: recomputes grouping, keeps the view
   /// on the exact slot that was on screen (by id — the selected alternate too,
   /// not just its primary) so the caller keeps reading the same dance after a
-  /// reorder/insert, and persists via [PerformProgramScreen.onProgramChanged].
+  /// reorder/insert, and, unless [persist] is false, persists via
+  /// [PerformProgramScreen.onProgramChanged].
   ///
   /// The per-slot timer keeps running while that slot is still on screen; it
   /// only resets when the previously visible slot is gone (e.g. removed), so
   /// timing (a 5.2 feature) is undisturbed by edits that leave it in place.
-  void _applyProgram(Program updated, {String? announce}) {
+  void _applyProgram(Program updated, {String? announce, bool persist = true}) {
+    final before = _program;
     final prevSlotId = _groups.isEmpty ? null : _currentSlot.id;
     setState(() {
       _program = updated;
@@ -805,10 +851,55 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       );
     }
     final onChanged = widget.onProgramChanged;
-    if (onChanged != null) {
-      final write = onChanged(updated);
+    if (persist && onChanged != null) {
+      final write = onChanged(before, updated);
       _pendingPersist = write;
-      unawaited(write);
+      unawaited(
+        write.then((newer) {
+          if (newer != null) _showNewerProgram(updated, newer);
+        }),
+      );
+    }
+  }
+
+  /// Shows [newer], the stored program with the adjustment that produced
+  /// [adjusted] applied, after that adjustment's write found the program had
+  /// changed since Perform's copy was taken (GIG-6), and tells the caller.
+  /// Adjustments made while the write was in flight stay applied on top.
+  void _showNewerProgram(Program adjusted, Program newer) {
+    if (!mounted) return;
+    final shown = identical(_program, adjusted)
+        ? newer
+        : newer.copyWith(
+            slots: renumberSlots(
+              rebaseSlotEdits(
+                before: adjusted.slots,
+                after: _program.slots,
+                onto: newer.slots,
+              ),
+            ),
+          );
+    // Already stored: the owner wrote it.
+    _applyProgram(shown, persist: false);
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final message = l10n.performProgramChangedElsewhere;
+    if (_undoable case final undoable?) {
+      _showUndoPrompt(
+        messenger,
+        message: message,
+        previous: undoable.previous,
+        updated: undoable.updated,
+      );
+    } else {
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            key: const ValueKey('perform-program-changed-elsewhere'),
+            content: Text(message),
+          ),
+        );
     }
   }
 
@@ -820,13 +911,29 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     required String announce,
   }) {
     final previous = _program;
+    _undoable = (previous: previous, updated: updated);
     _applyProgram(updated, announce: announce);
     if (!mounted) return;
+    _showUndoPrompt(
+      ScaffoldMessenger.of(context),
+      message: message,
+      previous: previous,
+      updated: updated,
+    );
+  }
+
+  /// Offers the Undo of the adjustment that turned [previous] into [updated].
+  void _showUndoPrompt(
+    ScaffoldMessengerState messenger, {
+    required String message,
+    required Program previous,
+    required Program updated,
+  }) {
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final unavailableMessage = l10n.performUndoNoLongerAvailable;
-    showUndoSnackBar(
+    final prompt = _undoPrompt = showUndoSnackBar(
       messenger,
+      key: const ValueKey('perform-adjusted-undo'),
       message: message,
       undoLabel: l10n.commonUndo,
       undoFailedMessage: l10n.commonUndoFailed,
@@ -850,8 +957,30 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           );
           return;
         }
-        _applyProgram(previous, announce: l10n.performAdjustmentUndone);
+        if (identical(_undoable?.updated, updated)) _undoable = null;
+        // Undo only the adjustment's own change: a newer program shown since
+        // (see [_showNewerProgram]) keeps what changed elsewhere.
+        _applyProgram(
+          _program.copyWith(
+            slots: renumberSlots(
+              rebaseSlotEdits(
+                before: updated.slots,
+                after: previous.slots,
+                onto: _program.slots,
+              ),
+            ),
+            updatedAt: DateTime.now().toUtc(),
+          ),
+          announce: l10n.performAdjustmentUndone,
+        );
       },
+    );
+    unawaited(
+      prompt.closed.then((_) {
+        if (!identical(_undoPrompt, prompt)) return;
+        _undoPrompt = null;
+        _undoable = null;
+      }),
     );
   }
 

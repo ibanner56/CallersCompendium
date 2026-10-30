@@ -230,7 +230,8 @@ explains them in full.
 
 During the beta, two things are worth knowing:
 
-- **Turn on the Beta channel.** Every release so far is a beta, and with the
+- **Turn on the Beta channel** (not needed if you installed from an app
+  store; see below). Every release so far is a beta, and with the
   **Beta channel** switch off (its default) the app only looks for stable
   releases — so it won't find new betas. Switch on **Beta channel** in
   **Settings › Updates**, and optionally **Check automatically**.
@@ -240,10 +241,21 @@ During the beta, two things are worth knowing:
 
 When the app does find an update: on **desktop** it can download it, verify it
 hasn't been tampered with, and hand it to your system's installer to finish. On
-**phones and tablets** it links you to the release so you can download it the
-usual way for your device. (If you installed on Android through the **Google Play
-closed test**, you don't need any of this — Play updates you automatically, the
-same as any other Play app.)
+an **Android** phone or tablet that you installed from the Releases page, it
+links you to the release so you can download the new file.
+
+Two kinds of copy don't update this way, and the app knows which you have:
+
+- **Installed from an app store.** On **iOS** (TestFlight or the App Store) and
+  on Android through **Google Play**, the store updates the app, so it never
+  offers an update, a **Check for updates** button or a **Beta channel** switch,
+  and **Settings › Updates** says so. If you've turned on **Check automatically**, it still looks for an
+  end-of-support date, and **Get update** on that notice opens the store.
+- **Portable copy.** If you run the Windows **.zip** or the Linux **.tar.gz**
+  (rather than the Windows installer or the Linux AppImage), the app tells you
+  when there's a newer version and sends you to the release to download the new
+  archive. It won't run an installer for you, because that would put a second
+  copy on your computer and leave this one as it was.
 
 ## Where to go next
 

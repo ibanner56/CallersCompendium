@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../app_metadata.dart';
 import '../utils/launch_external_url.dart';
 import 'artifact_handoff.dart';
+import 'install_kind.dart';
 import 'macos_update_prompt.dart';
 import 'update_controller.dart';
 import 'update_failure_labels.dart';
@@ -18,7 +19,9 @@ import 'update_service.dart';
 /// (after the dismissed-version gate). On **desktop** with a downloadable
 /// artifact it offers an assisted "Download & install" flow (download → sha256
 /// verify → OS-handoff) with progress, cancel, and a clear, non-silent error;
-/// on **mobile** it keeps only the "View release" link. "View release" (via the
+/// on **mobile** it keeps only the "View release" link; a **portable** copy
+/// (zip or tar.gz) is told to download the new archive from the release, since
+/// the installer is not what it runs. "View release" (via the
 /// existing [launchExternalUrl] seam) is always available, and "Dismiss" records
 /// the version so it is not shown again until a strictly-newer one appears.
 class UpdateBanner extends StatelessWidget {
@@ -90,7 +93,11 @@ class UpdateBanner extends StatelessWidget {
         );
       case AssistedDownloadStatus.idle:
       case AssistedDownloadStatus.cancelled:
-        return Text(l10n.updateBannerAvailable(kAppName, version));
+        return Text(
+          controller.installKind == InstallKind.portable
+              ? l10n.updateBannerPortable(kAppName, version)
+              : l10n.updateBannerAvailable(kAppName, version),
+        );
     }
   }
 

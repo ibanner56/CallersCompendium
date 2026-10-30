@@ -1892,6 +1892,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vérifie la disponibilité d’une nouvelle version en arrière-plan au démarrage. Désactivé par défaut.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Rechercher en arrière-plan, au démarrage de l\'application, une date de fin de prise en charge de cette version. Désactivé par défaut.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'La vérification des mises à jour télécharge uniquement un petit fichier de version via HTTPS — aucune donnée vous concernant, concernant votre appareil ou votre utilisation n’est jamais envoyée. Rien n’est téléchargé ni installé automatiquement : vous choisissez quand télécharger une mise à jour, celle-ci est vérifiée avant d’être ouverte, et votre programme d’installation système effectue l’installation.';
 
@@ -1939,6 +1943,22 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsUpdatesMacosReadySubtitle =>
       'Votre mise à jour est prête. Montez l’image disque et fermez l’application afin de pouvoir la remplacer dans Applications.';
+
+  @override
+  String get settingsUpdatesStoreTitle =>
+      'Les mises à jour viennent de votre boutique d\'applications';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Cette copie a été installée depuis une boutique d\'applications, qui se charge donc de la mettre à jour. L\'application ne recherche qu\'une éventuelle date de fin de prise en charge, jamais de nouvelle version.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Copie portable : téléchargez la nouvelle archive';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Cette copie s\'exécute depuis une archive décompressée ; l\'application ne peut donc pas installer la mise à jour à votre place. Téléchargez le nouveau zip ou tar.gz depuis la version publiée et décompressez-le.';
 
   @override
   String get settingsUpdatesDownloadTitle =>
@@ -4808,6 +4828,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vous avez un brouillon non enregistré pour ce programme. Voulez-vous le restaurer ?';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'Vous avez un brouillon non enregistré d’un autre nouveau programme, « $title ». Voulez-vous le restaurer au lieu d’en commencer un nouveau ?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'Vous avez un brouillon non enregistré d’un autre nouveau programme, encore sans titre. Voulez-vous le restaurer au lieu d’en commencer un nouveau ?';
+
+  @override
   String get programsDraftRestore => 'Restaurer';
 
   @override
@@ -5651,6 +5680,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get performUndoNoLongerAvailable =>
       'Annulation impossible : le programme a été modifié depuis.';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'Ce programme avait été modifié ailleurs depuis l’ouverture de Perform. Perform affiche maintenant la version la plus récente, avec votre modification.';
 
   @override
   String get performProgramAdjustedSnack => 'Programme ajusté.';
@@ -8890,6 +8923,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'Une nouvelle version de $appName ($version) est disponible.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'Une version plus récente de $appName ($version) est disponible. Il s\'agit d\'une copie portable : téléchargez le nouveau zip ou tar.gz depuis la version publiée.';
   }
 
   @override
