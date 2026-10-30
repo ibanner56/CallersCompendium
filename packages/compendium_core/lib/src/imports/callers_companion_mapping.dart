@@ -19,6 +19,7 @@ import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'structured_draft.dart';
+import 'title_article.dart';
 
 /// The reusable Caller's Companion (CC) → Compendium mapping layer.
 ///
@@ -344,7 +345,8 @@ CcDanceMapping mapCallersCompanionDance(
 
   // Title — placeholder + warning when absent (never throw). Sanitized
   // single-line so control/bidi/format spoofing chars never reach storage
-  // (issue #444).
+  // (issue #444). CC files titles library-style ("Baby Rose, The"); the
+  // article goes back to the front (#1976).
   final rawName = _sanitizeLine(record.name) ?? '';
   final String title;
   if (rawName.isEmpty) {
@@ -353,13 +355,14 @@ CcDanceMapping mapCallersCompanionDance(
       const ImportIssue(
         severity: ImportIssueSeverity.warning,
         code: 'cc_missing_title',
+        // Both the pasted text and a `.USR` row reach here (#1976).
         message:
-            'The pasted dance had no title; imported as '
+            'The dance had no title; imported as '
             '"$ccUntitledDanceTitle". Edit it before committing.',
       ),
     );
   } else {
-    title = rawName;
+    title = frontTrailingArticle(rawName);
   }
 
   // Authors — collected as display names for the pipeline to resolve to

@@ -418,6 +418,14 @@ description of the starting position ("Long Waves, R-hand to Neighbor") is kept
 as the formation's detail.
 Alternates in your sets come across as alternates.
 
+A **title** that Caller's Companion filed with its article at the end, such as
+"Baby Rose, The", comes across with the article back in front: "The Baby Rose".
+The articles moved are The, A, An, La, Le, Les and L' ("Amour, L'" becomes
+"L'Amour"), and a note in brackets stays at the end ("Baby Rose, The (var)"
+becomes "The Baby Rose (var)"). A dance you imported before keeps the title it
+has, because re-importing a dance takes only its figures, formation and
+progression.
+
 Your **notes and sources** come across with each dance. Your calling notes
 come first, then the music, any progression detail, your other notes (under
 "Other notes:"), and where the dance came from (under "Source:"). Source and

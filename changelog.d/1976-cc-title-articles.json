@@ -1,0 +1,14 @@
+{
+  "id": "1976-cc-title-articles",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A Caller's Companion title filed with its article at the end, such as \"Baby Rose, The\", now imports as \"The Baby Rose\". This covers The, A, An, La, Le, Les and L'."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`mapCallersCompanionDance` moves a trailing article to the front of the title with the new `frontTrailingArticle`, and its `cc_missing_title` diagnostic no longer says the dance was pasted, since a `.USR` row reaches it too."
+    ]
+  }
+}
