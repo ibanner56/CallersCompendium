@@ -986,7 +986,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// that baseline, the raw pay text and currency are kept: [program] carries a
   /// stored fallback for an unparseable amount, which must not overwrite what
   /// was typed. Ordinary loads pass nothing and initialise the pay field.
-  void _applyProgramToEditor(Program program, {Program? payBaseline}) {
+  ///
+  /// The venue-link baseline ([_venueIdBaseline]) is [program]'s `venueId`
+  /// unless [venueIdBaseline] says otherwise. A rebase passes the *stored*
+  /// program's link: its [program] is a merge that can carry the person's own
+  /// unsaved pick, and a baseline that included the pick would make the next
+  /// save read the pick as untouched and write the stored link over it.
+  void _applyProgramToEditor(
+    Program program, {
+    Program? payBaseline,
+    ({String? value})? venueIdBaseline,
+  }) {
     _titleController.text = program.title;
     _venueController.text = program.venue ?? '';
     _bandController.text = program.band ?? '';
@@ -999,7 +1009,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _existing = program;
     _eventDate = program.eventDate;
     _venueId = program.venueId;
-    _venueIdBaseline = program.venueId;
+    _venueIdBaseline = venueIdBaseline != null
+        ? venueIdBaseline.value
+        : program.venueId;
     _status = program.status;
     _hideAlternates = program.hideAlternates;
     _dialectName = program.dialectName;
@@ -1761,7 +1773,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         live: live.slots,
       ),
     );
-    setState(() => _applyProgramToEditor(merged, payBaseline: storedBaseline));
+    setState(
+      () => _applyProgramToEditor(
+        merged,
+        payBaseline: storedBaseline,
+        venueIdBaseline: (value: live.venueId),
+      ),
+    );
     await _refreshLinkedVenueForId(merged.venueId);
     return true;
   }
@@ -1832,7 +1850,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
       );
       setState(() {
-        _applyProgramToEditor(merged, payBaseline: baseline);
+        _applyProgramToEditor(
+          merged,
+          payBaseline: baseline,
+          venueIdBaseline: (value: live.venueId),
+        );
         _dirty = true;
       });
       await _refreshLinkedVenueForId(merged.venueId);
@@ -2837,6 +2859,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           _applyProgramToEditor(
             restored,
             payBaseline: _pendingBulkUndoBaseline ?? _existing!,
+            venueIdBaseline: (value: live.venueId),
           );
           await _refreshLinkedVenueForId(restored.venueId);
           if (!mounted) return;
@@ -3043,6 +3066,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (stored == null) {
       throw StateError('program "${persisted.id}" vanished after its create');
     }
+    _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
     return stored;
   }
 
