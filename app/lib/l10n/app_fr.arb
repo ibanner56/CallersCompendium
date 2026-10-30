@@ -9418,6 +9418,10 @@
   "@recentlyDeletedDeletedSnack": {
     "x-sourceSha256": "4517d93dc7c807c414a40a69427b4edf343334173f25a1cd371012e396d67d13"
   },
+  "recentlyDeletedDeletedSyncedSnack": "« {title} » définitivement supprimé. Une petite trace de suppression est conservée pour que vos autres appareils le suppriment aussi.",
+  "@recentlyDeletedDeletedSyncedSnack": {
+    "x-sourceSha256": "22062cea7d4cdb7c848665d6af5c7c88676f84e6e8f8063873a5c8e44726daa1"
+  },
   "recentlyDeletedRestore": "Restaurer",
   "@recentlyDeletedRestore": {
     "x-sourceSha256": "a76e13b9839270eb73ed11417f7d8acca55df0ad52065799361631d0fff74f27"

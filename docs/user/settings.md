@@ -81,8 +81,10 @@ the full picture.
 
 - **Keep deleted items for** — choose **30 days**, **90 days**, or **Never**
   (default is **30 days**). Deleted dances and deleted programs are held for
-  this long and then purged. Choosing **Permanently delete** on one item in
-  **Recently deleted** removes only that item. For how soft-delete and restore
+  this long and then purged, except one that [Device Sync](#device-sync) has
+  already shared, which stays until you delete it permanently. Choosing
+  **Permanently delete** on one item in **Recently deleted** removes only that
+  item. For how soft-delete and restore
   work, see [Collection & search](./collection.md).
 
 ### Import
@@ -332,12 +334,12 @@ The **Language & region** section handles formats and localization.
   result, and your choice controls how program event dates appear: in the
   Programs list and editor, in a dance's calling history, and in printed and
   emailed set lists and PDFs. **System default** always includes the year and
-  follows your **device's language and region** (not the app language): on a
-  phone set to Danish, an English-language app shows `15.7.2026`. It uses
-  all-numbers dates, so a date never mixes two languages' month names. Where the
-  device language has no variant for your region (English in Denmark, say), you
-  get that language's default order. Pick a fixed format or **Custom…** if you
-  want one layout everywhere.
+  follows your **device's region** (not the app language): on a phone in
+  Denmark, an English-language app shows `15.7.2026`, whether the phone itself
+  is set to Danish or English. It uses all-numbers dates, so a date never mixes
+  two languages' month names. A few multilingual regions (Belgium, say) have no
+  single order and use your device language's default. Pick a fixed format or
+  **Custom…** if you want one layout everywhere.
 
   A custom pattern is built from these tokens:
 
