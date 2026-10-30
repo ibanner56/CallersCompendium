@@ -76,8 +76,8 @@ class DesktopOpenCheck {
 /// - at most [maxBytes].
 ///
 /// [context] decides the path rules (the platform's by default), so the
-/// Windows rules can be tested on any host; the file-system checks always use
-/// the real file system.
+/// Windows rules can be tested on any host. The file-system checks go through
+/// [probe], which is the real file system unless a test substitutes it.
 ///
 /// The read happens later, by path, so a file swapped between this check and
 /// that read is not caught here. Intake's read stops at the cap whatever the
