@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SelectedContent;
 
 /// Makes the text under [child] selectable and copyable with a pointer, on
 /// desktop only (design note N5, `docs/design/selectable-text.md`).
@@ -26,7 +27,6 @@ class SelectableContent extends StatelessWidget {
   final Widget child;
 
   /// Whether text selection is offered on the running platform.
-  @visibleForTesting
   static bool get selectionEnabledOnThisPlatform =>
       switch (defaultTargetPlatform) {
         TargetPlatform.windows ||
@@ -41,5 +41,48 @@ class SelectableContent extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!selectionEnabledOnThisPlatform) return child;
     return SelectionArea(child: child);
+  }
+}
+
+/// One block of selectable text that ends its line in a copy.
+///
+/// Flutter joins the text of separate [Text] widgets with nothing between them,
+/// so a drag across a figure and its note would copy "partner swingwith your
+/// neighbor". Wrapping each block in a [SelectableLine] ends it with a newline.
+/// It also keeps everything inside one block, such as a link's text inside a
+/// sentence, joined without a break.
+///
+/// Like [SelectableContent] it returns [child] unchanged where selection is off.
+class SelectableLine extends StatefulWidget {
+  const SelectableLine({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<SelectableLine> createState() => _SelectableLineState();
+}
+
+class _SelectableLineState extends State<SelectableLine> {
+  final _delegate = _LineDelegate();
+
+  @override
+  void dispose() {
+    _delegate.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!SelectableContent.selectionEnabledOnThisPlatform) return widget.child;
+    return SelectionContainer(delegate: _delegate, child: widget.child);
+  }
+}
+
+class _LineDelegate extends StaticSelectionContainerDelegate {
+  @override
+  SelectedContent? getSelectedContent() {
+    final content = super.getSelectedContent();
+    if (content == null) return null;
+    return SelectedContent(plainText: '${content.plainText}\n');
   }
 }

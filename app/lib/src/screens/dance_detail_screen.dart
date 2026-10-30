@@ -1083,12 +1083,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(dance.title, style: theme.textTheme.headlineMedium),
+                SelectableLine(
+                  child: Text(
+                    dance.title,
+                    style: theme.textTheme.headlineMedium,
+                  ),
+                ),
                 if (detail.authorNames.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xxs),
-                  Text(
-                    detail.authorNames.join(', '),
-                    style: theme.textTheme.bodyLarge,
+                  SelectableLine(
+                    child: Text(
+                      detail.authorNames.join(', '),
+                      style: theme.textTheme.bodyLarge,
+                    ),
                   ),
                 ],
                 const SizedBox(height: AppSpacing.sm),
@@ -1215,7 +1222,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         const SizedBox(height: AppSpacing.lg),
         Row(
           children: [
-            Text(l10n.danceSectionFigures, style: theme.textTheme.titleMedium),
+            SelectableLine(
+              child: Text(
+                l10n.danceSectionFigures,
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
             const Spacer(),
             if (_canonicalFigureTextEnabled && !isCanonicalDialect)
               _DialectToggle(
@@ -1243,9 +1255,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         },
         if (dance.callingNotes.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionCallingNotes,
-            style: theme.textTheme.titleMedium,
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionCallingNotes,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
@@ -1269,9 +1283,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (dance.walkthrough.trim().isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionWalkthrough,
-            style: theme.textTheme.titleMedium,
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionWalkthrough,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
@@ -1303,7 +1319,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         // the lie that the dance has no tunes.
         if (dance.tunesSource case UnreadableTunes()) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(l10n.danceSectionTunes, style: theme.textTheme.titleMedium),
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionTunes,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
           const SizedBox(height: AppSpacing.xxs),
           _unreadableNotice(context, l10n.danceTunesUnreadable),
         ],
@@ -1312,7 +1333,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           UnreadableTunes() => const <String>[],
         }.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(l10n.danceSectionTunes, style: theme.textTheme.titleMedium),
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionTunes,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
           const SizedBox(height: AppSpacing.xxs),
           Text(
             canonicalDiscouragedTerms
@@ -1336,7 +1362,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (visibleLinks.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(l10n.danceSectionLinks, style: theme.textTheme.titleMedium),
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionLinks,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
           for (final link in visibleLinks)
             _LinkRow(
               key: ValueKey('link-row-${link.id}'),
@@ -1359,9 +1390,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (dance.sourceCitations.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionPublishedSources,
-            style: theme.textTheme.titleMedium,
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionPublishedSources,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           for (final citation in dance.sourceCitations)
             _SourceCitationRow(
@@ -1372,9 +1405,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (detail.customFields.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionCustomFields,
-            style: theme.textTheme.titleMedium,
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionCustomFields,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           const SizedBox(height: AppSpacing.xxs),
           for (final field in detail.customFields.map(
@@ -1759,7 +1794,10 @@ class _CrossReferenceText extends StatelessWidget {
   final void Function(String danceId) onOpenDance;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      SelectableLine(child: _buildText(context));
+
+  Widget _buildText(BuildContext context) {
     if (!linker.hasTitles) {
       return Text(text, style: style);
     }

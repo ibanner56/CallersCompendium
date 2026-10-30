@@ -270,8 +270,9 @@ void main() {
       );
       await _pumpDetail(tester, repos, 'd1');
       final copied = await _copyAll(tester, find.text('Source Dance'));
-      expect(copied, contains('Adapted from'));
-      expect(copied, contains('for beginners.'));
+      // The link is part of its sentence: no line break around its text.
+      expect(copied, contains('Adapted from Target Dance for beginners.'));
+      expect(copied, contains('Source Dance\n'));
       expect('Target Dance'.allMatches(copied), hasLength(1));
 
       await tester.tap(find.text('Target Dance'));
