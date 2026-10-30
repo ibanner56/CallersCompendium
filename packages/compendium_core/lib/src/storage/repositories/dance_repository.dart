@@ -2005,16 +2005,15 @@ class DanceRepository {
       ).restore(levelId, at: at, clearPending: false);
     }
     final values = _db.customFieldValues;
-    final defs = _db.customFieldDefs;
     final tombstonedFieldIds =
         await (_db.selectOnly(values, distinct: true)
               ..addColumns([values.fieldId])
               ..join([
                 // sync-invariant-exception: soft-delete-join reads only tombstoned definitions, the ones a restore revives.
                 innerJoin(
-                  defs,
-                  defs.id.equalsExp(values.fieldId) &
-                      defs.deletedAt.isNotNull(),
+                  _db.customFieldDefs,
+                  _db.customFieldDefs.id.equalsExp(values.fieldId) &
+                      _db.customFieldDefs.deletedAt.isNotNull(),
                   useColumns: false,
                 ),
               ])
