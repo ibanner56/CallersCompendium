@@ -90,6 +90,75 @@ class FacetSelections {
   /// Selections are OR-ed within this facet, so selecting both is unrestricted.
   final Set<bool> callStatuses = {};
 
+  /// The venue scope of the Calling history section (N1-H2): only calls at
+  /// this venue count. Null = any venue. See [scopesApply].
+  VenueKey? historyVenue;
+
+  /// What the venue chip says, kept beside [historyVenue] so the chip still
+  /// reads right if the venue stops being offered (its last counted call was
+  /// removed). Set and cleared with [historyVenue] by [setHistoryVenue].
+  String? historyVenueLabel;
+
+  /// The recency scope, as a preset: only calls in the last this-many calendar
+  /// months count (1, 3 or 6). Null with [historySince] also null = no window.
+  /// Never set together with [historySince]; use [setHistoryMonths] and
+  /// [setHistorySince].
+  int? historyMonths;
+
+  /// The recency scope, as a chosen date: only calls on or after it count. A
+  /// calendar date, `DateTime.utc(y, m, d)`.
+  DateTime? historySince;
+
+  /// Whether the scopes ([historyVenue], [historyMonths], [historySince]) act:
+  /// only while exactly one of Called / Not called is chosen. With neither or
+  /// both, no `CalledFilter` is built, so a scope would do nothing; it stays
+  /// set, shown inert, and comes back when a polarity is chosen again
+  /// (`docs/design/history-filters.md`, "Composition rules").
+  bool get scopesApply => callStatuses.length == 1;
+
+  /// Whether any scope is set, applying or not.
+  bool get hasHistoryScope =>
+      historyVenue != null || historyMonths != null || historySince != null;
+
+  /// Sets the venue scope, or clears it when [key] is null.
+  void setHistoryVenue(VenueKey? key, {String? label}) {
+    historyVenue = key;
+    historyVenueLabel = key == null ? null : label;
+  }
+
+  /// Sets the recency scope to the last [months] calendar months, or clears it
+  /// when null.
+  void setHistoryMonths(int? months) {
+    historyMonths = months;
+    historySince = null;
+  }
+
+  /// Sets the recency scope to calls on or after [date] (its calendar day), or
+  /// clears it when null.
+  void setHistorySince(DateTime? date) {
+    historySince = date == null
+        ? null
+        : DateTime.utc(date.year, date.month, date.day);
+    historyMonths = null;
+  }
+
+  /// The recency cutoff as of [today], or null when there is no window.
+  /// [today] is taken as a calendar day, in whatever zone the caller means.
+  DateTime? historyCutoff(DateTime today) {
+    if (historySince case final since?) return since;
+    if (historyMonths case final months?) {
+      return calendarMonthsBefore(today, months);
+    }
+    return null;
+  }
+
+  /// How many scopes are set and applying, for the badges: the Calling
+  /// history section's and the Filters button's.
+  int get activeScopeCount => !scopesApply
+      ? 0
+      : (historyVenue != null ? 1 : 0) +
+            (historyMonths != null || historySince != null ? 1 : 0);
+
   /// Minimum-rating facet: `null` = unselected, otherwise a floor on the closed
   /// `1..5` scale that emits a [RatingFilter] (`rating >= minRating`; unrated
   /// dances are excluded). Single-valued (a floor, not a multi-select set).
@@ -202,6 +271,7 @@ class FacetSelections {
       mixedLevel == null &&
       mixer == null &&
       callStatuses.isEmpty &&
+      activeScopeCount == 0 &&
       minRating == null &&
       authorIds.isEmpty &&
       tagIds.isEmpty &&
@@ -233,6 +303,7 @@ class FacetSelections {
       (mixedLevel != null ? 1 : 0) +
       (mixer != null ? 1 : 0) +
       callStatuses.length +
+      activeScopeCount +
       (minRating != null ? 1 : 0) +
       authorIds.length +
       tagIds.length +
@@ -253,6 +324,7 @@ class FacetSelections {
     mixedLevel = null;
     mixer = null;
     callStatuses.clear();
+    _clearHistoryScopes();
     minRating = null;
     authorIds.clear();
     tagIds.clear();
@@ -264,6 +336,11 @@ class FacetSelections {
     booleanValues.clear();
     textValues.clear();
     numberValues.clear();
+  }
+
+  void _clearHistoryScopes() {
+    setHistoryVenue(null);
+    setHistoryMonths(null);
   }
 
   /// Whether the filter section [id] (a `CollectionFacetIds` value or a
@@ -288,7 +365,7 @@ class FacetSelections {
       case CollectionFacetIds.minRating:
         return minRating != null;
       case CollectionFacetIds.callStatus:
-        return callStatuses.isNotEmpty;
+        return callStatuses.isNotEmpty || hasHistoryScope;
       case CollectionFacetIds.author:
         return authorIds.isNotEmpty;
       case CollectionFacetIds.tunes:
@@ -333,6 +410,7 @@ class FacetSelections {
           minRating = null;
         case CollectionFacetIds.callStatus:
           callStatuses.clear();
+          _clearHistoryScopes();
         case CollectionFacetIds.author:
           authorIds.clear();
         case CollectionFacetIds.tunes:
@@ -354,6 +432,19 @@ class FacetSelections {
     }
     return changed;
   }
+}
+
+/// The calendar day [months] calendar months before [today]'s day, as the
+/// `DateTime.utc(y, m, d)` a stored event date and `CalledFilter.since` use.
+///
+/// A day the earlier month lacks clamps to that month's last day, so one month
+/// before 31 March is 28 (or 29) February, never 3 March.
+DateTime calendarMonthsBefore(DateTime today, int months) {
+  final index = today.year * 12 + (today.month - 1) - months;
+  final year = index ~/ 12;
+  final month = index % 12 + 1;
+  final lastDay = DateTime.utc(year, month + 1, 0).day;
+  return DateTime.utc(year, month, today.day > lastDay ? lastDay : today.day);
 }
 
 /// The user's "By phrase" selections — a Caller's Box-style per-phrase figure
@@ -446,6 +537,7 @@ DanceFilter buildCollectionFilter({
   String? callerFilter,
   bool performedOnly = false,
   bool requireEventDate = false,
+  DateTime? today,
 }) {
   final branches = <DanceFilter>[];
 
@@ -470,13 +562,15 @@ DanceFilter buildCollectionFilter({
   if (facets.mixer != null) {
     branches.add(MixerFilter(facets.mixer!));
   }
-  if (facets.callStatuses.length == 1) {
+  if (facets.scopesApply) {
     addOr([
       CalledFilter(
         called: facets.callStatuses.single,
         callerFilter: callerFilter,
         performedOnly: performedOnly,
         requireEventDate: requireEventDate,
+        venue: facets.historyVenue,
+        since: facets.historyCutoff(today ?? DateTime.now()),
       ),
     ]);
   }

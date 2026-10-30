@@ -145,6 +145,7 @@ class DedupeVerdict {
     this.targetDanceId,
     this.candidates = const [],
     this.possibleMatchIds = const [],
+    this.alsoTitleAndCredit = false,
   });
 
   factory DedupeVerdict.isNew({List<String> possibleMatchIds = const []}) =>
@@ -155,8 +156,17 @@ class DedupeVerdict {
           possibleMatchIds: List.unmodifiable(possibleMatchIds),
         );
 
-  factory DedupeVerdict.reimport(String danceId) =>
-      DedupeVerdict._(kind: DedupeKind.reimport, targetDanceId: danceId);
+  /// [alsoTitleAndCredit] is the caller's choice, not a dedupe finding: the
+  /// import review sets it on a re-import row whose **Also update title and
+  /// credit** box is ticked. Planning never sets it.
+  factory DedupeVerdict.reimport(
+    String danceId, {
+    bool alsoTitleAndCredit = false,
+  }) => DedupeVerdict._(
+    kind: DedupeKind.reimport,
+    targetDanceId: danceId,
+    alsoTitleAndCredit: alsoTitleAndCredit,
+  );
 
   factory DedupeVerdict.ambiguous(
     List<DedupeCandidate> candidates, {
@@ -187,6 +197,14 @@ class DedupeVerdict {
   /// confident one.
   final List<String> possibleMatchIds;
 
+  /// For [DedupeKind.reimport]: whether the commit also takes the incoming
+  /// title and author credit (see [withReimportedChoreography]). Always
+  /// `false` for the other kinds. It rides on the verdict, rather than beside
+  /// it, because the importers that rewrite a batch's drafts before the
+  /// pipeline commits it (the `.USR` and archive importers) copy each verdict
+  /// through as it is.
+  final bool alsoTitleAndCredit;
+
   bool get isNewDance => kind == DedupeKind.isNew;
   bool get isReimport => kind == DedupeKind.reimport;
   bool get isAmbiguous => kind == DedupeKind.ambiguous;
@@ -208,7 +226,10 @@ class DedupeVerdict {
       possibleMatchIds.isEmpty
           ? 'DedupeVerdict.new'
           : 'DedupeVerdict.new(possible: $possibleMatchIds)',
-    DedupeKind.reimport => 'DedupeVerdict.reimport($targetDanceId)',
+    DedupeKind.reimport =>
+      alsoTitleAndCredit
+          ? 'DedupeVerdict.reimport($targetDanceId, alsoTitleAndCredit)'
+          : 'DedupeVerdict.reimport($targetDanceId)',
     DedupeKind.ambiguous =>
       possibleMatchIds.isEmpty
           ? 'DedupeVerdict.ambiguous($candidates)'

@@ -310,8 +310,12 @@ class CallersCompanionUsrImporter {
   /// dedupe and OWASP-hardening rationale). A pair with an unresolved
   /// endpoint is skipped with a warning [ImportIssue] on
   /// [CcUsrImportResult.relatedDanceLinkIssues] — never a dangling
-  /// `targetDanceId`. A dance [batch] re-imports gets no links: a re-import
-  /// replaces only the choreography (INTAKE-7).
+  /// `targetDanceId`. A re-imported dance gets no links, whether [batch]
+  /// re-imported it or an earlier [commitDances] did (named in
+  /// [earlierReimportedCcIds]): a re-import replaces only the choreography
+  /// (INTAKE-7). Nor does a pair whose source is such a dance raise that
+  /// warning, since its link would be left out whichever way its other end
+  /// resolved.
   ///
   /// **Dances committed earlier (the review's per-row Edit):**
   /// [earlierDanceIds] maps the CC `zk_Dance_ID` of each dance an earlier
@@ -322,7 +326,9 @@ class CallersCompanionUsrImporter {
   /// is ignored, and [batch]'s own dance wins for a CC id it also commits.
   /// Those dances are not this import's to revert: a related-dance link added
   /// to one is recorded in [CcUsrImportResult.linksAddedToEarlierDances] and
-  /// [undo] removes just that link.
+  /// [undo] removes just that link. [earlierReimportedCcIds] names the CC ids
+  /// among them that the earlier commit re-imported, because the map alone
+  /// does not say how a dance was written.
   ///
   /// **Skipped re-import rows (INTAKE-1):** [existingDanceIdByExternalId] maps
   /// a CC `zk_Dance_ID` to the local dance a re-import row the review left at
@@ -348,6 +354,7 @@ class CallersCompanionUsrImporter {
     List<String> defaultTagIds = const [],
     void Function(int done, int total)? onProgress,
     Map<String, String> earlierDanceIds = const {},
+    Set<String> earlierReimportedCcIds = const {},
   }) async {
     final mintId = newId ?? uuidV4;
     final (
@@ -581,10 +588,28 @@ class CallersCompanionUsrImporter {
       // this batch's undo does not restore it, so the ids of the links appended
       // to it are recorded and removed one by one instead.
       if (archive.relatedDancePairs.isNotEmpty) {
+        // A re-import replaces only a dance's choreography (INTAKE-7), so a
+        // re-imported dance gets none of the file's links: one this batch
+        // re-imported, or one an earlier per-row Edit re-imported. Not one
+        // another row of this batch then created or replaced (a link onto the
+        // same dance), which takes the file's links like any written dance.
+        final writtenOtherwise = {
+          for (final r in danceSession.records)
+            if (r.succeeded && r.action != CommitAction.reimport) ?r.danceId,
+        };
+        final reimportedDanceIds = {
+          for (final r in danceSession.records)
+            if (r.succeeded && r.action == CommitAction.reimport) r.danceId!,
+          for (final ccId in earlierReimportedCcIds)
+            if (committedEarlier[ccId] case final id?
+                when danceIdByCcRowId[ccId] == id)
+              id,
+        }..removeAll(writtenOtherwise);
         final candidateDanceIds = <String>{
           for (final pair in archive.relatedDancePairs)
-            if (danceIdByCcRowId[pair.sourceRecordId] != null)
-              danceIdByCcRowId[pair.sourceRecordId]!,
+            if (danceIdByCcRowId[pair.sourceRecordId] case final id?
+                when !reimportedDanceIds.contains(id))
+              id,
         };
         final dancesById = <String, Dance>{};
         for (final id in candidateDanceIds) {
@@ -598,21 +623,15 @@ class CallersCompanionUsrImporter {
           for (final r in danceSession.records)
             if (r.succeeded && r.danceId != null) r.danceId!,
         };
-        // A re-import replaces only a dance's choreography (INTAKE-7), so a
-        // dance this batch re-imported gets none of the file's links.
-        final reimportedDanceIds = {
-          for (final r in danceSession.records)
-            if (r.succeeded && r.action == CommitAction.reimport) r.danceId!,
-        };
         final linkResult = buildCcRelatedDanceLinks(
           archive,
           danceIdByCcRowId: danceIdByCcRowId,
           existingLinksByDanceId: existingLinksByDanceId,
+          skippedSourceDanceIds: reimportedDanceIds,
           newId: mintId,
         );
         relatedDanceLinkIssues.addAll(linkResult.issues);
         for (final entry in linkResult.newLinksByDanceId.entries) {
-          if (reimportedDanceIds.contains(entry.key)) continue;
           final dance = dancesById[entry.key];
           if (dance == null) continue; // fetched dance vanished; skip safely
           if (!sessionDanceIds.contains(entry.key)) {

@@ -19,6 +19,27 @@ and never searches (passing it would switch the dumped file to WAL for no
 query); and it passes the setup to the benchmarks' timed connections, not
 their schema-only ones. H2 and H3 are not built.
 
+*Update, 2026-10-30: H2 is built* (`claude/history-filter-controls`): **At venue**
+and **Within** in `FacetPanel`'s Calling history section, so both hosts (Collection
+and the picker) have them; H3 is not built. Three calls were the implementer's,
+not the maintainer's:
+
+- **Wording of the no-window choice** (ambiguity 1). It is one chip in the
+  **Within** row, selected when no window is set, and it reads **Never called**
+  while **Not called** is the only polarity chosen and no venue is chosen (at a
+  venue it would mean "never called there"), and **Any time** otherwise.
+  Rejected: a separate "Never called" chip, which would duplicate **Not called**.
+- **The venue chooser** is a bottom sheet, not an inline list, because venues are
+  open-ended. It lists `ProgramRepository.watchCalledVenues` under the same
+  caller, performed-only and event-date scope as the search, so a row is a venue
+  the filter can match. A record key is labelled from the venue catalogue, a
+  typed key from its latest typed text and marked **typed**. The row is left out
+  while no venue has a counted call, unless one is already chosen.
+- **A scope edit re-runs Collection's search** whenever a venue or window is
+  applying, on any data change, because moving a program to another venue
+  changes the result and no call count. The picker already re-searches on every
+  data change.
+
 **The gap.** A caller building tonight's program for the Grange wants a dance
 they have not called at the Grange, or not called in the last few months. The
 app cannot express either today:
@@ -166,10 +187,13 @@ every option below.
 typed programs are linked to the record, they move from the `text:` key to the
 `id:` key, and the filter follows with no change. So H1 does not wait for B3.
 
-**The venue chooser.** This is Collection only; the picker uses the program's
-own venue (Q3).
+**The venue chooser.** *(Built in H2.)* It appears in the Filters panel of both
+hosts, Collection and the picker. The picker's own Not called here chip (Q3, H3)
+is separate and uses the program's own venue.
 - It lists the distinct keys over live programs, under the current calling
-  history settings. Each label comes from `resolveVenueLabelParts`.
+  history settings. A record key is labelled with the venue record's `name` (not the longer
+  `resolveVenueLabelParts` form, which suits a list but not a chip), and
+  otherwise with the most recent typed text.
 - Venues with no counted call are left out, because choosing one cannot change a
   result.
 - Every row shows how many programs it covers. A typed key also says "typed".

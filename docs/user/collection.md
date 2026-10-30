@@ -176,7 +176,9 @@ the **Filters** panel. It lets you narrow by:
 - **Status**, **Level**, and **Mixed level**
 - **Mixer**
 - **Minimum rating** (for example, three stars and up)
-- **Calling history** — dances you have **Called**, or **Not called**
+- **Calling history** — dances you have **Called**, or **Not called**, with
+  an optional venue and time window; see
+  [Filter by calling history](#filter-by-calling-history) below
 - **Author**
 - **Tunes** — see [Filter by tunes](#filter-by-tunes) below
 - **Tags** — including **Untagged**, for dances that have no tags yet
@@ -196,6 +198,36 @@ predictable:
 - **Across different filters, choices are "all."** Adding an author on top of
   those formations finds dances that match one of the formations **and** are by
   that author.
+
+### Filter by calling history
+
+**Calling history** starts with **Called** and **Not called**. Choose one of
+them and two more choices narrow what counts as a call:
+
+- **At venue** — only calls at the venue you pick. The list shows each venue you
+  have called a dance at, newest first, with how many programs were there. A
+  venue you typed into a program but never saved as a venue is marked
+  **typed**, and it is a separate choice from a saved venue of the same name
+  until you link those programs to the saved venue.
+- **Within** — only calls in the last **1 month**, **3 months** or **6 months**,
+  counted back from today, or **since a date** you choose. Programs planned for
+  later than today count as calls, so a dance already on next month's program
+  is not "not called within 3 months". A program with no event date counts
+  by the date you marked it performed, and one with neither counts as called
+  but never as recent.
+
+**Not called** at a venue means "never called there", even if you called the
+dance somewhere else. **Not called** at any venue, with the window left on **Never called**,
+lists the dances you have never called at all, the same as **Not called** has
+always done; **Any time** is the same choice with **Called**.
+
+If you clear **Called** and **Not called**, or choose both, the venue and window
+stay as you set them but do nothing, and the panel says
+**Applies with Called or Not called**. They count in the number on **Filters**
+only while they apply.
+
+The same choices appear in the Filters panel of the dance picker when you add
+dances to a program.
 
 ### Filter by tags
 
@@ -349,7 +381,11 @@ From the detail view you can:
 - **Duplicate** it as a starting point for a variation.
 - **Add to program** — drop it into a [program](./programs.md) you are building.
   An **Undo** option takes the dance back out again, and keeps any other change
-  made to the program since.
+  made to the program since. **Create a new program with this dance** is always
+  the first row, however many programs you have. A program that already holds
+  the dance, even only as an alternate, shows **In this program** (with ×N when
+  it appears more than once); tapping it asks whether to add the dance again,
+  and **Cancel** leaves the sheet open so you can pick another program.
 - **Export** it — share it as text or as a dance file, copy it, or print it as a
   PDF. The export follows your active dialect, so what you hand someone matches
   how they speak — see [Share, print & export](./sharing.md#share-a-dance).
@@ -465,7 +501,23 @@ To organize in bulk, enter selection mode: choose **Select dances** from the **M
 or long-press
 a row on a touchscreen. Tick as many dances as you like, then apply one change
 across all of them. Tags and level are on the toolbar; the rest are under
-**More batch actions**:
+**More batch actions**.
+
+**Select all** picks every dance in the list you are looking at — the current
+search, filters and By phrase included — and becomes **Deselect all** once they
+are all picked. It is a button on the toolbar when the screen is wide enough and
+the first entry of **More batch actions** when it is not. It waits for a search
+that is still running. To select the whole collection, clear the filters first.
+
+The search box stays live while you select, and a dance you picked stays picked
+when a search hides it, so you can build a selection across several searches.
+When that happens the line under the search shows how many are out of sight —
+for example "14 selected (9 not shown)" — with **Deselect those not shown** to
+drop them. Every change applies to all selected dances, shown or not. A
+selected dance that is deleted, or removed by another device, leaves the
+selection by itself. Turning on **Online search** ends selection mode.
+
+The changes:
 
 - **Add tags** or **Remove tags**.
 - **Set level**, or clear it with **Unspecified (clear)**.

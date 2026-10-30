@@ -3861,6 +3861,24 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Alle $count auswählen';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Alle $count abwählen';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected ausgewählt ($hidden nicht angezeigt)';
+  }
+
+  @override
+  String get collectionDeselectNotShown => 'Nicht angezeigte abwählen';
+
+  @override
   String get collectionAddTags => 'Tags hinzufügen';
 
   @override
@@ -4143,6 +4161,67 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionFacetNotCalled => 'Nicht aufgerufen';
+
+  @override
+  String get collectionFacetHistoryInert =>
+      'Gilt mit Aufgerufen oder Nicht aufgerufen';
+
+  @override
+  String get collectionFacetVenue => 'Am Veranstaltungsort';
+
+  @override
+  String get collectionFacetVenueAny => 'Beliebiger Veranstaltungsort';
+
+  @override
+  String get collectionFacetVenueUnnamed => 'Unbenannter Veranstaltungsort';
+
+  @override
+  String get collectionFacetVenueClear => 'Veranstaltungsort löschen';
+
+  @override
+  String get collectionFacetVenueSheetTitle => 'Veranstaltungsort';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Programme',
+      one: '1 Programm',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => 'getippt';
+
+  @override
+  String get collectionFacetWithin => 'Innerhalb von';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'Jederzeit';
+
+  @override
+  String get collectionFacetWithinNever => 'Nie aufgerufen';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Monaten',
+      one: '1 Monat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => 'Seit einem Datum…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return 'Seit $date';
+  }
 
   @override
   String get collectionFacetLevel => 'Niveau';
@@ -4734,6 +4813,36 @@ class AppLocalizationsDe extends AppLocalizations {
   ) {
     return '„$danceTitle“ zu $programTitle hinzufügen, $details';
   }
+
+  @override
+  String get programsDanceInThisProgram => 'In diesem Programm';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'In diesem Programm ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'Bereits in diesem Programm';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '„$danceTitle“ ist bereits $count-mal in „$programTitle“. Erneut hinzufügen?',
+      one: '„$danceTitle“ ist bereits in „$programTitle“. Erneut hinzufügen?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'Erneut hinzufügen';
 
   @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
@@ -7441,6 +7550,15 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit =>
+      'Auch Titel und Autorenangabe aktualisieren';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Übernimmt Titel und Autorenangabe aus dieser Datei für „$title“. Deine Bewertung, Tags, Notizen und Links bleiben, wie sie sind.';
+  }
+
+  @override
   String get importReviewOptionDuplicate =>
       'Als neuen (doppelten) Tanz importieren';
 
@@ -7469,6 +7587,32 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: '$count vorhandene Tänze werden überschrieben',
       one: '1 vorhandener Tanz wird überschrieben',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Neu importieren ersetzt Figuren, Formation und Progression von $count vorhandenen Tänzen. Ihre Bewertungen, Tags und Notizen bleiben.',
+      one:
+          'Neu importieren ersetzt Figuren, Formation und Progression von 1 vorhandenen Tanz. Seine Bewertung, Tags und Notizen bleiben.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Bei $count davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
+      one:
+          'Bei 1 davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
     );
     return '$_temp0';
   }
@@ -7617,6 +7761,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return 'Beim Importieren zum Bearbeiten wird „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt ihn nicht wieder her.';
+  }
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Jetzt auf den vorhandenen Tanz neu importieren?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'Beim Importieren zum Bearbeiten werden Figuren, Formation und Progression von „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt sie nicht wieder her.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'Beim Importieren zum Bearbeiten werden Figuren, Formation, Progression, Titel und Autorenangabe von „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt sie nicht wieder her.';
   }
 
   @override

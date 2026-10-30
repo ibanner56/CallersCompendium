@@ -15,6 +15,13 @@ import '../storage/repositories/repositories.dart';
 /// stay as [existing] has them. [provenance], when given, replaces the
 /// existing provenance; otherwise it is kept.
 ///
+/// [alsoTitleAndCredit] also takes [incoming]'s title and authors (its
+/// `authorIds`, which the caller has already resolved to this library's
+/// choreographers). The import review offers it per re-import row, off by
+/// default (maintainer decision, 2026-10-30: "Ask per import"). An incoming
+/// empty credit keeps the existing one: a source that sent no credit must not
+/// erase the dance's. (A [Dance] title is never blank.)
+///
 /// An incoming transcription that is unreadable, or decoded to no figures,
 /// keeps the existing one whole, an unreadable one included: a source that
 /// sent no usable figures (The Caller's Box withholds them below its `full`
@@ -24,7 +31,13 @@ Dance withReimportedChoreography(
   Dance incoming, {
   required DateTime updatedAt,
   Provenance? provenance,
+  bool alsoTitleAndCredit = false,
 }) => existing.copyWith(
+  // `null` keeps the existing value.
+  title: alsoTitleAndCredit ? incoming.title : null,
+  authorIds: alsoTitleAndCredit && incoming.authorIds.isNotEmpty
+      ? incoming.authorIds
+      : null,
   // `null` keeps the existing `figuresSource`, whatever it holds.
   figures: switch (incoming.figuresSource) {
     DecodedFigures(:final figures) when figures.isNotEmpty => figures,

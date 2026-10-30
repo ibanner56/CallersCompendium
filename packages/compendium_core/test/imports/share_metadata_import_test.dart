@@ -655,6 +655,248 @@ void main() {
       expect(await tags.getById('t-nfc'), isNotNull);
     },
   );
+
+  test('in a mixed batch, a created dance keeps the deleted tag it revived '
+      'while a re-imported one\'s goes back', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final tags = TagRepository(db);
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, ChoreographerRepository(db)),
+      ProgramRepository(db),
+      VenueRepository(db),
+      repositories: CompendiumRepositories(db, contraTaxonomy),
+      tags: tags,
+      sources: PublishedSourceRepository(db),
+      customFields: CustomFieldDefRepository(db),
+    );
+    Dance dance(String id, String tag) => Dance(
+      id: id,
+      title: 'Dance $id',
+      tagIds: [tag],
+      createdAt: _now,
+      updatedAt: _now,
+    );
+    final first = CompendiumArchive(
+      exportedAt: _now,
+      dances: [dance('old', 't1')],
+      tags: [Tag(id: 't1', name: 'chestnut')],
+    );
+    var nextId = 0;
+    String newId() => 'receiver-${++nextId}';
+    await importer.import(encodeArchive(first), first, now: _now, newId: newId);
+    final later = _now.add(const Duration(days: 1));
+    await tags.delete((await tags.listAll()).single.id, at: later);
+    final oak = await tags.upsert(
+      Tag(id: 'oak', name: 'oak'),
+      at: later,
+    );
+    await tags.delete(oak, at: later);
+
+    final mixed = CompendiumArchive(
+      exportedAt: _now,
+      dances: [dance('old', 't1'), dance('fresh', 't2')],
+      tags: [
+        Tag(id: 't1', name: 'chestnut'),
+        Tag(id: 't2', name: 'oak'),
+      ],
+    );
+    final result = await importer.import(
+      encodeArchive(mixed),
+      mixed,
+      now: _now.add(const Duration(days: 2)),
+      newId: newId,
+    );
+
+    expect(
+      result.danceSession.records.map((r) => r.action),
+      unorderedEquals([CommitAction.reimport, CommitAction.create]),
+    );
+    expect([for (final t in await tags.listAll()) t.name], ['oak']);
+    final created = await dances.getById(
+      result.danceSession.records
+          .singleWhere((r) => r.action == CommitAction.create)
+          .danceId!,
+    );
+    expect(created!.tagIds, [oak]);
+    expect(result.metadata!.restoredTagIds, [oak]);
+  });
+
+  test('a row that fails after the metadata commit leaves nothing it needed '
+      'behind', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final tags = TagRepository(db);
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, ChoreographerRepository(db)),
+      ProgramRepository(db),
+      VenueRepository(db),
+      repositories: CompendiumRepositories(db, contraTaxonomy),
+      tags: tags,
+      sources: PublishedSourceRepository(db),
+      customFields: CustomFieldDefRepository(db),
+    );
+    final chestnut = await tags.upsert(Tag(id: 'mine', name: 'chestnut'));
+    await tags.delete(chestnut, at: _now);
+    final archive = CompendiumArchive(
+      exportedAt: _now,
+      dances: [
+        Dance(
+          id: 'shared',
+          title: 'Shared dance',
+          tagIds: const ['t1', 't2'],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      ],
+      tags: [
+        Tag(id: 't1', name: 'chestnut'),
+        Tag(id: 't2', name: 'brand new'),
+      ],
+    );
+    final planned = await importer.plan(encodeArchive(archive));
+    // Linked onto a dance that is gone by the time the commit runs: the
+    // pipeline records the row as failed, after its tags were committed.
+    final batch = ImportBatchResult(
+      records: [
+        ImportRecordPlan(
+          draft: planned.records.single.draft,
+          verdict: DedupeVerdict.ambiguous(const []),
+        ),
+      ],
+    );
+    var nextId = 0;
+
+    final result = await importer.commit(
+      batch,
+      archive,
+      now: _now.add(const Duration(days: 1)),
+      newId: () => 'receiver-${++nextId}',
+      resolutions: {0: DedupeResolution.link('gone')},
+    );
+
+    expect(result.danceSession.records.single.succeeded, isFalse);
+    expect(await tags.listAll(), isEmpty);
+    expect(
+      [for (final t in await tags.listAllWithDeleted()) t.tag.name],
+      ['chestnut'],
+    );
+    expect(result.metadata!.restoredTagIds, isEmpty);
+    expect(result.metadata!.insertedTagIds, isEmpty);
+  });
+
+  test('a re-import takes back the tags, fields and sources it revived or '
+      'created, since it writes none of them (INTAKE-7)', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final tags = TagRepository(db);
+    final sources = PublishedSourceRepository(db);
+    final fields = CustomFieldDefRepository(db);
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, ChoreographerRepository(db)),
+      ProgramRepository(db),
+      VenueRepository(db),
+      repositories: CompendiumRepositories(db, contraTaxonomy),
+      tags: tags,
+      sources: sources,
+      customFields: fields,
+    );
+    CompendiumArchive share({bool withNewTag = false}) => CompendiumArchive(
+      exportedAt: _now,
+      dances: [
+        Dance(
+          id: 'shared',
+          title: 'Shared dance',
+          tagIds: ['t1', if (withNewTag) 't2'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+          customFields: [CustomFieldValue(fieldId: 'f1', value: 'yes')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      ],
+      tags: [
+        Tag(id: 't1', name: 'chestnut'),
+        if (withNewTag) Tag(id: 't2', name: 'brand new'),
+      ],
+      publishedSources: [PublishedSource(id: 's1', title: 'Shared source')],
+      customFields: [
+        CustomFieldDef(
+          id: 'f1',
+          key: 'swing',
+          label: 'Swing',
+          type: CustomFieldType.text,
+        ),
+      ],
+    );
+    var nextId = 0;
+    String newId() => 'receiver-${++nextId}';
+
+    await importer.import(
+      encodeArchive(share()),
+      share(),
+      now: _now,
+      newId: newId,
+    );
+    // The receiver drops the field value and citation, then deletes the
+    // field, the source and the tag. A deleted tag keeps its join to the
+    // dance, hidden.
+    final imported = (await dances.listAll()).single;
+    final tagId = imported.tagIds.single;
+    final sourceId = imported.sourceCitations.single.sourceId;
+    final fieldId = imported.customFields.single.fieldId;
+    await dances.update(
+      imported.copyWith(
+        sourceCitations: const [],
+        customFields: const [],
+        updatedAt: _now.add(const Duration(days: 1)),
+      ),
+    );
+    final later = _now.add(const Duration(days: 2));
+    await fields.delete(fieldId, at: later);
+    await sources.delete(sourceId, at: later);
+    await tags.delete(tagId, at: later);
+    Future<(DateTime?, DateTime?, DateTime?)> stampsOf(String id) async {
+      final row = await (db.select(
+        db.tags,
+      )..where((t) => t.id.equals(id))).getSingle();
+      return (row.deletedAt, row.existenceAt, row.updatedAt);
+    }
+
+    final deletedStamps = await stampsOf(tagId);
+
+    final again = share(withNewTag: true);
+    final result = await importer.import(
+      encodeArchive(again),
+      again,
+      now: _now.add(const Duration(days: 3)),
+      newId: newId,
+    );
+
+    expect(result.danceSession.records.single.action, CommitAction.reimport);
+    expect(await tags.listAll(), isEmpty);
+    expect(await sources.listAll(), isEmpty);
+    expect(await fields.listAll(), isEmpty);
+    expect((await dances.getById(imported.id))!.tagIds, isEmpty);
+    // Never revived, so its deletion keeps its own stamps: a new one would
+    // outrank a peer's later revival in sync.
+    expect(await stampsOf(tagId), deletedStamps);
+    // The tag the share would have created never existed.
+    expect(
+      [for (final t in await tags.listAllWithDeleted()) t.tag.name],
+      ['chestnut'],
+    );
+    expect(result.metadata!.insertedTagIds, isEmpty);
+    expect(result.metadata!.restoredTagIds, isEmpty);
+    expect(result.metadata!.restoredFieldIds, isEmpty);
+    expect(result.metadata!.restoredSourceIds, isEmpty);
+
+    // Nothing is left for undo to revert, and it does not throw.
+    await importer.undo(result);
+    expect(await tags.listAll(), isEmpty);
+  });
 }
 
 class _FailingProgramCreateRepository extends ProgramRepository {

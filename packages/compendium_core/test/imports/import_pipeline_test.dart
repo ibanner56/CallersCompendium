@@ -1490,6 +1490,151 @@ void main() {
         ], isNot(contains('Second Author')));
       });
 
+      /// [batch] with each re-import verdict set to also take the title and
+      /// credit, as the review sets it for a ticked row.
+      ImportBatchResult withTitleAndCredit(ImportBatchResult batch) =>
+          ImportBatchResult(
+            records: [
+              for (final r in batch.records)
+                ImportRecordPlan(
+                  draft: r.draft,
+                  verdict: r.verdict.isReimport
+                      ? DedupeVerdict.reimport(
+                          r.verdict.targetDanceId!,
+                          alsoTitleAndCredit: true,
+                        )
+                      : r.verdict,
+                ),
+            ],
+          );
+
+      test('a re-import that also takes the title and credit resolves the '
+          'incoming authors, and keeps everything else', () async {
+        final first = FakeSourceAdapter([
+          record(
+            'fake-1',
+            'Old Title',
+            authorNames: ['First Author'],
+            figures: [
+              {'beats': 16, 'text': 'old figure'},
+            ],
+          ),
+        ]);
+        final s1 = await pipeline.commit(
+          await pipeline.plan(first, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        final id = s1.insertedDanceIds.single;
+        final imported = (await dances.getById(id))!;
+        await dances.update(
+          imported.copyWith(
+            callingNotes: 'My notes',
+            rating: 5,
+            updatedAt: DateTime.utc(2026, 7, 20),
+          ),
+        );
+
+        final s2 = await pipeline.commit(
+          withTitleAndCredit(
+            await pipeline.plan(
+              FakeSourceAdapter([
+                record(
+                  'fake-1',
+                  'Corrected Title',
+                  authorNames: ['Second Author'],
+                  figures: [
+                    {'beats': 8, 'text': 'new figure'},
+                    {'beats': 8, 'text': 'another new figure'},
+                  ],
+                ),
+              ]),
+              const ImportRequest(),
+            ),
+          ),
+          now: DateTime.utc(2026, 9, 1),
+          newId: nextId,
+        );
+        expect(s2.records.single.action, CommitAction.reimport);
+        final after = (await dances.getById(id))!;
+        expect(after.title, 'Corrected Title');
+        expect(await authorNamesOf(id), ['Second Author']);
+        expect(figuresOf(after), hasLength(2));
+        expect(after.callingNotes, 'My notes');
+        expect(after.rating, 5);
+        expect(s2.createdChoreographerIds, hasLength(1));
+
+        // Undo puts the title and credit back, and removes the author it made.
+        await pipeline.undo(s2);
+        final restored = (await dances.getById(id))!;
+        expect(restored.title, 'Old Title');
+        expect(await authorNamesOf(id), ['First Author']);
+        expect([
+          for (final c in await choreographers.listAll()) c.name,
+        ], isNot(contains('Second Author')));
+      });
+
+      test('a re-import that also takes the title and credit keeps the '
+          'dance\'s credit when the record carries none', () async {
+        final s1 = await pipeline.commit(
+          await pipeline.plan(
+            FakeSourceAdapter([
+              record('fake-1', 'Same', authorNames: ['First Author']),
+            ]),
+            const ImportRequest(),
+          ),
+          now: now,
+          newId: nextId,
+        );
+        final id = s1.insertedDanceIds.single;
+
+        await pipeline.commit(
+          withTitleAndCredit(
+            await pipeline.plan(
+              FakeSourceAdapter([record('fake-1', 'Renamed')]),
+              const ImportRequest(),
+            ),
+          ),
+          now: DateTime.utc(2026, 9, 1),
+          newId: nextId,
+        );
+        expect((await dances.getById(id))!.title, 'Renamed');
+        expect(await authorNamesOf(id), ['First Author']);
+      });
+
+      test('a re-import that also takes the title and credit never writes '
+          'author ids it did not resolve', () async {
+        final s1 = await pipeline.commit(
+          await pipeline.plan(
+            FakeSourceAdapter([
+              record('fake-1', 'Same', authorNames: ['First Author']),
+            ]),
+            const ImportRequest(),
+          ),
+          now: now,
+          newId: nextId,
+        );
+        final id = s1.insertedDanceIds.single;
+
+        // A sender's ids with no names to resolve them by (a shared file whose
+        // choreographer entry is missing) name no choreographer here.
+        final s2 = await pipeline.commit(
+          withTitleAndCredit(
+            await pipeline.plan(
+              FakeSourceAdapter([
+                record('fake-1', 'Renamed', authorIds: ['senders-id']),
+              ]),
+              const ImportRequest(),
+            ),
+          ),
+          now: DateTime.utc(2026, 9, 1),
+          newId: nextId,
+        );
+        expect(s2.records.single.succeeded, isTrue);
+        expect((await dances.getById(id))!.title, 'Renamed');
+        expect(await authorNamesOf(id), ['First Author']);
+      });
+
       test('undo removes a choreographer created by the batch', () async {
         final adapter = FakeSourceAdapter([
           record('fake-1', 'A Dance', authorNames: ['Ephemeral Author']),

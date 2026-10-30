@@ -242,7 +242,7 @@ void main() {
   );
 
   testWidgets(
-    'overwrite warning counts only the candidate the commit honours when two '
+    're-import warning counts only the candidate the commit honours when two '
     'candidates in one line are both set to re-import',
     (tester) async {
       final repos = openTestRepositories();
@@ -272,8 +272,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // The commit backstop honours only the first row of the line, so only
-      // one existing dance can be overwritten.
-      expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
+      // one existing dance can be re-imported onto.
+      expect(
+        find.text(
+          'Re-import replaces the figures, formation and progression of 1 '
+          'existing dance. Its rating, tags and notes stay.',
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('2 existing dances'), findsNothing);
     },
   );

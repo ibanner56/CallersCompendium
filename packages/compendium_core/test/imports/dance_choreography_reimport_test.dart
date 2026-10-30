@@ -245,4 +245,61 @@ void main() {
       });
     }
   });
+
+  group('title and credit', () {
+    final stamp = DateTime.utc(2026);
+    final existing = Dance(
+      id: 'saved',
+      title: 'Saved title',
+      authorIds: const ['mine'],
+      callingNotes: 'My notes',
+      rating: 4,
+      tagIds: const ['tag'],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    Dance incoming({List<String>? authors}) => Dance(
+      id: 'remote',
+      title: 'Corrected title',
+      authorIds: authors ?? const ['theirs'],
+      callingNotes: 'Their notes',
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+
+    test('stay unless asked for', () {
+      final result = withReimportedChoreography(
+        existing,
+        incoming(),
+        updatedAt: DateTime.utc(2026, 2),
+      );
+      expect(result.title, 'Saved title');
+      expect(result.authorIds, ['mine']);
+    });
+
+    test('are taken when asked for, and nothing else is', () {
+      final result = withReimportedChoreography(
+        existing,
+        incoming(),
+        updatedAt: DateTime.utc(2026, 2),
+        alsoTitleAndCredit: true,
+      );
+      expect(result.title, 'Corrected title');
+      expect(result.authorIds, ['theirs']);
+      expect(result.callingNotes, 'My notes');
+      expect(result.rating, 4);
+      expect(result.tagIds, ['tag']);
+    });
+
+    test('an empty incoming credit keeps the saved one', () {
+      final result = withReimportedChoreography(
+        existing,
+        incoming(authors: const []),
+        updatedAt: DateTime.utc(2026, 2),
+        alsoTitleAndCredit: true,
+      );
+      expect(result.title, 'Corrected title');
+      expect(result.authorIds, ['mine']);
+    });
+  });
 }

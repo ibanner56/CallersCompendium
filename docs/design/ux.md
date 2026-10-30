@@ -40,7 +40,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Search bar = unified FTS; **filter panel** for structured search: formation,
   progression, author, tunes, tags (with an "Untagged" chip, and an "All tags
   / Any tag" choice once two are picked, FIND-14), calling history
-  (Called / Not called), custom fields, and figure queries ("contains
+  (Called / Not called, narrowed by venue and time window;
+  `history-filters.md`), custom fields, and figure queries ("contains
   petronella in B1", "chain **then** swing") built with a friendly query
   builder (ContraDB ez-query lesson: common cases one-tap, advanced tree
   behind "advanced").
@@ -56,9 +57,14 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   detail page's tag chip selects one) stays visible until it is cleared, so no
   control-less filter can narrow the list. When every available section is
   hidden the panel says so rather than reporting an empty collection.
-- Actions: new dance, import, duplicate, batch tag. Each row's ⋮ menu also
+- Actions: new dance, import, duplicate, batch tag (with Select all over the
+  current results; picks a search hides stay selected and are counted as "not
+  shown", N4). Each row's ⋮ menu also
   offers Duplicate, Add to program, Add tags (one dance, same picker and Undo
-  as batch tag) and Delete (#1416).
+  as batch tag) and Delete (#1416). Add to program opens a sheet whose pinned
+  first row creates a new program with the dance; a program already holding the
+  dance, as a main slot or an alternate, is marked "In this program" and asks
+  before adding it again (N3-A1; `docs/design/add-to-program-sheet.md`).
 
 ### 2. Dance detail / card
 - Header: title, authors, formation, hook, tags, status banner (deprecated/
@@ -69,7 +75,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   row with a single shared beat count — never split, never double-counted.
 - Side panel/tabs: calling notes, links (source/video/related), calling
   history (from performed programs), custom fields.
-- Actions: edit, duplicate, add-to-program, print/share, Perform this dance.
+- Actions: edit, duplicate, add-to-program (same sheet and marker as the
+  Collection row menu), print/share, Perform this dance.
 - Text selection (desktop only, N5-S1; `docs/design/selectable-text.md`): on
   Windows, macOS and Linux the body is one `SelectableContent` region, so a drag
   selects across the title, hook, figures, notes and links, and a secondary tap
@@ -214,7 +221,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 ## Cross-cutting UX rules
 
 - Undo/soft-delete everywhere (restore within 30 days), destructive confirms
-  only where undo is impossible.
+  only where undo is impossible. One named exception, by maintainer decision
+  (N3-4): the add-to-program sheet asks "Add it again?" before adding a dance
+  the program already holds, though the add is undoable. Cancel keeps the sheet
+  open. Other flows do not cite the exception.
 - Empty states teach: first-run Collection offers "download the community
   collection" (snapshot) and "import your data".
 - All lists virtualize; search-as-you-type debounced; target <50 ms query
