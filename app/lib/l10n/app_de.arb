@@ -8278,6 +8278,10 @@
   "@danceEditorRedoLabel": {
     "x-sourceSha256": "74273989b0966e2369b6d01aadb23af4ad6a9e724643fa88f2bde99202a36708"
   },
+  "editorDraftNotSaved": "Entwurf nicht gespeichert – deine letzten Änderungen werden noch nicht gesichert",
+  "@editorDraftNotSaved": {
+    "x-sourceSha256": "e7b0e357b6454d0285f6a3b3a4c516654f94c0fbec49dd7555eab4278e523dbe"
+  },
   "danceEditorUndoShortcutTooltip": "{platform, select, apple{Rückgängig (⌘Z)} other{Rückgängig (Strg+Z)}}",
   "@danceEditorUndoShortcutTooltip": {
     "x-sourceSha256": "70c5caddd837408dbb753994191f5f964172e998aef3087ad2e7d5cfc9b36528"

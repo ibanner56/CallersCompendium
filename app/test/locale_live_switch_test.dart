@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
+
 import 'support/full_app_harness.dart';
 
 Locale? _appLocale(WidgetTester tester) =>

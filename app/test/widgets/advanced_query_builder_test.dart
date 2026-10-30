@@ -4,6 +4,7 @@ import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import '../support/l10n_harness.dart';
 import '../support/screen_size.dart';
 

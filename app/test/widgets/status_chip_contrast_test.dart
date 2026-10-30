@@ -7,6 +7,7 @@ import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/theme/wcag.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
+
 import '../support/l10n_harness.dart';
 
 /// The status tokens shared by [StatusChip] (both program and dance status),

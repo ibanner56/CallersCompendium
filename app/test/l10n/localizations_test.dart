@@ -6,6 +6,7 @@ import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+
 import '../support/full_app_harness.dart';
 
 Locale? _materialAppLocale(WidgetTester tester) =>

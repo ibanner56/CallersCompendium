@@ -8385,6 +8385,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorRedoLabel => 'Redo';
 
   @override
+  String get editorDraftNotSaved =>
+      'Draft not saved — your latest changes are not being kept yet';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Undo (⌘Z)',

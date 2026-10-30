@@ -7,6 +7,9 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
+import 'package:compendium_app/src/editor/draft_save_health.dart';
 import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 
@@ -132,6 +135,15 @@ String _titleText(WidgetTester tester) {
     ),
   );
   return field.controller.text;
+}
+
+class _RecordingSink implements CrashLogSink {
+  final List<String> records = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    records.add('$source: $error');
+  }
 }
 
 void main() {
@@ -421,6 +433,61 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('program-draft-discard')));
       await tester.pumpAndSettle();
       expect(await hasNewProgramDraft(repos), isFalse);
+    });
+
+    testWidgets('a failing draft write shows the Draft not saved marker, '
+        'then clears it once a write succeeds', (tester) async {
+      final failing = openTestRepositoriesWithFailingSettings();
+      failing.settings.failWrites = false;
+      await _pumpEditor(tester, failing.repos);
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsNothing);
+
+      failing.settings.failWrites = true;
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'First',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsOneWidget);
+
+      failing.settings.failWrites = false;
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Second',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('draft-not-saved')), findsNothing);
+    });
+
+    testWidgets('repeated draft-write failures log once, by type only', (
+      tester,
+    ) async {
+      DraftSaveHealth.resetSessionForTest();
+      final sink = _RecordingSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+      final failing = openTestRepositoriesWithFailingSettings();
+      failing.settings.failWrites = false;
+      await _pumpEditor(tester, failing.repos);
+
+      failing.settings.failWrites = true;
+      for (final title in ['secret one', 'secret two']) {
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          title,
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pump();
+      }
+      expect(sink.records, hasLength(1));
+      expect(
+        sink.records.single,
+        contains('program_editor_screen._writeDraft'),
+      );
+      expect(sink.records.single, isNot(contains('secret')));
+      expect(sink.records.single, contains('InjectedSettingsFailure'));
     });
 
     testWidgets('draft saved after a title edit (debounced)', (tester) async {

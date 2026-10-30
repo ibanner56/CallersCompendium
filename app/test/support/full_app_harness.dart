@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/window_service.dart';
+
 import 'test_repositories.dart';
 
 /// A [WindowService] whose restore is a no-op: the plugin glue is untestable

@@ -8515,6 +8515,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorRedoLabel => 'Wiederholen';
 
   @override
+  String get editorDraftNotSaved =>
+      'Entwurf nicht gespeichert – deine letzten Änderungen werden noch nicht gesichert';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Rückgängig (⌘Z)',

@@ -659,6 +659,14 @@ when you switch away from the app on a phone or tablet, or close it on a
 computer, so even the last few keystrokes are kept. Drafts stay on your device; they are never uploaded, shared,
 or included in exports.
 
+If the app cannot write the draft — the device is out of storage space, for
+example — a small cloud-with-a-slash icon appears in the top bar of the dance
+editor and the program editor, and its tooltip says **Draft not saved**. Your
+edits stay on screen and you can keep working, but nothing is being kept in
+case the app closes. Free up space, or save the dance or program now. The icon
+disappears by itself the next time a draft is written. The app also notes the
+first such failure in **Diagnostics** (by error type only, never your text).
+
 Each new dance keeps its own draft. If a new dance you never saved left one
 behind, the next new dance you start offers it back by its title — *You have an
 unsaved draft of another new dance* — so you can **Restore** it and carry on

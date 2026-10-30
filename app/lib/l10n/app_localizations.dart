@@ -12579,6 +12579,12 @@ abstract class AppLocalizations {
   /// **'Redo'**
   String get danceEditorRedoLabel;
 
+  /// Tooltip and screen-reader label for the marker in the dance and program editor bars when the editor cannot write its autosave draft (for example, the disk is full). Clears itself once a draft write succeeds.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft not saved — your latest changes are not being kept yet'**
+  String get editorDraftNotSaved;
+
   /// Tooltip for the undo app-bar action including its keyboard shortcut.
   ///
   /// In en, this message translates to:

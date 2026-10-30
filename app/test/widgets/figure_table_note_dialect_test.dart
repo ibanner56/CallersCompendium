@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/widgets/figure_table.dart';
+
 import '../support/l10n_harness.dart';
 
 // Regression for issue #619: figure notes are the only free-text field not

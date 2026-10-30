@@ -20,6 +20,7 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show MethodChannel, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+
 import 'support/noop_sync_transport.dart';
 import 'support/sync_test_network.dart';
 import 'support/full_app_harness.dart';
