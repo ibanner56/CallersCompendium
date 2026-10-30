@@ -441,12 +441,9 @@ void main() {
       expect(isPermanentlyDeleted(row.deletedAt), isTrue);
       expect(await count('dance_authors', 'dance_id', 'd1'), 0);
       expect(row.updatedAt.toUtc().isAfter(before.updatedAt.toUtc()), isTrue);
-      // Expiry is not a new deletion: one tick above the trash's own stamp,
-      // not the clock, so a revival a peer made since still outranks it.
-      expect(
-        row.existenceAt!.toUtc(),
-        before.existenceAt!.toUtc().add(existenceStampTick),
-      );
+      // Expiry is not a new deletion: the trash's own stamp stands, so a
+      // revival a peer made since still outranks it.
+      expect(row.existenceAt, before.existenceAt);
     });
 
     test('a published dance not yet expired is left alone', () async {
@@ -561,10 +558,7 @@ void main() {
       expect(row.notes, isEmpty);
       expect(isPermanentlyDeleted(row.deletedAt), isTrue);
       expect(row.updatedAt.toUtc().isAfter(before.updatedAt.toUtc()), isTrue);
-      expect(
-        row.existenceAt!.toUtc(),
-        before.existenceAt!.toUtc().add(existenceStampTick),
-      );
+      expect(row.existenceAt, before.existenceAt);
     });
   });
 
@@ -687,6 +681,55 @@ void main() {
       expect(rowB.title, blankedRecordTitle);
       expect(rowB.hook, isEmpty);
       expect(isPermanentlyDeleted(rowB.deletedAt), isTrue);
+    });
+    test('a revival made after the trash outranks a retention blank, even one '
+        'tick later', () async {
+      final storage = CompendiumSyncStorage(repos);
+      final address = (kind: SyncRecordKind.dance, recordId: 'd1');
+      await repos.dances.create(
+        sampleDance(id: 'd1', title: 'Secret', updatedAt: created),
+      );
+      await repos.dances.softDelete('d1', at: trashedAt);
+      await publish(SyncRecordKind.dance, 'd1');
+      final trashed = (await storage.snapshot()).local[address]!;
+
+      await repos.dances.purgeDeleted(
+        now: now,
+        retention: const Duration(days: 7),
+      );
+      final blanked = (await storage.snapshot()).local[address]!;
+      expect(blanked.blob.body['title'], blankedRecordTitle);
+
+      // Another device restored it as fast as the causal rule allows: one tick
+      // after the deletion it saw.
+      final revived = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          v: trashed.blob.v,
+          kind: SyncRecordKind.dance,
+          id: 'd1',
+          updatedAt: trashed.blob.updatedAt,
+          deletedAt: null,
+          existenceAt: trashed.existenceAt.add(existenceStampTick),
+          body: {...trashed.blob.body, 'deletedAt': null},
+        ),
+      );
+      final plan = const SyncMergeEngine().plan(
+        local: {address: blanked},
+        baseline: {
+          address: SyncBaselineEntry(
+            kind: address.kind,
+            recordId: 'd1',
+            wireHash: trashed.wireHash,
+          ),
+        },
+        peers: [
+          {address: revived},
+        ],
+      );
+      final decision = plan.decisions.single;
+      expect(decision.action, SyncMergeAction.download);
+      expect(decision.winner!.blob.deletedAt, isNull);
+      expect(decision.winner!.blob.body['title'], 'Secret');
     });
   });
 }

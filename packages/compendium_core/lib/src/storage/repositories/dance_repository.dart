@@ -2569,39 +2569,27 @@ class DanceRepository {
   /// 2026-10-30, "Blank on retention too": `maintainer-decisions-2026-10-30.md`,
   /// "B7 / LIFE-2: retention auto-purge and items that have synced").
   ///
-  /// Unlike [permanentlyDelete], this advances `existence_at` by one tick
-  /// above its own value, not to the clock. Expiry is not a new decision: the
-  /// user deleted the dance when it went to the trash. A clock stamp would let
-  /// this expiry outrank a revival a peer made since, and delete a dance
-  /// someone restored. With no advance at all, a peer holding the same
-  /// tombstone would tie, keep its own `deleted_at` and not hide the record.
-  /// One tick breaks only that tie. (Both are the implementer's choices, not
-  /// part of the decision.) Like any sweep it leaves citers alone; see
-  /// [removePermanentlyDeleted].
+  /// Unlike [permanentlyDelete], this leaves `existence_at` alone. Expiry is
+  /// not a new decision: the user deleted the dance when it went to the trash,
+  /// and any later stamp could outrank, or tie with, a revival a peer made
+  /// since, and delete a dance someone restored. A peer holding the same
+  /// tombstone still takes the mark: among tied tombstones the merge prefers
+  /// the marked copy (`sync_merge.dart`). Only the content is stamped, by
+  /// [_blank], so the blank body replaces theirs. (Both are the implementer's
+  /// choices, not part of the decision.) Like any sweep it leaves citers alone;
+  /// see [removePermanentlyDeleted].
   Future<void> _markExpiredPublished(
     List<String> ids, {
     required DateTime now,
   }) async {
     if (ids.isEmpty) return;
     for (final chunk in _chunkIds(ids)) {
-      await _db.customUpdate(
-        'UPDATE ${_db.dances.actualTableName} '
-        'SET deleted_at = ?, '
-        'existence_at = COALESCE(existence_at, 0) + $_existenceTickSeconds '
-        'WHERE id IN (${List.filled(chunk.length, '?').join(', ')})',
-        variables: [
-          Variable<int>(unixSeconds(permanentlyDeletedAt)),
-          for (final id in chunk) Variable<String>(id),
-        ],
-        updates: {_db.dances},
-        updateKind: UpdateKind.update,
+      await (_db.update(_db.dances)..where((t) => t.id.isIn(chunk))).write(
+        DancesCompanion(deletedAt: Value(permanentlyDeletedAt)),
       );
     }
     await removePermanentlyDeleted(now: now, onlyIds: ids);
   }
-
-  /// One existence tick in whole seconds, as stored ([existenceStampTick]).
-  static final int _existenceTickSeconds = existenceStampTick.inSeconds;
 
   /// Whether a program slot or a related-dance link still cites dance [id].
   Future<bool> _isCited(String id) async {

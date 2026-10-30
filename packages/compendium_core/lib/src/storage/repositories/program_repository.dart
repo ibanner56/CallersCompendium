@@ -1632,7 +1632,7 @@ class ProgramRepository {
   /// published program cannot be erased, so an expired one is blanked instead,
   /// as "Permanently delete" blanks it; its deletion record stays so peers
   /// retain deletion evidence. See `DanceRepository._markExpiredPublished` for
-  /// how that stamps `existence_at`. Returns how many programs it erased.
+  /// why that leaves `existence_at` alone. Returns how many programs it erased.
   /// Physical deletes cascade slots automatically (FK).
   ///
   /// When [onlyIds] is non-null the purge is restricted to those ids: a row
@@ -1683,22 +1683,11 @@ class ProgramRepository {
             row.id,
       ];
       if (expiredPublished.isNotEmpty) {
-        // One tick above its own existence stamp, not the clock: see
+        // Leaves `existence_at` alone: see
         // `DanceRepository._markExpiredPublished`.
         for (final chunk in _chunkIds(expiredPublished)) {
-          await _db.customUpdate(
-            'UPDATE ${_db.programs.actualTableName} '
-            'SET deleted_at = ?, '
-            'existence_at = COALESCE(existence_at, 0) + '
-            '${existenceStampTick.inSeconds} '
-            'WHERE id IN (${List.filled(chunk.length, '?').join(', ')})',
-            variables: [
-              Variable<int>(unixSeconds(permanentlyDeletedAt)),
-              for (final id in chunk) Variable<String>(id),
-            ],
-            updates: {_db.programs},
-            updateKind: UpdateKind.update,
-          );
+          await (_db.update(_db.programs)..where((t) => t.id.isIn(chunk)))
+              .write(ProgramsCompanion(deletedAt: Value(permanentlyDeletedAt)));
         }
         await removePermanentlyDeleted(now: now, onlyIds: expiredPublished);
       }
