@@ -551,7 +551,8 @@ The question: should the GC spare rows the user has edited? The options:
 reads only data that is already there, so it adds no persisted field.
 
 The decision text summarises the details as "a colour, website, notes or
-email". *My reading* (an open ambiguity in `design-work-plan.md`): it is the
+email". *Planner's reading, accepted by the maintainer 2026-10-30*
+(`design-work-plan.md` ambiguity 7, on the audit branch): it is the
 option's short form, and the full list in the table above stands, so an
 author's location or deceased mark, and a source's author, year or URL, also
 spare a row. Rejected: the narrower list, which would erase a source with a URL

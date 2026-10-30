@@ -229,8 +229,9 @@ note's recommendation, A.* The maintainer chose it knowing the option text said
 it "breaks the rule to confirm only where Undo is impossible and slows a
 deliberate repeat".
 
-**How the question works.** These details are *my calls*, for the N3-1 build to
-confirm in its PR:
+**How the question works.** These details are the *planner's reading,
+accepted by the maintainer 2026-10-30* (`design-work-plan.md` ambiguity 4, on
+the audit branch):
 
 - Tapping a program **without** the marker adds at once, as today.
 - Tapping a marked program opens a small dialog: "'{dance}' is already in

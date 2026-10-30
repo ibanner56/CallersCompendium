@@ -282,7 +282,8 @@ without a second change.
   confirmation is possible (one query over `program_slots`), but we do not
   recommend it for the first PR: it would make the bulk path stricter than the
   row path for no stated reason. N4-5's answer did not address it; see
-  [Decisions](#decisions), item 5 (my reading: no warning).
+  [Decisions](#decisions), item 5 (no warning: the planner's reading,
+  accepted by the maintainer 2026-10-30).
 
 **Confirmation.** `ux.md:192-193` says to confirm only where Undo is impossible,
 and bulk delete has Undo and a trash. Options:
@@ -384,8 +385,9 @@ must not redesign any of them.
   The program editor reorders afterwards in either case.
 - **Duplicates.** N3 decided that the single-dance sheet asks before adding a
   dance the program already holds (N3-4 = (b)), with alternates counted
-  (N3-6). Bulk reuses that answer. *My reading* (an open ambiguity in
-  `design-work-plan.md`): one question per program tapped, not one per dance:
+  (N3-6). Bulk reuses that answer. *Planner's reading, accepted by the
+  maintainer 2026-10-30* (`design-work-plan.md` ambiguity 5): one question per
+  program tapped, not one per dance:
   "4 of 12 dances are already in 'Friday dance'", with **Add all**, **Skip those
   4** and **Cancel**. The marker for a multi-dance selection reads "4 of 12 in
   this program".
@@ -513,8 +515,10 @@ records it, and the maintainer's note verbatim where there is one.
    recommendation, (a).* So: delete, status, add to program and source. N2 and
    N3 were decided the same day, so neither pre-emption happens. The sub-question
    whether delete warns when selected dances appear in programs was not
-   answered; *my reading* is the note's recommendation, no warning in the first
-   PR (listed as an ambiguity in `design-work-plan.md`).
+   answered. The *planner's reading, accepted by the maintainer 2026-10-30*
+   (`design-work-plan.md` ambiguity 6): the note's recommendation, no warning
+   in the first PR. Ambiguity 8, also accepted: "all six together" means the
+   same wave as separate branches, not one PR.
 6. **N4-6, selection bar structure.** "(a) Grouped ⋮ menu, Select all icon.
    Keeps three icons, plus Select all where it fits; the rest go in a grouped
    menu with Delete last, in the error colour." As recommended.

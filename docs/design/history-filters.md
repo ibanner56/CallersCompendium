@@ -177,15 +177,17 @@ say 1mo, 3mo, 6mo, or since a date on top of that, 1 year is a long while."
 
 - Presets: 1 month, 3 months, 6 months. There is no 1-year preset, and no
   4-week one: the maintainer's note replaces the option text's "4 weeks … or
-  1 year". *My reading:* "1mo" is a calendar month, counted like the other two.
+  1 year". "1mo" is a calendar month, counted like the other two
+  (*planner's reading, accepted by the maintainer 2026-10-30*;
+  `design-work-plan.md` ambiguity 2).
 - **Since a date…** opens the date picker.
 - **Never called.** The maintainer's note asks for this as a choice in the same
-  control. *My reading* (listed as an open ambiguity in `design-work-plan.md`, beside `decided-work-plan.md` on the audit branch):
-  it is the control's "no window" state, labelled so that it reads as "dances
-  that have never been called" when **Not called** is chosen. Today's **Not
-  called** with no scope already selects exactly those dances, so this adds a
-  label and a choice, not a new predicate. H2 confirms the wording with the
-  maintainer in its PR.
+  control. *Planner's reading, accepted by the maintainer 2026-10-30*
+  (`design-work-plan.md` ambiguity 1, on the audit branch): it is the
+  control's "no window" state, labelled so that it reads as "dances that have
+  never been called" when **Not called** is chosen. Today's **Not called** with
+  no scope already selects exactly those dances, so this adds a label and a
+  choice, not a new predicate. H2 shows the wording in its PR.
 - The scope reads together with the polarity chip:
   - **Not called** + **within 3 months**: no counted call in the window.
   - **Called** + **within 3 months**: at least one counted call in it.
