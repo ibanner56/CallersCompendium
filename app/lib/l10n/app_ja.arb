@@ -3912,6 +3912,22 @@
   "@collectionSelectedCount": {
     "x-sourceSha256": "529aacfdfd2b17bf9fe56ebad9a24339a2d1151327dd420c52c5f163aeb9acc6"
   },
+  "collectionSelectAllTooltip": "{count}件すべてを選択",
+  "@collectionSelectAllTooltip": {
+    "x-sourceSha256": "b1181a8d54c02d92d4ee755d68963f556eb60846c5c0d01b474f67f29a73b789"
+  },
+  "collectionDeselectAllTooltip": "{count}件すべての選択を解除",
+  "@collectionDeselectAllTooltip": {
+    "x-sourceSha256": "a13a823927df1f7f45a251ed6f37b9fbb20c0abc2b5dc544d60c49d9b54a4680"
+  },
+  "collectionSelectionNotShown": "{selected}件選択中（{hidden}件は非表示）",
+  "@collectionSelectionNotShown": {
+    "x-sourceSha256": "70f161abf6b6b4c45d8faed81583011fbcac00b6b450fe19e19590b184f52a55"
+  },
+  "collectionDeselectNotShown": "非表示の選択を解除",
+  "@collectionDeselectNotShown": {
+    "x-sourceSha256": "418383362fe27a5ea26bdc2bba4e0248e8a8ccfe069f429d90e1bdeba9702fd9"
+  },
   "collectionAddTags": "タグを追加",
   "@collectionAddTags": {
     "x-sourceSha256": "9c29db454e3dd0f5a78246189ce9f5423007dd1315c82070e5f20b8520361ee5"

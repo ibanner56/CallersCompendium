@@ -4774,6 +4774,44 @@
       }
     }
   },
+  "collectionSelectAllTooltip": "Select all {count}",
+  "@collectionSelectAllTooltip": {
+    "description": "Tooltip and menu label for the selection-bar action that selects every dance in the current results. {count} is the number of dances in the results.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "143"
+      }
+    }
+  },
+  "collectionDeselectAllTooltip": "Deselect all {count}",
+  "@collectionDeselectAllTooltip": {
+    "description": "Tooltip and menu label for the selection-bar action that clears the selection of every dance in the current results, shown when they are all selected. {count} is the number of dances in the results.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "143"
+      }
+    }
+  },
+  "collectionSelectionNotShown": "{selected} selected ({hidden} not shown)",
+  "@collectionSelectionNotShown": {
+    "description": "Added after the result count while selecting, when some selected dances are hidden by the current search or filters: how many are selected in all, and how many of those the list does not show.",
+    "placeholders": {
+      "selected": {
+        "type": "int",
+        "example": "14"
+      },
+      "hidden": {
+        "type": "int",
+        "example": "9"
+      }
+    }
+  },
+  "collectionDeselectNotShown": "Deselect those not shown",
+  "@collectionDeselectNotShown": {
+    "description": "Button beside the result count that drops the selected dances the current search or filters hide, keeping the ones on screen."
+  },
   "collectionAddTags": "Add tags",
   "@collectionAddTags": {
     "description": "Batch action (tooltip and dialog title) for adding tags to the selected dances."

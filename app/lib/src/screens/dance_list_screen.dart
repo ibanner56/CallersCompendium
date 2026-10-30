@@ -33,6 +33,7 @@ import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
+import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
@@ -161,7 +162,13 @@ class DanceListScreen extends StatefulWidget {
 
 /// Actions in the Collection multi-select "more" overflow menu (#423), holding
 /// the batch-edit affordances that don't fit as top-level action-bar icons.
-enum _BatchMoreAction { setRating, addTunes, clearTunes, editCustomField }
+enum _BatchMoreAction {
+  selectAll,
+  setRating,
+  addTunes,
+  clearTunes,
+  editCustomField,
+}
 
 enum _CollectionCompactAction {
   importDances,
@@ -370,7 +377,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Batch multi-select (Collection batch-tag, `docs/design/ux.md` §1).
   bool _selectionMode = false;
-  final Set<String> _selectedIds = {};
+  final CollectionSelection _selection = CollectionSelection();
 
   Timer? _debounceTimer;
 
@@ -657,6 +664,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
     setState(() {
       _data = data;
       _loadError = null;
+      // A selected dance that no longer exists (deleted here or synced away) is
+      // gone, not hidden: drop it so the count only names real dances (N4-1).
+      _selection.reconcile(data.dancesById.keys.toSet());
       if (!searchAffected) {
         _results = [for (final e in _results) data.entryFor(e.dance)];
       }
@@ -884,6 +894,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _onlineEnabled = value;
       _onlineError = null;
       if (value) {
+        // Selection is a local-collection feature: do not leave a local
+        // selection behind online results (N4-1).
+        _selectionMode = false;
+        _selection.clear();
         _localFtsScope = _ftsScope;
         _ftsScope = onlineFullTextScope(_ftsScope);
       } else {
@@ -1275,21 +1289,51 @@ class _DanceListScreenState extends State<DanceListScreen> {
   void _enterSelectionMode([String? initialId]) {
     setState(() {
       _selectionMode = true;
-      if (initialId != null) _selectedIds.add(initialId);
+      if (initialId != null) _selection.add(initialId);
     });
   }
 
   void _exitSelectionMode() {
     setState(() {
       _selectionMode = false;
-      _selectedIds.clear();
+      _selection.clear();
     });
   }
 
   void _toggleSelected(String danceId) {
     setState(() {
-      if (!_selectedIds.remove(danceId)) _selectedIds.add(danceId);
+      _selection.toggle(danceId);
     });
+  }
+
+  Set<String> get _shownIds => {for (final e in _results) e.dance.id};
+
+  /// Whether Select all can act: never on a list that a pending or failed
+  /// search is about to replace or has emptied.
+  bool get _canSelectAll =>
+      !_searching &&
+      !(_debounceTimer?.isActive ?? false) &&
+      _searchError == null &&
+      _results.isNotEmpty;
+
+  /// Selects every dance in the current results, or, when they are all selected
+  /// already, deselects them. Selections the results do not show are kept either
+  /// way (N4-1, N4-2).
+  void _toggleSelectAll() {
+    if (!_canSelectAll) return;
+    final ids = [for (final e in _results) e.dance.id];
+    setState(() {
+      if (_selection.coversAll(ids)) {
+        _selection.deselectAll(ids);
+      } else {
+        _selection.selectAll(ids);
+      }
+    });
+  }
+
+  void _deselectNotShown() {
+    final shown = _shownIds;
+    setState(() => _selection.deselectNotShown(shown));
   }
 
   /// Says that a batch write failed (the caller has logged it): selection mode
@@ -1309,7 +1353,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Applies a batch tag [mode] to the selected dances.
   Future<void> _batchTag(BatchTagMode mode) =>
-      _applyTags(mode, Set<String>.of(_selectedIds));
+      _applyTags(mode, _selection.snapshot());
 
   /// Applies a tag [mode] to [selectedIds]: the multi-select selection, or the
   /// single row whose ⋮ menu opened it (issue #1416). Opens the tag picker,
@@ -1477,9 +1521,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// picker is single-choice and includes an explicit "clear" option.
   Future<void> _batchSetLevel() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
     final levels = await _repos.difficultyLevels.listAll();
     if (!mounted) return;
     final choice = await showBatchLevelDialog(context, levels: levels);
@@ -1616,9 +1660,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// [_batchSetLevel]). Captures prior per-dance ratings for Undo.
   Future<void> _batchSetRating() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
     final choice = await showBatchRatingDialog(context);
     if (choice == null || !mounted) return;
 
@@ -1688,9 +1732,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// per-dance tune lists for Undo.
   Future<void> _batchAddTunes() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
     final chosen = await showBatchTunesDialog(context);
     if (chosen == null || chosen.isEmpty || !mounted) return;
 
@@ -1750,7 +1794,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// per-dance tune lists for Undo.
   Future<void> _batchClearTunes() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
@@ -1776,7 +1820,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
     final priorTunes = <String, List<String>>{};
     final int count;
     try {
@@ -1848,7 +1892,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// custom-field lists for Undo.
   Future<void> _batchCustomField() async {
     final data = _data;
-    if (data == null || _selectedIds.isEmpty) return;
+    if (data == null || _selection.isEmpty) return;
 
     final defs = await _repos.customFieldDefs.listAll();
     if (!mounted) return;
@@ -1859,7 +1903,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
     if (choice == null || !mounted) return;
 
-    final selectedIds = Set<String>.of(_selectedIds);
+    final selectedIds = _selection.snapshot();
     // Only the chosen field's entries are captured: Undo puts back that one
     // field, so another field edited in the meantime (by hand, or arriving by
     // sync) is not overwritten with a stale copy of the whole list.
@@ -2243,10 +2287,57 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
+  /// Whether a Select all icon fits on the selection bar beside the close
+  /// button, the count and the three fixed icons. If not it moves to the top of
+  /// the ⋮ menu (N4-6), as [_glyphsThatFit] does for the default bar.
+  bool _selectAllFitsOnBar(
+    BuildContext context,
+    AppLocalizations l10n,
+    double barWidth,
+  ) {
+    final theme = Theme.of(context);
+    final titleStyle =
+        AppBarTheme.of(context).titleTextStyle ?? theme.textTheme.titleLarge;
+    final titleWidth = (TextPainter(
+      // Widest plausible count, so the icon does not jump as the count grows.
+      text: TextSpan(
+        text: l10n.collectionSelectedCount(9999),
+        style: titleStyle,
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout()).width;
+    // The close button's 56 dp leading slot and the title's 16 dp spacing on
+    // each side, then the three icons, Select all and the ⋮ menu.
+    const taken = 56 + 32 + _actionSlotWidth * 5;
+    return barWidth - titleWidth >= taken;
+  }
+
   PreferredSizeWidget _buildSelectionAppBar() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(kToolbarHeight),
+      child: LayoutBuilder(
+        builder: (context, constraints) =>
+            _buildSelectionBar(context, constraints.maxWidth),
+      ),
+    );
+  }
+
+  Widget _buildSelectionBar(BuildContext context, double barWidth) {
     final l10n = AppLocalizations.of(context);
-    final count = _selectedIds.length;
-    final hasSelection = count > 0;
+    final count = _selection.length;
+    // A failed search leaves no trustworthy list, so nothing acts on the
+    // selection until it is retried (N4-1).
+    final canAct = count > 0 && _searchError == null;
+    final selectAllOnBar = _selectAllFitsOnBar(context, l10n, barWidth);
+    final allSelected = _selection.coversAll([
+      for (final e in _results) e.dance.id,
+    ]);
+    final selectAllLabel = allSelected
+        ? l10n.collectionDeselectAllTooltip(_results.length)
+        : l10n.collectionSelectAllTooltip(_results.length);
+    final selectAllEnabled = _canSelectAll;
     return AppBar(
       leading: IconButton(
         key: const ValueKey('batch-exit'),
@@ -2259,31 +2350,42 @@ class _DanceListScreenState extends State<DanceListScreen> {
         child: Text(l10n.collectionSelectedCount(count)),
       ),
       actions: [
+        if (selectAllOnBar)
+          IconButton(
+            key: const ValueKey('batch-select-all'),
+            tooltip: selectAllLabel,
+            icon: Icon(allSelected ? Icons.deselect : Icons.select_all),
+            onPressed: selectAllEnabled ? _toggleSelectAll : null,
+          ),
         IconButton(
           key: const ValueKey('batch-add-tags'),
           tooltip: l10n.collectionAddTags,
           icon: const Icon(Icons.new_label_outlined),
-          onPressed: hasSelection ? () => _batchTag(BatchTagMode.add) : null,
+          onPressed: canAct ? () => _batchTag(BatchTagMode.add) : null,
         ),
         IconButton(
           key: const ValueKey('batch-remove-tags'),
           tooltip: l10n.collectionRemoveTags,
           icon: const Icon(Icons.label_off_outlined),
-          onPressed: hasSelection ? () => _batchTag(BatchTagMode.remove) : null,
+          onPressed: canAct ? () => _batchTag(BatchTagMode.remove) : null,
         ),
         IconButton(
           key: const ValueKey('batch-set-level'),
           tooltip: l10n.collectionSetLevel,
           icon: const Icon(Icons.signal_cellular_alt),
-          onPressed: hasSelection ? _batchSetLevel : null,
+          onPressed: canAct ? _batchSetLevel : null,
         ),
         PopupMenuButton<_BatchMoreAction>(
           key: const ValueKey('batch-more'),
-          enabled: hasSelection,
+          // With Select all in the menu, the menu must open on an empty
+          // selection; its other entries are disabled individually.
+          enabled: canAct || (!selectAllOnBar && selectAllEnabled),
           tooltip: l10n.collectionBatchMore,
           icon: const Icon(Icons.more_vert),
           onSelected: (action) {
             switch (action) {
+              case _BatchMoreAction.selectAll:
+                _toggleSelectAll();
               case _BatchMoreAction.setRating:
                 _batchSetRating();
               case _BatchMoreAction.addTunes:
@@ -2295,24 +2397,37 @@ class _DanceListScreenState extends State<DanceListScreen> {
             }
           },
           itemBuilder: (_) => [
+            if (!selectAllOnBar) ...[
+              PopupMenuItem(
+                key: const ValueKey('batch-select-all-menu'),
+                value: _BatchMoreAction.selectAll,
+                enabled: selectAllEnabled,
+                child: Text(selectAllLabel),
+              ),
+              const PopupMenuDivider(),
+            ],
             PopupMenuItem(
               key: const ValueKey('batch-set-rating'),
               value: _BatchMoreAction.setRating,
+              enabled: canAct,
               child: Text(l10n.collectionSetRating),
             ),
             PopupMenuItem(
               key: const ValueKey('batch-add-tunes'),
               value: _BatchMoreAction.addTunes,
+              enabled: canAct,
               child: Text(l10n.collectionAddTunes),
             ),
             PopupMenuItem(
               key: const ValueKey('batch-clear-tunes'),
               value: _BatchMoreAction.clearTunes,
+              enabled: canAct,
               child: Text(l10n.collectionClearTunes),
             ),
             PopupMenuItem(
               key: const ValueKey('batch-edit-custom-field'),
               value: _BatchMoreAction.editCustomField,
+              enabled: canAct,
               child: Text(l10n.collectionEditCustomField),
             ),
           ],
@@ -2759,8 +2874,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final bool online = _onlineEnabled;
     final int count = online ? _onlineResults.length : _results.length;
     final bool busy = online ? _onlineSearching : _searching;
+    // Selected dances the results do not show (N4-1). Not while the search has
+    // failed: `_results` is then empty, and "all 14 are hidden" would be false.
+    final int hidden = !online && _selectionMode && _searchError == null
+        ? _selection.notShown(_shownIds)
+        : 0;
     final String label = online
         ? l10n.onlineResultCount(count)
+        : hidden > 0
+        ? '${l10n.collectionDanceCount(count)} · '
+              '${l10n.collectionSelectionNotShown(_selection.length, hidden)}'
         : l10n.collectionDanceCount(count);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -2771,8 +2894,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
       ),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        // A Wrap, not a Row: the selection suffix and its action can outgrow a
+        // narrow phone line.
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Semantics(
               liveRegion: true,
@@ -2784,6 +2909,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 width: 12,
                 height: 12,
                 child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ],
+            if (hidden > 0) ...[
+              const SizedBox(width: AppSpacing.xs),
+              TextButton(
+                key: const ValueKey('batch-deselect-not-shown'),
+                onPressed: _deselectNotShown,
+                child: Text(l10n.collectionDeselectNotShown),
               ),
             ],
           ],
@@ -3043,7 +3176,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         danceTitle: entry.dance.title,
       ),
       selectionMode: _selectionMode,
-      selectedForBatch: _selectedIds.contains(entry.dance.id),
+      selectedForBatch: _selection.contains(entry.dance.id),
       onLongPress: _selectionMode
           ? null
           : () => _enterSelectionMode(entry.dance.id),
@@ -3052,7 +3185,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       // alone); outside selection mode it reflects the split-pane
       // selection as before.
       selected: _selectionMode
-          ? _selectedIds.contains(entry.dance.id)
+          ? _selection.contains(entry.dance.id)
           : (widget.onSelectDance != null &&
                 widget.selectedDanceId == entry.dance.id),
       onTap: _selectionMode

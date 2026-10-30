@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3640,6 +3641,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String collectionSelectedCount(int count) {
     return '$count件選択中';
   }
+
+  @override
+  String collectionSelectAllTooltip(int count) {
+    return '$count件すべてを選択';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return '$count件すべての選択を解除';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected件選択中（$hidden件は非表示）';
+  }
+
+  @override
+  String get collectionDeselectNotShown => '非表示の選択を解除';
 
   @override
   String get collectionAddTags => 'タグを追加';
