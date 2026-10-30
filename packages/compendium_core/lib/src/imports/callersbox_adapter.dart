@@ -303,7 +303,17 @@ class CallersBoxAdapter implements SourceAdapter {
         if (text == null) continue;
         rawLines.add(text);
       }
-      figures.addAll(_mergeCrossLineFigures(_parsePhraseFigures(rawLines)));
+      final standaloneSquareThroughs = Map<Figure, String>.identity();
+      final merged = _mergeCrossLineFigures(
+        _parsePhraseFigures(rawLines, standaloneSquareThroughs),
+      );
+      figures.addAll([
+        for (final f in merged)
+          switch (standaloneSquareThroughs[f]) {
+            final text? => beatImpliedBalance(text, f),
+            null => f,
+          },
+      ]);
     }
     return figures;
   }
@@ -311,7 +321,12 @@ class CallersBoxAdapter implements SourceAdapter {
   /// Parses one phrase's raw figure lines into figures, collapsing TCB's
   /// compound convention ([_tryParseCompound]) into one or more figures and
   /// routing every other line through the per-line parser unchanged.
-  List<Figure> _parsePhraseFigures(List<String> rawLines) {
+  /// [standaloneSquareThroughs] collects the square throughs the per-line
+  /// parser leaves for after the merge (see [_parseFigureLine]).
+  List<Figure> _parsePhraseFigures(
+    List<String> rawLines,
+    Map<Figure, String> standaloneSquareThroughs,
+  ) {
     final out = <Figure>[];
     var i = 0;
     while (i < rawLines.length) {
@@ -321,7 +336,7 @@ class CallersBoxAdapter implements SourceAdapter {
         i = compound.nextIndex;
         continue;
       }
-      out.addAll(_parseFigureLine(rawLines[i]));
+      out.addAll(_parseFigureLine(rawLines[i], standaloneSquareThroughs));
       i += 1;
     }
     return out;
@@ -575,7 +590,18 @@ class CallersBoxAdapter implements SourceAdapter {
   /// one figure per clause by [parseFigureLines], which keeps the whole line
   /// custom unless every clause structures and preserves the source beats total
   /// on the first clause. Single-clause lines behave exactly as before.
-  List<Figure> _parseFigureLine(String line) {
+  ///
+  /// The balance a line's beats imply ([withBeatImpliedBalance], #1975) is
+  /// applied here, except to a line that reads as one square through: that one
+  /// is recorded in [standaloneSquareThroughs] with its text and given its
+  /// balance after the cross-line merge, and only if no balance line folded
+  /// into it. Applying it first would stop Fold 1 taking in a balance line
+  /// before a square through long enough for its own balance, which main
+  /// folds: `(4) Partner balance` + `(12) Square through 4 (…)`.
+  List<Figure> _parseFigureLine(
+    String line,
+    Map<Figure, String> standaloneSquareThroughs,
+  ) {
     final match = _beatsPrefix.firstMatch(line);
     int beats = 0;
     String text = line.trim();
@@ -600,14 +626,16 @@ class CallersBoxAdapter implements SourceAdapter {
     // Route through the shared parser: recognised moves become structured
     // figures; the rest fall back to custom. Empty when the line is empty
     // after scrubbing.
-    return withBeatImpliedBalance(
+    final figures = parseFigureLines(
       text,
-      parseFigureLines(
-        text,
-        beats: beats,
-        frontEnd: tcbFigureFrontEnd,
-      ).map(_preserveBalanceWaveBracketNote).toList(),
-    );
+      beats: beats,
+      frontEnd: tcbFigureFrontEnd,
+    ).map(_preserveBalanceWaveBracketNote).toList();
+    if (figures.length == 1 && figures.single.move == 'square_through') {
+      standaloneSquareThroughs[figures.single] = text;
+      return figures;
+    }
+    return withBeatImpliedBalance(text, figures);
   }
 
   // --- Cross-line merge (PR3b) -----------------------------------------------
