@@ -63,10 +63,10 @@ FullTextScope onlineFullTextScope(FullTextScope scope) => switch (scope) {
 };
 
 /// The user's one-tap facet selections. Every facet is multi-select: within a
-/// single facet the selected leaves are OR-ed ("has any of these tags"), and
-/// distinct facets are AND-ed ("this form AND one of these tags") — the
-/// confirmed decision 7 semantics — with one deliberate exception, [tunes],
-/// which is AND-within-facet ("has every one of these tunes").
+/// single facet the selected leaves are OR-ed ("is one of these formations"),
+/// and distinct facets are AND-ed ("this form AND one of these formations"),
+/// with two exceptions: [tunes] is always AND-within-facet ("has every one of
+/// these tunes"), and [tagIds] follows the user's [tagsMatchAll] choice.
 class FacetSelections {
   final Set<DanceForm> forms = {};
   final Set<FormationShape> formations = {};
@@ -96,12 +96,36 @@ class FacetSelections {
   int? minRating;
 
   final Set<String> authorIds = {};
+
+  /// Selected tags. Change it through [setTag], which applies the
+  /// [tagsMatchAll] default; reading it directly is fine.
   final Set<String> tagIds = {};
 
-  /// The Tags facet's "Untagged" chip: dances with no live tag. One more OR
-  /// member of the Tags facet alongside [tagIds] (it never clears, or is cleared
-  /// by, a tag chip), so it is emitted into the same OR group by
-  /// [buildCollectionFilter]. A separate flag rather than a sentinel id in
+  /// Whether a dance must carry **every** selected tag (`true`, AND) or **any**
+  /// of them (`false`, OR). Only meaningful, and only offered in the Filters
+  /// panel, while two or more tags are selected (FIND-14).
+  ///
+  /// It resets to `true` whenever a second tag is added, so AND is the default
+  /// each time the choice first matters; a third or later tag keeps whatever
+  /// the user chose. It is not saved: like every other facet selection it
+  /// lasts as long as the search it belongs to.
+  bool tagsMatchAll = true;
+
+  /// Selects or deselects the tag [id]. Returns whether anything changed.
+  ///
+  /// Selecting the second tag sets [tagsMatchAll] to `true`; see there.
+  bool setTag(String id, {required bool selected}) {
+    if (!selected) return tagIds.remove(id);
+    if (!tagIds.add(id)) return false;
+    if (tagIds.length == 2) tagsMatchAll = true;
+    return true;
+  }
+
+  /// The Tags facet's "Untagged" chip: dances with no live tag. It never
+  /// clears, or is cleared by, a tag chip, and it is always an OR alternative
+  /// to the selected tags, in either [tagsMatchAll] mode: "untagged, or has
+  /// every selected tag" (see [buildCollectionFilter]). AND-ing it would make
+  /// any selection that includes a tag match nothing. A separate flag rather than a sentinel id in
   /// [tagIds]: a sentinel could collide with a real tag id and would leak into
   /// every consumer that treats [tagIds] as real tags (the external tag filter,
   /// tag-name lookups).
@@ -217,6 +241,7 @@ class FacetSelections {
     minRating = null;
     authorIds.clear();
     tagIds.clear();
+    tagsMatchAll = true;
     untagged = false;
     sourceIds.clear();
     tunes.clear();
@@ -299,6 +324,7 @@ class FacetSelections {
           tunes.clear();
         case CollectionFacetIds.tags:
           tagIds.clear();
+          tagsMatchAll = true;
         case CollectionFacetIds.source:
           sourceIds.clear();
         default:
@@ -443,10 +469,17 @@ DanceFilter buildCollectionFilter({
     branches.add(RatingFilter(facets.minRating!));
   }
   addOr([for (final id in facets.authorIds) AuthorFilter(id)]);
-  addOr([
-    for (final id in facets.tagIds) TagFilter(id),
-    if (facets.untagged) const UntaggedFilter(),
-  ]);
+  final tagLeaves = [for (final id in facets.tagIds) TagFilter(id)];
+  final allTags = facets.tagsMatchAll && tagLeaves.length > 1;
+  if (allTags && !facets.untagged) {
+    // Each tag is already a top-level AND operand, as for Tunes below.
+    branches.addAll(tagLeaves);
+  } else {
+    addOr([
+      if (allTags) AndFilter(tagLeaves) else ...tagLeaves,
+      if (facets.untagged) const UntaggedFilter(),
+    ]);
+  }
   addOr([for (final id in facets.sourceIds) SourceIdFilter(id)]);
   // AND within the facet, unlike every facet above: one branch per entered
   // value, each already a top-level AND operand, so no OR/AND group is built.
@@ -647,7 +680,7 @@ class BuilderFigure extends BuilderNode implements BuilderFigureNode {
 
 /// A "has tag" row: the dance carries the tag [tagId]. Folds to the same
 /// [TagFilter] leaf the Tag facet emits, so an all-of group of tag rows gives
-/// "has tag A AND tag B" — which the facet, OR-only within itself, cannot say.
+/// "has tag A AND tag B", and tag rows can mix with figure rows in any group.
 /// A row with no tag picked folds to `null` and is skipped.
 class BuilderTag extends BuilderNode {
   BuilderTag({this.tagId, super.id});

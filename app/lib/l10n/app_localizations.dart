@@ -5809,10 +5809,10 @@ abstract class AppLocalizations {
   /// **'Mixer'**
   String get commonMixer;
 
-  /// Tooltip on a tag chip that filters the collection to dances carrying that tag.
+  /// Tooltip on a tag chip (a Collection row, or a dance's detail page). Tapping it adds the tag to the Collection's Tags filter and keeps the rest of the search; from a detail page it also switches to the Collection.
   ///
   /// In en, this message translates to:
-  /// **'Show dances tagged “{tagName}”'**
+  /// **'Add “{tagName}” to the Collection filters'**
   String commonShowDancesTaggedTooltip(String tagName);
 
   /// Snackbar confirming a dance was soft-deleted, quoting its title.
@@ -6336,6 +6336,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Untagged'**
   String get collectionFacetUntagged;
+
+  /// Screen-reader label for the choice under the Tags filter, shown once two or more tags are selected, between requiring all of them and any of them.
+  ///
+  /// In en, this message translates to:
+  /// **'Match tags'**
+  String get collectionFacetTagsMatchLabel;
+
+  /// Segment of the Tags filter's match choice: a dance must carry every selected tag. The default when a second tag is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'All tags'**
+  String get collectionFacetTagsMatchAll;
+
+  /// Tooltip for the 'All tags' segment of the Tags filter's match choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Show dances that have every selected tag'**
+  String get collectionFacetTagsMatchAllTooltip;
+
+  /// Segment of the Tags filter's match choice: a dance needs only one of the selected tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Any tag'**
+  String get collectionFacetTagsMatchAny;
+
+  /// Tooltip for the 'Any tag' segment of the Tags filter's match choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Show dances that have at least one selected tag'**
+  String get collectionFacetTagsMatchAnyTooltip;
 
   /// Filter section heading for the cited-source facet.
   ///

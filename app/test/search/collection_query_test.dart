@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -119,12 +120,58 @@ void main() {
       expect(children.whereType<TagFilter>(), hasLength(1));
     });
 
-    test('multiple tags OR within the tag facet', () {
-      final facets = FacetSelections()..tagIds.addAll(['t1', 't2']);
+    test('multiple tags AND within the tag facet by default (FIND-14)', () {
+      final facets = FacetSelections()
+        ..setTag('t1', selected: true)
+        ..setTag('t2', selected: true);
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<AndFilter>());
+      final children = (f as AndFilter).children;
+      expect(children, hasLength(2));
+      expect(children.whereType<TagFilter>().map((t) => t.tagId).toSet(), {
+        't1',
+        't2',
+      });
+    });
+
+    test('multiple tags OR within the tag facet in "any" mode', () {
+      final facets = FacetSelections()
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
       expect(f, isA<OrFilter>());
       final tags = (f as OrFilter).children.whereType<TagFilter>().toList();
       expect(tags.map((t) => t.tagId).toSet(), {'t1', 't2'});
+    });
+
+    test('one tag folds to the bare leaf in either mode', () {
+      for (final all in [true, false]) {
+        final facets = FacetSelections()
+          ..tagIds.add('t1')
+          ..tagsMatchAll = all;
+        final f = buildCollectionFilter(
+          ftsText: '',
+          facets: facets,
+          defs: defs,
+        );
+        expect(f, isA<TagFilter>(), reason: 'tagsMatchAll: $all');
+      }
+    });
+
+    test('Untagged stays an OR alternative to all-of tags (FIND-14)', () {
+      final facets = FacetSelections()
+        ..untagged = true
+        ..tagIds.addAll(['t1', 't2']);
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<OrFilter>());
+      final children = (f as OrFilter).children;
+      expect(children, hasLength(2));
+      expect(children.whereType<UntaggedFilter>(), hasLength(1));
+      final all = children.whereType<AndFilter>().single;
+      expect(all.children.whereType<TagFilter>().map((t) => t.tagId).toSet(), {
+        't1',
+        't2',
+      });
     });
 
     test('Untagged alone folds to the bare leaf', () {
@@ -136,7 +183,8 @@ void main() {
     test('Untagged ORs with selected tags in one group (issue #1422)', () {
       final facets = FacetSelections()
         ..untagged = true
-        ..tagIds.addAll(['t1', 't2']);
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
       expect(f, isA<OrFilter>());
       final children = (f as OrFilter).children;
@@ -216,7 +264,8 @@ void main() {
     test('fts + facets compose into a flat AndFilter', () {
       final facets = FacetSelections()
         ..formations.add(FormationShape.reverseProgressionImproper)
-        ..tagIds.addAll(['t1', 't2']);
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
       final f = buildCollectionFilter(
         ftsText: 'swing',
         facets: facets,
@@ -233,6 +282,21 @@ void main() {
       );
       // The two tags collapse into one OR branch.
       expect(children.whereType<OrFilter>(), hasLength(1));
+    });
+
+    test('all-of tags stay flat beside fts and other facets (FIND-14)', () {
+      final facets = FacetSelections()
+        ..forms.add(DanceForm.contra)
+        ..tagIds.addAll(['t1', 't2']);
+      final f = buildCollectionFilter(
+        ftsText: 'swing',
+        facets: facets,
+        defs: defs,
+      );
+      final children = (f as AndFilter).children;
+      expect(children, hasLength(4));
+      expect(children.whereType<TagFilter>(), hasLength(2));
+      expect(children.whereType<AndFilter>(), isEmpty);
     });
 
     test('choice custom field ORs selected values', () {
@@ -794,6 +858,62 @@ void main() {
         expect(isBareFullText(ftsText: 'Al', facets: facets), isTrue);
       },
     );
+  });
+
+  group('Tags match mode (FIND-14)', () {
+    test('selecting a second tag defaults to all; a third keeps the mode', () {
+      final facets = FacetSelections();
+      expect(facets.setTag('t1', selected: true), isTrue);
+      facets.tagsMatchAll = false;
+      expect(facets.setTag('t2', selected: true), isTrue);
+      expect(facets.tagsMatchAll, isTrue, reason: 'second tag → all');
+
+      facets.tagsMatchAll = false;
+      expect(facets.setTag('t3', selected: true), isTrue);
+      expect(facets.tagsMatchAll, isFalse, reason: 'third tag keeps any');
+    });
+
+    test('dropping back to one tag and adding another defaults to all', () {
+      final facets = FacetSelections()
+        ..setTag('t1', selected: true)
+        ..setTag('t2', selected: true)
+        ..tagsMatchAll = false;
+      expect(facets.setTag('t2', selected: false), isTrue);
+      expect(facets.tagsMatchAll, isFalse, reason: 'removal leaves it');
+      facets.setTag('t3', selected: true);
+      expect(facets.tagsMatchAll, isTrue);
+    });
+
+    test('re-selecting a selected tag changes nothing', () {
+      final facets = FacetSelections()
+        ..setTag('t1', selected: true)
+        ..setTag('t2', selected: true)
+        ..tagsMatchAll = false;
+      expect(facets.setTag('t2', selected: true), isFalse);
+      expect(facets.tagsMatchAll, isFalse);
+      expect(facets.setTag('t9', selected: false), isFalse);
+    });
+
+    test('clear and clearFacets reset the mode to all', () {
+      final facets = FacetSelections()
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
+      facets.clear();
+      expect(facets.tagsMatchAll, isTrue);
+
+      facets
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
+      facets.clearFacets({CollectionFacetIds.tags});
+      expect(facets.tagIds, isEmpty);
+      expect(facets.tagsMatchAll, isTrue);
+    });
+
+    test('the mode is not a selection: it never counts or makes non-empty', () {
+      final facets = FacetSelections()..tagsMatchAll = false;
+      expect(facets.isEmpty, isTrue);
+      expect(facets.activeCount, 0);
+    });
   });
 
   group('Tunes facet (#1420)', () {

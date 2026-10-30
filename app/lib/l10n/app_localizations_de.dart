@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3735,7 +3736,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Tänze mit Tag „$tagName“ anzeigen';
+    return '„$tagName“ zu den Filtern der Sammlung hinzufügen';
   }
 
   @override
@@ -4143,6 +4144,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Ohne Tags';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Tags abgleichen';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'Alle Tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Tänze anzeigen, die alle gewählten Tags haben';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Ein Tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Tänze anzeigen, die mindestens eines der gewählten Tags haben';
 
   @override
   String get collectionFacetSource => 'Quelle';
