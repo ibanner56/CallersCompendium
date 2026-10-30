@@ -1,0 +1,20 @@
+{
+  "id": "n2-t2-tag-manager",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A Tags manager, under Settings › General › Library › Tags, lists every tag with the number of dances that use it. You can search it, show only the tags no dance uses, and sort by name or by number of dances. From a tag's menu you can rename it, merge it into another tag, change or remove its colour, or delete it. Each change happens at once and offers Undo.",
+      "Renaming a tag to a name another tag already has offers to merge the two instead of making a duplicate.",
+      "Deleting a tag takes it off every dance that has it and says how many dances that was. Undo puts it back on them; once the message has gone, re-creating the tag starts it with no dances.",
+      "Renaming, merging or deleting a tag in the Tags manager also updates the tags given to dances you import (Settings › Defaults › Import defaults)."
+    ],
+    "changed": [
+      "Settings › Appearance › Tag colours now opens the Tags manager, where a tag's colour is set from its menu."
+    ]
+  },
+  "core": {
+    "added": [
+      "`ReferenceEditRepository.watchLiveDanceCounts`: every tag's, author's or published source's count of live citing dances as one grouped, watched query."
+    ]
+  }
+}
