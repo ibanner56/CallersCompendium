@@ -79,7 +79,10 @@ import 'share_sanitization.dart';
 /// Alternates are among the bundled dances whatever the program's
 /// `hideAlternates` flag says. A `null` result falls back to the built-in
 /// levels. A level id neither knows throws a
-/// [StateError], the same strict contract as the resolvers above.
+/// [StateError], the same strict contract as the resolvers above, except for a
+/// dance from the sender's Recently deleted, which travels without its level
+/// instead: the trash does not protect a level, so it may be gone. A shipped
+/// level always resolves through [DifficultyLevel.knownForId].
 ///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
@@ -116,6 +119,7 @@ String buildProgramShareBundle(
 }) {
   final dances = <Dance>[];
   final seen = <String>{};
+  final trashedIds = <String>{};
   for (final slot in program.slots) {
     final danceId = slot.danceId;
     if (danceId == null || !seen.add(danceId)) continue;
@@ -124,6 +128,7 @@ String buildProgramShareBundle(
     // so it travels (GIG-11), but as a live dance: what the owner deleted is
     // not shared.
     if (dance != null) {
+      if (dance.isDeleted) trashedIds.add(dance.id);
       dances.add(
         dance.isDeleted ? dance.copyWith(clearDeletedAt: true) : dance,
       );
@@ -198,19 +203,31 @@ String buildProgramShareBundle(
 
   final difficultyLevels = <DifficultyLevel>[];
   final seenLevels = <String>{};
-  for (final dance in dances) {
+  for (var i = 0; i < dances.length; i++) {
+    final dance = dances[i];
     final difficultyLevelId = dance.difficultyLevelId;
-    if (difficultyLevelId == null || !seenLevels.add(difficultyLevelId)) {
+    if (difficultyLevelId == null || seenLevels.contains(difficultyLevelId)) {
       continue;
     }
     final level =
         difficultyLevelFor?.call(dance) ??
         DifficultyLevel.knownForId(difficultyLevelId);
     if (level == null) {
+      // A dance in Recently deleted does not hold its level back (the
+      // maintainer's trash-policy decision, 2026-10-29), so the level it names
+      // may have been removed since. It travels without one. (A removed
+      // shipped level still resolves through `knownForId` above and travels;
+      // the recipient knows it already.) A live dance's level is always live,
+      // so for one of those this is still a missing lookup, and strict.
+      if (trashedIds.contains(dance.id)) {
+        dances[i] = dance.copyWith(clearDifficultyLevel: true);
+        continue;
+      }
       throw StateError(
         'dance references missing difficulty level "$difficultyLevelId"',
       );
     }
+    seenLevels.add(difficultyLevelId);
     difficultyLevels.add(level);
   }
 
