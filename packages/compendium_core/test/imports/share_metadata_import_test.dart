@@ -97,50 +97,59 @@ void main() {
     expect(result.importedMetadataCount, 2);
   });
 
-  test(
-    'rejects an incompatible live custom-field key before writing',
-    () async {
-      final db = openTestDatabase();
-      addTearDown(db.close);
-      final fields = CustomFieldDefRepository(db);
-      expect(
-        await fields.upsert(
-          CustomFieldDef(
-            id: 'local-field',
-            key: 'tempo',
-            label: 'Tempo',
-            type: CustomFieldType.text,
-          ),
+  test('imports a field whose type differs under <key>_2 with a note, leaving '
+      'the local field alone (INTAKE-2)', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final fields = CustomFieldDefRepository(db);
+    expect(
+      await fields.upsert(
+        CustomFieldDef(
+          id: 'local-field',
+          key: 'tempo',
+          label: 'Tempo',
+          type: CustomFieldType.text,
         ),
-        'local-field',
-      );
+      ),
+      'local-field',
+    );
 
-      expect(
-        () =>
-            ShareMetadataImporter(
-              tags: TagRepository(db),
-              sources: PublishedSourceRepository(db),
-              customFields: fields,
-            ).commit(
-              CompendiumArchive(
-                exportedAt: _now,
-                customFields: [
-                  CustomFieldDef(
-                    id: 'archive-field',
-                    key: 'tempo',
-                    label: 'Tempo',
-                    type: CustomFieldType.number,
-                  ),
-                ],
+    final result =
+        await ShareMetadataImporter(
+          tags: TagRepository(db),
+          sources: PublishedSourceRepository(db),
+          customFields: fields,
+        ).commit(
+          CompendiumArchive(
+            exportedAt: _now,
+            customFields: [
+              CustomFieldDef(
+                id: 'archive-field',
+                key: 'tempo',
+                label: 'Their tempo',
+                type: CustomFieldType.number,
               ),
-              now: _now,
-              newId: () => 'fresh',
-            ),
-        throwsStateError,
-      );
-      expect((await fields.listAll()).single.id, 'local-field');
-    },
-  );
+            ],
+          ),
+          now: _now,
+          newId: () => 'fresh',
+        );
+
+    expect(result.fieldIdByArchiveId['archive-field'], 'fresh');
+    expect(result.insertedFieldIds, ['fresh']);
+    final local = (await fields.getById('local-field'))!;
+    expect(local.key, 'tempo');
+    expect(local.type, CustomFieldType.text);
+    final added = (await fields.getById('fresh'))!;
+    expect(added.key, 'tempo_2');
+    expect(added.type, CustomFieldType.number);
+    expect(added.label, 'Their tempo');
+    final note = result.issues.single;
+    expect(note.code, 'archive_custom_field_key_conflict');
+    expect(note.severity, ImportIssueSeverity.warning);
+    // Names the receiver's own field, never the file's label.
+    expect(note.data, {'label': 'Tempo', 'key': 'tempo_2'});
+  });
 
   test(
     'archive importer Undo removes metadata created by the import',
@@ -506,28 +515,28 @@ void main() {
     },
   );
 
-  test(
-    'rejects a canonically-equivalent but incompatible custom-field key',
-    () async {
-      final db = openTestDatabase();
-      addTearDown(db.close);
-      final fields = CustomFieldDefRepository(db);
-      expect(
-        await fields.upsert(
-          CustomFieldDef(
-            id: 'local-field',
-            key: 'tempö',
-            label: 'Tempo',
-            type: CustomFieldType.text,
-          ),
+  test('a canonically-equivalent but incompatible key goes under the local '
+      'key plus _2', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final fields = CustomFieldDefRepository(db);
+    expect(
+      await fields.upsert(
+        CustomFieldDef(
+          id: 'local-field',
+          key: 'tempö',
+          label: 'Tempo',
+          type: CustomFieldType.text,
         ),
-        'local-field',
-      );
+      ),
+      'local-field',
+    );
 
-      // Same canonical key, incompatible type: must raise the precise conflict
-      // StateError, not silently adopt and not a raw UNIQUE-collision error.
-      await expectLater(
-        ShareMetadataImporter(
+    // Same canonical key (NFD here, NFC locally), incompatible type: a new
+    // field under the receiver's own key plus `_2`, not a raw
+    // UNIQUE-collision error and not an adoption.
+    final result =
+        await ShareMetadataImporter(
           tags: TagRepository(db),
           sources: PublishedSourceRepository(db),
           customFields: fields,
@@ -537,7 +546,7 @@ void main() {
             customFields: [
               CustomFieldDef(
                 id: 'archive-field',
-                key: 'tempö',
+                key: 'tempö',
                 label: 'Tempo',
                 type: CustomFieldType.number,
               ),
@@ -545,14 +554,12 @@ void main() {
           ),
           now: _now,
           newId: () => 'fresh-field',
-        ),
-        throwsStateError,
-      );
-      final local = (await fields.listAll()).single;
-      expect(local.id, 'local-field');
-      expect(local.type, CustomFieldType.text);
-    },
-  );
+        );
+    final local = (await fields.getById('local-field'))!;
+    expect(local.type, CustomFieldType.text);
+    expect((await fields.getById('fresh-field'))!.key, 'tempö_2');
+    expect(result.issues.single.data['key'], 'tempö_2');
+  });
 
   test('archive decode preserves NFD names (does not compose to NFC)', () {
     // Pins the live gap at the codec boundary: the decoder reaching the planner

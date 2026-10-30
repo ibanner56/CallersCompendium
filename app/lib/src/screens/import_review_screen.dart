@@ -893,7 +893,22 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _usrArchive = planAdapter is CallersCompanionUsrAdapter
           ? planAdapter.discoveredArchive
           : null;
-      await _adoptBatch(batch);
+      // A shared file's custom field that differs from the caller's goes in
+      // under a new key; say so here, before anything is written (INTAKE-2).
+      final bundle = _effectiveSharedBundle;
+      final metadataNotes = bundle == null
+          ? const <ImportIssue>[]
+          : await _archiveImporter(pipeline).planMetadataIssues(bundle.archive);
+      await _adoptBatch(
+        metadataNotes.isEmpty
+            ? batch
+            : ImportBatchResult(
+                records: batch.records,
+                errors: batch.errors,
+                warnings: [...batch.warnings, ...metadataNotes],
+                dedupeIndex: batch.dedupeIndex,
+              ),
+      );
       // A `.USR`'s rows now live in the batch and its programs in the archive
       // kept above, so nothing later needs the file itself — and it is by far
       // the largest thing this screen holds (~250 MB for a library of tens of
@@ -2053,16 +2068,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     Map<int, DedupeResolution> resolutions,
     int skipped,
   ) async {
-    final importer = CompendiumArchiveImporter(
-      pipeline,
-      _repos.programs,
-      _repos.venues,
-      repositories: _repos,
-      tags: _repos.tags,
-      sources: _repos.publishedSources,
-      customFields: _repos.customFieldDefs,
-      difficultyLevels: _repos.difficultyLevels,
-    );
+    final importer = _archiveImporter(pipeline);
     final lifecycle = SyncWriterLifecycleScope.maybeOf(context);
     final defaultTagIds = await resolveDefaultImportTagIds(_repos);
     final result = await _runSyncWriterLifecycle(
@@ -2128,10 +2134,27 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               updated: 0,
               issues: result.programIssues,
             ),
+      // Where a custom field that differs from the caller's went (INTAKE-2),
+      // as the review said before the import.
+      extraNotes: result.metadata?.issues ?? const [],
       figuresAdded: figures?.count ?? 0,
       figuresFailed: figures?.failed ?? 0,
     );
   }
+
+  /// The importer a shared bundle plans its metadata notes with and commits
+  /// through, over [pipeline] and this screen's repositories.
+  CompendiumArchiveImporter _archiveImporter(ImportPipeline pipeline) =>
+      CompendiumArchiveImporter(
+        pipeline,
+        _repos.programs,
+        _repos.venues,
+        repositories: _repos,
+        tags: _repos.tags,
+        sources: _repos.publishedSources,
+        customFields: _repos.customFieldDefs,
+        difficultyLevels: _repos.difficultyLevels,
+      );
 
   /// Offers the figures of the sender's own that a shared file carries
   /// (#1023, maintainer decision 3; plan C12), once its dances are in, and
@@ -3454,15 +3477,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   /// The file-level warnings from [ImportBatchResult.warnings], one bullet per
-  /// distinct code. Styled and announced like [_buildOverwriteWarning]; the copy
+  /// distinct message (so two custom fields of the caller's that each sent a
+  /// field to a numbered key get a bullet each, while identical messages,
+  /// such as a code with no detail, show once). Styled and announced like [_buildOverwriteWarning]; the copy
   /// comes from [importIssueMessage], never the issue's English `message`.
   Widget _buildBatchWarnings(BuildContext context, List<ImportIssue> warnings) {
     final l10n = AppLocalizations.of(context);
-    final seen = <String>{};
-    final messages = [
-      for (final w in warnings)
-        if (seen.add(w.code)) importIssueMessage(l10n, w),
-    ];
+    final messages = {
+      for (final w in warnings) importIssueMessage(l10n, w),
+    }.toList();
     return Semantics(
       container: true,
       liveRegion: true,
