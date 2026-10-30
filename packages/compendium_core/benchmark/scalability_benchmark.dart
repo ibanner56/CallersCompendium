@@ -479,7 +479,10 @@ Future<_Result> _measure(
 ) async {
   final counter = _CountingInterceptor();
   final db = CompendiumDatabase(
-    NativeDatabase(File(dbPath)).interceptWith(counter),
+    NativeDatabase(
+      File(dbPath),
+      setup: applyCompendiumSqliteSetup,
+    ).interceptWith(counter),
   );
   final repos = CompendiumRepositories(db, contraTaxonomy);
   await db.customSelect('SELECT 1').get(); // force open, warm nothing else
@@ -524,7 +527,10 @@ Future<List<_Result>> _measureSeries(
 }) async {
   final counter = _CountingInterceptor();
   final db = CompendiumDatabase(
-    NativeDatabase(File(dbPath)).interceptWith(counter),
+    NativeDatabase(
+      File(dbPath),
+      setup: applyCompendiumSqliteSetup,
+    ).interceptWith(counter),
   );
   final repos = CompendiumRepositories(db, contraTaxonomy);
   await db.customSelect('SELECT 1').get();

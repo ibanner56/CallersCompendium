@@ -56,7 +56,11 @@ Future<void> main() async {
     seedWatch.stop();
     stdout.writeln('Seeded in ${seedWatch.elapsedMilliseconds} ms.');
 
-    final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+    // The app's connection setup (WAL, busy timeout and `cc_venue_key`), so
+    // the benchmark times the connection the app opens.
+    final db = CompendiumDatabase(
+      NativeDatabase(File(dbPath), setup: applyCompendiumSqliteSetup),
+    );
     final dances = DanceRepository(db, contraTaxonomy);
     final count =
         (await db.customSelect('SELECT COUNT(*) AS c FROM dances').get()).single

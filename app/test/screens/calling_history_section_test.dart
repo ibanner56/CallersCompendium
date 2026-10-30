@@ -686,6 +686,53 @@ void main() {
     }
   });
 
+  // FIND-1 / N1-H1: the call date has a SQL form (`callingHistoryDateSql`,
+  // and its recency variant without `updated_at`) and two Dart forms. The core
+  // test `called_filter_scopes_test.dart` pins SQL against
+  // [DanceCallingRecord.effectiveDate] and [DanceCallingRecord.recencyDate];
+  // this pins the detail page's display date against those two, so editing
+  // any one of the three alone fails a test.
+  test('callingHistoryDisplayDate picks the same date as effectiveDate and '
+      'recencyDate, for every combination of dates', () {
+    final previous = callingHistoryToLocal;
+    // West of UTC, so a converted instant cannot pass for an unconverted one.
+    callingHistoryToLocal = (instant) =>
+        instant.subtract(const Duration(hours: 5)).copyWith(isUtc: false);
+    addTearDown(() => callingHistoryToLocal = previous);
+    final eventDate = DateTime.utc(2026, 9, 5);
+    final performedAt = DateTime.utc(2026, 9, 7, 21, 30);
+    final updatedAt = DateTime.utc(2026, 10, 1, 9);
+    for (final event in [eventDate, null]) {
+      for (final performed in [performedAt, null]) {
+        final record = DanceCallingRecord(
+          slotId: 's',
+          programId: 'p',
+          programTitle: 'T',
+          programUpdatedAt: updatedAt,
+          eventDate: event,
+          performedAt: performed,
+        );
+        final reason = 'event $event, performed $performed';
+        expect(
+          callingHistoryDisplayDate(record),
+          record.eventDate ?? callingHistoryToLocal(record.effectiveDate),
+          reason: reason,
+        );
+        if (record.recencyDate case final recency?) {
+          expect(
+            callingHistoryDisplayDate(record),
+            record.eventDate ?? callingHistoryToLocal(recency),
+            reason: reason,
+          );
+        } else {
+          // Only an undated, unperformed slot has no recency date; the page
+          // still shows it, dated by the program's last edit.
+          expect((event, performed), (null, null), reason: reason);
+        }
+      }
+    }
+  });
+
   testWidgets('a slot marked performed days later shows the event date', (
     tester,
   ) async {
