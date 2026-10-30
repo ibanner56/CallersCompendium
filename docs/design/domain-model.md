@@ -226,6 +226,9 @@ save), the only bulk writer of that link is `ProgramRepository.linkTypedVenues`
 (GIG-7): the user is offered it when records are turned on or a venue is
 created, and it sets `venueId` on live programs whose typed `venue` has the same `VenueKey`, leaving
 the typed text and every trashed program untouched.
+The program editor writes `venueId` only if the person changed it since the editor
+loaded or last saved; otherwise the stored value stands, so a link made while an
+editor was open (this offer, or sync) is not undone by that editor's next save.
 
 ### Program & ProgramSlot
 | Program | ProgramSlot |
