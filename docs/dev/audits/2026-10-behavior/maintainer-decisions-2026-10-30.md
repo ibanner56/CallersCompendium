@@ -464,6 +464,15 @@ All three match the recommendations. Builds as the UX6-2 branch, after D2.
 
 At that time the only wave-2 branch not yet merged or open was B3 (`fix/link-typed-venues`), so wave 3 (B4 → B5, B22, B24, B28 → B29) starts once B3's PR is green and ready to merge.
 
+### Wave 3 release condition, revised (2026-10-30 ~14:35 UTC)
+**Decision (maintainer's words):** "Move everything else that was in the queue up before wave 3 and gate wave 3 on everything remaining in the *queue* being green and good to merge."
+
+This replaces the condition above. The orchestrating session's reading of "the queue" at that time:
+- building: B9, N2-T1, N4-S2, N4-S4;
+- queued: B3, the B19 rating follow-up, the B6 stamp-test proof, the B30 conflict-row fix, N3-A2, N4-S3, N2-T2, N2-T3.
+
+Wave 3 starts when each of these is green and ready to merge, or merged. N4-S5 and N4-S6 were not in the queue then and are not part of the gate.
+
 ## Still open
 
 - Nothing on the decision page.
