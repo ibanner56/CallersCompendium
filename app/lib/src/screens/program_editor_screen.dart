@@ -2235,6 +2235,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       );
                 if (!mounted) return null;
                 final elsewhere = write.changedUnderneath;
+                // Whether the builder holds other unsaved edits now: those
+                // made with the adjustment, or a local edit since (a later
+                // adjustment alone leaves the builder clean).
+                final dirtyNow =
+                    keepDirty || (generation != _editGeneration && _dirty);
                 setState(() {
                   // With nothing else unsaved, the working copy is the stored
                   // program, details included when they changed elsewhere.
@@ -2244,7 +2249,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   // adjustment has overtaken this write: its own write
                   // compares with this one, so it will not see the change.
                   if (generation == _editGeneration) _dirty = keepDirty;
-                  if (elsewhere && !keepDirty) {
+                  if (elsewhere && !dirtyNow) {
                     _applyProgramToEditor(
                       generation == _editGeneration
                           ? stored
@@ -2257,11 +2262,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   }
                   _existing = stored;
                 });
-                if (elsewhere && !keepDirty) {
+                if (elsewhere && !dirtyNow) {
                   await _refreshLinkedVenueForId(stored.venueId);
                   if (!mounted) return null;
                 }
-                if (elsewhere && keepDirty) _scheduleAutosave();
+                if (elsewhere && dirtyNow) _scheduleAutosave();
                 if (_dirty) _scheduleAutoCommit();
                 _performAdjusted = updated;
                 _performAdjustedGeneration = _editGeneration;

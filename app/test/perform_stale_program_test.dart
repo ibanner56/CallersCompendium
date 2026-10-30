@@ -435,6 +435,39 @@ void main() {
       expect(stored.slots.map((s) => s.id), containsAll(['s1', 's2', 's3']));
     });
 
+    testWidgets('a title typed after leaving Perform, while its write is '
+        'still held, survives the change from elsewhere', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      final repos = delayed.repos;
+      await seed(repos);
+      await pumpHome(tester, repos, const ProgramEditorScreen(programId: 'p1'));
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      delayed.programs.holdNextWrite();
+      await markCurrentPerformed(tester);
+      await delayed.programs.writeStarted;
+      await changeElsewhere(repos);
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Typed Meanwhile',
+      );
+      await tester.pump();
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final stored = (await repos.programs.getById('p1'))!;
+      expect(stored.title, 'Typed Meanwhile');
+      expect(stored.slots.map((s) => s.id), ['s1', 's2', 's3']);
+      expect(stored.slots.first.performedAt, isNotNull);
+    });
+
     testWidgets('a change landing while the adjustment is being written is not '
         'overwritten', (tester) async {
       final delayed = openTestRepositoriesWithDelayedPrograms();
