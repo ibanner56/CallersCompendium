@@ -389,8 +389,7 @@ class Program {
   /// Deliberately not the calling-history rule, under which an alternate counts
   /// only once performed. Break and free-text slots carry no dance id and never
   /// match, so a text slot that names the dance is not detected.
-  int danceSlotCount(String danceId) =>
-      danceSlotCountsOf(slots)[danceId] ?? 0;
+  int danceSlotCount(String danceId) => danceSlotCountsOf(slots)[danceId] ?? 0;
 
   /// [danceSlotCount] for every dance in a working slot list, such as the
   /// builder's unsaved edits, without constructing a [Program]. Dances absent
