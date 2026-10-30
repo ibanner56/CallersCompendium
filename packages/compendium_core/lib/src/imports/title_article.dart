@@ -11,9 +11,10 @@ const Set<String> _articles = {'the', 'a', 'an', 'la', 'le', 'les', "l'"};
 /// Apostrophes an `L'` may be typed with, folded to ASCII `'` for matching.
 final RegExp _apostrophes = RegExp('[\u2019\u2018\u02BC]');
 
-/// How many trailing bracketed annotations stay at the end, as
-/// `dedupeCoreTitleKey` strips: "Baby Rose, The (Imp Var) (2)".
-const int _maxAnnotations = 3;
+/// How many trailing bracketed annotations stay at the end, as many as
+/// `dedupeCoreTitleKey` strips (`_maxTitleAnnotations`): "Baby Rose, The (Imp
+/// Var) (2)".
+const int _maxAnnotations = 4;
 
 /// [title] with a trailing `, <article>` moved to the front, the way Caller's
 /// Companion files a title library-style (#1976): "Baby Rose, The" → "The Baby

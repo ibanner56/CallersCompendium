@@ -324,21 +324,17 @@ class DedupeIndex {
       if (e.source != null && ext != null) {
         _byExternalKey['${e.source!.name}\u0000$ext'] = e.danceId;
       }
-      // Titles are keyed with a trailing article fronted (#1976): the library
-      // can hold "Bastringue, La" from before Caller's Companion titles were
-      // fronted on import, and an incoming "La Bastringue" is the same dance.
-      // The stored title, and sync's `normalizeTitle` keys, are unchanged.
-      final nTitle = normalizeTitle(frontTrailingArticle(e.title));
-      // Never `''`: an empty normalized title is never scored, so it must not
-      // be reachable through the exact-title map either.
-      if (nTitle.isNotEmpty) {
-        (_byNormalizedTitle[nTitle] ??= []).add(_normalized.length);
+      final nTitle = normalizeTitle(e.title);
+      // Keyed as written and with a trailing article fronted (#1976), so both
+      // are reachable; `''` never is (see [dedupeTitleKeys]).
+      final keys = dedupeTitleKeys(e.title);
+      for (final key in keys) {
+        (_byNormalizedTitle[key] ??= []).add(_normalized.length);
       }
-      // Same rule for the core-title key: `''` carries no identity signal.
-      final coreTitle = dedupeCoreTitleKey(frontTrailingArticle(e.title));
-      if (coreTitle.isNotEmpty) {
+      for (final coreTitle in _coreTitleKeys(e.title)) {
         (_byCoreTitle[coreTitle] ??= []).add(_normalized.length);
       }
+      _titleKeys.add(keys);
       _normalized.add((
         danceId: e.danceId,
         normalizedTitle: nTitle,
@@ -355,12 +351,16 @@ class DedupeIndex {
   final List<_NormalizedEntry> _normalized = [];
   final Map<String, String> _byExternalKey = {};
 
-  /// Normalized (non-empty) title → ascending indices into [_normalized] of
+  /// [dedupeTitleKeys] per entry, parallel to [_normalized].
+  final List<Set<String>> _titleKeys = [];
+
+  /// Each [dedupeTitleKeys] key → ascending indices into [_normalized] of
   /// the entries carrying it. Every [DedupeCandidate.confident] match comes
   /// from here, since confidence requires an exact normalized-title match.
   final Map<String, List<int>> _byNormalizedTitle = {};
 
-  /// [dedupeCoreTitleKey] (non-empty) → ascending indices into [_normalized].
+  /// [dedupeCoreTitleKey] (non-empty) of a title as written and with a
+  /// trailing article fronted → ascending indices into [_normalized].
   /// The only source of [possibleTitleMatches].
   final Map<String, List<int>> _byCoreTitle = {};
 
@@ -408,48 +408,62 @@ class DedupeIndex {
     Iterable<String> authorNames, {
     double threshold = defaultThreshold,
   }) {
-    final nTitle = normalizeTitle(frontTrailingArticle(title));
+    final queryKeys = dedupeTitleKeys(title);
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
-    if (nTitle.isEmpty) return const [];
+    if (queryKeys.isEmpty) return const [];
     final out = <DedupeCandidate>[];
-    // Entries sharing the query's normalized title are always scored: they are
+    // Entries sharing a title key with the query are always scored: they are
     // the only possible confident matches. They are visited in entry order,
     // merged into the scan below, so the candidate order (and thus the order of
     // equal scores after the sort) is exactly that of a plain scan.
-    final exact = _byNormalizedTitle[nTitle] ?? const <int>[];
+    final exact = {
+      for (final key in queryKeys) ...?_byNormalizedTitle[key],
+    }.toList()..sort();
     var nextExact = 0;
     // Length bound for every other entry. Levenshtein distance is at least the
-    // length difference, so with la = |nTitle|, lb = |eTitle| and
-    // d = |la - lb|, `titleSim = 1 - dist / max(la, lb) <= 1 - d / max(la, lb)`
+    // length difference, so with la = |q|, lb = |e| and d = |la - lb|,
+    // `titleSim = 1 - dist / max(la, lb) <= 1 - d / max(la, lb)`
     // (floating-point division and subtraction are monotone, so this holds for
     // the computed values too). The combined score is then at most
     // `titleSim * 0.8 + 0.2` when both author sets are non-empty (Jaccard is at
-    // most 1) and exactly `titleSim` otherwise. A pair whose bound is under
-    // [threshold] could never have reached it, and is not confident (its
-    // titles differ), so skipping it cannot change the result.
+    // most 1) and exactly `titleSim` otherwise. The score is the best over
+    // every pair of the query's and the entry's title keys, so the bound is
+    // too. A pair whose bound is under [threshold] could never have reached
+    // it, and is not confident (its keys differ), so skipping it cannot change
+    // the result.
     final queryHasAuthors = nAuthors.isNotEmpty;
     for (var i = 0; i < _normalized.length; i++) {
       final e = _normalized[i];
-      final eTitle = e.normalizedTitle;
-      if (eTitle.isEmpty) continue;
+      final entryKeys = _titleKeys[i];
+      if (entryKeys.isEmpty) continue;
       final eAuthors = e.normalizedAuthors;
+      final both = queryHasAuthors && eAuthors.isNotEmpty;
       if (nextExact < exact.length && exact[nextExact] == i) {
         nextExact++;
       } else {
-        final la = nTitle.length;
-        final lb = eTitle.length;
-        final diff = la > lb ? la - lb : lb - la;
-        final maxLen = la > lb ? la : lb;
-        final titleBound = 1.0 - diff / maxLen;
-        final bound = queryHasAuthors && eAuthors.isNotEmpty
-            ? titleBound * 0.8 + 1.0 * 0.2
-            : titleBound;
+        var bound = 0.0;
+        for (final q in queryKeys) {
+          for (final k in entryKeys) {
+            final la = q.length;
+            final lb = k.length;
+            final diff = la > lb ? la - lb : lb - la;
+            final maxLen = la > lb ? la : lb;
+            final titleBound = 1.0 - diff / maxLen;
+            final pairBound = both ? titleBound * 0.8 + 1.0 * 0.2 : titleBound;
+            if (pairBound > bound) bound = pairBound;
+          }
+        }
         if (bound < threshold) continue;
       }
-      final score = _combinedScore(nTitle, nAuthors, eTitle, eAuthors);
+      var score = 0.0;
+      for (final q in queryKeys) {
+        for (final k in entryKeys) {
+          final pairScore = _combinedScore(q, nAuthors, k, eAuthors);
+          if (pairScore > score) score = pairScore;
+        }
+      }
       final confident =
-          nTitle.isNotEmpty &&
-          nTitle == eTitle &&
+          queryKeys.any(entryKeys.contains) &&
           nAuthors.isNotEmpty &&
           eAuthors.isNotEmpty &&
           nAuthors.intersection(eAuthors).isNotEmpty;
@@ -495,10 +509,12 @@ class DedupeIndex {
   }
 
   /// Existing dances that may be this record under a differently written title
-  /// (issue #1907): same [dedupeCoreTitleKey], at least one shared normalized
-  /// author, and a **different** [normalizeTitle]. Collection order.
+  /// (issue #1907): a shared [dedupeCoreTitleKey] (of either title as written
+  /// or with its trailing article fronted, #1976), at least one shared
+  /// normalized author, and **no** shared [dedupeTitleKeys] key. Collection
+  /// order.
   ///
-  /// The different-[normalizeTitle] clause is what keeps this tier disjoint
+  /// The no-shared-key clause is what keeps this tier disjoint
   /// from [DedupeCandidate.confident]: an exact normalized title with a shared
   /// author is already a confident candidate. Both sides must declare authors,
   /// because a core title alone (`a1reel`) is too weak to put in front of the
@@ -510,16 +526,17 @@ class DedupeIndex {
     String title,
     Iterable<String> authorNames,
   ) {
-    final coreTitle = dedupeCoreTitleKey(frontTrailingArticle(title));
-    if (coreTitle.isEmpty) return const [];
-    final indices = _byCoreTitle[coreTitle];
-    if (indices == null) return const [];
+    final indices = {
+      for (final coreTitle in _coreTitleKeys(title))
+        ...?_byCoreTitle[coreTitle],
+    }.toList()..sort();
+    if (indices.isEmpty) return const [];
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
     if (nAuthors.isEmpty) return const [];
-    final nTitle = normalizeTitle(frontTrailingArticle(title));
+    final queryKeys = dedupeTitleKeys(title);
     return [
       for (final i in indices)
-        if (_normalized[i].normalizedTitle != nTitle &&
+        if (!queryKeys.any(_titleKeys[i].contains) &&
             _normalized[i].normalizedAuthors.any(nAuthors.contains))
           _normalized[i].danceId,
     ];
@@ -549,6 +566,24 @@ typedef _NormalizedEntry = ({
 final RegExp _nonAlphanumericRe = RegExp(r'[^a-z0-9\s]');
 final RegExp _whitespaceRe = RegExp(r'\s+');
 final RegExp _leadingArticleRe = RegExp(r'^(the|a|an)\s+');
+
+/// The keys import dedupe matches [title] on: its [normalizeTitle], and that
+/// of the title with a trailing article fronted ([frontTrailingArticle],
+/// #1976) when it differs, without `''`. Two titles match exactly when their
+/// keys overlap, so "Bastringue, La" matches "La Bastringue" while "Thanks,
+/// Les" still matches "Thanks Les".
+///
+/// Import-only: it composes [normalizeTitle] rather than replacing it, and
+/// sync's keys stay plain [normalizeTitle].
+Set<String> dedupeTitleKeys(String title) =>
+    {normalizeTitle(title), normalizeTitle(frontTrailingArticle(title))}
+      ..remove('');
+
+/// [dedupeCoreTitleKey] of [title] as written and with a trailing article
+/// fronted, without `''`.
+Set<String> _coreTitleKeys(String title) =>
+    {dedupeCoreTitleKey(title), dedupeCoreTitleKey(frontTrailingArticle(title))}
+      ..remove('');
 
 /// Normalizes a dance title for comparison: NFC-composed, lowercased, diacritics
 /// folded, punctuation dropped, whitespace collapsed, and a single leading

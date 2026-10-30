@@ -611,7 +611,9 @@ The silent-merge test reuses the rule already in the import pipeline:
 
 1. **Exact normalized-title match** (the `normalizeTitle` gate in `autoResolveAmbiguous`). A
    fuzzy-but-inexact title is never confident; that is the "two different dances
-   share a title" trap.
+   share a title" trap. Since #1976 the import gate also accepts a match once a
+   trailing article is fronted (`dedupeTitleKeys`: "Bastringue, La" against "La
+   Bastringue"); fresh-attach keeps plain `normalizeTitle`, so it does not.
 2. **the shared `choreographyFingerprint` contract** — form, formation,
    progression, phrase structure, **figures including their params**, hook,
    calling notes, level, mixed level and tunes. It deliberately ignores

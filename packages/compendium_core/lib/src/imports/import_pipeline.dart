@@ -18,7 +18,6 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
-import 'title_article.dart';
 
 /// The commit action chosen (or defaulted) for one record of a batch.
 enum CommitAction {
@@ -1180,11 +1179,9 @@ class ImportPipeline {
       if (!plan.verdict.isAmbiguous) continue;
 
       final incoming = plan.draft.dance;
-      // Fronted like the dedupe index's keys (#1976).
-      final incomingTitle = normalizeTitle(
-        frontTrailingArticle(incoming.title),
-      );
-      if (incomingTitle.isEmpty) {
+      // Matched on the dedupe index's keys (#1976).
+      final incomingKeys = dedupeTitleKeys(incoming.title);
+      if (incomingKeys.isEmpty) {
         // A title that folds to nothing (non-Latin, punctuation-only) carries
         // no identity signal, so the exact-title gate below would pass on
         // '' == '' against every other such dance and the content check could
@@ -1200,8 +1197,7 @@ class ImportPipeline {
         if (existing == null) continue;
         // Exact normalized-title gate: a fuzzy-but-inexact title is never
         // confident (that is the "two different dances share a title" trap).
-        if (normalizeTitle(frontTrailingArticle(existing.title)) !=
-            incomingTitle) {
+        if (!dedupeTitleKeys(existing.title).any(incomingKeys.contains)) {
           continue;
         }
         // Try the cheap in-memory content comparison first: a canonical

@@ -415,6 +415,37 @@ void main() {
       expect(matches.single.confident, isTrue);
     });
 
+    test('a comma-only difference still matches exactly', () {
+      final plain = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'Thanks Les',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      final matches = plain.fuzzyMatches('Thanks, Les', ['Jane Doe']);
+      expect(matches.single.confident, isTrue);
+      expect(matches.single.score, 1.0);
+    });
+
+    test('a fronted title is never also a possible match', () {
+      final fronted = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'The Baby Rose',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      expect(
+        fronted.possibleTitleMatches('Baby Rose, The', ['Jane Doe']),
+        isEmpty,
+      );
+      expect(
+        fronted.possibleTitleMatches('Baby Rose, The (var)', ['Jane Doe']),
+        ['d1'],
+      );
+    });
+
     test('the core-title key fronts it too', () {
       final withAuthor = DedupeIndex([
         DedupeEntry(

@@ -30,7 +30,7 @@ void main() {
       );
     });
 
-    test('keeps up to three annotations, of any bracket and spacing', () {
+    test('keeps up to four annotations, of any bracket and spacing', () {
       expect(
         frontTrailingArticle('Baby Rose, The (Imp Var) (2)'),
         'The Baby Rose (Imp Var) (2)',
@@ -42,7 +42,11 @@ void main() {
       );
       expect(
         frontTrailingArticle('Rose, The (a) (b) (c) (d)'),
-        'Rose, The (a) (b) (c) (d)',
+        'The Rose (a) (b) (c) (d)',
+      );
+      expect(
+        frontTrailingArticle('Rose, The (a) (b) (c) (d) (e)'),
+        'Rose, The (a) (b) (c) (d) (e)',
       );
     });
 
