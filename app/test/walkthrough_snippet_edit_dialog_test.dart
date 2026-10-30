@@ -48,6 +48,45 @@ Future<WalkthroughSnippetLibraryController> _pumpWithSnippet(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  Future<void> tapRowDelete(WidgetTester tester) async {
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) =>
+            w.key is ValueKey<String> &&
+            (w.key! as ValueKey<String>).value.startsWith(
+              'walkthrough-snippet-delete-',
+            ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('deleting a snippet confirms it with a Deleted snackbar', (
+    tester,
+  ) async {
+    final controller = await _pumpWithSnippet(tester);
+    await tester.tapAt(const Offset(1, 1)); // dismiss the edit dialog
+    await tester.pumpAndSettle();
+    await tapRowDelete(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('walkthrough-snippet-delete-confirm')),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.library.snippets, isEmpty);
+    expect(find.textContaining('deleted.'), findsOneWidget);
+  });
+
+  testWidgets('canceling a snippet delete shows no snackbar', (tester) async {
+    final controller = await _pumpWithSnippet(tester);
+    await tester.tapAt(const Offset(1, 1));
+    await tester.pumpAndSettle();
+    await tapRowDelete(tester);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(controller.library.snippets, isNotEmpty);
+    expect(find.textContaining('deleted.'), findsNothing);
+  });
+
   testWidgets('a tap outside keeps the snippet dialog once the text changes', (
     tester,
   ) async {

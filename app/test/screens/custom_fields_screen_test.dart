@@ -290,6 +290,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Notes'), findsNothing);
       expect(await repos.customFieldDefs.listAll(), isEmpty);
+      expect(find.text('"Notes" deleted.'), findsOneWidget);
     });
 
     testWidgets('cancels delete when user dismisses dialog', (tester) async {
@@ -309,6 +310,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('delete-cancel')));
       await tester.pumpAndSettle();
       expect(find.text('Notes'), findsOneWidget);
+      expect(find.text('"Notes" deleted.'), findsNothing);
     });
 
     testWidgets(

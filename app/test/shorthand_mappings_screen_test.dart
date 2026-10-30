@@ -147,6 +147,7 @@ void main() {
 
     expect(controller.mappings, isEmpty);
     expect(find.byKey(const ValueKey('shorthand-empty')), findsOneWidget);
+    expect(find.text('"ns" deleted.'), findsOneWidget);
   });
 
   testWidgets('New shorthand opens the editor', (tester) async {

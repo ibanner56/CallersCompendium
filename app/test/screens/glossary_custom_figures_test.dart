@@ -295,6 +295,7 @@ void main() {
         UnreadableFigures() => throw StateError('unreadable'),
       };
       expect(figure.params, {'text': 'role1s zoom left'});
+      expect(find.textContaining('deleted.'), findsOneWidget);
       expect(
         await tester.runAsync(() => repos.userGlossary.getById('zoom-id')),
         isNull,
@@ -644,6 +645,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(customRow), findsNothing);
+      expect(find.text('"grand right and left" deleted.'), findsOneWidget);
       final all = await tester.runAsync(
         () => h.repos.userGlossary.listAll(includeDeleted: true),
       );
