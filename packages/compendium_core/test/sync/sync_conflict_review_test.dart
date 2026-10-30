@@ -171,15 +171,31 @@ void main() {
       expect((await queued()).map((row) => row.recordId), ['theme_mode']);
     });
 
-    test('queues nothing for a withdrawn setting the merge raises', () async {
-      for (final key in syncWithdrawnSettingKeys) {
-        final address = (kind: SyncRecordKind.setting, recordId: key);
-        await repositories.settings.set(key, 'a', at: tie);
-        final local = await localCandidate(address);
-        await mergeAndQueue(address, [
-          peerVersion(local, {'value': 'b'}),
-        ]);
-      }
+    test('queues nothing for a withdrawn setting, even if a merge raised '
+        'one', () async {
+      SyncMergeCandidate version(String key, String value, String peerId) =>
+          SyncMergeCandidate.fromBlob(
+            SyncRecordBlob(
+              kind: SyncRecordKind.setting,
+              id: key,
+              updatedAt: tie,
+              deletedAt: null,
+              existenceAt: tie,
+              body: {'value': value},
+            ),
+            peerId: peerId,
+          );
+      await storage.refreshConflictReviews([
+        for (final key in syncWithdrawnSettingKeys)
+          SyncMergeDecision(
+            address: (kind: SyncRecordKind.setting, recordId: key),
+            action: SyncMergeAction.review,
+            conflict: SyncMergeConflict(
+              local: version(key, 'a', 'local'),
+              candidates: [version(key, 'b', 'peer')],
+            ),
+          ),
+      ]);
 
       expect(await queued(), isEmpty);
     });
