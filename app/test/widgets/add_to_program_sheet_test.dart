@@ -47,11 +47,13 @@ Future<void> _openSheet(
   await repos.dances.create(
     Dance(id: 'd1', title: 'Chorus Jig', createdAt: _now, updatedAt: _now),
   );
-  await tester.binding.setSurfaceSize(surface);
+  // The view's own size, not `setSurfaceSize`: the latter leaves MediaQuery
+  // reporting the default 2400×1800 screen.
+  tester.view.physicalSize = surface;
   tester.view.devicePixelRatio = 1;
   tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
   addTearDown(() {
-    tester.binding.setSurfaceSize(null);
+    tester.view.resetPhysicalSize();
     tester.view.resetViewInsets();
     tester.view.resetDevicePixelRatio();
   });
