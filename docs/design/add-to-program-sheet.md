@@ -347,6 +347,15 @@ the marker for a multi-dance selection means "all", "some" or "none" is N4's
 question. `showAddToProgramSheet`'s signature stays as it is, so its two
 callers are unchanged.
 
+*As built (N3-A2; the build's call, not the maintainer's):* the program list is
+`AddToProgramList` (`widgets/add_to_program_list.dart`), which takes `programs`,
+`venuesById`, `danceId`, `danceTitle` and `onSelect(Program, heldCount)`. The
+pinned New row and the empty state stay in `showAddToProgramSheet`, outside it,
+because the batch version needs a different New row, and `onSelect` leaves what
+a tap does, including the ask-first question, to the caller. Rejected: moving
+the New row into the widget, which would give it a callback the batch sheet
+does not share.
+
 ## 5. Docs the change touches
 
 - `docs/design/ux.md` §1 and §2 (`:59-60`, `:71`): one line each saying the sheet

@@ -56,75 +56,98 @@ Future<void> showAddToProgramSheet(
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    // With the keyboard up the sheet may take all the height above it, which
+    // would reach under the status bar or a notch without this.
+    useSafeArea: true,
     showDragHandle: true,
     builder: (sheetContext) {
       final media = MediaQuery.of(sheetContext);
       // The route does not lift a sheet above the keyboard, so pad by its inset
-      // and the sheet gets the height left above it. With the keyboard up the
-      // cap lifts from 70% to all of that, since 70% of what a 640 px phone has
-      // left fits too little (§4.5).
+      // and the sheet gets the height left above it, below the status bar
+      // (`useSafeArea`). With the keyboard up the sheet takes all of that
+      // rather than 70% of the screen, since 70% of what a 640 px phone has
+      // left fits too little (§4.5); the padding is what bounds it.
       final keyboard = media.viewInsets.bottom;
-      final maxHeight =
-          (media.size.height - keyboard) * (keyboard > 0 ? 1 : 0.7);
+      final maxHeight = keyboard > 0
+          ? double.infinity
+          : media.size.height * 0.7;
       return Padding(
         padding: EdgeInsets.only(bottom: keyboard),
         child: SafeArea(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxHeight: maxHeight),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      l10n.commonAddToProgram,
-                      style: Theme.of(sheetContext).textTheme.titleMedium,
+            child: LayoutBuilder(
+              builder: (context, constraints) => Column(
+                children: [
+                  // The title and the pinned New row, capped so that a large text
+                  // scale with the keyboard up cannot push the list and search
+                  // field out of the sheet: past the cap they scroll in place.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: constraints.maxHeight * 0.45,
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                l10n.commonAddToProgram,
+                                style: Theme.of(
+                                  sheetContext,
+                                ).textTheme.titleMedium,
+                              ),
+                            ),
+                          ),
+                          _buildCreateRow(
+                            sheetContext,
+                            repositories: repositories,
+                            danceId: danceId,
+                            danceTitle: danceTitle,
+                            messenger: messenger,
+                            l10n: l10n,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                _buildCreateRow(
-                  sheetContext,
-                  repositories: repositories,
-                  danceId: danceId,
-                  danceTitle: danceTitle,
-                  messenger: messenger,
-                  l10n: l10n,
-                ),
-                Expanded(
-                  child: programs.isEmpty
-                      ? _buildEmptyPrograms(sheetContext, l10n: l10n)
-                      : AddToProgramList(
-                          programs: programs,
-                          venuesById: venuesById,
-                          danceId: danceId,
-                          danceTitle: danceTitle,
-                          onSelect: (program, heldCount) async {
-                            if (heldCount > 0 &&
-                                !await _confirmAddAgain(
-                                  sheetContext,
-                                  danceTitle: danceTitle,
-                                  programTitle: program.title,
-                                  count: heldCount,
-                                  l10n: l10n,
-                                )) {
-                              return;
-                            }
-                            if (!sheetContext.mounted) return;
-                            await _selectProgram(
-                              sheetContext,
-                              program,
-                              repositories: repositories,
-                              danceId: danceId,
-                              danceTitle: danceTitle,
-                              messenger: messenger,
-                              accessibleNavigation: accessibleNavigation,
-                              l10n: l10n,
-                            );
-                          },
-                        ),
-                ),
-              ],
+                  Expanded(
+                    child: programs.isEmpty
+                        ? _buildEmptyPrograms(sheetContext, l10n: l10n)
+                        : AddToProgramList(
+                            programs: programs,
+                            venuesById: venuesById,
+                            danceId: danceId,
+                            danceTitle: danceTitle,
+                            onSelect: (program, heldCount) async {
+                              if (heldCount > 0 &&
+                                  !await _confirmAddAgain(
+                                    sheetContext,
+                                    danceTitle: danceTitle,
+                                    programTitle: program.title,
+                                    count: heldCount,
+                                    l10n: l10n,
+                                  )) {
+                                return;
+                              }
+                              if (!sheetContext.mounted) return;
+                              await _selectProgram(
+                                sheetContext,
+                                program,
+                                repositories: repositories,
+                                danceId: danceId,
+                                danceTitle: danceTitle,
+                                messenger: messenger,
+                                accessibleNavigation: accessibleNavigation,
+                                l10n: l10n,
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

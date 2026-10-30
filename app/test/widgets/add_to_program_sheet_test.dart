@@ -41,6 +41,8 @@ Future<void> _openSheet(
   CompendiumRepositories repos, {
   Size surface = const Size(800, 1200),
   double keyboard = 0,
+  double topInset = 0,
+  double textScale = 1,
 }) async {
   await repos.dances.create(
     Dance(id: 'd1', title: 'Chorus Jig', createdAt: _now, updatedAt: _now),
@@ -50,15 +52,23 @@ Future<void> _openSheet(
   tester.view.physicalSize = surface;
   tester.view.devicePixelRatio = 1;
   tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
+  tester.view.padding = FakeViewPadding(top: topInset);
   addTearDown(() {
     tester.view.resetPhysicalSize();
     tester.view.resetViewInsets();
+    tester.view.resetPadding();
     tester.view.resetDevicePixelRatio();
   });
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
       home: RepositoriesScope(
         repositories: repos,
         child: Builder(
@@ -381,31 +391,44 @@ void main() {
       expect(saved.slots.single.performedAt, isNull);
     });
 
-    testWidgets('at 360×640 with the keyboard up, the New row, the search '
-        'field and a program row are all visible above it', (tester) async {
-      final repos = openTestRepositories();
-      for (var i = 0; i < 12; i++) {
-        await repos.programs.create(_program('p$i'));
-      }
-      const keyboard = 300.0;
-      await _openSheet(
-        tester,
-        repos,
-        surface: const Size(360, 640),
-        keyboard: keyboard,
-      );
+    for (final (name, scale) in [('', 1.0), (' at 200% text', 2.0)]) {
+      testWidgets('at 360×640 with the keyboard up and a notch$name, the New '
+          'row, the search field and a program row are all visible between '
+          'the status bar and the keyboard', (tester) async {
+        final repos = openTestRepositories();
+        for (var i = 0; i < 12; i++) {
+          await repos.programs.create(_program('p$i'));
+        }
+        const keyboard = 300.0;
+        const notch = 47.0;
+        await _openSheet(
+          tester,
+          repos,
+          surface: const Size(360, 640),
+          keyboard: keyboard,
+          topInset: notch,
+          textScale: scale,
+        );
 
-      const visibleBottom = 640 - keyboard;
-      for (final finder in [
-        find.byKey(const ValueKey('add-to-program-create')),
-        _search,
-        _row('p0'),
-      ]) {
-        expect(finder, findsOneWidget);
-        final rect = tester.getRect(finder);
-        expect(rect.top, greaterThanOrEqualTo(0));
-        expect(rect.bottom, lessThanOrEqualTo(visibleBottom));
-      }
-    });
+        const visibleBottom = 640 - keyboard;
+        // The field stays whole above the keyboard at any text size. At 100%
+        // the pinned New row and a whole program row fit as well; at 200% the
+        // title and New row scroll in place, so the field and the list keep
+        // their room (a RenderFlex overflow would fail the test).
+        final search = tester.getRect(_search);
+        expect(search.top, greaterThanOrEqualTo(notch));
+        expect(search.bottom, lessThanOrEqualTo(visibleBottom));
+        if (scale == 1) {
+          final create = tester.getRect(
+            find.byKey(const ValueKey('add-to-program-create')),
+          );
+          expect(create.top, greaterThanOrEqualTo(notch));
+          expect(create.bottom, lessThanOrEqualTo(visibleBottom));
+        }
+        final row = tester.getRect(_row('p0'));
+        expect(row.top, greaterThanOrEqualTo(notch));
+        expect(row.top + 48, lessThanOrEqualTo(visibleBottom));
+      });
+    }
   });
 }
