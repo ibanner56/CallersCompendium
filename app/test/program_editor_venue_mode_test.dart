@@ -350,4 +350,62 @@ void main() {
       );
     },
   );
+
+  group('a link made while the editor is open (GIG-7)', () {
+    for (final enriched in [true, false]) {
+      testWidgets('survives an unrelated save, enriched=$enriched', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+        await repos.programs.create(_program(venue: 'Grange Hall'));
+        await _pumpEditor(tester, repos, enriched: enriched, programId: 'p1');
+
+        // The offer to link typed venues runs while the editor stays open.
+        expect(
+          await repos.programs.linkTypedVenues(
+            venueId: 'v1',
+            name: 'Grange Hall',
+            updatedAt: DateTime.utc(2026, 10, 30),
+          ),
+          1,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Renamed night',
+        );
+        await tester.tap(find.byKey(const ValueKey('save-program')));
+        await tester.pumpAndSettle();
+
+        final saved = (await repos.programs.getById('p1'))!;
+        expect(saved.title, 'Renamed night');
+        expect(
+          saved.venueId,
+          'v1',
+          reason: 'the link was not the user\'s edit',
+        );
+        expect(saved.venue, 'Grange Hall');
+      });
+    }
+
+    testWidgets('clearing the venue in the editor still unlinks it', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await repos.programs.create(
+        _program(venue: 'Grange Hall', venueId: 'v1'),
+      );
+      await _pumpEditor(tester, repos, enriched: true, programId: 'p1');
+      await _expandMoreDetails(tester);
+
+      await tester.tap(find.byKey(const ValueKey('venue-picker-clear')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      expect((await repos.programs.getById('p1'))!.venueId, isNull);
+    });
+  });
 }

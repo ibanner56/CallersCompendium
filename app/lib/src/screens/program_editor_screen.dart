@@ -577,6 +577,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// entity mode is lossless — neither field clears the other.
   String? _venueId;
 
+  /// The `venueId` the editor last took from the stored program (on load, and
+  /// after each save). A save writes [_venueId] only if the person changed it
+  /// away from this; otherwise it keeps whatever is stored, so a link made
+  /// elsewhere while the editor was open (the offer to link typed venues, a
+  /// sync) is not erased by this editor's stale copy (GIG-7).
+  String? _venueIdBaseline;
+
   /// The resolved [Venue] for [_venueId], loaded so the simple-mode read-only
   /// fallback can show its name. `null` when no venue is linked.
   Venue? _linkedVenue;
@@ -933,6 +940,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _existing = program;
         _eventDate = program?.eventDate;
         _venueId = program?.venueId;
+        _venueIdBaseline = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
         _dialectName = program?.dialectName;
@@ -991,6 +999,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _existing = program;
     _eventDate = program.eventDate;
     _venueId = program.venueId;
+    _venueIdBaseline = program.venueId;
     _status = program.status;
     _hideAlternates = program.hideAlternates;
     _dialectName = program.dialectName;
@@ -2989,12 +2998,24 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<Program> _persistDraft(Program draft) async {
     final now = DateTime.now().toUtc();
     final existing = _existing;
+    // Three-way rule for the link: the draft's venueId differs from the one
+    // this editor loaded only if the person changed it (picked, or cleared),
+    // and only then is it written. Otherwise the stored value stands, which
+    // keeps a link made while the editor was open.
+    var venueId = draft.venueId;
+    if (existing != null && venueId == _venueIdBaseline) {
+      final stored = await _repos.programs.getById(
+        existing.id,
+        includeDeleted: true,
+      );
+      venueId = stored?.venueId ?? venueId;
+    }
     final persisted = Program(
       id: existing?.id ?? uuidV4(),
       title: draft.title,
       eventDate: draft.eventDate,
       venue: draft.venue,
-      venueId: draft.venueId,
+      venueId: venueId,
       band: draft.band,
       caller: draft.caller,
       dancerLevel: draft.dancerLevel,
@@ -3011,7 +3032,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       provenance: existing?.provenance,
     );
     if (existing != null) {
-      return _repos.programs.updateAndReadBack(persisted);
+      final stored = await _repos.programs.updateAndReadBack(persisted);
+      _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
+      return stored;
     }
     await _repos.programs.create(persisted);
     final stored = await _repos.programs.getById(persisted.id);
@@ -3019,6 +3042,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       throw StateError('program "${persisted.id}" vanished after its create');
     }
     return stored;
+  }
+
+  /// Takes the saved `venueId` as the new baseline, and into [_venueId] unless
+  /// the person picked another venue while the save was in flight.
+  void _adoptStoredVenueId({required String? sent, required String? stored}) {
+    _venueIdBaseline = stored;
+    if (!mounted || _venueId != sent || sent == stored) return;
+    setState(() {
+      _venueId = stored;
+      _linkedVenue = null;
+    });
+    if (stored != null) unawaited(_refreshLinkedVenue(stored));
   }
 
   Future<void> _save() async {
