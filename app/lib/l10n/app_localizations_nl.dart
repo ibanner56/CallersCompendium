@@ -4796,6 +4796,36 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get programsDanceInThisProgram => 'In dit programma';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'In dit programma ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'Al in dit programma';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '“$danceTitle” staat al $count keer in “$programTitle”. Opnieuw toevoegen?',
+      one: '“$danceTitle” staat al in “$programTitle”. Opnieuw toevoegen?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'Opnieuw toevoegen';
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return '“$danceTitle” toegevoegd aan $programTitle.';
   }

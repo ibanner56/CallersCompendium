@@ -381,7 +381,11 @@ From the detail view you can:
 - **Duplicate** it as a starting point for a variation.
 - **Add to program** — drop it into a [program](./programs.md) you are building.
   An **Undo** option takes the dance back out again, and keeps any other change
-  made to the program since.
+  made to the program since. **Create a new program with this dance** is always
+  the first row, however many programs you have. A program that already holds
+  the dance, even only as an alternate, shows **In this program** (with ×N when
+  it appears more than once); tapping it asks whether to add the dance again,
+  and **Cancel** leaves the sheet open so you can pick another program.
 - **Export** it — share it as text or as a dance file, copy it, or print it as a
   PDF. The export follows your active dialect, so what you hand someone matches
   how they speak — see [Share, print & export](./sharing.md#share-a-dance).

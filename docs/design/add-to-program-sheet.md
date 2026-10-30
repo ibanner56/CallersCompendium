@@ -1,7 +1,8 @@
 # Design: The add-to-program sheet
 
 *Design note for audit finding FIND-17, drafted 2026-10-29 against `main` at
-`acacb05`; decisions recorded 2026-10-30. **Status: decided, not built.** The
+`acacb05`; decisions recorded 2026-10-30. **Status: decided; the marker, the ask-first prompt and the
+pinned New row are built (N3-A1); order, grouping and search are not (N3-A2).** The
 maintainer asked for this note ("design note now") in the 2026-10-29 decisions,
 and answered its six questions on 2026-10-29/30 (N3-1 … N3-6 in
 `maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`).

@@ -4732,6 +4732,36 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get programsDanceInThisProgram => 'In this program';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'In this program ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'Already in this program';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '\"$danceTitle\" is already in \"$programTitle\" $count times. Add it again?',
+      one: '\"$danceTitle\" is already in \"$programTitle\". Add it again?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'Add again';
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return 'Added \"$danceTitle\" to $programTitle.';
   }

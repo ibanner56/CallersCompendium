@@ -10,8 +10,14 @@ import '../utils/undo_snack_bar.dart';
 /// Opens a modal bottom sheet listing existing (non-deleted) programs so the
 /// user can append the dance identified by [danceId] as a new slot at the end
 /// of one of them (`docs/design/ux.md` §2 add-to-program). Programs are ordered
-/// most-recently-updated first. When there are no programs yet, a teaching
-/// empty state offers to create a new program seeded with this dance.
+/// most-recently-updated first. A pinned first row creates a new program seeded
+/// with this dance, in every state; when there are no programs yet, a teaching
+/// empty state sits beneath it.
+///
+/// A program that already holds the dance, as a primary or an alternate
+/// ([Program.danceSlotCount]), shows an "In this program" marker, and tapping it
+/// asks before adding the dance again (`docs/design/add-to-program-sheet.md`
+/// §4.3).
 ///
 /// Extracted from `DanceDetailScreen` so the Collection list's row action menu
 /// ([DanceListTile]) and the detail screen share the exact same flow (identical
@@ -58,17 +64,17 @@ Future<void> showAddToProgramSheet(
                   ),
                 ),
               ),
+              _buildCreateRow(
+                sheetContext,
+                repositories: repositories,
+                danceId: danceId,
+                danceTitle: danceTitle,
+                messenger: messenger,
+                l10n: l10n,
+              ),
               Expanded(
                 child: programs.isEmpty
-                    ? _buildEmptyPrograms(
-                        sheetContext,
-                        sheetContext,
-                        repositories: repositories,
-                        danceId: danceId,
-                        danceTitle: danceTitle,
-                        messenger: messenger,
-                        l10n: l10n,
-                      )
+                    ? _buildEmptyPrograms(sheetContext, l10n: l10n)
                     : ListView.builder(
                         itemCount: programs.length,
                         itemBuilder: (context, index) => _buildProgramPickRow(
@@ -116,42 +122,95 @@ Widget _buildProgramPickRow(
         );
   final countLabel = l10n.programsDanceCount(danceCount);
   final subtitleParts = [?dateLabel, countLabel];
+  final heldCount = program.danceSlotCount(danceId);
+  final heldLabel = heldCount == 0
+      ? null
+      : heldCount == 1
+      ? l10n.programsDanceInThisProgram
+      : l10n.programsDanceInThisProgramCount(heldCount);
+  final semanticDetails = [...subtitleParts, ?heldLabel];
   return MergeSemantics(
     child: Semantics(
       button: true,
       label: l10n.programsAddDanceToProgramSemantic(
         danceTitle,
         program.title,
-        subtitleParts.join(', '),
+        semanticDetails.join(', '),
       ),
       child: ListTile(
         key: ValueKey('program-pick-${program.id}'),
         title: ExcludeSemantics(child: Text(program.title)),
-        subtitle: ExcludeSemantics(child: Text(subtitleParts.join(' · '))),
-        onTap: () => _selectProgram(
-          sheetContext,
-          program,
-          repositories: repositories,
-          danceId: danceId,
-          danceTitle: danceTitle,
-          messenger: messenger,
-          accessibleNavigation: accessibleNavigation,
-          l10n: l10n,
+        subtitle: ExcludeSemantics(
+          child: Text(
+            [...subtitleParts, ?heldLabel].join(' · '),
+            key: heldLabel == null
+                ? null
+                : ValueKey('program-pick-held-${program.id}'),
+          ),
         ),
+        // Shape as well as words (WCAG 1.4.1), like the builder picker's
+        // in-program icon.
+        trailing: heldLabel == null
+            ? null
+            : const ExcludeSemantics(child: Icon(Icons.check_circle_outline)),
+        onTap: () async {
+          if (heldCount > 0 &&
+              !await _confirmAddAgain(
+                sheetContext,
+                danceTitle: danceTitle,
+                programTitle: program.title,
+                count: heldCount,
+                l10n: l10n,
+              )) {
+            return;
+          }
+          if (!sheetContext.mounted) return;
+          await _selectProgram(
+            sheetContext,
+            program,
+            repositories: repositories,
+            danceId: danceId,
+            danceTitle: danceTitle,
+            messenger: messenger,
+            accessibleNavigation: accessibleNavigation,
+            l10n: l10n,
+          );
+        },
       ),
     ),
   );
 }
 
-/// Teaching empty state shown when no programs exist yet, with an affordance
-/// to create a brand-new program seeded with this dance.
-Widget _buildEmptyPrograms(
-  BuildContext context,
+/// The pinned first row, outside the scrolling list so it stays in reach with a
+/// long list or the keyboard up (N3-5): creates a new program seeded with this
+/// dance.
+Widget _buildCreateRow(
   BuildContext sheetContext, {
   required CompendiumRepositories repositories,
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
+  required AppLocalizations l10n,
+}) {
+  return ListTile(
+    key: const ValueKey('add-to-program-create'),
+    leading: const Icon(Icons.add),
+    title: Text(l10n.programsCreateWithDance),
+    onTap: () => _createProgramWith(
+      sheetContext,
+      repositories: repositories,
+      danceId: danceId,
+      danceTitle: danceTitle,
+      messenger: messenger,
+      l10n: l10n,
+    ),
+  );
+}
+
+/// Teaching empty state shown when no programs exist yet, beneath the pinned
+/// create row.
+Widget _buildEmptyPrograms(
+  BuildContext context, {
   required AppLocalizations l10n,
 }) {
   final theme = Theme.of(context);
@@ -171,24 +230,43 @@ Widget _buildEmptyPrograms(
         style: theme.textTheme.bodyMedium,
         textAlign: TextAlign.center,
       ),
-      const SizedBox(height: 20),
-      Center(
-        child: FilledButton.icon(
-          key: const ValueKey('add-to-program-create'),
-          onPressed: () => _createProgramWith(
-            sheetContext,
-            repositories: repositories,
-            danceId: danceId,
-            danceTitle: danceTitle,
-            messenger: messenger,
-            l10n: l10n,
-          ),
-          icon: const Icon(Icons.add),
-          label: Text(l10n.programsCreateWithDance),
-        ),
-      ),
     ],
   );
+}
+
+/// Asks whether to add a dance a program already holds. **Add again** is the
+/// primary button; **Cancel** (and a dismissal) returns false and leaves the
+/// sheet open so the caller can pick another program. Adding a dance is
+/// undoable, so this is a named exception to the confirm-only-without-Undo rule
+/// (`docs/design/ux.md` §1), not a destructive confirm.
+Future<bool> _confirmAddAgain(
+  BuildContext sheetContext, {
+  required String danceTitle,
+  required String programTitle,
+  required int count,
+  required AppLocalizations l10n,
+}) async {
+  final again = await showDialog<bool>(
+    context: sheetContext,
+    builder: (dialogContext) => AlertDialog(
+      key: const ValueKey('add-again-dialog'),
+      title: Text(l10n.programsAddAgainTitle),
+      content: Text(l10n.programsAddAgainBody(danceTitle, programTitle, count)),
+      actions: [
+        TextButton(
+          key: const ValueKey('add-again-cancel'),
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: Text(l10n.commonCancel),
+        ),
+        FilledButton(
+          key: const ValueKey('add-again-confirm'),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: Text(l10n.programsAddAgain),
+        ),
+      ],
+    ),
+  );
+  return again ?? false;
 }
 
 /// Appends this dance as a new slot at the end of [program], persists it,

@@ -7355,6 +7355,40 @@ abstract class AppLocalizations {
     String details,
   );
 
+  /// Marker in an add-to-program sheet row's subtitle: the program already holds this dance once, as a main slot or an alternate.
+  ///
+  /// In en, this message translates to:
+  /// **'In this program'**
+  String get programsDanceInThisProgram;
+
+  /// Marker in an add-to-program sheet row's subtitle: the program already holds this dance more than once (main slots and alternates both count).
+  ///
+  /// In en, this message translates to:
+  /// **'In this program ×{count}'**
+  String programsDanceInThisProgramCount(int count);
+
+  /// Title of the dialog the add-to-program sheet shows before adding a dance a program already holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in this program'**
+  String get programsAddAgainTitle;
+
+  /// Body of the dialog the add-to-program sheet shows before adding a dance a program already holds. The count includes alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{\"{danceTitle}\" is already in \"{programTitle}\". Add it again?} other{\"{danceTitle}\" is already in \"{programTitle}\" {count} times. Add it again?}}'**
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  );
+
+  /// Primary button of the add-to-program sheet's already-in-this-program dialog: adds the dance a second time.
+  ///
+  /// In en, this message translates to:
+  /// **'Add again'**
+  String get programsAddAgain;
+
   /// Confirmation snackbar after appending a dance to an existing program.
   ///
   /// In en, this message translates to:

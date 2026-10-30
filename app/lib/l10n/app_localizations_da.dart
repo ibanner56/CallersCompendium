@@ -4766,6 +4766,36 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get programsDanceInThisProgram => 'I dette program';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'I dette program ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'Allerede i dette program';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '„$danceTitle“ er allerede i „$programTitle“ $count gange. Tilføj den igen?',
+      one: '„$danceTitle“ er allerede i „$programTitle“. Tilføj den igen?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'Tilføj igen';
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return 'Tilføjede „$danceTitle“ til $programTitle.';
   }
