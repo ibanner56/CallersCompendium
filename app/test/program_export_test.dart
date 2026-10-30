@@ -2873,6 +2873,109 @@ void main() {
     );
 
     testWidgets(
+      'PDF: selecting hook or sources adds them to the appendix card (OUT-6)',
+      (tester) async {
+        // Same byte-size-differential technique as the test above. Mutation
+        // this catches: dropping the hook or the resolved `sourceLines` from
+        // the card handed to buildProgramPdf — the appendix would then be the
+        // same size as the formation-only one.
+        final cited = Dance(
+          id: 'd1',
+          title: 'Cited Reel',
+          hook: 'Opens with a long pass-through and a swing.',
+          figures: [
+            Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+          ],
+          sourceCitations: [
+            SourceCitation(sourceId: 'src1', page: '12', number: 'A1'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        );
+        final book = PublishedSource(
+          id: 'src1',
+          title: 'Give-and-Take, the long-titled collection of contra dances',
+          author: 'A. Author',
+          year: 1990,
+        );
+        final notifier = ValueNotifier<Set<DanceShareField>>({
+          DanceShareField.formation,
+        });
+        addTearDown(notifier.dispose);
+        final layouts = <LayoutCallback>[];
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceShareFieldsScope(
+              notifier: notifier,
+              child: Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    ProgramExportMenu(
+                      program: _program(
+                        slots: [
+                          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                        ],
+                      ),
+                      titleFor: _titles,
+                      danceFor: (_) => cited,
+                      publishedSourceFor: (id) => id == 'src1' ? book : null,
+                      shareInvoker: (params) async {},
+                      pdfLayouter: ({required name, required onLayout}) async =>
+                          layouts.add(onLayout),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        Future<int> exportBytes(Set<DanceShareField> fields) async {
+          notifier.value = fields;
+          await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Export / print PDF'));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const ValueKey('program-figures-prompt-set-list-and-figures'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('program-figures-prompt-confirm')),
+          );
+          await tester.pumpAndSettle();
+          return (await layouts.last(PdfPageFormat.a4)).length;
+        }
+
+        final base = await exportBytes({DanceShareField.formation});
+        final withHook = await exportBytes({
+          DanceShareField.formation,
+          DanceShareField.hook,
+        });
+        final withSources = await exportBytes({
+          DanceShareField.formation,
+          DanceShareField.sources,
+        });
+        expect(
+          withHook,
+          greaterThan(base),
+          reason: 'hook never reached the PDF',
+        );
+        expect(
+          withSources,
+          greaterThan(base),
+          reason: 'sources never reached the PDF',
+        );
+      },
+    );
+
+    testWidgets(
       'the "Set list and figures" per-dance card respects a deselected '
       'field (formation)',
       (tester) async {
