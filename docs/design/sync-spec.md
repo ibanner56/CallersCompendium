@@ -394,8 +394,9 @@ to replace the content on every peer that holds the tombstone.
 `R2-life2-retire`) to hide and blank such a record and not to retire it, so
 the "no retirement" rule above stands unchanged.*
 
-*Amended 2026-10-30 (LIFE-2 follow-up): the retention purge now blanks an
-expired published record too, as described above.*
+*Amended 2026-10-30 (LIFE-2 follow-up): the maintainer decided on 2026-10-30
+("Blank on retention too") that the retention purge blanks an expired published
+record as well, as described above.*
 
 `review_queue` requires a new review surface: `import_review_screen.dart`
 reviews dances only. A generic keep-both-or-merge list suffices; no per-kind

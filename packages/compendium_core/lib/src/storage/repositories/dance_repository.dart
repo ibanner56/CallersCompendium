@@ -2544,7 +2544,9 @@ class DanceRepository {
 
   /// Blanks published dances whose retention has run out, as "Permanently
   /// delete" would, so the retention setting applies on every device rather
-  /// than leaving shared items in the trash for good (LIFE-2 follow-up).
+  /// than leaving shared items in the trash for good (maintainer decision
+  /// 2026-10-30, "Blank on retention too": `maintainer-decisions-2026-10-30.md`,
+  /// "B7 / LIFE-2: retention auto-purge and items that have synced").
   ///
   /// Unlike [permanentlyDelete] this does **not** restamp `existence_at`.
   /// Expiry is not a new decision: the user deleted the dance when it went to
