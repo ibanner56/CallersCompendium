@@ -1720,6 +1720,10 @@
   "@settingsUpdatesAutoSubtitle": {
     "x-sourceSha256": "714fa486bfaec4f1907d33ca08c2096908d4bdb3ef3ed57405369ae3ced54400"
   },
+  "settingsUpdatesAutoStoreSubtitle": "アプリの起動時に、このバージョンのサポート終了日をバックグラウンドで確認します。初期設定ではオフです。",
+  "@settingsUpdatesAutoStoreSubtitle": {
+    "x-sourceSha256": "3a7d703804b7f49cf78065166a77bb567810a90345b58a283ded6683be7986b0"
+  },
   "settingsUpdatesPrivacyNote": "アップデート確認はHTTPS経由で小さなバージョンファイルをダウンロードするだけで、その他の情報は一切送信されません。ユーザー情報、デバイス情報、使用状況は送信されません。自動でダウンロードやインストールは行われません。アップデートのダウンロードはご自身で選択し、開く前に検証され、システムのインストーラーがインストールを完了します。",
   "@settingsUpdatesPrivacyNote": {
     "x-sourceSha256": "c8815fc787434dbbc8184498535e50532203e8bebe25e8ea4febae05cf99aafb"

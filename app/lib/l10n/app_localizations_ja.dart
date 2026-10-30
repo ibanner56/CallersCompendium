@@ -1786,6 +1786,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'アプリ起動時にバックグラウンドで新バージョンを確認します。デフォルトはオフです。';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'アプリの起動時に、このバージョンのサポート終了日をバックグラウンドで確認します。初期設定ではオフです。';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'アップデート確認はHTTPS経由で小さなバージョンファイルをダウンロードするだけで、その他の情報は一切送信されません。ユーザー情報、デバイス情報、使用状況は送信されません。自動でダウンロードやインストールは行われません。アップデートのダウンロードはご自身で選択し、開く前に検証され、システムのインストーラーがインストールを完了します。';
 

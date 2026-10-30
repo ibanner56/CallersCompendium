@@ -1892,6 +1892,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vérifie la disponibilité d’une nouvelle version en arrière-plan au démarrage. Désactivé par défaut.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Rechercher en arrière-plan, au démarrage de l\'application, une date de fin de prise en charge de cette version. Désactivé par défaut.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'La vérification des mises à jour télécharge uniquement un petit fichier de version via HTTPS — aucune donnée vous concernant, concernant votre appareil ou votre utilisation n’est jamais envoyée. Rien n’est téléchargé ni installé automatiquement : vous choisissez quand télécharger une mise à jour, celle-ci est vérifiée avant d’être ouverte, et votre programme d’installation système effectue l’installation.';
 

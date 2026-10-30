@@ -259,9 +259,14 @@ class UpdateController extends ChangeNotifier {
   /// Whether the automatic background check is enabled (default off).
   bool get autoCheck => _autoCheck;
 
-  /// The channel the check fetches, derived from [betaChannel].
-  UpdateChannel get channel =>
-      _betaChannel ? UpdateChannel.beta : UpdateChannel.stable;
+  /// The channel the check fetches, derived from [betaChannel]. A store copy
+  /// has no channel choice (it is never offered an update), so it reads the
+  /// channel its own build was released on, whatever a beta preference stored
+  /// before it was a store copy says.
+  UpdateChannel get channel {
+    final beta = offersUpdates ? _betaChannel : currentVersion.isPreRelease;
+    return beta ? UpdateChannel.beta : UpdateChannel.stable;
+  }
 
   /// The last version the user dismissed from the banner, or `null`.
   SemVer? get dismissedVersion => _dismissedVersion;

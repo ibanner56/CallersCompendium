@@ -1863,6 +1863,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Check for a newer version in the background when the app starts. Off by default.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Look for an end-of-support date for this version in the background when the app starts. Off by default.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'The update check downloads a small version file over HTTPS and nothing else — no data about you, your device, or your usage is ever sent. Nothing is downloaded or installed automatically: you choose when to download an update, it is verified before it opens, and your system installer completes the install.';
 

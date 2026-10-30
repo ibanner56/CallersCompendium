@@ -37,6 +37,7 @@ const _manifest = '''
   CompendiumRepositories repos,
   InstallKind kind, {
   UpdatePlatform platform = UpdatePlatform.windows,
+  String version = '0.1.0',
 }) {
   final fetched = <UpdateChannel>[];
   final controller = UpdateController(
@@ -49,7 +50,7 @@ const _manifest = '''
       signatureFetcher: (channel, {http.Client? client}) async => 'sig',
       signatureVerifier: (bytes, sig) async => true,
     ),
-    currentVersion: SemVer.tryParse('0.1.0'),
+    currentVersion: SemVer.tryParse(version),
     platform: platform,
     arch: UpdateArch.x64,
     installKind: kind,
@@ -180,9 +181,39 @@ void main() {
       expect(find.byKey(const ValueKey('updates-store')), findsOneWidget);
       expect(find.byKey(const ValueKey('updates-retirement')), findsOneWidget);
       expect(find.byKey(const ValueKey('updates-check-now')), findsNothing);
+      expect(find.byKey(const ValueKey('updates-beta-toggle')), findsNothing);
+      expect(find.byKey(const ValueKey('updates-auto-toggle')), findsOneWidget);
       expect(find.byKey(const ValueKey('updates-download')), findsNothing);
       expect(find.byKey(const ValueKey('updates-portable')), findsNothing);
     });
+
+    test(
+      'reads its own build\'s channel, not a stored beta preference',
+      () async {
+        final repos = openTestRepositories();
+        final stable = _make(repos, InstallKind.store);
+        addTearDown(stable.controller.dispose);
+        await stable.controller.load();
+        await stable.controller.setBetaChannel(true);
+        expect(stable.controller.channel, UpdateChannel.stable);
+
+        final beta = _make(
+          openTestRepositories(),
+          InstallKind.store,
+          version: '0.1.0-beta',
+        );
+        addTearDown(beta.controller.dispose);
+        await beta.controller.load();
+        expect(beta.controller.channel, UpdateChannel.beta);
+
+        // Other copies still follow the preference.
+        final standard = _make(openTestRepositories(), InstallKind.standard);
+        addTearDown(standard.controller.dispose);
+        await standard.controller.load();
+        await standard.controller.setBetaChannel(true);
+        expect(standard.controller.channel, UpdateChannel.beta);
+      },
+    );
 
     testWidgets('no update banner for a newer release', (tester) async {
       final repos = openTestRepositories();

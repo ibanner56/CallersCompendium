@@ -1884,6 +1884,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Controleer bij het opstarten op een nieuwere versie op de achtergrond. Standaard uitgeschakeld.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Zoek bij het opstarten van de app op de achtergrond naar een einddatum van de ondersteuning voor deze versie. Standaard uit.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'De updatecontrole downloadt alleen een klein versiebestand via HTTPS — er worden nooit gegevens over jou, je apparaat of je gebruik verstuurd. Er wordt niets automatisch gedownload of geïnstalleerd: jij kiest wanneer je een update downloadt, het wordt geverifieerd voordat het wordt geopend, en je systeeminstaller voltooit de installatie.';
 

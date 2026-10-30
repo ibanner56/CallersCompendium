@@ -1875,6 +1875,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Tjek for en nyere version i baggrunden, når appen starter. Fra som standard.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Led i baggrunden efter en dato for ophør af support for denne version, når appen starter. Slået fra som standard.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'Opdateringstjekket henter en lille versionsfil over HTTPS og intet andet – der sendes ingen oplysninger om dig, din enhed eller din brug. Intet hentes eller installeres automatisk: du vælger, hvornår du vil hente en opdatering, den verificeres inden den åbnes, og dit systeminstallationsprogram fuldfører installationen.';
 

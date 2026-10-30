@@ -1884,6 +1884,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Beim App-Start im Hintergrund nach einer neueren Version suchen. Standardmäßig deaktiviert.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Beim Start der App im Hintergrund nach einem Datum für das Ende der Unterstützung dieser Version suchen. Standardmäßig aus.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'Die Update-Prüfung lädt über HTTPS nur eine kleine Versionsdatei herunter – es werden keinerlei Daten über Sie, Ihr Gerät oder Ihre Nutzung übertragen. Es wird nichts automatisch heruntergeladen oder installiert: Sie entscheiden, wann ein Update heruntergeladen wird, es wird vor dem Öffnen verifiziert, und Ihr Systeminstallationsprogramm schließt die Installation ab.';
 

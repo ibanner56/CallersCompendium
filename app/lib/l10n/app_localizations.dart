@@ -2695,6 +2695,12 @@ abstract class AppLocalizations {
   /// **'Check for a newer version in the background when the app starts. Off by default.'**
   String get settingsUpdatesAutoSubtitle;
 
+  /// Subtitle of the automatic-background-check toggle on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update, so the check only looks for an end-of-support date.
+  ///
+  /// In en, this message translates to:
+  /// **'Look for an end-of-support date for this version in the background when the app starts. Off by default.'**
+  String get settingsUpdatesAutoStoreSubtitle;
+
   /// Privacy/behaviour paragraph reassuring the user how the update check and assisted download work.
   ///
   /// In en, this message translates to:
