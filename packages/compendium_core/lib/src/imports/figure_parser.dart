@@ -510,6 +510,10 @@ List<String> _normalize(
   var s = text.toLowerCase();
   if (recognitionNormalize != null) s = recognitionNormalize(s);
   s = s
+      // Caller's Companion's `R&L` is right and left through (maintainer
+      // decision, #1975); `Grand R&L` stays the grand right and left.
+      .replaceAll(_rAndLThrough, ' right and left through ')
+      .replaceAll(_rAndL, ' right and left ')
       .replaceAll('&', ' and ')
       .replaceAll('½', ' 1/2 ')
       .replaceAll('¼', ' 1/4 ')
@@ -519,10 +523,52 @@ List<String> _normalize(
       .map(_stripEdgePunct)
       .where((w) => w.isNotEmpty)
       .map((w) => w == 'thru' ? 'through' : w)
+      .map((w) => w == 'alle' ? 'allemande' : w)
       .toList();
+  _spellBareSides(words);
   _foldDancerNumbers(words);
   return words;
 }
+
+final RegExp _rAndL = RegExp(r'\br\s*&\s*l\b');
+final RegExp _rAndLThrough = RegExp(
+  r'(?<!\bgrand\s{1,8})\br\s*&\s*l\b(?!\s*(?:through|thru)\b)',
+);
+
+/// Spells a bare `l`/`r` as `left`/`right` straight after a move that takes a
+/// direction, hand or shoulder: `Circle L`, `pull by R`, `pass L`, `Slide L`,
+/// `Slice L`, `Zig L`, `Zag R`, `alle R`, `loop R`, `cross R`, `step R`
+/// (maintainer decision, #1975). Anywhere else a lone letter stays as written,
+/// so a position note such as `(Rob R, Lar L)` is not read as directions.
+void _spellBareSides(List<String> w) {
+  for (var i = 1; i < w.length; i++) {
+    final side = switch (w[i]) {
+      'l' => 'left',
+      'r' => 'right',
+      _ => null,
+    };
+    if (side == null) continue;
+    final before = w[i - 1];
+    final afterMove =
+        _sideTakingMoves.contains(before) ||
+        (before == 'by' && i >= 2 && w[i - 2] == 'pull');
+    if (afterMove) w[i] = side;
+  }
+}
+
+/// The move words a bare side directly after reads as a side (#1975).
+const Set<String> _sideTakingMoves = {
+  'circle',
+  'pass',
+  'slide',
+  'slice',
+  'zig',
+  'zag',
+  'allemande',
+  'loop',
+  'cross',
+  'step',
+};
 
 /// The neighbour words a following `0`–`4` folds onto, as `Neighbor 2` is the
 /// same dancer as the `N2` tag (#1971).
