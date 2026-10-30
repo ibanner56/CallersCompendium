@@ -1633,20 +1633,36 @@ final class CompendiumSyncStorage
       case SyncRecordKind.customFieldDef:
         return liveDanceCites('custom_field_values', 'field_id');
       case SyncRecordKind.difficultyLevel:
-        // Counts tombstoned dances too, unlike every other kind here: a deleted
-        // dance can be restored, so it still protects its level. This is the
-        // policy `DifficultyLevelRepository.delete` states (see its comment), so
-        // an inbound tombstone is held pending exactly when a local delete would
-        // be refused. Because a tombstoned dance counts, an inbound tombstone of
-        // the citing dance does not release the level either, and
-        // `ignoreInboundTombstones` has nothing to exclude for this kind.
-        final citations = _db.dances.id.count();
-        final counted =
-            await (_db.selectOnly(_db.dances)
-                  ..addColumns([citations])
-                  ..where(_db.dances.levelId.equals(recordId)))
-                .get();
-        return (counted.single.read(citations) ?? 0) > 0;
+        // Live owners only, as for every other kind here: a dance in Recently
+        // deleted does not hold its level (the maintainer's trash-policy
+        // decision, 2026-10-29, option b; sync-spec §6.8 as amended
+        // 2026-10-30). `DifficultyLevelRepository.delete` refuses on the same
+        // count, so an inbound tombstone is held pending exactly when a local
+        // delete would be refused. The level is named on the dance row itself
+        // rather than through a join table, so this is not [liveDanceCites];
+        // the excluded ids go in as one JSON array all the same.
+        final excluded = ignoreInboundTombstones
+            ? [
+                for (final address in _inboundTombstonedAddresses)
+                  if (address.kind == SyncRecordKind.dance) address.recordId,
+              ]
+            : const <String>[];
+        final row = await _db
+            .customSelect(
+              'SELECT EXISTS ('
+              'SELECT 1 FROM dances AS d '
+              'WHERE d.level_id = ? AND d.deleted_at IS NULL'
+              '${excluded.isNotEmpty ? ' AND d.id NOT IN (SELECT value FROM json_each(?))' : ''}'
+              ') AS cited',
+              variables: [
+                Variable.withString(recordId),
+                if (excluded.isNotEmpty)
+                  Variable.withString(jsonEncode(excluded)),
+              ],
+              readsFrom: {_db.dances},
+            )
+            .getSingle();
+        return row.read<int>('cited') != 0;
       case SyncRecordKind.venue:
         final rows = await (_db.select(
           _db.programs,

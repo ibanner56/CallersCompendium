@@ -45,7 +45,7 @@ they write immediately with Undo, and they create nothing.
 | Rename in the app | nowhere | the author details dialog, refused on a collision (`dance_editor_screen.dart:744-779`) | the source details dialog (`dance_editor_screen.dart:837-842`) |
 | Delete in the app | only an Undo of batch tagging removes an *unused* tag it created (`dance_list_screen.dart:1516-1538`) | nowhere | nowhere |
 | Merge in the app | only the sync review queue (`settings.md:1200-1225`) | the same | nowhere |
-| Purge GC | erased with the last dance (`dance_repository.dart:2251-2316`) | the same | the same |
+| Purge GC | erased with the last dance, unless it holds a detail (`_garbageCollectOrphanedRefs`) | the same | the same |
 
 Four details shape every proposal below.
 
@@ -66,12 +66,13 @@ Four details shape every proposal below.
    dance cites the row (`choreographer_repository.dart:267-291`,
    `published_source_repository.dart:143-161`). Dances in Recently deleted do
    not count, which already matches trash-policy (b).
-4. **The GC erases silently and only sometimes.** The retention purge erases
-   any author, source or tag that the purged dances were the last to cite, as
-   long as the row was never published to Device Sync
-   (`dance_repository.dart:2251-2316`). The GC takes a tag's colour, and an
-   author's email, location and notes, with it. Removing the same tag from
-   the same dance in the editor never removes the tag (LIFE-5).
+4. **The GC erased silently and only sometimes (LIFE-5; fixed by T4).** The
+   retention purge used to erase any author, source or tag that the purged
+   dances were the last to cite, as long as the row was never published to
+   Device Sync. That took a tag's colour, and an author's email, location and
+   notes, with it, while removing the same tag from the same dance in the
+   editor never removes the tag. It now erases only a *bare* row (see
+   [The purge GC](#the-purge-gc-life-5-option-c)).
 
 Two comments in the code describe a feature that does not exist. Both get
 fixed in the first branch below:
@@ -594,9 +595,16 @@ the user typed.
 - Imported details count as details. An author whose website came from a
   ContraDB import is spared too. The user chose that import.
 
-The doc comment on
-`_garbageCollectOrphanedRefs` (`dance_repository.dart:2194-2250`) and
-`storage.md:847-849` must describe the new rule.
+Implemented by T4: the three `DELETE`s in `_garbageCollectOrphanedRefs`
+carry a bare-row predicate, and its doc comment and `storage.md` ("Deletion is
+a tombstone, with two named exceptions") describe the rule. A text column
+counts as empty when it is NULL or blank, so a whitespace-only value is not a
+detail (my call: the editors normalise blanks to NULL, so this only matters
+for rows written by sync or import, and erring toward erasing a blank matches
+"bare"; rejected: a strict `IS NULL` test, which would spare a row that shows
+nothing). The rule applies to every caller of the GC, including `hardDelete`'s
+default, not only the retention purge; the import-undo path passes
+`gcOrphanedRefs: false` and is unchanged.
 
 ## The import-tags setting
 

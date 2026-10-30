@@ -158,6 +158,68 @@ Future<int> _existenceStamp(CompendiumDatabase db, String id) async {
 
 void main() {
   group('ArchiveExporter / ArchiveRestorer', () {
+    // The maintainer's trash-policy decision (2026-10-29, option b) lets a
+    // level be removed under a dance in Recently deleted. The backup carries
+    // live levels only, so that dance must travel without its level, or the
+    // codec reports an unknown reference and the backup cannot be restored.
+    test('a trashed dance whose level was removed backs up without it, and '
+        'the backup restores', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      final level = await repos.difficultyLevels.createCustom(
+        label: 'Challenge',
+        position: 3,
+      );
+      final stamp = DateTime.utc(2026);
+      await repos.dances.create(
+        Dance(
+          id: 'trashed',
+          title: 'Trashed',
+          difficultyLevelId: level.id,
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repos.dances.create(
+        Dance(
+          id: 'live',
+          title: 'Live',
+          difficultyLevelId: DifficultyLevel.beginner.id,
+          createdAt: stamp,
+          updatedAt: stamp,
+        ),
+      );
+      await repos.dances.softDelete('trashed', at: DateTime.utc(2026, 2));
+      await repos.difficultyLevels.delete(level.id, at: DateTime.utc(2026, 3));
+
+      final archive = await ArchiveExporter(
+        repos,
+      ).export(exportedAt: DateTime.utc(2026, 7, 15));
+      final decoded = decodeArchive(encodeArchive(archive));
+      expect(decoded.hasErrors, isFalse, reason: decoded.errors.join('\n'));
+      final byId = {for (final d in decoded.archive.dances) d.id: d};
+      expect(byId['trashed']!.difficultyLevelId, isNull);
+      expect(byId['trashed']!.isDeleted, isTrue);
+      expect(byId['live']!.difficultyLevelId, DifficultyLevel.beginner.id);
+
+      for (final mode in [RestoreMode.replace, RestoreMode.merge]) {
+        final targetDb = openTestDatabase();
+        addTearDown(targetDb.close);
+        final targetRepos = CompendiumRepositories(targetDb, contraTaxonomy);
+        final result = await ArchiveRestorer(
+          targetRepos,
+        ).restore(decoded.archive, mode: mode);
+        expect(result.hasErrors, isFalse, reason: '$mode: ${result.errors}');
+        final restored = await targetRepos.dances.getById(
+          'trashed',
+          includeDeleted: true,
+        );
+        expect(restored, isNotNull, reason: '$mode');
+        expect(restored!.difficultyLevelId, isNull, reason: '$mode');
+      }
+    });
+
     test(
       'dataset -> export -> restore(replace) -> export is identity',
       () async {

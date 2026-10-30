@@ -1014,6 +1014,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(controller.userFigureShorthands, isEmpty);
+      expect(find.textContaining('deleted.'), findsOneWidget);
     });
   });
 

@@ -58,6 +58,13 @@ the boundary used to be prose and prose did not hold — see
   of what the value *means* on another device, and must not travel by any route.
   Conflating the two is how a device-scoped value ends up in a backup.
 
+A field that should reach the owner's own devices and backups but not share
+files stays `shareable`: `deviceLocal` means never serialised and would stop
+Device Sync. Strip it in the share bundle builders
+(`app/lib/src/export/share_sanitization.dart`), not in the archive codec, whose
+share mode the import-side re-encodes also use, and say so in the note
+(`programs.pay_minor_units`, `dances.rating`).
+
 Record **why** in the entry's `note` whenever the call is not self-evident, and
 say who decided it if it was contested. A classification with no stated reason is
 indistinguishable from a guess.

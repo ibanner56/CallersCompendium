@@ -171,6 +171,8 @@ class _GlossaryCustomFigureDetailState
   }) async {
     final l10n = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
+    // Captured before the narrow layout pops this page below.
+    final messenger = ScaffoldMessenger.maybeOf(context);
     final repos = _repos!;
     // Read before anything is awaited: the delete can unmount this page (in
     // the wide Glossary it does).
@@ -249,6 +251,12 @@ class _GlossaryCustomFigureDetailState
     } else {
       await repos.userGlossary.delete(widget.entryId);
     }
+    messenger?.showSnackBar(
+      SnackBar(
+        key: const ValueKey('glossary-custom-deleted-snackbar'),
+        content: Text(l10n.commonDeletedSnack(name)),
+      ),
+    );
     if (!widget.showName && mounted) navigator.pop();
   }
 

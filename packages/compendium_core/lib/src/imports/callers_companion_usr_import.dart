@@ -310,7 +310,8 @@ class CallersCompanionUsrImporter {
   /// dedupe and OWASP-hardening rationale). A pair with an unresolved
   /// endpoint is skipped with a warning [ImportIssue] on
   /// [CcUsrImportResult.relatedDanceLinkIssues] — never a dangling
-  /// `targetDanceId`.
+  /// `targetDanceId`. A dance [batch] re-imports gets no links: a re-import
+  /// replaces only the choreography (INTAKE-7).
   ///
   /// **Dances committed earlier (the review's per-row Edit):**
   /// [earlierDanceIds] maps the CC `zk_Dance_ID` of each dance an earlier
@@ -588,6 +589,12 @@ class CallersCompanionUsrImporter {
           for (final r in danceSession.records)
             if (r.succeeded && r.danceId != null) r.danceId!,
         };
+        // A re-import replaces only a dance's choreography (INTAKE-7), so a
+        // dance this batch re-imported gets none of the file's links.
+        final reimportedDanceIds = {
+          for (final r in danceSession.records)
+            if (r.succeeded && r.action == CommitAction.reimport) r.danceId!,
+        };
         final linkResult = buildCcRelatedDanceLinks(
           archive,
           danceIdByCcRowId: danceIdByCcRowId,
@@ -596,6 +603,7 @@ class CallersCompanionUsrImporter {
         );
         relatedDanceLinkIssues.addAll(linkResult.issues);
         for (final entry in linkResult.newLinksByDanceId.entries) {
+          if (reimportedDanceIds.contains(entry.key)) continue;
           final dance = dancesById[entry.key];
           if (dance == null) continue; // fetched dance vanished; skip safely
           if (!sessionDanceIds.contains(entry.key)) {
@@ -1140,10 +1148,11 @@ class CallersCompanionUsrImporter {
     return above >= 0 ? above : order.length;
   }
 
-  /// Removes level [id] when no dance uses it, permanently for one this
+  /// Removes level [id] when no live dance uses it, permanently for one this
   /// import created or back to a tombstone for one it restored, and reports
-  /// whether it did. A tombstoned dance still counts as a use: it can be
-  /// restored.
+  /// whether it did. A dance in Recently deleted does not count as a use (the
+  /// trash does not protect); `hardDelete` tombstones rather than erases a
+  /// level such a dance still names.
   Future<bool> _removeUnusedLevel(String id, {required bool permanent}) async {
     if (permanent) {
       if (await _levels.isInUse(id)) return false;

@@ -194,6 +194,11 @@ class CustomFieldDefRepository {
                 def.id;
       final heldBefore = fromSync ? null : await _publishesValues(id);
       final indexedBefore = fromSync ? null : await _indexesValues(id);
+      final typeBefore = fromSync
+          ? null
+          : (await (_db.select(
+              _db.customFieldDefs,
+            )..where((t) => t.id.equals(id))).getSingleOrNull())?.type;
       await _db
           .into(_db.customFieldDefs)
           .insertOnConflictUpdate(
@@ -226,6 +231,16 @@ class CustomFieldDefRepository {
           key: id,
           at: now,
         );
+        if (typeBefore != null) {
+          await _dropTrashedValuesThatNoLongerFit(
+            id,
+            typeBefore: typeBefore,
+            type: def.type,
+            choices: choices,
+            restamp: heldBefore!,
+            at: now,
+          );
+        }
         // The upsert leaves the row live, so it publishes values exactly when
         // it is shareable.
         if (heldBefore != def.shareable) await _restampDancesHolding(id, now);
@@ -245,6 +260,86 @@ class CustomFieldDefRepository {
       }
       return id;
     });
+  }
+
+  /// Deletes the values that dances in Recently deleted hold for field [id]
+  /// once a local write (an edit, an import, a merge restore; never an inbound
+  /// sync write) has left them no longer fitting it: every such value when the
+  /// type changed from [typeBefore] to [type] (other than between text and
+  /// choice, which store the same text; number and boolean are dropped too,
+  /// since a number read as a boolean changes the value), and, for a choice
+  /// field, any value that is not one of [choices].
+  ///
+  /// The trash does not protect what its records use (the maintainer's
+  /// trash-policy decision, 2026-10-29, option b), so [isInUse] and
+  /// [listUsedChoiceValues] let a field change under a trashed dance. Its value
+  /// cannot stay: `encodeCustomFieldValue` refuses a value that does not match
+  /// its field, so restoring the dance and saving it would fail, as would a
+  /// backup restore or a peer's inbound check of its body, and a text value
+  /// under a number type does not even decode. Only trashed dances are touched:
+  /// a live dance's value locks the type and its choice in the editor, and this
+  /// write is not where that is enforced.
+  ///
+  /// When the field published its values before this write ([restamp]), each
+  /// affected dance's wire body loses one, so its `updated_at` advances as
+  /// [_restampDancesHolding] does (sync-spec §6.5 I1). A dance whose value is
+  /// kept is not restamped: its body is unchanged.
+  Future<void> _dropTrashedValuesThatNoLongerFit(
+    String id, {
+    required CustomFieldType typeBefore,
+    required CustomFieldType type,
+    required List<String>? choices,
+    required bool restamp,
+    required DateTime at,
+  }) async {
+    const textual = {CustomFieldType.text, CustomFieldType.choice};
+    final typeKept =
+        typeBefore == type ||
+        (textual.contains(typeBefore) && textual.contains(type));
+    if (typeKept && type != CustomFieldType.choice) return;
+    final values = _db.customFieldValues;
+    final trashedHolders = _db.select(values).join([
+      // sync-invariant-exception: soft-delete-join reads only tombstoned dances, whose values this drop is for.
+      innerJoin(
+        _db.dances,
+        _db.dances.id.equalsExp(values.danceId) &
+            _db.dances.deletedAt.isNotNull(),
+        useColumns: false,
+      ),
+    ])..where(values.fieldId.equals(id));
+    final rows = [
+      for (final row in await trashedHolders.get()) row.readTable(values),
+    ];
+    final dropped = [
+      for (final row in rows)
+        if (!typeKept || !(choices ?? const []).contains(row.valueText))
+          row.danceId,
+    ];
+    if (dropped.isEmpty) return;
+    // One JSON array rather than an `IN (?, ?, ...)` list, so a large trash
+    // cannot outgrow SQLite's variable limit.
+    final droppedJson = jsonEncode(dropped);
+    await _db.customUpdate(
+      'DELETE FROM custom_field_values '
+      'WHERE field_id = ? AND dance_id IN (SELECT value FROM json_each(?))',
+      variables: [Variable<String>(id), Variable<String>(droppedJson)],
+      updates: {values},
+      updateKind: UpdateKind.delete,
+    );
+    if (!restamp) return;
+    // normalization-structure-exempt: writes `updated_at` only, no shareable
+    // text.
+    await _db.customUpdate(
+      // sync-invariant-exclusion: join-hydrated-body the dance body loses a custom-field value its field definition no longer admits.
+      'UPDATE dances SET updated_at = MAX(updated_at + 1, ?) '
+      'WHERE id IN (SELECT value FROM json_each(?))',
+      variables: [
+        Variable<int>(unixSeconds(at)),
+        Variable<String>(droppedJson),
+      ],
+      updates: {_db.dances},
+      updateKind: UpdateKind.update,
+    );
   }
 
   /// Whether definition [id] currently lets its values onto the wire: a live,
@@ -345,31 +440,44 @@ class CustomFieldDefRepository {
           .watch()
           .map((rows) => [for (final row in rows) ?toModel(row)]);
 
-  /// Returns `true` if any dance currently has a value for field [id].
+  /// Returns `true` if any **live** dance has a value for field [id]; the
+  /// editor locks the field's type and key while it does.
   ///
-  /// Uses a `LIMIT 1` query so it short-circuits on the first match and avoids
-  /// loading the full dance collection.
-  Future<bool> isInUse(String id) async {
-    final row =
-        await (_db.select(_db.customFieldValues)
-              ..where((t) => t.fieldId.equals(id))
-              ..limit(1))
-            .getSingleOrNull();
-    return row != null;
-  }
+  /// A dance in Recently deleted does not count: the trash does not protect
+  /// what its records use (the maintainer's trash-policy decision, 2026-10-29,
+  /// option b). Its value is dropped instead if an edit leaves it no longer
+  /// fitting the field; see [_dropTrashedValuesThatNoLongerFit].
+  Future<bool> isInUse(String id) async =>
+      await liveDanceCitationCount(
+        _db,
+        joinTable: _db.customFieldValues,
+        keyColumn: _db.customFieldValues.fieldId,
+        danceIdColumn: _db.customFieldValues.danceId,
+        id: id,
+      ) >
+      0;
 
-  /// Returns all distinct text values currently stored for field [id].
+  /// Returns all distinct text values that **live** dances hold for field [id].
   ///
   /// For `choice` fields this tells you which choices are in use so the editor
-  /// can block their removal.
+  /// can block their removal. A value only a dance in Recently deleted holds
+  /// does not block it, as for [isInUse].
   Future<Set<String>> listUsedChoiceValues(String id) async {
-    final rows = await (_db.select(
-      _db.customFieldValues,
-    )..where((t) => t.fieldId.equals(id))).get();
-    return {
-      for (final r in rows)
-        if (r.valueText != null) r.valueText!,
-    };
+    final values = _db.customFieldValues;
+    final rows =
+        await (_db.selectOnly(values, distinct: true)
+              ..addColumns([values.valueText])
+              ..join([
+                innerJoin(
+                  _db.dances,
+                  _db.dances.id.equalsExp(values.danceId) &
+                      _db.dances.deletedAt.isNull(),
+                  useColumns: false,
+                ),
+              ])
+              ..where(values.fieldId.equals(id) & values.valueText.isNotNull()))
+            .get();
+    return {for (final row in rows) row.read(values.valueText)!};
   }
 
   /// Throws [CustomFieldInUseException] if any live dance still has a value for

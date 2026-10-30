@@ -647,6 +647,13 @@ is no longer any code path that migrates from them.
   discarded. The foreign key and repository write guard reject dangling IDs;
   repository deletion is transactional and refuses a level used by any dance,
   including a tombstoned dance that could be restored later.
+  *Amended 2026-10-30:* deletion now refuses only a level a **live** dance
+  uses. By the maintainer's trash-policy decision (2026-10-29, option b), a
+  dance in Recently Deleted no longer protects its level, as it already did not
+  protect its tags, authors, sources, custom fields or venue. Such a dance keeps
+  its `level_id`, naming the tombstoned row. Because the foreign key has no
+  `ON DELETE` action, `DifficultyLevelRepository.hardDelete` (an import's
+  rollback) tombstones rather than erases a level only such a dance names.
 ### Supported (v35 and later)
 
 These are the versions a database can still be stamped at. v35 is the floor:
@@ -681,10 +688,11 @@ database already carries it. The steps that can still fire are v36 onward.
   program, as integer minor units so no floating point is stored. The two are
   set together or not at all and the amount is never negative (enforced by
   `Program` and by archive decode); NULL in both (every existing row) means no
-  pay recorded. Shareable, so it syncs and is exported in archives (program
-  share files included, so it reaches other people), but it is
-  not part of the shared program text or PDF and `Program.duplicate` does not
-  copy it. A backup holding pay or a v37 dialect name is written under backup
+  pay recorded. Shareable, so it syncs and is exported in archives and
+  backups, but share files (program share file and Export JSON) omit it
+  (`sanitizeProgramForShare`, maintainer decision R2-out2-export,
+  2026-10-30), and it is not part of the shared program text or PDF and
+  `Program.duplicate` does not copy it. A backup holding pay or a v37 dialect name is written under backup
   envelope v2 (`backupSchemaVersionProgramPay`), so 0.5.2 to 0.5.4 refuse it
   instead of restoring it without them; the core archive version is unchanged,
   so share files are not affected (#1885). Additive `addColumn`s; no back-fill
@@ -851,7 +859,12 @@ rather than deletions:
   already-synced import is a partial rollback by construction.
 - `DanceRepository`'s orphaned-reference GC (#462), which runs inside the
   retention purge and collects reusable rows the purge left unreferenced.
-  Nobody deleted those; they went away as a side effect.
+  Nobody deleted those; they went away as a side effect. Only *bare* rows go
+  (N2-6 (b)): a tag with a colour, an author with a website, notes, email,
+  location or deceased mark, or a source with an author, year, URL or notes
+  survives, unused. The user removes it in the Library managers (N2-T2 and
+  N2-T3), which have not shipped yet; until then only a tag's Undo path deletes
+  a reference row in the app.
 
 **Two consequences follow from soft delete, and both are load-bearing:**
 
@@ -941,7 +954,12 @@ around both rules above rather than through them:
 - All writes in transactions via repository layer; dance/program soft deletes
   purge after a configurable retention (default 30 days) via startup sweep,
   except for rows Device Sync has published: those are retained as tombstones
-  indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1). The
+  indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1), and
+  once expired are **blanked** as Permanently delete blanks them (next bullet),
+  except that `existence_at` is left alone (a tie between tombstones takes the
+  mark, `sync-spec.md` §6.4), and the records citing a dance are not rewritten
+  (a cited dance keeps its title until nothing cites it); `sync-spec.md` §3.2
+  gives the reasons. The
   six kinds that became soft-deletable in v25 have no retention sweep yet:
   their tombstones accumulate until Device Sync, which owns retention, adds
   one.
@@ -955,7 +973,8 @@ around both rules above rather than through them:
   retirement). Program slots and related-dance links that cited a blanked dance
   get what a purge would leave them, and their owners are restamped. A startup
   sweep finishes every marked row whatever the retention setting, which also
-  blanks rows marked by builds that predate blanking. See
+  blanks rows marked by builds that predate blanking; being automatic and
+  pre-sync, it leaves citers alone and a cited dance keeps its title. See
   `lib/src/storage/permanent_deletion.dart`.
 
 ### Migration safety (app-layer preflight)
@@ -970,7 +989,7 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
 - **Downgrade protection.** If the file's version is *higher* than the running
   schema (it was written by a newer build), the preflight refuses to open it and
   routes to the `AppBootstrap` error screen ("created by a newer version …
-  please update the app"). drift is forward-only with no `onDowngrade`, so
+  Update the app, then reopen it"). drift is forward-only with no `onDowngrade`, so
   migrating such a file would silently stamp the version down and risk
   corruption; a belt-and-suspenders guard in `MigrationStrategy.onUpgrade`
   (`from > to` throws) backstops any open path that bypasses the preflight.
@@ -1017,3 +1036,18 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   the snapshot is stamped at the older `user_version`, opening it with the build
   that created the backup migrates it forward again; if the migration itself was
   the problem, open it with the matching older app version instead.
+
+**The four terminal startup screens (amendment, 2026-10-30).** The downgrade,
+below-floor, snapshot-aborted and relocation-blocked outcomes above each render
+a terminal `AppBootstrap` screen. Every one offers **Copy details** and a link
+to the Releases page; none offers Retry or a "Check again". Copy details is the
+error's type, typed discriminators (storage versions, the failure cause or
+reason as an enum name, each conflicting copy's folder and size) and the stack
+scrubbed by `CrashRedactor`; it never includes the error's own message, which
+can carry a path or text from the database that just failed (CWE-209). The
+reason for no re-run (maintainer decision R2-check-again, 2026-10-30): whatever
+the caller does to clear the cause, the app has to be reopened afterwards, so
+each screen's copy says to reopen it. A re-run could succeed for the last two
+outcomes (the caller frees disk space, or moves a copy aside), so this was a
+choice rather than a necessity; it was rejected to keep these screens strictly
+terminal.

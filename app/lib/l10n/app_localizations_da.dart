@@ -89,8 +89,25 @@ class AppLocalizationsDa extends AppLocalizations {
       'Detaljer blev også skrevet til diagnostiklogget i appens supportmappe.';
 
   @override
+  String get appBootstrapReleasesLink => 'Åbn Releases-siden';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Dine data bruger lagringsformat $fileVersionString. Denne version af appen kan læse op til format $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'Disse data blev oprettet med en nyere version af Caller’s Compendium — opdatér appen.';
+      'Disse data blev oprettet med en nyere version af Caller’s Compendium. Opdatér appen, og åbn den derefter igen.';
 
   @override
   String get migrationRelocationBothExist =>
@@ -3077,7 +3094,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.';
+      'Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Med enhedssynkronisering gælder det på alle dine enheder: et delt element ryddes overalt, og kun en lille sletningspost bliver tilbage. Aldrig bevarer dem, indtil du renser manuelt.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3694,7 +3711,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Vis danse tagget „$tagName“';
+    return 'Føj „$tagName“ til filtrene i Samling';
   }
 
   @override
@@ -3799,6 +3816,24 @@ class AppLocalizationsDa extends AppLocalizations {
   String collectionSelectedCount(int count) {
     return '$count valgt';
   }
+
+  @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Vælg alle $count';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Fravælg alle $count';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected valgt ($hidden ikke vist)';
+  }
+
+  @override
+  String get collectionDeselectNotShown => 'Fravælg dem, der ikke vises';
 
   @override
   String get collectionAddTags => 'Tilføj tags';
@@ -4100,6 +4135,23 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Uden tags';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Krav til tags';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'Alle tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Vis danse, der har alle de valgte tags';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Mindst ét tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Vis danse, der har mindst ét af de valgte tags';
 
   @override
   String get collectionFacetSource => 'Kilde';

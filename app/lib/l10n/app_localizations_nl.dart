@@ -90,8 +90,25 @@ class AppLocalizationsNl extends AppLocalizations {
       'De details zijn ook naar het diagnoselogboek in de supportmap van de app geschreven.';
 
   @override
+  String get appBootstrapReleasesLink => 'Releases-pagina openen';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Je gegevens gebruiken opslagformaat $fileVersionString. Deze versie van de app leest tot en met formaat $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium — werk de app bij.';
+      'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij en open haar daarna opnieuw.';
 
   @override
   String get migrationRelocationBothExist =>
@@ -3102,7 +3119,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Nooit bewaart ze totdat je ze handmatig opschoont.';
+      'Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Met apparaatsynchronisatie geldt dit op al je apparaten: een gedeeld item wordt overal leeggemaakt en alleen een kleine verwijderingsnotitie blijft over. Nooit bewaart ze totdat je ze handmatig opschoont.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3722,7 +3739,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Dansen met tag “$tagName” tonen';
+    return '“$tagName” toevoegen aan de filters van de Collectie';
   }
 
   @override
@@ -3826,6 +3843,24 @@ class AppLocalizationsNl extends AppLocalizations {
   String collectionSelectedCount(int count) {
     return '$count geselecteerd';
   }
+
+  @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Alle $count selecteren';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Alle $count deselecteren';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected geselecteerd ($hidden niet getoond)';
+  }
+
+  @override
+  String get collectionDeselectNotShown => 'Niet-getoonde deselecteren';
 
   @override
   String get collectionAddTags => 'Tags toevoegen';
@@ -4129,6 +4164,23 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Zonder tags';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Tags matchen';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'Alle tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Dansen tonen die alle gekozen tags hebben';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Minstens één tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Dansen tonen die minstens één van de gekozen tags hebben';
 
   @override
   String get collectionFacetSource => 'Bron';

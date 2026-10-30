@@ -55,6 +55,9 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 ; Allow a per-user install without elevation if the user chooses.
 PrivilegesRequiredOverridesAllowed=dialog
+; The [Registry] entries below register the .ccshare file type; this tells
+; Explorer to pick them up at the end of setup and uninstall.
+ChangesAssociations=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -69,6 +72,18 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+
+[Registry]
+; The .ccshare file type (PLAT-3). Double-clicking one starts the app with the
+; path as its only argument; a running app is asked to open it instead. HKA is
+; HKLM for an all-users install and HKCU for a per-user one. The app checks the
+; path and only ever opens import review with it.
+; tools/release/test_windows_file_association.py pins these entries.
+Root: HKA; Subkey: "Software\Classes\.ccshare"; ValueType: string; ValueName: ""; ValueData: "CallersCompendium.Share"; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\.ccshare\OpenWithProgids"; ValueType: string; ValueName: "CallersCompendium.Share"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\CallersCompendium.Share"; ValueType: string; ValueName: ""; ValueData: "Caller's Compendium share file"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\CallersCompendium.Share\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKA; Subkey: "Software\Classes\CallersCompendium.Share\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

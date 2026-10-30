@@ -134,8 +134,8 @@ Future<Uint8List> readCappedBytes(
 /// Reads [file]'s raw bytes, failing closed via [readCappedBytes] if the file
 /// exceeds [maxBytes]. Consumes [XFile.openRead] so the cap is enforced *while*
 /// reading — an oversized (or mid-read growing) file is never fully buffered,
-/// unlike a `length()`-then-`readAsBytes()` check, which trusts a stale length
-/// and still allocates the whole file. [XFile.length] is consulted only to size
+/// unlike checking `length()` and then reading the whole file, which trusts a
+/// stale length and still allocates the whole file. [XFile.length] is consulted only to size
 /// the buffer up front (see [readCappedBytes]'s `sizeHint`), never to decide
 /// whether the file is acceptable. Split out from [pickImportUsrFile] so the cap
 /// is unit-testable without the native picker (tests inject an [XFile] + a small

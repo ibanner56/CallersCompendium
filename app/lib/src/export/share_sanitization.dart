@@ -41,6 +41,23 @@ Choreographer sanitizeChoreographerForShare(Choreographer choreographer) =>
       deceased: false,
     );
 
+/// Withholds the caller's private evaluation of a [Dance] from a **share
+/// file**: the curatorial star rating (`dances.rating`).
+///
+/// The rating stays `shareable` in the registry because Device Sync and Backup
+/// carry it, by the maintainer's decision (R2-out2-export, 2026-10-30): "sync
+/// and Backup keep them; share files drop them". Egress class cannot express
+/// that split, so the strip lives here, in the share bundles, rather than in
+/// the archive codec's share mode, which the import-side re-encodes also use.
+Dance sanitizeDanceForShare(Dance dance) =>
+    dance.rating == null ? dance : dance.copyWith(clearRating: true);
+
+/// Withholds the caller's private business details of a [Program] from a
+/// **share file**: pay (amount and currency) and the Perform dialect name.
+/// See [sanitizeDanceForShare] for why this is not an egress class.
+Program sanitizeProgramForShare(Program program) =>
+    program.copyWith(clearPay: true, clearDialectName: true);
+
 /// The six contact-person PII fields on a [Venue] (the two contacts' name,
 /// phone, and email). These identify a specific person to reach about the
 /// venue, so they are treated as private and are OMIT-BY-DEFAULT in any

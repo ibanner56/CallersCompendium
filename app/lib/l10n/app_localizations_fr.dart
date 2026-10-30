@@ -91,8 +91,26 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les détails ont aussi été écrits dans le journal de diagnostic, dans le dossier de support de l’application.';
 
   @override
+  String get appBootstrapReleasesLink =>
+      'Ouvrir la page des versions (Releases)';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Vos données utilisent le format de stockage $fileVersionString. Cette version de l’application lit jusqu’au format $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'Ces données ont été créées avec une version plus récente de Caller’s Compendium — veuillez mettre à jour l\'application.';
+      'Ces données ont été créées avec une version plus récente de Caller’s Compendium. Mettez à jour l’application, puis rouvrez-la.';
 
   @override
   String get migrationRelocationBothExist =>
@@ -3132,7 +3150,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Les danses et programmes supprimés sont conservés pendant cette durée avant d’être définitivement supprimés au lancement de l’application. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.';
+      'Les danses et programmes supprimés sont conservés pendant cette durée avant d’être définitivement supprimés au lancement de l’application. Avec la synchronisation des appareils, cela s’applique à tous vos appareils : un élément partagé est vidé partout, seule une petite trace de suppression subsiste. « Jamais » les conserve jusqu’à ce que vous les purgiez manuellement.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3751,7 +3769,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Afficher les danses étiquetées « $tagName »';
+    return 'Ajouter « $tagName » aux filtres de la Collection';
   }
 
   @override
@@ -3858,6 +3876,25 @@ class AppLocalizationsFr extends AppLocalizations {
   String collectionSelectedCount(int count) {
     return '$count sélectionné(s)';
   }
+
+  @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Tout sélectionner ($count)';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Tout désélectionner ($count)';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected sélectionné(s) ($hidden non affiché(s))';
+  }
+
+  @override
+  String get collectionDeselectNotShown =>
+      'Désélectionner ceux qui ne sont pas affichés';
 
   @override
   String get collectionAddTags => 'Ajouter des tags';
@@ -4161,6 +4198,23 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Sans tag';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Correspondance des tags';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'Tous les tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Afficher les danses qui ont tous les tags choisis';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Au moins un';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Afficher les danses qui ont au moins un des tags choisis';
 
   @override
   String get collectionFacetSource => 'Source';

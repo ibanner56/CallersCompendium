@@ -38,7 +38,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   list/detail split-pane breakpoint (e.g. a tablet rotation), which used to
   discard the list's state.
 - Search bar = unified FTS; **filter panel** for structured search: formation,
-  progression, author, tunes, tags (with an "Untagged" chip), calling history
+  progression, author, tunes, tags (with an "Untagged" chip, and an "All tags
+  / Any tag" choice once two are picked, FIND-14), calling history
   (Called / Not called), custom fields, and figure queries ("contains
   petronella in B1", "chain **then** swing") built with a friendly query
   builder (ContraDB ez-query lesson: common cases one-tap, advanced tree
@@ -55,7 +56,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   detail page's tag chip selects one) stays visible until it is cleared, so no
   control-less filter can narrow the list. When every available section is
   hidden the panel says so rather than reporting an empty collection.
-- Actions: new dance, import, duplicate, batch tag. Each row's ⋮ menu also
+- Actions: new dance, import, duplicate, batch tag (with Select all over the
+  current results; picks a search hides stay selected and are counted as "not
+  shown", N4). Each row's ⋮ menu also
   offers Duplicate, Add to program, Add tags (one dance, same picker and Undo
   as batch tag) and Delete (#1416).
 

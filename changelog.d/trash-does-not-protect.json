@@ -1,0 +1,14 @@
+{
+  "id": "trash-does-not-protect",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A dance in Recently deleted no longer keeps you from removing a difficulty level, changing a custom field's type, or removing one of a choice field's options. Every such check now counts only the dances and programs you haven't deleted, as venues, tags and the others already did. If you change a field's type, or remove an option, a deleted dance whose value no longer fits loses it. A deleted dance whose level you then removed is backed up without a level, and shared in a program without it unless the level ships with the app."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`DifficultyLevelRepository.isInUse`, `referenceCount` and `delete`, and `CustomFieldDefRepository.isInUse` and `listUsedChoiceValues`, count live dances only. Device Sync holds an inbound difficulty-level tombstone pending only while a live dance cites the level (sync-spec §6.8, amended). `DifficultyLevelRepository.hardDelete` refuses a level a live dance uses and tombstones one only a trashed dance names. Any local (non-sync) custom-field write, including a merge restore, drops the values trashed dances hold that no longer fit its new type or options, and restamps those dances when the field published them. `ArchiveExporter.export` clears `difficultyLevelId` on a tombstoned dance whose level is not live, so the backup stays restorable."
+    ]
+  }
+}

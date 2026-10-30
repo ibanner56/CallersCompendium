@@ -1582,7 +1582,7 @@ void main() {
     },
   );
 
-  test('holds an inbound difficulty-level tombstone pending while only a '
+  test('applies an inbound difficulty-level tombstone while only a '
       'tombstoned dance cites the level', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);
     final level = await repositories.difficultyLevels.createCustom(
@@ -1599,8 +1599,9 @@ void main() {
       ),
     );
     await repositories.dances.softDelete('deleted-dance', at: stamp);
-    // The local guard agrees: a dance in Recently Deleted still holds it.
-    expect(await repositories.difficultyLevels.isInUse(level.id), isTrue);
+    // The local guard agrees: a dance in Recently Deleted does not hold it
+    // (trash-policy (b); sync-spec §6.8 as amended 2026-10-30).
+    expect(await repositories.difficultyLevels.isInUse(level.id), isFalse);
 
     final tombstone = level.copyWith();
     await const SyncApplyEngine().apply(
@@ -1619,6 +1620,55 @@ void main() {
       storage: storage,
     );
 
+    // Tombstoned, not erased: the trashed dance still names the row.
+    final row = await (db.select(
+      db.difficultyLevels,
+    )..where((t) => t.id.equals(level.id))).getSingle();
+    expect(row.deletedAt, isNotNull);
+    final danceRow = await (db.select(
+      db.dances,
+    )..where((t) => t.id.equals('deleted-dance'))).getSingle();
+    expect(danceRow.levelId, level.id);
+    final pending = await repositories.syncLocal.listPendingDeletions();
+    expect(
+      pending.map((p) => (p.kind, p.recordId)),
+      isNot(contains((SyncRecordKind.difficultyLevel, level.id))),
+    );
+  });
+
+  test('holds a difficulty-level tombstone pending while a live dance cites '
+      'it', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final level = await repositories.difficultyLevels.createCustom(
+      label: 'Sizzling',
+      position: 99,
+    );
+    await repositories.dances.create(
+      Dance(
+        id: 'live-dance',
+        title: 'Live dance',
+        difficultyLevelId: level.id,
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+
+    await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: level.id,
+            updatedAt: stamp,
+            deletedAt: stamp,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.difficultyLevel, level),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
     final row = await (db.select(
       db.difficultyLevels,
     )..where((t) => t.id.equals(level.id))).getSingle();
@@ -1630,7 +1680,7 @@ void main() {
     );
   });
 
-  test('holds a difficulty-level tombstone pending when its citing dance is '
+  test('applies a difficulty-level tombstone when its citing dance is '
       'tombstoned in the same batch', () async {
     final stamp = DateTime.utc(2025, 1, 2, 12);
     final later = DateTime.utc(2025, 1, 3, 12);
@@ -1647,8 +1697,9 @@ void main() {
     );
     await repositories.dances.create(dance);
 
-    // A peer deletes the dance and its level together. The dance is
-    // restorable, so the level it cites must survive the batch.
+    // A peer deletes the dance and its level together. The trash does not
+    // protect, so the level goes too: `ignoreInboundTombstones` excludes the
+    // dance the same batch tombstones.
     await const SyncApplyEngine().apply(
       candidates: [
         SyncMergeCandidate(
@@ -1679,14 +1730,15 @@ void main() {
       db.dances,
     )..where((t) => t.id.equals(dance.id))).getSingle();
     expect(danceRow.deletedAt, isNotNull);
+    expect(danceRow.levelId, level.id);
     final levelRow = await (db.select(
       db.difficultyLevels,
     )..where((t) => t.id.equals(level.id))).getSingle();
-    expect(levelRow.deletedAt, isNull);
+    expect(levelRow.deletedAt, isNotNull);
     final pending = await repositories.syncLocal.listPendingDeletions();
     expect(
       pending.map((p) => (p.kind, p.recordId)),
-      contains((SyncRecordKind.difficultyLevel, level.id)),
+      isNot(contains((SyncRecordKind.difficultyLevel, level.id))),
     );
   });
 

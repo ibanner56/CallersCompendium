@@ -81,8 +81,11 @@ the full picture.
 
 - **Keep deleted items for** — choose **30 days**, **90 days**, or **Never**
   (default is **30 days**). Deleted dances and deleted programs are held for
-  this long and then purged, except one that [Device Sync](#device-sync) has
-  already shared, which stays until you delete it permanently. Choosing
+  this long and then purged. If you use [Device Sync](#device-sync), the
+  setting syncs and applies on all your devices: when a shared item's time is
+  up, its content is erased everywhere, as if you had deleted it permanently,
+  and only a small deletion record is kept (with the dance's title, while a
+  program or another dance still includes it). Choosing
   **Permanently delete** on one item in **Recently deleted** removes only that
   item. For how soft-delete and restore
   work, see [Collection & search](./collection.md).
@@ -133,7 +136,8 @@ Perform mode, and calling history.
   are on). Deleting a venue is permanent — unlike a deleted dance, it isn't held
   for later restore. To keep you from stranding a program, a venue can't be
   deleted while any program is still linked to it; change or remove the venue on
-  those programs first, then delete it.
+  those programs first, then delete it. A program in **Recently deleted**
+  doesn't count, so it won't stop you deleting the venue.
 
 Whether the toggle is on or off, a program that's linked to a saved venue always
 shows and exports that venue's full details (the linked record wins over free
@@ -463,9 +467,11 @@ open this group. You can override any of them per dance, and
 - **Level** — open this to manage the difficulty levels used by dance editors,
   collection filters, and batch actions. Add a level, rename it, or drag it into
   a different position; renaming keeps existing dances attached to that level.
-  A level can't be removed while any dance uses it — including a dance waiting
-  in **Recently deleted**. Once no dance uses it, you can remove any level, including
-  the ones that ship with the app. Removing a level asks nothing first and shows
+  A level can't be removed while any dance uses it. A dance in **Recently
+  deleted** doesn't count, so it won't stop you removing a level; that dance is
+  then backed up without a level, and shared without one unless the level was
+  one that ships with the app. Once no dance
+  uses it, you can remove any level, including the ones that ship with the app. Removing a level asks nothing first and shows
   **Undo** for a few seconds, which puts the level back in its place.
 - **Type**, **Formation**, and **Progression** — the starting choices for a new
   dance.
@@ -603,8 +609,12 @@ still lets you try to export or clear it.
 
 - **Include full detail (may contain your content)** — **off by default**. Left
   off, the export removes the text of error messages, your content, file paths,
-  email addresses, and phone numbers. Turn it on only when you mean to share the
-  full, unredacted log.
+  email addresses, and phone numbers. The one exception is the short, fixed
+  description the app itself writes for a failed update download, online import
+  or published-collection download (such as a timeout or an HTTP status
+  code), which has no content or path in it and stays, so a report can tell a
+  timeout from a 404. Turn it on only when you mean to share the full,
+  unredacted log.
 - **Export / share log** — hands the log to your system's share or save dialog.
   The row tells you which kind you're about to send: a scrubbed copy safe to
   attach to a bug report, or the full unredacted log. If the app can't prepare a

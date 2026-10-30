@@ -857,6 +857,7 @@ void main() {
         [for (final c in controller.compoundShorthands) c.token],
         ['other'],
       );
+      expect(find.text('"GRL2" deleted.'), findsOneWidget);
     });
 
     // UX2-1b: backing out of an edited shorthand asks before losing it.

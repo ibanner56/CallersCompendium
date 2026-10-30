@@ -131,21 +131,41 @@ class CrashLogRecord {
     return firstLine.isEmpty ? errorType : '$errorType: $firstLine';
   }
 
+  /// Error types whose `toString()` is typed, path-free and prose-free by
+  /// construction, so their message may survive the scrubbed export (FAIL-10).
+  ///
+  /// Each is named here as a string because the classes live in the app
+  /// package; a test in the app pins every name to the real class so a rename
+  /// cannot silently withhold (or, worse, mis-allow) a message. Adding a type
+  /// means its message can never carry a URL, path, server text or user data.
+  static const Set<String> messageSafeErrorTypes = {
+    'UrlFetchException',
+    'PublishedCollectionFetchException',
+    '_UpdateDownloadError',
+    'SyncFailure',
+  };
+
   /// Returns a copy safe for the default (scrubbed) export: [errorMessage] is
   /// replaced by [withheldMessage] and [stack] is scrubbed by [redactor].
   ///
   /// The message is withheld rather than term-redacted because a redactor only
   /// knows the values in the database at export time; a value that was never
-  /// saved, or was later purged, would survive. The timestamp, version,
-  /// platform, source, and error *type* are structural diagnostics with no user
-  /// content, so they are preserved.
+  /// saved, or was later purged, would survive. The one exception is an
+  /// [errorType] in [messageSafeErrorTypes], whose message is kept (still
+  /// passed through [redactor] for paths, as a second line of defence). The
+  /// timestamp, version, platform, source, and error *type* are structural
+  /// diagnostics with no user content, so they are preserved.
   CrashLogRecord scrubbed(CrashRedactor redactor) => CrashLogRecord(
     timestampUtc: timestampUtc,
     appVersion: appVersion,
     platform: platform,
     source: source,
     errorType: errorType,
-    errorMessage: errorMessage.isEmpty ? '' : withheldMessage,
+    errorMessage: errorMessage.isEmpty
+        ? ''
+        : messageSafeErrorTypes.contains(errorType)
+        ? redactor.scrub(errorMessage)
+        : withheldMessage,
     stack: redactor.scrub(stack),
   );
 

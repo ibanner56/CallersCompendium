@@ -1,3 +1,4 @@
+import '../storage/permanent_deletion.dart';
 import '../storage/repositories/sync_local_repository.dart';
 import '../imports/dedupe.dart';
 import '../model/stored_timestamp.dart';
@@ -793,9 +794,17 @@ class SyncMergeEngine {
                 : left.wireHash.compareTo(right.wireHash);
           });
     final contentWinner = keptBodies.first;
+    // Among tied tombstones, the copy carrying the permanent-deletion mark
+    // wins: it is the same deletion, only further along, and taking a plain
+    // copy's `deletedAt` would show the record in Recently deleted again.
+    // The choice is among deleted copies only, so it never outranks a revival.
     final existenceWinner = existenceWinners.firstWhere(
-      (candidate) => candidate.isDeleted,
-      orElse: () => existenceWinners.first,
+      (candidate) =>
+          candidate.isDeleted && isPermanentlyDeleted(candidate.blob.deletedAt),
+      orElse: () => existenceWinners.firstWhere(
+        (candidate) => candidate.isDeleted,
+        orElse: () => existenceWinners.first,
+      ),
     );
     // A tied copy kept from another device is filed as this device would
     // store it — under this address, citing surviving ids — so applying it

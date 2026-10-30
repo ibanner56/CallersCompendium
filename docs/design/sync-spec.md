@@ -142,8 +142,17 @@ that refusal differently, and both are deliberate:
 | --- | --- |
 | `venues` (soft reference, no FK) | retained **live** — the surviving program has no other way to show its venue |
 | cascading parents (FK cascade) | **tombstoned** — the join row survives for the owner's restore, and the parent still leaves every live view, which is what import rollback needs |
+| `difficulty_levels` (FK, no `ON DELETE` action) | **tombstoned**, as a cascading parent — the erasure would fail the foreign key, and the tombstone keeps `dances.level_id` valid |
 
 A **live** owner blocks either kind outright, with a `StateError`.
+
+*Amended 2026-10-30:* the `difficulty_levels` row was added when the local
+level guard stopped counting tombstoned dances (§6.8, amended the same day).
+Until then, import rollback asked a guard that counted them before calling
+`DifficultyLevelRepository.hardDelete`, so the hatch never met this case.
+`hardDelete` now enforces both itself: it refuses a level a live dance uses,
+with `DifficultyLevelInUse`, and tombstones one that only a tombstoned dance
+names.
 
 A hard delete is permitted **only** where the record can never have been
 published to a peer and has no conservative publication-attempt marker. A
@@ -384,9 +393,34 @@ is carried on the envelope like any other, so it hides the record on every peer
 running a build that knows the mark, and after a restore. An older build shows
 it in Recently deleted under the placeholder title.
 
+The retention purge treats an expired published record the same way, with two
+differences, both the implementer's choices rather than part of the decision
+below:
+
+- `existenceAt` is left alone. Expiry is not a new deletion, and any later
+  stamp could outrank, or tie with, a revival a peer made after the record went
+  to the trash. A peer holding the same tombstone ties with it and, on a build
+  with the tie rule in §6.4, takes the mark. A build without that rule keeps its
+  own `deletedAt` and republishes the blank body with it, so the two copies tie
+  on `updatedAt` with different bodies and both devices report
+  `equalUpdatedAt` on every pass until it is updated. Nothing is lost: both
+  copies are the same blank deletion. Advancing `existenceAt` would avoid the
+  report but can tie with, and so delete, a revival stamped one tick after the
+  trash; the report was judged the lesser cost.
+- It never rewrites the records citing a dance. The purge, like the startup
+  sweep that finishes earlier marks, runs before the first sync pass, possibly
+  on a device that has been offline for weeks, and restamping its stale copies
+  of those records would overwrite other devices' edits. A dance a program slot
+  or a related-dance link still cites keeps its title until nothing does. Only
+  the user's own Permanently delete rewrites citers.
+
 *Amended 2026-10-30 (LIFE-2): the maintainer decided on 2026-10-29 (round 2,
 `R2-life2-retire`) to hide and blank such a record and not to retire it, so
 the "no retirement" rule above stands unchanged.*
+
+*Amended 2026-10-30 (LIFE-2 follow-up): the maintainer decided on 2026-10-30
+("Blank on retention too") that the retention purge blanks an expired published
+record as well, as described above.*
 
 `review_queue` requires a new review surface: `import_review_screen.dart`
 reviews dances only. A generic keep-both-or-merge list suffices; no per-kind
@@ -3057,6 +3091,17 @@ above that tombstone by construction, so it cannot tie with it — leaving only
 genuinely concurrent transitions on two devices that have not yet seen each
 other's, within one tick of each other.
 
+**Between tombstones, a tie takes the permanent-deletion mark.** When a
+tombstone tied at the greatest `existenceAt` carries
+`deletedAt` = the unix epoch (§3.2, *a permanently deleted record stays
+published*), the existence winner, and so the `deletedAt` every device keeps, is
+that copy. Both copies record the same deletion; the marked one has only gone
+further, and taking the other's `deletedAt` would list the record in Recently
+deleted again. The rule chooses among deleted copies only, so it never decides
+between a tombstone and a revival. *Amended 2026-10-30 (LIFE-2 follow-up); the
+implementer's choice, so that the retention purge need not stamp
+`existenceAt`.*
+
 **"By construction" holds only where the tombstone was applied to the row.** A
 tombstone held pending under §6.8 is deliberately *not* written to the row, so
 the row's `existenceAt` is still its pre-deletion value and the causal floor
@@ -3923,10 +3968,28 @@ be applied. Such a device MUST:
 - **not** advance its baseline entry for that record;
 - apply the deletion when its last citation goes.
 
-For difficulty levels the citation count includes **tombstoned** dances: a
-deleted dance can be restored, so it still holds its level, exactly as
-`DifficultyLevelRepository.delete` refuses a delete while any dance, live or in
-Recently Deleted, uses the level. Every other kind counts live owners only.
+Every kind counts live owners only. A dance or program in Recently Deleted
+holds nothing back, exactly as the local delete guards do not count it.
+
+> **Amended 2026-10-30, by the maintainer's decision.** This paragraph made
+> difficulty levels the exception: their citation count included
+> **tombstoned** dances, because a deleted dance can be restored, matching a
+> `DifficultyLevelRepository.delete` that refused while any dance, live or in
+> Recently Deleted, used the level. On 2026-10-29 the maintainer decided that
+> the trash does not protect what its records use (trash-policy, option b). On
+> 2026-10-30 they chose to amend the documents to match rather than reverse
+> that decision (R2-trash-docs, option a). Both are recorded in
+> `docs/dev/audits/2026-10-behavior/` on the audit branch. The local guard and
+> this count changed together, so an inbound level tombstone is still held
+> pending exactly when a local delete would be refused.
+>
+> A dance in Recently Deleted keeps its `level_id`, which then names a
+> tombstoned level; the tombstone is applied as a tombstone, never an erasure,
+> so the reference stays valid. A peer on an older build still counts its
+> tombstoned dances, so it may hold pending a level tombstone that this build
+> applies. That is the ordinary pending state above: it advertises the
+> tombstone, and it converges once that peer's trashed dance is purged or
+> stops citing the level.
 
 A pending tombstone is cancelled by exactly two things, and by nothing else.
 
