@@ -974,3 +974,18 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   the snapshot is stamped at the older `user_version`, opening it with the build
   that created the backup migrates it forward again; if the migration itself was
   the problem, open it with the matching older app version instead.
+
+**The four terminal startup screens (amendment, 2026-10-30).** The downgrade,
+below-floor, snapshot-aborted and relocation-blocked outcomes above each render
+a terminal `AppBootstrap` screen. Every one offers **Copy details** and a link
+to the Releases page; none offers Retry or a "Check again". Copy details is the
+error's type, typed discriminators (storage versions, the failure cause or
+reason as an enum name, each conflicting copy's folder and size) and the stack
+scrubbed by `CrashRedactor`; it never includes the error's own message, which
+can carry a path or text from the database that just failed (CWE-209). The
+reason for no re-run (maintainer decision R2-check-again, 2026-10-30): whatever
+the caller does to clear the cause, the app has to be reopened afterwards, so
+each screen's copy says to reopen it. A re-run could succeed for the last two
+outcomes (the caller frees disk space, or moves a copy aside), so this was a
+choice rather than a necessity; it was rejected to keep these screens strictly
+terminal.

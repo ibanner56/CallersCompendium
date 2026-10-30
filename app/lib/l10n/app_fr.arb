@@ -89,10 +89,12 @@
     "x-sourceSha256": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
   },
   "appBootstrapLogHint": "Les détails ont aussi été écrits dans le journal de diagnostic, dans le dossier de support de l’application.",
+  "appBootstrapReleasesLink": "Ouvrir la page des versions (Releases)",
+  "migrationDowngradeVersions": "Vos données utilisent le format de stockage {fileVersion}. Cette version de l’application lit jusqu’au format {appVersion}.",
   "@appBootstrapLogHint": {
     "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
   },
-  "migrationDowngradeMessage": "Ces données ont été créées avec une version plus récente de Caller’s Compendium — veuillez mettre à jour l'application.",
+  "migrationDowngradeMessage": "Ces données ont été créées avec une version plus récente de Caller’s Compendium. Mettez à jour l’application, puis rouvrez-la.",
   "@migrationDowngradeMessage": {
     "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
   },

@@ -94,7 +94,7 @@
   },
   "appBootstrapCopyDetails": "Copy details",
   "@appBootstrapCopyDetails": {
-    "description": "Button on the startup error screen that copies the error type and stack trace (not the message) to the clipboard."
+    "description": "Button on the startup error screen that copies the error type, its stack trace (scrubbed of file paths) and, on the terminal startup screens, their typed details such as version numbers (never the error message) to the clipboard."
   },
   "appBootstrapCopiedDetails": "Copied",
   "@appBootstrapCopiedDetails": {
@@ -104,9 +104,29 @@
   "@appBootstrapLogHint": {
     "description": "Hint on the startup error screen that the failure was recorded in the on-device diagnostics (crash) log."
   },
-  "migrationDowngradeMessage": "This data was created by a newer version of Caller’s Compendium — please update the app.",
+  "appBootstrapReleasesLink": "Open the Releases page",
+  "@appBootstrapReleasesLink": {
+    "description": "Button on the terminal startup screens (newer data, too-old data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded."
+  },
+  "migrationDowngradeVersions": "Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.",
+  "@migrationDowngradeVersions": {
+    "description": "Second line of the newer-data startup screen. {fileVersion} is the storage format version recorded in the user's data file, {appVersion} the highest storage format version this build can read; both are plain integers. Helps a bug report and tells the user how far behind the app is.",
+    "placeholders": {
+      "fileVersion": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "12"
+      },
+      "appVersion": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "9"
+      }
+    }
+  },
+  "migrationDowngradeMessage": "This data was created by a newer version of Caller’s Compendium. Update the app, then reopen it.",
   "@migrationDowngradeMessage": {
-    "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered."
+    "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened."
   },
   "migrationRelocationBothExist": "Caller’s Compendium didn’t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.",
   "@migrationRelocationBothExist": {

@@ -89,10 +89,12 @@
     "x-sourceSha256": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
   },
   "appBootstrapLogHint": "De details zijn ook naar het diagnoselogboek in de supportmap van de app geschreven.",
+  "appBootstrapReleasesLink": "Releases-pagina openen",
+  "migrationDowngradeVersions": "Je gegevens gebruiken opslagformaat {fileVersion}. Deze versie van de app leest tot en met formaat {appVersion}.",
   "@appBootstrapLogHint": {
     "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
   },
-  "migrationDowngradeMessage": "Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium — werk de app bij.",
+  "migrationDowngradeMessage": "Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij en open haar daarna opnieuw.",
   "@migrationDowngradeMessage": {
     "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
   },

@@ -84,8 +84,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appBootstrapLogHint => '詳細は、アプリのサポートフォルダ内の診断ログにも書き込まれました。';
 
   @override
+  String get appBootstrapReleasesLink => 'Releases ページを開く';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'お使いのデータの保存形式はバージョン $fileVersionString です。このバージョンのアプリは形式 $appVersionString まで読み込めます。';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してください。';
+      'このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してから、もう一度開いてください。';
 
   @override
   String get migrationRelocationBothExist =>

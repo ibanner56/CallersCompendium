@@ -89,8 +89,25 @@ class AppLocalizationsDa extends AppLocalizations {
       'Detaljer blev også skrevet til diagnostiklogget i appens supportmappe.';
 
   @override
+  String get appBootstrapReleasesLink => 'Åbn Releases-siden';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Dine data bruger lagringsformat $fileVersionString. Denne version af appen kan læse op til format $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'Disse data blev oprettet med en nyere version af Caller’s Compendium — opdatér appen.';
+      'Disse data blev oprettet med en nyere version af Caller’s Compendium. Opdatér appen, og åbn den derefter igen.';
 
   @override
   String get migrationRelocationBothExist =>

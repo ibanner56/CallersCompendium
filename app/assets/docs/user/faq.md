@@ -164,8 +164,28 @@ The app couldn't open or get your collection ready at startup. Try, in order:
    paths, so look it over before you share it.
 3. **Look at the diagnostics log.** The app also writes the failure to a
    `diagnostics/crash.log` file in its support folder, which is available even
-   when the database can't be opened. On Linux that is
-   `~/.local/share/org.callerscompendium.compendiumApp/diagnostics/crash.log`.
+   when the database can't be opened. Its location depends on your system:
+   - **Windows:** `%APPDATA%\org.callerscompendium\Caller's Compendium\diagnostics\crash.log`.
+     This is the *Roaming* folder, not the `%LOCALAPPDATA%` folder that holds
+     your library. Type it into the File Explorer address bar.
+   - **macOS:** `~/Library/Containers/org.callerscompendium.compendiumApp/Data/Library/Application Support/org.callerscompendium.compendiumApp/diagnostics/crash.log`.
+     In Finder, choose **Go › Go to Folder…** and paste the folder path.
+   - **Linux:** `~/.local/share/org.callerscompendium.compendiumApp/diagnostics/crash.log`
+     (or under `$XDG_DATA_HOME` if you have set it).
+   - **Android and iOS:** the log sits in the app's private storage, which you
+     can't browse. Once the app opens again, use
+     **Settings › Diagnostics** to export it. If the app won't open, **Copy
+     details** is what you can send.
+
+   A scrubbed export of this log keeps the short, fixed descriptions of
+   failed update downloads, online imports, published collections and syncs (for example,
+   "timed out" or "HTTP 404"); the text of any other error message is left
+   out.
+
+Four startup screens have no Retry: newer data, data too old to open, a backup
+that couldn't be made, and data that couldn't be moved. They offer **Copy
+details** and a link to the Releases page. Fix the cause, then close and
+reopen the app; there is no button to check again.
 
 On Linux the database lives in the app's support folder whether or not your
 machine has a `Documents` folder (for example, one without `xdg-user-dirs`); see
