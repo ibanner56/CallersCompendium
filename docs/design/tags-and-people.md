@@ -5,7 +5,7 @@ against `origin/main` at `acacb05`, and re-checked after merging `main` at
 `296b594`. Every `file:line` below is for `296b594` unless it names another
 branch. Of the files cited, only `ux.md` moved between the two.*
 
-**Status: decided; T1 built 2026-10-30, T2–T4 not built.** The maintainer asked for this note (below), and
+**Status: decided; T1 and T4 built 2026-10-30, T2 and T3 not built.** The maintainer asked for this note (below), and
 on 2026-10-29/30 answered all seven of its questions, each as the note
 recommended (N2-1 … N2-7 in `maintainer-decisions-2026-10-30.md` on
 `claude/app-audit-categories-k2pdon`; this note's D-N2-*n* is the file's
