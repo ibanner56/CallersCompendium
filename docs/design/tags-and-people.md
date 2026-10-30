@@ -574,7 +574,7 @@ T3 reuses beside it: `showLibraryRenameDialog`, `showLibraryMergePicker` and
 write; the list owns only its session state. The counts come from one grouped
 query, `ReferenceEditRepository.watchLiveDanceCounts`, which re-runs when a
 dance changes, so a dance moved to Recently deleted stops counting at once.
-Three choices are T2's own, not maintainer decisions:
+These choices are T2's own, not maintainer decisions:
 
 - Tapping a row opens the actions as a bottom sheet at every width, not only
   on a phone. Rejected: a popup menu on wide screens, which would be a second
