@@ -71,10 +71,21 @@ void main() {
     await _search(tester, 'Bravo');
 
     expect(find.text('1 selected'), findsOneWidget);
+    expect(find.text('1 dance'), findsOneWidget);
     expect(
-      find.text('1 dance · 1 selected (1 not shown)'),
+      find.text(' · 1 selected (1 not shown)'),
       findsOneWidget,
       reason: 'Alpha is selected but the list shows only Bravo',
+    );
+    // The bar title announces count changes; the suffix must not say it again.
+    expect(
+      find.ancestor(
+        of: find.textContaining('not shown'),
+        matching: find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.liveRegion == true,
+        ),
+      ),
+      findsNothing,
     );
 
     await tester.tap(find.byKey(const ValueKey('batch-deselect-not-shown')));

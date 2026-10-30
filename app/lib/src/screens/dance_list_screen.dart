@@ -2884,9 +2884,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         : 0;
     final String label = online
         ? l10n.onlineResultCount(count)
-        : hidden > 0
-        ? '${l10n.collectionDanceCount(count)} · '
-              '${l10n.collectionSelectionNotShown(_selection.length, hidden)}'
         : l10n.collectionDanceCount(count);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -2906,6 +2903,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
               liveRegion: true,
               child: Text(label, style: Theme.of(context).textTheme.bodySmall),
             ),
+            // Outside the live region: the bar title already announces each
+            // change to the selection count, so this line must not say it again.
+            if (hidden > 0)
+              Text(
+                ' · ${l10n.collectionSelectionNotShown(_selection.length, hidden)}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             if (busy) ...[
               const SizedBox(width: AppSpacing.xs),
               const SizedBox(

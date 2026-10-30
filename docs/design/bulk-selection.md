@@ -182,8 +182,10 @@ fixes the information, not the data. In detail:
      toggle's handler is `_onOnlineToggled` (`:944`).
 - When `_searchError != null` the search failed and `_results` was set to empty
   (`:871`). The "not shown" count must not read as "all 14 are hidden". The
-  batch actions are disabled while the error shows, and the count line is
-  replaced by the error.
+  batch actions are disabled while the error shows. *Built in S1 (implementer's
+  call, not a maintainer decision):* the "not shown" suffix is hidden and the
+  count line is kept, not replaced, because the error already renders in the
+  list; replacing it was rejected as a second place to show one failure.
 - Implementation shape: move the set, the "not shown" arithmetic and the
   reconcile rule into a small `CollectionSelection` class
   (`app/lib/src/search/collection_selection.dart`) so that the policy is a pure
