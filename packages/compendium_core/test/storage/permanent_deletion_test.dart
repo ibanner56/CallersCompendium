@@ -531,6 +531,35 @@ void main() {
       expect((await danceRow('d1'))!.title, blankedRecordTitle);
     });
 
+    test('a cited dance holding only its title is still restamped, so a peer '
+        'takes the mark', () async {
+      await repos.dances.create(
+        Dance(id: 'd1', title: 'Bare', createdAt: created, updatedAt: created),
+      );
+      await publish(SyncRecordKind.dance, 'd1');
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Saturday',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      await repos.dances.softDelete('d1', at: trashedAt);
+      final before = (await danceRow('d1'))!;
+
+      await repos.dances.purgeDeleted(
+        now: now,
+        retention: const Duration(days: 7),
+      );
+
+      final row = (await danceRow('d1'))!;
+      expect(isPermanentlyDeleted(row.deletedAt), isTrue);
+      expect(row.title, 'Bare');
+      expect(row.updatedAt.toUtc().isAfter(before.updatedAt.toUtc()), isTrue);
+    });
+
     test('an expired published program is blanked, not left whole', () async {
       await repos.programs.create(
         Program(

@@ -1685,9 +1685,21 @@ class ProgramRepository {
       if (expiredPublished.isNotEmpty) {
         // Leaves `existence_at` alone: see
         // `DanceRepository._markExpiredPublished`.
+        // The mark changes the body, so it stamps content too; see
+        // `DanceRepository._markExpiredPublished`.
         for (final chunk in _chunkIds(expiredPublished)) {
-          await (_db.update(_db.programs)..where((t) => t.id.isIn(chunk)))
-              .write(ProgramsCompanion(deletedAt: Value(permanentlyDeletedAt)));
+          await _db.customUpdate(
+            'UPDATE ${_db.programs.actualTableName} '
+            'SET deleted_at = ?, updated_at = MAX(updated_at + 1, ?) '
+            'WHERE id IN (${List.filled(chunk.length, '?').join(', ')})',
+            variables: [
+              Variable<int>(unixSeconds(permanentlyDeletedAt)),
+              Variable<int>(unixSeconds(now)),
+              for (final id in chunk) Variable<String>(id),
+            ],
+            updates: {_db.programs},
+            updateKind: UpdateKind.update,
+          );
         }
         await removePermanentlyDeleted(now: now, onlyIds: expiredPublished);
       }

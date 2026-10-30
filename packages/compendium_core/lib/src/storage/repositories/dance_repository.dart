@@ -2583,9 +2583,23 @@ class DanceRepository {
     required DateTime now,
   }) async {
     if (ids.isEmpty) return;
+    // The mark changes the body (it carries `deletedAt`), so it stamps content
+    // too. [_blank] stamps again when it runs, but a cited dance that already
+    // holds nothing but its title is not blanked, and without this a peer
+    // holding the unmarked tombstone would tie on `updatedAt` with a different
+    // body and report it on every pass.
     for (final chunk in _chunkIds(ids)) {
-      await (_db.update(_db.dances)..where((t) => t.id.isIn(chunk))).write(
-        DancesCompanion(deletedAt: Value(permanentlyDeletedAt)),
+      await _db.customUpdate(
+        'UPDATE ${_db.dances.actualTableName} '
+        'SET deleted_at = ?, updated_at = MAX(updated_at + 1, ?) '
+        'WHERE id IN (${List.filled(chunk.length, '?').join(', ')})',
+        variables: [
+          Variable<int>(unixSeconds(permanentlyDeletedAt)),
+          Variable<int>(unixSeconds(now)),
+          for (final id in chunk) Variable<String>(id),
+        ],
+        updates: {_db.dances},
+        updateKind: UpdateKind.update,
       );
     }
     await removePermanentlyDeleted(now: now, onlyIds: ids);
