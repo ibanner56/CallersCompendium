@@ -3567,10 +3567,10 @@ reconciliation.
 >    unchanged, because their keys follow rules of their own above.
 > 8. **Undo** writes the survivor's old fields first, then revives each loser
 >    under its old name. Each revival is stamped past the tombstone's
->    `existence_at` (§6.4) and its `updated_at` (I1). Undo restores the join
->    rows and the alias rows the remap added or rewrote, unless a pass has
->    changed them since. It is refused, writing nothing, if a live record
->    outside the merge has taken an old name since. The survivor's
+>    `existence_at` (§6.4) and its `updated_at` (I1). Undo puts each loser's
+>    join rows back, and the alias rows the remap added or rewrote, except an
+>    alias row a pass has changed since. It is refused, writing nothing, if a
+>    live record that was not there at the merge now holds an old name. The survivor's
 >    publication marker stays: a marker is never dropped, and a pass in
 >    between may have published the survivor in its own right.
 >

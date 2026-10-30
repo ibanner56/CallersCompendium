@@ -30,7 +30,9 @@ void main() {
   // devices' edits never tie (a tie is a conflict choice, §6.3). It starts at
   // the real clock, so each one is also later than the writes sync stamps
   // from the real clock as it applies: started any earlier, which of the two
-  // is newer would depend on the second the test ran in.
+  // is newer would depend on the second the test ran in. A minute, not a few
+  // seconds, keeps that true on a slow runner, where the real clock could
+  // otherwise overtake it between two user writes.
   late DateTime clock;
   DateTime tick() => clock = clock.add(const Duration(minutes: 1));
 
