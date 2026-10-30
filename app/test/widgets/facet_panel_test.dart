@@ -257,9 +257,19 @@ void main() {
       expect(find.text('Never called'), findsOneWidget);
       expect(find.text('Any time'), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('call-status-called')));
-      await tester.pump();
+      Future<void> toggleCalled() async {
+        await tester.tap(find.byKey(const ValueKey('call-status-called')));
+        await tester.pump();
+      }
+
       // Both chosen: the scopes are inert and the label is the neutral one.
+      await toggleCalled();
+      expect(find.text('Any time'), findsOneWidget);
+
+      // At a venue "never called" would claim more than it means.
+      facets.setHistoryVenue(VenueKey.typed('Grange'), label: 'Grange');
+      await toggleCalled(); // back to Not called only
+      expect(find.text('Never called'), findsNothing);
       expect(find.text('Any time'), findsOneWidget);
     });
 

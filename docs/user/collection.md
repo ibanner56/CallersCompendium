@@ -217,7 +217,7 @@ them and two more choices narrow what counts as a call:
   but never as recent.
 
 **Not called** at a venue means "never called there", even if you called the
-dance somewhere else. **Not called** with the window left on **Never called**
+dance somewhere else. **Not called** at any venue, with the window left on **Never called**,
 lists the dances you have never called at all, the same as **Not called** has
 always done; **Any time** is the same choice with **Called**.
 

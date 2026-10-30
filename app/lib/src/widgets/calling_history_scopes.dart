@@ -62,8 +62,8 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
   void _subscribe() {
     unawaited(_sub?.cancel());
     _sub = null;
-    _choices = null;
     final source = widget.venues;
+    if (source == null) _choices = null;
     if (source == null) return;
     _sub = source.watch().listen(
       (choices) {
@@ -135,8 +135,12 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
     final noWindow =
         facets.historyMonths == null && facets.historySince == null;
     final since = facets.historySince;
+    // "Never called" is true only without a venue; at a venue it would mean
+    // "never called there", which the neutral label does not promise.
     final neverCalled =
-        facets.scopesApply && facets.callStatuses.single == false;
+        facets.scopesApply &&
+        facets.callStatuses.single == false &&
+        venue == null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
