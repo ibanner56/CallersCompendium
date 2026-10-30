@@ -1875,6 +1875,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Tjek for en nyere version i baggrunden, når appen starter. Fra som standard.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Led i baggrunden efter en dato for ophør af support for denne version, når appen starter. Slået fra som standard.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'Opdateringstjekket henter en lille versionsfil over HTTPS og intet andet – der sendes ingen oplysninger om dig, din enhed eller din brug. Intet hentes eller installeres automatisk: du vælger, hvornår du vil hente en opdatering, den verificeres inden den åbnes, og dit systeminstallationsprogram fuldfører installationen.';
 
@@ -1921,6 +1925,22 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsUpdatesMacosReadySubtitle =>
       'Din opdatering er klar. Monter diskaftrykket, og luk appen, så du kan erstatte den i Programmer.';
+
+  @override
+  String get settingsUpdatesStoreTitle =>
+      'Opdateringer kommer fra din appbutik';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Denne kopi blev installeret fra en appbutik, så butikken opdaterer den. Appen leder kun efter en dato for ophør af support, aldrig efter en ny version.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Bærbar kopi: download det nye arkiv';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Denne kopi kører fra et udpakket arkiv, så appen kan ikke installere opdateringen for dig. Download den nye zip eller tar.gz fra udgivelsen, og pak den ud.';
 
   @override
   String get settingsUpdatesDownloadTitle => 'Hent og installer opdatering';
@@ -3795,10 +3815,6 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get collectionSearchFieldHint =>
       'Søg titler, forfattere, figurer, noter…';
-
-  @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Søg online efter danse efter titel…';
 
   @override
   String get collectionSearchScopeLabel => 'Søg i';
@@ -6985,6 +7001,15 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne fil er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
 
   @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Dit brugerdefinerede felt „$label“ har en anden type eller andre valgmuligheder i denne fil, så filens værdier for det lægges i stedet i feltet med nøglen „$key“, som tilføjes, hvis du ikke har det endnu. Dit felt er uændret.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Et brugerdefineret felt i denne fil kunne ikke bruge sin nøgle, som allerede er i brug, så dets værdier lægges i stedet i et felt med en nummereret nøgle.';
+
+  @override
   String get importIssueUsrFileTruncated =>
       'Denne fil ser ufuldstændig ud – kun en del af den kunne læses. Kopiér den igen fra originalen, og importér den på ny.';
 
@@ -8783,6 +8808,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'En nyere version af $appName ($version) er tilgængelig.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'En nyere version af $appName ($version) er tilgængelig. Dette er en bærbar kopi, så download den nye zip eller tar.gz fra udgivelsen.';
   }
 
   @override

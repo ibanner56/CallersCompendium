@@ -1884,6 +1884,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Beim App-Start im Hintergrund nach einer neueren Version suchen. Standardmäßig deaktiviert.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Beim Start der App im Hintergrund nach einem Datum für das Ende der Unterstützung dieser Version suchen. Standardmäßig aus.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'Die Update-Prüfung lädt über HTTPS nur eine kleine Versionsdatei herunter – es werden keinerlei Daten über Sie, Ihr Gerät oder Ihre Nutzung übertragen. Es wird nichts automatisch heruntergeladen oder installiert: Sie entscheiden, wann ein Update heruntergeladen wird, es wird vor dem Öffnen verifiziert, und Ihr Systeminstallationsprogramm schließt die Installation ab.';
 
@@ -1930,6 +1934,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsUpdatesMacosReadySubtitle =>
       'Ihr Update ist bereit. Binden Sie das Disk-Image ein und schließen Sie die App, damit Sie sie im Ordner „Programme“ ersetzen können.';
+
+  @override
+  String get settingsUpdatesStoreTitle => 'Updates kommen aus Ihrem App-Store';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Diese Kopie wurde aus einem App-Store installiert, der sie daher auch aktualisiert. Die App sucht nur nach einem Datum für das Ende der Unterstützung, nie nach einer neuen Version.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Portable Kopie: neues Archiv herunterladen';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Diese Kopie läuft aus einem entpackten Archiv, daher kann die App das Update nicht für Sie installieren. Laden Sie das neue zip oder tar.gz vom Release herunter und entpacken Sie es.';
 
   @override
   String get settingsUpdatesDownloadTitle =>
@@ -3839,10 +3858,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get collectionSearchFieldHint =>
       'Titel, Autoren, Figuren, Notizen suchen…';
-
-  @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Online-Tänze nach Titel suchen…';
 
   @override
   String get collectionSearchScopeLabel => 'Suchen in';
@@ -7061,6 +7076,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Datei wurde mit einer neueren Version von Caller\'s Compendium erstellt. Aktualisiere die App vor dem Import, sonst fehlen möglicherweise einige Details.';
 
   @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Ihr benutzerdefiniertes Feld „$label“ hat in dieser Datei einen anderen Typ oder andere Auswahlwerte, daher kommen die Werte der Datei dafür stattdessen in das Feld mit dem Schlüssel „$key“, das angelegt wird, falls Sie es noch nicht haben. Ihr Feld bleibt unverändert.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Ein benutzerdefiniertes Feld in dieser Datei konnte seinen Schlüssel nicht verwenden, weil er bereits belegt ist, daher kommen seine Werte stattdessen in ein Feld mit einem nummerierten Schlüssel.';
+
+  @override
   String get importIssueUsrFileTruncated =>
       'Diese Datei wirkt unvollständig – nur ein Teil konnte gelesen werden. Kopiere sie erneut vom Original und importiere sie noch einmal.';
 
@@ -8884,6 +8908,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'Eine neuere Version von $appName ($version) ist verfügbar.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'Eine neuere Version von $appName ($version) ist verfügbar. Dies ist eine portable Kopie – laden Sie das neue zip oder tar.gz vom Release herunter.';
   }
 
   @override

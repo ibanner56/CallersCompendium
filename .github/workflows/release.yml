@@ -1203,6 +1203,8 @@ jobs:
       # `ios-ipa` — it never lands in SHA256SUMS, the channel manifest, the SLSA
       # subject glob, or the public GitHub Release. The .aab is a store-upload
       # input, not a sideloadable end-user download.
+      # PLAY_BUILD is defined here and nowhere else: it is how an installed Play
+      # build knows to leave updating to the store (install_kind.dart).
       - name: Build Android App Bundle (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         working-directory: app
@@ -1213,6 +1215,7 @@ jobs:
           fi
           flutter build appbundle --release --build-number="$ANDROID_VERSION_CODE" \
             --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            --dart-define=CALLERS_COMPENDIUM_PLAY_BUILD=true \
             "${codename_define[@]}"
 
       - name: Package Android (signed .aab)

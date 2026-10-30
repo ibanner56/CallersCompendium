@@ -140,12 +140,19 @@ head for the guide list to find your way around.
 
 ### How do I get updates?
 
-The app can check for a newer version itself. Open **Settings › Updates** and
-choose **Check for updates** any time; on desktop it can download and install the
-update for you, and on phones and tablets it links you to the download. The app
-only checks on its own if you turn on **Check automatically**. While the app is
-in beta, every release is a beta release, so turn on the **Beta channel** switch
-too — otherwise the check won't find them. See
+If you installed from an app store (the App Store or TestFlight on iOS, or Google
+Play on Android), the store updates the app for you and the app never offers an
+update. (With **Check automatically** on, it still warns you if your version is
+reaching its end of support.)
+
+Otherwise the app can check for a newer version itself. Open **Settings ›
+Updates** and choose **Check for updates** any time. On desktop it can download
+and install the update for you, except on a portable copy (the Windows zip or the
+Linux tar.gz), where it sends you to the release to download the new archive. On
+an Android phone or tablet installed from the Releases page, it links you to the
+download. The app only checks on its own if you turn on **Check automatically**.
+While the app is in beta, every release is a beta release, so turn on the **Beta
+channel** switch too — otherwise the check won't find them. See
 [Settings](./settings.md#updates).
 
 ## Troubleshooting

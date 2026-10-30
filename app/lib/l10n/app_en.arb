@@ -2334,6 +2334,10 @@
   "@settingsUpdatesAutoSubtitle": {
     "description": "Subtitle explaining the automatic-background-check toggle."
   },
+  "settingsUpdatesAutoStoreSubtitle": "Look for an end-of-support date for this version in the background when the app starts. Off by default.",
+  "@settingsUpdatesAutoStoreSubtitle": {
+    "description": "Subtitle of the automatic-background-check toggle on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update, so the check only looks for an end-of-support date."
+  },
   "settingsUpdatesPrivacyNote": "The update check downloads a small version file over HTTPS and nothing else — no data about you, your device, or your usage is ever sent. Nothing is downloaded or installed automatically: you choose when to download an update, it is verified before it opens, and your system installer completes the install.",
   "@settingsUpdatesPrivacyNote": {
     "description": "Privacy/behaviour paragraph reassuring the user how the update check and assisted download work."
@@ -2391,6 +2395,22 @@
   "settingsUpdatesMacosReadySubtitle": "Your update is ready. Mount the disk image and close the app so you can replace it in Applications.",
   "@settingsUpdatesMacosReadySubtitle": {
     "description": "Subtitle of the macOS update row that resumes installation after the user deferred the post-download prompt."
+  },
+  "settingsUpdatesStoreTitle": "Updates come from your app store",
+  "@settingsUpdatesStoreTitle": {
+    "description": "Title of the row in Settings > Updates, in place of the Check for updates action, on a copy installed from an app store (TestFlight, the App Store or Google Play). That copy is never offered an update."
+  },
+  "settingsUpdatesStoreSubtitle": "This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.",
+  "@settingsUpdatesStoreSubtitle": {
+    "description": "Subtitle of the app-store row in Settings > Updates, explaining why there is no Check for updates action. It still looks for an end-of-support date."
+  },
+  "settingsUpdatesPortableTitle": "Portable copy: download the new archive",
+  "@settingsUpdatesPortableTitle": {
+    "description": "Title of the Settings > Updates row shown when a newer version is found on a portable copy (the Windows zip or the Linux tar.gz). Tapping it opens the release page."
+  },
+  "settingsUpdatesPortableSubtitle": "This copy runs from an unpacked archive, so the app can't install the update for you. Download the new zip or tar.gz from the release and unpack it.",
+  "@settingsUpdatesPortableSubtitle": {
+    "description": "Subtitle of the portable-copy row in Settings > Updates. zip is the Windows archive and tar.gz the Linux one; both are file formats, not translated."
   },
   "settingsUpdatesDownloadTitle": "Download & install update",
   "@settingsUpdatesDownloadTitle": {
@@ -4753,10 +4773,6 @@
   "collectionSearchFieldHint": "Search titles, authors, figures, notes…",
   "@collectionSearchFieldHint": {
     "description": "Hint text of the local collection search field, listing what is searched."
-  },
-  "collectionPickerOnlineSearchFieldHint": "Search online dances by title…",
-  "@collectionPickerOnlineSearchFieldHint": {
-    "description": "Hint text of the collection picker when its online search is limited to titles."
   },
   "collectionSearchScopeLabel": "Search in",
   "@collectionSearchScopeLabel": {
@@ -9014,6 +9030,22 @@
   "@importIssueArchiveNewerSchema": {
     "description": "Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file."
   },
+  "importIssueArchiveCustomFieldKeyConflict": "Your custom field \"{label}\" has a different type or other choices in this file, so the file's values for it go into the field with the key \"{key}\" instead, which is added if you don't have it yet. Your field is unchanged.",
+  "@importIssueArchiveCustomFieldKeyConflict": {
+    "description": "Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so its values go into the field under the key shown (the user's key plus _2, _3, …), which is created unless an earlier import made it; the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "A custom field in this file could not use its key, which is already taken, so its values go into a field with a numbered key instead.",
+  "@importIssueArchiveCustomFieldKeyConflictGeneric": {
+    "description": "Import review warning for a shared file (INTAKE-2), used when the key is held by another field of the same file or by a field the user deleted, so no field is named and no difference is claimed (the file's text is never shown). The values go into a field under a numbered key."
+  },
   "importIssueUsrFileTruncated": "This file looks incomplete — only part of it could be read. Copy it again from the original and re-import.",
   "@importIssueUsrFileTruncated": {
     "description": "Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file."
@@ -11460,6 +11492,18 @@
   "updateBannerAvailable": "A newer version of {appName} ({version}) is available.",
   "@updateBannerAvailable": {
     "description": "Update banner message when a newer version is available (idle/cancelled state).",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateBannerPortable": "A newer version of {appName} ({version}) is available. This is a portable copy, so download the new zip or tar.gz from the release.",
+  "@updateBannerPortable": {
+    "description": "Update banner message on a portable copy (the Windows zip or the Linux tar.gz) when a newer version is available. The app can't install it, so the message sends the user to the release page. zip and tar.gz are file formats, not translated.",
     "placeholders": {
       "appName": {
         "type": "String"

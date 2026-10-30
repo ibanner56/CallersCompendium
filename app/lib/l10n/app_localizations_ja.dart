@@ -1786,6 +1786,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'アプリ起動時にバックグラウンドで新バージョンを確認します。デフォルトはオフです。';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'アプリの起動時に、このバージョンのサポート終了日をバックグラウンドで確認します。初期設定ではオフです。';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'アップデート確認はHTTPS経由で小さなバージョンファイルをダウンロードするだけで、その他の情報は一切送信されません。ユーザー情報、デバイス情報、使用状況は送信されません。自動でダウンロードやインストールは行われません。アップデートのダウンロードはご自身で選択し、開く前に検証され、システムのインストーラーがインストールを完了します。';
 
@@ -1830,6 +1834,20 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsUpdatesMacosReadySubtitle =>
       'アップデートの準備ができました。ディスクイメージをマウントしてアプリを閉じると、「アプリケーション」フォルダ内で置き換えられます。';
+
+  @override
+  String get settingsUpdatesStoreTitle => 'アップデートはアプリストアから届きます';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'このコピーはアプリストアからインストールされているため、ストアが更新します。アプリが確認するのはサポート終了日だけで、新しいバージョンは確認しません。';
+
+  @override
+  String get settingsUpdatesPortableTitle => 'ポータブル版：新しいアーカイブをダウンロード';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'このコピーは展開したアーカイブから実行されているため、アプリが代わりにアップデートをインストールすることはできません。リリースから新しい zip または tar.gz をダウンロードして展開してください。';
 
   @override
   String get settingsUpdatesDownloadTitle => 'アップデートをダウンロードしてインストール';
@@ -3620,9 +3638,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionSearchFieldHint => 'タイトル、作者、フィギュア、ノートを検索…';
-
-  @override
-  String get collectionPickerOnlineSearchFieldHint => 'タイトルでオンラインのダンスを検索…';
 
   @override
   String get collectionSearchScopeLabel => '検索対象';
@@ -6702,6 +6717,15 @@ class AppLocalizationsJa extends AppLocalizations {
       'このファイルは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
 
   @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'あなたのカスタムフィールド「$label」は、このファイルでは種類または選択肢が異なるため、ファイルの値は代わりにキー「$key」のフィールドに入ります（まだない場合は追加されます）。あなたのフィールドは変更されません。';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'このファイルのカスタムフィールドは、キーがすでに使われているため使用できませんでした。その値は代わりに番号付きのキーのフィールドに入ります。';
+
+  @override
   String get importIssueUsrFileTruncated =>
       'このファイルは不完全のようです。一部しか読み取れませんでした。元のファイルからもう一度コピーして、再度インポートしてください。';
 
@@ -8444,6 +8468,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return '$appNameの新しいバージョン（$version）が利用可能です。';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return '$appName の新しいバージョン（$version）があります。これはポータブル版のため、リリースから新しい zip または tar.gz をダウンロードしてください。';
   }
 
   @override
