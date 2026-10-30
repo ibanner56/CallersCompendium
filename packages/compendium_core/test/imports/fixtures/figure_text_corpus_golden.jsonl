@@ -6570,7 +6570,7 @@
 {"in":"Circle Left 3/4 w/ N and Sh","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Circle Left 3/4 w/ N and Sh\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor allemande Left 1.5 (ID next N)","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"neighbors\",\"hand\":\"left\",\"travel\":1.5},\"note\":\"ID next N\"}]"}
 {"in":"Cross trails (PR, NL)","fanOut":"[{\"schemaVersion\":1,\"move\":\"cross_trails\"}]"}
-{"in":"Zig L, Zag R, Zig L","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Zig L, Zag R, Zig L\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Zig L, Zag R, Zig L","fanOut":"[{\"schemaVersion\":1,\"move\":\"zig_zag\",\"params\":{\"slide\":\"left\"},\"note\":\"Zig L\"}]"}
 {"in":"Pass through across, turn to individual R","fanOut":"[{\"schemaVersion\":1,\"move\":\"pass_through\",\"params\":{\"where\":\"across\"},\"note\":\"turn to individual R\"}]"}
 {"in":"Single file promenade along line to new Ns","fanOut":"[{\"schemaVersion\":1,\"move\":\"promenade\",\"params\":{\"who\":\"everyone\",\"singleFile\":true,\"where\":\"along\"},\"note\":\"line to new Ns\"}]"}
 {"in":"Advance to new waves","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Advance to new waves\"},\"customOrigin\":\"importGap\"}]"}
@@ -6674,7 +6674,7 @@
 {"in":"Robins Right Shoulder Round 1.5","scrub":"role2s Right Shoulder Round 1.5","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"role2s\",\"shoulder\":\"right\",\"travel\":1.5}}]"}
 {"in":"Previous Neighbors Right-hand star 1.0","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Previous Neighbors Right-hand star 1.0\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"(Original) Neighbor balance and swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\",\"prefix\":\"balance\"},\"note\":\"Original\"}]"}
-{"in":"Zig Left, Zag R to new Neighbors","fanOut":"[{\"schemaVersion\":1,\"move\":\"zig_zag\",\"params\":{\"slide\":\"left\"},\"note\":\"R to new Neighbors\"}]"}
+{"in":"Zig Left, Zag R to new Neighbors","fanOut":"[{\"schemaVersion\":1,\"move\":\"zig_zag\",\"params\":{\"slide\":\"left\"},\"note\":\"to new Neighbors\"}]"}
 {"in":"Full Ricochet Hey, Robins start right shoulders, everybody ricochet, end in short waves, Robins mid","scrub":"Full Ricochet Hey, role2s start right shoulders, everybody ricochet, end in short waves, role2s mid","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Full Ricochet Hey, role2s start right shoulders, everybody ricochet, end in short waves, role2s mid\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Robins slide Right to Partner","scrub":"role2s slide Right to Partner","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role2s slide Right to Partner\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Mad Robin CW (around Neighbor, Robins mid first)","scrub":"mad robin CW (around Neighbor, role2s mid first)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"mad robin CW (around Neighbor, role2s mid first)\"},\"customOrigin\":\"importGap\"}]"}
