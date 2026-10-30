@@ -1307,7 +1307,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final bulkUndoActionToken = _pendingBulkUndoActionToken;
       final bulkUndoSlotIds = _pendingBulkUndoSlotIds;
       final bulkUndoTimestamp = _pendingBulkUndoTimestamp;
-      final bulkUndoPriorStatus = _pendingBulkUndoPriorStatus;
       try {
         final persisted = await _persistDraft(draft);
         _autoCommitPersistedGeneration = generation;
@@ -1315,13 +1314,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             bulkUndoActionToken != null &&
             bulkUndoSlotIds != null &&
             bulkUndoTimestamp != null &&
-            (persisted.slots.any(
-                  (slot) =>
-                      bulkUndoSlotIds.contains(slot.id) &&
-                      slot.performedAt == bulkUndoTimestamp,
-                ) ||
-                (bulkUndoPriorStatus != null &&
-                    persisted.status == ProgramStatus.performed))) {
+            persisted.slots.any(
+              (slot) =>
+                  bulkUndoSlotIds.contains(slot.id) &&
+                  slot.performedAt == bulkUndoTimestamp,
+            )) {
           _persistedBulkUndoActionToken = bulkUndoActionToken;
         }
         if (!mounted) return _AutoCommitOutcome.notCommitted(generation);

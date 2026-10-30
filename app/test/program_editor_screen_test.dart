@@ -2676,7 +2676,7 @@ void main() {
       expect(saved.slots.single.performedAt, called);
     });
 
-    testWidgets('persisted status-only Undo after a later edit', (
+    testWidgets('persisted status-only Undo after a later commit', (
       tester,
     ) async {
       final called = DateTime.utc(2025, 12, 31, 20);
@@ -2687,13 +2687,14 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pumpAndSettle();
-      // An edit after the commit moves the edit generation on, so only the
-      // action token can tell Undo that the status reached the store.
+      // A later edit that commits too moves the committed generation on, so
+      // only the action token can tell Undo that the status reached the store.
       await tester.enterText(
         find.byKey(const ValueKey('program-notes')),
         'Great crowd',
       );
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
       await tester.tap(find.byType(SnackBarAction));
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pumpAndSettle();
