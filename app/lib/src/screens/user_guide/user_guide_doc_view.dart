@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 
+import '../../../l10n/app_localizations.dart';
 import '../../data/reduce_motion_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/readable_width.dart';
@@ -149,35 +150,56 @@ class _UserGuideDocViewState extends State<UserGuideDocView> {
       key: ValueKey('user-guide-scroll-${widget.docId}'),
       controller: _controller,
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: Markdown(
-        key: ValueKey('user-guide-doc-${widget.docId}'),
-        data: widget.data,
-        selectable: true,
-        // The enclosing scroll view does the scrolling; the renderer's own list
-        // must lay every block out so heading anchors are reachable.
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.zero,
-        builders: {
-          for (final tag in const ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
-            tag: headings,
-        },
-        styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-          // Give tables a visible frame in both light and dark themes.
-          tableBorder: TableBorder.all(color: theme.colorScheme.outlineVariant),
-          tableCellsPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xs,
-            vertical: AppSpacing.xxs,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // The bundled guide is English only (PLAT-13). Every guide page
+          // renders through this view, including ones opened directly by a
+          // help link, so the notice lives here rather than on the hub.
+          if (Localizations.localeOf(context).languageCode != 'en')
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Text(
+                AppLocalizations.of(context).userGuideEnglishOnly,
+                key: const ValueKey('user-guide-english-only'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          Markdown(
+            key: ValueKey('user-guide-doc-${widget.docId}'),
+            data: widget.data,
+            selectable: true,
+            // The enclosing scroll view does the scrolling; the renderer's own list
+            // must lay every block out so heading anchors are reachable.
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            builders: {
+              for (final tag in const ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+                tag: headings,
+            },
+            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+              // Give tables a visible frame in both light and dark themes.
+              tableBorder: TableBorder.all(
+                color: theme.colorScheme.outlineVariant,
+              ),
+              tableCellsPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xs,
+                vertical: AppSpacing.xxs,
+              ),
+              blockquoteDecoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            onTapLink: (text, href, title) {
+              if (href != null) widget.onTapLink(href);
+            },
+            imageBuilder: (uri, title, alt) => _GuideImage(uri: uri, alt: alt),
           ),
-          blockquoteDecoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        onTapLink: (text, href, title) {
-          if (href != null) widget.onTapLink(href);
-        },
-        imageBuilder: (uri, title, alt) => _GuideImage(uri: uri, alt: alt),
+        ],
       ),
     );
   }
