@@ -434,6 +434,11 @@ Built in #2057.
 
 **Decision:** "One follow-up branch". The option read: "One branch fixes all four, plus the title/credit answer above, under the same rules and approvals. It needs all six ARBs for the wording."
 
+### B19 follow-up / OUT-2: "Same dance – replace" and an absent rating (2026-10-30 ~14:10 UTC)
+**Question:** share files no longer carry a dance's rating (OUT-2, #2065). So "Same dance – replace" from a share file clears the receiver's existing rating, because the file has none; `callersbox_online_test` pins "replace overwrites rating". Should replace keep the existing rating when the incoming file has none?
+
+**Decision:** "Keep my rating". The option read: "Replace leaves your existing rating alone whenever the incoming file carries none. It's a small follow-up PR covering the import pipeline, that test and imports.md." The "(Recommended)" tag and its reason were the orchestrating session's. Rejected: "Clear it, as now".
+
 ## Still open
 
 - **D-11** (UX6-2): the maintainer asked for renderings of each option; they are at https://claude.ai/artifact/GJJMBFTrPuCp46DWMPtsjo. No choice recorded yet.
