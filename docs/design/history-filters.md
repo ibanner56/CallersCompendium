@@ -70,8 +70,12 @@ These come from `decided-work-plan.md` ("Design notes" and N1) on
    (`packages/compendium_core/lib/src/storage/calling_history_scope.dart:47-52`;
    the event-date clause in constraint 1 is now at `:65-68`).
    History order (`program_repository.dart:1263`) and the Last-called sort
-   (`dance_repository.dart:3126`) read it, and its Dart twin is
-   `DanceCallingRecord.effectiveDate` (`program_repository.dart:82`).
+   (`dance_repository.dart:3126`) read it. It has two Dart copies, each with
+   its own `eventDate ?? performedAt ?? programUpdatedAt` chain:
+   `DanceCallingRecord.effectiveDate` (`program_repository.dart:82`), which
+   orders the detail page's rows, and the detail page's display date,
+   `callingHistoryDisplayDate`
+   (`app/lib/src/screens/dance_detail/calling_history_section.dart:399-403`).
 
    A further date, `last_called` in the bulk counts
    (`program_repository.dart:1110-1114`), is not this order. After B1 it is still
@@ -240,9 +244,12 @@ as `DateTime.utc(y, m, d)` like an event date.
 `calling_history_scope.dart` (constraint 2). History order and the Last-called
 sort read it. H1 adds the recency variant beside it: the same expression
 without `updated_at`. The recency scope and the H3 chip read that variant.
-- The Dart copy (`effectiveDate`, constraint 2) cannot share a SQL string. A
-  lockstep test asserts that the Dart copy and the SQL put the same rows in the
-  same order, and H1 adds the same lockstep for the recency variant.
+- The two Dart copies (`effectiveDate` and `callingHistoryDisplayDate`,
+  constraint 2) cannot share a SQL string. Today no test compares
+  `callingHistoryDisplayDate` with either of the others. H1 adds a lockstep
+  test that the SQL, `effectiveDate` and the display date pick the same date
+  for the same rows (the display date in local time), and the same lockstep for
+  the recency variant.
 
 ## Q3. Should the picker exclude or flag dances called at this venue?
 
