@@ -80,7 +80,7 @@ Two facts from that state change the notes' dependencies, and the docs PR record
   | An undated, unperformed slot is called but never in a recency window | The recency variant reading B1's full expression, `updated_at` included |
   | A program dated next month counts inside "within 3 months" | A window closed at today |
   | `currentProgramId` hides a **performed** slot of that program | The note's old rule, unperformed slots only |
-  | SQL and Dart `effectiveDate` order the same rows the same way, for both date variants | One of the two edited alone |
+  | SQL, `effectiveDate` and the detail page's `callingHistoryDisplayDate` pick the same date for the same rows, for both date variants | One of the three edited alone (today nothing compares the display date with the others) |
   | Each production connection has `cc_venue_key` | Registration removed from `applyCompendiumSqliteSetup` |
 
 - **Docs:** `docs/design/search.md:69` and `:160-161` (the `CalledFilter` rows, adding `requireEventDate`, the alternate rule and the new scopes). No ARB, no changelog: nothing user-visible yet.
