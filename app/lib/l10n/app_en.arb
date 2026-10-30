@@ -1594,7 +1594,7 @@
   },
   "syncSettingPerformStageTheme": "Stage theme in Perform",
   "@syncSettingPerformStageTheme": {
-    "description": "Name of the synced setting that turns on the dark stage theme in Perform."
+    "description": "Name of the setting that turns on the dark stage theme in Perform, as a Device Sync conflict names it. It stays on each device now; a conflict over it can only be one queued by an older version of the app."
   },
   "settingsSyncConflictsSubtitle": "{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}",
   "@settingsSyncConflictsSubtitle": {
@@ -11740,6 +11740,10 @@
   "userGuideOpenOnline": "Open the guide online",
   "@userGuideOpenOnline": {
     "description": "Action that opens the user guide on the web when local content is unavailable."
+  },
+  "userGuideEnglishOnly": "The guide is in English.",
+  "@userGuideEnglishOnly": {
+    "description": "One-line notice at the top of every user-guide page when the app language is not English: the bundled guide is only written in English (PLAT-13)."
   },
   "shorthandMappingsTitle": "Figure shorthands",
   "@shorthandMappingsTitle": {

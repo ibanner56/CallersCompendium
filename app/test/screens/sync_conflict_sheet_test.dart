@@ -425,7 +425,7 @@ void main() {
     await tester.runAsync(
       () => _queueTie(repos, [
         ('theme_mode', 'dark', 'light'),
-        ('reduce_motion', true, false),
+        ('confirm_before_delete', true, false),
       ]),
     );
     await _open(tester);
@@ -452,7 +452,7 @@ void main() {
       'light',
     );
     expect(
-      await tester.runAsync(() => repos.settings.get('reduce_motion')),
+      await tester.runAsync(() => repos.settings.get('confirm_before_delete')),
       false,
     );
   });
@@ -572,7 +572,7 @@ void main() {
       await tester.runAsync(
         () => _queueTie(repos, [
           ('theme_mode', 'dark', 'light'),
-          ('reduce_motion', true, false),
+          ('confirm_before_delete', true, false),
         ]),
       );
       await _open(tester);
