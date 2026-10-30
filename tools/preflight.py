@@ -265,6 +265,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "windows-company-name",
+        "the Windows CompanyName resource still names the folders v0.8.1 used",
+        (
+            py("tools/ci/test_check_windows_company_name.py"),
+            py("tools/ci/check_windows_company_name.py"),
+        ),
+    ),
+    Step(
         "debug-print",
         "no unguarded debugPrint reaches a release build",
         (
