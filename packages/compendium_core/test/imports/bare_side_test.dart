@@ -58,6 +58,8 @@ void main() {
         expect(single('R&L thru').move, 'right_left_through');
       });
 
+      // A pin, not a guard: the leftover "grand" keeps the right and left
+      // through from matching.
       test('Grand R&L is not a right and left through', () {
         expect(
           read('Grand R&L').map((f) => f.move),

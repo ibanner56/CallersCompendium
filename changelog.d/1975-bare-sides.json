@@ -1,0 +1,14 @@
+{
+  "id": "1975-bare-sides",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "\"Circle L\", \"Larks pull by L\", \"Slice L\" and \"Larks pass R shoulder\", as Caller's Companion writes them, now come in as the figure with its direction, hand or shoulder instead of text, and \"R&L\" as a right and left through. This applies to imports and to figures you type. A lone L or R anywhere else, such as in a note about who stands where, stays as written."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The shared recognizer spells a bare l/r as left/right straight after circle, pull by, pass, slide, slice, zig, zag, allemande, loop, cross or step; reads \"alle\" as allemande; and reads \"R&L\" as right and left through."
+    ]
+  }
+}

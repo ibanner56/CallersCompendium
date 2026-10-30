@@ -1659,6 +1659,17 @@ has to be judged in its own context.
   context-dependent two-word names, so they live in the reader rather than in
   `dancerWords`.
 
+  **Bare sides and `R&L` (#1975, maintainer decisions):** `_normalize` spells
+  a bare `l`/`r` as `left`/`right` only straight after a move that takes a
+  direction, hand or shoulder (`circle`, `pull by`, `pass`, `slide`, `slice`,
+  `zig`, `zag`, `allemande`, `loop`, `cross`, `step`): `Circle L`, `Larks pull
+  by L`, `Slice L`, `Larks pass R shoulder`. Anywhere else a lone letter stays
+  as written, so a position note such as `(Rob R, Lar L)` or `Balance the Wave
+  (R, L)` is not read as directions. `alle` is the allemande. Caller's
+  Companion's `R&L` is right and left through, and `R&L thru` reads the same;
+  `Grand R&L` stays text, as the grand right and left reader works on the
+  source's own spelling.
+
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on
   **all 626** of the corpus lines that import as `star_promenade` (measured

@@ -511,7 +511,7 @@ List<String> _normalize(
   if (recognitionNormalize != null) s = recognitionNormalize(s);
   s = s
       // Caller's Companion's `R&L` is right and left through (maintainer
-      // decision, #1975); `Grand R&L` stays the grand right and left.
+      // decision, #1975).
       .replaceAll(_rAndLThrough, ' right and left through ')
       .replaceAll(_rAndL, ' right and left ')
       .replaceAll('&', ' and ')
@@ -531,9 +531,7 @@ List<String> _normalize(
 }
 
 final RegExp _rAndL = RegExp(r'\br\s*&\s*l\b');
-final RegExp _rAndLThrough = RegExp(
-  r'(?<!\bgrand\s{1,8})\br\s*&\s*l\b(?!\s*(?:through|thru)\b)',
-);
+final RegExp _rAndLThrough = RegExp(r'\br\s*&\s*l\b(?!\s*(?:through|thru)\b)');
 
 /// Spells a bare `l`/`r` as `left`/`right` straight after a move that takes a
 /// direction, hand or shoulder: `Circle L`, `pull by R`, `pass L`, `Slide L`,
