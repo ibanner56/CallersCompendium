@@ -186,4 +186,33 @@ void main() {
     expect(entries.last, 'batch-delete');
     expect(entries[entries.length - 2], '---');
   });
+
+  testWidgets('Delete is reachable at 320 x 568 and 2x text', (tester) async {
+    final repos = openTestRepositories();
+    await _seed(repos);
+    await pumpBatchScreen(tester, repos);
+    await _selectFirstTwo(tester);
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-more')));
+    await tester.pumpAndSettle();
+
+    // Last in the menu, so the menu scrolls to it rather than overflowing.
+    final delete = find.byKey(const ValueKey('batch-delete'));
+    await tester.scrollUntilVisible(
+      delete,
+      50,
+      scrollable: find
+          .ancestor(of: delete, matching: find.byType(Scrollable))
+          .first,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(await _liveIds(repos), {'d3'});
+  });
 }
