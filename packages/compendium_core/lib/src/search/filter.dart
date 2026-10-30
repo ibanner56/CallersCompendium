@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 import '../model/custom_field.dart';
 import '../model/enums.dart';
 import '../model/formation.dart';
+import '../storage/calling_history_scope.dart';
 
 /// The composable search filter tree (`docs/design/search.md`).
 ///
@@ -231,6 +232,24 @@ class MixerFilter extends DanceFilter {
 /// [requireEventDate] restricts them to programs that have an event date. In
 /// every mode an alternate slot matches only once it is marked performed
 /// (`ProgramSlot.countsTowardCallingHistory`).
+///
+/// [venue], [since] and [currentProgramId] are scopes: each narrows the set of
+/// slots those rules select, before [called] applies. So `called: false` with
+/// a venue is "no counted slot at that venue", never "a slot somewhere else".
+/// Every scope ANDs with the others and with the rules above.
+///
+/// - [venue] keeps the slots of programs at that venue, matched by
+///   [VenueKey] exactly as the repeated-venues summary groups them (N1-1,
+///   maintainer decision 2026-10-30).
+/// - [since] keeps the slots whose recency date
+///   (`callingHistoryRecencyDateSql`: the event date, else the performed
+///   time) is on or after it. The window has no end, so a program dated next
+///   month falls in it (N1-9), and a slot with neither date falls in no window
+///   (N1-3). It must be a calendar date, `DateTime.utc(y, m, d)`, like a
+///   stored event date; the compiler rejects any other value.
+/// - [currentProgramId] leaves out every slot of that program, performed or
+///   not (N1-6), so the program being edited never counts as its own history.
+///   Collection never sets it.
 @immutable
 class CalledFilter extends DanceFilter {
   const CalledFilter({
@@ -238,12 +257,78 @@ class CalledFilter extends DanceFilter {
     this.callerFilter,
     this.performedOnly = false,
     this.requireEventDate = false,
+    this.venue,
+    this.since,
+    this.currentProgramId,
   });
 
   final bool called;
   final String? callerFilter;
   final bool performedOnly;
   final bool requireEventDate;
+  final VenueKey? venue;
+  final DateTime? since;
+  final String? currentProgramId;
+}
+
+/// Which venue a program was at, as calling history groups programs: by the
+/// linked venue record when there is one, and otherwise by the program's typed
+/// venue, folded by `callingHistoryVenueText`.
+///
+/// A record key never matches a typed one, even when the names agree: a typed
+/// "Grange" and a record named "Grange" are two venues until the old programs
+/// are linked to the record (GIG-7 = (b), maintainer decision 2026-10-29;
+/// N1-1). Two records
+/// with the same name are two venues as well, because venues have no natural
+/// key in sync.
+///
+/// [storageKey] is the summary's string form: `id:<venueId>` or
+/// `text:<folded venue>`.
+@immutable
+class VenueKey {
+  /// The key of programs linked to the venue record [venueId].
+  const VenueKey.record(String this.venueId) : typedVenue = null;
+
+  /// The key of programs with no linked record whose typed venue folds to the
+  /// same text as [venue]. Throws [ArgumentError] for a blank [venue], which
+  /// has no key.
+  factory VenueKey.typed(String venue) {
+    final folded = callingHistoryVenueText(venue);
+    if (folded == null) {
+      throw ArgumentError.value(venue, 'venue', 'must not be blank');
+    }
+    return VenueKey._typed(folded);
+  }
+
+  const VenueKey._typed(String this.typedVenue) : venueId = null;
+
+  /// The key of a program with this linked [venueId] and typed [venue], or
+  /// null when it has neither. A linked record wins over the typed text.
+  static VenueKey? forProgram({String? venueId, String? venue}) {
+    if (venueId != null) return VenueKey.record(venueId);
+    final folded = callingHistoryVenueText(venue);
+    return folded == null ? null : VenueKey._typed(folded);
+  }
+
+  /// The linked venue record's id, for a record key.
+  final String? venueId;
+
+  /// The folded typed venue, for a typed key.
+  final String? typedVenue;
+
+  String get storageKey => venueId != null ? 'id:$venueId' : 'text:$typedVenue';
+
+  @override
+  bool operator ==(Object other) =>
+      other is VenueKey &&
+      other.venueId == venueId &&
+      other.typedVenue == typedVenue;
+
+  @override
+  int get hashCode => Object.hash(venueId, typedVenue);
+
+  @override
+  String toString() => 'VenueKey($storageKey)';
 }
 
 /// Dances whose curatorial rating is **at least** [minimum] (`rating >= N`) on

@@ -6,6 +6,7 @@ import '../../model/enums.dart';
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/stored_timestamp.dart';
+import '../../search/filter.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
@@ -81,6 +82,20 @@ class DanceCallingRecord {
   /// `callingHistoryDateSql`.
   DateTime get effectiveDate => eventDate ?? performedAt ?? programUpdatedAt;
 
+  /// The date a recency window gives this record: [effectiveDate] without its
+  /// last fallback, so null when the program has no event date and the slot
+  /// was never marked performed. A program's last edit is not a call (N1-3,
+  /// maintainer decision 2026-10-30).
+  ///
+  /// A `CalledFilter.since` scope compares the same date, through
+  /// `callingHistoryRecencyDateSql`; the two must agree.
+  DateTime? get recencyDate => eventDate ?? performedAt;
+
+  /// The venue this record's program was at, as the repeated-venues summary
+  /// groups it, or null when the program has neither a linked record nor a
+  /// typed venue.
+  VenueKey? get venueKey => VenueKey.forProgram(venueId: venueId, venue: venue);
+
   @override
   bool operator ==(Object other) =>
       other is DanceCallingRecord &&
@@ -109,8 +124,10 @@ class DanceCallingRecord {
 /// The number of matching calling-history records at one venue identity.
 ///
 /// Linked venues remain keyed by [venueId], while free-text venues are keyed by
-/// normalized [venue]. The app resolves linked labels before displaying or
-/// ordering these values because the venue catalogue is app-side state.
+/// normalized [venue] ([key] is the [VenueKey] either way, the same key a
+/// `CalledFilter.venue` scope matches). The app resolves linked labels before
+/// displaying or ordering these values because the venue catalogue is app-side
+/// state.
 @immutable
 class VenueCallCount {
   const VenueCallCount({
@@ -123,6 +140,13 @@ class VenueCallCount {
   final String? venue;
   final int count;
 
+  /// The venue these records share. The summary only builds a count for a
+  /// record with a key, so this throws only for a hand-built count with
+  /// neither [venueId] nor [venue]. Folding [venue] again gives the key the
+  /// summary grouped by: it stores [venue] trimmed and whitespace-collapsed,
+  /// and the fold is idempotent.
+  VenueKey get key => VenueKey.forProgram(venueId: venueId, venue: venue)!;
+
   @override
   bool operator ==(Object other) =>
       other is VenueCallCount &&
@@ -132,6 +156,48 @@ class VenueCallCount {
 
   @override
   int get hashCode => Object.hash(venueId, venue, count);
+}
+
+/// One venue with at least one counted call, and how many programs at it
+/// count, produced by [ProgramRepository.calledVenues].
+///
+/// The app labels a record [key] from its venue catalogue, and a typed one from
+/// [latestVenueText]. A record key whose record is missing (a dangling
+/// `programs.venue_id` from a peer) falls back to [latestVenueText] too.
+@immutable
+class CalledVenue {
+  const CalledVenue({
+    required this.key,
+    required this.programCount,
+    this.latestVenueText,
+  });
+
+  /// The venue, as a `CalledFilter.venue` scope and the repeated-venues
+  /// summary key it.
+  final VenueKey key;
+
+  /// How many distinct programs at this venue have a counted call.
+  final int programCount;
+
+  /// The typed venue of the most recent such program that has one, trimmed
+  /// and whitespace-collapsed but not lower-cased. Null when none has typed
+  /// text, which only a record key can be.
+  final String? latestVenueText;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CalledVenue &&
+      other.key == key &&
+      other.programCount == programCount &&
+      other.latestVenueText == latestVenueText;
+
+  @override
+  int get hashCode => Object.hash(key, programCount, latestVenueText);
+
+  @override
+  String toString() =>
+      'CalledVenue(${key.storageKey}, programs: $programCount, '
+      'latest: $latestVenueText)';
 }
 
 /// How many times a dance has been called, aggregated across every non-deleted
@@ -1287,12 +1353,7 @@ class ProgramRepository {
   ) {
     final counts = <String, VenueCallCount>{};
     for (final record in records) {
-      final normalizedVenue = _normalizedVenueText(record.venue);
-      final key = record.venueId == null
-          ? normalizedVenue == null
-                ? null
-                : 'text:$normalizedVenue'
-          : 'id:${record.venueId}';
+      final key = record.venueKey?.storageKey;
       if (key == null) continue;
       final current = counts[key];
       counts[key] = VenueCallCount(
@@ -1304,16 +1365,105 @@ class ProgramRepository {
     return counts.values.toList(growable: false);
   }
 
-  String? _normalizedVenueText(String? value) {
-    final trimmed = value?.trim();
-    if (trimmed == null || trimmed.isEmpty) return null;
-    return trimmed.replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
-  }
-
   String? _displayVenueText(String? value) {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) return null;
     return trimmed.replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  /// Every venue with at least one counted call, for the Filters panel's venue
+  /// chooser: a choice with no counted call could not change a result, so it
+  /// is left out.
+  ///
+  /// "Counted" is what a `CalledFilter` with the same arguments counts: the
+  /// alternate rule, the caller scope ([callerFilter]), [performedOnly],
+  /// [requireEventDate], and non-deleted programs only. Venues are keyed as
+  /// the repeated-venues summary keys them ([VenueKey]); a program with no
+  /// venue is left out. Ordered by each venue's most recent call
+  /// ([DanceCallingRecord.effectiveDate]'s date, newest first), then by
+  /// [VenueKey.storageKey].
+  Future<List<CalledVenue>> calledVenues({
+    bool performedOnly = false,
+    bool requireEventDate = false,
+    String? callerFilter,
+  }) => _calledVenueRows(
+    performedOnly: performedOnly,
+    requireEventDate: requireEventDate,
+    caller: _normalizedCallerFilter(callerFilter),
+  ).get().then(_calledVenuesFromRows);
+
+  /// Reactive [calledVenues]: emits now, then whenever a write to programs or
+  /// slots changes it. Arguments mean what they do on the one-shot method.
+  Stream<List<CalledVenue>> watchCalledVenues({
+    bool performedOnly = false,
+    bool requireEventDate = false,
+    String? callerFilter,
+  }) => _calledVenueRows(
+    performedOnly: performedOnly,
+    requireEventDate: requireEventDate,
+    caller: _normalizedCallerFilter(callerFilter),
+  ).watch().map(_calledVenuesFromRows);
+
+  /// One row per program with a venue and at least one counted slot, with its
+  /// newest counted slot's history date. Shared by [calledVenues] and
+  /// [watchCalledVenues] so the two cannot diverge.
+  Selectable<QueryRow> _calledVenueRows({
+    required bool performedOnly,
+    required bool requireEventDate,
+    required String? caller,
+  }) => _db.customSelect(
+    'SELECT programs.id AS program_id, programs.venue_id AS venue_id, '
+    'programs.venue AS venue, '
+    'MAX(${callingHistoryDateSql(slotTable: 'program_slots', programTable: 'programs')}) '
+    'AS called_at '
+    'FROM program_slots '
+    'JOIN programs ON programs.id = program_slots.program_id '
+    'WHERE programs.deleted_at IS NULL '
+    '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
+    '$_alternateClause'
+    '${_eventDateClause(requireEventDate)}'
+    '${_callerClause(caller)}'
+    'GROUP BY programs.id',
+    variables: _callerVariables(caller),
+    readsFrom: _programDerivedTables,
+  );
+
+  List<CalledVenue> _calledVenuesFromRows(List<QueryRow> rows) {
+    final programs =
+        [
+          for (final row in rows)
+            if (VenueKey.forProgram(
+                  venueId: row.read<String?>('venue_id'),
+                  venue: row.read<String?>('venue'),
+                )
+                case final key?)
+              (
+                key: key,
+                venue: _displayVenueText(row.read<String?>('venue')),
+                calledAt: asUtc(row.read<DateTime>('called_at')),
+              ),
+        ]..sort((a, b) {
+          final byDate = b.calledAt.compareTo(a.calledAt);
+          return byDate != 0
+              ? byDate
+              : a.key.storageKey.compareTo(b.key.storageKey);
+        });
+    final counts = <VenueKey, int>{};
+    final latestText = <VenueKey, String>{};
+    for (final program in programs) {
+      counts.update(program.key, (n) => n + 1, ifAbsent: () => 1);
+      if (program.venue case final venue?) {
+        latestText.putIfAbsent(program.key, () => venue);
+      }
+    }
+    return [
+      for (final MapEntry(:key, value: count) in counts.entries)
+        CalledVenue(
+          key: key,
+          programCount: count,
+          latestVenueText: latestText[key],
+        ),
+    ];
   }
 
   /// Reactive [callingHistoryForDance] + [halfCallingStatsForDance]: emits the
