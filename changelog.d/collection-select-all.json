@@ -1,0 +1,14 @@
+{
+  "id": "collection-select-all",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Collection selection mode has Select all, which picks every dance in the list you are looking at (and Deselect all to undo it). On a narrow screen it is the first entry of More batch actions.",
+      "When a search hides dances you had selected, the line under the search says how many (for example \"14 selected (9 not shown)\") and offers Deselect those not shown."
+    ],
+    "changed": [
+      "Turning on Online search now ends selection mode instead of leaving a hidden selection behind.",
+      "A selected dance that is deleted, or removed by another device, now leaves the selection instead of still being counted."
+    ]
+  }
+}

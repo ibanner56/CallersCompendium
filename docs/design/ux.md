@@ -56,7 +56,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   detail page's tag chip selects one) stays visible until it is cleared, so no
   control-less filter can narrow the list. When every available section is
   hidden the panel says so rather than reporting an empty collection.
-- Actions: new dance, import, duplicate, batch tag. Each row's ⋮ menu also
+- Actions: new dance, import, duplicate, batch tag (with Select all over the
+  current results; picks a search hides stay selected and are counted as "not
+  shown", N4). Each row's ⋮ menu also
   offers Duplicate, Add to program, Add tags (one dance, same picker and Undo
   as batch tag) and Delete (#1416).
 

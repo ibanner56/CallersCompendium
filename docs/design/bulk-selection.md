@@ -1,7 +1,7 @@
 # Design: Bulk selection
 
-*Design note N4 for audit finding FIND-8 · v0.2 (2026-10-30) · **Status: decided,
-not built.** The maintainer chose "design note now" for `design-bulk-select` in
+*Design note N4 for audit finding FIND-8 · v0.2 (2026-10-30) · **Status: decided;
+S1 (Select all, the not-shown count) built, the rest not.** The maintainer chose "design note now" for `design-bulk-select` in
 `maintainer-decisions-2026-10-29.md`, and answered this note's six questions on
 2026-10-29/30 (N4-1 … N4-6 in `maintainer-decisions-2026-10-30.md`). Those are
 quoted under [Decisions](#decisions). One answer differs from the

@@ -456,7 +456,23 @@ To organize in bulk, enter selection mode: choose **Select dances** from the **M
 or long-press
 a row on a touchscreen. Tick as many dances as you like, then apply one change
 across all of them. Tags and level are on the toolbar; the rest are under
-**More batch actions**:
+**More batch actions**.
+
+**Select all** picks every dance in the list you are looking at — the current
+search, filters and By phrase included — and becomes **Deselect all** once they
+are all picked. It is a button on the toolbar when the screen is wide enough and
+the first entry of **More batch actions** when it is not. It waits for a search
+that is still running. To select the whole collection, clear the filters first.
+
+The search box stays live while you select, and a dance you picked stays picked
+when a search hides it, so you can build a selection across several searches.
+When that happens the line under the search shows how many are out of sight —
+for example "14 selected (9 not shown)" — with **Deselect those not shown** to
+drop them. Every change applies to all selected dances, shown or not. A
+selected dance that is deleted, or removed by another device, leaves the
+selection by itself. Turning on **Online search** ends selection mode.
+
+The changes:
 
 - **Add tags** or **Remove tags**.
 - **Set level**, or clear it with **Unspecified (clear)**.

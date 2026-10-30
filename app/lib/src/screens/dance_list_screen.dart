@@ -1311,6 +1311,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// Whether Select all can act: never on a list that a pending or failed
   /// search is about to replace or has emptied.
   bool get _canSelectAll =>
+      !_onlineEnabled &&
       !_searching &&
       !(_debounceTimer?.isActive ?? false) &&
       _searchError == null &&
@@ -2180,7 +2181,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ),
         PopupMenuItem<Object>(
           key: const ValueKey('batch-select'),
-          enabled: _results.isNotEmpty,
+          // Selection is a local-collection feature (N4-1): not over online
+          // results.
+          enabled: !_onlineEnabled && _results.isNotEmpty,
           value: _CollectionCompactAction.batchSelect,
           child: Text(l10n.collectionSelectDancesTooltip),
         ),

@@ -181,4 +181,16 @@ void main() {
     );
     expect(rating.enabled, isFalse);
   });
+
+  testWidgets('Select dances is off while online search is on', (tester) async {
+    await _seed(tester);
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+    await tester.pumpAndSettle();
+    final item = tester.widget<PopupMenuItem<Object>>(
+      find.byKey(const ValueKey('batch-select')),
+    );
+    expect(item.enabled, isFalse);
+  });
 }
