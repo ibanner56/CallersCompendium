@@ -4183,47 +4183,11 @@ abstract class AppLocalizations {
   /// **'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.'**
   String get settingsAppearanceTagColoursSubtitle;
 
-  /// App-bar title of the per-tag colour settings screen.
-  ///
-  /// In en, this message translates to:
-  /// **'Tag colours'**
-  String get settingsTagColoursTitle;
-
-  /// Intro paragraph explaining per-tag colours.
-  ///
-  /// In en, this message translates to:
-  /// **'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.'**
-  String get settingsTagColoursIntro;
-
-  /// Section header above the list of tags.
-  ///
-  /// In en, this message translates to:
-  /// **'Tags'**
-  String get settingsTagColoursListHeader;
-
   /// Shown on the tag-colour screen when the collection has no tags.
   ///
   /// In en, this message translates to:
   /// **'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.'**
   String get settingsTagColoursEmpty;
-
-  /// Subtitle shown when a tag has a custom colour set.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom colour'**
-  String get settingsTagColoursCustom;
-
-  /// Subtitle shown when a tag has no colour assigned.
-  ///
-  /// In en, this message translates to:
-  /// **'No colour'**
-  String get settingsTagColoursNoColour;
-
-  /// Tooltip on the button that clears one tag's colour.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove {label}\'s colour'**
-  String settingsTagColoursResetTooltip(String label);
 
   /// Snack-bar message shown when saving or clearing a tag colour fails.
   ///
@@ -4236,6 +4200,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load your tags.'**
   String get settingsTagColoursLoadError;
+
+  /// App-bar title of the Tags manager, where tags are renamed, merged, coloured and deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get tagManagerTitle;
+
+  /// Hint in the Tags manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search tags'**
+  String get tagManagerSearchHint;
+
+  /// Label of the name field in the Tags manager's rename dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag name'**
+  String get tagManagerNameLabel;
+
+  /// Tags manager action: opens the colour picker for a tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour…'**
+  String get tagManagerColour;
+
+  /// Tags manager action, offered only for a tag with a colour: removes the colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove colour'**
+  String get tagManagerRemoveColour;
+
+  /// Snackbar after deleting a tag in the Tags manager, with an Undo action. The count is the dances in the collection that lost the tag; dances in Recently deleted are not counted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Deleted “{name}”} =1{Deleted “{name}” from 1 dance} other{Deleted “{name}” from {count} dances}}'**
+  String tagManagerDeletedSnack(String name, int count);
+
+  /// Snackbar after renaming a tag in the Tags manager, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed “{from}” to “{to}”'**
+  String tagManagerRenamedSnack(String from, String to);
+
+  /// Snackbar after merging one tag into another in the Tags manager, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged “{from}” into “{into}”'**
+  String tagManagerMergedSnack(String from, String into);
+
+  /// Snackbar after a rename merged three or more tags into one (case variants of the same name), with an Undo action. The count includes the tag merged into.
+  ///
+  /// In en, this message translates to:
+  /// **'Combined {count} tags into “{into}”'**
+  String tagManagerMergedSeveralSnack(int count, String into);
+
+  /// Tooltip of the button that clears the search field in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get libraryManagerClearSearch;
+
+  /// Filter chip in the Tags, Authors and Sources managers: shows only entries no dance uses.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used'**
+  String get libraryManagerNotUsed;
+
+  /// Tooltip of the sort menu in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get libraryManagerSortTooltip;
+
+  /// Sort choice in the Tags, Authors and Sources managers: alphabetical.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get libraryManagerSortByName;
+
+  /// Sort choice in the Tags, Authors and Sources managers: most-used first.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of dances'**
+  String get libraryManagerSortByDanceCount;
+
+  /// Shown in the Tags, Authors and Sources managers when the search or filter leaves no entries.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing matches your search.'**
+  String get libraryManagerNoMatches;
+
+  /// Row subtitle in the Tags, Authors and Sources managers: how many dances in the collection use the entry. Dances in Recently deleted are not counted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Not used} =1{1 dance} other{{count} dances}}'**
+  String libraryManagerDanceCount(int count);
+
+  /// Tooltip of the ⋮ menu on a row of the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions for {name}'**
+  String libraryManagerActionsTooltip(String name);
+
+  /// Action and dialog button in the Tags, Authors and Sources managers: renames the entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get libraryManagerRename;
+
+  /// Title of the rename dialog in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename “{name}”'**
+  String libraryManagerRenameTitle(String name);
+
+  /// Action in the Tags, Authors and Sources managers: opens a picker of the entry to merge this one into.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge into…'**
+  String get libraryManagerMergeInto;
+
+  /// Title of the picker that chooses which entry to merge this one into.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge “{name}” into…'**
+  String libraryManagerMergePickerTitle(String name);
+
+  /// Title of the dialog shown when a rename in the Tags, Authors or Sources manager picks a name another entry already has.
+  ///
+  /// In en, this message translates to:
+  /// **'Name already in use'**
+  String get libraryManagerMergeOfferTitle;
+
+  /// Body of the dialog shown when a rename picks a name another entry already has. Merging keeps one entry; it can be undone.
+  ///
+  /// In en, this message translates to:
+  /// **'“{existing}” already exists. Merge “{from}” into it?'**
+  String libraryManagerMergeOfferOne(String existing, String from);
+
+  /// Body of the dialog shown when a rename picks a name that several entries already have (they differ only in capitals). A list of them follows.
+  ///
+  /// In en, this message translates to:
+  /// **'More than one entry is already called “{name}”. Choose the one to merge “{from}” into; the others are merged into it too.'**
+  String libraryManagerMergeOfferSeveral(String name, String from);
+
+  /// Primary button of the merge dialog in the Tags, Authors and Sources managers.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get libraryManagerMerge;
+
+  /// Snackbar when Undo of a rename, merge or delete in the Tags, Authors or Sources manager cannot give a name back, because another entry has taken it since.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t undo: “{name}” is now used by another entry.'**
+  String libraryManagerUndoConflict(String name);
+
+  /// Snackbar when a rename, merge or delete in the Tags, Authors or Sources manager fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t save that change. Please try again.'**
+  String get libraryManagerEditFailed;
 
   /// General settings section header for collection-library preferences.
   ///
@@ -4692,6 +4818,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.'**
   String get settingsGeneralCapitalizeFiguresSubtitle;
+
+  /// Settings › General › Library entry that opens the Tags manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get settingsGeneralLibraryTagsTitle;
+
+  /// Subtitle of the Settings › General › Library entry that opens the Tags manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge, colour and delete your tags.'**
+  String get settingsGeneralLibraryTagsSubtitle;
 
   /// General settings section header for accessibility preferences.
   ///

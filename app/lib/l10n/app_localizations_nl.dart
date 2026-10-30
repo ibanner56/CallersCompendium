@@ -2757,29 +2757,8 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geef een tag een eigen kleur zodat die opvalt op danskaarten en in de dansdetails. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
 
   @override
-  String get settingsTagColoursTitle => 'Tagkleuren';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'Geef een tag een eigen kleur zodat die overal opvalt waar hij verschijnt. Alleen de tags die je kleurt veranderen; de rest ziet er precies zo uit als nu. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
   String get settingsTagColoursEmpty =>
       'Je hebt nog geen tags aangemaakt. Voeg een tag toe aan een dans en die verschijnt hier.';
-
-  @override
-  String get settingsTagColoursCustom => 'Aangepaste kleur';
-
-  @override
-  String get settingsTagColoursNoColour => 'Geen kleur';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Kleur van $label verwijderen';
-  }
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2787,6 +2766,125 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsTagColoursLoadError => 'Kon je tags niet laden.';
+
+  @override
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Tags zoeken';
+
+  @override
+  String get tagManagerNameLabel => 'Tagnaam';
+
+  @override
+  String get tagManagerColour => 'Kleur…';
+
+  @override
+  String get tagManagerRemoveColour => 'Kleur verwijderen';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '“$name” verwijderd uit $count dansen',
+      one: '“$name” verwijderd uit 1 dans',
+      zero: '“$name” verwijderd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return '“$from” hernoemd naar “$to”';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return '“$from” samengevoegd met “$into”';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return '$count tags samengevoegd tot “$into”';
+  }
+
+  @override
+  String get libraryManagerClearSearch => 'Zoekopdracht wissen';
+
+  @override
+  String get libraryManagerNotUsed => 'Niet gebruikt';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sorteren';
+
+  @override
+  String get libraryManagerSortByName => 'Naam';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Aantal dansen';
+
+  @override
+  String get libraryManagerNoMatches =>
+      'Niets komt overeen met je zoekopdracht.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+      zero: 'Niet gebruikt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Acties voor $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Hernoemen';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return '“$name” hernoemen';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Samenvoegen met…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return '“$name” samenvoegen met…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Naam al in gebruik';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '“$existing” bestaat al. “$from” ermee samenvoegen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'Meer dan één item heet al “$name”. Kies het item waarmee “$from” wordt samengevoegd; de andere worden er ook mee samengevoegd.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Samenvoegen';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Ongedaan maken lukt niet: “$name” wordt nu door een ander item gebruikt.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Die wijziging kon niet worden opgeslagen. Probeer het opnieuw.';
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotheek';
@@ -3076,6 +3174,13 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
       'Als ingeschakeld, begint elke figuur in de dansweergave, de Perform-modus en de figuureditor met een hoofdletter (“Neighbors allemande left”). Als uitgeschakeld, worden figuren getoond zoals ze zijn geschreven; ingebouwde figuren beginnen met een kleine letter, zoals in ContraDB. Alleen het uiterlijk van figuren op die plekken verandert; exports, zoeken, synchronisatievergelijkingen en de tekst voor schermlezers blijven ongewijzigd.';
+
+  @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Je tags hernoemen, samenvoegen, kleuren en verwijderen.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';

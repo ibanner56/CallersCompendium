@@ -2712,33 +2712,9 @@
   "@settingsAppearanceTagColoursSubtitle": {
     "x-sourceSha256": "4c98c4517bcd592a6c7522fb07487df7d70670c89570c2b87a2adf2c3268ba18"
   },
-  "settingsTagColoursTitle": "タグの色",
-  "@settingsTagColoursTitle": {
-    "x-sourceSha256": "2c44c93ab04a5cd53fbd631003d71d65a1e9605920885591a0197069b91b5cdc"
-  },
-  "settingsTagColoursIntro": "タグに独自の色を設定すると、表示されるあらゆる場所で目立つようになります。変わるのは色を設定したタグだけで、それ以外は今までどおりです。タグ名は常に表示されるため、色がなくてもタグは読み取れます。",
-  "@settingsTagColoursIntro": {
-    "x-sourceSha256": "6c5feb1800120d1ece382c757e787ce2ef25b4f5f4f855bdef027ea1dcfcdb71"
-  },
-  "settingsTagColoursListHeader": "タグ",
-  "@settingsTagColoursListHeader": {
-    "x-sourceSha256": "1331275bc537b4c2bf1e46f7275677967515342e30b572e6852fa6f51b831fe8"
-  },
   "settingsTagColoursEmpty": "まだタグを作成していません。ダンスにタグを追加すると、ここに表示されます。",
   "@settingsTagColoursEmpty": {
     "x-sourceSha256": "c7febc58f1c97ff80948a88429355a4030c37a0f3e9aba3f65b312652d0d2c61"
-  },
-  "settingsTagColoursCustom": "カスタムカラー",
-  "@settingsTagColoursCustom": {
-    "x-sourceSha256": "c31a3f15ca973a50a1f52e8b27deba26fa108c6926eb6299b044e62f0090214c"
-  },
-  "settingsTagColoursNoColour": "色なし",
-  "@settingsTagColoursNoColour": {
-    "x-sourceSha256": "b3bd22700cab79adef1584040ca4f238e80127ae5bbf74538edf0bc139a2d4f9"
-  },
-  "settingsTagColoursResetTooltip": "{label}の色を削除",
-  "@settingsTagColoursResetTooltip": {
-    "x-sourceSha256": "0203f6121a8fe31d7287d0677e74de0b365b870c5d4a395b8d84d212eab52525"
   },
   "settingsTagColoursSaveError": "その色を保存できませんでした。もう一度お試しください。",
   "@settingsTagColoursSaveError": {
@@ -2747,6 +2723,114 @@
   "settingsTagColoursLoadError": "タグを読み込めませんでした。",
   "@settingsTagColoursLoadError": {
     "x-sourceSha256": "ef22e123e47d8e10a6a827e3024ae46618929552e50f6ab19d4dfcfb3fa4d38f"
+  },
+  "tagManagerTitle": "タグ",
+  "@tagManagerTitle": {
+    "x-sourceSha256": "1331275bc537b4c2bf1e46f7275677967515342e30b572e6852fa6f51b831fe8"
+  },
+  "tagManagerSearchHint": "タグを検索",
+  "@tagManagerSearchHint": {
+    "x-sourceSha256": "93bc41f4de1b16edf9e7340329acec9deebb6c9c227fe3d4c73cbb1f4d41f975"
+  },
+  "tagManagerNameLabel": "タグ名",
+  "@tagManagerNameLabel": {
+    "x-sourceSha256": "1ace926bc7cdee5323e297d439d2d268286749252b1c7f5e332d5003681d092d"
+  },
+  "tagManagerColour": "色…",
+  "@tagManagerColour": {
+    "x-sourceSha256": "76ad1a213c7631daa53659cec4db7bf56f7cccad19737299b926d0087b499ae2"
+  },
+  "tagManagerRemoveColour": "色を削除",
+  "@tagManagerRemoveColour": {
+    "x-sourceSha256": "6a1a1f8cf536206cb54092d10f535f8cc078419e0ece015643b01243bab2bdb7"
+  },
+  "tagManagerDeletedSnack": "{count, plural, =0{「{name}」を削除しました} other{「{name}」を{count}件のダンスから削除しました}}",
+  "@tagManagerDeletedSnack": {
+    "x-sourceSha256": "7fe3ea285baeb3b2a2d98ae8620afc2e593f2715b4fde50758de534359a3b680"
+  },
+  "tagManagerRenamedSnack": "「{from}」を「{to}」に名前変更しました",
+  "@tagManagerRenamedSnack": {
+    "x-sourceSha256": "5e97d0d1296f39ceb9230f70ad16cc0d613613aa726d0b96524b7ba899315bed"
+  },
+  "tagManagerMergedSnack": "「{from}」を「{into}」に統合しました",
+  "@tagManagerMergedSnack": {
+    "x-sourceSha256": "30e0db7e6b76090c883a36fb5d54a3c129e065769ad3c7ffd0b4e0a00ab7f01c"
+  },
+  "tagManagerMergedSeveralSnack": "{count}件のタグを「{into}」にまとめました",
+  "@tagManagerMergedSeveralSnack": {
+    "x-sourceSha256": "cacbce18bf0b7e9f1ebbf63bd0314e913760eb09f8c6a84c35823cffd21c7cc6"
+  },
+  "libraryManagerClearSearch": "検索をクリア",
+  "@libraryManagerClearSearch": {
+    "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
+  },
+  "libraryManagerNotUsed": "未使用",
+  "@libraryManagerNotUsed": {
+    "x-sourceSha256": "dccafe55abe3dd9828919e60e5d9eb7c4a5a166a3232f05476feb51671d40cb1"
+  },
+  "libraryManagerSortTooltip": "並べ替え",
+  "@libraryManagerSortTooltip": {
+    "x-sourceSha256": "bec69036aa27e7fab7d44cad3909477b76631c39ba46fd7841ea71aae7e5a735"
+  },
+  "libraryManagerSortByName": "名前",
+  "@libraryManagerSortByName": {
+    "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
+  },
+  "libraryManagerSortByDanceCount": "ダンス数",
+  "@libraryManagerSortByDanceCount": {
+    "x-sourceSha256": "19061832d72037a6a8ab06f44ed0433c00c8abad911a629f9939860bb7fe84ae"
+  },
+  "libraryManagerNoMatches": "検索に一致するものはありません。",
+  "@libraryManagerNoMatches": {
+    "x-sourceSha256": "6701dfede769d7ad8e1c50718e3147d14d959b7c1838040c8e976b6a494170a9"
+  },
+  "libraryManagerDanceCount": "{count, plural, =0{未使用} other{{count}件のダンス}}",
+  "@libraryManagerDanceCount": {
+    "x-sourceSha256": "94f7b7eeb5558009b4a228f2a66c045ecb5366689e8b965443f0a78a4e83d5ab"
+  },
+  "libraryManagerActionsTooltip": "{name}の操作",
+  "@libraryManagerActionsTooltip": {
+    "x-sourceSha256": "aac6defa1846338bb822f6a929e67cacd9a3fb2018b0af746592e77d5afb0625"
+  },
+  "libraryManagerRename": "名前を変更",
+  "@libraryManagerRename": {
+    "x-sourceSha256": "3064d79a295cefe4b384b8fe5cb29fd6b06d7eb1ad94b8895f4148039d06b330"
+  },
+  "libraryManagerRenameTitle": "「{name}」の名前を変更",
+  "@libraryManagerRenameTitle": {
+    "x-sourceSha256": "c710117e61420175c8c4be25544fb52a6b1cc7cbddc986c8238c327739080d35"
+  },
+  "libraryManagerMergeInto": "統合先を選ぶ…",
+  "@libraryManagerMergeInto": {
+    "x-sourceSha256": "2eb1fd03bbe336faa22866bc42606cc26624bd002a04109ba201081c1e95a7c2"
+  },
+  "libraryManagerMergePickerTitle": "「{name}」の統合先…",
+  "@libraryManagerMergePickerTitle": {
+    "x-sourceSha256": "1c9210eb6f342caf12de302c702772a57f769dcb8fb3c463276974d1644a9102"
+  },
+  "libraryManagerMergeOfferTitle": "その名前は使用中です",
+  "@libraryManagerMergeOfferTitle": {
+    "x-sourceSha256": "a022ad9098ecabad09dd5285449adebdf2eeefc9a2ef6dc3a454ca74adfb6d04"
+  },
+  "libraryManagerMergeOfferOne": "「{existing}」はすでにあります。「{from}」をそこに統合しますか？",
+  "@libraryManagerMergeOfferOne": {
+    "x-sourceSha256": "ade1b4b0efe9e588983277e0a74acb22cdd5059f15b4253d06369e77f87736b8"
+  },
+  "libraryManagerMergeOfferSeveral": "「{name}」という名前の項目が複数あります。「{from}」の統合先を選んでください。ほかの項目もそこに統合されます。",
+  "@libraryManagerMergeOfferSeveral": {
+    "x-sourceSha256": "c512216514abd37359da61a98a255c09ff859b79dc5e0a3bdbce21a041c977ef"
+  },
+  "libraryManagerMerge": "統合",
+  "@libraryManagerMerge": {
+    "x-sourceSha256": "8851aaa7d08ca1ae7e5d63278037532f3222a8b746e7abdd8af3fb06d6d4f993"
+  },
+  "libraryManagerUndoConflict": "元に戻せません：「{name}」は現在ほかの項目が使っています。",
+  "@libraryManagerUndoConflict": {
+    "x-sourceSha256": "809d9c18ac9b04443bfbf9db194f9d785663625547377cd22b11e652f3f315f6"
+  },
+  "libraryManagerEditFailed": "変更を保存できませんでした。もう一度お試しください。",
+  "@libraryManagerEditFailed": {
+    "x-sourceSha256": "a42fb6a8c1dff3745489ee1813b6fd4ec4d0ecbb6f3b805bb5630e1a9f41809f"
   },
   "settingsGeneralLibraryHeader": "ライブラリ",
   "@settingsGeneralLibraryHeader": {
@@ -3051,6 +3135,14 @@
   "settingsGeneralCapitalizeFiguresSubtitle": "オンにすると、ダンス表示、Perform モード、フィギュアエディターの各フィギュアが大文字で始まります（「Neighbors allemande left」）。オフの場合は、フィギュアは書かれたとおりに表示され、組み込みのフィギュアは ContraDB と同様に小文字で始まります。変更されるのはこれらの場所での表示のみで、エクスポート、検索、同期の比較、スクリーンリーダーの読み上げ文言は変わりません。",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
     "x-sourceSha256": "7f240fb961d598881097268169b7eafcb32a2e8b4698331673904b34b1f95a09"
+  },
+  "settingsGeneralLibraryTagsTitle": "タグ",
+  "@settingsGeneralLibraryTagsTitle": {
+    "x-sourceSha256": "1331275bc537b4c2bf1e46f7275677967515342e30b572e6852fa6f51b831fe8"
+  },
+  "settingsGeneralLibraryTagsSubtitle": "タグの名前変更、統合、色付け、削除を行います。",
+  "@settingsGeneralLibraryTagsSubtitle": {
+    "x-sourceSha256": "c140368a6b9ec7faa4b2244f3cd0e1189e1efb5cb19ad558be423dd4fdec46bc"
   },
   "settingsGeneralAccessibilityHeader": "アクセシビリティ",
   "@settingsGeneralAccessibilityHeader": {

@@ -13,6 +13,7 @@ import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/tag_manager_screen.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -61,12 +62,12 @@ Future<void> _pumpGeneral(
   addTearDown(capitalizeFigures.dispose);
 
   await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
+    RepositoriesScope(
+      repositories: repos,
+      child: MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: AppThemeScope(
           notifier: theme,
           child: CustomThemesScope(
             controller: customThemes,
@@ -113,6 +114,18 @@ void main() {
     'general-capitalize-figures': kCapitalizeFiguresKey,
     'general-confirm-before-delete': kConfirmBeforeDeleteKey,
   };
+
+  testWidgets('Library › Tags opens the Tags manager (D-N2-3)', (tester) async {
+    await _pumpGeneral(tester, openTestRepositories());
+
+    final entry = find.byKey(const ValueKey('general-library-tags'));
+    await tester.ensureVisible(entry);
+    await tester.pumpAndSettle();
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TagManagerScreen), findsOneWidget);
+  });
 
   testWidgets('all accessibility switches render and default off', (
     tester,

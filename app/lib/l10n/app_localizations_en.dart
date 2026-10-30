@@ -2721,29 +2721,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.';
 
   @override
-  String get settingsTagColoursTitle => 'Tag colours';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
   String get settingsTagColoursEmpty =>
       'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.';
-
-  @override
-  String get settingsTagColoursCustom => 'Custom colour';
-
-  @override
-  String get settingsTagColoursNoColour => 'No colour';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Remove $label\'s colour';
-  }
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2751,6 +2730,124 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsTagColoursLoadError => 'Couldn\'t load your tags.';
+
+  @override
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Search tags';
+
+  @override
+  String get tagManagerNameLabel => 'Tag name';
+
+  @override
+  String get tagManagerColour => 'Colour…';
+
+  @override
+  String get tagManagerRemoveColour => 'Remove colour';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted “$name” from $count dances',
+      one: 'Deleted “$name” from 1 dance',
+      zero: 'Deleted “$name”',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return 'Renamed “$from” to “$to”';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return 'Merged “$from” into “$into”';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return 'Combined $count tags into “$into”';
+  }
+
+  @override
+  String get libraryManagerClearSearch => 'Clear search';
+
+  @override
+  String get libraryManagerNotUsed => 'Not used';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sort';
+
+  @override
+  String get libraryManagerSortByName => 'Name';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Number of dances';
+
+  @override
+  String get libraryManagerNoMatches => 'Nothing matches your search.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances',
+      one: '1 dance',
+      zero: 'Not used',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Actions for $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Rename';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return 'Rename “$name”';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Merge into…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return 'Merge “$name” into…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Name already in use';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '“$existing” already exists. Merge “$from” into it?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'More than one entry is already called “$name”. Choose the one to merge “$from” into; the others are merged into it too.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Merge';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Couldn’t undo: “$name” is now used by another entry.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Couldn’t save that change. Please try again.';
 
   @override
   String get settingsGeneralLibraryHeader => 'Library';
@@ -3026,6 +3123,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
       'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.';
+
+  @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Rename, merge, colour and delete your tags.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Accessibility';

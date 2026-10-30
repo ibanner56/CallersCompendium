@@ -74,6 +74,56 @@ void main() {
     return row.read<String>('v');
   }
 
+  group('watchLiveDanceCounts', () {
+    test('counts live dances per entry, and follows a dance into the trash '
+        'and back', () async {
+      await tag(a, 'Flowy');
+      await tag(b, 'Bouncey');
+      await tag(c, 'Unused');
+      await dance('one', tags: [a, b]);
+      await dance('two', tags: [a]);
+      await dance('trashed', tags: [a]);
+      await repos.dances.softDelete('trashed', at: t0);
+
+      final seen = <Map<String, int>>[];
+      final sub = edits
+          .watchLiveDanceCounts(ReferenceKind.tag)
+          .listen(seen.add);
+      await pumpEventQueue();
+      // Unused entries are absent, not zero; the trashed dance is not counted.
+      expect(seen.last, {a: 2, b: 1});
+      expect(await edits.liveDanceCount(ReferenceKind.tag, a), 2);
+
+      await repos.dances.softDelete('two', at: t0);
+      await pumpEventQueue();
+      expect(seen.last, {a: 1, b: 1});
+
+      await repos.dances.restore('trashed', at: DateTime.now().toUtc());
+      await pumpEventQueue();
+      expect(seen.last, {a: 2, b: 1});
+      await sub.cancel();
+    });
+
+    test('counts authors and sources through their own join tables', () async {
+      await repos.choreographers.upsert(Choreographer(id: a, name: 'Gene'));
+      await repos.publishedSources.upsert(
+        PublishedSource(id: b, title: 'Zesty Contras'),
+      );
+      await dance(
+        'one',
+        authors: [a],
+        sources: [SourceCitation(sourceId: b)],
+      );
+
+      expect(await edits.watchLiveDanceCounts(ReferenceKind.author).first, {
+        a: 1,
+      });
+      expect(await edits.watchLiveDanceCounts(ReferenceKind.source).first, {
+        b: 1,
+      });
+    });
+  });
+
   group('rename', () {
     test('writes the new name', () async {
       await tag(a, 'Flowing');

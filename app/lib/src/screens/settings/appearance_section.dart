@@ -19,7 +19,7 @@ import '../../theme/color_schemes.dart';
 import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../formation_colors_screen.dart';
-import '../tag_colors_screen.dart';
+import '../tag_manager_screen.dart';
 import '../theme_editor_screen.dart';
 
 /// The Appearance settings section: owns the theme write and reads the live
@@ -168,6 +168,8 @@ class _AppearanceView extends StatelessWidget {
           ),
         ),
         SectionHeader(title: l10n.settingsAppearanceTagColoursHeader),
+        // Colours live in the Tags manager now; this entry opens it, so users
+        // find colours where they left them (D-N2-3).
         ListTile(
           key: const ValueKey('appearance-tag-colours'),
           leading: const Icon(Icons.label_outline),
@@ -176,7 +178,7 @@ class _AppearanceView extends StatelessWidget {
           isThreeLine: true,
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const TagColorsScreen()),
+            MaterialPageRoute<void>(builder: (_) => const TagManagerScreen()),
           ),
         ),
       ],
