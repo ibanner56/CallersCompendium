@@ -190,7 +190,11 @@ version, import time, permission and licence it now came from). Everything else
 stays as the caller has it: title, authors, calling notes, walkthrough, status,
 rating, tags, links, tunes, hook, custom fields, source citations and the rest.
 The draft's links are not written, so a re-import holds none back for
-related-dance resolution. An unreadable incoming transcription keeps the saved
+related-dance resolution, and a `.USR` import adds no `Dance_Related` link to a
+dance its batch re-imported. Known gap: a `.USR` dance re-imported earlier by
+the review's **Import and edit** is passed to the batch commit only as an
+`earlierDanceIds` entry, which does not say how it was written, so it still
+receives the file's `Dance_Related` links (added, never replacing its own). An unreadable incoming transcription keeps the saved
 figures. A share file's tags, custom-field definitions and published sources
 are still committed as the archive references them (`ShareMetadataImporter`), so
 one that only re-imported rows use is left unused, as one only skipped rows use
