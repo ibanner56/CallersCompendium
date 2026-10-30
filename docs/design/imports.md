@@ -208,8 +208,11 @@ checkbox on re-import rows"). A re-import row offers **Also update title and
 credit**, off by default. Ticked, the row's verdict is built as
 `DedupeVerdict.reimport(id, alsoTitleAndCredit: true)`, and the commit also
 takes the incoming title and the resolved author credit
-(`withReimportedChoreography(alsoTitleAndCredit: true)`). An incoming record
-with no credit keeps the dance's. Ratings, tags, notes, links and status never
+(`withReimportedChoreography(alsoTitleAndCredit: true)`). Only credit resolved
+from the record's author names is taken: unlike a create or a link, a draft
+with no names does not fall back to its own `authorIds`, which are the
+sender's ids and may name no choreographer here. An incoming record with no
+resolved credit keeps the dance's. Ratings, tags, notes, links and status never
 change. The choice rides on the verdict because the `.USR` and archive
 importers rebuild each `ImportRecordPlan` before the pipeline commits it,
 copying the verdict through. The implementer's calls, not the maintainer's:
@@ -687,7 +690,8 @@ declines the collapse.
   no longer exists is ignored, and the batch's own dance wins for a CC id it
   also commits. The CC ids among them that the Edit re-imported go as
   `earlierReimportedCcIds`, and those dances get no `Dance_Related` link, as a
-  dance the batch re-imports gets none. A related-dance link the batch adds **to** such a dance is
+  dance the batch re-imports gets none — unless another row of the batch
+  created it or linked onto it, which writes it wholesale. A related-dance link the batch adds **to** such a dance is
   recorded (`CcUsrImportResult.linksAddedToEarlierDances`) and removed by id on
   undo or a failed commit, since that dance is not the batch's to restore.
 - Library-scale behaviour (a ~20 000-dance `.USR` is ~240 MB and ~40 s of
