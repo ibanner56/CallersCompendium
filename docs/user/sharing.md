@@ -184,8 +184,10 @@ evening to another caller. It builds a single self-contained file — a
   notes on it; and
 - the program's linked [venue](./glossary.md#venue), if it has one.
 
-The program's **Pay** travels in this file too, though it is never part of the
-shared set-list text or PDF.
+The file leaves out what is private to you: the program's **Pay**, its
+**Perform dialect**, and the star **rating** on each dance. Those stay on your
+own devices and in your [backup](./backup-portability.md), and still move with
+Device Sync. Pay is never part of the shared set-list text or PDF either.
 
 On Linux the system has no file share sheet, so this action is labelled **Save
 program file…** and saves the file through the system dialog instead.
@@ -364,7 +366,7 @@ They are different tools for different jobs:
 |---|---|---|
 | **Covers** | One dance, or one program | Everything: dances, programs, venues, choreographers, dialects, themes, custom fields, and settings |
 | **Meant for** | Handing to another person | Keeping safe, or moving to your own new device |
-| **Privacy** | Private contact details stripped or opt-in | Complete — it is your own data, unredacted |
+| **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out | Complete — it is your own data, unredacted |
 | **Where** | The **Export** menu on a dance or program | **Settings › General › Export a backup** |
 
 The **Include in sharing** setting on a custom field applies to share/export

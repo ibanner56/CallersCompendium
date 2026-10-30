@@ -681,9 +681,10 @@ database already carries it. The steps that can still fire are v36 onward.
   program, as integer minor units so no floating point is stored. The two are
   set together or not at all and the amount is never negative (enforced by
   `Program` and by archive decode); NULL in both (every existing row) means no
-  pay recorded. Shareable, so it syncs and is exported in archives (program
-  share files included, so it reaches other people), but it is
-  not part of the shared program text or PDF and `Program.duplicate` does not
+  pay recorded. Shareable, so it syncs and is exported in archives and
+  backups, but share files (program share file and Export JSON) omit it
+  (`sanitizeProgramForShare`, maintainer decision R2-out2-export,
+  2026-10-30), and it is not part of the shared program text or PDF and `Program.duplicate` does not
   copy it. A backup holding pay or a v37 dialect name is written under backup
   envelope v2 (`backupSchemaVersionProgramPay`), so 0.5.2 to 0.5.4 refuse it
   instead of restoring it without them; the core archive version is unchanged,
