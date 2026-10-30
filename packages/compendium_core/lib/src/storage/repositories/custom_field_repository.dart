@@ -296,17 +296,18 @@ class CustomFieldDefRepository {
         (textual.contains(typeBefore) && textual.contains(type));
     if (typeKept && type != CustomFieldType.choice) return;
     final values = _db.customFieldValues;
-    final rows =
-        await (_db.select(values).join([
-              innerJoin(
-                _db.dances,
-                _db.dances.id.equalsExp(values.danceId) &
-                    _db.dances.deletedAt.isNotNull(),
-                useColumns: false,
-              ),
-            ])..where(values.fieldId.equals(id)))
-            .map((row) => row.readTable(values))
-            .get();
+    final trashedHolders = _db.select(values).join([
+      // sync-invariant-exception: soft-delete-join reads only tombstoned dances, whose values this drop is for.
+      innerJoin(
+        _db.dances,
+        _db.dances.id.equalsExp(values.danceId) &
+            _db.dances.deletedAt.isNotNull(),
+        useColumns: false,
+      ),
+    ])..where(values.fieldId.equals(id));
+    final rows = [
+      for (final row in await trashedHolders.get()) row.readTable(values),
+    ];
     final dropped = [
       for (final row in rows)
         if (!typeKept || !(choices ?? const []).contains(row.valueText))
