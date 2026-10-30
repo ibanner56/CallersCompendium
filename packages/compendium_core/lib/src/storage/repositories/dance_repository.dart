@@ -3064,7 +3064,7 @@ class DanceRepository {
         final title = row.read(_db.dances.title)!;
         keys[row.read(_db.dances.id)!] = ignoreLeadingArticles
             ? titleSortKey(title)
-            : foldForTitleMatch(title).trim();
+            : foldForTitleMatch(title);
       }
     }
     final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};

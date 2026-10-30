@@ -2104,6 +2104,31 @@ void main() {
       },
     );
 
+    test('ASCII-only titles keep the SQL order; an accented title joins '
+        'without reordering them', () async {
+      // Case, punctuation and surrounding whitespace all differ. The ASCII
+      // shortcut returns the SQL order, so the Dart pass must agree with it.
+      final titles = {
+        'sp': ' Zed',
+        'up': 'apple',
+        'ca': 'Apple Core',
+        'us': 'Apple_Core',
+        'pu': 'Apple-Core',
+        'tr': 'Banana ',
+        'ba': 'Banana',
+      };
+      for (final e in titles.entries) {
+        await dances.create(_dance(id: e.key, title: e.value));
+      }
+      Future<List<String>> order() =>
+          dances.search(const AndFilter([]), sort: SearchSort.title);
+      final ascii = await order();
+      expect(ascii.first, 'sp', reason: 'leading space sorts first in SQL');
+      await dances.create(_dance(id: 'ez', title: 'Éclair'));
+      final mixed = await order();
+      expect(mixed.where((id) => id != 'ez').toList(), ascii);
+    });
+
     test('author sort folds accents', () async {
       // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'e', name: 'Émile'));

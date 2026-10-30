@@ -335,7 +335,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         // "Ignore leading articles when sorting" governs this list too.
         String key(Program p) => ignoreLeadingArticles
             ? titleSortKey(p.title)
-            : foldForTitleMatch(p.title).trim();
+            : foldForTitleMatch(p.title);
         programs.sort((a, b) => flip(key(a).compareTo(key(b))));
       case ProgramSort.recentlyUpdated:
         // Ascending base (oldest-first); the default direction (descending)
