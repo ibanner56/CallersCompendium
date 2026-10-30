@@ -641,6 +641,34 @@ void main() {
 
       expect((await citations('both'))[a], ('35', null));
     });
+    test('Undo of a merge of two losers that each filled a locator empties '
+        'both', () async {
+      await source(a, 'Zesty Contras');
+      await source(b, 'Zesty Contras (2nd ed.)');
+      await source(c, 'Zesty');
+      await dance(
+        'all',
+        sources: [
+          SourceCitation(sourceId: a),
+          SourceCitation(sourceId: b, page: '34'),
+          SourceCitation(sourceId: c, number: '7'),
+        ],
+      );
+      final undo = await edits.merge(
+        ReferenceKind.source,
+        intoId: a,
+        otherIds: [b, c],
+      );
+      expect(await citations('all'), {a: ('34', '7')});
+
+      await edits.undo(undo);
+
+      expect(await citations('all'), {
+        a: (null, null),
+        b: ('34', null),
+        c: (null, '7'),
+      });
+    });
   });
 
   group('deleteUnused (T3)', () {
