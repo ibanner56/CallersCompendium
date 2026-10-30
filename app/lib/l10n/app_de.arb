@@ -4844,6 +4844,22 @@
   "@programsAddAgain": {
     "x-sourceSha256": "7cfbee3aafa052fb0bd1adaa3e07514abc389966d5adec7e1a88ce02e15e9b25"
   },
+  "programsAddToProgramSearchHint": "Programme durchsuchen",
+  "@programsAddToProgramSearchHint": {
+    "x-sourceSha256": "23e28334e250895890d982583ab65c644fafa5634d066af9952a9ef9bedbad91"
+  },
+  "programsAddToProgramSearchClear": "Suche löschen",
+  "@programsAddToProgramSearchClear": {
+    "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
+  },
+  "programsAddToProgramNoMatches": "Kein Programm passt zu deiner Suche.",
+  "@programsAddToProgramNoMatches": {
+    "x-sourceSha256": "935917d0868371be37563465ab1b0779b38115d3dfe5b4a87e2e558da10f758d"
+  },
+  "programsAddToProgramPerformedGroup": "Aufgeführt ({count})",
+  "@programsAddToProgramPerformedGroup": {
+    "x-sourceSha256": "1fa78b360729025ab36169a0c35ab76c8eaed635633c47f9dafefb43e11d227f"
+  },
   "programsAddedToProgramSnack": "„{danceTitle}“ zu {programTitle} hinzugefügt.",
   "@programsAddedToProgramSnack": {
     "x-sourceSha256": "80a71e4a1d5d7d8f1858dc54e752818e283b20a13edb4ab07ae108a42ea6d946"

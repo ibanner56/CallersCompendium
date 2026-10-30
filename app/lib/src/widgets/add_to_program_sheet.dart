@@ -2,22 +2,26 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/date_format_scope.dart';
-import '../data/regional_formats.dart';
 import '../editor/program_slot_rebase.dart';
 import '../utils/undo_snack_bar.dart';
+import 'add_to_program_list.dart';
 
 /// Opens a modal bottom sheet listing existing (non-deleted) programs so the
 /// user can append the dance identified by [danceId] as a new slot at the end
-/// of one of them (`docs/design/ux.md` §2 add-to-program). Programs are ordered
-/// most-recently-updated first. A pinned first row creates a new program seeded
-/// with this dance, in every state; when there are no programs yet, a teaching
-/// empty state sits beneath it.
+/// of one of them (`docs/design/ux.md` §2 add-to-program). A pinned first row
+/// creates a new program seeded with this dance, in every state; when there are
+/// no programs yet, a teaching empty state sits beneath it.
 ///
-/// A program that already holds the dance, as a primary or an alternate
-/// ([Program.danceSlotCount]), shows an "In this program" marker, and tapping it
-/// asks before adding the dance again (`docs/design/add-to-program-sheet.md`
-/// §4.3).
+/// The programs are an [AddToProgramList]: open programs first, soonest event
+/// first, Performed ones collapsed beneath, a status on each row and a search
+/// field once the list is long (`docs/design/add-to-program-sheet.md`
+/// §4.1–§4.2). A program that already holds the dance, as a primary or an
+/// alternate ([Program.danceSlotCount]), shows an "In this program" marker, and
+/// tapping it asks before adding the dance again (§4.3).
+///
+/// The sheet is sized from the height the screen has left once the on-screen
+/// keyboard is up, so the pinned row, the search field and a few rows stay
+/// visible while the caller types (§4.5).
 ///
 /// Extracted from `DanceDetailScreen` so the Collection list's row action menu
 /// ([DanceListTile]) and the detail screen share the exact same flow (identical
@@ -34,7 +38,13 @@ Future<void> showAddToProgramSheet(
 }) async {
   final programs = await repositories.programs.listAll();
   if (!context.mounted) return;
-  programs.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  // Venue labels are resolved beside the rows, as on the Programs list, and the
+  // search matches them. The catalogue is read only when a program links one;
+  // the sheet reads once on open and does not follow later edits (§4.6).
+  final venuesById = programs.any((p) => p.venueId != null)
+      ? {for (final v in await repositories.venues.listAll()) v.id: v}
+      : const <String, Venue>{};
+  if (!context.mounted) return;
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
@@ -48,136 +58,76 @@ Future<void> showAddToProgramSheet(
     isScrollControlled: true,
     showDragHandle: true,
     builder: (sheetContext) {
-      final maxHeight = MediaQuery.of(sheetContext).size.height * 0.7;
-      return SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    l10n.commonAddToProgram,
-                    style: Theme.of(sheetContext).textTheme.titleMedium,
+      final media = MediaQuery.of(sheetContext);
+      // The keyboard's inset is not part of the sheet's own height, so size from
+      // what is left of the screen above it; with the keyboard up, use all of
+      // it, since 70% of a 640 px phone's remainder fits too little (§4.5).
+      final available = media.size.height - media.viewInsets.bottom;
+      final maxHeight = available * (media.viewInsets.bottom > 0 ? 1.0 : 0.7);
+      return Padding(
+        padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+        child: SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l10n.commonAddToProgram,
+                      style: Theme.of(sheetContext).textTheme.titleMedium,
+                    ),
                   ),
                 ),
-              ),
-              _buildCreateRow(
-                sheetContext,
-                repositories: repositories,
-                danceId: danceId,
-                danceTitle: danceTitle,
-                messenger: messenger,
-                l10n: l10n,
-              ),
-              Expanded(
-                child: programs.isEmpty
-                    ? _buildEmptyPrograms(sheetContext, l10n: l10n)
-                    : ListView.builder(
-                        itemCount: programs.length,
-                        itemBuilder: (context, index) => _buildProgramPickRow(
-                          context,
-                          sheetContext,
-                          programs[index],
-                          repositories: repositories,
+                _buildCreateRow(
+                  sheetContext,
+                  repositories: repositories,
+                  danceId: danceId,
+                  danceTitle: danceTitle,
+                  messenger: messenger,
+                  l10n: l10n,
+                ),
+                Expanded(
+                  child: programs.isEmpty
+                      ? _buildEmptyPrograms(sheetContext, l10n: l10n)
+                      : AddToProgramList(
+                          programs: programs,
+                          venuesById: venuesById,
                           danceId: danceId,
                           danceTitle: danceTitle,
-                          messenger: messenger,
-                          accessibleNavigation: accessibleNavigation,
-                          l10n: l10n,
+                          onSelect: (program, heldCount) async {
+                            if (heldCount > 0 &&
+                                !await _confirmAddAgain(
+                                  sheetContext,
+                                  danceTitle: danceTitle,
+                                  programTitle: program.title,
+                                  count: heldCount,
+                                  l10n: l10n,
+                                )) {
+                              return;
+                            }
+                            if (!sheetContext.mounted) return;
+                            await _selectProgram(
+                              sheetContext,
+                              program,
+                              repositories: repositories,
+                              danceId: danceId,
+                              danceTitle: danceTitle,
+                              messenger: messenger,
+                              accessibleNavigation: accessibleNavigation,
+                              l10n: l10n,
+                            );
+                          },
                         ),
-                      ),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       );
     },
-  );
-}
-
-/// One selectable program row: a single merged-semantics button exposing the
-/// program's title, event date (if any), and planned dance count.
-Widget _buildProgramPickRow(
-  BuildContext context,
-  BuildContext sheetContext,
-  Program program, {
-  required CompendiumRepositories repositories,
-  required String danceId,
-  required String danceTitle,
-  required ScaffoldMessengerState messenger,
-  required bool accessibleNavigation,
-  required AppLocalizations l10n,
-}) {
-  final danceCount = program.plannedDanceCount;
-  final dateLabel = program.eventDate == null
-      ? null
-      : formatEventDate(
-          program.eventDate!,
-          DateFormatScope.of(context),
-          MaterialLocalizations.of(context),
-          l10n,
-        );
-  final countLabel = l10n.programsDanceCount(danceCount);
-  final subtitleParts = [?dateLabel, countLabel];
-  final heldCount = program.danceSlotCount(danceId);
-  final heldLabel = heldCount == 0
-      ? null
-      : heldCount == 1
-      ? l10n.programsDanceInThisProgram
-      : l10n.programsDanceInThisProgramCount(heldCount);
-  final semanticDetails = [...subtitleParts, ?heldLabel];
-  return MergeSemantics(
-    child: Semantics(
-      button: true,
-      label: l10n.programsAddDanceToProgramSemantic(
-        danceTitle,
-        program.title,
-        semanticDetails.join(', '),
-      ),
-      child: ListTile(
-        key: ValueKey('program-pick-${program.id}'),
-        title: ExcludeSemantics(child: Text(program.title)),
-        subtitle: ExcludeSemantics(
-          child: Text(
-            [...subtitleParts, ?heldLabel].join(' · '),
-            key: heldLabel == null
-                ? null
-                : ValueKey('program-pick-held-${program.id}'),
-          ),
-        ),
-        // Shape as well as words (WCAG 1.4.1), like the builder picker's
-        // in-program icon.
-        trailing: heldLabel == null
-            ? null
-            : const ExcludeSemantics(child: Icon(Icons.check_circle_outline)),
-        onTap: () async {
-          if (heldCount > 0 &&
-              !await _confirmAddAgain(
-                sheetContext,
-                danceTitle: danceTitle,
-                programTitle: program.title,
-                count: heldCount,
-                l10n: l10n,
-              )) {
-            return;
-          }
-          if (!sheetContext.mounted) return;
-          await _selectProgram(
-            sheetContext,
-            program,
-            repositories: repositories,
-            danceId: danceId,
-            danceTitle: danceTitle,
-            messenger: messenger,
-            accessibleNavigation: accessibleNavigation,
-            l10n: l10n,
-          );
-        },
-      ),
-    ),
   );
 }
 
