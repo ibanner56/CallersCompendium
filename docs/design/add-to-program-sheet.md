@@ -1,8 +1,9 @@
 # Design: The add-to-program sheet
 
 *Design note for audit finding FIND-17, drafted 2026-10-29 against `main` at
-`acacb05`; decisions recorded 2026-10-30. **Status: decided; the marker, the ask-first prompt and the
-pinned New row are built (N3-A1); order, grouping and search are not (N3-A2).** The
+`acacb05`; decisions recorded 2026-10-30. **Status: decided and built: the marker, the ask-first prompt and the
+pinned New row (N3-A1); order, grouping, status, search and the extracted
+`AddToProgramList` (N3-A2).** The
 maintainer asked for this note ("design note now") in the 2026-10-29 decisions,
 and answered its six questions on 2026-10-29/30 (N3-1 … N3-6 in
 `maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`).
@@ -300,6 +301,17 @@ U7 owns the phone-layout rules for shared widgets. This note states what the
 sheet needs; U7's result decides the exact margins and any shared sheet
 helper, so the build reads U7's merged code first (§7).
 
+*As built (N3-A2; the build's call, not the maintainer's):* the sheet opens with
+`useSafeArea` so it stays below the status bar, and with the keyboard up it takes
+the height above the keyboard. The title and the pinned New row are capped at 45%
+of the sheet and scroll in place past that, so at 200% text on a 360×640 screen
+with a 300 px keyboard the New row can scroll out of view and the search field
+and one row keep their room. That departs from N3-5's "always visible" for this
+one case. Rejected: letting the header overflow (it overflowed by 163 px in the
+test), and shrinking the list to nothing. If the maintainer wants the row always
+pinned, the alternative is to drop the title with the keyboard up; that is open
+for the maintainer, not decided here.
+
 On desktop and wide layouts the sheet stays a bottom sheet. Changing it to a
 dialog or a popover is a separate question and no finding asks for it.
 
@@ -345,6 +357,15 @@ takes a list of programs and the dance id(s) to test for "contains". Whether
 the marker for a multi-dance selection means "all", "some" or "none" is N4's
 question. `showAddToProgramSheet`'s signature stays as it is, so its two
 callers are unchanged.
+
+*As built (N3-A2; the build's call, not the maintainer's):* the program list is
+`AddToProgramList` (`widgets/add_to_program_list.dart`), which takes `programs`,
+`venuesById`, `danceId`, `danceTitle` and `onSelect(Program, heldCount)`. The
+pinned New row and the empty state stay in `showAddToProgramSheet`, outside it,
+because the batch version needs a different New row, and `onSelect` leaves what
+a tap does, including the ask-first question, to the caller. Rejected: moving
+the New row into the widget, which would give it a callback the batch sheet
+does not share.
 
 ## 5. Docs the change touches
 

@@ -4794,6 +4794,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsAddAgain => 'Add again';
 
   @override
+  String get programsAddToProgramSearchHint => 'Search programs';
+
+  @override
+  String get programsAddToProgramSearchClear => 'Clear search';
+
+  @override
+  String get programsAddToProgramNoMatches => 'No programs match your search.';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return 'Performed ($count)';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return 'Added \"$danceTitle\" to $programTitle.';
   }

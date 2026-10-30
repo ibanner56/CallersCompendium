@@ -6134,6 +6134,28 @@
   "@programsAddAgain": {
     "description": "Primary button of the add-to-program sheet's already-in-this-program dialog: adds the dance a second time."
   },
+  "programsAddToProgramSearchHint": "Search programs",
+  "@programsAddToProgramSearchHint": {
+    "description": "Hint of the search field in the add-to-program sheet, shown when there are many programs. Matches a program's title or venue."
+  },
+  "programsAddToProgramSearchClear": "Clear search",
+  "@programsAddToProgramSearchClear": {
+    "description": "Tooltip of the button that empties the add-to-program sheet's search field."
+  },
+  "programsAddToProgramNoMatches": "No programs match your search.",
+  "@programsAddToProgramNoMatches": {
+    "description": "Shown in the add-to-program sheet when a search matches no program."
+  },
+  "programsAddToProgramPerformedGroup": "Performed ({count})",
+  "@programsAddToProgramPerformedGroup": {
+    "description": "Row in the add-to-program sheet that expands the programs already marked Performed, which are collapsed beneath the open ones. The count is the number of Performed programs.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
   "programsAddedToProgramSnack": "Added \"{danceTitle}\" to {programTitle}.",
   "@programsAddedToProgramSnack": {
     "description": "Confirmation snackbar after appending a dance to an existing program.",
