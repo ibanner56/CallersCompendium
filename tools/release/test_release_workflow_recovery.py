@@ -296,6 +296,14 @@ def main() -> None:
 
     build_job = _job_section(text, "build")
     assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_job
+    # Only the Google Play bundle tells the installed app it came from a store
+    # (install_kind.dart); the sideload APK shares the manifest channel, so it
+    # must keep updating itself.
+    play_define = "--dart-define=CALLERS_COMPENDIUM_PLAY_BUILD=true"
+    assert text.count(play_define) == 1, "exactly one build may set PLAY_BUILD"
+    assert play_define in _step_script(
+        build_job, "Build Android App Bundle (signed .aab)"
+    ), "the Play .aab build must set PLAY_BUILD"
     # The whole build matrix waits on the release-signing approval gate.
     assert "\n    environment: release-signing\n" in build_job, (
         "the build matrix must declare environment: release-signing"

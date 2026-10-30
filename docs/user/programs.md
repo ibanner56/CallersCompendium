@@ -56,7 +56,10 @@ direction the list opens with, see
   option appears, and the program moves to **Recently deleted** (in the **More actions** menu in the
   **Programs** toolbar), where you can
   restore it later, exactly as with
-  [dances](./collection.md#keep-your-collection-tidy).
+  [dances](./collection.md#keep-your-collection-tidy). Deleting from the
+  builder saves any edits you haven't saved yet first, so the program you
+  restore, or bring back with **Undo**, is the one you were editing. If you
+  cleared the title, it keeps its saved title.
 
 ### Build from a list of titles
 
@@ -161,15 +164,22 @@ picker.*
 - **Your program** — the ordered list of
   [slots](./glossary.md#slot) that make up the evening.
 - **The collection picker** — the same search tools you know from
-  [Collection & search](./collection.md): the **Filters** panel, the
-  **Advanced** figure builder, and the **By phrase** panel. Find a dance and add
-  it to the program.
+  [Collection & search](./collection.md): **Search in** beside the search box
+  (above it in a narrow pane or with large text), the **Filters** panel, the **Advanced** figure builder, the **By phrase**
+  panel, and the **Sort** menu with its ascending / descending arrow at the end
+  of the result count. The picker opens in your
+  [Collection sort order](./settings.md#display-defaults); a sort you choose
+  while picking lasts until you close the picker and doesn't change how the
+  Collection opens. Rows show the details you chose under
+  [Collection card fields](./settings.md#collection-card-fields). Find a dance
+  and add it to the program.
 
 **Add note / waltz** adds a free-text slot, and **Insert break** adds a break.
 On a narrow screen, **Add dance** opens the collection picker.
 
 To bring in a dance you don't have yet, tap the **Online search** icon at the end of the
-picker's row of search tools to search The Caller's Box or ContraDB. Selecting a
+picker's row of search tools to search The Caller's Box or ContraDB by title,
+author or figure, chosen with **Search in** as in the Collection. Selecting a
 result imports it and adds it straight away. If the dance is already in your
 collection, the app uses your copy without asking. If it matches one of your
 dances but the source or figures differ, the app asks how to handle it before
@@ -182,6 +192,20 @@ hold a result to show its details in the program pane, or hold a dance slot to
 show its details in the picker pane; letting go puts the pane back. On a narrow
 screen, details open on top of the picker, so your search is still there when
 you close them.
+
+### Unsaved drafts
+
+While you build, the app keeps a draft of your changes on this device, so a
+program you were building when the app closed isn't lost. The next time you
+open that program, the app offers the draft back — **Restore** to pick up
+where you left off, or **Discard** to start from the last saved version. Drafts
+stay on your device; they are never uploaded, shared, or included in backups.
+
+Each new program keeps its own draft, so two new programs never overwrite each
+other's. If a new program you never saved left one behind, the next new
+program you start offers it back by its title — *You have an unsaved draft of
+another new program* — so you can **Restore** it and carry on with that
+program, or **Discard** it and start fresh.
 
 ### Kinds of slots
 

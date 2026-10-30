@@ -384,7 +384,9 @@ be changed on each item later — they save you repetitive setup.
 - **Collection sort order** and **Programs sort order** — the order your
   library and your Programs list use when you open them. Choose a fixed order,
   or **Last used** to open with the sort and direction you last used while
-  browsing. You can still change the sort while browsing.
+  browsing. You can still change the sort while browsing. The program dance
+  picker also opens in the Collection sort order; a sort you choose in the
+  picker is not remembered as the last used.
 - **Ascending / Descending** — shown under a fixed sort order. It sets which
   way that list opens, so you can have Programs always open newest event first.
   Each order starts in its natural direction (Title and Event date ascending,
@@ -394,9 +396,10 @@ be changed on each item later — they save you repetitive setup.
 
 ### Collection card fields
 
-Choose which details appear on each dance row in your collection: **Authors**,
-**Times called**, **Formation**, **Status**, **Level**, **Rating**, **Tags**, and
-**Custom fields**. All of them are shown by default.
+Choose which details appear on each dance row in your collection and in the
+program dance picker: **Authors**, **Times called**, **Formation**, **Status**,
+**Level**, **Rating**, **Tags**, and **Custom fields**. All of them are shown by
+default.
 
 ### Shared dance fields
 
@@ -523,6 +526,22 @@ without you choosing to.
 When an update is available, a dismissible banner points you to the release so you
 can read what's new before deciding.
 
+How you installed the app decides what Updates offers:
+
+- **Installed from an app store** (iOS, or Android through Google Play): the
+  store updates the app. Updates shows a note saying so, with no **Check for
+  updates** button or **Beta channel** switch, and the app never offers an
+  update. With **Check automatically** on, it still looks for an end-of-support date; the notice
+  appears here and as a banner, and **Get update** opens the store (TestFlight on
+  iOS, Google Play on Android).
+- **Portable copy** (the Windows .zip or the Linux .tar.gz): the app checks as
+  usual, but instead of **Download & install update** it tells you to download
+  the new archive from the release. Tap the row (or **View release** on the
+  banner) to open the release page. Replace this copy with the new archive
+  yourself; the app doesn't unpack it for you.
+- **Everything else** (the Windows installer, the Linux AppImage, macOS, and the
+  Android APK from the Releases page) works as described below.
+
 Occasionally a version of the app reaches the end of its support, for example
 when a later release changes something older versions can't keep up with. If an
 update check finds that your version has an end-of-support date, a banner tells
@@ -534,7 +553,7 @@ the **Updates** section. The app remembers it, so it still appears when you're
 offline. Once you've updated, the notice goes away. Versions up to and including
 0.6.0-beta were released before these notices existed and can't show them.
 
-On **desktop**, once an update is found you can **Download & install update**: the
+On **desktop** (a portable copy excepted), once an update is found you can **Download & install update**: the
 app downloads it, verifies it hasn't been tampered with, then hands it to your
 system's installer to finish — it never replaces itself in place. On **macOS**,
 you first choose where to save the disk image. If you pick an existing file and

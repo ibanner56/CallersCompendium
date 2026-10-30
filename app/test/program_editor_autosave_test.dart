@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show StringExpressionOperators;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -10,6 +11,7 @@ import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/new_program_draft.dart';
 import 'support/test_repositories.dart';
 
 // ---------------------------------------------------------------------------
@@ -302,9 +304,7 @@ void main() {
           encodeProgramDraft(_draft(title: 'Via Settings')),
         );
         // SettingsRepository.get returns the raw JSON string; decode handles it.
-        final decoded = decodeProgramDraft(
-          await repos.settings.get('program_editor_draft:new'),
-        );
+        final decoded = decodeProgramDraft(await newProgramDraft(repos));
         expect(decoded.title, 'Via Settings');
       },
     );
@@ -314,6 +314,115 @@ void main() {
   // Widget: autosave / restore
   // -------------------------------------------------------------------------
   group('Program autosave drafts', () {
+    testWidgets('two new programs open at once keep their own drafts', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await tester.binding.setSurfaceSize(const Size(1600, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+      final autoCommit = ValueNotifier<bool>(false);
+      addTearDown(autoCommit.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(
+              notifier: notifier,
+              child: ProgramAutoCommitScope(
+                notifier: autoCommit,
+                child: child!,
+              ),
+            ),
+          ),
+          home: const Row(
+            children: [
+              Expanded(child: ProgramEditorScreen()),
+              Expanded(child: ProgramEditorScreen()),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final titles = find.byKey(const ValueKey('program-title'));
+      await tester.enterText(titles.at(0), 'First Night');
+      await tester.enterText(titles.at(1), 'Second Night');
+      await tester.pump(const Duration(milliseconds: 600));
+
+      final keys = await newProgramDraftKeys(repos);
+      expect(keys, hasLength(2));
+      expect(
+        {
+          for (final key in keys)
+            decodeProgramDraft(await repos.settings.get(key)).title,
+        },
+        {'First Night', 'Second Night'},
+      );
+    });
+
+    testWidgets('a new program offers another new program\'s draft by its '
+        'title, and restoring it continues that program', (tester) async {
+      final repos = openTestRepositories();
+      final leftBehind = programEditorDraftKey(
+        '${kNewProgramDraftIdPrefix}abc',
+      );
+      await repos.settings.set(
+        leftBehind,
+        encodeProgramDraft(_draft(title: 'Left Behind')),
+      );
+      await _pumpEditor(tester, repos);
+
+      expect(find.textContaining('“Left Behind”'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
+      await tester.pumpAndSettle();
+      expect(_titleText(tester), 'Left Behind');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Left Behind, continued',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      // Written under the restored draft's key, not a second one.
+      expect(await newProgramDraftKeys(repos), [leftBehind]);
+      expect(
+        decodeProgramDraft(await repos.settings.get(leftBehind)).title,
+        'Left Behind, continued',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      expect(await hasNewProgramDraft(repos), isFalse);
+    });
+
+    testWidgets('discarding another new program\'s draft removes that draft', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final leftBehind = programEditorDraftKey(
+        '${kNewProgramDraftIdPrefix}abc',
+      );
+      await repos.settings.set(
+        leftBehind,
+        encodeProgramDraft(_draft(title: '')),
+      );
+      await _pumpEditor(tester, repos);
+
+      expect(
+        find.text(
+          'You have an unsaved draft of another new program, not yet titled. '
+          'Would you like to restore it instead of starting a new one?',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('program-draft-discard')));
+      await tester.pumpAndSettle();
+      expect(await hasNewProgramDraft(repos), isFalse);
+    });
+
     testWidgets('draft saved after a title edit (debounced)', (tester) async {
       final repos = openTestRepositories();
       await _pumpEditor(tester, repos);
@@ -323,17 +432,12 @@ void main() {
         'Draft Title',
       );
       // Before the debounce fires, no draft yet.
-      expect(
-        await repos.settings.contains('program_editor_draft:new'),
-        isFalse,
-      );
+      expect(await hasNewProgramDraft(repos), isFalse);
 
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('program_editor_draft:new'), isTrue);
+      expect(await hasNewProgramDraft(repos), isTrue);
 
-      final decoded = decodeProgramDraft(
-        await repos.settings.get('program_editor_draft:new'),
-      );
+      final decoded = decodeProgramDraft(await newProgramDraft(repos));
       expect(decoded.title, 'Draft Title');
     });
 
@@ -367,9 +471,7 @@ void main() {
         delayed.settings.releaseWrite();
         await observed;
 
-        final draft = decodeProgramDraft(
-          await delayed.repos.settings.get('program_editor_draft:new'),
-        );
+        final draft = decodeProgramDraft(await newProgramDraft(delayed.repos));
         expect(draft.title, 'Final program title');
       },
     );
@@ -388,9 +490,7 @@ void main() {
         );
         await shutdown.flushPending();
         expect(
-          decodeProgramDraft(
-            await repos.settings.get('program_editor_draft:new'),
-          ).title,
+          decodeProgramDraft(await newProgramDraft(repos)).title,
           'Backgrounded title',
           reason: 'written at once, not 500 ms later',
         );
@@ -402,9 +502,7 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 600));
         expect(
-          decodeProgramDraft(
-            await repos.settings.get('program_editor_draft:new'),
-          ).title,
+          decodeProgramDraft(await newProgramDraft(repos)).title,
           'Resumed title',
         );
       },
@@ -420,10 +518,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('program_editor_draft:new'), isTrue);
-      final decoded = decodeProgramDraft(
-        await repos.settings.get('program_editor_draft:new'),
-      );
+      expect(await hasNewProgramDraft(repos), isTrue);
+      final decoded = decodeProgramDraft(await newProgramDraft(repos));
       expect(decoded.slots, hasLength(1));
       expect(decoded.slots.single.isBreak, isTrue);
     });
@@ -458,10 +554,7 @@ void main() {
         expect(_titleText(tester), 'Recovered Program');
         expect(find.text('Grand March'), findsOneWidget);
         // The draft is preserved (still unsaved work).
-        expect(
-          await repos.settings.contains('program_editor_draft:new'),
-          isTrue,
-        );
+        expect(await hasNewProgramDraft(repos), isTrue);
       },
     );
 
@@ -518,10 +611,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_titleText(tester), '');
-      expect(
-        await repos.settings.contains('program_editor_draft:new'),
-        isFalse,
-      );
+      expect(await hasNewProgramDraft(repos), isFalse);
     });
 
     testWidgets('explicit save clears the draft', (tester) async {
@@ -535,15 +625,12 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
       await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 600));
-      expect(await repos.settings.contains('program_editor_draft:new'), isTrue);
+      expect(await hasNewProgramDraft(repos), isTrue);
 
       await tester.tap(find.byKey(const ValueKey('save-program')));
       await tester.pumpAndSettle();
 
-      expect(
-        await repos.settings.contains('program_editor_draft:new'),
-        isFalse,
-      );
+      expect(await hasNewProgramDraft(repos), isFalse);
       // The program was actually persisted.
       final all = await repos.programs.listAll();
       expect(all.single.title, 'To Save');
@@ -604,7 +691,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        await delayed.repos.settings.contains('program_editor_draft:new'),
+        await hasNewProgramDraft(delayed.repos),
         isFalse,
         reason:
             'the draft must stay removed even though an autosave write '
@@ -667,13 +754,10 @@ void main() {
           isNull,
           reason: 'background commits must not call onSaved',
         );
-        expect(
-          await delayed.repos.settings.contains('program_editor_draft:new'),
-          isFalse,
-        );
+        expect(await hasNewProgramDraft(delayed.repos), isFalse);
         final oldDraftRows = await (delayed.repos.db.select(
           delayed.repos.db.settings,
-        )..where((row) => row.key.equals('program_editor_draft:new'))).get();
+        )..where((row) => row.key.like('program_editor_draft:new%'))).get();
         expect(
           oldDraftRows,
           isEmpty,
@@ -693,10 +777,7 @@ void main() {
           isTrue,
           reason: 'the post-create draft must use the persisted id key',
         );
-        expect(
-          await delayed.repos.settings.contains('program_editor_draft:new'),
-          isFalse,
-        );
+        expect(await hasNewProgramDraft(delayed.repos), isFalse);
 
         delayed.programs.releaseWrite();
         await tester.pumpAndSettle();
@@ -1245,9 +1326,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
       expect(await delayed.repos.programs.listAll(), isEmpty);
       expect(
-        decodeProgramDraft(
-          await delayed.repos.settings.get('program_editor_draft:new'),
-        ).title,
+        decodeProgramDraft(await newProgramDraft(delayed.repos)).title,
         'Commit B',
       );
 
@@ -1257,10 +1336,7 @@ void main() {
       final all = await delayed.repos.programs.listAll();
       expect(all, hasLength(1));
       expect(all.single.title, 'Commit B');
-      expect(
-        await delayed.repos.settings.contains('program_editor_draft:new'),
-        isFalse,
-      );
+      expect(await hasNewProgramDraft(delayed.repos), isFalse);
       expect(
         await delayed.repos.settings.contains(
           'program_editor_draft:${all.single.id}',

@@ -39,15 +39,18 @@ String retirementNoticeMessage(
       : l10n.retirementNoticeUpcoming(kAppName, version, date);
 }
 
-/// Opens the newer release found by this session's check, or the release list
-/// when none was found (a check may not have run, or the user's channel may
-/// have nothing newer than a retired beta).
+/// Opens the store listing on a store copy (the store is where it updates);
+/// otherwise the newer release found by this session's check, or the release
+/// list when none was found (a check may not have run, or the user's channel
+/// may have nothing newer than a retired beta).
 Future<void> openRetirementUpdatePage(
   BuildContext context,
   UpdateController controller,
 ) => launchExternalUrl(
   context,
-  controller.foundUpdate?.releaseNotesUrl ?? kReleasesPageUrl,
+  controller.storeListingUrl ??
+      controller.foundUpdate?.releaseNotesUrl ??
+      kReleasesPageUrl,
 );
 
 /// App-wide end-of-support banner (ADR-002 §2 `retirements`). Hosted at the

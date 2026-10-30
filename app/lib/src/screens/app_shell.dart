@@ -261,12 +261,19 @@ class AppShellState extends State<AppShell> {
     setState(() => _current = _Destination.guide);
   }
 
+  /// Keeps the Programs shell's State, with the Perform place it holds for
+  /// each open program (GIG-14), when this shell swaps the rail for the
+  /// bottom bar: the two layouts put the pages at different tree positions,
+  /// so without it a rotation across [AppShell.railBreakpoint] rebuilds the
+  /// Programs shell from scratch.
+  final _programsShellKey = GlobalKey();
+
   /// One page per [_Destination], in enum order.
   List<Widget> _buildPages() => [
     for (final d in _Destination.values)
       switch (d) {
         _Destination.collection => const CollectionShell(),
-        _Destination.programs => const ProgramsShell(),
+        _Destination.programs => ProgramsShell(key: _programsShellKey),
         // Built only while shown, so a hidden Glossary costs nothing.
         _Destination.glossary =>
           _showGlossary ? const GlossaryScreen() : const SizedBox.shrink(),

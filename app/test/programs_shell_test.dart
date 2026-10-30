@@ -1147,4 +1147,135 @@ void main() {
       },
     );
   });
+
+  group('Perform resume across the split-pane breakpoint (GIG-14)', () {
+    Future<void> seedTwoSlotProgram(CompendiumRepositories repos) async {
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+    }
+
+    /// Opens Perform from the wide summary pane, moves to slot 2 and lets the
+    /// clock run; returns the clock reading.
+    Future<int> performToSlotTwo(WidgetTester tester) async {
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      expect(_perfText(tester, 'perform-position'), 'Slot 2 of 2');
+      await tester.pump(const Duration(seconds: 8));
+      return _perfSeconds(_perfText(tester, 'perform-clock'));
+    }
+
+    Future<void> exitPerform(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+    }
+
+    testWidgets('rotating to narrow mid-set keeps the place for the narrow '
+        'summary', (tester) async {
+      final repos = openTestRepositories();
+      await seedTwoSlotProgram(repos);
+      await _pumpWide(tester, repos);
+      final clockBefore = await performToSlotTwo(tester);
+
+      // The rotation rebuilds the shell's layout under Perform, disposing the
+      // summary pane that launched it.
+      tester.view.physicalSize = const Size(600, 1200);
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+      await exitPerform(tester);
+
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(_perfText(tester, 'perform-position'), 'Slot 2 of 2');
+      expect(
+        _perfSeconds(_perfText(tester, 'perform-clock')),
+        greaterThanOrEqualTo(clockBefore),
+      );
+    });
+
+    testWidgets('leaving Perform after a rotation, then rotating back, keeps '
+        'the place for the wide pane', (tester) async {
+      final repos = openTestRepositories();
+      await seedTwoSlotProgram(repos);
+      await _pumpWide(tester, repos);
+      await performToSlotTwo(tester);
+
+      // The shell under Perform is laid out again, narrow, only once Perform
+      // has gone, which is when the wide pane is disposed.
+      tester.view.physicalSize = const Size(600, 1200);
+      await tester.pumpAndSettle();
+      await exitPerform(tester);
+      expect(find.byType(ProgramSummaryPane), findsNothing);
+      tester.view.physicalSize = const Size(1400, 900);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(_perfText(tester, 'perform-position'), 'Slot 2 of 2');
+    });
+
+    testWidgets('closing the program still starts the next Perform fresh', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedTwoSlotProgram(repos);
+      await repos.programs.create(_program(id: 'p2', title: 'Another Night'));
+      await _pumpWide(tester, repos);
+      await performToSlotTwo(tester);
+      await exitPerform(tester);
+
+      // Another program selected closes this one (perform.md, "Leaving
+      // Perform").
+      await tester.tap(find.text('Another Night'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(_perfText(tester, 'perform-position'), 'Slot 1 of 2');
+    });
+
+    testWidgets('leaving the narrow summary still starts the next Perform '
+        'fresh', (tester) async {
+      final repos = openTestRepositories();
+      await seedTwoSlotProgram(repos);
+      await _pumpNarrow(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      await exitPerform(tester);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(_perfText(tester, 'perform-position'), 'Slot 1 of 2');
+    });
+  });
 }

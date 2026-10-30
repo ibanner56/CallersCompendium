@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'perform_program_screen.dart' show PerformResumeStore;
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
 import 'programs_list_screen.dart';
@@ -43,9 +44,21 @@ class _ProgramsShellState extends State<ProgramsShell> {
   /// [ScaffoldMessenger] (`collection_shell.dart:116`).
   final _listKey = GlobalKey();
 
-  void _onSelectProgram(String id) {
+  /// Perform's place and clock for each open program (GIG-14). The summary
+  /// pane that launches Perform is rebuilt on every breakpoint crossing while
+  /// Perform stays open on top, so the place is kept here, keyed by program
+  /// id, and dropped when the program is closed: another program selected,
+  /// the program deleted, or the narrow summary left.
+  final _performResume = PerformResumeStore();
+
+  /// Selects [id] (or nothing), closing the program selected before.
+  void _select(String? id) {
+    final previous = _selectedProgramId;
+    if (previous != null && previous != id) _performResume.forget(previous);
     setState(() => _selectedProgramId = id);
   }
+
+  void _onSelectProgram(String id) => _select(id);
 
   /// Opens the full-screen builder route and refreshes the browse panes on
   /// return.
@@ -60,9 +73,9 @@ class _ProgramsShellState extends State<ProgramsShell> {
     // builder's own write is what reloads them. Only the selection changes
     // here, and that is this shell's state rather than either pane's data.
     if (result == 'deleted') {
-      setState(() => _selectedProgramId = null);
+      _select(null);
     } else if (result != null) {
-      setState(() => _selectedProgramId = result);
+      _select(result);
     }
   }
 
@@ -81,7 +94,10 @@ class _ProgramsShellState extends State<ProgramsShell> {
         // program never appeared until restart (issue #768). It needs none now:
         // the list subscribes to its own data, which is a channel that cannot
         // be forgotten at a call site.
-        return ProgramsListScreen(key: _listKey);
+        return ProgramsListScreen(
+          key: _listKey,
+          performResumeStore: _performResume,
+        );
       },
     );
   }
@@ -99,6 +115,7 @@ class _ProgramsShellState extends State<ProgramsShell> {
               onSelectProgram: _onSelectProgram,
               onCreateProgram: () => _openBuilder(context),
               selectedProgramId: _selectedProgramId,
+              performResumeStore: _performResume,
             ),
           ),
         ),
@@ -109,11 +126,11 @@ class _ProgramsShellState extends State<ProgramsShell> {
                 ? ProgramSummaryPane(
                     key: ValueKey('summary-$selectedId'),
                     programId: selectedId,
+                    performResumeStore: _performResume,
                     onOpenBuilder: () =>
                         _openBuilder(context, programId: selectedId),
-                    onDeleted: () => setState(() => _selectedProgramId = null),
-                    onNavigateTo: (id) =>
-                        setState(() => _selectedProgramId = id),
+                    onDeleted: () => _select(null),
+                    onNavigateTo: _select,
                   )
                 : const _EmptyEditorPane(),
           ),

@@ -1875,6 +1875,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Tjek for en nyere version i baggrunden, når appen starter. Fra som standard.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Led i baggrunden efter en dato for ophør af support for denne version, når appen starter. Slået fra som standard.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'Opdateringstjekket henter en lille versionsfil over HTTPS og intet andet – der sendes ingen oplysninger om dig, din enhed eller din brug. Intet hentes eller installeres automatisk: du vælger, hvornår du vil hente en opdatering, den verificeres inden den åbnes, og dit systeminstallationsprogram fuldfører installationen.';
 
@@ -1921,6 +1925,22 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsUpdatesMacosReadySubtitle =>
       'Din opdatering er klar. Monter diskaftrykket, og luk appen, så du kan erstatte den i Programmer.';
+
+  @override
+  String get settingsUpdatesStoreTitle =>
+      'Opdateringer kommer fra din appbutik';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Denne kopi blev installeret fra en appbutik, så butikken opdaterer den. Appen leder kun efter en dato for ophør af support, aldrig efter en ny version.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Bærbar kopi: download det nye arkiv';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Denne kopi kører fra et udpakket arkiv, så appen kan ikke installere opdateringen for dig. Download den nye zip eller tar.gz fra udgivelsen, og pak den ud.';
 
   @override
   String get settingsUpdatesDownloadTitle => 'Hent og installer opdatering';
@@ -3797,10 +3817,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Søg titler, forfattere, figurer, noter…';
 
   @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Søg online efter danse efter titel…';
-
-  @override
   String get collectionSearchScopeLabel => 'Søg i';
 
   @override
@@ -4742,6 +4758,15 @@ class AppLocalizationsDa extends AppLocalizations {
       'Du har en ugemt kladde til dette program. Vil du gendanne den?';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'Du har en ugemt kladde til et andet nyt program, „$title“. Vil du gendanne den i stedet for at starte et nyt?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'Du har en ugemt kladde til et andet nyt program, der endnu ikke har en titel. Vil du gendanne den i stedet for at starte et nyt?';
+
+  @override
   String get programsDraftRestore => 'Gendan';
 
   @override
@@ -5575,6 +5600,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get performUndoNoLongerAvailable =>
       'Kan ikke fortrydes: programmet er ændret siden.';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'Programmet var ændret et andet sted, siden Fremfør åbnede. Fremfør viser nu den nyeste version, med din ændring.';
 
   @override
   String get performProgramAdjustedSnack => 'Program justeret.';
@@ -8770,6 +8799,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'En nyere version af $appName ($version) er tilgængelig.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'En nyere version af $appName ($version) er tilgængelig. Dette er en bærbar kopi, så download den nye zip eller tar.gz fra udgivelsen.';
   }
 
   @override

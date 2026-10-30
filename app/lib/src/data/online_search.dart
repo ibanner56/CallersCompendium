@@ -106,6 +106,36 @@ class OnlineSearchQuery {
     this.requireFigures = true,
   });
 
+  /// A query for [text] typed under the **Search in** choice [scope], as the
+  /// Collection and the program picker both send it (FIND-7). **All fields**
+  /// searches titles, as `onlineFullTextScope` maps it; [text] is trimmed.
+  factory OnlineSearchQuery.forScope(
+    String text,
+    FullTextScope scope, {
+    CallersBoxPhraseQuery? phrases,
+  }) {
+    final trimmed = text.trim();
+    return switch (scope) {
+      FullTextScope.omni || FullTextScope.title => OnlineSearchQuery(
+        title: trimmed,
+        phrases: phrases,
+      ),
+      FullTextScope.author => OnlineSearchQuery(
+        author: trimmed,
+        phrases: phrases,
+      ),
+      FullTextScope.figure => OnlineSearchQuery(
+        figure: trimmed,
+        phrases: phrases,
+      ),
+    };
+  }
+
+  /// Whether the query asks for nothing: no text in any field and no phrases.
+  /// A source is never searched for an empty query.
+  bool get isEmpty =>
+      title.isEmpty && author.isEmpty && figure.isEmpty && phrases == null;
+
   final String title;
   final String author;
   final String figure;

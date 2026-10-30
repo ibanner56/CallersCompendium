@@ -1863,6 +1863,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Check for a newer version in the background when the app starts. Off by default.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Look for an end-of-support date for this version in the background when the app starts. Off by default.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'The update check downloads a small version file over HTTPS and nothing else — no data about you, your device, or your usage is ever sent. Nothing is downloaded or installed automatically: you choose when to download an update, it is verified before it opens, and your system installer completes the install.';
 
@@ -1908,6 +1912,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsUpdatesMacosReadySubtitle =>
       'Your update is ready. Mount the disk image and close the app so you can replace it in Applications.';
+
+  @override
+  String get settingsUpdatesStoreTitle => 'Updates come from your app store';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'This copy was installed from an app store, so the store updates it. The app only looks for an end-of-support date, never for a new version.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Portable copy: download the new archive';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'This copy runs from an unpacked archive, so the app can\'t install the update for you. Download the new zip or tar.gz from the release and unpack it.';
 
   @override
   String get settingsUpdatesDownloadTitle => 'Download & install update';
@@ -3768,10 +3787,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search titles, authors, figures, notes…';
 
   @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Search online dances by title…';
-
-  @override
   String get collectionSearchScopeLabel => 'Search in';
 
   @override
@@ -4710,6 +4725,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'You have an unsaved draft for this program. Would you like to restore it?';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'You have an unsaved draft of another new program, “$title”. Would you like to restore it instead of starting a new one?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?';
+
+  @override
   String get programsDraftRestore => 'Restore';
 
   @override
@@ -5543,6 +5567,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get performUndoNoLongerAvailable =>
       'Can\'t undo: the program has changed since.';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.';
 
   @override
   String get performProgramAdjustedSnack => 'Program adjusted.';
@@ -8737,6 +8765,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'A newer version of $appName ($version) is available.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'A newer version of $appName ($version) is available. This is a portable copy, so download the new zip or tar.gz from the release.';
   }
 
   @override

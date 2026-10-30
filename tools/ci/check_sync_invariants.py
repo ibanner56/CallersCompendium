@@ -218,7 +218,13 @@ ALTERNATE_TITLE_EXEMPTIONS: dict[str, frozenset[str]] = {
     # FTS index does. It only ranks and filters what is shown. It is never a
     # sync, merge, dedupe or identity key, and keeps articles and punctuation.
     "packages/compendium_core/lib/src/search/title_match.dart": frozenset(
-        {"foldForTitleMatch", "rankTitleMatch"}
+        {"rankTitleMatch"}
+    ),
+    # `foldForTitleMatch` now lives beside `titleSortKey` (B13, FIND-15) because
+    # the sort keys fold accents with it too. Same role: display ordering and
+    # matching only, never a sync, merge, dedupe or identity key.
+    "packages/compendium_core/lib/src/search/title_sort_key.dart": frozenset(
+        {"foldForTitleMatch"}
     ),
 }
 

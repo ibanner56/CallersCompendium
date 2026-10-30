@@ -368,6 +368,38 @@ class ProgramRepository {
     required Program expected,
     required Program replacement,
     required DateTime updatedAt,
+  }) async =>
+      await _replaceIfUnchanged(
+        expected: expected,
+        replacement: replacement,
+        updatedAt: updatedAt,
+        readBack: false,
+      ) !=
+      null;
+
+  /// [replaceIfUnchanged], returning the program as stored by the write, read
+  /// back in the same transaction, or `null` when it did not write. Like
+  /// [updateAndReadBack], the result is the exact token the next
+  /// [replaceIfUnchanged] compares against, so a chain of compare-and-replace
+  /// writes never needs a separate read that another write could land before.
+  Future<Program?> replaceIfUnchangedAndReadBack({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) => _replaceIfUnchanged(
+    expected: expected,
+    replacement: replacement,
+    updatedAt: updatedAt,
+    readBack: true,
+  );
+
+  /// Returns the stored program after the write when [readBack], [expected]
+  /// otherwise, and `null` when it did not write.
+  Future<Program?> _replaceIfUnchanged({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+    required bool readBack,
   }) {
     assertUtc(updatedAt, 'updatedAt');
     if (replacement.id != expected.id) {
@@ -379,7 +411,7 @@ class ProgramRepository {
     }
     return _db.transaction(() async {
       final current = await getById(expected.id);
-      if (current == null || current != expected) return false;
+      if (current == null || current != expected) return null;
       await _upsert(
         replacement.copyWith(
           updatedAt: nextStoredTimestamp(
@@ -390,7 +422,12 @@ class ProgramRepository {
           ),
         ),
       );
-      return true;
+      if (!readBack) return current;
+      final stored = await getById(expected.id);
+      if (stored == null) {
+        throw StateError('program "${expected.id}" vanished inside its write');
+      }
+      return stored;
     });
   }
 
