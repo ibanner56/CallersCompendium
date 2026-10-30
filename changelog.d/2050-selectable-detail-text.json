@@ -1,0 +1,9 @@
+{
+  "id": "2050-selectable-detail-text",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "On Windows, macOS and Linux you can select and copy part of a dance's page: drag across the title, hook, figures, calling notes or links, then press Ctrl-C (Cmd-C on macOS), or right-click for Copy and Select all. A copy is the text as the page shows it, so it differs from Copy dance when Always show verbose figure text, figure capitalization or Show turns as decimals is on. Tag chips and beat counts are left out. Phones and Perform are unchanged."
+    ]
+  }
+}

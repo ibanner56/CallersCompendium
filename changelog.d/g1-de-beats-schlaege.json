@@ -1,0 +1,9 @@
+{
+  "id": "g1-de-beats-schlaege",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "German now calls a beat a \"Schlag\" (plural \"Schläge\") everywhere a figure's length is shown, instead of \"Takt\", which means a bar. Affects figure lengths, the dance editor's totals, the programming matrix, exports and the settings texts."
+    ]
+  }
+}
