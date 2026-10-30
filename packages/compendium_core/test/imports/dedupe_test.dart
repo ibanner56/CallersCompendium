@@ -401,6 +401,7 @@ void main() {
       final matches = index.fuzzyMatches('La Bastringue', ['Jane Doe']);
       expect(matches.map((m) => m.danceId), ['d1']);
       expect(matches.single.confident, isTrue);
+      expect(matches.single.score, 1.0);
     });
 
     test('and the other way round', () {

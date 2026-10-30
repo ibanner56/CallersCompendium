@@ -108,8 +108,9 @@ class DedupeCandidate {
   final String danceId;
   final double score;
 
-  /// Whether this candidate is a **confident match**: normalized titles are
-  /// exactly equal AND the tokenized author sets intersect (issue #685's
+  /// Whether this candidate is a **confident match**: the titles share a
+  /// [dedupeTitleKeys] key (normalized titles exactly equal, as written or
+  /// with a trailing article fronted, #1976) AND the tokenized author sets intersect (issue #685's
   /// dedupe sanity check). A confident candidate is always included in
   /// [DedupeIndex.fuzzyMatches] regardless of [DedupeIndex.defaultThreshold]
   /// — inconsistent author-string tokenization across sources must never be
@@ -327,14 +328,14 @@ class DedupeIndex {
       final nTitle = normalizeTitle(e.title);
       // Keyed as written and with a trailing article fronted (#1976), so both
       // are reachable; `''` never is (see [dedupeTitleKeys]).
-      final keys = dedupeTitleKeys(e.title);
-      for (final key in keys) {
+      final fronted = _frontedKey(e.title, nTitle);
+      for (final key in [if (nTitle.isNotEmpty) nTitle, ?fronted]) {
         (_byNormalizedTitle[key] ??= []).add(_normalized.length);
       }
       for (final coreTitle in _coreTitleKeys(e.title)) {
         (_byCoreTitle[coreTitle] ??= []).add(_normalized.length);
       }
-      _titleKeys.add(keys);
+      _frontedTitles.add(fronted);
       _normalized.add((
         danceId: e.danceId,
         normalizedTitle: nTitle,
@@ -351,8 +352,10 @@ class DedupeIndex {
   final List<_NormalizedEntry> _normalized = [];
   final Map<String, String> _byExternalKey = {};
 
-  /// [dedupeTitleKeys] per entry, parallel to [_normalized].
-  final List<Set<String>> _titleKeys = [];
+  /// Each entry's [normalizeTitle] with a trailing article fronted, when that
+  /// differs from its `normalizedTitle` (#1976); parallel to [_normalized].
+  /// Usually `null`, so most pairs take the one-key path in [fuzzyMatches].
+  final List<String?> _frontedTitles = [];
 
   /// Each [dedupeTitleKeys] key → ascending indices into [_normalized] of
   /// the entries carrying it. Every [DedupeCandidate.confident] match comes
@@ -408,62 +411,63 @@ class DedupeIndex {
     Iterable<String> authorNames, {
     double threshold = defaultThreshold,
   }) {
-    final queryKeys = dedupeTitleKeys(title);
+    final nTitle = normalizeTitle(title);
+    final nFronted = _frontedKey(title, nTitle);
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
-    if (queryKeys.isEmpty) return const [];
+    if (nTitle.isEmpty) return const [];
     final out = <DedupeCandidate>[];
     // Entries sharing a title key with the query are always scored: they are
     // the only possible confident matches. They are visited in entry order,
     // merged into the scan below, so the candidate order (and thus the order of
     // equal scores after the sort) is exactly that of a plain scan.
-    final exact = {
-      for (final key in queryKeys) ...?_byNormalizedTitle[key],
-    }.toList()..sort();
+    final exact = nFronted == null
+        ? _byNormalizedTitle[nTitle] ?? const <int>[]
+        : ({
+            ...?_byNormalizedTitle[nTitle],
+            ...?_byNormalizedTitle[nFronted],
+          }.toList()..sort());
     var nextExact = 0;
     // Length bound for every other entry. Levenshtein distance is at least the
-    // length difference, so with la = |q|, lb = |e| and d = |la - lb|,
-    // `titleSim = 1 - dist / max(la, lb) <= 1 - d / max(la, lb)`
+    // length difference, so with la = |nTitle|, lb = |eTitle| and
+    // d = |la - lb|, `titleSim = 1 - dist / max(la, lb) <= 1 - d / max(la, lb)`
     // (floating-point division and subtraction are monotone, so this holds for
     // the computed values too). The combined score is then at most
     // `titleSim * 0.8 + 0.2` when both author sets are non-empty (Jaccard is at
-    // most 1) and exactly `titleSim` otherwise. The score is the best over
-    // every pair of the query's and the entry's title keys, so the bound is
-    // too. A pair whose bound is under [threshold] could never have reached
-    // it, and is not confident (its keys differ), so skipping it cannot change
-    // the result.
+    // most 1) and exactly `titleSim` otherwise. A pair whose bound is under
+    // [threshold] could never have reached it, and is not confident (its
+    // titles differ), so skipping it cannot change the result.
+    //
+    // A fronted key (#1976) only decides which entries are exact: an exact
+    // entry scores as the same title, and every other entry is scored on the
+    // titles as written, as before, so a query costs what it did.
     final queryHasAuthors = nAuthors.isNotEmpty;
     for (var i = 0; i < _normalized.length; i++) {
       final e = _normalized[i];
-      final entryKeys = _titleKeys[i];
-      if (entryKeys.isEmpty) continue;
+      final eTitle = e.normalizedTitle;
+      if (eTitle.isEmpty) continue;
       final eAuthors = e.normalizedAuthors;
-      final both = queryHasAuthors && eAuthors.isNotEmpty;
-      if (nextExact < exact.length && exact[nextExact] == i) {
+      final isExact = nextExact < exact.length && exact[nextExact] == i;
+      if (isExact) {
         nextExact++;
       } else {
-        var bound = 0.0;
-        for (final q in queryKeys) {
-          for (final k in entryKeys) {
-            final la = q.length;
-            final lb = k.length;
-            final diff = la > lb ? la - lb : lb - la;
-            final maxLen = la > lb ? la : lb;
-            final titleBound = 1.0 - diff / maxLen;
-            final pairBound = both ? titleBound * 0.8 + 1.0 * 0.2 : titleBound;
-            if (pairBound > bound) bound = pairBound;
-          }
-        }
+        final la = nTitle.length;
+        final lb = eTitle.length;
+        final diff = la > lb ? la - lb : lb - la;
+        final maxLen = la > lb ? la : lb;
+        final titleBound = 1.0 - diff / maxLen;
+        final bound = queryHasAuthors && eAuthors.isNotEmpty
+            ? titleBound * 0.8 + 1.0 * 0.2
+            : titleBound;
         if (bound < threshold) continue;
       }
-      var score = 0.0;
-      for (final q in queryKeys) {
-        for (final k in entryKeys) {
-          final pairScore = _combinedScore(q, nAuthors, k, eAuthors);
-          if (pairScore > score) score = pairScore;
-        }
-      }
+      final score = _combinedScore(
+        nTitle,
+        nAuthors,
+        isExact ? nTitle : eTitle,
+        eAuthors,
+      );
       final confident =
-          queryKeys.any(entryKeys.contains) &&
+          isExact &&
           nAuthors.isNotEmpty &&
           eAuthors.isNotEmpty &&
           nAuthors.intersection(eAuthors).isNotEmpty;
@@ -536,7 +540,8 @@ class DedupeIndex {
     final queryKeys = dedupeTitleKeys(title);
     return [
       for (final i in indices)
-        if (!queryKeys.any(_titleKeys[i].contains) &&
+        if (!queryKeys.contains(_normalized[i].normalizedTitle) &&
+            !queryKeys.contains(_frontedTitles[i]) &&
             _normalized[i].normalizedAuthors.any(nAuthors.contains))
           _normalized[i].danceId,
     ];
@@ -575,15 +580,29 @@ final RegExp _leadingArticleRe = RegExp(r'^(the|a|an)\s+');
 ///
 /// Import-only: it composes [normalizeTitle] rather than replacing it, and
 /// sync's keys stay plain [normalizeTitle].
-Set<String> dedupeTitleKeys(String title) =>
-    {normalizeTitle(title), normalizeTitle(frontTrailingArticle(title))}
-      ..remove('');
+Set<String> dedupeTitleKeys(String title) {
+  final plain = normalizeTitle(title);
+  return {if (plain.isNotEmpty) plain, ?_frontedKey(title, plain)};
+}
+
+/// [normalizeTitle] of [title] with a trailing article fronted, when that is
+/// not [plain] (its [normalizeTitle]) and not `''`.
+String? _frontedKey(String title, String plain) {
+  final fronted = frontTrailingArticle(title);
+  if (identical(fronted, title)) return null;
+  final key = normalizeTitle(fronted);
+  return key == plain || key.isEmpty ? null : key;
+}
 
 /// [dedupeCoreTitleKey] of [title] as written and with a trailing article
 /// fronted, without `''`.
-Set<String> _coreTitleKeys(String title) =>
-    {dedupeCoreTitleKey(title), dedupeCoreTitleKey(frontTrailingArticle(title))}
-      ..remove('');
+Set<String> _coreTitleKeys(String title) {
+  final fronted = frontTrailingArticle(title);
+  return {
+    dedupeCoreTitleKey(title),
+    if (!identical(fronted, title)) dedupeCoreTitleKey(fronted),
+  }..remove('');
+}
 
 /// Normalizes a dance title for comparison: NFC-composed, lowercased, diacritics
 /// folded, punctuation dropped, whitespace collapsed, and a single leading
