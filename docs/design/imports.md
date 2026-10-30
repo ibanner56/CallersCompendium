@@ -1056,8 +1056,10 @@ trailing clause, an unmappable code (`C4`+, out-of-range neighbors, a bare
 the line falls through to the shared recognizer's bare, defaulted reading rather
 than being half-structured. The exception is a Caller's Companion comma list
 (below): words after it are a note unless they open another clause (#1971), and
-on a square through with hands a list that does not decode, such as one whose
-hands do not alternate, becomes the note instead of returning `null` (#1975).
+on a square through with hands a list of pass codes that does not decode, such
+as `(NR, PR)` whose hands do not alternate, becomes the note instead of
+returning `null` (#1975). Any other comma bracket (`(W roll R, M side-step L)`)
+still returns `null`, so the per-role and prose readers after it get it (#744).
 Untrusted import text is length-capped **before**
 the pass list is split into cells (`_boundedPassListCells`), so a hostile line
 with millions of `;` is rejected in O(1) rather than allocating the oversized
@@ -1096,8 +1098,9 @@ balance`, `and swing`), which leaves the line custom. A comma list on a square
 through *with* hands is read the same way (maintainer decision on #1975), and its
 cells may be spaced (`P R, N1 L`) or spell the relationship (`Neighbor R,
 Partner L`). Before #1975 such a list was dropped when the line had only
-capitals, as the Caller's Box front end strips a code-only bracket; one that
-does not decode is now kept as the note. Without a pass list nothing says who starts, so
+capitals, as the Caller's Box front end strips a code-only bracket; a list of
+pass codes that does not decode is now kept as the note, and any other comma
+bracket is left to the per-role and prose readers. Without a pass list nothing says who starts, so
 there is no circular hey: the line reads as a `square_through` with
 `places: n`, `balance: false` and the note "without hands" (maintainer decision
 on #1971). A `without hands` line with a pass-list-shaped bracket that does not

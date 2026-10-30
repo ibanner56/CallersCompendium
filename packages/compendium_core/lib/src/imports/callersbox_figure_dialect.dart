@@ -3287,8 +3287,10 @@ const Map<String, int> _countWords = {'two': 2, 'three': 3, 'four': 4};
 ///     exception is Caller's Companion's comma-separated list (`(NR, PL, NR)`,
 ///     #1971): the words after it become the note (`… to new Neighbor`), and
 ///     its cells may be spaced or spelled out ([_ccPassCells]). On a square
-///     through with hands, a comma list that does not decode is kept as the
-///     note instead of declining (#1975);
+///     through with hands, a comma list of pass codes that does not decode
+///     (`(NR, PR)`) is kept as the note instead of declining (#1975); any
+///     other comma bracket still declines, so the per-role and prose readers
+///     after this one get it (#744);
 ///   * the cell count does not equal `n` (a square through of `n` has `n`
 ///     passes; a mismatch is an unmodeled variant);
 ///   * any cell is not `<people-code><R|L>` with the people code present in
