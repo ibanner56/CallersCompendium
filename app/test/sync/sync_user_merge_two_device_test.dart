@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
@@ -177,6 +178,27 @@ void main() {
         d2: {s},
       }, reason: device.deviceId);
     }
+  });
+
+  test("the merging device does not report a peer as not taking the loser's "
+      'tombstone', () async {
+    await seed();
+    await mergeFlowingIntoFlowy(a);
+    await settle();
+    // §6.9 judges a peer once it has published twice since: give it more.
+    SyncPassResult? last;
+    for (var pass = 0; pass < 3; pass++) {
+      await b.sync();
+      last = await a.sync();
+    }
+
+    expect(
+      last!.reports.where(
+        (report) => report.code == SyncReportCode.unreflectedPublication,
+      ),
+      isEmpty,
+    );
+    expect([for (final peer in last.peers!) peer.waitingCount], [0]);
   });
 
   test('opposite merges on two offline devices keep the same id', () async {

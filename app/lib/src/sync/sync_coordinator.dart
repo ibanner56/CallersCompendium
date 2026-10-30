@@ -3259,7 +3259,13 @@ class SyncCoordinator {
     for (final kindEntry in manifest.records.entries) {
       for (final entry in kindEntry.value.entries) {
         final source = (kind: kindEntry.key, recordId: entry.key);
-        final address = aliases.resolve(source);
+        // A held loser's tombstone is published under its own id
+        // ([SyncAliasMap.resolveCandidate]), so a peer's entry there is
+        // compared under that id too. Folded into the survivor, the peer
+        // would never be seen to carry it (§6.9's survey, the only reader).
+        final address = aliases.heldLosers.contains(source)
+            ? source
+            : aliases.resolve(source);
         if (_shouldReplaceNormalizedAddress(
           sources[address],
           source,

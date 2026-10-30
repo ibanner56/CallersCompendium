@@ -3550,6 +3550,8 @@ reconciliation.
 > 4. **A loser's tombstone keeps its own id.** Where this device still holds a
 >    row for an alias's losing id, a tombstone at that id is published,
 >    merged and applied under it, and is never resolved through `id_aliases`.
+>    A peer manifest's entry at that id is judged under it too (§6.9), or the
+>    peer would never be seen to carry the tombstone.
 >    Live copies at that id, and references to it, still resolve.
 >    Reconciliation never leaves such a row (it erases or migrates its loser),
 >    so this changes nothing for it.
