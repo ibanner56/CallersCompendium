@@ -271,3 +271,17 @@ hot-files table), which lives at
 lands, treat B29's right-click handlers and its menu-bar replacement as
 planned work, not shipped behaviour. The audit finding is PLAT-17 in
 `reports/PLAT.md` on the same branch.
+
+## Implementation note (N5-S1, 2026-10-30)
+
+Found while building `SelectableContent`, not anticipated above: Flutter 3.47
+joins the text of separate `Text` widgets with **no separator**, so a plain
+`SelectionArea` copies a figure and its note as "partner swingwith your
+neighbor". A `ListView` owns the delegate that does the joining
+(`scrollable.dart`), so the region cannot fix it from outside. S1 adds
+`SelectableLine`, a per-block wrapper that ends its text with a newline, and
+applies it to the title, authors, section headings, hook and calling notes
+(`_CrossReferenceText`, which also keeps a link inside its sentence) and each
+figure line and note. The formation chips, the warnings card, section labels
+such as `A1` and the calling history still copy without a break; wrapping them
+is a follow-up, not a change to any decision above.

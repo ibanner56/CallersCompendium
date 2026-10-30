@@ -18,6 +18,9 @@ import 'package:flutter/rendering.dart' show SelectedContent;
 /// text and capitalisation preferences. It differs from **Copy dance** on those
 /// two preferences.
 ///
+/// Flutter joins the text of separate [Text] widgets with no separator, so wrap
+/// each block of prose in a [SelectableLine] to end it with a newline in a copy.
+///
 /// Wrap a subtree that is not text — chips, badges, the beats column — in
 /// [SelectionContainer.disabled] so a drag over it neither selects it nor puts
 /// it in the copied text.
