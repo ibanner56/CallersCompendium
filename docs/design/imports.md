@@ -242,14 +242,20 @@ A share file's tags, custom-field definitions and published sources are
 committed before the dances, as the archive references them
 (`ShareMetadataImporter.commit`), reusing a live match or **reviving** a deleted
 one, because a dance's write refuses an id that does not exist. *Amended
-2026-10-30:* after the dances and programs are written,
-`ShareMetadataImporter.dropUnused` takes back each one it created or revived
-that no dance the commit wrote carries (a created or linked dance's draft; a
-re-imported, skipped or failed row counts for nothing): a created one is
-erased through the guarded delete, a revived one tombstoned again. The ledger
-on the result then names only what stayed, for `undo`. Before this, a share
-whose matching rows were all re-imports or skips brought back a tag the
-receiver had deleted. The test is "carried by a written dance", not the
+2026-10-30:* the archive importer first works out which rows will write a
+dance (`resolveCommitAction` on each verdict and resolution: create,
+duplicate, variation or link; not a re-import, which writes no tags, fields or
+citations, and not a skip) and passes the archive ids those dances carry as
+`ShareMetadataImporter.commit`'s `only`, so nothing else is created or revived.
+Before this, a share whose matching rows were all re-imports or skips brought
+back a tag the receiver had deleted. Reviving it and tombstoning it again
+afterwards was rejected: the second deletion would carry a new stamp, which
+outranks a peer's later revival in sync (sync-spec §6.4). After the dances and
+programs are written, `ShareMetadataImporter.dropUnused` takes back what only a
+row that then failed needed: a created entry is erased through the guarded
+delete, a revived one tombstoned again (at `now`, as `undo` does), and the
+ledger on the result names only what stayed. "Needed" is "carried by a dance
+the commit writes", not the
 repositories' `isInUse`, because a deleted tag keeps its joins: reviving it
 showed it on the receiver's own dances again, which `isInUse` counts. The
 `.USR` importer drops its unused definitions and sources the same way, by

@@ -17,7 +17,7 @@
   "core": {
     "added": [
       "`DedupeVerdict.reimport` takes `alsoTitleAndCredit`, and `withReimportedChoreography` an `alsoTitleAndCredit` flag: a re-import with it set also takes the incoming title and resolved authors (an empty incoming credit keeps the dance's).",
-      "`ShareMetadataImporter.dropUnused` takes back created or revived metadata no written dance carries; `CompendiumArchiveImporter.commit` calls it after the dances and programs are written.",
+      "`CompendiumArchiveImporter.commit` commits a share's tags, custom fields and sources only for the rows that will write a dance (`ShareMetadataImporter.commit`'s new `only`, worked out with `resolveCommitAction`, now public), and `ShareMetadataImporter.dropUnused` takes back what a row that then failed needed.",
       "`CallersCompanionUsrImporter.commit` takes `earlierReimportedCcIds`, and `buildCcRelatedDanceLinks` takes `skippedSourceDanceIds`."
     ]
   }
