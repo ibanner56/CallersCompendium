@@ -93,6 +93,7 @@ final class _UndoState {
     this.aliasesAfter = const [],
     this.retainedBefore = const [],
     this.pendingBefore = const [],
+    this.coexisting = const {},
   });
 
   /// Each entry's row before the edit, to write back (survivor, losers, or
@@ -116,6 +117,10 @@ final class _UndoState {
   final List<IdAliasRow> aliasesAfter;
   final List<RetainedSyncFieldsRow> retainedBefore;
   final List<PendingDeletionRow> pendingBefore;
+
+  /// Live entries outside the edit that already matched an old name when it
+  /// ran, as case variants can. Undo leaves them be rather than refusing.
+  final Set<String> coexisting;
 }
 
 /// Rename, merge and delete for tags, authors and sources, with Undo
@@ -221,6 +226,7 @@ class ReferenceEditRepository {
       if (live.isNotEmpty) {
         throw ReferenceNameTakenException(kind, name, live);
       }
+      final coexisting = await _liveNameHolders(kind, [before], {id});
       for (final match in matches) {
         await _freeName(kind, match.id, now: now);
       }
@@ -234,7 +240,11 @@ class ReferenceEditRepository {
       return ReferenceEditUndo._(
         kind,
         0,
-        _UndoState(rowsBefore: {id: before}, touchedIds: {id}),
+        _UndoState(
+          rowsBefore: {id: before},
+          touchedIds: {id},
+          coexisting: coexisting,
+        ),
       );
     });
   }
@@ -316,14 +326,24 @@ class ReferenceEditRepository {
 
       // A live entry outside the merge holding the name — created, or brought
       // by a sync pass, since the rename that offered this merge — would be
-      // left beside the result as a duplicate, or break the UNIQUE index.
+      // left beside the result as a new duplicate, or break the UNIQUE index
+      // if it holds the exact bytes. A case variant of a name one of the
+      // merged entries already has is no new duplicate: it was there before.
+      final targetKey = naturalKeyMatchKey(targetName);
+      final keepsAName = rowsBefore.values.any(
+        (row) => naturalKeyMatchKey(_name(kind, row)) == targetKey,
+      );
       final outside = [
         for (final match in await nameMatches(kind, targetName))
-          if (!match.deleted && !all.contains(match.id)) match.id,
+          if (!match.deleted &&
+              !all.contains(match.id) &&
+              (!keepsAName || match.name == targetName))
+            match.id,
       ];
       if (outside.isNotEmpty) {
         throw ReferenceNameTakenException(kind, targetName, outside);
       }
+      final coexisting = await _liveNameHolders(kind, rowsBefore.values, all);
 
       final joinsBefore = await _readJoins(kind, losers.toSet());
       final survivorDancesBefore = await _citingDances(kind, {survivorId});
@@ -381,6 +401,7 @@ class ReferenceEditRepository {
           retainedBefore: retainedBefore,
           pendingBefore: pendingBefore,
           touchedIds: all,
+          coexisting: coexisting,
         ),
       );
     });
@@ -411,6 +432,7 @@ class ReferenceEditRepository {
         for (final join in joinsBefore) (join as DanceTagRow).danceId,
       };
       final liveCount = await liveDanceCount(kind, id);
+      final coexisting = await _liveNameHolders(kind, [before], {id});
       await (_db.delete(_db.danceTags)..where((t) => t.tagId.equals(id))).go();
       await _bumpDances(dances, now: now);
       await _stampExistence(kind, id, now: now, deleted: true);
@@ -422,6 +444,7 @@ class ReferenceEditRepository {
           touchedIds: {id},
           revive: {id},
           joinsBefore: joinsBefore,
+          coexisting: coexisting,
         ),
       );
     });
@@ -466,6 +489,7 @@ class ReferenceEditRepository {
           final name = _name(kind, row);
           for (final match in await nameMatches(kind, name)) {
             if (state.touchedIds.contains(match.id)) continue;
+            if (state.coexisting.contains(match.id)) continue;
             if (!match.deleted) {
               throw ReferenceUndoConflictException(kind, name, match.id);
             }
@@ -802,17 +826,47 @@ class ReferenceEditRepository {
     throw StateError('cannot free the name of ${kind.name} "$id"');
   }
 
+  /// Live entries other than [exclude] matching the name of any of [rows].
+  Future<Set<String>> _liveNameHolders(
+    ReferenceKind kind,
+    Iterable<Object> rows,
+    Set<String> exclude,
+  ) async => {
+    for (final row in rows)
+      for (final match in await nameMatches(kind, _name(kind, row)))
+        if (!match.deleted && !exclude.contains(match.id)) match.id,
+  };
+
+  /// In ascending entry id, then dance id: the order a merge processes its
+  /// losers in ([rewriteLocalReferences] keeps the first loser's row on a
+  /// dance citing several), so Undo moves the survivor's row back to the
+  /// loser it came from.
   Future<List<Object>> _readJoins(ReferenceKind kind, Set<String> ids) async =>
       switch (kind) {
-        ReferenceKind.tag => await (_db.select(
-          _db.danceTags,
-        )..where((t) => t.tagId.isIn(ids))).get(),
-        ReferenceKind.author => await (_db.select(
-          _db.danceAuthors,
-        )..where((t) => t.choreographerId.isIn(ids))).get(),
-        ReferenceKind.source => await (_db.select(
-          _db.danceSources,
-        )..where((t) => t.sourceId.isIn(ids))).get(),
+        ReferenceKind.tag =>
+          await (_db.select(_db.danceTags)
+                ..where((t) => t.tagId.isIn(ids))
+                ..orderBy([
+                  (t) => OrderingTerm(expression: t.tagId),
+                  (t) => OrderingTerm(expression: t.danceId),
+                ]))
+              .get(),
+        ReferenceKind.author =>
+          await (_db.select(_db.danceAuthors)
+                ..where((t) => t.choreographerId.isIn(ids))
+                ..orderBy([
+                  (t) => OrderingTerm(expression: t.choreographerId),
+                  (t) => OrderingTerm(expression: t.danceId),
+                ]))
+              .get(),
+        ReferenceKind.source =>
+          await (_db.select(_db.danceSources)
+                ..where((t) => t.sourceId.isIn(ids))
+                ..orderBy([
+                  (t) => OrderingTerm(expression: t.sourceId),
+                  (t) => OrderingTerm(expression: t.danceId),
+                ]))
+              .get(),
       };
 
   static String _joinDanceId(Object join) => switch (join) {

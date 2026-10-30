@@ -450,6 +450,35 @@ void main() {
     });
   });
 
+  group('a case variant that was there before the edit', () {
+    test('does not block its Undo', () async {
+      await tag(a, 'Foo');
+      await tag(c, 'foo');
+      final undo = await edits.rename(ReferenceKind.tag, a, 'Qux');
+
+      await edits.undo(undo);
+
+      expect((await tagRow(a)).name, 'Foo');
+      expect((await tagRow(c)).name, 'foo');
+    });
+
+    test(
+      'does not refuse a merge that keeps a name it already matched',
+      () async {
+        await tag(a, 'Foo');
+        await tag(b, 'Bar');
+        await tag(c, 'foo');
+
+        await edits.merge(ReferenceKind.tag, intoId: a, otherIds: [b]);
+
+        expect(await repos.tags.listAll(), [
+          Tag(id: a, name: 'Foo'),
+          Tag(id: c, name: 'foo'),
+        ]);
+      },
+    );
+  });
+
   group('deleteTag', () {
     test('takes the tag off live and trashed dances, counting live ones, '
         'and a tag re-created under the name does not get them back', () async {
