@@ -3924,10 +3924,6 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
-  "collectionPickerOnlineSearchFieldHint": "Søg online efter danse efter titel…",
-  "@collectionPickerOnlineSearchFieldHint": {
-    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
-  },
   "collectionSearchScopeLabel": "Søg i",
   "@collectionSearchScopeLabel": {
     "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"
@@ -6921,6 +6917,14 @@
   "importIssueArchiveNewerSchema": "Denne fil er lavet med en nyere version af Caller's Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.",
   "@importIssueArchiveNewerSchema": {
     "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+  },
+  "importIssueArchiveCustomFieldKeyConflict": "Dit brugerdefinerede felt „{label}“ har en anden type eller andre valgmuligheder i denne fil, så filens værdier for det lægges i stedet i feltet med nøglen „{key}“, som tilføjes, hvis du ikke har det endnu. Dit felt er uændret.",
+  "@importIssueArchiveCustomFieldKeyConflict": {
+    "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
+  },
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "Et brugerdefineret felt i denne fil kunne ikke bruge sin nøgle, som allerede er i brug, så dets værdier lægges i stedet i et felt med en nummereret nøgle.",
+  "@importIssueArchiveCustomFieldKeyConflictGeneric": {
+    "x-sourceSha256": "3de2eecff77eb62db3dd735f85a9151293ca4ec9f3f9ed18154b9c3e3986142a"
   },
   "importIssueUsrFileTruncated": "Denne fil ser ufuldstændig ud – kun en del af den kunne læses. Kopiér den igen fra originalen, og importér den på ny.",
   "@importIssueUsrFileTruncated": {

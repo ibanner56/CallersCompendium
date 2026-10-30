@@ -3924,10 +3924,6 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
-  "collectionPickerOnlineSearchFieldHint": "Rechercher des danses en ligne par titre…",
-  "@collectionPickerOnlineSearchFieldHint": {
-    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
-  },
   "collectionSearchScopeLabel": "Rechercher dans",
   "@collectionSearchScopeLabel": {
     "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"
@@ -6921,6 +6917,14 @@
   "importIssueArchiveNewerSchema": "Ce fichier a été créé avec une version plus récente de Caller's Compendium. Mettez l'application à jour avant d'importer, sinon certains détails risquent d'être omis.",
   "@importIssueArchiveNewerSchema": {
     "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+  },
+  "importIssueArchiveCustomFieldKeyConflict": "Votre champ personnalisé « {label} » a un autre type ou d’autres choix dans ce fichier : ses valeurs venant du fichier vont donc dans le champ avec la clé « {key} », qui est ajouté si vous ne l’avez pas encore. Votre champ n’est pas modifié.",
+  "@importIssueArchiveCustomFieldKeyConflict": {
+    "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
+  },
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "Un champ personnalisé de ce fichier n’a pas pu utiliser sa clé, déjà prise : ses valeurs vont donc dans un champ avec une clé numérotée.",
+  "@importIssueArchiveCustomFieldKeyConflictGeneric": {
+    "x-sourceSha256": "3de2eecff77eb62db3dd735f85a9151293ca4ec9f3f9ed18154b9c3e3986142a"
   },
   "importIssueUsrFileTruncated": "Ce fichier semble incomplet : seule une partie a pu être lue. Copiez-le de nouveau depuis l'original, puis réimportez-le.",
   "@importIssueUsrFileTruncated": {

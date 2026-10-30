@@ -3875,10 +3875,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionSearchFieldHint => 'Titres, auteurs, figures, notes…';
 
   @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Rechercher des danses en ligne par titre…';
-
-  @override
   String get collectionSearchScopeLabel => 'Rechercher dans';
 
   @override
@@ -7095,6 +7091,15 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importIssueArchiveNewerSchema =>
       'Ce fichier a été créé avec une version plus récente de Caller\'s Compendium. Mettez l\'application à jour avant d\'importer, sinon certains détails risquent d\'être omis.';
+
+  @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Votre champ personnalisé « $label » a un autre type ou d’autres choix dans ce fichier : ses valeurs venant du fichier vont donc dans le champ avec la clé « $key », qui est ajouté si vous ne l’avez pas encore. Votre champ n’est pas modifié.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Un champ personnalisé de ce fichier n’a pas pu utiliser sa clé, déjà prise : ses valeurs vont donc dans un champ avec une clé numérotée.';
 
   @override
   String get importIssueUsrFileTruncated =>

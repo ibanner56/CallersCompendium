@@ -3817,10 +3817,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Søg titler, forfattere, figurer, noter…';
 
   @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Søg online efter danse efter titel…';
-
-  @override
   String get collectionSearchScopeLabel => 'Søg i';
 
   @override
@@ -7003,6 +6999,15 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get importIssueArchiveNewerSchema =>
       'Denne fil er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
+
+  @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Dit brugerdefinerede felt „$label“ har en anden type eller andre valgmuligheder i denne fil, så filens værdier for det lægges i stedet i feltet med nøglen „$key“, som tilføjes, hvis du ikke har det endnu. Dit felt er uændret.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Et brugerdefineret felt i denne fil kunne ikke bruge sin nøgle, som allerede er i brug, så dets værdier lægges i stedet i et felt med en nummereret nøgle.';
 
   @override
   String get importIssueUsrFileTruncated =>

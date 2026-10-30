@@ -3787,10 +3787,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search titles, authors, figures, notes…';
 
   @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Search online dances by title…';
-
-  @override
   String get collectionSearchScopeLabel => 'Search in';
 
   @override
@@ -6971,6 +6967,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importIssueArchiveNewerSchema =>
       'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.';
+
+  @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Your custom field \"$label\" has a different type or other choices in this file, so the file\'s values for it go into the field with the key \"$key\" instead, which is added if you don\'t have it yet. Your field is unchanged.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'A custom field in this file could not use its key, which is already taken, so its values go into a field with a numbered key instead.';
 
   @override
   String get importIssueUsrFileTruncated =>

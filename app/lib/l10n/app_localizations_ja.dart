@@ -3640,9 +3640,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionSearchFieldHint => 'タイトル、作者、フィギュア、ノートを検索…';
 
   @override
-  String get collectionPickerOnlineSearchFieldHint => 'タイトルでオンラインのダンスを検索…';
-
-  @override
   String get collectionSearchScopeLabel => '検索対象';
 
   @override
@@ -6718,6 +6715,15 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get importIssueArchiveNewerSchema =>
       'このファイルは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
+
+  @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'あなたのカスタムフィールド「$label」は、このファイルでは種類または選択肢が異なるため、ファイルの値は代わりにキー「$key」のフィールドに入ります（まだない場合は追加されます）。あなたのフィールドは変更されません。';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'このファイルのカスタムフィールドは、キーがすでに使われているため使用できませんでした。その値は代わりに番号付きのキーのフィールドに入ります。';
 
   @override
   String get importIssueUsrFileTruncated =>
