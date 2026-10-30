@@ -1,11 +1,14 @@
 # Design: History filters (venue and recency)
 
-*Design note N1 for audit finding FIND-1 · 2026-10-29 · proposed, not built.
-The maintainer chose "Design note now" for `design-history-filters` on
-2026-10-29. Nothing else here is a maintainer decision. A choice marked
-**Recommendation** is this note's. Those the maintainer needs to settle are
-listed under [Decisions needed](#decisions-needed). The rest are implementation
-choices a reviewer can overturn.*
+*Design note N1 for audit finding FIND-1 · 2026-10-29, decisions recorded
+2026-10-30 · **decided, not built.** The maintainer chose "Design note now" for
+`design-history-filters` on 2026-10-29, and answered all nine of this note's
+questions on 2026-10-29/30 (N1-1 … N1-9 in
+`maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`).
+[Decisions](#decisions) quotes each answer. Two answers differ from this
+note's recommendation (N1-4 and N1-6), and the maintainer's note on N1-2 changes
+its presets. The text below now follows the answers. A choice still marked **Recommendation** is this note's,
+not the maintainer's, and a reviewer can overturn it.*
 
 **The gap.** A caller building tonight's program for the Grange wants a dance
 they have not called at the Grange, or not called in the last few months. The
@@ -35,7 +38,9 @@ with no `sort:` argument (`collection_picker.dart:374-379`).
 - Duplicate venue records and venue merging.
 - Saved searches, which the app does not have.
 
-Line numbers are for `origin/main` at `296b594`.
+Line numbers are for `origin/main` at `296b594`, except where a line says
+`90fe5e8` (the tree the 2026-10-30 decisions were recorded against; B1 moved
+much of `calling_history_scope.dart` and `program_repository.dart`).
 
 ## Constraints
 
@@ -58,20 +63,26 @@ These come from `decided-work-plan.md` ("Design notes" and N1) on
    never builds a second definition of "called".
 2. **The call date.** GIG-2 = (a) is a maintainer decision (2026-10-29): use the
    event date when there is one, and the tap time only for undated programs. B1
-   carries it out as `COALESCE(event_date, performed_at, updated_at)`. The last
-   fallback, `updated_at`, is B1's own choice, not part of the decision. Today the
-   old order, with `performed_at` first, is written out in four places:
-   - history order in SQL, `program_repository.dart:1199-1201`;
-   - `DanceCallingRecord.effectiveDate` in Dart, `program_repository.dart:74`.
-     It still orders the detail page's rows;
-   - the detail page's display date, `calling_history_section.dart:398-416`;
-   - the Last-called sort, `dance_repository.dart:3099-3100`.
+   carried it out in #2032 as `COALESCE(event_date, performed_at, updated_at)`.
+   The last fallback, `updated_at`, is B1's own choice, not part of the decision.
+   *Update, 2026-10-30 (all line numbers in this paragraph and the next are at
+   `90fe5e8`):* B1 put the expression in one helper, `callingHistoryDateSql`
+   (`packages/compendium_core/lib/src/storage/calling_history_scope.dart:47-52`;
+   the event-date clause in constraint 1 is now at `:65-68`).
+   History order (`program_repository.dart:1263`) and the Last-called sort
+   (`dance_repository.dart:3126`) read it. It has two Dart copies, each with
+   its own `eventDate ?? performedAt ?? programUpdatedAt` chain:
+   `DanceCallingRecord.effectiveDate` (`program_repository.dart:82`), which
+   orders the detail page's rows, and the detail page's display date,
+   `callingHistoryDisplayDate`
+   (`app/lib/src/screens/dance_detail/calling_history_section.dart:399-403`).
 
-   A fifth date, `last_called` in the bulk counts
-   (`program_repository.dart:1049`), is not this order: it is `MAX(performed_at)`
-   alone. B1 moves it to the call date, which is a change of meaning rather than
-   a reordering. Unperformed primary slots gain a last-called date, so with the
-   default settings Collection's `lastCalled` changes for most called dances
+   A further date, `last_called` in the bulk counts
+   (`program_repository.dart:1110-1114`), is not this order. After B1 it is still
+   the newest **performed** slot only, now dated
+   `COALESCE(event_date, performed_at)`, with a `last_called_dated` variant for
+   "Require an event date". So with the default settings, Collection's
+   `lastCalled` still leaves out every unperformed slot that "called ×N" counts
    (see Q4).
 3. **The venue key that already exists.** The repeated-venues summary groups a
    dance's history by `id:<venueId>` when the program links a venue record, and
@@ -110,7 +121,8 @@ These come from `decided-work-plan.md` ("Design notes" and N1) on
 
 ## Q1. How does the venue scope match?
 
-**Recommendation: by the existing venue key (constraint 3).**
+**Decided: by the existing venue key (constraint 3).** N1-1 = (a), 2026-10-30,
+as this note recommended.
 
 - A program matches `id:V` when `venue_id = V`.
 - It matches `text:T` when it has no `venue_id` and its folded typed venue equals
@@ -121,7 +133,7 @@ typed "Grange" does not match the record "Grange".
 
 | Option | For | Against |
 | --- | --- | --- |
-| **Venue key, as the summary does** (recommended) | The filter and the repeated-venues summary always agree. Follows GIG-7 (b). Works with venue records off. | Until B3 links old programs, a record and a typed name stay split. Duplicate "Grange" records from two devices stay split too (constraint 5). |
+| **Venue key, as the summary does** (recommended; decided, N1-1) | The filter and the repeated-venues summary always agree. Follows GIG-7 (b). Works with venue records off. | Until B3 links old programs, a record and a typed name stay split. Duplicate "Grange" records from two devices stay split too (constraint 5). |
 | Record id only | Simplest SQL. | Useless with venue records off, which is the default (`docs/user/settings.md:122-127`). Typed history is invisible. |
 | Typed text only | Works in both modes. | Ignores the record a program links. A renamed record would split from its programs' typed text. |
 | Displayed name (record name, else typed text) | Joins a typed name to its record, and joins duplicate records. | This is GIG-7's option (a), which the maintainer rejected. The summary would disagree unless it changed too. |
@@ -158,17 +170,31 @@ own venue (Q3).
 
 ## Q2. A recency scope
 
-**Recommendation: "within the last …" with presets, plus a chosen date.**
+**Decided: "within the last …" with presets, plus a chosen date, plus a way to
+ask for dances never called.** N1-2 = (a), 2026-10-30, with the maintainer's
+note: "Also an option for dances which haven't been called. I think you can just
+say 1mo, 3mo, 6mo, or since a date on top of that, 1 year is a long while."
 
-- Presets: 4 weeks, 3 months, 6 months, 1 year.
+- Presets: 1 month, 3 months, 6 months. There is no 1-year preset, and no
+  4-week one: the maintainer's note replaces the option text's "4 weeks … or
+  1 year". "1mo" is a calendar month, counted like the other two
+  (*planner's reading, accepted by the maintainer 2026-10-30*;
+  `design-work-plan.md` ambiguity 2).
 - **Since a date…** opens the date picker.
+- **Never called.** The maintainer's note asks for this as a choice in the same
+  control. *Planner's reading, accepted by the maintainer 2026-10-30*
+  (`design-work-plan.md` ambiguity 1, on the audit branch): it is the
+  control's "no window" state, labelled so that it reads as "dances that have
+  never been called" when **Not called** is chosen. Today's **Not called** with
+  no scope already selects exactly those dances, so this adds a label and a
+  choice, not a new predicate. H2 shows the wording in its PR.
 - The scope reads together with the polarity chip:
   - **Not called** + **within 3 months**: no counted call in the window.
   - **Called** + **within 3 months**: at least one counted call in it.
 
 | Option | For | Against |
 | --- | --- | --- |
-| Presets plus a date (recommended) | One tap for the common case, and a date for "since the spring dance weekend". | Two controls in one section. |
+| Presets plus a date (recommended; decided, N1-2) | One tap for the common case, and a date for "since the spring dance weekend". | Two controls in one section. |
 | Presets only ("in the last N weeks") | Fewest controls on a phone. | No way to say "since that event". |
 | A date only ("not called since …") | One control. | Opens a date picker every time. |
 
@@ -179,8 +205,8 @@ not a call. Fixing a typo in an old undated program would mark all its dances
 every undated program it links, because linking bumps `updatedAt`
 (constraint 4).
 
-- **Recommendation:** the recency scope dates a call by
-  `COALESCE(event_date, performed_at)`. A slot with neither still counts as
+- **Decided (N1-3 = (a), 2026-10-30, as recommended):** the recency scope dates
+  a call by `COALESCE(event_date, performed_at)`. A slot with neither still counts as
   "called" for Called / Not called and for "called ×N". But no recency window
   contains it, so it is neither "recent" nor "within 3 months".
 - **Alternatives:**
@@ -191,22 +217,21 @@ every undated program it links, because linking bumps `updatedAt`
 **The window** starts at a cutoff and has no end. So a program dated next month
 already counts as a call, as it does today for "called ×N" (#583's documented
 default). Under "Not called within 3 months", a dance already programmed for
-next month is hidden. **Recommendation:** keep this. A dance already planned for
-another night is one the caller usually wants to avoid repeating.
+next month is hidden. **Decided (N1-9 = (a), 2026-10-30, as recommended):**
+keep this. A dance already planned for another night is one the caller usually
+wants to avoid repeating.
 
-**Where the window starts:**
-- **In Collection,** it starts at today: the cutoff is today minus the preset.
-- **In the picker,** the program usually has a date of its own (Q3).
-  **Recommendation:** count back from the program's event date, so "within 3
-  months" means "since 3 months before this program". Count back from today
-  when the program is undated. The window still has no end, so it also holds
-  every later program, including those after this one. That is the same rule as
-  above, and Decision 9 covers it.
-- **Rejected alternatives:**
-  - Count back from today everywhere. It is simpler, but wrong for a program
-    built two months ahead.
-  - Close the window at the program's date. It would stop hiding a repeat
-    already planned for the following month.
+**Where the window starts. Decided: at today, everywhere** (N1-4 = (b),
+2026-10-30). *This differs from this note's recommendation, which was to count
+back from the program's event date in the picker.*
+- **In Collection and in the picker,** the cutoff is today minus the preset. The
+  picker does not read the program's date for this.
+- The option text names the cost: "Simpler, but wrong for a program planned
+  weeks ahead." A program built two months ahead asks "not called within 3
+  months" of today, not of its own night.
+- The window still has no end, so it holds every later program (N1-9).
+- **Not chosen:** count back from the program's event date (this note's
+  recommendation), and close the window at the program's date.
 
 **Cutoff and granularity** (constraint 6). The cutoff is a calendar date, stored
 as `DateTime.utc(y, m, d)` like an event date.
@@ -217,20 +242,16 @@ as `DateTime.utc(y, m, d)` like an event date.
 - **Recommendation:** accept and document this. The question is asked in weeks,
   and with "Require an event date" on, no undated program is counted.
 
-**One date expression.** `calling_history_scope.dart` gains
-`callingHistoryDateExpression(slotTable, programTable)`, B1's call-date
-expression in one place, with a variant without `updated_at` for the recency
-scope. History order, `last_called`, the Last-called sort and the recency scope
-all read it.
-- The Dart copies (`effectiveDate` and the detail page's display date,
-  constraint 2) cannot share a SQL string. A lockstep test asserts that each
-  Dart copy and the SQL put the same rows in the same order.
-- *For B1's scope* (a planning note, not a maintainer decision): B1's four flip
-  sites in `decided-work-plan.md` leave out the sort's copy at
-  `dance_repository.dart:3099-3100`. If B1 flips history order but not the sort,
-  the two disagree. **Recommendation:** B1 adds this helper and uses it at the
-  three SQL sites: history order, `last_called` and the sort. It updates the two Dart copies by hand under the lockstep
-  test. H1 then only adds the recency variant.
+**One date expression.** B1 (#2032) added `callingHistoryDateSql` to
+`calling_history_scope.dart` (constraint 2). History order and the Last-called
+sort read it. H1 adds the recency variant beside it: the same expression
+without `updated_at`. The recency scope and the H3 chip read that variant.
+- The two Dart copies (`effectiveDate` and `callingHistoryDisplayDate`,
+  constraint 2) cannot share a SQL string. Today no test compares
+  `callingHistoryDisplayDate` with either of the others. H1 adds a lockstep
+  test that the SQL, `effectiveDate` and the display date pick the same date
+  for the same rows (the display date in local time), and the same lockstep for
+  the recency variant.
 
 ## Q3. Should the picker exclude or flag dances called at this venue?
 
@@ -238,8 +259,8 @@ The picker knows the program it is adding to only through `addedDanceCounts`
 (`collection_picker.dart:84-89`). It does not know the program's id, venue or
 date. Perform's sheet passes no program at all.
 
-**Recommendation: flag, plus a one-tap filter that starts off.** In the picker,
-when the program has a venue:
+**Decided: flag, plus a one-tap filter that starts off** (N1-5 = (a),
+2026-10-30, as recommended). In the picker, when the program has a venue:
 
 - each row called at this venue shows a **here** marker (Q4);
 - a **Not called here** chip sits beside Filters. It **starts off** for each
@@ -248,7 +269,7 @@ when the program has a venue:
 
 | Option | For | Against |
 | --- | --- | --- |
-| Flag, plus a chip that starts off (recommended) | Nothing is hidden unless the caller asks. A favourite they do want to repeat is one glance away. | One tap per program. |
+| Flag, plus a chip that starts off (recommended; decided, N1-5) | Nothing is hidden unless the caller asks. A favourite they do want to repeat is one glance away. | One tap per program. |
 | Exclude by default | Matches the headline task with no taps. | Results silently shrink. A caller who wants a repeat must work out why the dance is missing. Remembering an "off" choice needs a settings key. |
 | Flag only | No new control. | The caller still scans the whole list by eye. |
 
@@ -263,19 +284,27 @@ this chip.
 **The program being edited.** A primary slot counts the moment the dance is in a
 program (#583; `calling_history_scope.dart:26-29`). Without an exception, a dance
 added to tonight's program would at once read as "called here, tonight".
-- **Recommendation:** every picker scope and every picker row value leaves out the
-  **unperformed** slots of the program being edited. `CalledFilter` gains
-  `currentProgramId`, which compiles to `AND NOT (p.id = ? AND ps.performed_at IS
-  NULL)`. Collection never sets it.
-- **Performed slots still count,** so in Perform a dance called an hour ago reads
-  as called here, tonight. Excluding the whole program would hide it, and Perform
-  has no in-program marker to make up for that.
+- **Decided: leave out the whole program** (N1-6 = (c), 2026-10-30). *This
+  differs from this note's recommendation, which left out only the program's
+  unperformed slots.* Every picker scope and every picker row value ignores
+  every slot of the program being edited, performed or not. `CalledFilter`
+  gains `currentProgramId`, which compiles to `AND p.id <> ?`. Collection never
+  sets it.
+- **The cost, as the option stated it:** this "also hides a dance performed an
+  hour ago, and Perform has no in-program marker to make up for it." In
+  Perform's live-swap sheet, a dance already called tonight reads as neither
+  called here nor recently called. The picker's existing "in program ×N"
+  still counts it, because that count comes from the program's own slots, not
+  from history.
 
 **No venue, no chip.** A program with no venue and no linked record shows no
 chip and no marker.
 
 **How the picker learns the program.** The picker takes a new optional argument,
-`programContext`: the program's id, `venueId`, typed venue and event date.
+`programContext`: the program's id, `venueId` and typed venue. *My call:* it
+carries no event date, because N1-4 = (b) counts every window back from today,
+so nothing in the picker reads the program's date. Rejected: passing it anyway
+"in case", which is an unused parameter.
 - It defaults to null, so B14's stable constructor API still holds, and all five
   mounts compile unchanged.
 - Four of the mounts are edited to pass it:
@@ -283,12 +312,13 @@ chip and no marker.
   - `perform_adjust_sheet.dart:273`, because a live swap at the venue asks the
     same question.
 - `settings/defaults_section.dart:616` has no program and passes nothing.
-- Because the editor mounts are edited, H3 waits for F10, F11 and U7.
+- Because the editor mounts are edited, H3 waits for F10, F11 and U7. F10
+  (#2022) and U7 (#2033) have merged; F11 (#2040) is open.
 
 ## Q4. Should picker rows show when and where a dance was last called?
 
-**Recommendation: yes. Show a compact "last called" chip, and in the picker a
-here marker.**
+**Decided: yes. Show a compact "last called" chip, and in the picker a here
+marker** (N1-7 = (a), 2026-10-30, as recommended).
 
 - **The chip** shows a relative date: "3 mo ago", or "in 3 wk" for a program
   that is still ahead. Its semantics label and tooltip give the full date. It
@@ -308,11 +338,13 @@ here marker.**
 
 **"Called ×N" in the picker.** Today the picker's count includes the program
 being edited, and "in program ×N" shows that program separately.
-- Under the rule in Q3, the new chip and the marker leave out the edited
-  program's unperformed slots.
-- **Recommendation:** the picker's "called ×N" follows the same rule, so one row
-  never says "called ×1" beside no last-called date. This changes what the
-  picker's count shows. Collection's count is unchanged.
+- Under N1-6 (Q3), the new chip and the marker leave out the whole edited
+  program.
+- *My reading:* the question this note put (Decision 6) covered "called ×N",
+  so the picker's "called ×N" follows the same rule, and one row never says "called ×1" beside no last-called date.
+  This changes what the picker's count shows: a dance in this program and
+  nowhere else reads as uncalled, with "in program ×N" beside it. Collection's
+  count is unchanged.
 
 **The card-fields setting is an allow-list.** `collection_tile_visible_fields`
 stores the names of the **visible** fields. A user who has changed it has a list
@@ -328,21 +360,25 @@ hidden-facets key, a deny-list "so a filter added later is visible by default"
 - Both effects already apply to any card field added later. They are listed here
   because this note adds one.
 
+N1-8 = (a), 2026-10-30, as recommended: keep the allow-list.
+
 | Option | For | Against |
 | --- | --- | --- |
-| Keep the allow-list (recommended) | No new key, no registry change, no migration. The changelog says where to turn the chip on. | Users who have customised the setting don't see the chip unless they look. An older peer can drop it. |
+| Keep the allow-list (decided) | No new key, no registry change, no migration. The changelog says where to turn the chip on. | Users who have customised the setting don't see the chip unless they look. An older peer can drop it. |
 | Add a deny-list key, as the hidden-facets key does | New fields appear for everyone. | A new key, a registry entry, a one-time migration from the old key, and a §6.15 capability gate, because older peers don't know the key. |
 
-**Where the date comes from.** Today `DanceListEntry.lastCalled` is the performed
-stamp only, `MAX(performed_at)` (`program_repository.dart:1049`). It is read with
-no event-date flag (`app/lib/src/search/collection_data.dart:400-403`, `:547`).
-With the default settings it leaves out every slot not marked performed, which
-"called ×N" counts. It also ignores "Require an event date".
-- B1 moves `last_called` to the new call date.
-- H3 adds what B1 does not: the performed-only and dated variants, so the chip
-  honours both settings the way `countFor` does (`lastCalledFor(performedOnly,
-  requireEventDate:)`), and a `currentProgramId` variant of the bulk counts for
-  the picker. These are new columns in `_programDerivedRows` and fields on
+**Where the date comes from.** `DanceListEntry.lastCalled` reads the bulk
+counts' `last_called` (constraint 2). After B1 it is still the newest
+**performed** slot only, dated `COALESCE(event_date, performed_at)`, with a
+`last_called_dated` variant. With the default settings it leaves out every slot
+not marked performed, which "called ×N" counts. *(This note first said B1 would
+move `last_called` to the full call date. B1 kept the performed-only meaning
+instead, so the paragraph is corrected here.)*
+- H3 adds the variant B1 did not: the newest **counted** slot, dated by the
+  recency variant, so with "Require mark performed" off the chip counts what
+  "called ×N" counts. It honours both settings the way `countFor` does
+  (`lastCalledFor(performedOnly, requireEventDate:)`), and adds a
+  `currentProgramId` variant of the bulk counts for the picker. These are new columns in `_programDerivedRows` and fields on
   `DanceCallCounts` (`program_repository.dart:1042-1061`).
 - FIND-2's evidence also notes that no screen shows the value the Last-called
   sort orders by. The chip shows it, with one exception. The sort keeps B1's
@@ -350,13 +386,13 @@ With the default settings it leaves out every slot not marked performed, which
   whenever a dance's newest counted call has neither an event date nor a
   performed stamp, the sort places it by that program's last edit. Its chip
   shows an older date, or "undated". This is
-  a cost of Decision 3's recommendation. The alternative, giving the sort the
+  a cost of N1-3 = (a), and the option text says so. The alternative, giving the sort the
   recency date too, would drop those dances into the never-called tail, which is
   FIND-2's original complaint.
 
 | Option | For | Against |
 | --- | --- | --- |
-| Relative chip, plus a here marker in the picker (recommended) | Answers "recently?" and "here?" at a glance on a phone. Can be hidden. | One more chip on a busy row. |
+| Relative chip, plus a here marker in the picker (decided, N1-7) | Answers "recently?" and "here?" at a glance on a phone. Can be hidden. | One more chip on a busy row. |
 | A full line ("Last called 12 Mar · Grange") | Says everything. | A taller row on a phone, and the venue name repeats on every row. |
 | Nothing on the row; sort only (B14) | No row change. | The caller still opens each candidate to see where it was called. |
 
@@ -403,8 +439,9 @@ These hold on every surface.
   `_preference`: non-personal, about the app user, shareable
   (`settings_registry.dart:20-24`). An older peer ignores the new name, so the
   value needs no capability gate. The deny-list alternative in Q4 would need one.
-- **If the maintainer wants the picker to remember the chip** (Decision 5), that
-  is one new boolean key. It would be `_preference` and hold no venue.
+- **The picker does not remember the chip.** N1-5 = (a) starts it off for each
+  program, so no key is needed. (Remembering an "off" choice was a sub-question
+  of the exclude-by-default option, which was not chosen.)
 - **Recommendation: don't persist a chosen venue.** A venue name is classified
   `subject: none` (`field_registry.dart:501-508`, `:550-555`), so privacy does not
   forbid it. But a remembered venue would be per-device working state with no use
@@ -423,53 +460,79 @@ Each implementation branch updates these in the same PR:
 - `docs/design/search.md:69` and `:160-161`, the `CalledFilter` rows. They already
   omit `requireEventDate` and the alternate rule. H1 adds those and the new
   scopes.
-- `docs/design/search.md:349`: the Last-called sort reads the shared date
-  expression.
+- *(Done by B1, #2032: `docs/design/search.md:355-358` already says the
+  Last-called sort orders by the history date.)*
 - `docs/user/collection.md:157` (Filters: Calling history) and `:52-58` (Last
   called).
 - `docs/user/programs.md:160-163` (the picker): the here marker, the Not called
   here chip, and what the picker's "called ×N" counts.
 - `docs/user/settings.md:382-386` (card fields): Last called.
 
-## Decisions needed
+## Decisions
 
-1. **Venue matching.** Should the scope match by the existing venue key, as the
-   repeated-venues summary does, with no merging by name (recommended, per GIG-7 =
-   b)? Or by displayed name, which would reopen GIG-7?
-2. **Recency form.** Presets plus a chosen date (recommended), presets only, or a
-   date only?
-3. **Calls dated only by an edit.** Should the recency scope ignore a slot that has
-   neither an event date nor a performed stamp (recommended)? The alternatives
-   are to use B1's `updated_at` fallback, or to require an event date for recency.
-4. **Where the picker's window starts.** At the program's event date when it has
-   one (recommended), or always at today?
-5. **The picker's default.** A Not called here chip that starts off for each
-   program (recommended), exclude by default, or flag only? If the default is
-   exclude, should an "off" choice be remembered? That would add one settings key.
-6. **The program being edited.** In the picker, should its unperformed slots be
-   left out of the chip, the marker and "called ×N" (recommended)? This changes
-   what the picker's count shows today.
-7. **Picker rows.** A relative last-called chip and a here marker (recommended),
-   a full line with the venue name, or nothing on the row?
-8. **Card-field visibility.** Should users who have customised card fields find
-   the new chip themselves (recommended)? Or should the setting move to a
-   deny-list key, which costs a key, a migration and a capability gate?
-9. **Future-dated programs.** Should they count as calls inside a recency window
-   (recommended, matching "called ×N" today)?
+*Planner's readings.* Where an answer left a detail open, the planning session
+proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
+open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
+under "Design plan / N1–N5". This note labels each one "planner's reading,
+accepted by the maintainer 2026-10-30".
 
-## Proposed branches
+The maintainer answered every question on 2026-10-29/30. Each entry quotes the
+decision as `maintainer-decisions-2026-10-30.md` (on
+`claude/app-audit-categories-k2pdon`) records it, and the maintainer's own note
+verbatim where there is one.
 
-Sizes count changed lines, tests included: S < 150, M 150–400, L 400+.
+1. **N1-1, venue matching.** "(a) Venue key, like the repeated-venues list. The
+   filter always agrees with the dance page's repeated venues, but a typed
+   "Grange" and a saved "Grange" stay separate until old programs are linked."
+   As recommended. See Q1.
+2. **N1-2, recency form.** "(a) Presets plus a chosen date. One tap for 4 weeks,
+   3 months, 6 months or 1 year, plus "Since a date"; it costs two controls in
+   one section." Maintainer's note: "Also an option for dances which haven't
+   been called. I think you can just say 1mo, 3mo, 6mo, or since a date on top
+   of that, 1 year is a long while." The note changes the presets to 1, 3 and 6
+   months and adds a never-called choice. See Q2.
+3. **N1-3, calls dated only by an edit.** "(a) Leave them out of recency
+   windows. They still count as called and in "called ×N" but never as recent;
+   the Last-called sort can then place a dance differently from its chip." As
+   recommended. See Q2 and Q4.
+4. **N1-4, where the picker's window starts.** "(b) Always from today. Simpler,
+   but wrong for a program planned weeks ahead." *Differs from the
+   recommendation, (a).* See Q2.
+5. **N1-5, the picker's default.** "(a) Flag them, with an off-by-default chip.
+   Rows called here show a "here" marker, and a Not called here chip hides them
+   in one tap per program." As recommended. See Q3.
+6. **N1-6, the program being edited.** "(c) Leave out the whole program. Also
+   hides a dance performed an hour ago, and Perform has no in-program marker to
+   make up for it." *Differs from the recommendation, (a).* See Q3 and Q4.
+7. **N1-7, picker rows.** "(a) Short "last called" chip plus "here". Rows show
+   "3 mo ago", and picker rows add a "here" marker; one more chip on a busy row,
+   which card fields can hide." As recommended. See Q4.
+8. **N1-8, card-field visibility.** "(a) No, they turn it on themselves. No new
+   setting or migration; the changelog says where to turn it on, and an older
+   synced device can drop it again." As recommended. See Q4.
+9. **N1-9, future-dated programs.** "(a) Yes, count future programs. "Not called
+   within 3 months" hides a dance already planned for next month, matching
+   "called ×N"." As recommended. See Q2.
+
+## Branches
+
+Sizes count changed lines, tests included: S < 150, M 150–400, L 400+. Updated
+2026-10-30 for the decisions above and for what has merged since the note was
+written (`main` at `90fe5e8`: B1 #2032, B6 #2042, B11 #2039, B12 #2037, F10
+#2022, U7 #2033 and U9 #2027 have merged; F11 #2040 is open). The audit
+branch's `design-work-plan.md` gives each branch's guard tests, docs and wave;
+there these branches are N1-H1, N1-H2 and N1-H3.
 
 | # | Branch | Items | Main files | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- | --- |
-| H1 | `feat/called-filter-scopes` | `CalledFilter` gains `venue`, `since` and `currentProgramId`. The `cc_venue_key` function, registered per connection and used by the summary too. The recency date variant. A query that lists the venue keys with a counted call. Lockstep tests: the venue scope against the repeated-venues summary, the recency scope against the call date, and SQL against the Dart `effectiveDate`. `search.md`. | `filter.dart`, `filter_compiler.dart`, `calling_history_scope.dart`, `database_setup.dart`, `dance_repository.dart`, `program_repository.dart`, the test-database helpers and core tools listed in Q1 | L (~500) | Opus: it changes the one definition of "called". | B1, which should add the shared date helper (Q2). Hot files: after B7 → B12 → B13 and B11 on `filter_compiler.dart` / `dance_repository.dart`, and in the `program_repository.dart` chain after B3 and before B4 (B1 → B6 → B9 → B3 → **H1** → B4 → B5). No ARB, no changelog. |
-| H2 | `feat/history-filter-controls` | The Filters panel's Calling history section gains **At venue** and **Within**, with the inert state and hint. The venue chooser. Active counts. ARB keys in all six files. `collection.md`. Changelog fragment. Both surfaces get it, because `FacetPanel` is shared (`dance_list_screen.dart:2738`, `collection_picker.dart:834`). | `facet_panel.dart`, `collection_query.dart`, `collection_data.dart`, and both `FacetPanel` hosts: `dance_list_screen.dart` (venue keys) and `collection_picker.dart` (wiring). ARBs. | M (~400) | Sonnet | H1. After B14 → B15, which own both host files. |
-| H3 | `feat/picker-history-context` | `programContext`. The Not called here chip. `currentProgramId` on the picker's scopes and row values. `lastCalledFor` and the bulk-count variants. `CollectionTileField.lastCalled` and the here marker. ARBs. `programs.md` and `settings.md`. Changelog fragment. | `collection_picker.dart`, `dance_list_tile.dart`, `collection_tile_fields_scope.dart`, `dance_list_entry.dart`, `collection_data.dart`, `program_repository.dart`, `program_editor_screen.dart` (three mounts), `perform_adjust_sheet.dart` | L (~500) | Opus: two hot files and the last-called value. | H1, H2, B14. F10, F11 and U7 for the editor mounts, so W3. Hot files: one open PR in the `program_editor_screen.dart` group (B4 → B5, B24, B29), and after B5 in the `program_repository.dart` chain. |
+| H1 | `feat/called-filter-scopes` | `CalledFilter` gains `venue`, `since` and `currentProgramId` (the whole program, N1-6). The `cc_venue_key` function, registered per connection and used by the summary too. The recency date variant of B1's `callingHistoryDateSql`, without `updated_at` (N1-3). A query that lists the venue keys with a counted call. Lockstep tests: the venue scope against the repeated-venues summary, the recency scope against the call date, and SQL against the Dart `effectiveDate`. `search.md`. | `filter.dart`, `filter_compiler.dart`, `calling_history_scope.dart`, `database_setup.dart`, `dance_repository.dart`, `program_repository.dart`, the test-database helpers and core tools listed in Q1 | L (~450) | Opus: it changes the one definition of "called". | B1 (merged, #2032). Hot files: after B7 → B13 on `dance_repository.dart` (B11 and B12 have merged), and in the `program_repository.dart` chain after B9 and B3, before B4 (B9 → B3 → **H1** → B4 → B5). No ARB, no changelog. |
+| H2 | `feat/history-filter-controls` | The Filters panel's Calling history section gains **At venue** and **Within** (1 month, 3 months, 6 months, Since a date…, and the never-called choice, N1-2), with the inert state and hint. The venue chooser. Active counts. ARB keys in all six files. `collection.md`. Changelog fragment. Both surfaces get it, because `FacetPanel` is shared (`dance_list_screen.dart:2738`, `collection_picker.dart:834`). | `facet_panel.dart`, `collection_query.dart`, `collection_data.dart`, and both `FacetPanel` hosts: `dance_list_screen.dart` (venue keys) and `collection_picker.dart` (wiring). ARBs. | M (~400) | Sonnet | H1. After B14 → B15, which own both host files. |
+| H3 | `feat/picker-history-context` | `programContext` (id and venue, no date: N1-4). The Not called here chip. `currentProgramId` on the picker's scopes, row values and "called ×N" (N1-6). `lastCalledFor` and the bulk-count variants. `CollectionTileField.lastCalled` (allow-list unchanged, N1-8) and the here marker. ARBs. `programs.md` and `settings.md`. Changelog fragment saying where to turn the chip on. | `collection_picker.dart`, `dance_list_tile.dart`, `collection_tile_fields_scope.dart`, `dance_list_entry.dart`, `collection_data.dart`, `program_repository.dart`, `program_editor_screen.dart` (three mounts), `perform_adjust_sheet.dart` | L (~500) | Sonnet: read-only aggregates and widgets, with no transaction, sync or schema change (the work plan's model rule; the note first said Opus). | H1, H2, B14. F11 (#2040) for the editor mounts, so W3. Hot files: one open PR in the `program_editor_screen.dart` group (B4 → B5, B24, B29), and after B5 in the `program_repository.dart` chain. |
 
-H1 can start in W2, once B1 has landed. It merges after B3. H2 follows H1 and
-B15. H3 lands in W3.
+H1 can start now: B1 has landed. It merges after B3. H2 follows H1 and B15. H3
+lands in W3.
 
-If Decision 7 is "nothing on the row", H3 shrinks to M (~300). It then drops
-`dance_list_tile.dart`, `collection_tile_fields_scope.dart` and the bulk-count
-variants.
+H1 shrinks from the note's ~500 to ~450 because B1 already added the shared
+date helper and moved the sort onto it. N1-7 = (a) keeps H3 at L; the M
+(~300) variant applied only to "nothing on the row".

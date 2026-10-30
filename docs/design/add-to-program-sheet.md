@@ -1,11 +1,15 @@
 # Design: The add-to-program sheet
 
 *Design note for audit finding FIND-17, drafted 2026-10-29 against `main` at
-`acacb05`. **Status: proposal.** Nothing here is built, and nothing here is a
-maintainer decision except where a line says so. The maintainer asked for this
-note ("design note now") in the 2026-10-29 decisions; the choices below are
-recommendations, and §8 lists the ones that need an answer. Conforms to
-[ux.md](ux.md) and the [accessibility baseline](../research/accessibility-baseline.md).*
+`acacb05`; decisions recorded 2026-10-30. **Status: decided, not built.** The
+maintainer asked for this note ("design note now") in the 2026-10-29 decisions,
+and answered its six questions on 2026-10-29/30 (N3-1 … N3-6 in
+`maintainer-decisions-2026-10-30.md`, on `claude/app-audit-categories-k2pdon`).
+§8 quotes each answer. One differs from this note's recommendation: N3-4, a
+repeated add asks first. The text below follows the answers. Anything still
+marked *recommended* or *my call* is this note's, not the maintainer's.
+Conforms to [ux.md](ux.md) and the
+[accessibility baseline](../research/accessibility-baseline.md).*
 
 ## 0. Summary
 
@@ -15,15 +19,16 @@ a program already holds the dance, and no "new program" button once any program
 exists. The editor's dance picker, which solves the mirror-image problem, does
 better on all of these.
 
-This note proposes four changes to the sheet and leaves its behaviour on tap
-alone:
+The maintainer chose four changes to the sheet. One of them changes what a tap
+does on a program that already holds the dance:
 
 1. **Order and group.** Programs you can still plan open first, soonest event
    first. Performed programs follow, collapsed behind one row.
 2. **Search.** A search field, shown once the list is long enough to need one.
    It matches title and venue, and folds case and accents.
 3. **An "already contains" marker**, with the same icon and count the picker
-   uses. Tapping a marked program still adds the dance.
+   uses, alternates included. Tapping a marked program **asks first**, then
+   adds the dance if the caller confirms (N3-4).
 4. **"New program with this dance" pinned above the list,** always.
 
 It changes no stored data, adds no setting, and adds no record kind. It does
@@ -63,7 +68,7 @@ building" (`docs/user/collection.md:306`).
 
 | Constraint | Source | What it means here |
 | --- | --- | --- |
-| Undo everywhere; confirm only where Undo is impossible. | `ux.md:192-193` | A duplicate add is not destructive and has an Undo, so it needs no confirmation (§4.3). |
+| Undo everywhere; confirm only where Undo is impossible. | `ux.md:192-193` (`:207-208` at `90fe5e8`) | A duplicate add is not destructive and has an Undo. The maintainer chose to ask first anyway (N3-4 = (b)), knowing the option text said it "breaks the rule" (§4.3). |
 | The sheet's Undo is fixed by F11 (GIG-19), which makes it compare-and-replace. | `batch-plan.md:256-263` (F11), `:263` (GIG-19) | This note must not redesign it. The sheet branch lands after F11, and takes F11's Undo as given. |
 | Counts use `plannedDanceCount`. | `batch-plan.md:238-247` (F10, GIG-10); `program.dart:370` | The sheet's subtitle reads that getter. F10 edits `add_to_program_sheet.dart:107-116`, so the sheet branch lands after F10. |
 | Phone layout follows U7. | `decided-work-plan.md:841-854` (N3) | U7 had not merged at `acacb05`. The sheet branch lands after it (§7). |
@@ -82,12 +87,12 @@ citation is against `main` at `acacb05`.
 
 ## 3. Questions in the audit's FIND-17, and short answers
 
-| Question | Recommendation | Section |
+| Question | Decision | Section |
 | --- | --- | --- |
-| Should the sheet have search? | Yes, once the list passes a threshold. | §4.1 |
-| Should it hide past or Performed programs, and in what order? | Group, don't hide. Open programs first, Performed collapsed. | §4.2 |
-| Should it mark programs that already contain the dance? | Yes: icon, text and count, same as the picker. Still add on tap. | §4.3 |
-| Should it always offer "new program with this dance"? | Yes, as a pinned first row. | §4.4 |
+| Should the sheet have search? | Yes, above about 8 programs, matching titles and venues (N3-3). | §4.1 |
+| Should it hide past or Performed programs, and in what order? | Group, don't hide. Open programs first, soonest event first; Performed collapsed (N3-1, N3-2). | §4.2 |
+| Should it mark programs that already contain the dance? | Yes: icon, text and count, same as the picker, alternates included (N3-6). A tap asks before adding again (N3-4). | §4.3 |
+| Should it always offer "new program with this dance"? | Yes, as a pinned first row (N3-5). | §4.4 |
 
 ## 4. The design
 
@@ -105,7 +110,8 @@ edit-time-ordered list.
 | B | Always show a search field. | One rule, no layout jump. On a phone, it spends a row on the common 3-program case and pulls the keyboard up if it takes focus. |
 | C | Show it only above a threshold (*recommended: 8 programs*). | The common case stays compact. The threshold is a number nobody can justify exactly; it is a UI tuning value, not a data rule. |
 
-**Recommendation: C.** At roughly 56 px a row, about eight rows fit on a phone beside
+**Decided: C, matching titles and venues** (N3-3 = (c), 2026-10-30, as
+recommended). At roughly 56 px a row, about eight rows fit on a phone beside
 the pinned New row and a title bar, so below that there is little to search
 for. *(My estimate; the build should check it at 360×640.)*
 
@@ -120,9 +126,8 @@ of matches the grouped order is more useful than "exact first".
 The venue label means resolving a linked venue the way the Programs list does
 (`resolveVenueLabel`, used at `program_list_tile.dart:55`). The sheet does not
 load venues today (`add_to_program_sheet.dart:28` reads only programs). Loading
-them adds one read when the sheet opens. If the maintainer prefers a
-title-only match, that drops the read and the venue-name cases ("the Tuesday
-night at X") at once.
+them adds one read when the sheet opens. The maintainer chose the venue match
+and accepted that read ("one extra read on open").
 
 **Focus.** Do not autofocus on a phone: the keyboard would cover the list the
 user came to see. On desktop and tablet-with-keyboard, autofocus is fine.
@@ -157,7 +162,8 @@ someone is writing up after the fact as a stale one.
 | C | Group: open programs first, then one collapsed "Performed (N)" row that expands in place. **(Recommended)** | Everything stays reachable in two taps. The expanded-or-not state is session-only. Costs one extra row and a little layout code. |
 | D | Hide any program whose event date is before today. | Relies on the optional date and the device's day. Hides undated stale drafts not at all and some live ones wrongly. Rejected. |
 
-**Recommendation: C.** It treats status, which the user set, as the signal. It
+**Decided: C** (N3-1 = (c), 2026-10-30, as recommended). It treats status,
+which the user set, as the signal. It
 answers the hazard by demotion rather than removal, because adding a dance to a
 Performed program is legitimate (the dance you forgot to log).
 
@@ -171,7 +177,7 @@ Performed program is legitimate (the dance you forgot to log).
   a search query is non-empty and matches only Performed programs. A caller
   searching for a program by name must not be told "no results" while a match
   sits in a collapsed group.
-- **Order inside the open group** *(recommended; alternatives in §8)*: programs
+- **Order inside the open group** *(decided, N3-2 = (a), as recommended)*: programs
   with an event date today or later, soonest first; then everything else
   (undated, or dated earlier and not Performed), by `updatedAt` descending, as
   today. The soonest gig is the likeliest target; the fallback keeps today's
@@ -194,7 +200,8 @@ information (`programsAddDanceToProgramSemantic` takes its details as a single
 string, `add_to_program_sheet.dart:121-125`, so the build can add it there; the
 visible text is a new ARB key).
 
-**What counts.** Every slot with this dance id, alternates included. That is
+**What counts. Decided: every slot with this dance id, alternates included**
+(N3-6 = (a), 2026-10-30, as recommended). That is
 `_danceSlotCounts`' rule (`program_editor_screen.dart:2220-2226`), and it
 matches the question the marker answers: "will I duplicate this dance?" It is
 deliberately not the calling-history rule, under which an alternate counts only
@@ -213,9 +220,38 @@ today agree only because nobody has changed either.
 
 | | Option | Trade-off |
 | --- | --- | --- |
-| A | Add anyway, with the marker as the only warning. **(Recommended)** | Matches the picker, which adds on every tap and shows the count. A repeated dance (a reprise, a second-half repeat) is legitimate. Undo is one tap. |
-| B | Add anyway but ask first ("Already in Friday dance. Add again?"). | Safer for a mis-tap. Violates "confirm only where Undo is impossible" (`ux.md:192-193`) and adds a step to a legitimate repeat. |
+| A | Add anyway, with the marker as the only warning. (This note's recommendation; not chosen.) | Matches the picker, which adds on every tap and shows the count. A repeated dance (a reprise, a second-half repeat) is legitimate. Undo is one tap. |
+| B | Add anyway but ask first ("Already in Friday dance. Add again?"). **(Decided, N3-4)** | Safer for a mis-tap. Violates "confirm only where Undo is impossible" (`ux.md:192-193`) and adds a step to a legitimate repeat. |
 | C | Block the tap. | Removes a legitimate action. Rejected. |
+
+**Decided: B, ask first** (N3-4 = (b), 2026-10-30). *This differs from this
+note's recommendation, A.* The maintainer chose it knowing the option text said
+it "breaks the rule to confirm only where Undo is impossible and slows a
+deliberate repeat".
+
+**How the question works.** These details are the *planner's reading,
+accepted by the maintainer 2026-10-30* (`design-work-plan.md` ambiguity 4, on
+the audit branch):
+
+- Tapping a program **without** the marker adds at once, as today.
+- Tapping a marked program opens a small dialog: "'{dance}' is already in
+  '{program}'. Add it again?", naming the count when it is above one. The
+  buttons follow D-1's pattern for the discard dialog (#2023): **Cancel**, and
+  **Add again** as the primary button.
+- **Add again** does exactly what an unmarked tap does: appends one slot,
+  closes the sheet and shows the Undo snackbar. **Cancel** closes the dialog
+  and leaves the sheet open, so the caller can pick another program.
+- An alternate-only match asks too, because N3-6 counts alternates.
+- No "don't ask again" box: that would be a settings key with a registry entry
+  (§4.6), and nothing asked for one.
+- **The rule it bends.** `ux.md:192-193` limits *destructive* confirms to
+  actions with no Undo. Adding a dance is not destructive, so the rule is not
+  broken word for word, but the option text treats this as an exception, and
+  so should the docs: §5 adds a line to `ux.md` saying the sheet asks before
+  adding a dance a program already holds. Rejected: leaving `ux.md` silent, which
+  would let the next note cite the rule against this prompt.
+- The editor's picker is unchanged. It still adds on every tap and shows its
+  count, because it builds one program and shows "in program ×N" on every row.
 
 **Order is not affected.** A marked program does not sort to the top or bottom.
 Moving rows by a property the user is not looking at makes the list unstable
@@ -231,8 +267,9 @@ while they scan it.
 | B | A footer button. | Scrolls out of sight, or reserves height at the bottom where the keyboard sits. |
 | C | A "+" in the sheet's title row. | Compact, but an icon-only action on a sheet whose job is choosing a program is easy to miss, and needs a tooltip and semantic label of its own. |
 
-**Recommendation: A.** The row is a `ListTile` with a leading `add` icon and
-the existing label, `programsCreateWithDance`
+**Decided: A** (N3-5 = (a), 2026-10-30, as recommended). The row is a
+`ListTile` with a leading `add` icon and the existing label,
+`programsCreateWithDance`
 (`add_to_program_sheet.dart:186`). The empty-state version keeps its teaching
 text and button; the pinned row simply shows in both states, so the empty state
 can drop its own button and reuse the pinned one. Behaviour is unchanged:
@@ -311,7 +348,9 @@ callers are unchanged.
 ## 5. Docs the change touches
 
 - `docs/design/ux.md` §1 and §2 (`:59-60`, `:71`): one line each saying the sheet
-  groups, searches and marks. No other section changes.
+  groups, searches and marks, and that it asks before adding a dance a program
+  already holds (N3-4). That line also goes beside the cross-cutting confirm
+  rule (`:207-208` at `90fe5e8`) as a named exception. No other section changes.
 - `docs/user/collection.md:306`: describe the grouping, the marker and the
   always-available "new program" row. `docs/user/` is the single source of the
   in-app bundle, so the `user-docs` gate covers it.
@@ -330,7 +369,9 @@ For each, the mutation it must catch:
 | A Performed program does not appear above an open one, whatever its `updatedAt`. | Grouping removed, or sorted by `updatedAt` only. |
 | The Performed group auto-expands when a query matches only Performed programs. | Auto-expand removed. |
 | A program holding the dance only as an alternate shows the marker. | Marker counting primaries only. |
-| Tapping a marked program still adds a slot and shows the Undo snackbar. | Tap blocked or gated. |
+| Tapping a marked program asks first; **Add again** adds one slot and shows the Undo snackbar; **Cancel** adds nothing and leaves the sheet open. | Prompt skipped (the old add-anyway rule), Cancel still adding, or Add again blocked. |
+| Tapping an unmarked program adds at once, with no dialog. | The prompt shown for every tap. |
+| A program holding the dance only as an alternate asks first too. | The prompt keyed on primaries only. |
 | "New program" is present with 0, 1 and 100 programs. | Row shown only when empty. |
 | Search folds case and accents ("ecole" finds "École"), and matches a venue name. | Plain `contains`; title-only match. |
 | At 360×640 with a keyboard inset, the New row, the search field and one program row are all visible. | Sheet sized from full height. |
@@ -339,45 +380,58 @@ For each, the mutation it must catch:
 ## 7. Proposed branch breakdown
 
 Format follows `decided-work-plan.md`. Size counts changed lines, tests
-included: S < 150, M 150–400, L 400+. The branch names are proposals.
+included: S < 150, M 150–400, L 400+. In the audit branch's `design-work-plan.md` these are N3-A1 and N3-A2 (the
+design note's own numbers, N3-1 and N3-2, collide with the decision IDs).
 
 | # | Branch | Items | Main files | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- | --- |
-| N3-1 | `feat/add-to-program-contains-and-new` | Marker (§4.3), shared `Program` count getter, picker switched to it, pinned New row (§4.4), subtitle on `plannedDanceCount` if F10 has not already moved it | `widgets/add_to_program_sheet.dart`, `widgets/collection_picker.dart` (the count source only), `program_editor_screen.dart` (`_danceSlotCounts` → the getter), `packages/compendium_core/lib/src/model/program.dart`, six ARBs, `docs/user/collection.md`, `docs/design/ux.md`, `changelog.d/` | M (~280) | Sonnet | F10, F11 (both edit the sheet), U7 |
-| N3-2 | `feat/add-to-program-order-and-search` | Grouping and order (§4.2), status on rows, search (§4.1), available-height sizing (§4.5), extract the list widget (§4.8) | `widgets/add_to_program_sheet.dart`, a new list widget beside it, `program_status_chip.dart` (reuse only), six ARBs, `docs/user/collection.md`, `docs/user/programs.md`, `changelog.d/` | M (~350) | Sonnet | N3-1 (same file); U7 for the phone sizing |
+| N3-1 | `feat/add-to-program-contains-and-new` | Marker with alternates (§4.3, N3-6), the ask-first dialog for a marked program (N3-4), shared `Program` count getter, picker switched to it, pinned New row (§4.4, N3-5), subtitle on `plannedDanceCount` if F10 has not already moved it | `widgets/add_to_program_sheet.dart`, `widgets/collection_picker.dart` (the count source only), `program_editor_screen.dart` (`_danceSlotCounts`, `:2302` at `90fe5e8`, → the getter), `packages/compendium_core/lib/src/model/program.dart`, six ARBs, `docs/user/collection.md`, `docs/design/ux.md`, `changelog.d/` | M (~330) | Sonnet | F11 (#2040, edits the sheet's Undo). F10 (#2022) and U7 (#2033) have merged. |
+| N3-2 | `feat/add-to-program-order-and-search` | Grouping (N3-1) and order (N3-2) (§4.2), status on rows, search above about 8 programs over titles and venues (§4.1, N3-3), available-height sizing (§4.5), extract the list widget (§4.8) | `widgets/add_to_program_sheet.dart`, a new list widget beside it, `program_status_chip.dart` (reuse only), six ARBs, `docs/user/collection.md`, `docs/user/programs.md`, `changelog.d/` | M (~350) | Sonnet | N3-1 (same file) |
 
 **Why two.** The first is a self-contained correctness improvement (a marker
 that answers "will I duplicate this?", and a button that is always there). The
 second changes the list's shape and adds the layout work. Splitting keeps each
-diff reviewable and lets the first ship if the maintainer wants a different
-answer on grouping.
+diff reviewable.
 
-**Hot files.** `add_to_program_sheet.dart` is edited by F10 (`:107-116`) and F11
-(`:233-241`) first. Both N3 branches must merge after them, and N3-2 after N3-1.
+**Hot files.** `add_to_program_sheet.dart` is edited by F10 (`:107-116`, merged)
+and F11 (`:233-241`, open as #2040) first. Both N3 branches must merge after F11,
+and N3-2 after N3-1.
 `program_editor_screen.dart` is a hot file (F10, U7, F11): N3-1's edit there is
 a few lines at `:2220`, and should rebase last.
 
 **No registry, sync or schema work in either branch.**
 
-## 8. Decisions needed
+## 8. Decisions
 
-These are the maintainer's. The recommendation is mine, not a decision.
+*Planner's readings.* Where an answer left a detail open, the planning session
+proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
+open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
+under "Design plan / N1–N5". This note labels each one "planner's reading,
+accepted by the maintainer 2026-10-30".
 
-1. **Performed programs (§4.2).** Group and collapse (C, *recommended*), hide
-   behind a toggle (B), keep one flat list (A), or hide by event date (D,
-   *not recommended*)?
-2. **Order within the open group (§4.2).** Soonest event date first, then the
-   rest by edit time (*recommended*), or edit time only, as today?
-3. **Search (§4.1).** Show it above a threshold of about 8 programs
-   (*recommended*), always, or never? And does it match venue names
-   (*recommended*, costs one extra read) or titles only?
-4. **A repeated add (§4.3).** Add anyway with the marker as the warning
-   (*recommended*), or ask first?
-5. **Where "New program with this dance" sits (§4.4).** A pinned first row
-   (*recommended*), or a footer?
-6. **Should alternates count toward the marker (§4.3)?** Yes
-   (*recommended*: the marker asks "will I duplicate this?"), or only primary
-   slots, to match calling history?
+The maintainer answered all six on 2026-10-29/30. Each entry quotes the decision
+as `maintainer-decisions-2026-10-30.md` (on `claude/app-audit-categories-k2pdon`)
+records it. The maintainer left no notes on these six.
+
+1. **N3-1, Performed programs (§4.2).** "(c) Group them, collapsed below. Open
+   programs first, then a collapsed Performed (N) row; everything stays two
+   taps away, at the cost of one row." As recommended.
+2. **N3-2, order within the open group (§4.2).** "(a) Soonest event first,
+   then by edit. Programs dated today or later come first, soonest at the top;
+   the rest follow by last edit, as today." As recommended.
+3. **N3-3, search (§4.1).** "(c) Above about 8, titles and venues. Small lists
+   stay compact, and "the Tuesday night at X" finds its program; one extra
+   read on open." As recommended.
+4. **N3-4, a repeated add (§4.3).** "(b) Ask first. Safer for a mis-tap, but
+   breaks the rule to confirm only where Undo is impossible and slows a
+   deliberate repeat." *Differs from the recommendation, (a).*
+5. **N3-5, where "New program with this dance" sits (§4.4).** "(a) Pinned
+   first row. Always visible, even with the keyboard up and a long list; it
+   costs one row." As recommended.
+6. **N3-6, alternates and the marker (§4.3).** "(a) Yes, alternates count. The
+   marker answers "will I add this twice?" and matches the picker's count." As
+   recommended.
 
 Not on this list because they are not open: Save, New and header placement
 (D-11 is open and this note does not touch it) and the sheet's Undo (F11).
