@@ -379,8 +379,10 @@ Recently deleted, and `updatedAt` is stamped after the content it replaces. Its
 tombstone, still in this device's manifest, and its marker
 stays. It goes on advertising the deletion, and because content among copies
 that agree on existence is decided by the greatest `updatedAt` (§6.4), every
-peer replaces its own copy of the body with the blank one. Hiding the record is
-presentation only and changes nothing on the wire.
+peer replaces its own copy of the body with the blank one. The epoch `deletedAt`
+is carried on the envelope like any other, so it hides the record on every peer
+running a build that knows the mark, and after a restore. An older build shows
+it in Recently deleted under the placeholder title.
 
 *Amended 2026-10-30 (LIFE-2): the maintainer decided on 2026-10-29 (round 2,
 `R2-life2-retire`) to hide and blank such a record and not to retire it, so

@@ -8,9 +8,9 @@
 /// snackbar said it was gone.
 ///
 /// It is now **blanked**: every name, text field and association is removed,
-/// and only the deletion record remains — kind, id, the existence stamps and a
-/// placeholder title, a few dozen bytes. The maintainer chose this on
-/// 2026-10-29 (LIFE-2 option (a); round 2, `R2-life2-retire` (a): hide it and
+/// and only the deletion record remains — kind, id, timestamps, a placeholder
+/// title and the empty values of every other field, a few hundred bytes. The
+/// maintainer chose this on 2026-10-29 (LIFE-2 option (a); round 2, `R2-life2-retire` (a): hide it and
 /// blank its content, with no retirement of the deletion record).
 ///
 /// ## How a permanently deleted tombstone is recognised
