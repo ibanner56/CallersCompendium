@@ -4064,6 +4064,10 @@
   "@collectionSetRating": {
     "x-sourceSha256": "13610b1e24c15ccbbb44242ea1d83abed7ce9777d349ec2284012ed95691658d"
   },
+  "collectionSetStatus": "Angiv status",
+  "@collectionSetStatus": {
+    "x-sourceSha256": "4457cb1806768e48f9b407f4417efc69e0daf348146c3f4f1d433b3ae359820a"
+  },
   "collectionAddTunes": "Tilføj melodier",
   "@collectionAddTunes": {
     "x-sourceSha256": "61291ca01149b29ad3e9a6e804d58db3536758ce3dd2a78e425c353b30eb324e"
@@ -4083,6 +4087,10 @@
   "collectionBatchRatingCleared": "{count, plural, =1{Ryddede vurdering på 1 dans} other{Ryddede vurdering på {count} danse}}",
   "@collectionBatchRatingCleared": {
     "x-sourceSha256": "1431305adfa65f4bfff1262d0dbeb4340cc38ddc8e6e2d06fa4a076b5f0e7318"
+  },
+  "collectionBatchStatusSet": "{count, plural, =1{Angav status på 1 dans} other{Angav status på {count} danse}}",
+  "@collectionBatchStatusSet": {
+    "x-sourceSha256": "94b316f760fe4c3e4fa0ed3b94162b7572848ef749e321ffcc5ec16c63a773b8"
   },
   "collectionBatchTunesAdded": "{count, plural, =1{Tilføjede melodier til 1 dans} other{Tilføjede melodier til {count} danse}}",
   "@collectionBatchTunesAdded": {
@@ -4546,6 +4554,10 @@
   },
   "collectionBatchRatingConfirm": "Angiv",
   "@collectionBatchRatingConfirm": {
+    "x-sourceSha256": "b6f6f3ad07b3c05fa0bbbbf2e3d257ff1e3e31a83efbe2c9369cd008594f94e0"
+  },
+  "collectionBatchStatusConfirm": "Angiv",
+  "@collectionBatchStatusConfirm": {
     "x-sourceSha256": "b6f6f3ad07b3c05fa0bbbbf2e3d257ff1e3e31a83efbe2c9369cd008594f94e0"
   },
   "collectionBatchTunesFieldLabel": "Tilføj en melodi",

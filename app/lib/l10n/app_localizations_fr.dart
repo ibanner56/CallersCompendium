@@ -4052,6 +4052,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionSetRating => 'Définir la note';
 
   @override
+  String get collectionSetStatus => 'Définir le statut';
+
+  @override
   String get collectionAddTunes => 'Ajouter des airs';
 
   @override
@@ -4078,6 +4081,17 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other: 'Note effacée sur $count danses',
       one: 'Note effacée sur 1 danse',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Statut défini sur $count danses',
+      one: 'Statut défini sur 1 danse',
     );
     return '$_temp0';
   }
@@ -4537,6 +4551,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get collectionBatchRatingConfirm => 'Définir';
+
+  @override
+  String get collectionBatchStatusConfirm => 'Définir';
 
   @override
   String get collectionBatchTunesFieldLabel => 'Ajouter un air';

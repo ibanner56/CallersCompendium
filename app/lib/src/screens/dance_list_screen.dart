@@ -47,6 +47,7 @@ import '../widgets/advanced_query_builder.dart';
 import '../widgets/batch_custom_field_dialog.dart';
 import '../widgets/batch_level_dialog.dart';
 import '../widgets/batch_rating_dialog.dart';
+import '../widgets/batch_status_dialog.dart';
 import '../widgets/batch_tag_dialog.dart';
 import '../widgets/batch_tunes_dialog.dart';
 import '../widgets/brand_mark.dart';
@@ -166,6 +167,7 @@ class DanceListScreen extends StatefulWidget {
 enum _BatchMoreAction {
   selectAll,
   setRating,
+  setStatus,
   addTunes,
   clearTunes,
   editCustomField,
@@ -1733,6 +1735,74 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
       });
 
+  /// Sets the lifecycle status on the selected dances via the batched,
+  /// single-transaction [DanceRepository.setStatusForMany] (parallel to
+  /// [_batchSetLevel]). Captures prior per-dance statuses for Undo.
+  Future<void> _batchSetStatus() async {
+    final data = _data;
+    if (data == null || _selection.isEmpty) return;
+
+    final selectedIds = _selection.snapshot();
+    final target = await showBatchStatusDialog(context);
+    if (target == null || !mounted) return;
+
+    final priorStatuses = <String, DanceStatus>{};
+    final int count;
+    try {
+      // One batched read, not a `getById` per dance: on a very large selection
+      // the per-dance reads were most of the time this handler spent.
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        priorStatuses[dance.id] = dance.status;
+      }
+
+      count = await _repos.dances.setStatusForMany(
+        priorStatuses.keys,
+        status: target,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchSetStatus',
+      );
+      _reportBatchFailure();
+      return;
+    }
+
+    // Narrow the captured priors to only the dances that actually changed, so
+    // Undo doesn't rewrite (and re-stamp) untouched dances.
+    priorStatuses.removeWhere((_, prior) => prior == target);
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final message = count == 0
+        ? l10n.collectionBatchNoChanges
+        : l10n.collectionBatchStatusSet(count);
+    await _finishBatch(
+      count: count,
+      message: message,
+      snackKey: const ValueKey('batch-status-snackbar'),
+      onUndo: () => _undoBatchStatus(priorStatuses),
+    );
+  }
+
+  /// Restores the captured [priorStatuses] for each affected dance.
+  Future<void> _undoBatchStatus(Map<String, DanceStatus> priorStatuses) =>
+      _repos.transaction(() async {
+        for (final entry in priorStatuses.entries) {
+          final dance = await _repos.dances.getById(entry.key);
+          if (dance == null) continue;
+          await _repos.dances.update(
+            dance.copyWith(
+              status: entry.value,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+            localUserEdit: true,
+          );
+        }
+      });
+
   /// Merges tunes into the selected dances (additive union) via the batched,
   /// single-transaction [DanceRepository.addTunesForMany]. Captures prior
   /// per-dance tune lists for Undo.
@@ -2396,6 +2466,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 _toggleSelectAll();
               case _BatchMoreAction.setRating:
                 _batchSetRating();
+              case _BatchMoreAction.setStatus:
+                _batchSetStatus();
               case _BatchMoreAction.addTunes:
                 _batchAddTunes();
               case _BatchMoreAction.clearTunes:
@@ -2420,6 +2492,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
               enabled: canAct,
               child: Text(l10n.collectionSetRating),
             ),
+            PopupMenuItem(
+              key: const ValueKey('batch-set-status'),
+              value: _BatchMoreAction.setStatus,
+              enabled: canAct,
+              child: Text(l10n.collectionSetStatus),
+            ),
+            // Groups follow `bulk-selection.md` "Selection bar layout": Details,
+            // Other, then (added by their own branches) Programs and Delete.
+            const PopupMenuDivider(),
             PopupMenuItem(
               key: const ValueKey('batch-add-tunes'),
               value: _BatchMoreAction.addTunes,

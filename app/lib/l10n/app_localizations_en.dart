@@ -3960,6 +3960,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionSetRating => 'Set rating';
 
   @override
+  String get collectionSetStatus => 'Set status';
+
+  @override
   String get collectionAddTunes => 'Add tunes';
 
   @override
@@ -3986,6 +3989,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: 'Cleared rating on $count dances',
       one: 'Cleared rating on 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Set status on $count dances',
+      one: 'Set status on 1 dance',
     );
     return '$_temp0';
   }
@@ -4440,6 +4454,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionBatchRatingConfirm => 'Set';
+
+  @override
+  String get collectionBatchStatusConfirm => 'Set';
 
   @override
   String get collectionBatchTunesFieldLabel => 'Add a tune';

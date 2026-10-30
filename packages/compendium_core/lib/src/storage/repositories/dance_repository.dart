@@ -2957,6 +2957,31 @@ class DanceRepository {
     }, rebuildDerived: false);
   }
 
+  /// Sets the lifecycle [status] on many dances at once, in a single
+  /// transaction, for the Collection multi-select "batch status" flow.
+  /// Direct analogue of [setLevelForMany], minus the clear option: a status is
+  /// never null.
+  ///
+  /// Skips unknown ids and dances already at [status] (idempotent), and stamps
+  /// [now] as `updatedAt` only on dances that actually change. Returns the
+  /// number of dances changed. An empty [ids] is a no-op returning `0`. Because
+  /// the whole batch runs in one transaction, an error leaves the collection
+  /// untouched rather than half-updated. Status is no input to the derived
+  /// figure/FTS rows, so the rebuild is skipped (see [_updateMany]).
+  Future<int> setStatusForMany(
+    Iterable<String> ids, {
+    required DanceStatus status,
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _updateMany(list, (dance) {
+      if (dance.status == status) return null;
+      return dance.copyWith(status: status, updatedAt: now);
+    }, rebuildDerived: false);
+  }
+
   /// Sets the curatorial star [rating] on many dances at once, in a single
   /// transaction, for the Collection multi-select "batch set rating" flow
   /// (#423). Direct analogue of [setLevelForMany].

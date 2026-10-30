@@ -4018,6 +4018,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionSetRating => 'Beoordeling instellen';
 
   @override
+  String get collectionSetStatus => 'Status instellen';
+
+  @override
   String get collectionAddTunes => 'Deuntjes toevoegen';
 
   @override
@@ -4044,6 +4047,17 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: 'Beoordeling gewist van $count dansen',
       one: 'Beoordeling gewist van 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Status ingesteld voor $count dansen',
+      one: 'Status ingesteld voor 1 dans',
     );
     return '$_temp0';
   }
@@ -4500,6 +4514,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionBatchRatingConfirm => 'Instellen';
+
+  @override
+  String get collectionBatchStatusConfirm => 'Instellen';
 
   @override
   String get collectionBatchTunesFieldLabel => 'Een deuntje toevoegen';

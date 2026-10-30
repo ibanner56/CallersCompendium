@@ -5006,6 +5006,10 @@
   "@collectionSetRating": {
     "description": "Batch action (menu item and dialog title) for setting the star rating on the selected dances."
   },
+  "collectionSetStatus": "Set status",
+  "@collectionSetStatus": {
+    "description": "Batch action (menu item and dialog title) for setting the lifecycle status (active, deprecated, broken, draft, variation) on the selected dances."
+  },
   "collectionAddTunes": "Add tunes",
   "@collectionAddTunes": {
     "description": "Batch action (menu item and dialog title) for adding tunes to the selected dances (additive; never removes)."
@@ -5031,6 +5035,16 @@
   "collectionBatchRatingCleared": "{count, plural, =1{Cleared rating on 1 dance} other{Cleared rating on {count} dances}}",
   "@collectionBatchRatingCleared": {
     "description": "Announcement/snackbar confirming the rating was cleared on the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchStatusSet": "{count, plural, =1{Set status on 1 dance} other{Set status on {count} dances}}",
+  "@collectionBatchStatusSet": {
+    "description": "Announcement/snackbar confirming a status was set on the given number of dances.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -5653,6 +5667,10 @@
   "collectionBatchRatingConfirm": "Set",
   "@collectionBatchRatingConfirm": {
     "description": "Confirm button of the batch set-rating dialog."
+  },
+  "collectionBatchStatusConfirm": "Set",
+  "@collectionBatchStatusConfirm": {
+    "description": "Confirm button of the batch set-status dialog."
   },
   "collectionBatchTunesFieldLabel": "Add a tune",
   "@collectionBatchTunesFieldLabel": {

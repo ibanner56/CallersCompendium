@@ -3989,6 +3989,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionSetRating => 'Angiv vurdering';
 
   @override
+  String get collectionSetStatus => 'Angiv status';
+
+  @override
   String get collectionAddTunes => 'Tilføj melodier';
 
   @override
@@ -4015,6 +4018,17 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other: 'Ryddede vurdering på $count danse',
       one: 'Ryddede vurdering på 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Angav status på $count danse',
+      one: 'Angav status på 1 dans',
     );
     return '$_temp0';
   }
@@ -4473,6 +4487,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionBatchRatingConfirm => 'Angiv';
+
+  @override
+  String get collectionBatchStatusConfirm => 'Angiv';
 
   @override
   String get collectionBatchTunesFieldLabel => 'Tilføj en melodi';
