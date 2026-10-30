@@ -279,30 +279,45 @@ void main() {
     expect(session.issues, isEmpty);
   });
 
-  test('Undo of a re-import takes back the link it added', () async {
+  test('a re-import adds none of the file\'s links, and Undo still restores '
+      'the dance (INTAKE-7)', () async {
     await _receive(
       db,
       _share([_dance('sender-a', 'Alpha'), _dance('sender-b', 'Beta')]),
     );
+    final received = _titled(await dances.listAll(), 'Alpha');
+    await dances.update(
+      received.copyWith(rating: 3, updatedAt: DateTime.utc(2026, 10, 1)),
+    );
 
-    // The sender has since linked the two; both rows re-import.
+    // The sender has since linked the two; both rows re-import. Links are
+    // the caller's own, so a re-import writes only the choreography.
     final again = await _receive(
       db,
       _share([
-        _dance('sender-a', 'Alpha', links: [_related('link-1', 'sender-b')]),
+        _dance(
+          'sender-a',
+          'Alpha',
+          links: [_related('link-1', 'sender-b'), _video('link-2')],
+        ),
         _dance('sender-b', 'Beta'),
       ]),
     );
-    final all = await dances.listAll();
     expect(again.danceSession.updatedDancePriorStates, hasLength(2));
-    expect(
-      [for (final l in _titled(all, 'Alpha').links) l.targetDanceId],
-      [_titled(all, 'Beta').id],
+    expect(again.danceSession.issues, isEmpty);
+    final reimported = _titled(await dances.listAll(), 'Alpha');
+    expect(reimported.links, isEmpty);
+    final before = again.danceSession.updatedDancePriorStates.singleWhere(
+      (d) => d.id == reimported.id,
     );
+    expect(reimported.updatedAt, isNot(before.updatedAt));
 
     await _importer(db).undo(again);
 
-    expect(_titled(await dances.listAll(), 'Alpha').links, isEmpty);
+    final restored = _titled(await dances.listAll(), 'Alpha');
+    expect(restored.links, isEmpty);
+    expect(restored.updatedAt, DateTime.utc(2026, 10, 1));
+    expect(before.updatedAt, DateTime.utc(2026, 10, 1));
   });
 
   test('Undo removes the links it added along with the dances', () async {

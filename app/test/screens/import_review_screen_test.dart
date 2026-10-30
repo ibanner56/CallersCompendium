@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../figures_support.dart';
 import '../support/fmp_fixture_builder.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
@@ -538,7 +539,7 @@ void main() {
           externalId: 'ext1',
           importedAt: DateTime.utc(2026, 1, 1),
         ),
-      ),
+      ).copyWith(rating: 4, callingNotes: 'My notes'),
     );
 
     await _pump(
@@ -548,6 +549,7 @@ void main() {
         _dance(
           'incoming',
           'Refreshed Title',
+          figures: [customFigure('Circle right once around')],
           provenance: Provenance(
             source: ProvenanceSource.json,
             externalId: 'ext1',
@@ -580,7 +582,12 @@ void main() {
     final all = await repos.dances.listAll();
     expect(all.length, 1);
     expect(all.single.id, 'existing');
-    expect(all.single.title, 'Refreshed Title');
+    // Only the choreography is refreshed; the caller's own title, rating and
+    // notes stay (INTAKE-7).
+    expect(figuresOf(all.single), hasLength(1));
+    expect(all.single.title, 'Old Title');
+    expect(all.single.rating, 4);
+    expect(all.single.callingNotes, 'My notes');
   });
 
   testWidgets(
@@ -3496,6 +3503,7 @@ void main() {
             _dance(
               'incoming',
               'Refreshed Title',
+              figures: [customFigure('Circle right once around')],
               provenance: Provenance(
                 source: ProvenanceSource.json,
                 externalId: 'ext1',
@@ -3544,9 +3552,8 @@ void main() {
         expect(existing!.title, 'Old Title');
       });
 
-      testWidgets('Continue replaces the matched dance and opens the editor', (
-        tester,
-      ) async {
+      testWidgets('Continue re-imports onto the matched dance and opens the '
+          'editor', (tester) async {
         final repos = await pumpMatched(tester);
 
         await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
@@ -3558,7 +3565,9 @@ void main() {
 
         expect(find.byType(DanceEditorScreen), findsOneWidget);
         final existing = await repos.dances.getById('existing');
-        expect(existing!.title, 'Refreshed Title');
+        // A re-import replaces only the choreography (INTAKE-7).
+        expect(figuresOf(existing!), hasLength(1));
+        expect(existing.title, 'Old Title');
 
         await tester.pageBack();
         await tester.pumpAndSettle();

@@ -24,6 +24,7 @@ Dance _dance({
   required String id,
   required String title,
   List<String> tagIds = const [],
+  DanceStatus status = DanceStatus.active,
 }) => Dance(
   id: id,
   title: title,
@@ -31,7 +32,7 @@ Dance _dance({
   tagIds: tagIds,
   form: DanceForm.contra,
   formation: const Formation(FormationShape.dupleImproper),
-  status: DanceStatus.active,
+  status: status,
   figures: const [],
   customFields: const [],
   hook: '',
@@ -293,8 +294,8 @@ void main() {
   });
 
   testWidgets(
-    'the Untagged chip lists untagged dances, unions with a tag, and is '
-    'replaced when a tag chip is tapped on a dance (#1422)',
+    'the Untagged chip lists untagged dances and unions with a tag; a tag '
+    'chip tapped on a dance keeps it (#1422, FIND-14)',
     (tester) async {
       final repos = openTestRepositories();
       // ignore: unused_result
@@ -329,17 +330,200 @@ void main() {
       expect(_listedTitles(tester).toSet(), {'Plain Two', 'Energetic Three'});
       expect(find.text('Filters · 2'), findsOneWidget);
 
-      // A tag chip tapped on a dance replaces every selection, Untagged too.
+      // Tapping an already-selected tag on a dance changes nothing.
       await _openDetail(tester, 'Energetic Three');
       await _tapDetailTagChip(tester, 't2');
-      expect(_listedTitles(tester), ['Energetic Three']);
-      expect(find.text('Filters · 1'), findsOneWidget);
+      expect(_listedTitles(tester).toSet(), {'Plain Two', 'Energetic Three'});
+      expect(find.text('Filters · 2'), findsOneWidget);
       expect(
         tester
             .widget<FilterChip>(find.byKey(const ValueKey('untagged-chip')))
             .selected,
-        isFalse,
+        isTrue,
       );
     },
   );
+
+  testWidgets(
+    'a tag chip tapped on a row adds to the search: the text query and other '
+    'facets stay, and a second tag narrows by default (FIND-14)',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Swing Both', tagIds: const ['t1', 't2']),
+      );
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Swing Smooth', tagIds: const ['t1']),
+      );
+      await repos.dances.create(
+        _dance(id: 'd3', title: 'Swing Energetic', tagIds: const ['t2']),
+      );
+      await repos.dances.create(
+        _dance(id: 'd4', title: 'Other Both', tagIds: const ['t1', 't2']),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd5',
+          title: 'Swing Draft',
+          tagIds: const ['t1', 't2'],
+          status: DanceStatus.draft,
+        ),
+      );
+
+      await _pumpShell(tester, repos, size: const Size(1300, 1400));
+
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-search-field')),
+        'swing',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('filters-panel')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('status-active')));
+      await tester.pumpAndSettle();
+      expect(_listedTitles(tester).toSet(), {
+        'Swing Both',
+        'Swing Smooth',
+        'Swing Energetic',
+      });
+
+      Future<void> tapRowChip(String title, String tagId) async {
+        final chip = find.descendant(
+          of: find.ancestor(
+            of: find.text(title),
+            matching: find.byType(DanceListTile),
+          ),
+          matching: find.byKey(ValueKey('tag-filter-chip-$tagId')),
+        );
+        await tester.tap(chip.first);
+        await tester.pumpAndSettle();
+      }
+
+      await tapRowChip('Swing Smooth', 't1');
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('collection-search-field')),
+            )
+            .controller!
+            .text,
+        'swing',
+      );
+      expect(_listedTitles(tester).toSet(), {'Swing Both', 'Swing Smooth'});
+      expect(find.text('Filters · 2'), findsOneWidget);
+
+      // The second tag defaults to "all tags": only dances with both.
+      await tapRowChip('Swing Both', 't2');
+      expect(_listedTitles(tester), ['Swing Both']);
+      expect(find.text('Filters · 3'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a third tag tapped on a dance keeps the "any tag" choice (FIND-14)',
+    (tester) async {
+      final repos = openTestRepositories();
+      for (final (id, name) in [('t1', 'a'), ('t2', 'b'), ('t3', 'c')]) {
+        // ignore: unused_result
+        await repos.tags.upsert(Tag(id: id, name: name));
+      }
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Has A and C', tagIds: const ['t1', 't3']),
+      );
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Has B', tagIds: const ['t2']),
+      );
+      await repos.dances.create(
+        _dance(id: 'd3', title: 'Has C', tagIds: const ['t3']),
+      );
+      await repos.dances.create(_dance(id: 'd4', title: 'Has None'));
+
+      await _pumpShell(tester, repos, size: const Size(1300, 1400));
+
+      await tester.tap(find.byKey(const ValueKey('filters-panel')));
+      await tester.pumpAndSettle();
+      for (final key in ['tag-t1', 'tag-t2']) {
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+      }
+      expect(_listedTitles(tester), isEmpty, reason: 'all of a and b');
+      await tester.tap(find.text('Any tag'));
+      await tester.pumpAndSettle();
+      expect(_listedTitles(tester).toSet(), {'Has A and C', 'Has B'});
+
+      await _openDetail(tester, 'Has A and C');
+      await _tapDetailTagChip(tester, 't3');
+      expect(_listedTitles(tester).toSet(), {'Has A and C', 'Has B', 'Has C'});
+      expect(find.text('Filters · 3'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a selected tag that no dance carries any more is dropped, so it cannot '
+    'hide every dance under "all tags" (FIND-14)',
+    (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+      final both = _dance(id: 'd1', title: 'Both', tagIds: const ['t1', 't2']);
+      await repos.dances.create(both);
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Smooth Only', tagIds: const ['t1']),
+      );
+
+      await _pumpShell(tester, repos, size: const Size(1300, 1400));
+      await tester.tap(find.byKey(const ValueKey('filters-panel')));
+      await tester.pumpAndSettle();
+      for (final key in ['tag-t1', 'tag-t2']) {
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+      }
+      expect(_listedTitles(tester), ['Both']);
+
+      // The only dance with t2 loses it: t2's chip goes, and so does t2.
+      final stored = await repos.dances.getById('d1');
+      await repos.dances.update(stored!.copyWith(tagIds: const ['t1']));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('tag-t2')), findsNothing);
+      expect(_listedTitles(tester).toSet(), {'Both', 'Smooth Only'});
+      expect(find.text('Filters · 1'), findsOneWidget);
+      expect(find.byKey(const ValueKey('facet-tags-match-mode')), findsNothing);
+    },
+  );
+
+  testWidgets('a selected tag that is deleted is dropped from the filter '
+      '(FIND-14)', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Both', tagIds: const ['t1', 't2']),
+    );
+    await repos.dances.create(
+      _dance(id: 'd2', title: 'Smooth Only', tagIds: const ['t1']),
+    );
+
+    await _pumpShell(tester, repos, size: const Size(1300, 1400));
+    await tester.tap(find.byKey(const ValueKey('filters-panel')));
+    await tester.pumpAndSettle();
+    for (final key in ['tag-t1', 'tag-t2']) {
+      await tester.tap(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
+    }
+    expect(_listedTitles(tester), ['Both']);
+
+    await repos.tags.delete('t2');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('tag-t2')), findsNothing);
+    expect(_listedTitles(tester).toSet(), {'Both', 'Smooth Only'});
+    expect(find.text('Filters · 1'), findsOneWidget);
+  });
 }

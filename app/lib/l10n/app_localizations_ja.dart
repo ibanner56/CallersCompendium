@@ -3537,7 +3537,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'タグ「$tagName」のダンスを表示';
+    return '「$tagName」をコレクションの絞り込みに追加';
   }
 
   @override
@@ -3927,6 +3927,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'タグなし';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'タグの一致条件';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'すべてのタグ';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip => '選択したタグをすべて持つダンスを表示';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'いずれかのタグ';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip => '選択したタグのうち少なくとも1つを持つダンスを表示';
 
   @override
   String get collectionFacetSource => 'ソース';

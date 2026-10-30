@@ -534,7 +534,7 @@ void main() {
       expect(verdict.targetDanceId, 'existing-99');
     });
 
-    test('re-import updates the persisted walkthrough', () async {
+    test('re-import keeps the persisted walkthrough (INTAKE-7)', () async {
       final db = openTestDatabase();
       addTearDown(db.close);
       final dances = DanceRepository(db, contraTaxonomy);
@@ -569,9 +569,11 @@ void main() {
       );
 
       expect(second.records.single.action, CommitAction.reimport);
+      // The walkthrough is the caller's, not choreography: a re-import only
+      // replaces figures, formation and progression.
       expect(
         (await dances.getById(id))!.walkthrough,
-        'The revised walkthrough.',
+        'The original walkthrough.',
       );
     });
 
