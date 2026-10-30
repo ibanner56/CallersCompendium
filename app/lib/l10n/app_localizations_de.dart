@@ -9042,6 +9042,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get userGuideOpenOnline => 'Leitfaden online öffnen';
 
   @override
+  String get userGuideEnglishOnly => 'Der Leitfaden ist auf Englisch.';
+
+  @override
   String get shorthandMappingsTitle => 'Figur-Abkürzungen';
 
   @override

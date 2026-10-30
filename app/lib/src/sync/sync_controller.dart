@@ -1345,7 +1345,11 @@ class SyncController extends ChangeNotifier {
         for (final peer in peerManifests)
           if (peer.writtenAt.isAfter(own.writtenAt)) peer,
       ];
-      for (final kindEntry in own.records.entries) {
+      // A manifest from before an upgrade can still list a setting this build
+      // withdrew from sync. No upgraded peer carries one, and none needs to:
+      // it stays on each device (spec §6.7, amended 2026-10-29).
+      final ownShared = withoutWithdrawnSyncSettings(own);
+      for (final kindEntry in ownShared.records.entries) {
         for (final record in kindEntry.value.entries) {
           final carried = carriers.any(
             (peer) => peer.records[kindEntry.key]?[record.key] == record.value,

@@ -10,6 +10,21 @@
   `deviceScoped` forbids). The accepted text below is left as written; read
   that example as illustrative only. Window position remains a true
   `deviceScoped` example.
+- **Erratum (2026-10-29)**: "Scope of what syncs" says everything classified
+  `shareable` travels, "**settings included**". Not every setting is
+  `shareable`. By the maintainer's decision on settings-sync-scope
+  (`docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-29.md`, on
+  the audit branch), the screen-bound settings stay on each device: app
+  language (`app_locale`), Reduce motion (`reduce_motion`), Auto-size Perform
+  cards (`auto_size_perform_cards`) and the Perform stage theme
+  (`perform_stage_mode`) are `deviceLocal`, beside `perform_text_scale`. The
+  app theme keeps syncing. These keys are `deviceLocal` and not `deviceScoped`
+  so that the user's own backup still restores them. A value for one of them
+  from a device on an older build is dropped, not kept for that device
+  (sync-spec §6.7, amended the same day). The registry is authoritative, and
+  each entry there gives its reason. The accepted text
+  below is left as written. Read "settings included" as "the `shareable`
+  settings".
 - **Roadmap item**: Amends the v1 non-goals list in `docs/ROADMAP.md` (removing
   "cloud sync") and supersedes the Later-milestones item "Optional
   device-to-device sync, beyond Apple-native AirDrop support". Referenced by

@@ -1730,7 +1730,7 @@ abstract class AppLocalizations {
   /// **'Programs sort direction (default)'**
   String get syncSettingDefaultProgramSortDirection;
 
-  /// Name of the synced setting that turns on the dark stage theme in Perform.
+  /// Name of the setting that turns on the dark stage theme in Perform, as a Device Sync conflict names it. It stays on each device now; a conflict over it can only be one queued by an older version of the app.
   ///
   /// In en, this message translates to:
   /// **'Stage theme in Perform'**
@@ -13237,6 +13237,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the guide online'**
   String get userGuideOpenOnline;
+
+  /// One-line notice at the top of every user-guide page when the app language is not English: the bundled guide is only written in English (PLAT-13).
+  ///
+  /// In en, this message translates to:
+  /// **'The guide is in English.'**
+  String get userGuideEnglishOnly;
 
   /// App-bar title for the figure-shorthand mappings manager.
   ///
