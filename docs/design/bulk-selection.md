@@ -583,5 +583,10 @@ list; for S3, a failure mid-batch must leave every dance live.
   has timed either path, and the S1 and S3 PRs must measure a 5,000-dance
   *Select all* then Add tags and Delete on the lowest-end target, and quote the
   figures in the PR body after the final rebase.
+  S4 measured *Set status* on a 5,000-dance *Select all* in the widget-test harness
+  (in-memory database, no device claim): the handler took about 5.6–6.1 s with a
+  `getById` per dance and about 3.2–3.5 s with one `getByIds`; `setStatusForMany`
+  itself takes about 0.9 s of that (core harness). The level, rating, tunes and
+  custom-field handlers still read per dance.
 - **Sync after a mass delete.** 5,000 tombstones in the next pass is untested.
 - **Menu length** at 320 × 568 with the grouped menu (up to 9 entries and three dividers): S4 checks the menu as built (five entries and one divider after Select all) at 320 × 568 and 2× text in `test/screens/batch_status_test.dart`; it scrolls rather than overflowing. Re-check as S3, S5 and the Add source branch add entries.
