@@ -47,7 +47,7 @@ The plan depends on these, so they are recorded once here:
 
 | Merged | Open | In flight, no PR seen | Not on `main`, no open PR |
 | --- | --- | --- | --- |
-| B1 #2032, B2 #2043, B6 #2042, B11 #2039, B12 #2037, B16 #2036, B20 #2038, B23 #2035, B26 #2034; F10 #2022, U3 #2016, U7 #2033, U9 #2027, U12 #2028, D-1 #2023 | F11 #2040, B27 #2045, B30 #2046, B31 #2044 | B7 (per the brief for this plan) | B13 and B17 (W1); every W2 and W3 branch. I did not check whether sessions exist for them. |
+| B1 #2032, B2 #2043, B6 #2042, B11 #2039, B12 #2037, B16 #2036, B20 #2038, B23 #2035, B26 #2034; F10 #2022, U3 #2016, U7 #2033, U9 #2027, U12 #2028, D-1 #2023 | F11 #2040, B27 #2045, B30 #2046, B31 #2044 | B7 (per the brief for this plan) | B13 and B17 (W1); every W2 and W3 branch. *Update 2026-10-30, from the orchestrating session:* B13 is open as #2048; B7, B17, B14 and B25 are building and hold all four slots, so D1 starts as slots free. |
 
 Two facts from that state change the notes' dependencies, and the docs PR records both:
 
@@ -90,7 +90,7 @@ Two facts from that state change the notes' dependencies, and the docs PR record
 
 - **Scope:**
   - The Filters panel's Calling history section gains **At venue** and **Within**.
-  - **Within** offers 1 month, 3 months and 6 months, **Since a date…**, and a never-called choice (N1-2 = a, with the maintainer's note). No 4-week and no 1-year preset. See ambiguity 1 for the never-called choice and 2 for "1 month".
+  - **Within** offers 1 month, 3 months and 6 months, **Since a date…**, and a never-called choice (N1-2 = a, with the maintainer's note). No 4-week and no 1-year preset. Ambiguities 1 and 2 (accepted readings) settle the never-called choice and "1 month".
   - Every window counts back from today (N1-4 = b).
   - The inert state with the hint "Applies with Called or Not called", and active counts that include each scope.
   - The venue chooser: distinct keys with a counted call, the program count per row, and "typed" on a typed key.
@@ -208,7 +208,7 @@ Two facts from that state change the notes' dependencies, and the docs PR record
 
 ### N2-T4 `claude/purge-gc-spares-details`
 
-- **Scope:** `_garbageCollectOrphanedRefs` erases only bare rows (N2-6 = b). *My reading* of the details list: the note's full table, not the decision text's short form (ambiguity 7).
+- **Scope:** `_garbageCollectOrphanedRefs` erases only bare rows (N2-6 = b). The details list is the note's full table, not the decision text's short form (ambiguity 7, an accepted reading).
 - **Files:** `dance_repository.dart`, `storage.md:847-849`, the method's doc comment.
 - **Size:** S (~120). **Model:** Sonnet.
 - **Depends on:** B7 merged (same purge path). Any order against N2-T1; serialize on `dance_repository.dart` (B13, N2-T1, N4-S3, N4-S4, N4-S6).
@@ -224,7 +224,7 @@ Two facts from that state change the notes' dependencies, and the docs PR record
 
 - **Scope:**
   - The "already contains" marker, alternates included (N3-6 = a), from one core getter on `Program`; the picker's `_danceSlotCounts` reads it.
-  - **Ask first** on a marked program (N3-4 = b): the dialog, its buttons and Cancel behaviour as the note's §4.3 sets out (my calls there, ambiguity 4).
+  - **Ask first** on a marked program (N3-4 = b): the dialog, its buttons and Cancel behaviour as the note's §4.3 sets out (ambiguity 4, an accepted reading).
   - "New program with this dance" as a pinned first row in every state (N3-5 = a).
   - A named exception beside `ux.md`'s confirm rule (my call in the docs PR).
 - **Files:** `widgets/add_to_program_sheet.dart`, `widgets/collection_picker.dart` (count source), `program_editor_screen.dart` (`_danceSlotCounts`), `packages/compendium_core/lib/src/model/program.dart`, ARBs ×6, `docs/user/collection.md`, `docs/design/ux.md`, `changelog.d/`.
@@ -290,7 +290,7 @@ Two facts from that state change the notes' dependencies, and the docs PR record
 
 ### N4-S5 `claude/batch-add-to-program`
 
-- **Scope:** Add to program for a list of dances, in list order, through N3-A2's list widget; the multi-dance marker and the ask-first question (ambiguity 5).
+- **Scope:** Add to program for a list of dances, in list order, through N3-A2's list widget; the multi-dance marker and the ask-first question (ambiguity 5, an accepted reading).
 - **Files:** `widgets/add_to_program_sheet.dart`, N3's list widget, `dance_list_screen.dart`, a core helper for a multi-slot append and its Undo, ARBs ×6, `changelog.d/`.
 - **Size:** M (~350). **Model:** Opus. *My call:* it appends many slots to a program and restores them on Undo through F11's compare-and-replace, a new transactional write; the note said Sonnet. Rejected: Sonnet.
 - **Depends on:** N4-S4 (menu), N3-A2 (list widget), F11.
@@ -415,9 +415,9 @@ The cap is still **four implementation sessions at once, B-branches and design b
 
 ## Ambiguities the answers leave open
 
-Each has my recommended reading. Nothing here re-asks a question the answers settle. The docs PR writes the readings into the notes as *my reading*, not as decisions.
+Each has the planner's recommended reading. **All eight are now the planner's reading, accepted by the maintainer 2026-10-30.** The maintainer chose "Accept all 8 (Recommended)" in a question dialog put by the orchestrating session, whose option read "Builders follow these readings, labelled as the planner's reading that you accepted." The orchestrating session relayed the answer (one hop). Builders follow these readings; they are not re-asked. The notes on `main` (PR #2049) carry the same label where a branch depends on one.
 
-1. **N1-2's "an option for dances which haven't been called".** Today's **Not called**, with no scope, already selects exactly those dances. *Reading:* the **Within** control gets a "no window" choice labelled so that, with **Not called**, it reads "never called"; no new predicate. Alternative: a separate "Never called" chip, which would duplicate Not called. N1-H2 confirms the wording with the maintainer in its PR.
+1. **N1-2's "an option for dances which haven't been called".** Today's **Not called**, with no scope, already selects exactly those dances. *Reading:* the **Within** control gets a "no window" choice labelled so that, with **Not called**, it reads "never called"; no new predicate. Alternative: a separate "Never called" chip, which would duplicate Not called. N1-H2 shows the wording in its PR.
 2. **N1-2's "1mo".** *Reading:* one calendar month, counted like 3 and 6 months. Alternative: 4 weeks, which the option text had and the note replaced.
 3. **N1-6 in Perform.** The option text names the cost. *Reading:* nothing compensates in Perform's live-swap sheet beyond the existing "in program ×N". Alternative: an in-program marker in Perform, which no answer asked for.
 4. **N3-4's prompt.** The answer fixes *that* the sheet asks, not how. *Reading:* "'{dance}' is already in '{program}'. Add it again?", **Cancel** / **Add again** in D-1's order; Cancel keeps the sheet open; an alternate-only match asks too (N3-6); no "don't ask again". `ux.md` gets a named exception, because the option text calls this a break of its rule.
