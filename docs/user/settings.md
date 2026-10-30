@@ -84,7 +84,8 @@ the full picture.
   this long and then purged. If you use [Device Sync](#device-sync), the
   setting syncs and applies on all your devices: when a shared item's time is
   up, its content is erased everywhere, as if you had deleted it permanently,
-  and only a small deletion record is kept. Choosing
+  and only a small deletion record is kept (with the dance's title, while a
+  program or another dance still includes it). Choosing
   **Permanently delete** on one item in **Recently deleted** removes only that
   item. For how soft-delete and restore
   work, see [Collection & search](./collection.md).

@@ -384,11 +384,21 @@ is carried on the envelope like any other, so it hides the record on every peer
 running a build that knows the mark, and after a restore. An older build shows
 it in Recently deleted under the placeholder title.
 
-The retention purge treats an expired published record the same way, with one
-difference: it does not restamp `existenceAt`. Expiry is not a new deletion,
-and a fresh stamp would let it outrank a revival a peer made after the record
-went to the trash. Only `updatedAt` advances, which is enough for the blank body
-to replace the content on every peer that holds the tombstone.
+The retention purge treats an expired published record the same way, with two
+differences, both the implementer's choices rather than part of the decision
+below:
+
+- `existenceAt` advances one tick above the tombstone's own value, not to the
+  clock. Expiry is not a new deletion, and a clock stamp would let it outrank a
+  revival a peer made after the record went to the trash. Without the tick, a
+  peer holding the same tombstone would tie, keep its own `deletedAt`, and go on
+  listing the record.
+- It never rewrites the records citing a dance. The purge, like the startup
+  sweep that finishes earlier marks, runs before the first sync pass, possibly
+  on a device that has been offline for weeks, and restamping its stale copies
+  of those records would overwrite other devices' edits. A dance a program slot
+  or a related-dance link still cites keeps its title until nothing does. Only
+  the user's own Permanently delete rewrites citers.
 
 *Amended 2026-10-30 (LIFE-2): the maintainer decided on 2026-10-29 (round 2,
 `R2-life2-retire`) to hide and blank such a record and not to retire it, so

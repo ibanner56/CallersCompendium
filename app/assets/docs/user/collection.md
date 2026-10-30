@@ -421,7 +421,10 @@ undone.
     in its Recently Deleted as an untitled "—" entry until you update it. Don't
     restore it there: it is empty.
   - A shared dance left in Recently Deleted is cleared the same way when the
-    window you chose in Settings runs out, on all your devices.
+    window you chose in Settings runs out, on all your devices. One
+    difference: while a program or another dance still includes it, it keeps
+    its title, which they show, and they are left exactly as they are. The
+    title goes once nothing includes the dance.
 
 ### Change many dances at once
 

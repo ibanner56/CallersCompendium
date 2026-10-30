@@ -911,10 +911,11 @@ and does not leak into what the user sees.
   purge after a configurable retention (default 30 days) via startup sweep,
   except for rows Device Sync has published: those are retained as tombstones
   indefinitely so peers keep the deletion evidence (`sync-spec.md` §3.1), and
-  once expired are **blanked** exactly as Permanently delete blanks them (next
-  bullet), except that `existence_at` is not restamped: expiry is not a new
-  deletion, and restamping would let it outrank a revival a peer made since.
-  The
+  once expired are **blanked** as Permanently delete blanks them (next bullet),
+  except that `existence_at` advances one tick above its own value rather than
+  to the clock, and the records citing a dance are not rewritten (a cited dance
+  keeps its title until nothing cites it); `sync-spec.md` §3.2 gives the
+  reasons. The
   six kinds that became soft-deletable in v25 have no retention sweep yet:
   their tombstones accumulate until Device Sync, which owns retention, adds
   one.
@@ -928,7 +929,8 @@ and does not leak into what the user sees.
   retirement). Program slots and related-dance links that cited a blanked dance
   get what a purge would leave them, and their owners are restamped. A startup
   sweep finishes every marked row whatever the retention setting, which also
-  blanks rows marked by builds that predate blanking. See
+  blanks rows marked by builds that predate blanking; being automatic and
+  pre-sync, it leaves citers alone and a cited dance keeps its title. See
   `lib/src/storage/permanent_deletion.dart`.
 
 ### Migration safety (app-layer preflight)

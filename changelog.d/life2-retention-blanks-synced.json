@@ -3,12 +3,14 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A dance or program that Device Sync has shared is now cleared when it has been in Recently deleted longer than your \"Keep deleted items for\" setting, instead of staying there for good. As with Permanently delete, its content is erased on all your devices and only a small deletion record is kept. The setting syncs, so it applies on all your devices."
+      "A dance or program that Device Sync has shared is now cleared when it has been in Recently deleted longer than your \"Keep deleted items for\" setting, instead of staying there for good. As with Permanently delete, its content is erased on all your devices and only a small deletion record is kept; a dance that a program or another dance still includes keeps its title until nothing does. The setting syncs, so it applies on all your devices.",
+      "The startup cleanup of items permanently deleted in an earlier version no longer changes the programs and dances that include them, so it can't overwrite edits made on your other devices while this one was offline."
     ]
   },
   "core": {
     "changed": [
-      "`DanceRepository.purgeDeleted` and `ProgramRepository.purgeDeleted` now blank an expired published record instead of leaving it whole. They do not restamp its existence, and still return only how many records they erased."
+      "`DanceRepository.purgeDeleted` and `ProgramRepository.purgeDeleted` now blank an expired published record instead of leaving it whole, advancing its existence stamp by one tick, and still return only how many records they erased.",
+      "`removePermanentlyDeleted` no longer rewrites the records citing a dance unless asked (`rewriteCitations`, which only `permanentlyDelete` passes); a dance still cited keeps its title."
     ]
   }
 }

@@ -272,7 +272,8 @@ const Duration kShutdownSyncPassWait = Duration(seconds: 10);
 /// migration / derived-index back-fill via
 /// [CompendiumRepositories.ensureMigrated] (schema-v2 `dance_figures.section`),
 /// then performs a startup purge sweep that hard-deletes soft-deleted
-/// dances AND programs past the configured retention window
+/// dances AND programs past the configured retention window, and blanks the
+/// ones Device Sync has published, which cannot be erased
 /// ([DanceRepository.purgeDeleted] / [ProgramRepository.purgeDeleted]); the
 /// window is user-configurable (30 / 90 days / never — ROADMAP G.4), defaulting
 /// to 30 days, and the sweep is skipped entirely when set to never. A failed
