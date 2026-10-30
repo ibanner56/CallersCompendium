@@ -2576,7 +2576,7 @@
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "x-sourceSha256": "7ce45913e600a61a763026ceb578ca9bae732dd38cf98eb5085d0255fe6eb049"
   },
-  "settingsDefaultsAggressiveBeatsUpdateTitle": "Figurtakte aggressiv neu berechnen",
+  "settingsDefaultsAggressiveBeatsUpdateTitle": "Schlagzahl der Figuren aggressiv neu berechnen",
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },

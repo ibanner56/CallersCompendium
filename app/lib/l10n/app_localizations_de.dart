@@ -2629,7 +2629,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
-      'Figurtakte aggressiv neu berechnen';
+      'Schlagzahl der Figuren aggressiv neu berechnen';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
