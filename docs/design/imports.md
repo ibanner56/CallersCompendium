@@ -1043,7 +1043,10 @@ the `hey` pass-list decoder — same `tcbPassPeople` map) reads the codes:
 - **`balance: false` is emitted explicitly** for import fidelity — TCB writes the
   balance as a separate line, never inline on a square-through line, so a
   standalone `Square through n (…)` carries none. This mirrors `rory_o_more`,
-  which forces `balance: false` for the same reason. (The decoder does not itself
+  which forces `balance: false` for the same reason. On a standalone line the
+  beat rule then replaces it (see *Square through balance* below, #1975), so
+  `(8) Square through 2 (PR;NL)` is balanced; inside a compound it stands.
+  (The decoder does not itself
   fold a preceding balance line in. The adapter's cross-line Fold 1 does, but
   only a `<who> balance` whose stated subject equals the square through's
   effective `who`; a ring or wave balance stays its own figure.)
@@ -1056,9 +1059,13 @@ equal `n`; every cell must be `<people-code><R|L>` with the code in
 trailing clause, an unmappable code (`C4`+, out-of-range neighbors, a bare
 `R`/`L`), an inconsistent dancer or a non-alternating hand all return `null`, so
 the line falls through to the shared recognizer's bare, defaulted reading rather
-than being half-structured. The one exception is a Caller's Companion comma list
-on a `without hands` line (below), where words after the list are a note unless
-they open another clause (#1971). Untrusted import text is length-capped **before**
+than being half-structured. The exception is a Caller's Companion comma list
+(below): words after it are a note unless they open another clause (#1971), and
+on a square through with hands a list of pass codes that does not decode, such
+as `(NR, PR)` whose hands do not alternate, becomes the note instead of
+returning `null` (#1975). Any other comma bracket (`(W roll R, M side-step L)`)
+still returns `null`, so the per-role and prose readers after it get it (#744).
+Untrusted import text is length-capped **before**
 the pass list is split into cells (`_boundedPassListCells`), so a hostile line
 with millions of `;` is rejected in O(1) rather than allocating the oversized
 list first — a bound shared with the hey and grand-right-and-left decoders (the
@@ -1093,7 +1100,12 @@ Caller's Companion writes the same list with commas, `Square through 3 without
 hands (NR, PL, NR) to new Neighbor`; that list decodes the same way and the words
 after it become the note (#1971), unless they open another clause (`, then
 balance`, `and swing`), which leaves the line custom. A comma list on a square
-through *with* hands is not read. Without a pass list nothing says who starts, so
+through *with* hands is read the same way (maintainer decision on #1975), and its
+cells may be spaced (`P R, N1 L`) or spell the relationship (`Neighbor R,
+Partner L`). Before #1975 such a list was dropped when the line had only
+capitals, as the Caller's Box front end strips a code-only bracket; a list of
+pass codes that does not decode is now kept as the note, and any other comma
+bracket is left to the per-role and prose readers. Without a pass list nothing says who starts, so
 there is no circular hey: the line reads as a `square_through` with
 `places: n`, `balance: false` and the note "without hands" (maintainer decision
 on #1971). A `without hands` line with a pass-list-shaped bracket that does not
@@ -1429,12 +1441,18 @@ shared reading", "becomes a custom figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twelve** pre-recognizers: `_hey`,
-  `_circulate`, `_squareThroughPassList`, `_balanceHandAnnotation`,
-  `_gateAnnotation`, `_courtesyTurnAnnotation`, `_walkForwardAnnotation`,
-  `_chainAnnotation`, `_starPromenadeAnnotation`, `_promenadeAnnotation`,
-  `_rightLeftThroughAnnotation`, `_sideRunAnnotation`. Every one is the
-  falls-through kind.
+- `tcbFigureFrontEnd` registers **nineteen** pre-recognizers: `_hey`,
+  `_circulate`, `_handBalanceSquareThrough`, `_squareThroughPassList`,
+  `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
+  `_courtesyTurnAnnotation`, `_walkForwardAnnotation`, `_chainAnnotation`,
+  `_starPromenadeAnnotation`, `_promenadeAnnotation`,
+  `_rightLeftThroughAnnotation`, `_singleFileCircleRecognizer`,
+  `_bracketAnnotation`, `_weaveSlideAnnotation`, `_perRoleChoreoAnnotation`,
+  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but two are the
+  falls-through kind. `_squareThroughPassList` sends a `without hands` line
+  whose pass list does not decode to `custom` (#1971), and
+  `_bracketAnnotation` does the same for a leading bracket that names no
+  modelled subject. The front end also has a veto (`_tcbDeclineToCustom`).
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
@@ -1454,11 +1472,13 @@ Which is which, derived from the code rather than from memory:
   exactly one, and it is not a recognizer.
 - `canonicalFigureFrontEnd` registers none, so for it every decline is a
   whole-line decline.
-- `FigureFrontEnd.declineToCustom` is the veto row of the table above, and the
-  only way a *source* can force `custom` by itself: it short-circuits ahead of
-  both recognizer layers. It exists because deleting a source's own recognizer
-  is not enough — the shared ones are source-neutral and will claim the line
-  anyway. Only `contraDbHtmlFigureFrontEnd` supplies one today.
+- `FigureFrontEnd.declineToCustom` is the veto row of the table above: it
+  short-circuits ahead of both recognizer layers. It exists because deleting a
+  source's own recognizer is not enough — the shared ones are source-neutral
+  and will claim the line anyway. Both `contraDbHtmlFigureFrontEnd`
+  (`_declineStarPromenade`) and `tcbFigureFrontEnd` (`_tcbDeclineToCustom`)
+  supply one. A source can also force `custom` from a pre-recognizer that
+  returns `FigureMatch.customFallback()`, as the two TCB ones listed above do.
 
 **"Verbatim" — say verbatim *against what*.** The word carries at least three
 senses here, and only one of them is ever wrong. The custom fallback stores the
@@ -1639,6 +1659,37 @@ has to be judged in its own context.
   the Caller's Box measurement above does not record the box circulates'
   beats. A 4-beat box circulate's explicit `false` does not stop the fold. A
   repetition is not told apart: `(8) Box circulate (twice)` gets a balance.
+  **Square through balance (#1975):** a balance the line states is kept.
+  Otherwise the beats decide it (decision 8 on #1975): a square through is
+  balanced when its beats are at least twice its places plus 4, so square
+  through 2 in 8 beats is, and square through 3 in 8 or 2 in 4 is not. A line
+  that says `without hands` keeps no balance (#1971). `withBeatImpliedBalance`
+  applies it under the same `;` and one-figure limits as the box circulate, in
+  the Caller's Companion mapper, the Caller's Box adapter, the re-parse
+  upgrade and free-text entry; running it in the last two, so typing and
+  re-checking agree with importing, was the author's call. The rule applies
+  to The Caller's Box too (decision 10), and the maintainer limited it there
+  to a standalone line: a compound names the square through more than once
+  (`(8) Interrupted square through 2:` with a balance child and a 4-beat
+  square-through child), and inside one nothing changes, so the balance child
+  still folds in. On a standalone line it replaces the pass-list decoder's
+  `balance: false`, and it runs after the cross-line merge, only on a square
+  through that no balance line folded into. So `(4) Partner balance` +
+  `(12) Square through 4 (…)` still folds into one balanced square through of
+  16 beats, as before. Caller's Companion states the balance in the line:
+  `Partner R-hand balance, square through 2` and `Neighbor Right-hand balance
+  and square through two` are one square through, `who` the pair that
+  balances and `hand` its hand (maintainer decision). The count may be a digit
+  or `two` to `four` (the author's range). A comma pass list after it gives
+  `who2` when it agrees with that pair and hand, and is otherwise the note
+  (maintainer decision); any other bracket is the note (the author's call), as
+  is a trailing `, to <whom>` that names one dancer set; anything else keeps
+  the line custom. The Caller's Box front end reads this wording
+  (`_handBalanceSquareThrough`), next to the pass-list decoder it shares. A
+  decoded comma list says nothing about the balance, so unlike a Caller's Box
+  `;` list it does not write `balance: false`. Square throughs already
+  structured in a collection keep their balance; an import-gap custom that
+  **Re-check custom figures** reads again gets the new reading.
   ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
   is likewise promoted from the existing figure note to `turn`, using the
   maintainer mapping `on the left` → `clockwise` and `on the right` →
