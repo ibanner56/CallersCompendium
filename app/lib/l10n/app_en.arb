@@ -9050,6 +9050,22 @@
   "@importIssueArchiveNewerSchema": {
     "description": "Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file."
   },
+  "importIssueArchiveCustomFieldKeyConflict": "Your custom field \"{label}\" has a different type or other choices in this file, so the file's values for it go into the field with the key \"{key}\" instead, which is added if you don't have it yet. Your field is unchanged.",
+  "@importIssueArchiveCustomFieldKeyConflict": {
+    "description": "Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so its values go into the field under the key shown (the user's key plus _2, _3, …), which is created unless an earlier import made it; the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "A custom field in this file could not use its key, which is already taken, so its values go into a field with a numbered key instead.",
+  "@importIssueArchiveCustomFieldKeyConflictGeneric": {
+    "description": "Import review warning for a shared file (INTAKE-2), used when the key is held by another field of the same file or by a field the user deleted, so no field is named and no difference is claimed (the file's text is never shown). The values go into a field under a numbered key."
+  },
   "importIssueUsrFileTruncated": "This file looks incomplete — only part of it could be read. Copy it again from the original and re-import.",
   "@importIssueUsrFileTruncated": {
     "description": "Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file."

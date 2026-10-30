@@ -105,6 +105,7 @@ void main() {
     // adapters (as of this PR). If core adds a code, this list — and the mapper
     // — must grow, or the code will silently render the generic fallback.
     const producedCodes = {
+      'archive_custom_field_key_conflict',
       'archive_newer_schema',
       'archive_program_empty_slot',
       'archive_program_unresolved_dance',
@@ -165,6 +166,10 @@ void main() {
         'cc_date_reduced_precision' => {'field': 'composed', 'year': 2004},
         'contradb_param_unmapped' => {'param': 'hand'},
         'cc_new_level' => {'level': 'Easy/Intermediate'},
+        'archive_custom_field_key_conflict' => {
+          'label': 'Tempo',
+          'key': 'tempo_2',
+        },
         _ => const <String, Object?>{},
       };
       for (final code in mappedImportIssueCodes) {
@@ -219,6 +224,28 @@ void main() {
       expect(revised, contains(l10n.importDateFieldRevised));
       expect(composed, isNot(contains('SECRETVALUE')));
       expect(revised, isNot(contains('SECRETVALUE')));
+    });
+
+    test('archive_custom_field_key_conflict names the receiver\'s field and '
+        'the new key, and nothing from the file (INTAKE-2)', () {
+      final named = importIssueMessage(
+        l10n,
+        issue('archive_custom_field_key_conflict', {
+          'label': 'Tempo',
+          'key': 'tempo_2',
+        }),
+      );
+      expect(
+        named,
+        l10n.importIssueArchiveCustomFieldKeyConflict('Tempo', 'tempo_2'),
+      );
+      expect(named, isNot(contains('SECRETVALUE')));
+      // A clash between two of the file's own fields carries no names.
+      final unnamed = importIssueMessage(
+        l10n,
+        issue('archive_custom_field_key_conflict', const {}),
+      );
+      expect(unnamed, l10n.importIssueArchiveCustomFieldKeyConflictGeneric);
     });
 
     test('cc_date_reduced_precision surfaces the year and field, not the raw '
