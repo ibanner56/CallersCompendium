@@ -366,7 +366,23 @@ final Map<String, DataClassification> fieldClassifications = {
   'dances.level_id': _key,
   'dances.mixed_level': _choreography,
   'dances.mixer': _choreography,
-  'dances.rating': _choreography,
+  'dances.rating': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        "The caller's own curatorial star rating (1..5) of the dance: their "
+        'opinion, not choreography, so the subject is the app user. Egress: '
+        'own devices and backups yes, share files no. The app omits it from '
+        'every dance and program share file (maintainer decision '
+        'R2-out2-export, 2026-10-30), but Device Sync and Backup keep it. '
+        'Kept shareable rather than deviceLocal because deviceLocal means '
+        'never serialised and would stop sync, which the maintainer wants '
+        'to keep; the share-file strip lives in the share bundle builders '
+        '(sanitizeDanceForShare), not in the archive codec. Sync can still '
+        'reach another person when a store is shared (ADR-004 storeAddress), '
+        'so "travels in sync" is not "stays on my devices".',
+  ),
   'dances.tunes_json': _choreography,
   'dances.composed_on': _choreography,
   'dances.revised_on': _choreography,
@@ -570,7 +586,11 @@ final Map<String, DataClassification> fieldClassifications = {
         'classified the same way). It names the caller\'s wording choice, '
         'not a venue contact or choreographer, so the subject is the app '
         'user. A soft by-name reference: a name that does not resolve on '
-        'another device silently falls back to that device\'s app dialect.',
+        'another device silently falls back to that device\'s app dialect. '
+        'Egress: own devices and backups yes, share files no (the app omits '
+        'it from program share files, maintainer decision R2-out2-export, '
+        '2026-10-30; sanitizeProgramForShare). Kept shareable because '
+        'deviceLocal would stop sync.',
   ),
   'programs.pay_minor_units': const DataClassification(
     term: DpvTerm.income,
@@ -579,14 +599,16 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'What the caller is paid for the program (DPV pd:Income). The '
         'subject is the app user: it is their own earnings, not a fact about '
-        'the venue, band or any other third party. Egress today: it follows '
-        'the caller to their other devices (Device Sync) and into their own '
-        'archive and backup, and it is also written into program share files '
-        'sent to other people (docs/user/sharing.md), where it becomes the '
-        "recipient's copy of the sender's earnings. It is never part of the "
-        'shared set-list text or PDF. Whether pay should travel in share '
-        'files is a pending maintainer decision; the '
-        'classification is unchanged until it is made.',
+        'the venue, band or any other third party. Egress: own devices and '
+        'backups yes, share files no. It follows the caller to their other '
+        'devices (Device Sync) and into their own archive and backup, but '
+        'the app omits it from program share files and Export JSON '
+        '(maintainer decision R2-out2-export, 2026-10-30; '
+        'sanitizeProgramForShare). It is never part of the shared set-list '
+        'text or PDF. Kept shareable rather than deviceLocal because '
+        'deviceLocal means never serialised and would stop sync. Sync can '
+        'still reach another person when a store is shared (ADR-004 '
+        'storeAddress), so "travels in sync" is not "stays on my devices".',
   ),
   'programs.pay_currency': const DataClassification(
     term: DpvTerm.income,
@@ -594,7 +616,8 @@ final Map<String, DataClassification> fieldClassifications = {
     egress: EgressClass.shareable,
     note:
         'ISO 4217 code that programs.pay_minor_units is denominated in; '
-        'meaningless without it, so it carries the same classification.',
+        'meaningless without it, so it carries the same classification, '
+        'including the share-file omission (sanitizeProgramForShare).',
   ),
   'programs.created_at': _recordStamp,
   'programs.updated_at': _recordStamp,
