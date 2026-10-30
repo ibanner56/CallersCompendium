@@ -390,8 +390,14 @@ below:
 
 - `existenceAt` is left alone. Expiry is not a new deletion, and any later
   stamp could outrank, or tie with, a revival a peer made after the record went
-  to the trash. A peer holding the same tombstone ties with it and still takes
-  the mark, by the tie rule in §6.4.
+  to the trash. A peer holding the same tombstone ties with it and, on a build
+  with the tie rule in §6.4, takes the mark. A build without that rule keeps its
+  own `deletedAt` and republishes the blank body with it, so the two copies tie
+  on `updatedAt` with different bodies and both devices report
+  `equalUpdatedAt` on every pass until it is updated. Nothing is lost: both
+  copies are the same blank deletion. Advancing `existenceAt` would avoid the
+  report but can tie with, and so delete, a revival stamped one tick after the
+  trash; the report was judged the lesser cost.
 - It never rewrites the records citing a dance. The purge, like the startup
   sweep that finishes earlier marks, runs before the first sync pass, possibly
   on a device that has been offline for weeks, and restamping its stale copies
@@ -3076,8 +3082,8 @@ above that tombstone by construction, so it cannot tie with it — leaving only
 genuinely concurrent transitions on two devices that have not yet seen each
 other's, within one tick of each other.
 
-**Between tombstones, a tie takes the permanent-deletion mark.** When the
-copies tied at the greatest `existenceAt` are all tombstones and one carries
+**Between tombstones, a tie takes the permanent-deletion mark.** When a
+tombstone tied at the greatest `existenceAt` carries
 `deletedAt` = the unix epoch (§3.2, *a permanently deleted record stays
 published*), the existence winner, and so the `deletedAt` every device keeps, is
 that copy. Both copies record the same deletion; the marked one has only gone
