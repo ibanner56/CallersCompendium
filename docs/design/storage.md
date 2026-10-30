@@ -13,7 +13,10 @@ lives in the core package; all access through repositories.*
   as the application *cache* directory, which is what the resolver asks for),
   the application support directory (`$XDG_DATA_HOME/<app id>`) on Linux, and the
   app's own documents directory on Android, iOS and macOS (sandboxed or
-  app-private). Earlier builds used `Documents` on Windows and Linux, which
+  app-private). On Windows the `<CompanyName>` folder comes from the
+  `Runner.rc` version resource, pinned to `org.callerscompendium` by
+  `tools/ci/check_windows_company_name.py`: changing it moves every Windows data
+  folder. Earlier builds used `Documents` on Windows and Linux, which
   OneDrive's folder backup syncs and which on Linux is `$HOME` itself when
   `XDG_DOCUMENTS_DIR` is unset. The first launch after updating moves the
   database, its `-wal`/`-shm` sidecars and the pre-migration snapshots out of
