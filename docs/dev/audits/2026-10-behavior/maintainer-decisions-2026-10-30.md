@@ -424,6 +424,16 @@ Built in the B7 follow-up branch `claude/fix-retention-blanks-synced`.
 
 Built in #2057.
 
+### B18 follow-up / INTAKE-7: published-collection corrections on re-import (2026-10-30 ~06:50 UTC)
+**Question:** B18 (#2064) made re-import replace only a dance's choreography. A published collection's corrected title or credit therefore no longer reaches an imported dance, while its provenance records the new version. Is that intended?
+
+**Decision:** "Ask per import". The option read: "The review screen offers \"Also update title and credit\" as a checkbox on re-import rows." Rejected: "Yes, by design" (document only) and the orchestrating session's recommendation, "Also take title/credit" when not edited since the last import.
+
+### B18 follow-up: four import leftovers (2026-10-30 ~06:50 UTC)
+**Question:** fold B18's four listed leftovers (review screen still says "overwritten"; share metadata revives deleted tags, fields and sources; .USR Import-and-edit adds related links; spurious .USR warnings for re-imported pairs) into one follow-up branch?
+
+**Decision:** "One follow-up branch". The option read: "One branch fixes all four, plus the title/credit answer above, under the same rules and approvals. It needs all six ARBs for the wording."
+
 ## Still open
 
 - **D-11** (UX6-2): the maintainer asked for renderings of each option; they are at https://claude.ai/artifact/GJJMBFTrPuCp46DWMPtsjo. No choice recorded yet.
