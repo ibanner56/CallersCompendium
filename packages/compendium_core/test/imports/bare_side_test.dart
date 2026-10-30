@@ -33,7 +33,12 @@ void main() {
           'who': 'role1s',
           'hand': 'left',
         });
-        expectMove('N3 pull by L', 'pull_by', {'who': 'thirdNeighbors'});
+        expectMove('N3 pull by L', 'pull_by', {
+          'who': 'thirdNeighbors',
+          'hand': 'left',
+        });
+        expectMove('Slide L', 'slide_along_set', {'slide': 'left'});
+        expectMove('Zig L, Zag R', 'zig_zag', {'slide': 'left'});
         expectMove('Larks pass L', 'pass_by', {'shoulder': 'left'});
         expectMove('Larks pass R shoulder', 'pass_by', {'shoulder': 'right'});
       });
@@ -47,15 +52,21 @@ void main() {
       });
 
       test('a lone side anywhere else stays as written', () {
-        // A position note, not a direction.
-        expect(single('Balance the Wave (R, L)').isCustom, isTrue);
-        final f = single('Pass through across, turn to individual R');
-        expect(f.note, contains('individual R'));
+        // After a dancer or a word that is not one of the moves, the letter is
+        // not spelled, so these lines do not read as if it were.
+        for (final line in [
+          'Allemande neighbor R',
+          'Full Hey, Larks start R shoulder',
+          'Ring balance and spin R',
+        ]) {
+          expect(single(line).isCustom, isTrue, reason: line);
+        }
       });
 
       test('R&L is right and left through', () {
         expect(single('R&L').move, 'right_left_through');
         expect(single('R&L thru').move, 'right_left_through');
+        expect(single('R & L').move, 'right_left_through');
       });
 
       // A pin, not a guard: the leftover "grand" keeps the right and left

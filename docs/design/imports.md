@@ -1659,16 +1659,23 @@ has to be judged in its own context.
   context-dependent two-word names, so they live in the reader rather than in
   `dancerWords`.
 
-  **Bare sides and `R&L` (#1975, maintainer decisions):** `_normalize` spells
-  a bare `l`/`r` as `left`/`right` only straight after a move that takes a
-  direction, hand or shoulder (`circle`, `pull by`, `pass`, `slide`, `slice`,
-  `zig`, `zag`, `allemande`, `loop`, `cross`, `step`): `Circle L`, `Larks pull
-  by L`, `Slice L`, `Larks pass R shoulder`. Anywhere else a lone letter stays
-  as written, so a position note such as `(Rob R, Lar L)` or `Balance the Wave
-  (R, L)` is not read as directions. `alle` is the allemande. Caller's
-  Companion's `R&L` is right and left through, and `R&L thru` reads the same;
-  `Grand R&L` stays text, as the grand right and left reader works on the
-  source's own spelling.
+  **Bare sides and `R&L` (#1975):** the maintainer decided on #1975 that a
+  bare `L`/`R` straight after a move is its direction, hand or shoulder, that
+  one inside a position note is not, that `alle` is the allemande, and that
+  Caller's Companion's `R&L` is right and left through. `_normalize` spells a
+  bare `l`/`r` as `left`/`right` only straight after `circle`, `pull by`,
+  `pass`, `slide`, `slice` or `allemande`: `Circle L`, `Larks pull by L`,
+  `Slice L`, `Larks pass R shoulder`, `Neighbor alle R 1.5`. That closed list
+  is the author's reading of the maintainer's examples: the other words they
+  listed (`loop R`, `cross R`, `step R`) name no move the parser reads with a
+  side, so spelling them changed no figure, and they were left out. The
+  ContraDB dialect's zig-zag reader takes `Zig L, Zag R` itself. Anywhere else
+  a lone letter stays as written, so a position note such as `(Rob R, Lar L)`
+  or `Balance the Wave (R, L)` is not read as directions. `R&L thru` reads as
+  `R&L` does, and so, by the author's call, does a spaced `R & L`. `Grand
+  R&L` stays text: the line reads as `grand` followed by a right and left
+  through, and the leftover word keeps it custom. `pass by L` is not read
+  either, as before this change.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on

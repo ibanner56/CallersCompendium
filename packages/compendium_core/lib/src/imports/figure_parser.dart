@@ -495,9 +495,11 @@ void _recordRounded(String fraction, {String? whole, bool bridged = false}) {
 }
 
 /// Lowercases, applies the front-end's optional recognition-only normalization
-/// (e.g. the CallersBox `()`/`[]` annotation strip), maps `&`→`and` and
-/// `thru`→`through`, folds the common unicode halves/quarters, strips
-/// surrounding punctuation, and splits into words.
+/// (e.g. the CallersBox `()`/`[]` annotation strip), reads `R&L` as right and
+/// left (through), maps `&`→`and`, `thru`→`through` and `alle`→`allemande`,
+/// folds the common unicode halves/quarters, strips surrounding punctuation,
+/// splits into words, spells a bare side after a move ([_spellBareSides]) and
+/// folds dancer numbers ([_foldDancerNumbers]).
 ///
 /// [recognitionNormalize] affects RECOGNITION only: a structured match does NOT
 /// retain whatever it removed, but the *custom fallback* runs on the
@@ -534,10 +536,13 @@ final RegExp _rAndL = RegExp(r'\br\s*&\s*l\b');
 final RegExp _rAndLThrough = RegExp(r'\br\s*&\s*l\b(?!\s*(?:through|thru)\b)');
 
 /// Spells a bare `l`/`r` as `left`/`right` straight after a move that takes a
-/// direction, hand or shoulder: `Circle L`, `pull by R`, `pass L`, `Slide L`,
-/// `Slice L`, `Zig L`, `Zag R`, `alle R`, `loop R`, `cross R`, `step R`
-/// (maintainer decision, #1975). Anywhere else a lone letter stays as written,
-/// so a position note such as `(Rob R, Lar L)` is not read as directions.
+/// direction, hand or shoulder (maintainer decision, #1975): `Circle L`,
+/// `pull by R`, `pass L`, `Slide L`, `Slice L`, `alle R`. The set of moves is
+/// the author's reading of the maintainer's list: the shared reader has no
+/// `loop`, `cross` or `step` move, and ContraDB's zig-zag reads its own
+/// sides (`_zigZagSide`), so those words are not listed. Anywhere else a lone
+/// letter stays as written, so a position note such as `(Rob R, Lar L)` is not
+/// read as directions.
 void _spellBareSides(List<String> w) {
   for (var i = 1; i < w.length; i++) {
     final side = switch (w[i]) {
@@ -560,12 +565,7 @@ const Set<String> _sideTakingMoves = {
   'pass',
   'slide',
   'slice',
-  'zig',
-  'zag',
   'allemande',
-  'loop',
-  'cross',
-  'step',
 };
 
 /// The neighbour words a following `0`–`4` folds onto, as `Neighbor 2` is the
