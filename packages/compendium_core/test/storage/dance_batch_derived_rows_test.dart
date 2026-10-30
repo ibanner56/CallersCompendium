@@ -5,7 +5,7 @@ import '../figures_support.dart';
 import 'fixtures.dart';
 import 'test_database.dart';
 
-/// The batch edits over level, rating and tunes pass `rebuildDerived: false`
+/// The batch edits over level, status, rating and tunes pass `rebuildDerived: false`
 /// (see `DanceRepository._updateMany`): none of them feeds a `dance_fts` column
 /// or a `dance_figures` row, so the delete-and-reinsert would only rewrite the
 /// same bytes. These tests pin both halves of that claim — the rows are
@@ -68,6 +68,16 @@ void main() {
       () => dances.setLevelForMany(
         ['a', 'b'],
         difficultyLevelId: DifficultyLevel.advancedId,
+        now: now,
+      ),
+    );
+  });
+
+  test('setStatusForMany leaves the derived rows alone', () async {
+    await expectDerivedRowsUntouched(
+      () => dances.setStatusForMany(
+        ['a', 'b'],
+        status: DanceStatus.deprecated,
         now: now,
       ),
     );
