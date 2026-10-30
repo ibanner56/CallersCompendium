@@ -684,7 +684,7 @@ class ReferenceEditRepository {
     if (row == null) return;
     final hex = id.replaceAll('-', '').toLowerCase();
     final base = _name(kind, row);
-    for (final suffix in [hex.substring(0, 8), hex]) {
+    for (final suffix in {hex.length > 8 ? hex.substring(0, 8) : hex, hex}) {
       final freed = '${base}_$suffix';
       if ((await nameMatches(kind, freed, excludeId: id)).isEmpty) {
         await _writeFields(kind, _withName(kind, row, freed), now: now);
