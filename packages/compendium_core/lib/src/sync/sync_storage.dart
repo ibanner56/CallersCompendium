@@ -2202,8 +2202,9 @@ final class CompendiumSyncStorage
       expected[plan.address] = current?.wireHash;
       stamps[plan.address] = stamp;
     }
-    final result = await SyncApplyEngine(now: () => clockNow)
-        .apply(candidates: writes, storage: this, expectedWireHashes: expected);
+    final result = await SyncApplyEngine(
+      now: () => clockNow,
+    ).apply(candidates: writes, storage: this, expectedWireHashes: expected);
     if (result.applied.toSet().length != writes.length) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
@@ -5571,8 +5572,9 @@ final class CompendiumSyncStorage
     if (pending == null) return;
     final DateTime tombstonedExistence;
     try {
-      tombstonedExistence = decodeSyncRecordBlob(pending.tombstoneBlob)
-          .existenceAt;
+      tombstonedExistence = decodeSyncRecordBlob(
+        pending.tombstoneBlob,
+      ).existenceAt;
     } on Object {
       // A tombstone blob that will not decode cannot be compared against, and
       // `_revalidatePendingDeletions` owns that failure. Leave it alone.
@@ -6473,20 +6475,24 @@ final class CompendiumSyncStorage
       try {
         switch (entry.key.kind) {
           case SyncRecordKind.dance:
-            final dance = _decodeEntity(
-              SyncRecordKind.dance,
-              _normalizeInboundRecord(entry.value).body,
-            ) as Dance;
+            final dance =
+                _decodeEntity(
+                      SyncRecordKind.dance,
+                      _normalizeInboundRecord(entry.value).body,
+                    )
+                    as Dance;
             for (final link in dance.links) {
               index.danceLinkOwners
                   .putIfAbsent(link.id, () => <SyncRecordAddress>[])
                   .add(entry.key);
             }
           case SyncRecordKind.program:
-            final program = _decodeEntity(
-              SyncRecordKind.program,
-              _normalizeInboundRecord(entry.value).body,
-            ) as Program;
+            final program =
+                _decodeEntity(
+                      SyncRecordKind.program,
+                      _normalizeInboundRecord(entry.value).body,
+                    )
+                    as Program;
             for (final slot in program.slots) {
               index.programSlotOwners
                   .putIfAbsent(slot.id, () => <SyncRecordAddress>[])
@@ -6537,10 +6543,9 @@ final class CompendiumSyncStorage
       final inbound = inboundRecords[address];
       if (inbound != null) {
         try {
-          final definition = _decodeEntity(
-            SyncRecordKind.customFieldDef,
-            inbound.body,
-          ) as CustomFieldDef;
+          final definition =
+              _decodeEntity(SyncRecordKind.customFieldDef, inbound.body)
+                  as CustomFieldDef;
           if (!definition.shareable) {
             return 'Inbound dance contains a value for non-shareable custom '
                 'field "${value.fieldId}".';
@@ -6585,10 +6590,9 @@ final class CompendiumSyncStorage
         final inbound = inboundRecords[address];
         if (inbound == null) continue;
         try {
-          definition = _decodeEntity(
-            SyncRecordKind.customFieldDef,
-            inbound.body,
-          ) as CustomFieldDef;
+          definition =
+              _decodeEntity(SyncRecordKind.customFieldDef, inbound.body)
+                  as CustomFieldDef;
         } on Object catch (error) {
           return 'Dance "${dance.id}" references malformed custom field '
               '"${value.fieldId}": $error';

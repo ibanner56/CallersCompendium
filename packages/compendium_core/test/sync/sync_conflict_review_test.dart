@@ -171,6 +171,19 @@ void main() {
       expect((await queued()).map((row) => row.recordId), ['theme_mode']);
     });
 
+    test('queues nothing for a withdrawn setting the merge raises', () async {
+      for (final key in syncWithdrawnSettingKeys) {
+        final address = (kind: SyncRecordKind.setting, recordId: key);
+        await repositories.settings.set(key, 'a', at: tie);
+        final local = await localCandidate(address);
+        await mergeAndQueue(address, [
+          peerVersion(local, {'value': 'b'}),
+        ]);
+      }
+
+      expect(await queued(), isEmpty);
+    });
+
     test('leaves rows of every other reason alone', () async {
       await seedTie();
       await repositories.syncLocal.enqueueReview(
