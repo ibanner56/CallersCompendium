@@ -1,0 +1,9 @@
+{
+  "id": "fix-region-date-fallback",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The **System default** date format now follows your device's region even when your device language has no variant for it. An English-language phone in Denmark, Sweden or the Netherlands shows `15.7.2026`, `2026-07-15` or `15-7-2026` instead of US order."
+    ]
+  }
+}

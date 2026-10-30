@@ -409,6 +409,19 @@ undone.
   it permanently when you are sure. Anything left there is purged automatically
   after 30 days; you can choose a longer window, or never, in
   [Settings](./settings.md#deleted-items).
+  - If you use [Device Sync](./settings.md#device-sync), a dance it has already
+    shared can't simply vanish, or your other devices would send it back. When
+    you delete one permanently, its title, notes, figures and everything else
+    are erased, here and on your other devices when they next sync, and it
+    leaves Recently Deleted. Only a small deletion record is kept, with no
+    names or text, so your other devices delete it too. A program that
+    included the dance keeps its title as a line of text, as it does for any
+    dance that is gone for good. Programs work the same way.
+  - A device still on an older version of the app shows that deletion record
+    in its Recently Deleted as an untitled "—" entry until you update it. Don't
+    restore it there: it is empty.
+  - A shared dance is not purged automatically: it stays in Recently Deleted
+    until you restore it or delete it permanently.
 
 ### Change many dances at once
 

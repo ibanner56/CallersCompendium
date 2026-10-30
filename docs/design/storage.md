@@ -914,6 +914,18 @@ and does not leak into what the user sees.
   six kinds that became soft-deletable in v25 have no retention sweep yet:
   their tombstones accumulate until Device Sync, which owns retention, adds
   one.
+- **Permanently delete** (Recently deleted) marks a dance or program with
+  `deleted_at` = the unix epoch, then erases it, or, if it is published,
+  **blanks** it: every content column is reset, its join rows, derived rows and
+  `retained_sync_fields` row are deleted, and `updated_at` is stamped after the
+  content it replaces, so the blank body wins on peers too. Only the deletion
+  record remains, and Recently deleted hides any row with the epoch mark
+  (LIFE-2; maintainer decision 2026-10-29, round 2: hide and blank, no
+  retirement). Program slots and related-dance links that cited a blanked dance
+  get what a purge would leave them, and their owners are restamped. A startup
+  sweep finishes every marked row whatever the retention setting, which also
+  blanks rows marked by builds that predate blanking. See
+  `lib/src/storage/permanent_deletion.dart`.
 
 ### Migration safety (app-layer preflight)
 

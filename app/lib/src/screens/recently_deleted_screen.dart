@@ -46,7 +46,10 @@ class RecentlyDeletedConfig<T> {
   /// the [initialRetention] is used unchanged (a fixed window).
   final Future<Duration?> Function(CompendiumRepositories repos)? loadRetention;
 
-  /// Loads the soft-deleted items (those with a non-null `deletedAt`).
+  /// Loads the soft-deleted items (those with a non-null `deletedAt`), leaving
+  /// out any the user has already permanently deleted ([isPermanentlyDeleted]):
+  /// those Device Sync has published stay on disk as a blank deletion record
+  /// (LIFE-2), which is nothing the user can restore.
   ///
   /// Contract: implementations MUST filter out non-deleted items — the screen
   /// renders each item's purge-ETA from its `deletedAt` and asserts it is
@@ -56,8 +59,9 @@ class RecentlyDeletedConfig<T> {
   /// Restores [item] to the active collection.
   final Future<void> Function(CompendiumRepositories repos, T item) restore;
 
-  /// Hard-deletes [item] via the standard purge machinery.
-  final Future<void> Function(CompendiumRepositories repos, T item)
+  /// Permanently deletes [item], and says what that did: erased it, or (once
+  /// Device Sync has published it) blanked it down to a deletion record.
+  final Future<PermanentDeletion> Function(CompendiumRepositories repos, T item)
   permanentlyDelete;
 
   final String Function(T item) idOf;
@@ -217,11 +221,23 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await _config.permanentlyDelete(_repos, item);
+    final outcome = await _config.permanentlyDelete(_repos, item);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.recentlyDeletedDeletedSnack(title))),
-    );
+    // A blanked item is gone from this device, but its deletion record stays
+    // so other devices delete it too; the plain message would hide that.
+    final message = switch (outcome) {
+      PermanentDeletion.blanked => l10n.recentlyDeletedDeletedSyncedSnack(
+        title,
+      ),
+      PermanentDeletion.erased => l10n.recentlyDeletedDeletedSnack(title),
+      // Already gone (restored or deleted elsewhere): claim nothing.
+      PermanentDeletion.none => null,
+    };
+    if (message != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
     _reload();
   }
 
@@ -329,22 +345,21 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
           .then(softDeleteRetentionFromStored),
       loadDeleted: (repos) => repos.dances
           .listAll(includeDeleted: true)
-          .then((all) => all.where((d) => d.deletedAt != null).toList()),
+          .then(
+            (all) => all
+                .where(
+                  (d) =>
+                      d.deletedAt != null && !isPermanentlyDeleted(d.deletedAt),
+                )
+                .toList(),
+          ),
       restore: (repos, dance) =>
           repos.dances.restore(dance.id, at: DateTime.now().toUtc()),
-      permanentlyDelete: (repos, dance) async {
-        // Backdate deletedAt past any retention window, then purge by id. This
-        // goes through the existing purge machinery (FK cascade, FTS cleanup,
-        // slot nulling, orphan GC, published-record exclusion). `onlyIds` is
-        // what keeps it to this one dance: an unscoped purge would also erase
-        // every other item trashed over 30 days ago, whatever the user's
-        // retention setting says.
-        await repos.dances.softDelete(dance.id, at: DateTime.utc(1970));
-        await repos.dances.purgeDeleted(
-          now: DateTime.now().toUtc(),
-          onlyIds: [dance.id],
-        );
-      },
+      // Scoped to this one dance: an unscoped purge would also erase every
+      // other item trashed over 30 days ago, whatever the user's retention
+      // setting says (LIFE-1).
+      permanentlyDelete: (repos, dance) =>
+          repos.dances.permanentlyDelete(dance.id, now: DateTime.now().toUtc()),
       idOf: (dance) => dance.id,
       titleOf: (dance) => dance.title,
       deletedAtOf: (dance) => dance.deletedAt,
@@ -370,18 +385,20 @@ final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
           .then(softDeleteRetentionFromStored),
       loadDeleted: (repos) => repos.programs
           .listAll(includeDeleted: true)
-          .then((all) => all.where((p) => p.deletedAt != null).toList()),
+          .then(
+            (all) => all
+                .where(
+                  (p) =>
+                      p.deletedAt != null && !isPermanentlyDeleted(p.deletedAt),
+                )
+                .toList(),
+          ),
       restore: (repos, program) =>
           repos.programs.restore(program.id, at: DateTime.now().toUtc()),
-      permanentlyDelete: (repos, program) async {
-        // Same backdate-then-purge-by-id path the dances screen uses; see the
-        // note there on why the purge must be scoped to this one program.
-        await repos.programs.softDelete(program.id, at: DateTime.utc(1970));
-        await repos.programs.purgeDeleted(
-          now: DateTime.now().toUtc(),
-          onlyIds: [program.id],
-        );
-      },
+      permanentlyDelete: (repos, program) => repos.programs.permanentlyDelete(
+        program.id,
+        now: DateTime.now().toUtc(),
+      ),
       idOf: (program) => program.id,
       titleOf: (program) => program.title,
       deletedAtOf: (program) => program.deletedAt,

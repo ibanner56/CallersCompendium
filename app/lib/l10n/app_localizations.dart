@@ -14300,6 +14300,12 @@ abstract class AppLocalizations {
   /// **'\"{title}\" permanently deleted.'**
   String recentlyDeletedDeletedSnack(String title);
 
+  /// Snackbar after a permanent delete of an item Device Sync has already shared: its content is erased, but a small deletion record stays so other devices delete it too. {title} is the item title, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" permanently deleted. A small deletion record is kept so your other devices delete it too.'**
+  String recentlyDeletedDeletedSyncedSnack(String title);
+
   /// Label for the button that restores a recently-deleted item.
   ///
   /// In en, this message translates to:
