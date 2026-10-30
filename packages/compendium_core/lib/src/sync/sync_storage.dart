@@ -4065,22 +4065,32 @@ final class CompendiumSyncStorage
   /// the same in reverse. A peer applies those as separate records, so the
   /// survivor's rename can arrive while the loser still holds the name here:
   ///
-  /// * the loser's tombstone is in this batch, or held pending under §6.8
-  ///   until this device's own citations of it go — and a held row keeps its
-  ///   old name until then;
-  /// * or an edit of the holder in this batch renames it.
+  /// * the loser's tombstone or an edit of the holder is in this batch, under
+  ///   another name;
+  /// * or the loser's deletion is held pending under §6.8 until this
+  ///   device's own citations of it go — and a held row keeps its old name
+  ///   until then. Only a tombstone that gave up this very name counts here:
+  ///   one named `<holder's name>_<hex of its own id>`, as a user merge, a
+  ///   rename freeing a tombstone, and [_tombstoneYieldsNaturalKey] name it.
+  ///   Those citations round-trip through the merging device's alias, so the
+  ///   hold ends. Any other held deletion can last as long as a dance only
+  ///   this device holds keeps citing it, so its collision is queued as
+  ///   before rather than held back without a word.
   ///
-  /// Either way the holder's next name is the one its tombstone or edit
-  /// carries. When no other row holds that name, the holder will leave, so the
-  /// colliding update is deferred rather than queued. Where that name is held
-  /// too — two rows swapping names, say — nothing guarantees the holder ever
-  /// moves, and the collision is queued as before.
+  /// When no other row holds the holder's next name, the holder will leave,
+  /// so the colliding update is deferred rather than queued. Where that name
+  /// is held too — two rows swapping names, say — nothing guarantees the
+  /// holder ever moves, and the collision is queued as before. Tags and
+  /// choreographers only: the kinds a user can merge.
   Future<bool> _holderLeavesNaturalKey({
     required SyncRecordKind kind,
     required String holderId,
     required String naturalKey,
     required List<SyncMergeCandidate> inbound,
   }) async {
+    if (kind != SyncRecordKind.tag && kind != SyncRecordKind.choreographer) {
+      return false;
+    }
     String? nextKey;
     for (final other in inbound) {
       if (other.blob.kind != kind || other.blob.id != holderId) continue;
@@ -4092,15 +4102,22 @@ final class CompendiumSyncStorage
         recordId: holderId,
       );
       if (pending != null) {
+        final Object? tombstoneName;
         try {
-          nextKey = syncNaturalKeyForBody(
-            kind,
-            decodeSyncRecordBlob(pending.tombstoneBlob).body,
-          );
+          tombstoneName = decodeSyncRecordBlob(
+            pending.tombstoneBlob,
+          ).body['name'];
         } on Object {
           // `_revalidatePendingDeletions` owns a blob that will not decode.
           return false;
         }
+        final holderName = await _storedName(kind, holderId);
+        if (tombstoneName is! String ||
+            holderName == null ||
+            !_isFreedName(tombstoneName, holderName, holderId)) {
+          return false;
+        }
+        nextKey = normalizeShareableText(tombstoneName).toLowerCase();
       }
     }
     if (nextKey == null || nextKey == naturalKey) return false;
@@ -4191,6 +4208,28 @@ final class CompendiumSyncStorage
       ...candidate.blob.body,
       'name': freed,
     }, updatedAt: nextExistenceStamp(now: now, current: candidate.updatedAt));
+  }
+
+  Future<String?> _storedName(SyncRecordKind kind, String id) async =>
+      switch (kind) {
+        SyncRecordKind.tag => (await (_db.select(
+          _db.tags,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.name,
+        SyncRecordKind.choreographer => (await (_db.select(
+          _db.choreographers,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.name,
+        _ => null,
+      };
+
+  /// Whether [name] is [base] given up by the record [id], in either of the
+  /// two forms [_freedTombstoneName] derives.
+  static bool _isFreedName(String name, String base, String id) {
+    final hex = id.replaceAll('-', '').toLowerCase();
+    final folded = normalizeShareableText(name).toLowerCase();
+    return {hex.length > 8 ? hex.substring(0, 8) : hex, hex}.any(
+      (suffix) =>
+          normalizeShareableText('${base}_$suffix').toLowerCase() == folded,
+    );
   }
 
   /// [name] freed for the tombstone [id]: see [_tombstoneYieldsNaturalKey].

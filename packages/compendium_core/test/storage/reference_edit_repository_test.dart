@@ -370,6 +370,86 @@ void main() {
     });
   });
 
+  group('review guards', () {
+    test('Undo after the dance was reordered keeps every author', () async {
+      for (final (id, name) in [(a, 'Ann'), (b, 'Anne'), (c, 'Cy')]) {
+        final _ = await repos.choreographers.upsert(
+          Choreographer(id: id, name: name),
+          at: t0,
+        );
+      }
+      await dance('d', authors: [b, c]);
+      final undo = await edits.merge(
+        ReferenceKind.author,
+        intoId: b,
+        otherIds: [a],
+      );
+      // The user moves the merged author after Cy before pressing Undo.
+      final merged = (await repos.dances.getById('d'))!;
+      expect(merged.authorIds, [a, c]);
+      await repos.dances.update(
+        merged.copyWith(authorIds: [c, a], updatedAt: DateTime.now().toUtc()),
+        localUserEdit: true,
+      );
+
+      await edits.undo(undo);
+
+      expect((await repos.dances.getById('d'))!.authorIds, [c, b]);
+    });
+
+    test('Undo is refused, writing nothing, when a live entry has taken the '
+        'old name since', () async {
+      await tag(a, 'Foo');
+      final undo = await edits.rename(ReferenceKind.tag, a, 'Bar');
+      await tag(b, 'Foo');
+
+      await expectLater(
+        edits.undo(undo),
+        throwsA(isA<ReferenceUndoConflictException>()),
+      );
+      expect((await tagRow(a)).name, 'Bar');
+    });
+
+    test('a merge and its Undo in the same second never reuse a stamp for a '
+        'different body', () async {
+      await tag(a, 'Flowing');
+      await tag(b, 'Flowy');
+      final at = DateTime.utc(2026, 10, 2);
+      final undo = await edits.merge(
+        ReferenceKind.tag,
+        intoId: b,
+        otherIds: [a],
+        at: at,
+      );
+      final tombstone = await tagRow(b);
+      await edits.undo(undo, at: at);
+
+      final revived = await tagRow(b);
+      expect(revived.deletedAt, isNull);
+      expect(revived.updatedAt!.isAfter(tombstone.updatedAt!), isTrue);
+    });
+
+    test('a merge is refused, writing nothing, when a live entry outside it '
+        'holds the name', () async {
+      await tag(a, 'x');
+      await tag(b, 'y');
+      await tag(c, 'Flowy');
+
+      await expectLater(
+        edits.merge(ReferenceKind.tag, intoId: a, otherIds: [b], name: 'flowy'),
+        throwsA(
+          isA<ReferenceNameTakenException>().having(
+            (e) => e.liveIds,
+            'liveIds',
+            [c],
+          ),
+        ),
+      );
+      expect(await aliases(), isEmpty);
+      expect((await tagRow(b)).deletedAt, isNull);
+    });
+  });
+
   group('deleteTag', () {
     test('takes the tag off live and trashed dances, counting live ones, '
         'and a tag re-created under the name does not get them back', () async {

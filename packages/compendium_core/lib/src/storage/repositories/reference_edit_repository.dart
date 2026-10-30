@@ -47,6 +47,22 @@ class ReferenceNameTakenException implements Exception {
       '${liveIds.join(', ')}';
 }
 
+/// An Undo found a **live** entry outside the edit holding a name it would
+/// give back: created, or brought by a sync pass, since the edit. Nothing was
+/// written; the edit stands.
+class ReferenceUndoConflictException implements Exception {
+  const ReferenceUndoConflictException(this.kind, this.name, this.holderId);
+
+  final ReferenceKind kind;
+  final String name;
+  final String holderId;
+
+  @override
+  String toString() =>
+      'ReferenceUndoConflictException: ${kind.name} "$name" is now held by '
+      '$holderId';
+}
+
 /// What one rename, merge or delete changed, kept in memory for its Undo.
 ///
 /// Opaque to callers: pass it back to [ReferenceEditRepository.undo]. It lives
@@ -294,6 +310,17 @@ class ReferenceEditRepository {
         targetName,
       );
 
+      // A live entry outside the merge holding the name — created, or brought
+      // by a sync pass, since the rename that offered this merge — would be
+      // left beside the result as a duplicate, or break the UNIQUE index.
+      final outside = [
+        for (final match in await nameMatches(kind, targetName))
+          if (!match.deleted && !all.contains(match.id)) match.id,
+      ];
+      if (outside.isNotEmpty) {
+        throw ReferenceNameTakenException(kind, targetName, outside);
+      }
+
       final joinsBefore = await _readJoins(kind, losers.toSet());
       final survivorDancesBefore = await _citingDances(kind, {survivorId});
       final aliasesBefore = await _aliases(kind);
@@ -316,14 +343,7 @@ class ReferenceEditRepository {
           kind: kind.syncKind,
           recordId: loser,
         );
-        await stampExistenceTransition(
-          _db,
-          table: _table(kind),
-          keyColumn: 'id',
-          key: loser,
-          at: now,
-          deleted: true,
-        );
+        await _stampExistence(kind, loser, now: now, deleted: true);
         await _syncLocal.remapIdentity(
           kind: kind.syncKind,
           losingId: loser,
@@ -389,14 +409,7 @@ class ReferenceEditRepository {
       final liveCount = await liveDanceCount(kind, id);
       await (_db.delete(_db.danceTags)..where((t) => t.tagId.equals(id))).go();
       await _bumpDances(dances, now: now);
-      await stampExistenceTransition(
-        _db,
-        table: _db.tags,
-        keyColumn: 'id',
-        key: id,
-        at: now,
-        deleted: true,
-      );
+      await _stampExistence(kind, id, now: now, deleted: true);
       return ReferenceEditUndo._(
         kind,
         liveCount,
@@ -431,6 +444,25 @@ class ReferenceEditRepository {
     final state = token._state;
     return _db.transaction(() async {
       final survivorId = state.survivorId;
+      if (kind.hasNaturalKey) {
+        // Undo gives each entry its old name back. A live entry outside the
+        // edit holding one now refuses the Undo before anything is written; a
+        // tombstone holding one gives it up, as a rename frees it.
+        final freeing = <String>{};
+        for (final row in state.rowsBefore.values) {
+          final name = _name(kind, row);
+          for (final match in await nameMatches(kind, name)) {
+            if (state.touchedIds.contains(match.id)) continue;
+            if (!match.deleted) {
+              throw ReferenceUndoConflictException(kind, name, match.id);
+            }
+            freeing.add(match.id);
+          }
+        }
+        for (final id in freeing) {
+          await _freeName(kind, id, now: now);
+        }
+      }
       // Survivor (or the renamed or deleted entry) first, losers after, so a
       // name the survivor took is free again before a loser needs it back.
       final order = state.rowsBefore.keys.toList()
@@ -442,14 +474,7 @@ class ReferenceEditRepository {
       for (final id in order) {
         await _writeFields(kind, state.rowsBefore[id]!, now: now);
         if (state.revive.contains(id)) {
-          await stampExistenceTransition(
-            _db,
-            table: _table(kind),
-            keyColumn: 'id',
-            key: id,
-            at: now,
-            deleted: false,
-          );
+          await _stampExistence(kind, id, now: now, deleted: false);
         }
       }
 
@@ -457,25 +482,24 @@ class ReferenceEditRepository {
       for (final join in state.joinsBefore) {
         final danceId = _joinDanceId(join);
         dances.add(danceId);
-        if (survivorId != null &&
-            !state.survivorDancesBefore.contains(danceId)) {
-          await _deleteJoin(kind, danceId, survivorId);
-        }
-        await _insertJoin(join);
+        await _restoreJoin(
+          join,
+          movedTo:
+              survivorId != null &&
+                  !state.survivorDancesBefore.contains(danceId)
+              ? survivorId
+              : null,
+        );
       }
 
       await _restoreAliases(kind, state.aliasesBefore, state.aliasesAfter);
       if (survivorId != null) {
-        await (_db.delete(_db.retainedSyncFields)..where(
-              (t) =>
-                  t.kind.equals(kind.syncKind.name) &
-                  t.recordId.isIn(state.touchedIds),
-            ))
-            .go();
-        for (final row in state.retainedBefore) {
-          await _db.into(_db.retainedSyncFields).insert(row);
-        }
+        await _restoreRetained(kind, state, survivorId);
+        // The losers' held deletions come back with them. The survivor's is
+        // not put back: the merge cancelled it as a deliberate edit and raised
+        // its existence stamp (§6.8), which an Undo does not lower again.
         for (final row in state.pendingBefore) {
+          if (row.recordId == survivorId) continue;
           await _db
               .into(_db.pendingDeletions)
               .insert(row, mode: InsertMode.insertOrReplace);
@@ -487,6 +511,76 @@ class ReferenceEditRepository {
       await _reindex(kind, dances);
     });
   }
+
+  /// Puts back the retained sync fields the merge's `remapIdentity` moved:
+  /// each loser's own, and nothing on the survivor unless it held its own
+  /// before. A row a sync pass has written for the survivor since is left.
+  Future<void> _restoreRetained(
+    ReferenceKind kind,
+    _UndoState state,
+    String survivorId,
+  ) async {
+    final before = {for (final row in state.retainedBefore) row.recordId: row};
+    for (final id in state.touchedIds) {
+      if (id == survivorId) continue;
+      await (_db.delete(_db.retainedSyncFields)..where(
+            (t) => t.kind.equals(kind.syncKind.name) & t.recordId.equals(id),
+          ))
+          .go();
+      final row = before[id];
+      if (row != null) await _db.into(_db.retainedSyncFields).insert(row);
+    }
+    if (before.containsKey(survivorId)) return;
+    final moved = {
+      for (final row in state.retainedBefore) (row.payload, row.wholeRecord),
+    };
+    final current =
+        await (_db.select(_db.retainedSyncFields)..where(
+              (t) =>
+                  t.kind.equals(kind.syncKind.name) &
+                  t.recordId.equals(survivorId),
+            ))
+            .getSingleOrNull();
+    if (current != null &&
+        moved.contains((current.payload, current.wholeRecord))) {
+      await (_db.delete(_db.retainedSyncFields)..where(
+            (t) =>
+                t.kind.equals(kind.syncKind.name) &
+                t.recordId.equals(survivorId),
+          ))
+          .go();
+    }
+  }
+
+  /// Stamps an existence transition of entry [id] past its own `updated_at`
+  /// as well as its `existence_at`. [stampExistenceTransition] writes
+  /// `updated_at = at`, which alone could repeat the stamp a name-only write
+  /// just took, or fall below one from a clock that ran ahead, while the body
+  /// changes (§6.5 I1).
+  Future<void> _stampExistence(
+    ReferenceKind kind,
+    String id, {
+    required DateTime now,
+    required bool deleted,
+  }) async {
+    final row = await _readRow(kind, id);
+    if (row == null) return;
+    await stampExistenceTransition(
+      _db,
+      table: _table(kind),
+      keyColumn: 'id',
+      key: id,
+      at: _stamp(now, _updatedAt(row)),
+      deleted: deleted,
+    );
+  }
+
+  static DateTime? _updatedAt(Object row) => switch (row) {
+    TagRow() => row.updatedAt,
+    ChoreographerRow() => row.updatedAt,
+    PublishedSourceRow() => row.updatedAt,
+    _ => throw ArgumentError.value(row, 'row'),
+  };
 
   // ---------------------------------------------------------------------
   // Per-kind plumbing.
@@ -715,36 +809,86 @@ class ReferenceEditRepository {
     _ => throw ArgumentError.value(join, 'join'),
   };
 
-  Future<void> _deleteJoin(
-    ReferenceKind kind,
-    String danceId,
-    String id,
-  ) => switch (kind) {
-    ReferenceKind.tag => (_db.delete(
-      _db.danceTags,
-    )..where((t) => t.danceId.equals(danceId) & t.tagId.equals(id))).go(),
-    ReferenceKind.author =>
-      (_db.delete(_db.danceAuthors)..where(
-            (t) => t.danceId.equals(danceId) & t.choreographerId.equals(id),
-          ))
-          .go(),
-    ReferenceKind.source => (_db.delete(
-      _db.danceSources,
-    )..where((t) => t.danceId.equals(danceId) & t.sourceId.equals(id))).go(),
-  };
+  /// Puts [join], a loser's join row, back. Where the merge moved it to the
+  /// survivor ([movedTo]) and that row is still there, it is moved back in
+  /// place, so an author or citation keeps a position an edit since gave it.
+  /// Otherwise it is inserted at its old position, or after the last one if
+  /// an edit since took that position: never dropped.
+  Future<void> _restoreJoin(Object join, {required String? movedTo}) async {
+    switch (join) {
+      case DanceTagRow():
+        if (movedTo != null) {
+          await (_db.delete(_db.danceTags)..where(
+                (t) => t.danceId.equals(join.danceId) & t.tagId.equals(movedTo),
+              ))
+              .go();
+        }
+        await _db
+            .into(_db.danceTags)
+            .insert(join, mode: InsertMode.insertOrIgnore);
+      case DanceAuthorRow():
+        final moved = movedTo == null
+            ? 0
+            : await (_db.update(_db.danceAuthors)..where(
+                    (t) =>
+                        t.danceId.equals(join.danceId) &
+                        t.choreographerId.equals(movedTo),
+                  ))
+                  .write(
+                    DanceAuthorsCompanion(
+                      choreographerId: Value(join.choreographerId),
+                    ),
+                  );
+        if (moved > 0) return;
+        final rows = await (_db.select(
+          _db.danceAuthors,
+        )..where((t) => t.danceId.equals(join.danceId))).get();
+        if (rows.any((r) => r.choreographerId == join.choreographerId)) return;
+        await _db
+            .into(_db.danceAuthors)
+            .insert(
+              rows.any((r) => r.position == join.position)
+                  ? join.copyWith(
+                      position: _nextPosition(rows.map((r) => r.position)),
+                    )
+                  : join,
+            );
+      case DanceSourceRow():
+        final moved = movedTo == null
+            ? 0
+            : await (_db.update(_db.danceSources)..where(
+                    (t) =>
+                        t.danceId.equals(join.danceId) &
+                        t.sourceId.equals(movedTo),
+                  ))
+                  .write(
+                    DanceSourcesCompanion(
+                      sourceId: Value(join.sourceId),
+                      page: Value(join.page),
+                      number: Value(join.number),
+                    ),
+                  );
+        if (moved > 0) return;
+        final rows = await (_db.select(
+          _db.danceSources,
+        )..where((t) => t.danceId.equals(join.danceId))).get();
+        if (rows.any((r) => r.sourceId == join.sourceId)) return;
+        await _db
+            .into(_db.danceSources)
+            .insert(
+              rows.any((r) => r.position == join.position)
+                  ? join.copyWith(
+                      position: _nextPosition(rows.map((r) => r.position)),
+                    )
+                  : join,
+            );
+      default:
+        throw ArgumentError.value(join, 'join');
+    }
+  }
 
-  /// Puts a join row back as it was. An ordered join's position may since
-  /// have been taken by an edit made before Undo; the row is then skipped
-  /// rather than displacing that edit.
-  Future<void> _insertJoin(Object join) => switch (join) {
-    DanceTagRow() =>
-      _db.into(_db.danceTags).insert(join, mode: InsertMode.insertOrIgnore),
-    DanceAuthorRow() =>
-      _db.into(_db.danceAuthors).insert(join, mode: InsertMode.insertOrIgnore),
-    DanceSourceRow() =>
-      _db.into(_db.danceSources).insert(join, mode: InsertMode.insertOrIgnore),
-    _ => throw ArgumentError.value(join, 'join'),
-  };
+  static int _nextPosition(Iterable<int> positions) =>
+      positions.fold(-1, (a, b) => a > b ? a : b) + 1;
 
   Future<Set<String>> _citingDances(
     ReferenceKind kind,
