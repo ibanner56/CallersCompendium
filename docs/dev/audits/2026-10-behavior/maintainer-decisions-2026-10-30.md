@@ -439,6 +439,16 @@ Built in #2057.
 
 **Decision:** "Keep my rating". The option read: "Replace leaves your existing rating alone whenever the incoming file carries none. It's a small follow-up PR covering the import pipeline, that test and imports.md." The "(Recommended)" tag and its reason were the orchestrating session's. Rejected: "Clear it, as now".
 
+### D-11 / UX6-2: Save, New and the record's name on sibling screens (2026-10-30 ~14:20 UTC)
+**Question:** where should Save, New and the record's name sit on sibling screens? Answered in three parts after viewing the renders at https://claude.ai/artifact/GJJMBFTrPuCp46DWMPtsjo.
+
+**Decision:**
+- **Save:** "(a) Keep today's split". The two long editors (dance, program) keep a floating Save; the other five keep Save in the top bar. Write the rule into `ux.md` and fix the two code comments that cite `ux.md` for the floating Save.
+- **New:** "Keep today's mix". Floating New on top-level lists; "+" in the top bar where a floating button would cover entries (Glossary).
+- **Record name:** "(B) Actions to top bar". The top bar keeps "Program" and takes the four action icons; the full name keeps its own line in the body. Dance detail is unchanged.
+
+All three match the recommendations. Builds as the UX6-2 branch, after D2.
+
 ## Still open
 
-- **D-11** (UX6-2): the maintainer asked for renderings of each option; they are at https://claude.ai/artifact/GJJMBFTrPuCp46DWMPtsjo. No choice recorded yet.
+- Nothing on the decision page.
