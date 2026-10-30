@@ -24,7 +24,7 @@ String retirementNoticeMessage(
   final l10n = AppLocalizations.of(context);
   // The user's date-format preference when it names a fixed pattern. The
   // system default falls back to the *full* date (weekday and full month)
-  // rather than the shorter year-bearing `formatShortDate` event dates use,
+  // rather than the shorter numeric region date event dates use,
   // because a deadline reads better spelled out.
   final date =
       formatDatePattern(

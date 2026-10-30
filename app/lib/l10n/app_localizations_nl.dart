@@ -9016,6 +9016,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get userGuideOpenOnline => 'De gids online openen';
 
   @override
+  String get userGuideEnglishOnly => 'De gebruikersgids is in het Engels.';
+
+  @override
   String get shorthandMappingsTitle => 'Figuurafkortingen';
 
   @override

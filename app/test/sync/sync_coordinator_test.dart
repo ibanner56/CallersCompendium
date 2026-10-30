@@ -5546,7 +5546,7 @@ void main() {
     // unreadable this pass and the merge skipped it.
     final local = SyncMergeCandidate.fromBlob(_setting('theme_mode', 'local'));
     final other = SyncMergeCandidate.fromBlob(
-      _setting('reduce_motion', 'other'),
+      _setting('confirm_before_delete', 'other'),
     );
     final store = _FakeStore(local: {local.address: local})
       ..queuedConflicts = {local.address};
@@ -5579,6 +5579,57 @@ void main() {
     }
 
     expect(codes, isNot(contains(SyncReportCode.unreflectedPublication)));
+  });
+
+  test('an older peer\'s value for a withdrawn setting is never downloaded, '
+      'applied or reported (spec §6.7, amended 2026-10-29)', () async {
+    // The peer still syncs Reduce motion; this build keeps it per-device.
+    final withdrawn = SyncMergeCandidate.fromBlob(
+      _setting('reduce_motion', 'peer'),
+    );
+    final synced = SyncMergeCandidate.fromBlob(
+      _setting('confirm_before_delete', 'peer'),
+    );
+    final store = _FakeStore();
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.setting: {
+            withdrawn.blob.id: withdrawn.wireHash,
+            synced.blob.id: synced.wireHash,
+          },
+        },
+      ),
+      blobResponses: {
+        for (final candidate in [withdrawn, synced])
+          candidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(candidate.blob)),
+          ),
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+    addTearDown(coordinator.dispose);
+
+    final result = await coordinator.syncNow();
+
+    expect(result.status, SyncPassStatus.completed);
+    expect(store.writes.map((write) => write.address), [synced.address]);
+    expect([
+      ...transport.blobHashes,
+      ...transport.batchRequests.expand((b) => b),
+    ], isNot(contains(withdrawn.wireHash)));
+    expect(
+      result.reports.where((report) => report.recordId == 'reduce_motion'),
+      isEmpty,
+    );
   });
 
   test(

@@ -369,7 +369,7 @@ void main() {
       (DateFormatSetting(DateFormatPref.ymd), '2026-03-09'),
       (DateFormatSetting(DateFormatPref.dmy), '09/03/2026'),
       // System default carries the year (PLAT-12).
-      (DateFormatSetting.system, 'Mar 9, 2026'),
+      (DateFormatSetting.system, '3/9/2026'),
     ]) {
       testWidgets('Copy set list renders the event date per the Date format '
           'setting (${setting.pref.name})', (tester) async {
