@@ -248,6 +248,85 @@ void main() {
     });
   });
 
+  // Windows reports every reparse point as a link when not following it, and
+  // a OneDrive file keeps one after download. Those must open; only a real
+  // symlink or junction is refused.
+  group('checkDesktopOpenPath with Windows reparse points', () {
+    final windows = p.Context(style: p.Style.windows, current: r'C:\work');
+    const path = r'C:\Users\caller\OneDrive\Documents\Contra Night.ccshare';
+
+    test(
+      'a non-link reparse point (a OneDrive file) is followed and opens',
+      () async {
+        final probe = _FakeProbe(
+          noFollow: FileSystemEntityType.link,
+          follow: FileSystemEntityType.file,
+          symlinkOrJunction: false,
+        );
+
+        final check = await checkDesktopOpenPath(
+          path,
+          context: windows,
+          probe: probe,
+        );
+
+        expect(check.rejection, isNull);
+        expect(check.path, path);
+      },
+    );
+
+    test('a symlink or junction is refused without being followed', () async {
+      final probe = _FakeProbe(
+        noFollow: FileSystemEntityType.link,
+        follow: FileSystemEntityType.file,
+        symlinkOrJunction: true,
+      );
+
+      final check = await checkDesktopOpenPath(
+        path,
+        context: windows,
+        probe: probe,
+      );
+
+      expect(check.rejection, DesktopOpenRejection.notRegularFile);
+      expect(probe.followed, isFalse);
+    });
+
+    test(
+      'a non-link reparse point that resolves to a directory is refused',
+      () async {
+        final check = await checkDesktopOpenPath(
+          path,
+          context: windows,
+          probe: _FakeProbe(
+            noFollow: FileSystemEntityType.link,
+            follow: FileSystemEntityType.directory,
+            symlinkOrJunction: false,
+          ),
+        );
+
+        expect(check.rejection, DesktopOpenRejection.notRegularFile);
+      },
+    );
+
+    test('off Windows a link is refused without the reparse check', () async {
+      final probe = _FakeProbe(
+        noFollow: FileSystemEntityType.link,
+        follow: FileSystemEntityType.file,
+        symlinkOrJunction: false,
+      );
+
+      final check = await checkDesktopOpenPath(
+        '/home/caller/x.ccshare',
+        context: p.Context(style: p.Style.posix, current: '/'),
+        probe: probe,
+      );
+
+      expect(check.rejection, DesktopOpenRejection.notRegularFile);
+      expect(probe.followed, isFalse);
+    });
+  });
+
   group('desktopOpenPathFromArgs', () {
     test('picks the .ccshare argument and makes it absolute', () {
       final path = desktopOpenPathFromArgs([
@@ -284,4 +363,33 @@ void main() {
       );
     });
   });
+}
+
+/// Stands in for the file system in the Windows reparse-point tests.
+class _FakeProbe extends DesktopFileProbe {
+  _FakeProbe({
+    required this.noFollow,
+    required this.follow,
+    required this.symlinkOrJunction,
+  });
+
+  final FileSystemEntityType noFollow;
+  final FileSystemEntityType follow;
+  final bool symlinkOrJunction;
+  bool followed = false;
+
+  @override
+  Future<FileSystemEntityType> type(
+    String path, {
+    required bool followLinks,
+  }) async {
+    if (followLinks) followed = true;
+    return followLinks ? follow : noFollow;
+  }
+
+  @override
+  Future<bool> isSymlinkOrJunction(String path) async => symlinkOrJunction;
+
+  @override
+  Future<int> length(String path) async => 16;
 }

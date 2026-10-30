@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 
 import 'archive_intake_service.dart' show kMaxIncomingArchiveBytes;
@@ -70,7 +71,8 @@ class DesktopOpenCheck {
 /// - on Windows, no reserved device name (`CON`, `NUL`, `COM1`, ...);
 /// - the [kDesktopShareFileExtension] extension, compared case-insensitively;
 /// - the last path component is a regular file, checked without following a
-///   symlink there;
+///   symlink or junction there (on Windows, another reparse point, such as a
+///   OneDrive file, is followed);
 /// - at most [maxBytes].
 ///
 /// [context] decides the path rules (the platform's by default), so the
@@ -86,6 +88,7 @@ Future<DesktopOpenCheck> checkDesktopOpenPath(
   String raw, {
   int maxBytes = kMaxIncomingArchiveBytes,
   p.Context? context,
+  @visibleForTesting DesktopFileProbe? probe,
 }) async {
   final path = context ?? p.context;
   final windows = path.style == p.Style.windows;
@@ -111,14 +114,24 @@ Future<DesktopOpenCheck> checkDesktopOpenPath(
   if (windows && _isReservedWindowsName(path.basename(raw))) {
     return const DesktopOpenCheck.rejected(DesktopOpenRejection.deviceName);
   }
+  final fs = probe ?? const DesktopFileProbe();
   try {
-    final type = await FileSystemEntity.type(raw, followLinks: false);
+    var type = await fs.type(raw, followLinks: false);
+    // Windows reports every reparse point as a link when not following, and
+    // OneDrive keeps a cloud reparse point on files it has downloaded. Only a
+    // symlink or junction is a link here; any other reparse point is judged
+    // by what it resolves to.
+    if (windows &&
+        type == FileSystemEntityType.link &&
+        !await fs.isSymlinkOrJunction(raw)) {
+      type = await fs.type(raw, followLinks: true);
+    }
     if (type != FileSystemEntityType.file) {
       return const DesktopOpenCheck.rejected(
         DesktopOpenRejection.notRegularFile,
       );
     }
-    if (await File(raw).length() > maxBytes) {
+    if (await fs.length(raw) > maxBytes) {
       return const DesktopOpenCheck.rejected(DesktopOpenRejection.tooLarge);
     }
   } on FileSystemException {
@@ -126,6 +139,30 @@ Future<DesktopOpenCheck> checkDesktopOpenPath(
     return const DesktopOpenCheck.rejected(DesktopOpenRejection.notRegularFile);
   }
   return DesktopOpenCheck.accepted(raw);
+}
+
+/// The file-system calls [checkDesktopOpenPath] makes, so a test can stand in
+/// for Windows behaviour on any host.
+class DesktopFileProbe {
+  const DesktopFileProbe();
+
+  Future<FileSystemEntityType> type(String path, {required bool followLinks}) =>
+      FileSystemEntity.type(path, followLinks: followLinks);
+
+  /// Whether [path] is a symlink or a junction. `Link.target` reads the link
+  /// without following it, and on Windows it fails for any other reparse
+  /// point (such as a OneDrive file).
+  Future<bool> isSymlinkOrJunction(String path) async {
+    try {
+      await Link(path).target();
+      return true;
+    } on FileSystemException {
+      // diagnostics: silent — not a symlink or junction; the caller follows it instead
+      return false;
+    }
+  }
+
+  Future<int> length(String path) => File(path).length();
 }
 
 final RegExp _twoLeadingSeparators = RegExp(r'^[\\/]{2}');
