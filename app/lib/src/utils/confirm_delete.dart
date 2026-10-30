@@ -20,7 +20,27 @@ import '../theme/destructive_button_style.dart';
 Future<bool> confirmDeleteIfEnabled(
   BuildContext context, {
   required String itemLabel,
-}) async {
+}) => _confirmDeleteIfEnabled(
+  context,
+  (l10n) => l10n.confirmDeleteBody(itemLabel),
+);
+
+/// [confirmDeleteIfEnabled] for [count] dances deleted at once from
+/// Collection's selection mode: the same setting, dialog and keys, with a body
+/// that names the count instead of a title. One rule for every delete (N4-4 =
+/// a), so a bulk delete with the setting off asks nothing either.
+Future<bool> confirmDeleteDancesIfEnabled(
+  BuildContext context, {
+  required int count,
+}) => _confirmDeleteIfEnabled(
+  context,
+  (l10n) => l10n.confirmDeleteDancesBody(count),
+);
+
+Future<bool> _confirmDeleteIfEnabled(
+  BuildContext context,
+  String Function(AppLocalizations l10n) body,
+) async {
   if (!ConfirmBeforeDeleteScope.of(context)) return true;
 
   final l10n = AppLocalizations.of(context);
@@ -29,7 +49,7 @@ Future<bool> confirmDeleteIfEnabled(
     builder: (ctx) => AlertDialog(
       key: const ValueKey('confirm-delete-dialog'),
       title: Text(l10n.confirmDeleteTitle),
-      content: Text(l10n.confirmDeleteBody(itemLabel)),
+      content: Text(body(l10n)),
       actions: [
         TextButton(
           key: const ValueKey('confirm-delete-cancel'),

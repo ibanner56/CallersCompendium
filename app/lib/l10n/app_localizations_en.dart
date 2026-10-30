@@ -240,6 +240,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances will be deleted. You can undo this.',
+      one: '1 dance will be deleted. You can undo this.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -4172,6 +4183,28 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: 'Cleared field on $count dances',
       one: 'Cleared field on 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted $count dances',
+      one: 'Deleted 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted $count dances. Restore them from Recently Deleted.',
+      one: 'Deleted 1 dance. Restore it from Recently Deleted.',
     );
     return '$_temp0';
   }

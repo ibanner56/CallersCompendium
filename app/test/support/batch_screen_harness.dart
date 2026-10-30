@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -12,10 +13,12 @@ import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'l10n_harness.dart';
 
 /// Pumps [DanceListScreen] under the app scopes the batch-edit tests need.
+/// [confirmBeforeDelete] is the *Confirm before delete* setting.
 Future<void> pumpBatchScreen(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
+  CompendiumRepositories repos, {
+  bool confirmBeforeDelete = false,
+}) async {
   await tester.binding.setSurfaceSize(const Size(1200, 3000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -24,6 +27,8 @@ Future<void> pumpBatchScreen(
     AppThemeSelection.system,
   );
   addTearDown(themeNotifier.dispose);
+  final confirmNotifier = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirmNotifier.dispose);
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
   addTearDown(customThemes.dispose);
@@ -37,7 +42,10 @@ Future<void> pumpBatchScreen(
           notifier: themeNotifier,
           child: CustomThemesScope(
             controller: customThemes,
-            child: ActiveDialectScope(notifier: notifier, child: child!),
+            child: ConfirmBeforeDeleteScope(
+              notifier: confirmNotifier,
+              child: ActiveDialectScope(notifier: notifier, child: child!),
+            ),
           ),
         ),
       ),

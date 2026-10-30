@@ -307,6 +307,16 @@
       }
     }
   },
+  "confirmDeleteDancesBody": "{count, plural, =1{1 dance will be deleted. You can undo this.} other{{count} dances will be deleted. You can undo this.}}",
+  "@confirmDeleteDancesBody": {
+    "description": "Body of the confirm-before-delete dialog when several selected dances are deleted at once from Collection's selection mode (shown only when the 'Confirm before delete' setting is on). {count} includes selected dances the current search hides.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "description": "Field label for the hexadecimal colour input in the shared colour-picker dialog."
@@ -5301,6 +5311,26 @@
       "count": {
         "type": "int",
         "example": "5"
+      }
+    }
+  },
+  "collectionBatchDeleted": "{count, plural, =1{Deleted 1 dance} other{Deleted {count} dances}}",
+  "@collectionBatchDeleted": {
+    "description": "Snackbar confirming the selected dances were moved to Recently Deleted by Collection's batch Delete; it carries an Undo action.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "collectionBatchDeletedAnnouncement": "{count, plural, =1{Deleted 1 dance. Restore it from Recently Deleted.} other{Deleted {count} dances. Restore them from Recently Deleted.}}",
+  "@collectionBatchDeletedAnnouncement": {
+    "description": "Screen-reader announcement after Collection's batch Delete. Names Recently Deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
       }
     }
   },

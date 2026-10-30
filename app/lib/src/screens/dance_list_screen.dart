@@ -171,6 +171,7 @@ enum _BatchMoreAction {
   addTunes,
   clearTunes,
   editCustomField,
+  delete,
 }
 
 enum _CollectionCompactAction {
@@ -1625,7 +1626,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
       });
 
-  /// Shared tail of the batch handlers: announces [message] to AT, exits
+  /// Shared tail of the batch handlers: announces [message] (or the longer
+  /// [announcement], when given) to AT, exits
   /// selection mode, then shows either a plain "no changes" snackbar (when
   /// [count] is 0) or an Undo prompt wired to [onUndo].
   Future<void> _finishBatch({
@@ -1633,11 +1635,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
     required String message,
     required ValueKey<String> snackKey,
     required FutureOr<void> Function() onUndo,
+    String? announcement,
   }) async {
     if (!mounted) return;
     SemanticsService.sendAnnouncement(
       View.of(context),
-      message,
+      announcement ?? message,
       Directionality.of(context),
     );
     final l10n = AppLocalizations.of(context);
@@ -1660,6 +1663,58 @@ class _DanceListScreenState extends State<DanceListScreen> {
       undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: accessibleNavigation,
       onUndo: onUndo,
+    );
+  }
+
+  /// Moves the selected dances to Recently Deleted in one transaction
+  /// ([DanceRepository.softDeleteMany]), behind the same *Confirm before
+  /// delete* gate as the row menu (N4-4 = a). Undo restores exactly the dances
+  /// this call deleted, through [DanceRepository.restoreMany], so it revives
+  /// what each restore revives.
+  Future<void> _batchDelete() async {
+    if (_data == null || _selection.isEmpty) return;
+
+    final selectedIds = _selection.snapshot();
+    if (!await confirmDeleteDancesIfEnabled(
+          context,
+          count: selectedIds.length,
+        ) ||
+        !mounted) {
+      return;
+    }
+
+    final List<String> deleted;
+    try {
+      deleted = await _repos.dances.softDeleteMany(
+        selectedIds,
+        at: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchDelete',
+      );
+      _reportBatchFailure();
+      return;
+    }
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final count = deleted.length;
+    // No reload, here or in Undo: both writes go to `dances`, which this list
+    // watches, so the rows leave and come back on their own.
+    await _finishBatch(
+      count: count,
+      message: count == 0
+          ? l10n.collectionBatchNoChanges
+          : l10n.collectionBatchDeleted(count),
+      announcement: count == 0
+          ? null
+          : l10n.collectionBatchDeletedAnnouncement(count),
+      snackKey: const ValueKey('batch-delete-snackbar'),
+      onUndo: () =>
+          _repos.dances.restoreMany(deleted, at: DateTime.now().toUtc()),
     );
   }
 
@@ -2474,6 +2529,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 _batchClearTunes();
               case _BatchMoreAction.editCustomField:
                 _batchCustomField();
+              case _BatchMoreAction.delete:
+                _batchDelete();
             }
           },
           itemBuilder: (_) => [
@@ -2518,6 +2575,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
               value: _BatchMoreAction.editCustomField,
               enabled: canAct,
               child: Text(l10n.collectionEditCustomField),
+            ),
+            // Delete is last, in its own group and the error colour, so it
+            // never sits beside an edit (`bulk-selection.md`, Q4 "Delete").
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              key: const ValueKey('batch-delete'),
+              value: _BatchMoreAction.delete,
+              enabled: canAct,
+              child: _BatchDeleteLabel(
+                label: l10n.commonDelete,
+                enabled: canAct,
+              ),
             ),
           ],
         ),
@@ -3419,4 +3488,29 @@ class _SectionHeaderItem extends _CollectionListItem {
 class _DanceRowItem extends _CollectionListItem {
   const _DanceRowItem(this.entry);
   final DanceListEntry entry;
+}
+
+/// The batch menu's Delete entry: the bin (decision D-10 reserves it for
+/// "delete") and the label, both in the error colour while the entry is
+/// enabled, so a disabled entry still greys out like its neighbours.
+class _BatchDeleteLabel extends StatelessWidget {
+  const _BatchDeleteLabel({required this.label, required this.enabled});
+
+  final String label;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled ? Theme.of(context).colorScheme.error : null;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.delete_outline, color: color),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(label, style: TextStyle(color: color)),
+        ),
+      ],
+    );
+  }
 }

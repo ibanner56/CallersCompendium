@@ -233,6 +233,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを削除します。元に戻せます。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'HEX';
 
   @override
@@ -4007,6 +4017,26 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count件のダンスのフィールドをクリアしました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを削除しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを削除しました。「最近削除したアイテム」から復元できます。',
     );
     return '$_temp0';
   }
