@@ -161,15 +161,22 @@ picker.*
 - **Your program** — the ordered list of
   [slots](./glossary.md#slot) that make up the evening.
 - **The collection picker** — the same search tools you know from
-  [Collection & search](./collection.md): the **Filters** panel, the
-  **Advanced** figure builder, and the **By phrase** panel. Find a dance and add
-  it to the program.
+  [Collection & search](./collection.md): **Search in** beside the search box,
+  the **Filters** panel, the **Advanced** figure builder, the **By phrase**
+  panel, and the **Sort** menu with its ascending / descending arrow at the end
+  of the result count. The picker opens in your
+  [Collection sort order](./settings.md#display-defaults); a sort you choose
+  while picking lasts until you close the picker and doesn't change how the
+  Collection opens. Rows show the details you chose under
+  [Collection card fields](./settings.md#collection-card-fields). Find a dance
+  and add it to the program.
 
 **Add note / waltz** adds a free-text slot, and **Insert break** adds a break.
 On a narrow screen, **Add dance** opens the collection picker.
 
 To bring in a dance you don't have yet, tap the **Online search** icon at the end of the
-picker's row of search tools to search The Caller's Box or ContraDB. Selecting a
+picker's row of search tools to search The Caller's Box or ContraDB by title,
+author or figure, chosen with **Search in** as in the Collection. Selecting a
 result imports it and adds it straight away. If the dance is already in your
 collection, the app uses your copy without asking. If it matches one of your
 dances but the source or figures differ, the app asks how to handle it before
