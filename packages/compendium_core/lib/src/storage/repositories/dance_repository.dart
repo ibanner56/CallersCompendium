@@ -2246,9 +2246,9 @@ class DanceRepository {
   /// user (or an import they chose) entered survives as a **Not used** row: a
   /// tag with a colour; a choreographer with a website, notes, email, location
   /// or deceased mark; a source with an author, year, URL or notes. A blank or
-  /// whitespace-only text value is not a detail. See [_bareTagSql],
-  /// [_bareChoreographerSql] and [_bareSourceSql]. The test reads columns that
-  /// already exist, so it adds no persisted field.
+  /// whitespace-only (space, tab, CR, LF) text value is not a detail. See
+  /// [_bareTagSql], [_bareChoreographerSql] and [_bareSourceSql]. The test
+  /// reads columns that already exist, so it adds no persisted field.
   ///
   /// **Stays a HARD delete after the schema-v25 soft-delete conversion (#898),
   /// unlike the guarded deletes it mirrors.** Those now tombstone, so this is a
@@ -2347,15 +2347,20 @@ class DanceRepository {
 
   /// SQL predicates, ANDed into the GC's `DELETE`s, that are true only for a
   /// row with none of the details [_garbageCollectOrphanedRefs] spares. A text
-  /// column counts as empty when it is NULL or blank.
+  /// column counts as empty when it is NULL or holds only space, tab, CR or LF
+  /// (SQLite's one-argument `TRIM` strips spaces only).
+  static const _blankChars = 'char(32, 9, 10, 13)';
   static const _bareTagSql = 'color IS NULL';
   static const _bareChoreographerSql =
-      "COALESCE(TRIM(website), '') = '' AND COALESCE(TRIM(notes), '') = '' "
-      "AND COALESCE(TRIM(email), '') = '' "
-      "AND COALESCE(TRIM(location), '') = '' AND deceased = 0";
+      "COALESCE(TRIM(website, $_blankChars), '') = '' "
+      "AND COALESCE(TRIM(notes, $_blankChars), '') = '' "
+      "AND COALESCE(TRIM(email, $_blankChars), '') = '' "
+      "AND COALESCE(TRIM(location, $_blankChars), '') = '' "
+      'AND deceased = 0';
   static const _bareSourceSql =
-      "COALESCE(TRIM(author), '') = '' AND year IS NULL "
-      "AND COALESCE(TRIM(url), '') = '' AND COALESCE(TRIM(notes), '') = ''";
+      "COALESCE(TRIM(author, $_blankChars), '') = '' AND year IS NULL "
+      "AND COALESCE(TRIM(url, $_blankChars), '') = '' "
+      "AND COALESCE(TRIM(notes, $_blankChars), '') = ''";
 
   Future<void> _garbageCollectOrphanedTags(
     Iterable<String> candidateIds,

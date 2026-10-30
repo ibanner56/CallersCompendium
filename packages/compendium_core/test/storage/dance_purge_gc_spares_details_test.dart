@@ -76,9 +76,28 @@ void main() {
         "INSERT INTO choreographers (id, name, website, notes, email, "
         "location, deceased) VALUES ('c1', 'A', '  ', '', ' ', '', 0)",
       );
-      await purgeOnly(sampleDance(id: 'd1', authorIds: const ['c1']));
+      await db.customStatement(
+        "INSERT INTO choreographers (id, name, website, notes, email, "
+        "location, deceased) VALUES ('c2', 'B', char(9), char(10), "
+        "char(13, 10), ' ' || char(9) || ' ', 0)",
+      );
+      await purgeOnly(sampleDance(id: 'd1', authorIds: const ['c1', 'c2']));
       expect(await choreographers.listAll(), isEmpty);
     });
+  });
+
+  test('a source with only tab or newline text is still erased', () async {
+    await db.customStatement(
+      "INSERT INTO published_sources (id, title, author, url, notes) "
+      "VALUES ('s1', 'T', char(9), char(10), char(13, 10))",
+    );
+    await purgeOnly(
+      sampleDance(
+        id: 'd1',
+        sourceCitations: [SourceCitation(sourceId: 's1')],
+      ),
+    );
+    expect(await sources.listAll(), isEmpty);
   });
 
   group('a source', () {
