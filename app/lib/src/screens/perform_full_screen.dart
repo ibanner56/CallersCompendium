@@ -116,7 +116,7 @@ PerformFullScreenBackend performFullScreenBackend =
 
 /// Toggles window full screen in a Perform view. Bound to F11, or Ctrl-Cmd-F on
 /// macOS, by [PerformFullScreenMixin.buildPerformFullScreenShortcuts]; a
-/// toolbar button or a menu item can invoke it with [Actions.invoke] from
+/// toolbar button or a menu item can invoke it through the view's actions from
 /// inside the view. Does nothing where full screen is not a toggle.
 class TogglePerformFullScreenIntent extends Intent {
   const TogglePerformFullScreenIntent();
