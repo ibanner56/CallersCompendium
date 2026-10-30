@@ -23,6 +23,10 @@ class ShareableJsonKeyCollision implements Exception {
 String normalizeShareableText(String value) =>
     nfc(sanitizeShareableText(value));
 
+/// [normalizeShareableText] for a nullable column: `null` stays `null`.
+String? normalizeShareableTextOrNull(String? value) =>
+    value == null ? null : normalizeShareableText(value);
+
 /// The key to compare two natural-key values by when asking *"does the
 /// collection already have this one?"* — [normalizeShareableText], then
 /// case-folded.

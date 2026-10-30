@@ -10,6 +10,7 @@ import '../../search/filter.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../permanent_deletion.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
 import '../calling_history_scope.dart';
@@ -1835,6 +1836,173 @@ class ProgramRepository {
       }
       return deleted;
     });
+  }
+
+  /// "Permanently delete" for one program in Recently deleted (LIFE-2).
+  ///
+  /// Erases the program when no device has published it, exactly as before. A
+  /// published program cannot be erased (sync-spec.md §3.1 forfeiture), so it
+  /// is blanked instead and hidden from Recently deleted; see
+  /// `permanent_deletion.dart` for the design and the maintainer's decision.
+  ///
+  /// Mirrors `DanceRepository.permanentlyDelete`: a causal existence stamp, the
+  /// [permanentlyDeletedAt] mark, then [removePermanentlyDeleted]. A program
+  /// that is missing or live is left alone and reported as
+  /// [PermanentDeletion.none].
+  Future<PermanentDeletion> permanentlyDelete(
+    String id, {
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    return _db.transaction(() async {
+      final trashed =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(id) & t.deletedAt.isNotNull()))
+              .getSingleOrNull();
+      if (trashed == null) return PermanentDeletion.none;
+      await _stampExistence(id, at: now, deleted: true);
+      // The stamp above also moved `updated_at` to [now]. Put the content stamp
+      // back: the blank body must outrank the content it replaces, which may
+      // carry a stamp ahead of this clock.
+      await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
+        ProgramsCompanion(
+          updatedAt: Value(trashed.updatedAt),
+          deletedAt: Value(permanentlyDeletedAt),
+        ),
+      );
+      final published = await isPublishedSyncRecord(
+        _db,
+        kind: SyncRecordKind.program,
+        recordId: id,
+      );
+      await removePermanentlyDeleted(now: now, onlyIds: [id]);
+      return published ? PermanentDeletion.blanked : PermanentDeletion.erased;
+    });
+  }
+
+  /// Finishes every permanently deleted program ([isPermanentlyDeleted]):
+  /// erases the unpublished ones through [purgeDeleted] and blanks the
+  /// published ones that still hold content. Returns how many it erased or
+  /// blanked. See `DanceRepository.removePermanentlyDeleted` for why the
+  /// startup sweep runs it whatever the retention setting, and why a blank
+  /// program is skipped.
+  ///
+  /// When [onlyIds] is non-null only those programs are considered.
+  Future<int> removePermanentlyDeleted({
+    required DateTime now,
+    Iterable<String>? onlyIds,
+  }) {
+    assertUtc(now, 'now');
+    final restrictTo = onlyIds?.toSet();
+    return _db.transaction(() async {
+      final marked = <ProgramRow>[];
+      if (restrictTo == null) {
+        marked.addAll(
+          await (_db.select(
+            _db.programs,
+          )..where((t) => t.deletedAt.equals(permanentlyDeletedAt))).get(),
+        );
+      } else {
+        for (final chunk in _chunkIds(restrictTo.toList())) {
+          marked.addAll(
+            await (_db.select(_db.programs)..where(
+                  (t) =>
+                      t.deletedAt.equals(permanentlyDeletedAt) &
+                      t.id.isIn(chunk),
+                ))
+                .get(),
+          );
+        }
+      }
+      if (marked.isEmpty) return 0;
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.program,
+        recordIds: marked.map((row) => row.id),
+      );
+      var removed = await purgeDeleted(
+        now: now,
+        onlyIds: [
+          for (final row in marked)
+            if (!publishedIds.contains(row.id)) row.id,
+        ],
+      );
+      for (final row in marked) {
+        if (!publishedIds.contains(row.id) || await _isBlank(row)) continue;
+        await _blank(row, now: now);
+        removed++;
+      }
+      return removed;
+    });
+  }
+
+  /// Whether [row] already holds nothing but a deletion record. Slots are
+  /// checked too: a program's slots carry most of what it says.
+  Future<bool> _isBlank(ProgramRow row) async =>
+      row.title == blankedRecordTitle &&
+      row.eventDate == null &&
+      row.venue == null &&
+      row.venueId == null &&
+      row.band == null &&
+      row.caller == null &&
+      row.dancerLevel == null &&
+      row.notes.isEmpty &&
+      row.status == ProgramStatus.draft &&
+      !row.hideAlternates &&
+      row.dialectName == null &&
+      row.payMinorUnits == null &&
+      row.payCurrency == null &&
+      await (_db.selectOnly(_db.programSlots)
+                ..addColumns([_db.programSlots.id])
+                ..where(_db.programSlots.programId.equals(row.id))
+                ..limit(1))
+              .getSingleOrNull() ==
+          null;
+
+  /// Removes everything a trashed, published program holds except its
+  /// deletion record: its slots, its provenance, any kept parts a newer peer's
+  /// build sent (`retained_sync_fields`), and every field of its row. The blank
+  /// body is stamped after the content it replaces, so it wins last-writer-wins
+  /// on every peer. Nothing else cites a program.
+  Future<void> _blank(ProgramRow row, {required DateTime now}) async {
+    final id = row.id;
+    await (_db.delete(
+      _db.programSlots,
+    )..where((t) => t.programId.equals(id))).go();
+    await (_db.delete(
+      _db.programProvenance,
+    )..where((t) => t.programId.equals(id))).go();
+    await (_db.delete(_db.retainedSyncFields)..where(
+          (t) =>
+              t.kind.equals(SyncRecordKind.program.name) &
+              t.recordId.equals(id),
+        ))
+        .go();
+    final current = asUtc(row.updatedAt);
+    await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
+      ProgramsCompanion(
+        title: Value(normalizeShareableText(blankedRecordTitle)),
+        eventDate: const Value(null),
+        venue: Value(normalizeShareableTextOrNull(null)),
+        venueId: const Value(null),
+        band: Value(normalizeShareableTextOrNull(null)),
+        caller: Value(normalizeShareableTextOrNull(null)),
+        dancerLevel: Value(normalizeShareableTextOrNull(null)),
+        notes: Value(normalizeShareableText('')),
+        status: const Value(ProgramStatus.draft),
+        hideAlternates: const Value(false),
+        dialectName: Value(normalizeShareableTextOrNull(null)),
+        payMinorUnits: const Value(null),
+        payCurrency: const Value(null),
+        updatedAt: Value(
+          nextStoredTimestamp(
+            now: now.isAfter(current) ? now : current.add(storedTimestampTick),
+            current: [current],
+          ),
+        ),
+        deletedAt: Value(permanentlyDeletedAt),
+      ),
+    );
   }
 
   Program _toModel(

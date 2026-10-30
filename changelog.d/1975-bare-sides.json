@@ -1,0 +1,14 @@
+{
+  "id": "1975-bare-sides",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "\"Circle L\", \"Larks pull by L\", \"Slice L\", \"Larks pass R shoulder\", \"Neighbor alle R 1.5\" and \"Zig L, Zag R\", as Caller's Companion writes them, now come in as the figure with its direction, hand or shoulder instead of text, and \"R&L\" as a right and left through. This applies to imports and to figures you type, and Re-check custom figures picks it up for dances already imported. A lone L or R anywhere else, such as in a note about who stands where, stays as written."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The shared recognizer spells a bare l/r as left/right straight after circle, pull by, pass, slide, slice or allemande; reads \"alle\" as allemande; and reads \"R&L\" (also \"R & L\" and \"R&L thru\") as right and left through. The ContraDB dialect's zig-zag reader takes a bare L/R as the side."
+    ]
+  }
+}

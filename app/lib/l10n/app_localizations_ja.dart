@@ -9313,6 +9313,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String recentlyDeletedDeletedSyncedSnack(String title) {
+    return '「$title」を完全に削除しました。他のデバイスでも削除されるよう、小さな削除記録が残ります。';
+  }
+
+  @override
   String get recentlyDeletedRestore => '復元';
 
   @override
