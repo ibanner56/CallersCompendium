@@ -184,8 +184,10 @@ void main() {
       (tester) async {
         await pumpTable(tester, figure);
         final copied = await _copyAll(tester, find.text('with your neighbor'));
-        expect(copied, contains('with your neighbor'));
-        expect(copied.toLowerCase(), contains('swing'));
+        // The figure and its note are separate lines, not run together.
+        final lines = copied.trim().split('\n');
+        expect(lines.last, 'with your neighbor');
+        expect(lines[lines.length - 2].toLowerCase(), contains('swing'));
         expect(copied, isNot(contains('8 beats')));
       },
     );
