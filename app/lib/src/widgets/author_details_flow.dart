@@ -184,6 +184,8 @@ Future<AuthorDetailsOutcome?> editAuthorDetails(
         await repos.choreographers.getById(existing.id) ?? updated,
       );
     } on DuplicateNaturalKeyError {
+      // diagnostics: silent — not a failure: the name is taken, and the
+      // merge offer below is the answer to it; rethrown when it is not.
       final liveIds = [
         for (final match in await repos.references.nameMatches(
           ReferenceKind.author,
