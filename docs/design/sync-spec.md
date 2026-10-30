@@ -3467,6 +3467,123 @@ manifest each pass.
 `venues` and `published_sources` have no `UNIQUE` key and insert without
 reconciliation.
 
+#### User merges (amended 2026-10-30)
+
+> **Amended 2026-10-30.** That this section is amended for a user's merge is
+> the maintainer's decision (N2-1 = (a), 2026-10-30, recorded in
+> `docs/dev/audits/2026-10-behavior/maintainer-decisions-2026-10-30.md` on
+> branch `claude/app-audit-categories-k2pdon`): "Merges record an alias, so a
+> device that tagged dances offline lands on the merged entry; T1 must still
+> choose the fix for one open risk." The rules below are what the implementing
+> branch built (`docs/design/tags-and-people.md`, T1). Rules 4 to 7 are that
+> branch's own choices, found by its two-device tests, and are not maintainer
+> decisions; each names the alternative it rejected.
+>
+> Three things now write `id_aliases`: reconciliation, the fresh-attach dance
+> merge (§6.10), and a user's merge of two or more tags, authors or sources
+> (`ReferenceEditRepository.merge`). A user merge adds no record kind and no
+> key, so §6.15's gate does not apply. Its peers learn of it from ordinary
+> records.
+>
+> 1. **The surviving id is the lexicographically smaller UUID** of all the
+>    entries merged, whichever one the user merged *into*. That entry's fields
+>    are written under the surviving id. Opposite merges on two devices then
+>    keep the same id, and differ only in the survivor's fields, which
+>    last-writer-wins settles.
+> 2. **Each loser gives up its name, then is tombstoned, not erased.** The
+>    name becomes `<name>_<first 8 hex digits of its UUID>`, or all 32 if that
+>    is taken, by a write that changes only the name and `updatedAt`. It
+>    cancels no pending deletion and is not a revival (§6.4, §6.8). Erasing
+>    the loser would leave peers holding it live, and the next pass would
+>    download it back (§3.1).
+> 3. **The merge records `loser → survivor` through the remap above**, which
+>    collapses chains, moves retained sync fields and unions publication
+>    markers. The loser's join rows move to the survivor, trashed dances'
+>    included, and every affected dance is bumped (I1).
+> 4. **A loser's tombstone keeps its own id.** Where this device still holds a
+>    row for an alias's losing id, a tombstone at that id is published,
+>    merged and applied under it, and is never resolved through `id_aliases`.
+>    Live copies at that id, and references to it, still resolve.
+>    Reconciliation never leaves such a row (it erases or migrates its loser),
+>    so this changes nothing for it.
+>
+>    Without this rule the merge never reached a peer. The merging device
+>    resolved its own tombstone onto the survivor and left it out of its
+>    manifest, so its peers kept the loser live, and the survivor's rename
+>    collided with it on every pass. A peer's own tombstone of the loser,
+>    resolved the same way, would also have tombstoned the survivor.
+> 5. **A peer's edit of the loser, made before it saw the merge, does not
+>    survive.** The loser's tombstone wins it, as any deletion wins an earlier
+>    edit (§6.4). Only the peer's citations of the loser move, through the
+>    alias. Rejected: landing the edit on the survivor, as the design note
+>    sketched. The merging device would have to prefer the loser's copy over
+>    the survivor's own at the survivor's address, overriding fields the user
+>    just chose in the merge.
+> 6. **Step 1 waits, without queueing, while the row holding the name is
+>    leaving it.** That is the case when the holder's own tombstone or edit is
+>    in the same batch under another name, or this device holds the holder's
+>    deletion pending (§6.8) under another name. Either way, no other row may
+>    hold that other name. The colliding update is then neither applied nor
+>    queued. It is planned again next pass, and applies once the holder has
+>    gone. A held deletion lasts as long as this device's own citations of the
+>    loser, which round-trip through the merging device's alias.
+>
+>    This is the fix for the open risk N2-1 names. A peer holding the loser's
+>    deletion keeps the row live under its old name, so the survivor's rename
+>    collided with it, was queued as "renamed onto a name this device already
+>    uses", and stayed queued after the collision ended. The same held for a
+>    merge's Undo, and for a rename that frees a tombstone's name on a peer
+>    holding that tombstone's deletion. Rejected:
+>
+>    - applying the held row's name from its tombstone while keeping it live.
+>      Every dance still citing the held row would show the suffixed name until
+>      the deletion lands, and §6.8 would gain a write to a held row.
+>    - ordering natural-key tombstones before renames. A held row keeps its
+>      name whatever the order, and reconciliation checks collisions before
+>      any record of the batch is written.
+>
+>    Where the holder's next name is taken too, as when two rows swap names,
+>    nothing guarantees it ever moves, and the pair is queued as before.
+> 7. **At step 1, a tombstone gives up a tag's or choreographer's name.**
+>    Where either side of the collision is a tombstone, the tombstone is
+>    renamed as rule 2 renames a loser. A local one is renamed in place. An
+>    inbound one is applied renamed, stamped past its own `updatedAt`. Where
+>    both are tombstones, the larger UUID yields. The derived name depends only
+>    on the tombstone's own UUID, so every device derives the same one.
+>
+>    This settles a peer that deleted the loser on its own before hearing of
+>    the merge. That tombstone still holds the old name, and is newer than the
+>    merge's, so it wins the existence comparison everywhere. Queued, the pair
+>    would ask the user, on every device, about an entry nobody can see.
+>    Rejected: queueing, as before. Custom fields and difficulty levels are
+>    unchanged, because their keys follow rules of their own above.
+> 8. **Undo** writes the survivor's old fields first, then revives each loser
+>    under its old name, stamped above its tombstone (§6.4). It restores the
+>    join rows and the alias rows the remap added or rewrote, unless a pass
+>    has changed them since. The survivor's publication marker stays: a marker
+>    is never dropped, and a pass in between may have published the survivor
+>    in its own right.
+>
+> **Limits.** The branch's tests found these, and did not close them:
+>
+> - **Three-way merges do not converge.** Suppose A merges L into S while B
+>   merges L into T, with S < L < T. A keeps S and tombstones L. B keeps L,
+>   under T's name, and tombstones T. Each device then holds pending the
+>   deletion the other made of an entry its dances still cite, and each is
+>   asked to choose between two versions of such a dance. Nothing is lost,
+>   and the user's choice is the only way out. The smaller-UUID rule settles
+>   the two-way case only.
+> - **A citation that arrives after its alias has gone is not rewritten.** An
+>   alias is retired once no current peer manifest lists the losing id, and
+>   is dropped at an epoch reset. A peer that kept citing the loser lists it,
+>   so retirement needs its manifest gone from the store, or a reset, and
+>   then the peer attaches afresh. Tested by removing the alias by hand: the
+>   merging device reports the peer's dance as citing an unavailable record
+>   on every pass, and the peer keeps holding the deletion.
+> - **Matches that differ only in case exist only on the merging device.**
+>   Step 2 compares natural keys case-folded, so a peer reconciles "flowy" and
+>   "Flowy" into one row at its first sync, and never holds both.
+
 #### Conflict choices (amended 2026-10-02)
 
 A record whose versions only the user can settle — an equal-`updatedAt` live

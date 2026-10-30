@@ -1270,6 +1270,12 @@ are.
     the name, and then applies the other device's rename. Until you choose, the
     other device's change is not applied.
 
+    You aren't asked when the tag or choreographer holding the name has been
+    deleted: a deleted one gives the name up, and the rename goes ahead. Nor
+    are you asked while the record holding the name is already on its way to
+    another name, or to being deleted once no dance here uses it; the rename
+    waits until it has gone, then applies.
+
     Merging two choreographers is the one case that loses something: an email
     address, location, and deceased marker are kept only on your own device and
     are never sent to your other devices, so the ones on the record that is not

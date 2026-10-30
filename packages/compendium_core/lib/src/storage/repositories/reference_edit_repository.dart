@@ -5,6 +5,7 @@ import '../database.dart';
 import '../existence.dart';
 import '../reference_rewrite.dart';
 import '../shareable_text.dart';
+import '../../model/stored_timestamp.dart';
 import 'dance_repository.dart';
 import 'sync_local_repository.dart';
 
@@ -766,13 +767,17 @@ class ReferenceEditRepository {
     Set<String> danceIds, {
     required DateTime now,
   }) async {
+    final at = unixSeconds(now);
     for (final id in danceIds) {
-      final row = await (_db.select(
-        _db.dances,
-      )..where((t) => t.id.equals(id))).getSingleOrNull();
-      if (row == null) continue;
-      await (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(
-        DancesCompanion(updatedAt: Value(_stamp(now, row.updatedAt))),
+      // normalization-structure-exempt: writes `updated_at` only, no
+      // shareable text.
+      await _db.customUpdate(
+        // sync-invariant-exclusion: join-hydrated-body the dance's tag, author or source rows changed.
+        'UPDATE ${_db.dances.actualTableName} '
+        'SET updated_at = MAX(updated_at + 1, ?) WHERE id = ?',
+        variables: [Variable<int>(at), Variable<String>(id)],
+        updates: {_db.dances},
+        updateKind: UpdateKind.update,
       );
     }
   }
