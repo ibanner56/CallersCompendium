@@ -6890,6 +6890,14 @@
   "@importIssueArchiveNewerSchema": {
     "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
   },
+  "importIssueArchiveCustomFieldKeyConflict": "Je aangepaste veld “{label}” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in een nieuw veld met de sleutel “{key}”. Je eigen veld blijft ongewijzigd.",
+  "@importIssueArchiveCustomFieldKeyConflict": {
+    "x-sourceSha256": "c23dc99e2453de3b6be2547638a55370f7cc6639c8273327841afa033df3cb68"
+  },
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "Een aangepast veld in dit bestand heeft dezelfde sleutel als een ander, maar een ander type of andere keuzes, dus de waarden ervan komen in een nieuw veld.",
+  "@importIssueArchiveCustomFieldKeyConflictGeneric": {
+    "x-sourceSha256": "20c9b150f1156b471741459f9d43ef41f1ff6281c24d0f323a2d9a5d691b170d"
+  },
   "importIssueUsrFileTruncated": "Dit bestand lijkt onvolledig – slechts een deel kon worden gelezen. Kopieer het opnieuw van het origineel en importeer het nogmaals.",
   "@importIssueUsrFileTruncated": {
     "x-sourceSha256": "4927a27ef23f58466c5d7037d86f2e3003ab27cf31d3bb0b83ea9c77673f823d"

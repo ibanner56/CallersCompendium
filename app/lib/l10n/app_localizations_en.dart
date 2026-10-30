@@ -6941,6 +6941,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.';
 
   @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Your custom field \"$label\" has a different type or other choices in this file, so the file\'s values for it go into a new field with the key \"$key\". Your field is unchanged.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'A custom field in this file has the same key as another but a different type or other choices, so its values go into a new field.';
+
+  @override
   String get importIssueUsrFileTruncated =>
       'This file looks incomplete — only part of it could be read. Copy it again from the original and re-import.';
 

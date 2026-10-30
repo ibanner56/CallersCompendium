@@ -6972,6 +6972,15 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne fil er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
 
   @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Dit brugerdefinerede felt „$label“ har en anden type eller andre valgmuligheder i denne fil, så filens værdier for det lægges i et nyt felt med nøglen „$key“. Dit felt er uændret.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Et brugerdefineret felt i denne fil har samme nøgle som et andet, men en anden type eller andre valgmuligheder, så dets værdier lægges i et nyt felt.';
+
+  @override
   String get importIssueUsrFileTruncated =>
       'Denne fil ser ufuldstændig ud – kun en del af den kunne læses. Kopiér den igen fra originalen, og importér den på ny.';
 

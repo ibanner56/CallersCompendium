@@ -3825,6 +3825,76 @@ void main() {
       expect(find.byKey(const ValueKey('import-batch-warnings')), findsNothing);
     });
 
+    // INTAKE-2: a shared field whose key is the caller's but whose type
+    // differs used to fail the whole import at commit with a generic error.
+    // Review now says where its values will go, and Import puts them in a new
+    // `<key>_2` field (maintainer decisions, 2026-10-29 and its round 2).
+    testWidgets('a custom field that differs from the caller\'s is noted in '
+        'review, then imported under <key>_2', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'local-tempo',
+          key: 'tempo',
+          label: 'My tempo',
+          type: CustomFieldType.text,
+        ),
+      );
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [
+          Dance(
+            id: 'd1',
+            title: 'Shared Reel',
+            customFields: [CustomFieldValue(fieldId: 'f1', value: 120)],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+        customFields: [
+          CustomFieldDef(
+            id: 'f1',
+            key: 'tempo',
+            label: 'Tempo',
+            type: CustomFieldType.number,
+          ),
+        ],
+      );
+      final note = l10n.importIssueArchiveCustomFieldKeyConflict(
+        'My tempo',
+        'tempo_2',
+      );
+
+      await pumpShared(tester, repos, bundleFor(archive));
+
+      expect(
+        find.byKey(const ValueKey('import-batch-warnings')),
+        findsOneWidget,
+      );
+      expect(find.text(note), findsOneWidget);
+      expect(await repos.customFieldDefs.listAll(), hasLength(1));
+
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.importReviewImportError), findsNothing);
+      expect(
+        find.byKey(const ValueKey('import-result-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('• $note'), findsOneWidget);
+      final value = (await repos.dances.listAll()).single.customFields.single;
+      expect(value.value, 120);
+      expect(
+        (await repos.customFieldDefs.getById(value.fieldId))!.key,
+        'tempo_2',
+      );
+      final local = (await repos.customFieldDefs.getById('local-tempo'))!;
+      expect(local.type, CustomFieldType.text);
+      expect(local.label, 'My tempo');
+    });
+
     testWidgets(
       'lands directly on the review list and commits NOTHING until Import',
       (tester) async {

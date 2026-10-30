@@ -7047,6 +7047,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Datei wurde mit einer neueren Version von Caller\'s Compendium erstellt. Aktualisiere die App vor dem Import, sonst fehlen möglicherweise einige Details.';
 
   @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Ihr benutzerdefiniertes Feld „$label“ hat in dieser Datei einen anderen Typ oder andere Auswahlwerte, daher kommen die Werte der Datei dafür in ein neues Feld mit dem Schlüssel „$key“. Ihr Feld bleibt unverändert.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Ein benutzerdefiniertes Feld in dieser Datei hat denselben Schlüssel wie ein anderes, aber einen anderen Typ oder andere Auswahlwerte, daher kommen seine Werte in ein neues Feld.';
+
+  @override
   String get importIssueUsrFileTruncated =>
       'Diese Datei wirkt unvollständig – nur ein Teil konnte gelesen werden. Kopiere sie erneut vom Original und importiere sie noch einmal.';
 

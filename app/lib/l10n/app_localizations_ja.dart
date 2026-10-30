@@ -6689,6 +6689,15 @@ class AppLocalizationsJa extends AppLocalizations {
       'このファイルは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
 
   @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'あなたのカスタムフィールド「$label」は、このファイルでは種類または選択肢が異なるため、ファイルの値はキー「$key」の新しいフィールドに入ります。あなたのフィールドは変更されません。';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'このファイルのカスタムフィールドに、キーは同じでも種類または選択肢が異なるものがあるため、その値は新しいフィールドに入ります。';
+
+  @override
   String get importIssueUsrFileTruncated =>
       'このファイルは不完全のようです。一部しか読み取れませんでした。元のファイルからもう一度コピーして、再度インポートしてください。';
 

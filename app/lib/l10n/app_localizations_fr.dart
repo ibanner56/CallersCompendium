@@ -7064,6 +7064,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ce fichier a été créé avec une version plus récente de Caller\'s Compendium. Mettez l\'application à jour avant d\'importer, sinon certains détails risquent d\'être omis.';
 
   @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Votre champ personnalisé « $label » a un autre type ou d’autres choix dans ce fichier : ses valeurs venant du fichier vont donc dans un nouveau champ avec la clé « $key ». Votre champ n’est pas modifié.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Un champ personnalisé de ce fichier a la même clé qu’un autre, mais un autre type ou d’autres choix : ses valeurs vont donc dans un nouveau champ.';
+
+  @override
   String get importIssueUsrFileTruncated =>
       'Ce fichier semble incomplet : seule une partie a pu être lue. Copiez-le de nouveau depuis l\'original, puis réimportez-le.';
 

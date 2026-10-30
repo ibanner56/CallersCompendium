@@ -7020,6 +7020,15 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dit bestand is gemaakt met een nieuwere versie van Caller\'s Compendium. Werk de app bij voordat je importeert, anders ontbreken mogelijk sommige details.';
 
   @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Je aangepaste veld “$label” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in een nieuw veld met de sleutel “$key”. Je eigen veld blijft ongewijzigd.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Een aangepast veld in dit bestand heeft dezelfde sleutel als een ander, maar een ander type of andere keuzes, dus de waarden ervan komen in een nieuw veld.';
+
+  @override
   String get importIssueUsrFileTruncated =>
       'Dit bestand lijkt onvolledig – slechts een deel kon worden gelezen. Kopieer het opnieuw van het origineel en importeer het nogmaals.';
 
