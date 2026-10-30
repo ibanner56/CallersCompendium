@@ -92,9 +92,17 @@
   "@appBootstrapLogHint": {
     "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
   },
-  "migrationDowngradeMessage": "Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium — werk de app bij.",
+  "appBootstrapReleasesLink": "Releases-pagina openen",
+  "@appBootstrapReleasesLink": {
+    "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
+  },
+  "migrationDowngradeVersions": "Je gegevens gebruiken opslagformaat {fileVersion}. Deze versie van de app leest tot en met formaat {appVersion}.",
+  "@migrationDowngradeVersions": {
+    "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
+  },
+  "migrationDowngradeMessage": "Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij en open haar daarna opnieuw.",
   "@migrationDowngradeMessage": {
-    "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
+    "x-sourceSha256": "16e745baf449224ab5aedb863ef7ff32aacc237ac5e54e40b8cc9ba5c87a90e7"
   },
   "migrationRelocationBothExist": "Caller’s Compendium is niet gestart, omdat opgeslagen gegevensbestanden zowel op de nieuwe locatie als in een map van een eerdere versie zijn gevonden. Er is niets gewijzigd of verwijderd. Bewaar de kopie die je wilt houden, verplaats de andere naar een andere plek en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” staan de locaties.",
   "@migrationRelocationBothExist": {
@@ -3088,9 +3096,9 @@
   "@settingsGeneralSoftDeleteRetentionTitle": {
     "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Nooit bewaart ze totdat je ze handmatig opschoont.",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Met apparaatsynchronisatie geldt dit op al je apparaten: een gedeeld item wordt overal leeggemaakt en alleen een kleine verwijderingsnotitie blijft over. Nooit bewaart ze totdat je ze handmatig opschoont.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
-    "x-sourceSha256": "e9121427d1a14e56df8a472c097142bf74ac95a239c8ba1756f1ef77e8a1ea76"
+    "x-sourceSha256": "6c4f9fdb230a5e41d5afc9b1d4d34e6fe145156254be79776a35fe1fbdb48151"
   },
   "settingsGeneralSoftDeleteRetentionDays": "{days} dagen",
   "@settingsGeneralSoftDeleteRetentionDays": {
@@ -3796,9 +3804,9 @@
   "@commonMixer": {
     "x-sourceSha256": "8ae012d51747c9a3e51613b1ba8305b377fcada7de30e2b7156d51c19f0b89e0"
   },
-  "commonShowDancesTaggedTooltip": "Dansen met tag “{tagName}” tonen",
+  "commonShowDancesTaggedTooltip": "“{tagName}” toevoegen aan de filters van de Collectie",
   "@commonShowDancesTaggedTooltip": {
-    "x-sourceSha256": "5cb90a2d82c572c009f47e69f98fd959bc405c30b4058939243bc9085dc531a7"
+    "x-sourceSha256": "adf80e5ef33018bef6fbff7c25afa94e668c259ccfc1c44c00f2ebdc74b06bab"
   },
   "commonDeletedSnack": "“{title}” verwijderd.",
   "@commonDeletedSnack": {
@@ -3903,6 +3911,22 @@
   "collectionSelectedCount": "{count} geselecteerd",
   "@collectionSelectedCount": {
     "x-sourceSha256": "529aacfdfd2b17bf9fe56ebad9a24339a2d1151327dd420c52c5f163aeb9acc6"
+  },
+  "collectionSelectAllTooltip": "Alle {count} selecteren",
+  "@collectionSelectAllTooltip": {
+    "x-sourceSha256": "b1181a8d54c02d92d4ee755d68963f556eb60846c5c0d01b474f67f29a73b789"
+  },
+  "collectionDeselectAllTooltip": "Alle {count} deselecteren",
+  "@collectionDeselectAllTooltip": {
+    "x-sourceSha256": "a13a823927df1f7f45a251ed6f37b9fbb20c0abc2b5dc544d60c49d9b54a4680"
+  },
+  "collectionSelectionNotShown": "{selected} geselecteerd ({hidden} niet getoond)",
+  "@collectionSelectionNotShown": {
+    "x-sourceSha256": "70f161abf6b6b4c45d8faed81583011fbcac00b6b450fe19e19590b184f52a55"
+  },
+  "collectionDeselectNotShown": "Niet-getoonde deselecteren",
+  "@collectionDeselectNotShown": {
+    "x-sourceSha256": "418383362fe27a5ea26bdc2bba4e0248e8a8ccfe069f429d90e1bdeba9702fd9"
   },
   "collectionAddTags": "Tags toevoegen",
   "@collectionAddTags": {
@@ -4128,6 +4152,62 @@
   "@collectionFacetNotCalled": {
     "x-sourceSha256": "606124ade426a3e8c2a0da3680ae9b518934979c772e0e7564630fd46e96e592"
   },
+  "collectionFacetHistoryInert": "Geldt bij Gebeld of Niet gebeld",
+  "@collectionFacetHistoryInert": {
+    "x-sourceSha256": "4f5b3dbbeda62c4bdc66382e9d23713565237140a21ed4bbb6bf72e3765e0842"
+  },
+  "collectionFacetVenue": "Op locatie",
+  "@collectionFacetVenue": {
+    "x-sourceSha256": "15eb58b66f23bfdd0886b1836f7d53ee09b9f83eed1c48965678024d957b0ea6"
+  },
+  "collectionFacetVenueAny": "Elke locatie",
+  "@collectionFacetVenueAny": {
+    "x-sourceSha256": "458db77c1c503d46bd543c8ebbdc892c139c2b2903bbf1af707b3263b5a89545"
+  },
+  "collectionFacetVenueUnnamed": "Naamloze locatie",
+  "@collectionFacetVenueUnnamed": {
+    "x-sourceSha256": "d05aef5da8914bd969562f34dd344d7251dd248c6e2cf2674efd76ee9f84704b"
+  },
+  "collectionFacetVenueClear": "Locatie wissen",
+  "@collectionFacetVenueClear": {
+    "x-sourceSha256": "f07d0528a8fb25d5f9ed27af5d3f7512d1afa86dfdc5f576fb7d51a856a7f1d9"
+  },
+  "collectionFacetVenueSheetTitle": "Locatie",
+  "@collectionFacetVenueSheetTitle": {
+    "x-sourceSha256": "aea1b15df626f337de5eb359dd6f7651b9f25a39ddb515b6ab765e1167456d87"
+  },
+  "collectionFacetVenuePrograms": "{count, plural, =1{1 programma} other{{count} programma's}}",
+  "@collectionFacetVenuePrograms": {
+    "x-sourceSha256": "a7b7d768632c302855b92c62c230f4bec8af1fd58ced4388e2407d9ecfd42e06"
+  },
+  "collectionFacetVenueTyped": "getypt",
+  "@collectionFacetVenueTyped": {
+    "x-sourceSha256": "2259e961582c9ae17235db655c751ddb198605c3bea788a4170a8baa3511c614"
+  },
+  "collectionFacetWithin": "Binnen",
+  "@collectionFacetWithin": {
+    "x-sourceSha256": "2c46a91dc5c6930274259f8bfd4af2e357b609cfc6e07736972d34a8e3302c9a"
+  },
+  "collectionFacetWithinAnyTime": "Altijd",
+  "@collectionFacetWithinAnyTime": {
+    "x-sourceSha256": "5e7de49a40c3d7546e1c0e7a514ca92bd4c524553f6f3eadb8b9de6b35909dfe"
+  },
+  "collectionFacetWithinNever": "Nooit gebeld",
+  "@collectionFacetWithinNever": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "collectionFacetWithinMonths": "{count, plural, =1{1 maand} other{{count} maanden}}",
+  "@collectionFacetWithinMonths": {
+    "x-sourceSha256": "66be719ed3455ce0c8690aabb3c822e941f268edc163a37a050194e1f6d12926"
+  },
+  "collectionFacetWithinSince": "Sinds een datum…",
+  "@collectionFacetWithinSince": {
+    "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
+  },
+  "collectionFacetWithinSinceDate": "Sinds {date}",
+  "@collectionFacetWithinSinceDate": {
+    "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
+  },
   "collectionFacetLevel": "Niveau",
   "@collectionFacetLevel": {
     "x-sourceSha256": "1709305c9fa966d14f56f0da3c3614bbc10adcf53d72f90341bb96d24afcfca3"
@@ -4147,6 +4227,26 @@
   "collectionFacetUntagged": "Zonder tags",
   "@collectionFacetUntagged": {
     "x-sourceSha256": "9a28cbfaf271bc2dcfc7142f739445d8dc755b1e465b399ad96ba02e87fc9927"
+  },
+  "collectionFacetTagsMatchLabel": "Tags matchen",
+  "@collectionFacetTagsMatchLabel": {
+    "x-sourceSha256": "f815c8eb1c0528d683edad42bc05ee6804c8cec5c4b70b6f1393b2d795b01825"
+  },
+  "collectionFacetTagsMatchAll": "Alle tags",
+  "@collectionFacetTagsMatchAll": {
+    "x-sourceSha256": "7c39c16dce7332ed63e1c6ac2bd05afc8c22405c748a705c022eb0da86c43a16"
+  },
+  "collectionFacetTagsMatchAllTooltip": "Dansen tonen die alle gekozen tags hebben",
+  "@collectionFacetTagsMatchAllTooltip": {
+    "x-sourceSha256": "483a3fe3057b0a7ad9a6e764902ef12489654d566bb3a98ef81e0612b5a420ee"
+  },
+  "collectionFacetTagsMatchAny": "Minstens één tag",
+  "@collectionFacetTagsMatchAny": {
+    "x-sourceSha256": "092b9712bdd44445e888caf684749b183dd04ddc813c6c97e38abc65e3db0be9"
+  },
+  "collectionFacetTagsMatchAnyTooltip": "Dansen tonen die minstens één van de gekozen tags hebben",
+  "@collectionFacetTagsMatchAnyTooltip": {
+    "x-sourceSha256": "8a4c10a619b2a7a86fd1bb6352b0672ca97b842c2a8cbe193709faa8b36160d1"
   },
   "collectionFacetSource": "Bron",
   "@collectionFacetSource": {
@@ -4723,6 +4823,26 @@
   "programsAddDanceToProgramSemantic": "“{danceTitle}” toevoegen aan {programTitle}, {details}",
   "@programsAddDanceToProgramSemantic": {
     "x-sourceSha256": "9fa501db30d27eee1a7bf66b0b21f4b0199c64d3916d360bd1a732eaa9fecb97"
+  },
+  "programsDanceInThisProgram": "In dit programma",
+  "@programsDanceInThisProgram": {
+    "x-sourceSha256": "d89bcdd00f3d2fadec89bf242fe294cdaef8bcd2ef2715290ab59880f6cf35bf"
+  },
+  "programsDanceInThisProgramCount": "In dit programma ×{count}",
+  "@programsDanceInThisProgramCount": {
+    "x-sourceSha256": "0532a02041eea24333369f6c5c913c5ccc0d438ee717be5a2711aff816ab0261"
+  },
+  "programsAddAgainTitle": "Al in dit programma",
+  "@programsAddAgainTitle": {
+    "x-sourceSha256": "f99872aa4d82f914408cba53f419d396218e55ec34b2757febfd2835fde9027c"
+  },
+  "programsAddAgainBody": "{count, plural, =1{“{danceTitle}” staat al in “{programTitle}”. Opnieuw toevoegen?} other{“{danceTitle}” staat al {count} keer in “{programTitle}”. Opnieuw toevoegen?}}",
+  "@programsAddAgainBody": {
+    "x-sourceSha256": "489e328703df7401f74e0d08100e3ed5f693229fa2296e272b58d3bf737011c9"
+  },
+  "programsAddAgain": "Opnieuw toevoegen",
+  "@programsAddAgain": {
+    "x-sourceSha256": "7cfbee3aafa052fb0bd1adaa3e07514abc389966d5adec7e1a88ce02e15e9b25"
   },
   "programsAddedToProgramSnack": "“{danceTitle}” toegevoegd aan {programTitle}.",
   "@programsAddedToProgramSnack": {
@@ -7250,6 +7370,14 @@
   "@importReviewOptionReimport": {
     "x-sourceSha256": "8249cab6d7f9413d09113b73b5d65ae41968266f1d724baeec3f04bb3f25b4c6"
   },
+  "importReviewReimportTitleAndCredit": "Ook titel en auteur bijwerken",
+  "@importReviewReimportTitleAndCredit": {
+    "x-sourceSha256": "a142dcbde6be9269e06950ee3738fc3dbcf82105bd06dabdb3eb6790dca67718"
+  },
+  "importReviewReimportTitleAndCreditHint": "Neemt de titel en auteursvermelding uit dit bestand over voor “{title}”. Je beoordeling, tags, notities en links blijven zoals ze zijn.",
+  "@importReviewReimportTitleAndCreditHint": {
+    "x-sourceSha256": "98022c8d2659302f60dd9f7d3b5a3601b664ff80c8e5593d2a0e54f987f1bdb7"
+  },
   "importReviewOptionDuplicate": "Importeren als nieuwe (dubbele) dans",
   "@importReviewOptionDuplicate": {
     "x-sourceSha256": "b4ed3ed8907b60111f687f32d121971db2fd9cf7381dce15d89d00295559c2f1"
@@ -7273,6 +7401,14 @@
   "importReviewOverwriteWarning": "{count, plural, =1{1 bestaande dans wordt overschreven} other{{count} bestaande dansen worden overschreven}}",
   "@importReviewOverwriteWarning": {
     "x-sourceSha256": "32e898771354de5a51675debb5473f13fe146fec3e2bf8e86485fb3f27407f54"
+  },
+  "importReviewReimportWarning": "{count, plural, =1{Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans. De beoordeling, tags en notities blijven.} other{Opnieuw importeren vervangt de figuren, formatie en progressie van {count} bestaande dansen. Hun beoordelingen, tags en notities blijven.}}",
+  "@importReviewReimportWarning": {
+    "x-sourceSha256": "c5aa953aba540e25ed5200df2027d40bbc0253f2d5f2268e420c36b3a5b5eaae"
+  },
+  "importReviewReimportTitleWarning": "{count, plural, =1{Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.} other{Bij {count} daarvan worden ook de titel en auteur uit het bestand overgenomen.}}",
+  "@importReviewReimportTitleWarning": {
+    "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
   },
   "importReviewWarningPrefix": "Waarschuwing: {message}",
   "@importReviewWarningPrefix": {
@@ -7365,6 +7501,18 @@
   "importReviewEditOverwriteBody": "Importeren om te bewerken vervangt “{title}” in je verzameling meteen. Ongedaan maken van de hele import herstelt hem niet.",
   "@importReviewEditOverwriteBody": {
     "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
+  },
+  "importReviewEditReimportTitle": "Nu opnieuw importeren in de bestaande dans?",
+  "@importReviewEditReimportTitle": {
+    "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
+  },
+  "importReviewEditReimportBody": "Importeren om te bewerken vervangt de figuren, formatie en progressie van “{title}” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.",
+  "@importReviewEditReimportBody": {
+    "x-sourceSha256": "275389cd8066eadc9e742cd019dda14c517874a5a2552849c4fc3dac6232452d"
+  },
+  "importReviewEditReimportTitleAndCreditBody": "Importeren om te bewerken vervangt de figuren, formatie, progressie, titel en auteur van “{title}” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.",
+  "@importReviewEditReimportTitleAndCreditBody": {
+    "x-sourceSha256": "62a5cb4886e354759fc6422859381272be05217b50b9c73e838470f91d3e3ee3"
   },
   "importReviewImportError": "De import kon niet worden voltooid.",
   "@importReviewImportError": {

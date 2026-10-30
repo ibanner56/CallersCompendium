@@ -434,7 +434,12 @@ class CompendiumArchiveImporter {
         difficultyPlan.levels,
         ledger: difficultyLevels,
       );
-      metadata = await _commitMetadata(archive, now: now, newId: mintId);
+      metadata = await _commitMetadata(
+        archive,
+        now: now,
+        newId: mintId,
+        only: _metadataNeededBy(batch, resolutions),
+      );
       var commitBatch = _remapDifficultyLevels(batch, difficultyPlan.idRemap);
       if (metadata != null) {
         commitBatch = _remapBatch(commitBatch, metadata);
@@ -647,6 +652,23 @@ class CompendiumArchiveImporter {
         persisted[target.id] = target;
       }
 
+      // Metadata was committed only for the rows that write a dance (see
+      // [_metadataNeededBy]); what a row that then failed needed is taken
+      // back, as the `.USR` importer drops its unused definitions. Inside this
+      // try: a failure part-way is compensated with the rest, from a ledger
+      // that names only what is still there.
+      if (metadata != null) {
+        await _metadata!.dropUnused(
+          metadata,
+          used: _metadataUsedBy(
+            commitBatch,
+            committedDanceSession,
+            defaultTagIds: defaultTagIds,
+          ),
+          now: now,
+        );
+      }
+
       // This writer is merge-like: it changes only the records carried by the
       // bundle, so pending deletions for unrelated local records remain valid.
       // Baselines, aliases, review decisions, and normalization bookkeeping
@@ -842,10 +864,40 @@ class CompendiumArchiveImporter {
     }
   }
 
+  /// The archive tag, custom-field and source ids carried by the records of
+  /// [batch] that will write a dance (create, duplicate, variation or link, as
+  /// [resolveCommitAction] reads each with its [resolutions] entry). A
+  /// re-import writes none of a draft's tags, fields or citations (INTAKE-7),
+  /// and a skip writes nothing, so neither needs its metadata committed.
+  ({Set<String> tags, Set<String> fields, Set<String> sources})
+  _metadataNeededBy(
+    ImportBatchResult batch,
+    Map<int, DedupeResolution> resolutions,
+  ) {
+    final tags = <String>{};
+    final fields = <String>{};
+    final sources = <String>{};
+    for (var i = 0; i < batch.records.length; i++) {
+      final record = batch.records[i];
+      final (action, _) = resolveCommitAction(record.verdict, resolutions[i]);
+      if (action == CommitAction.skip || action == CommitAction.reimport) {
+        continue;
+      }
+      final dance = record.draft.dance;
+      tags.addAll(dance.tagIds);
+      fields.addAll([for (final value in dance.customFields) value.fieldId]);
+      sources.addAll([
+        for (final citation in dance.sourceCitations) citation.sourceId,
+      ]);
+    }
+    return (tags: tags, fields: fields, sources: sources);
+  }
+
   Future<ShareMetadataImportResult?> _commitMetadata(
     CompendiumArchive archive, {
     required DateTime now,
     required String Function() newId,
+    ({Set<String> tags, Set<String> fields, Set<String> sources})? only,
   }) {
     final hasMetadata =
         archive.tags.isNotEmpty ||
@@ -858,7 +910,38 @@ class CompendiumArchiveImporter {
         'metadata repositories are required to import a shared archive',
       );
     }
-    return importer.commit(archive, now: now, newId: newId);
+    return importer.commit(archive, now: now, newId: newId, only: only);
+  }
+
+  /// The tag, custom-field and source ids carried by the dances [session]
+  /// wrote from [batch] (created, or replaced by a link), plus
+  /// [defaultTagIds], which a created dance also gets. A re-import writes none
+  /// of a draft's tags, fields or citations (INTAKE-7), so its draft counts
+  /// for nothing; nor does a skipped or failed record. [ImportPipeline.commit]
+  /// reports one record per record of [batch], in order.
+  ({Set<String> tags, Set<String> fields, Set<String> sources}) _metadataUsedBy(
+    ImportBatchResult batch,
+    ImportSession session, {
+    required List<String> defaultTagIds,
+  }) {
+    final tags = <String>{...defaultTagIds};
+    final fields = <String>{};
+    final sources = <String>{};
+    for (var i = 0; i < session.records.length; i++) {
+      final record = session.records[i];
+      if (!record.succeeded ||
+          record.action == CommitAction.skip ||
+          record.action == CommitAction.reimport) {
+        continue;
+      }
+      final dance = batch.records[i].draft.dance;
+      tags.addAll(dance.tagIds);
+      fields.addAll([for (final value in dance.customFields) value.fieldId]);
+      sources.addAll([
+        for (final citation in dance.sourceCitations) citation.sourceId,
+      ]);
+    }
+    return (tags: tags, fields: fields, sources: sources);
   }
 
   ImportBatchResult _remapBatch(

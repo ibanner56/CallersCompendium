@@ -178,6 +178,14 @@ see where the dances came from.
 4. Confirm the import when you are ready. Nothing is added until you commit it,
    and the same review flow lets you skip items you do not want.
 
+Importing a newer version of a collection you already have offers
+**Re-import onto** for its dances, which updates only their figures, formation
+and progression, as for any other source (see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
+A corrected title or credit in the new version reaches a dance you already have
+only if you tick **Also update title and credit** on its row; a corrected note
+never does.
+
 If the catalog or a collection cannot be loaded, the message tells you which of
 three things happened: the catalog **could not be reached** (check your
 connection), it **needs a newer app version** (update the app), or it is
@@ -283,8 +291,21 @@ often open the file directly:
   `.ccshare` type, so the app also appears for other files of unknown type;
   if you open something that isn't a share file, the app says so and imports
   nothing.
-- **Any device**, including Linux and Windows: go to **Settings › General** and
-  choose **Import…**, then pick the file.
+- **Windows:** if you installed the app with the installer, double-click the
+  `.ccshare` file, or pick Caller's Compendium under **Open with**. The portable
+  copy doesn't register the file type.
+- **Linux:** open the `.ccshare` file with Caller's Compendium once the file
+  type is set up (see [Installing on Linux](./installation.md#install-on-linux));
+  you can also run the app with the file's path, for example
+  `./CallersCompendium-*.AppImage "Contra Night.ccshare"`.
+- On Windows and Linux, if the app is already open, the file opens in the
+  window you have. If you open more files while one is in review, the app
+  keeps only the last one and shows it when you close that review. Only a `.ccshare` file stored on this computer opens this
+  way. For a file on a network share (a `\\server\folder` path) or a
+  symbolic link to a file, the app says it couldn't read the shared file:
+  copy the file itself to a local folder first.
+- **Any device**: go to **Settings › General** and choose **Import…**, then
+  pick the file.
   On Android the file picker lists every file of unknown type as well as share
   files, so choose the one you saved.
 
@@ -357,7 +378,8 @@ A `.USR` import brings across both your **dances** and your **program history**
 before it commits and undoable right after. Dances and programs you have imported
 before are recognised and offered as updates rather than duplicated. A dance
 you bring in early with **Import and edit** still takes its place in your
-programs and related dances when you then import the rest of the file. The review
+programs and related dances when you then import the rest of the file (one you
+re-imported that way gets no new related-dance links, as with any re-import). The review
 says how many programs the file includes, and they are imported even when you
 leave every dance at **Skip** — so importing a fresher export just to pick up new
 sets works when you already have all its dances.
@@ -382,9 +404,11 @@ column holds private notes, turn off **Include in sharing** for that field in
 the custom fields settings before you share. Dances you imported in an earlier version keep those
 values as lines in their calling notes.
 
-Importing a dance again no longer clears custom-field values you have added to
-it since. A column you emptied in Caller's Companion does not clear the value
-already in that field; clear it in the app.
+Re-importing a dance takes only its figures, formation and progression from
+the file (see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)),
+so it never changes the dance's custom-field values. A column you changed or
+emptied in Caller's Companion since is not applied; change it in the app.
 
 Each dance's **formation** comes across as Caller's Companion recorded it: a
 Becket keeps its direction (clockwise or counterclockwise), four facing four,
@@ -413,7 +437,8 @@ same place, and creating a new one when it isn't (an ambiguous match always
 creates a fresh venue rather than guessing). That happens when venue entities
 are switched on; with them off, the location is kept as plain text exactly as
 before. Dances that pointed at each other in Caller's Companion arrive linked as
-**related dances**.
+**related dances**. A dance you re-import gets no related-dance links from the
+file, and the review notes no link left out for it.
 
 If the `.USR` file is an **incomplete copy** — cut short by an interrupted
 download or copy — the review shows a warning above the list: *"This file looks
@@ -541,8 +566,8 @@ For step-by-step backup and restore, see
 
 Importing from a file or a URL opens the **import review** screen, and nothing
 touches your collection until you commit there — except **Import and edit**,
-which imports that one dance right away (and replaces the matched dance if the
-row is a Re-import or Link; you are asked first). It works the same whichever
+which imports that one dance right away (and, if the row is a Re-import or
+Link, updates the matched dance as that choice would; you are asked first). It works the same whichever
 source you pick:
 
 1. **Choose a source and give it something to read** — pick the source, then add
@@ -553,8 +578,8 @@ source you pick:
    turn into structured figures versus keep as plain text, plus any notes about
    a particular dance.
 3. **Decide dance by dance** — each dance can be brought in as **new**, updated
-   as a **re-import** of one you imported before, **linked** to an existing
-   dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
+   as a **re-import** of one you imported before (which refreshes only its
+   figures, formation and progression), **linked** to an existing dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
    unsure about defaults to **skip**, so it never guesses its way into your
    library.
    If something is wrong with the **whole file** — an incomplete `.USR`, or a
@@ -577,8 +602,9 @@ Re-importing the same dances should not clutter your collection, so the app
 watches for matches:
 
 - **Same dance, same source.** If you import a dance you have imported before
-  from the same source, the app recognises it and offers to **update** the one
-  you already have rather than adding a copy. (This is how the Caller's Box
+  from the same source, the app recognises it and offers to **update** the
+  choreography of the one you already have rather than adding a copy (see
+  [Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)). (This is how the Caller's Box
   online import can tell you a dance *"is already in your collection."*)
 - **Same dance, from another source or typed in.** If a dance matches one
   already in your collection by title, author, and figures — the same moves in
@@ -600,8 +626,9 @@ watches for matches:
   created date and history) but replaces its content with the imported version,
   including its title, calling notes, rating, tags, hook, walkthrough, status,
   links and source citations. Custom fields the import carries replace yours;
-  the rest of your custom fields are kept. The review warns how many existing
-  dances will be overwritten before you commit.
+  the rest of your custom fields are kept. Share files carry no star rating, so
+  replacing a dance from one clears the rating you gave it. The review warns
+  how many existing dances will be overwritten before you commit.
 - **Same dance, written another way.** Archives spell and annotate titles
   differently: The Caller's Box has `A-1 Reel {variant}` where your collection
   might have `A1 Reel (Imp Var)`. When a dance's title matches one you already
@@ -645,9 +672,34 @@ watches for matches:
 
 When the review screen recognises a dance you already imported, it offers
 **Re-import onto** that dance, naming the dance it would update, so there is no
-doubt which one it will touch. Choose it and the incoming version updates the
-dance you already have instead of adding a second copy, which is how you pick up a
-correction an archive has made since you first imported.
+doubt which one it will touch. Choose it and the incoming version's **figures,
+formation, and progression** replace those of the dance you already have instead
+of adding a second copy, which is how you pick up a correction an archive has
+made since you first imported.
+
+Everything else on the dance is yours and stays as it is: its title, authors,
+calling notes, walkthrough, status, rating, tags, links, tunes, custom fields and
+source citations. Your own ratings, tags and notes are never overwritten by a
+re-import, whatever the source: a share file or other Caller's Compendium file,
+a published collection, a Caller's Companion `.USR` file, ContraDB or The
+Caller's Box. Only the dance's record of where it came from is updated, to the
+version you re-imported. If the incoming version has no figures the app can
+read, your figures are kept.
+
+To pick up a corrected **title or credit** as well, tick **Also update title
+and credit** under that row's **Re-import onto** choice. It is off on every row
+each time you import, and applies only to the row you tick it on. The dance
+then also takes the incoming title and authors; if the incoming version names
+no author, yours are kept. Its rating, tags, notes, links and status still
+never change.
+
+Before you commit, a note above the **Import** button says how many existing
+dances a re-import will update, and how many of those will also take the
+file's title and credit.
+
+A shared file carries the tags, custom fields and published sources its dances
+use. Those that only a re-imported or skipped dance needed are not added to
+your collection, and one you had deleted stays deleted.
 
 Dances already in your collection show **Re-import** and **Skip** choices in the
 review list, and **Skip** is the default, so choose **Re-import** on the ones you
@@ -668,8 +720,9 @@ in your collection. A dance that is not brought in and was not recognised —
 including a **Possible match** you skip — still becomes a *Dance not imported*
 note in the program.
 
-Re-importing overwrites that dance with the incoming version, so if you have
-edited your copy, look before you commit. The **Undo** on the summary reverses the
+Re-importing replaces that dance's figures, formation, and progression with the
+incoming version's (and its title and credit, if you ticked the box), so if you
+have edited them in your copy, look before you commit. The **Undo** on the summary reverses the
 whole batch import if it was not what you wanted (but not a dance you brought in
 with **Import and edit**).
 
@@ -700,9 +753,10 @@ unchanged, rather than replacing your figures with an empty list.
 
 Review the preview, then import to replace only the dance's **figures,
 formation, and progression**. This keeps your title, notes, rating, tags,
-links, custom fields, authors, citations, and other saved metadata. This is
-different from the normal import review's re-import/link choices, which can
-replace an entire imported record.
+links, custom fields, authors, citations, and other saved metadata. The import
+review's **Re-import onto** does the same. Its **Same dance — replace** choices
+are different: they replace the dance's content (see
+[Avoiding duplicates](#avoiding-duplicates)).
 
 ## Importing whole programs
 

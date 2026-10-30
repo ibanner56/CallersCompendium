@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -119,12 +120,58 @@ void main() {
       expect(children.whereType<TagFilter>(), hasLength(1));
     });
 
-    test('multiple tags OR within the tag facet', () {
-      final facets = FacetSelections()..tagIds.addAll(['t1', 't2']);
+    test('multiple tags AND within the tag facet by default (FIND-14)', () {
+      final facets = FacetSelections()
+        ..setTag('t1', selected: true)
+        ..setTag('t2', selected: true);
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<AndFilter>());
+      final children = (f as AndFilter).children;
+      expect(children, hasLength(2));
+      expect(children.whereType<TagFilter>().map((t) => t.tagId).toSet(), {
+        't1',
+        't2',
+      });
+    });
+
+    test('multiple tags OR within the tag facet in "any" mode', () {
+      final facets = FacetSelections()
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
       expect(f, isA<OrFilter>());
       final tags = (f as OrFilter).children.whereType<TagFilter>().toList();
       expect(tags.map((t) => t.tagId).toSet(), {'t1', 't2'});
+    });
+
+    test('one tag folds to the bare leaf in either mode', () {
+      for (final all in [true, false]) {
+        final facets = FacetSelections()
+          ..tagIds.add('t1')
+          ..tagsMatchAll = all;
+        final f = buildCollectionFilter(
+          ftsText: '',
+          facets: facets,
+          defs: defs,
+        );
+        expect(f, isA<TagFilter>(), reason: 'tagsMatchAll: $all');
+      }
+    });
+
+    test('Untagged stays an OR alternative to all-of tags (FIND-14)', () {
+      final facets = FacetSelections()
+        ..untagged = true
+        ..tagIds.addAll(['t1', 't2']);
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<OrFilter>());
+      final children = (f as OrFilter).children;
+      expect(children, hasLength(2));
+      expect(children.whereType<UntaggedFilter>(), hasLength(1));
+      final all = children.whereType<AndFilter>().single;
+      expect(all.children.whereType<TagFilter>().map((t) => t.tagId).toSet(), {
+        't1',
+        't2',
+      });
     });
 
     test('Untagged alone folds to the bare leaf', () {
@@ -136,7 +183,8 @@ void main() {
     test('Untagged ORs with selected tags in one group (issue #1422)', () {
       final facets = FacetSelections()
         ..untagged = true
-        ..tagIds.addAll(['t1', 't2']);
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
       expect(f, isA<OrFilter>());
       final children = (f as OrFilter).children;
@@ -196,6 +244,152 @@ void main() {
       },
     );
 
+    group('calling-history scopes (N1-H2)', () {
+      final grange = VenueKey.typed('Grange');
+      final today = DateTime.utc(2026, 10, 30);
+
+      CalledFilter built(FacetSelections facets) =>
+          buildCollectionFilter(
+                ftsText: '',
+                facets: facets,
+                defs: defs,
+                today: today,
+              )
+              as CalledFilter;
+
+      test('the venue and window ride on the one chosen polarity', () {
+        final facets = FacetSelections()
+          ..callStatuses.add(false)
+          ..setHistoryVenue(grange, label: 'Grange')
+          ..setHistoryMonths(3);
+        final called = built(facets);
+        expect(called.called, isFalse);
+        expect(called.venue, grange);
+        expect(called.since, DateTime.utc(2026, 7, 30));
+      });
+
+      test('with neither or both polarities a scope changes no result', () {
+        final scoped = FacetSelections()
+          ..setHistoryVenue(grange, label: 'Grange')
+          ..setHistoryMonths(3);
+        final plain = FacetSelections();
+        for (final polarities in [
+          <bool>{},
+          <bool>{true, false},
+        ]) {
+          scoped.callStatuses
+            ..clear()
+            ..addAll(polarities);
+          plain.callStatuses
+            ..clear()
+            ..addAll(polarities);
+          expect(
+            buildCollectionFilter(
+              ftsText: '',
+              facets: scoped,
+              defs: defs,
+              today: today,
+            ),
+            _sameFilterAs(
+              buildCollectionFilter(
+                ftsText: '',
+                facets: plain,
+                defs: defs,
+                today: today,
+              ),
+            ),
+          );
+          // The scopes stay set, inert: out of the count and out of isEmpty.
+          expect(scoped.hasHistoryScope, isTrue);
+          expect(scoped.activeScopeCount, 0);
+          expect(scoped.activeCount, plain.activeCount);
+        }
+        expect(scoped.isEmpty, isFalse, reason: 'both polarities are chosen');
+        scoped.callStatuses.clear();
+        expect(scoped.isEmpty, isTrue);
+        expect(scoped.activeCount, 0);
+      });
+
+      test('an applying scope counts once each, in the total too', () {
+        final facets = FacetSelections()..callStatuses.add(true);
+        expect(facets.activeCount, 1);
+        facets.setHistoryVenue(grange, label: 'Grange');
+        expect(facets.activeCount, 2);
+        facets.setHistoryMonths(1);
+        expect(facets.activeCount, 3);
+        // A window is one scope, whichever way it was chosen.
+        facets.setHistorySince(DateTime(2026, 1, 5));
+        expect(facets.activeCount, 3);
+        expect(facets.activeScopeCount, 2);
+      });
+
+      test('1 month is one calendar month back, not four weeks', () {
+        final facets = FacetSelections()
+          ..callStatuses.add(true)
+          ..setHistoryMonths(1);
+        expect(built(facets).since, DateTime.utc(2026, 9, 30));
+        expect(
+          built(facets).since,
+          isNot(today.subtract(const Duration(days: 28))),
+        );
+      });
+
+      test('calendar months clamp to the shorter month and cross years', () {
+        expect(
+          calendarMonthsBefore(DateTime.utc(2026, 3, 31), 1),
+          DateTime.utc(2026, 2, 28),
+        );
+        expect(
+          calendarMonthsBefore(DateTime.utc(2028, 3, 31), 1),
+          DateTime.utc(2028, 2, 29),
+        );
+        expect(
+          calendarMonthsBefore(DateTime.utc(2026, 2, 15), 3),
+          DateTime.utc(2025, 11, 15),
+        );
+        expect(
+          calendarMonthsBefore(DateTime.utc(2026, 1, 31), 6),
+          DateTime.utc(2025, 7, 31),
+        );
+      });
+
+      test('the cutoff is a calendar date, whatever time today carries', () {
+        final facets = FacetSelections()
+          ..callStatuses.add(true)
+          ..setHistoryMonths(6);
+        final cutoff = facets.historyCutoff(DateTime(2026, 10, 30, 23, 59))!;
+        expect(cutoff, DateTime.utc(2026, 4, 30));
+        expect(cutoff.isUtc, isTrue);
+      });
+
+      test('a chosen date and a preset replace one another', () {
+        final facets = FacetSelections()
+          ..callStatuses.add(true)
+          ..setHistoryMonths(3)
+          ..setHistorySince(DateTime(2026, 5, 17, 14));
+        expect(facets.historyMonths, isNull);
+        expect(built(facets).since, DateTime.utc(2026, 5, 17));
+        facets.setHistoryMonths(6);
+        expect(facets.historySince, isNull);
+      });
+
+      test('clear() and clearing the section drop the scopes', () {
+        FacetSelections scoped() => FacetSelections()
+          ..callStatuses.add(false)
+          ..setHistoryVenue(grange, label: 'Grange')
+          ..setHistoryMonths(3);
+        expect(scoped()..clear(), _hasNoHistoryState);
+        final facets = scoped();
+        expect(facets.clearFacets({CollectionFacetIds.callStatus}), isTrue);
+        expect(facets, _hasNoHistoryState);
+        // A section holding only an inert scope still holds a selection.
+        final inert = scoped()..callStatuses.clear();
+        expect(inert.hasSelectionFor(CollectionFacetIds.callStatus), isTrue);
+        expect(inert.clearFacets({CollectionFacetIds.callStatus}), isTrue);
+        expect(inert, _hasNoHistoryState);
+      });
+    });
+
     test('a single source facet yields an identity SourceIdFilter leaf', () {
       final facets = FacetSelections()..sourceIds.add('s1');
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
@@ -216,7 +410,8 @@ void main() {
     test('fts + facets compose into a flat AndFilter', () {
       final facets = FacetSelections()
         ..formations.add(FormationShape.reverseProgressionImproper)
-        ..tagIds.addAll(['t1', 't2']);
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
       final f = buildCollectionFilter(
         ftsText: 'swing',
         facets: facets,
@@ -233,6 +428,21 @@ void main() {
       );
       // The two tags collapse into one OR branch.
       expect(children.whereType<OrFilter>(), hasLength(1));
+    });
+
+    test('all-of tags stay flat beside fts and other facets (FIND-14)', () {
+      final facets = FacetSelections()
+        ..forms.add(DanceForm.contra)
+        ..tagIds.addAll(['t1', 't2']);
+      final f = buildCollectionFilter(
+        ftsText: 'swing',
+        facets: facets,
+        defs: defs,
+      );
+      final children = (f as AndFilter).children;
+      expect(children, hasLength(4));
+      expect(children.whereType<TagFilter>(), hasLength(2));
+      expect(children.whereType<AndFilter>(), isEmpty);
     });
 
     test('choice custom field ORs selected values', () {
@@ -796,6 +1006,69 @@ void main() {
     );
   });
 
+  group('Tags match mode (FIND-14)', () {
+    test('selecting a second tag defaults to all; a third keeps the mode', () {
+      final facets = FacetSelections();
+      expect(facets.setTag('t1', selected: true), isTrue);
+      facets.tagsMatchAll = false;
+      expect(facets.setTag('t2', selected: true), isTrue);
+      expect(facets.tagsMatchAll, isTrue, reason: 'second tag → all');
+
+      facets.tagsMatchAll = false;
+      expect(facets.setTag('t3', selected: true), isTrue);
+      expect(facets.tagsMatchAll, isFalse, reason: 'third tag keeps any');
+    });
+
+    test('dropping back to one tag and adding another defaults to all', () {
+      final facets = FacetSelections()
+        ..setTag('t1', selected: true)
+        ..setTag('t2', selected: true)
+        ..tagsMatchAll = false;
+      expect(facets.setTag('t2', selected: false), isTrue);
+      expect(facets.tagsMatchAll, isFalse, reason: 'removal leaves it');
+      facets.setTag('t3', selected: true);
+      expect(facets.tagsMatchAll, isTrue);
+    });
+
+    test('re-selecting a selected tag changes nothing', () {
+      final facets = FacetSelections()
+        ..setTag('t1', selected: true)
+        ..setTag('t2', selected: true)
+        ..tagsMatchAll = false;
+      expect(facets.setTag('t2', selected: true), isFalse);
+      expect(facets.tagsMatchAll, isFalse);
+      expect(facets.setTag('t9', selected: false), isFalse);
+    });
+
+    test('clear and clearFacets reset the mode to all', () {
+      final facets = FacetSelections()
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
+      facets.clear();
+      expect(facets.tagsMatchAll, isTrue);
+
+      facets
+        ..tagIds.addAll(['t1', 't2'])
+        ..tagsMatchAll = false;
+      facets.clearFacets({CollectionFacetIds.tags});
+      expect(facets.tagIds, isEmpty);
+      expect(facets.tagsMatchAll, isTrue);
+    });
+
+    test('retainTags drops tags no longer offered and reports it', () {
+      final facets = FacetSelections()..tagIds.addAll(['t1', 't2']);
+      expect(facets.retainTags(['t1', 't2', 't3']), isFalse);
+      expect(facets.retainTags(['t1']), isTrue);
+      expect(facets.tagIds, {'t1'});
+    });
+
+    test('the mode is not a selection: it never counts or makes non-empty', () {
+      final facets = FacetSelections()..tagsMatchAll = false;
+      expect(facets.isEmpty, isTrue);
+      expect(facets.activeCount, 0);
+    });
+  });
+
   group('Tunes facet (#1420)', () {
     DanceFilter build(FacetSelections facets, {String ftsText = ''}) =>
         buildCollectionFilter(ftsText: ftsText, facets: facets, defs: const []);
@@ -1276,3 +1549,21 @@ void main() {
     );
   });
 }
+
+/// Two filters are equal when they have the same shape; the filter classes
+/// have no `==`, so this compares what the tests care about.
+Matcher _sameFilterAs(DanceFilter expected) => predicate<DanceFilter>(
+  (actual) =>
+      actual.runtimeType == expected.runtimeType &&
+      (actual is! AndFilter ||
+          (actual.children.length == (expected as AndFilter).children.length)),
+  'is shaped like $expected',
+);
+
+final Matcher _hasNoHistoryState = predicate<FacetSelections>(
+  (f) =>
+      f.callStatuses.isEmpty &&
+      !f.hasHistoryScope &&
+      f.historyVenueLabel == null,
+  'holds no calling-history state',
+);

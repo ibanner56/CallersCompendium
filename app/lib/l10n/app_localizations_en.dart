@@ -88,8 +88,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Details were also written to the diagnostics log in the app’s support folder.';
 
   @override
+  String get appBootstrapReleasesLink => 'Open the Releases page';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Your data uses storage format $fileVersionString. This version of the app reads up to format $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'This data was created by a newer version of Caller’s Compendium — please update the app.';
+      'This data was created by a newer version of Caller’s Compendium. Update the app, then reopen it.';
 
   @override
   String get migrationRelocationBothExist =>
@@ -3051,7 +3068,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Deleted dances and programs are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.';
+      'Deleted dances and programs are kept for this long before being permanently removed on app launch. With Device Sync this applies on all your devices: a shared item is cleared everywhere, leaving only a small deletion record. Never keeps them until you purge manually.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3664,7 +3681,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Show dances tagged “$tagName”';
+    return 'Add “$tagName” to the Collection filters';
   }
 
   @override
@@ -3769,6 +3786,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String collectionSelectedCount(int count) {
     return '$count selected';
   }
+
+  @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Select all $count';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Deselect all $count';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected selected ($hidden not shown)';
+  }
+
+  @override
+  String get collectionDeselectNotShown => 'Deselect those not shown';
 
   @override
   String get collectionAddTags => 'Add tags';
@@ -4056,6 +4091,66 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionFacetNotCalled => 'Not called';
 
   @override
+  String get collectionFacetHistoryInert => 'Applies with Called or Not called';
+
+  @override
+  String get collectionFacetVenue => 'At venue';
+
+  @override
+  String get collectionFacetVenueAny => 'Any venue';
+
+  @override
+  String get collectionFacetVenueUnnamed => 'Unnamed venue';
+
+  @override
+  String get collectionFacetVenueClear => 'Clear venue';
+
+  @override
+  String get collectionFacetVenueSheetTitle => 'Venue';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs',
+      one: '1 program',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => 'typed';
+
+  @override
+  String get collectionFacetWithin => 'Within';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'Any time';
+
+  @override
+  String get collectionFacetWithinNever => 'Never called';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count months',
+      one: '1 month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => 'Since a date…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return 'Since $date';
+  }
+
+  @override
   String get collectionFacetLevel => 'Level';
 
   @override
@@ -4071,6 +4166,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Untagged';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Match tags';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'All tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Show dances that have every selected tag';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Any tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Show dances that have at least one selected tag';
 
   @override
   String get collectionFacetSource => 'Source';
@@ -4618,6 +4730,36 @@ class AppLocalizationsEn extends AppLocalizations {
   ) {
     return 'Add \"$danceTitle\" to $programTitle, $details';
   }
+
+  @override
+  String get programsDanceInThisProgram => 'In this program';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'In this program ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'Already in this program';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '\"$danceTitle\" is already in \"$programTitle\" $count times. Add it again?',
+      one: '\"$danceTitle\" is already in \"$programTitle\". Add it again?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'Add again';
 
   @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
@@ -7293,6 +7435,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit =>
+      'Also update title and credit';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Takes this file\'s title and author credit for \"$title\". Your rating, tags, notes and links stay as they are.';
+  }
+
+  @override
   String get importReviewOptionDuplicate => 'Import as a new (duplicate) dance';
 
   @override
@@ -7320,6 +7471,30 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count existing dances will be overwritten',
       one: '1 existing dance will be overwritten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Re-import replaces the figures, formation and progression of $count existing dances. Their ratings, tags and notes stay.',
+      one:
+          'Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count of them also take the file\'s title and credit.',
+      one: '1 of them also takes the file\'s title and credit.',
     );
     return '$_temp0';
   }
@@ -7466,6 +7641,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return 'Importing to edit replaces \"$title\" in your collection immediately. The batch Undo will not restore it.';
+  }
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Re-import onto the existing dance now?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'Importing to edit replaces the figures, formation and progression of \"$title\" in your collection immediately. The batch Undo will not restore them.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'Importing to edit replaces the figures, formation, progression, title and credit of \"$title\" in your collection immediately. The batch Undo will not restore them.';
   }
 
   @override

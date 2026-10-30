@@ -564,14 +564,17 @@ jobs:
           # the bundle already holds data/compendium_app.png, the window icon.
           # The launcher is named after the GtkApplication id (APPLICATION_ID in
           # app/linux/CMakeLists.txt) and carries it as StartupWMClass, so a
-          # desktop shell pairs the running window with it (platform-8).
+          # desktop shell pairs the running window with it (platform-8). The
+          # shared-mime-info XML declares the .ccshare type the launcher's
+          # MimeType= names (PLAT-3); a user installs it beside the launcher.
           stage="CallersCompendium-${VERSION}-linux-x64"
           rm -rf "$stage" && cp -r "$bundle" "$stage"
           cp packaging/linux/org.callerscompendium.compendiumApp.desktop "$stage/org.callerscompendium.compendiumApp.desktop"
+          cp packaging/linux/org.callerscompendium.compendiumApp.xml "$stage/org.callerscompendium.compendiumApp.xml"
           cp packaging/linux/icon.png "$stage/compendium_app.png"
           tar -czf "dist/${stage}.tar.gz" "$stage"
           members="$(tar -tzf "dist/${stage}.tar.gz")"
-          for member in org.callerscompendium.compendiumApp.desktop compendium_app.png data/compendium_app.png; do
+          for member in org.callerscompendium.compendiumApp.desktop org.callerscompendium.compendiumApp.xml compendium_app.png data/compendium_app.png; do
             if ! grep -qxF "${stage}/${member}" <<<"$members"; then
               echo "::error::${stage}.tar.gz is missing ${member}"
               exit 1
@@ -593,6 +596,9 @@ jobs:
           install -m 0755 packaging/linux/AppRun "$appdir/AppRun"
           cp packaging/linux/org.callerscompendium.compendiumApp.desktop "$appdir/org.callerscompendium.compendiumApp.desktop"
           cp packaging/linux/icon.png "$appdir/compendium_app.png"
+          # Where AppImage integration tools look for a bundled MIME type.
+          install -D -m 0644 packaging/linux/org.callerscompendium.compendiumApp.xml \
+            "$appdir/usr/share/mime/packages/org.callerscompendium.compendiumApp.xml"
 
           # APPIMAGE_EXTRACT_AND_RUN lets appimagetool (itself an AppImage) run
           # without FUSE on CI; --runtime-file uses the pinned runtime (no fetch).

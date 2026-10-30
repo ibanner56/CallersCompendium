@@ -1,0 +1,14 @@
+{
+  "id": "n2-t4-purge-spares-details",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Emptying old dances from Recently deleted no longer erases a tag with a colour, an author with contact details or a deceased mark, or a source with an author, year, link or notes, just because the purged dances were the last to use it. The entry stays in your collection as unused; the managers that show it as Not used arrive in a later release. Entries with no details are still cleaned up."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`DanceRepository`'s orphaned-reference garbage collection (`purgeDeleted`, `permanentlyDelete` and `hardDelete` with `gcOrphanedRefs`) erases only bare tag, choreographer and published-source rows; a row holding a detail survives unused."
+    ]
+  }
+}

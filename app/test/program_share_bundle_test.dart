@@ -227,6 +227,63 @@ void main() {
       expect(archive.dances.single.deletedAt, isNull);
     });
 
+    // The maintainer's trash-policy decision (2026-10-29, option b) lets a
+    // level be removed under a dance in Recently deleted, so its level id may
+    // resolve to nothing. That dance travels without a level; a live dance's
+    // unresolved level is still a missing lookup.
+    test('a dance in Recently deleted whose level was removed travels '
+        'without it', () {
+      final trashed = _dance(
+        'd1',
+        'Gone Dance',
+      ).copyWith(deletedAt: _now, difficultyLevelId: 'removed-level');
+      final archive = decodeArchive(
+        buildProgramShareBundle(
+          _program(slots: [_slot(0, danceId: 'd1')]),
+          danceFor: (id) => id == 'd1' ? trashed : null,
+          choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
+          venueFor: (_) => null,
+          difficultyLevelFor: (_) => null,
+        ),
+      ).archive;
+
+      expect(archive.dances.single.difficultyLevelId, isNull);
+      expect(archive.difficultyLevels, isEmpty);
+    });
+
+    test('a live dance\'s unresolved level still throws, even beside a '
+        'trashed dance with the same level', () {
+      final trashed = _dance(
+        'd1',
+        'Gone Dance',
+      ).copyWith(deletedAt: _now, difficultyLevelId: 'removed-level');
+      final live = _dance(
+        'd2',
+        'Here Dance',
+      ).copyWith(difficultyLevelId: 'removed-level');
+      expect(
+        () => buildProgramShareBundle(
+          _program(
+            slots: [
+              _slot(0, danceId: 'd1'),
+              _slot(1, danceId: 'd2'),
+            ],
+          ),
+          danceFor: (id) => {'d1': trashed, 'd2': live}[id],
+          choreographerFor: choreographerFor,
+          tagFor: (_) => null,
+          publishedSourceFor: (_) => null,
+          customFieldFor: (_) => null,
+          venueFor: (_) => null,
+          difficultyLevelFor: (_) => null,
+        ),
+        throwsStateError,
+      );
+    });
+
     test('a note-only program embeds no dances', () {
       final program = _program(
         slots: [

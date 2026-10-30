@@ -123,6 +123,7 @@ class _DialectLibrarySection extends StatelessWidget {
 
   Future<void> _confirmDelete(BuildContext context, Dialect dialect) async {
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -141,7 +142,11 @@ class _DialectLibrarySection extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true) await controller.delete(dialect.name);
+    if (confirmed != true) return;
+    await controller.delete(dialect.name);
+    messenger?.showSnackBar(
+      SnackBar(content: Text(l10n.commonDeletedSnack(dialect.name))),
+    );
   }
 
   /// Prompts for a dialect name via a single-field dialog, returning the

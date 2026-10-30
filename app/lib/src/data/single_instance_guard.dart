@@ -17,8 +17,19 @@ const String kSingleInstanceLockFileName = 'single_instance.lock';
 /// requests, written beside [kSingleInstanceLockFileName].
 const String kSingleInstancePortFileName = 'single_instance.port';
 
-/// The only line the raise channel acts on. Anything else is ignored.
+/// The line that asks the first instance to raise its window.
 const String kRaiseRequestLine = 'raise';
+
+/// Prefix of the line that asks the first instance to raise its window and
+/// open a share file (PLAT-3): `open <absolute path>`, UTF-8. The path is
+/// untrusted, so the receiver checks it (`checkDesktopOpenPath`) before
+/// intake reads it. Any line that is neither this nor [kRaiseRequestLine] is
+/// ignored.
+const String kOpenRequestPrefix = 'open ';
+
+/// Longest request line, in bytes, the first instance accepts before it drops
+/// the connection. Room for a long path; a longer one is not forwarded.
+const int kMaxSingleInstanceRequestBytes = 8192;
 
 /// Resolves the directory the single-instance lock lives in. Injectable so
 /// tests can point the guard at a temp directory instead of the real
@@ -172,14 +183,23 @@ class _RandomAccessFileLockHandle implements InstanceLockHandle {
 /// without a real second process.
 abstract class InstanceRaiseChannel {
   /// Starts listening in the first instance and records where in [lockDir].
-  /// Calls [onRaise] each time a peer sends the raise request. Returns the
+  /// Calls [onRaise] each time a peer sends the raise request. An open request
+  /// calls [onRaise] and then [onOpen] with the path, unchecked. Returns the
   /// bound port. May throw; the caller treats that as non-fatal.
-  Future<int> listen(Directory lockDir, void Function() onRaise);
+  Future<int> listen(
+    Directory lockDir,
+    void Function() onRaise, {
+    void Function(String path)? onOpen,
+  });
 
   /// Asks the running first instance (found via [lockDir]) to raise its window.
   /// Returns `false` on any failure (no port file, nothing listening, I/O
   /// error). Never throws.
   Future<bool> requestRaise(Directory lockDir);
+
+  /// Asks the running first instance to raise its window and open [path].
+  /// Returns `false` on any failure, like [requestRaise]. Never throws.
+  Future<bool> requestOpen(Directory lockDir, String path);
 
   /// Stops listening and removes the port file if this channel wrote it.
   /// Idempotent; never throws.
@@ -195,8 +215,10 @@ const int kMaxRaiseConnections = 4;
 /// port). The port is written to `<lockDir>/single_instance.port`.
 ///
 /// This is not a general IPC surface: it binds `127.0.0.1`, reads at most one
-/// short line per connection, acts only on the literal [kRaiseRequestLine],
-/// and carries no payload or reply.
+/// line of [kMaxSingleInstanceRequestBytes] per connection, acts only on the
+/// literal [kRaiseRequestLine] or a [kOpenRequestPrefix] line, and sends no
+/// reply. Any local process can connect, so the open path it carries is
+/// handed on unchecked and the receiver must check it.
 class LoopbackRaiseChannel implements InstanceRaiseChannel {
   LoopbackRaiseChannel({
     this.portFileName = kSingleInstancePortFileName,
@@ -211,9 +233,6 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
   /// timeout, so trickling one byte at a time does not extend it.
   final Duration timeout;
 
-  /// Longest request line accepted before the connection is dropped.
-  static const int _maxRequestBytes = 64;
-
   ServerSocket? _server;
   File? _portFile;
   int? _port;
@@ -222,7 +241,11 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
   File _portFileIn(Directory dir) => File(p.join(dir.path, portFileName));
 
   @override
-  Future<int> listen(Directory lockDir, void Function() onRaise) async {
+  Future<int> listen(
+    Directory lockDir,
+    void Function() onRaise, {
+    void Function(String path)? onOpen,
+  }) async {
     await close();
     final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
     _server = server;
@@ -233,7 +256,9 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
           return;
         }
         _serving++;
-        unawaited(_serve(socket, onRaise).whenComplete(() => _serving--));
+        unawaited(
+          _serve(socket, onRaise, onOpen).whenComplete(() => _serving--),
+        );
       },
       onError: (Object error, StackTrace stackTrace) {
         logCaughtErrorTypeOnly(
@@ -257,27 +282,39 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
     return server.port;
   }
 
-  Future<void> _serve(Socket socket, void Function() onRaise) async {
-    // Destroying the socket ends the read loop below with no raise.
+  Future<void> _serve(
+    Socket socket,
+    void Function() onRaise,
+    void Function(String path)? onOpen,
+  ) async {
+    // Destroying the socket ends the read loop below with no request.
     final deadline = Timer(timeout, socket.destroy);
     try {
       final bytes = <int>[];
-      var raise = false;
+      String? line;
       await for (final chunk in socket.timeout(timeout)) {
         bytes.addAll(chunk);
-        if (bytes.length > _maxRequestBytes) break;
         final newline = bytes.indexOf(0x0a);
+        if (newline > kMaxSingleInstanceRequestBytes ||
+            (newline < 0 && bytes.length > kMaxSingleInstanceRequestBytes)) {
+          break;
+        }
         if (newline >= 0) {
-          raise =
-              latin1.decode(bytes.sublist(0, newline)).trim() ==
-              kRaiseRequestLine;
+          // Throws on malformed UTF-8, which drops the request below.
+          line = utf8.decode(bytes.sublist(0, newline));
           break;
         }
       }
-      if (raise) onRaise();
+      if (line == null) return;
+      if (line.trim() == kRaiseRequestLine) {
+        onRaise();
+      } else if (line.startsWith(kOpenRequestPrefix)) {
+        onRaise();
+        onOpen?.call(line.substring(kOpenRequestPrefix.length));
+      }
     } catch (_) {
       // diagnostics: silent — a malformed, slow or reset peer is ignored; the
-      // channel only ever acts on a well-formed raise line.
+      // channel only ever acts on a well-formed raise or open line.
     } finally {
       deadline.cancel();
       socket.destroy();
@@ -285,7 +322,22 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
   }
 
   @override
-  Future<bool> requestRaise(Directory lockDir) async {
+  Future<bool> requestRaise(Directory lockDir) =>
+      _send(lockDir, kRaiseRequestLine);
+
+  @override
+  Future<bool> requestOpen(Directory lockDir, String path) {
+    final line = '$kOpenRequestPrefix$path';
+    // A newline would end the line early, and an over-long line is dropped
+    // by the receiver; neither can carry the path.
+    if (path.contains('\n') ||
+        utf8.encode(line).length > kMaxSingleInstanceRequestBytes) {
+      return Future.value(false);
+    }
+    return _send(lockDir, line);
+  }
+
+  Future<bool> _send(Directory lockDir, String line) async {
     Socket? socket;
     try {
       final port = int.tryParse(
@@ -297,7 +349,7 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
         port,
         timeout: timeout,
       );
-      socket.write('$kRaiseRequestLine\n');
+      socket.add(utf8.encode('$line\n'));
       await socket.flush().timeout(timeout);
       await socket.close().timeout(timeout);
       return true;
@@ -485,16 +537,20 @@ enum SecondLaunchOutcome {
 /// The second-launch decision, extracted from `main` so it is testable.
 ///
 /// Runs before `AppData` exists, so a refused launch never opens the database.
-/// - `alreadyRunning`: asks the running instance to raise its window, writes
+/// - `alreadyRunning`: asks the running instance to raise its window, or, when
+///   this launch was given [openPath], to raise it and open that file. Writes
 ///   one line to [err] naming the outcome, returns [SecondLaunchOutcome.exitNow].
 /// - `acquired`: when [DesktopSingleInstance.listensForRaise] is set (Linux and
-///   Windows by default), starts the raise listener (calling [onRaise] on a
-///   request); either way returns [SecondLaunchOutcome.proceed]. A listener
-///   failure is logged and non-fatal: the app just won't be raisable.
+///   Windows by default), starts the listener, calling [onRaise] on a raise
+///   request and [onRaise] then [onOpen] on an open request; either way
+///   returns [SecondLaunchOutcome.proceed]. A listener failure is logged and
+///   non-fatal: the app just won't be raisable.
 /// - `unavailable`: returns [SecondLaunchOutcome.proceed] (fail-open).
 Future<SecondLaunchOutcome> handleSecondLaunch(
   DesktopSingleInstance guard, {
   required void Function() onRaise,
+  void Function(String path)? onOpen,
+  String? openPath,
   IOSink? err,
 }) async {
   final sink = err ?? stderr;
@@ -503,9 +559,10 @@ Future<SecondLaunchOutcome> handleSecondLaunch(
     case SingleInstanceResult.alreadyRunning:
       var raised = false;
       try {
-        raised = await guard.raiseChannel.requestRaise(
-          await guard.lockDirectory(),
-        );
+        final lockDir = await guard.lockDirectory();
+        raised = openPath == null
+            ? await guard.raiseChannel.requestRaise(lockDir)
+            : await guard.raiseChannel.requestOpen(lockDir, openPath);
       } catch (error, stackTrace) {
         logCaughtErrorTypeOnly(
           error,
@@ -513,19 +570,27 @@ Future<SecondLaunchOutcome> handleSecondLaunch(
           source: 'single_instance_guard.requestRaise',
         );
       }
-      sink.writeln(
-        raised
-            ? "Caller's Compendium is already running; asked it to bring its "
-                  'window forward. Exiting this second launch.'
-            : "Caller's Compendium is already running, but its window could "
-                  'not be reached. Exiting this second launch to protect the '
-                  'database.',
-      );
+      sink.writeln(switch ((raised, openPath)) {
+        (true, null) =>
+          "Caller's Compendium is already running; asked it to bring its "
+              'window forward. Exiting this second launch.',
+        (true, _) =>
+          "Caller's Compendium is already running; asked it to open the "
+              'file. Exiting this second launch.',
+        (false, _) =>
+          "Caller's Compendium is already running, but its window could "
+              'not be reached. Exiting this second launch to protect the '
+              'database.',
+      });
       return SecondLaunchOutcome.exitNow;
     case SingleInstanceResult.acquired:
       if (!guard.listensForRaise) return SecondLaunchOutcome.proceed;
       try {
-        await guard.raiseChannel.listen(await guard.lockDirectory(), onRaise);
+        await guard.raiseChannel.listen(
+          await guard.lockDirectory(),
+          onRaise,
+          onOpen: onOpen,
+        );
       } catch (error, stackTrace) {
         logCaughtErrorTypeOnly(
           error,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/data/single_instance_guard.dart';
@@ -43,15 +44,28 @@ class _FakeRaiseChannel implements InstanceRaiseChannel {
   final bool raiseResult;
   final bool listenThrows;
   final List<Directory> raiseRequests = [];
+  final List<String> openRequests = [];
   final List<Directory> listens = [];
   void Function()? onRaise;
+  void Function(String path)? onOpen;
 
   @override
-  Future<int> listen(Directory lockDir, void Function() onRaise) async {
+  Future<int> listen(
+    Directory lockDir,
+    void Function() onRaise, {
+    void Function(String path)? onOpen,
+  }) async {
     if (listenThrows) throw const FileSystemException('injected listen fault');
     listens.add(lockDir);
     this.onRaise = onRaise;
+    this.onOpen = onOpen;
     return 1;
+  }
+
+  @override
+  Future<bool> requestOpen(Directory lockDir, String path) async {
+    openRequests.add(path);
+    return raiseResult;
   }
 
   @override
@@ -293,6 +307,42 @@ void main() {
       },
     );
 
+    test('a second launch given a file asks the running instance to open it, '
+        'not just raise', () async {
+      final channel = _FakeRaiseChannel();
+      final err = _CaptureSink();
+
+      final outcome = await handleSecondLaunch(
+        guardWith(
+          primitive: _FakePrimitive.alreadyRunning(),
+          raiseChannel: channel,
+        ),
+        onRaise: () {},
+        openPath: '/home/caller/Contra Night.ccshare',
+        err: err,
+      );
+
+      expect(outcome, SecondLaunchOutcome.exitNow);
+      expect(channel.openRequests, ['/home/caller/Contra Night.ccshare']);
+      expect(channel.raiseRequests, isEmpty);
+      expect(err.buffer.toString(), contains('asked it to open the file'));
+    });
+
+    test('the first instance wires onOpen into the listener', () async {
+      final channel = _FakeRaiseChannel();
+      final opened = <String>[];
+
+      await handleSecondLaunch(
+        guardWith(primitive: _FakePrimitive.acquired(), raiseChannel: channel),
+        onRaise: () {},
+        onOpen: opened.add,
+        err: _CaptureSink(),
+      );
+
+      channel.onOpen!('/x.ccshare');
+      expect(opened, ['/x.ccshare']);
+    });
+
     test('a platform without the raise listener (macOS) acquires and proceeds '
         'without binding a socket', () async {
       final channel = _FakeRaiseChannel();
@@ -406,6 +456,81 @@ void main() {
       },
     );
 
+    test(
+      'an open request raises, then hands over the path unchanged',
+      () async {
+        final events = <String>[];
+        final opened = Completer<void>();
+        await server.listen(
+          dir,
+          () => events.add('raise'),
+          onOpen: (path) {
+            events.add('open $path');
+            opened.complete();
+          },
+        );
+        const path = '/home/caller/Tanzabend – Köln.ccshare';
+
+        expect(await client.requestOpen(dir, path), isTrue);
+        await opened.future.timeout(const Duration(seconds: 5));
+
+        expect(events, ['raise', 'open $path']);
+      },
+    );
+
+    test('an open request with no onOpen wired still raises', () async {
+      final raised = Completer<void>();
+      await server.listen(dir, raised.complete);
+
+      expect(await client.requestOpen(dir, '/x.ccshare'), isTrue);
+      await raised.future.timeout(const Duration(seconds: 5));
+    });
+
+    test('an open line over the byte cap, or not UTF-8, is dropped', () async {
+      var raised = 0;
+      final opened = <String>[];
+      final port = await server.listen(dir, () => raised++, onOpen: opened.add);
+
+      Future<void> send(List<int> bytes) async {
+        final socket = await Socket.connect(InternetAddress.loopbackIPv4, port);
+        socket.add(bytes);
+        await socket.flush();
+        await socket.close();
+        socket.destroy();
+      }
+
+      final longPath = '/${'a' * kMaxSingleInstanceRequestBytes}.ccshare';
+      await send(utf8.encode('$kOpenRequestPrefix$longPath\n'));
+      await send([...utf8.encode(kOpenRequestPrefix), 0xff, 0xfe, 0x0a]);
+      // The longest line the cap allows still gets through.
+      final fits = '/${'b' * (kMaxSingleInstanceRequestBytes - 6)}';
+      expect(
+        utf8.encode('$kOpenRequestPrefix$fits').length,
+        kMaxSingleInstanceRequestBytes,
+      );
+      await send(utf8.encode('$kOpenRequestPrefix$fits\n'));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      expect(opened, [fits]);
+      expect(raised, 1);
+    });
+
+    test('requestOpen refuses a path it cannot carry on one line', () async {
+      var raised = 0;
+      await server.listen(dir, () => raised++, onOpen: (_) {});
+
+      expect(await client.requestOpen(dir, '/a\nraise.ccshare'), isFalse);
+      expect(
+        await client.requestOpen(
+          dir,
+          '/${'a' * kMaxSingleInstanceRequestBytes}.ccshare',
+        ),
+        isFalse,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(raised, 0);
+    });
+
     test('ignores anything other than the raise line', () async {
       var raised = 0;
       final port = await server.listen(dir, () => raised++);
@@ -421,7 +546,7 @@ void main() {
         InternetAddress.loopbackIPv4,
         port,
       );
-      oversized.write('${'x' * 200}\nraise\n');
+      oversized.write('${'x' * (kMaxSingleInstanceRequestBytes + 1)}\nraise\n');
       await oversized.flush();
       await oversized.close();
       oversized.destroy();

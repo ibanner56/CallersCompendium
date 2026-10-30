@@ -226,7 +226,7 @@ abstract class AppLocalizations {
   /// **'Could not prepare the collection.'**
   String get appBootstrapError;
 
-  /// Button on the startup error screen that copies the error type and stack trace (not the message) to the clipboard.
+  /// Button on the startup error screen that copies the error type, its stack trace (scrubbed of file paths) and, on the terminal startup screens, their typed details such as version numbers (never the error message) to the clipboard.
   ///
   /// In en, this message translates to:
   /// **'Copy details'**
@@ -244,10 +244,22 @@ abstract class AppLocalizations {
   /// **'Details were also written to the diagnostics log in the app’s support folder.'**
   String get appBootstrapLogHint;
 
-  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered.
+  /// Button on the terminal startup screens (newer data, too-old data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded.
   ///
   /// In en, this message translates to:
-  /// **'This data was created by a newer version of Caller’s Compendium — please update the app.'**
+  /// **'Open the Releases page'**
+  String get appBootstrapReleasesLink;
+
+  /// Second line of the newer-data startup screen. {fileVersion} is the storage format version recorded in the user's data file, {appVersion} the highest storage format version this build can read; both are plain integers. Helps a bug report and tells the user how far behind the app is.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.'**
+  String migrationDowngradeVersions(int fileVersion, int appVersion);
+
+  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened.
+  ///
+  /// In en, this message translates to:
+  /// **'This data was created by a newer version of Caller’s Compendium. Update the app, then reopen it.'**
   String get migrationDowngradeMessage;
 
   /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered.
@@ -3709,7 +3721,7 @@ abstract class AppLocalizations {
   /// **'A level named \"{label}\" already exists.'**
   String settingsDefaultsDifficultyLevelDuplicate(String label);
 
-  /// Snackbar when deleting a difficulty level that dances (including deleted ones that can be restored) still use. {label} is the level's display name, never its id; {count} is the number of dances.
+  /// Snackbar when deleting a difficulty level that live dances still use; dances in Recently deleted don't count. {label} is the level's display name, never its id; {count} is the number of dances.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 dance uses {label}. Change it first.} other{{count} dances use {label}. Change them first.}}'**
@@ -4750,7 +4762,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the deleted-dance retention duration setting.
   ///
   /// In en, this message translates to:
-  /// **'Deleted dances and programs are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.'**
+  /// **'Deleted dances and programs are kept for this long before being permanently removed on app launch. With Device Sync this applies on all your devices: a shared item is cleared everywhere, leaving only a small deletion record. Never keeps them until you purge manually.'**
   String get settingsGeneralSoftDeleteRetentionSubtitle;
 
   /// Deleted-dance retention dropdown option showing a fixed number of days. Keep 'days' literal for every value to preserve the current English UI.
@@ -5809,10 +5821,10 @@ abstract class AppLocalizations {
   /// **'Mixer'**
   String get commonMixer;
 
-  /// Tooltip on a tag chip that filters the collection to dances carrying that tag.
+  /// Tooltip on a tag chip (a Collection row, or a dance's detail page). Tapping it adds the tag to the Collection's Tags filter and keeps the rest of the search; from a detail page it also switches to the Collection.
   ///
   /// In en, this message translates to:
-  /// **'Show dances tagged “{tagName}”'**
+  /// **'Add “{tagName}” to the Collection filters'**
   String commonShowDancesTaggedTooltip(String tagName);
 
   /// Snackbar confirming a dance was soft-deleted, quoting its title.
@@ -5970,6 +5982,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} selected'**
   String collectionSelectedCount(int count);
+
+  /// Tooltip and menu label for the selection-bar action that selects every dance in the current results. {count} is the number of dances in the results.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all {count}'**
+  String collectionSelectAllTooltip(int count);
+
+  /// Tooltip and menu label for the selection-bar action that clears the selection of every dance in the current results, shown when they are all selected. {count} is the number of dances in the results.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all {count}'**
+  String collectionDeselectAllTooltip(int count);
+
+  /// Added after the result count while selecting, when some selected dances are hidden by the current search or filters: how many are selected in all, and how many of those the list does not show.
+  ///
+  /// In en, this message translates to:
+  /// **'{selected} selected ({hidden} not shown)'**
+  String collectionSelectionNotShown(int selected, int hidden);
+
+  /// Button beside the result count that drops the selected dances the current search or filters hide, keeping the ones on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect those not shown'**
+  String get collectionDeselectNotShown;
 
   /// Batch action (tooltip and dialog title) for adding tags to the selected dances.
   ///
@@ -6307,6 +6343,90 @@ abstract class AppLocalizations {
   /// **'Not called'**
   String get collectionFacetNotCalled;
 
+  /// Hint under the Calling history filter's venue and time-window choices while neither or both of Called and Not called is selected: the choices are kept but do nothing until exactly one is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies with Called or Not called'**
+  String get collectionFacetHistoryInert;
+
+  /// Label of the venue choice in the Calling history filter: only calls at the chosen venue count.
+  ///
+  /// In en, this message translates to:
+  /// **'At venue'**
+  String get collectionFacetVenue;
+
+  /// Venue choice in the Calling history filter when no venue is chosen, and the list entry that clears the choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Any venue'**
+  String get collectionFacetVenueAny;
+
+  /// Placeholder name for a venue in the Calling history filter whose record is gone and whose programs have no typed venue text.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed venue'**
+  String get collectionFacetVenueUnnamed;
+
+  /// Tooltip of the button that clears the venue chosen in the Calling history filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear venue'**
+  String get collectionFacetVenueClear;
+
+  /// Title of the list of venues, each with a counted call, that the Calling history filter offers.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get collectionFacetVenueSheetTitle;
+
+  /// Under a venue in the Calling history filter's venue list: how many programs at that venue have a counted call.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program} other{{count} programs}}'**
+  String collectionFacetVenuePrograms(int count);
+
+  /// Marks a venue in the Calling history filter's venue list that is only typed text on its programs, not a saved venue. A typed Grange and a saved Grange are separate venues until the old programs are linked.
+  ///
+  /// In en, this message translates to:
+  /// **'typed'**
+  String get collectionFacetVenueTyped;
+
+  /// Label of the time-window choices in the Calling history filter (Within 1 month, Within 3 months, and so on).
+  ///
+  /// In en, this message translates to:
+  /// **'Within'**
+  String get collectionFacetWithin;
+
+  /// Time-window choice in the Calling history filter that sets no window, shown with Called: calls at any time count.
+  ///
+  /// In en, this message translates to:
+  /// **'Any time'**
+  String get collectionFacetWithinAnyTime;
+
+  /// Time-window choice in the Calling history filter that sets no window, shown with Not called: dances that have never been called.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called'**
+  String get collectionFacetWithinNever;
+
+  /// Time-window choice in the Calling history filter: calls in the last {count} calendar months, counted back from today.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month} other{{count} months}}'**
+  String collectionFacetWithinMonths(int count);
+
+  /// Time-window choice in the Calling history filter that opens a date picker: calls on or after the chosen date count.
+  ///
+  /// In en, this message translates to:
+  /// **'Since a date…'**
+  String get collectionFacetWithinSince;
+
+  /// Time-window choice in the Calling history filter once a date is chosen; {date} is that date in the user's date format.
+  ///
+  /// In en, this message translates to:
+  /// **'Since {date}'**
+  String collectionFacetWithinSinceDate(String date);
+
   /// Filter section heading for the difficulty level facet.
   ///
   /// In en, this message translates to:
@@ -6336,6 +6456,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Untagged'**
   String get collectionFacetUntagged;
+
+  /// Screen-reader label for the choice under the Tags filter, shown once two or more tags are selected, between requiring all of them and any of them.
+  ///
+  /// In en, this message translates to:
+  /// **'Match tags'**
+  String get collectionFacetTagsMatchLabel;
+
+  /// Segment of the Tags filter's match choice: a dance must carry every selected tag. The default when a second tag is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'All tags'**
+  String get collectionFacetTagsMatchAll;
+
+  /// Tooltip for the 'All tags' segment of the Tags filter's match choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Show dances that have every selected tag'**
+  String get collectionFacetTagsMatchAllTooltip;
+
+  /// Segment of the Tags filter's match choice: a dance needs only one of the selected tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Any tag'**
+  String get collectionFacetTagsMatchAny;
+
+  /// Tooltip for the 'Any tag' segment of the Tags filter's match choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Show dances that have at least one selected tag'**
+  String get collectionFacetTagsMatchAnyTooltip;
 
   /// Filter section heading for the cited-source facet.
   ///
@@ -7204,6 +7354,40 @@ abstract class AppLocalizations {
     String programTitle,
     String details,
   );
+
+  /// Marker in an add-to-program sheet row's subtitle: the program already holds this dance once, as a main slot or an alternate.
+  ///
+  /// In en, this message translates to:
+  /// **'In this program'**
+  String get programsDanceInThisProgram;
+
+  /// Marker in an add-to-program sheet row's subtitle: the program already holds this dance more than once (main slots and alternates both count).
+  ///
+  /// In en, this message translates to:
+  /// **'In this program ×{count}'**
+  String programsDanceInThisProgramCount(int count);
+
+  /// Title of the dialog the add-to-program sheet shows before adding a dance a program already holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in this program'**
+  String get programsAddAgainTitle;
+
+  /// Body of the dialog the add-to-program sheet shows before adding a dance a program already holds. The count includes alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{\"{danceTitle}\" is already in \"{programTitle}\". Add it again?} other{\"{danceTitle}\" is already in \"{programTitle}\" {count} times. Add it again?}}'**
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  );
+
+  /// Primary button of the add-to-program sheet's already-in-this-program dialog: adds the dance a second time.
+  ///
+  /// In en, this message translates to:
+  /// **'Add again'**
+  String get programsAddAgain;
 
   /// Confirmation snackbar after appending a dance to an existing program.
   ///
@@ -11021,6 +11205,18 @@ abstract class AppLocalizations {
   /// **'Re-import onto \"{title}\"'**
   String importReviewOptionReimport(String title);
 
+  /// Checkbox under a record set to Re-import, off by default. When ticked, the re-import also takes the imported title and author credit; otherwise it replaces only the figures, formation and progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Also update title and credit'**
+  String get importReviewReimportTitleAndCredit;
+
+  /// Explanation under the Also update title and credit checkbox; screen readers read it with the checkbox. The title is the existing local dance's title, an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Takes this file\'s title and author credit for \"{title}\". Your rating, tags, notes and links stay as they are.'**
+  String importReviewReimportTitleAndCreditHint(String title);
+
   /// Per-record option: import this record as a new dance even though a match exists.
   ///
   /// In en, this message translates to:
@@ -11051,11 +11247,23 @@ abstract class AppLocalizations {
   /// **'Same dance — replace \"{title}\" with this version ({percent}% match)'**
   String importReviewOptionLink(String title, int percent);
 
-  /// Pre-commit warning stating how many existing local dances a commit will overwrite.
+  /// Pre-commit warning stating how many existing local dances a commit will overwrite: those of records set to Same dance (replace). A re-import does not overwrite a dance and is counted by importReviewReimportWarning instead.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 existing dance will be overwritten} other{{count} existing dances will be overwritten}}'**
   String importReviewOverwriteWarning(int count);
+
+  /// Pre-commit warning stating how many existing local dances a commit will re-import onto. A re-import replaces only their choreography.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.} other{Re-import replaces the figures, formation and progression of {count} existing dances. Their ratings, tags and notes stay.}}'**
+  String importReviewReimportWarning(int count);
+
+  /// Second sentence of the re-import warning: how many of those re-imports have Also update title and credit ticked.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 of them also takes the file\'s title and credit.} other{{count} of them also take the file\'s title and credit.}}'**
+  String importReviewReimportTitleWarning(int count);
 
   /// Screen-reader label that prefixes the overwrite-warning message with 'Warning:'.
   ///
@@ -11183,7 +11391,7 @@ abstract class AppLocalizations {
   /// **'Couldn\'t import that dance to edit.'**
   String get importReviewEditError;
 
-  /// Title of the confirmation shown when Import and edit is pressed on a row set to Re-import or Link, because the matched dance is replaced immediately.
+  /// Title of the confirmation shown when Import and edit is pressed on a row set to Same dance (replace), because the matched dance is replaced immediately. A row set to Re-import uses importReviewEditReimportTitle.
   ///
   /// In en, this message translates to:
   /// **'Replace the existing dance now?'**
@@ -11194,6 +11402,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Importing to edit replaces \"{title}\" in your collection immediately. The batch Undo will not restore it.'**
   String importReviewEditOverwriteBody(String title);
+
+  /// Title of the confirmation shown when Import and edit is pressed on a row set to Re-import, because the matched dance is updated immediately, outside the batch Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import onto the existing dance now?'**
+  String get importReviewEditReimportTitle;
+
+  /// Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit off. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing to edit replaces the figures, formation and progression of \"{title}\" in your collection immediately. The batch Undo will not restore them.'**
+  String importReviewEditReimportBody(String title);
+
+  /// Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit ticked. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing to edit replaces the figures, formation, progression, title and credit of \"{title}\" in your collection immediately. The batch Undo will not restore them.'**
+  String importReviewEditReimportTitleAndCreditBody(String title);
 
   /// Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///

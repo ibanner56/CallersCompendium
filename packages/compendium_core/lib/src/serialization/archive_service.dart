@@ -43,13 +43,32 @@ class ArchiveExporter {
     bool includeDeleted = true,
   }) async {
     final ts = (exportedAt ?? DateTime.now()).toUtc();
-    return _repos.db.transaction(
-      () async => CompendiumArchive(
+    return _repos.db.transaction(() async {
+      final difficultyLevels = await _repos.difficultyLevels.listAll();
+      final liveLevelIds = {for (final level in difficultyLevels) level.id};
+      return CompendiumArchive(
         // Full backups are vocabulary-aware even when every level has been
         // deleted, so an empty list remains authoritative on restore.
         schemaVersion: archiveSchemaVersionDifficultyLevels,
         exportedAt: ts,
-        dances: await _repos.dances.listAll(includeDeleted: includeDeleted),
+        // A dance in Recently deleted does not hold its level back (the
+        // maintainer's trash-policy decision, 2026-10-29), so its level may be
+        // a tombstone, which this archive does not carry. It travels without a
+        // level rather than as a reference the codec reports as unknown, which
+        // would make the whole backup unrestorable. Its custom-field values and
+        // credits on tombstoned parents are already absent from the hydrated
+        // dance; the level is the one reference read raw.
+        dances: [
+          for (final dance in await _repos.dances.listAll(
+            includeDeleted: includeDeleted,
+          ))
+            if (dance.isDeleted &&
+                dance.difficultyLevelId != null &&
+                !liveLevelIds.contains(dance.difficultyLevelId))
+              dance.copyWith(clearDifficultyLevel: true)
+            else
+              dance,
+        ],
         programs: await _repos.programs.listAll(includeDeleted: includeDeleted),
         choreographers: await _repos.choreographers.listAll(),
         publishedSources: await _repos.publishedSources.listAll(),
@@ -70,9 +89,9 @@ class ArchiveExporter {
               ]
             : const [],
         venues: await _repos.venues.listAll(),
-        difficultyLevels: await _repos.difficultyLevels.listAll(),
-      ),
-    );
+        difficultyLevels: difficultyLevels,
+      );
+    });
   }
 }
 

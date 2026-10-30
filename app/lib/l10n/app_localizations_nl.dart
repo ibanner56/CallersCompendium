@@ -90,8 +90,25 @@ class AppLocalizationsNl extends AppLocalizations {
       'De details zijn ook naar het diagnoselogboek in de supportmap van de app geschreven.';
 
   @override
+  String get appBootstrapReleasesLink => 'Releases-pagina openen';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Je gegevens gebruiken opslagformaat $fileVersionString. Deze versie van de app leest tot en met formaat $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium — werk de app bij.';
+      'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij en open haar daarna opnieuw.';
 
   @override
   String get migrationRelocationBothExist =>
@@ -3102,7 +3119,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Nooit bewaart ze totdat je ze handmatig opschoont.';
+      'Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Met apparaatsynchronisatie geldt dit op al je apparaten: een gedeeld item wordt overal leeggemaakt en alleen een kleine verwijderingsnotitie blijft over. Nooit bewaart ze totdat je ze handmatig opschoont.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3722,7 +3739,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Dansen met tag “$tagName” tonen';
+    return '“$tagName” toevoegen aan de filters van de Collectie';
   }
 
   @override
@@ -3826,6 +3843,24 @@ class AppLocalizationsNl extends AppLocalizations {
   String collectionSelectedCount(int count) {
     return '$count geselecteerd';
   }
+
+  @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Alle $count selecteren';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Alle $count deselecteren';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected geselecteerd ($hidden niet getoond)';
+  }
+
+  @override
+  String get collectionDeselectNotShown => 'Niet-getoonde deselecteren';
 
   @override
   String get collectionAddTags => 'Tags toevoegen';
@@ -4114,6 +4149,66 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetNotCalled => 'Niet gebeld';
 
   @override
+  String get collectionFacetHistoryInert => 'Geldt bij Gebeld of Niet gebeld';
+
+  @override
+  String get collectionFacetVenue => 'Op locatie';
+
+  @override
+  String get collectionFacetVenueAny => 'Elke locatie';
+
+  @override
+  String get collectionFacetVenueUnnamed => 'Naamloze locatie';
+
+  @override
+  String get collectionFacetVenueClear => 'Locatie wissen';
+
+  @override
+  String get collectionFacetVenueSheetTitle => 'Locatie';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s',
+      one: '1 programma',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => 'getypt';
+
+  @override
+  String get collectionFacetWithin => 'Binnen';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'Altijd';
+
+  @override
+  String get collectionFacetWithinNever => 'Nooit gebeld';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count maanden',
+      one: '1 maand',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => 'Sinds een datum…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return 'Sinds $date';
+  }
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override
@@ -4129,6 +4224,23 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Zonder tags';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Tags matchen';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'Alle tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Dansen tonen die alle gekozen tags hebben';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Minstens één tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Dansen tonen die minstens één van de gekozen tags hebben';
 
   @override
   String get collectionFacetSource => 'Bron';
@@ -4682,6 +4794,36 @@ class AppLocalizationsNl extends AppLocalizations {
   ) {
     return '“$danceTitle” toevoegen aan $programTitle, $details';
   }
+
+  @override
+  String get programsDanceInThisProgram => 'In dit programma';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'In dit programma ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'Al in dit programma';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '“$danceTitle” staat al $count keer in “$programTitle”. Opnieuw toevoegen?',
+      one: '“$danceTitle” staat al in “$programTitle”. Opnieuw toevoegen?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'Opnieuw toevoegen';
 
   @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
@@ -7376,6 +7518,15 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit =>
+      'Ook titel en auteur bijwerken';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Neemt de titel en auteursvermelding uit dit bestand over voor “$title”. Je beoordeling, tags, notities en links blijven zoals ze zijn.';
+  }
+
+  @override
   String get importReviewOptionDuplicate =>
       'Importeren als nieuwe (dubbele) dans';
 
@@ -7404,6 +7555,32 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: '$count bestaande dansen worden overschreven',
       one: '1 bestaande dans wordt overschreven',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van $count bestaande dansen. Hun beoordelingen, tags en notities blijven.',
+      one:
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans. De beoordeling, tags en notities blijven.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Bij $count daarvan worden ook de titel en auteur uit het bestand overgenomen.',
+      one:
+          'Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.',
     );
     return '$_temp0';
   }
@@ -7551,6 +7728,20 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return 'Importeren om te bewerken vervangt “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt hem niet.';
+  }
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Nu opnieuw importeren in de bestaande dans?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'Importeren om te bewerken vervangt de figuren, formatie en progressie van “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'Importeren om te bewerken vervangt de figuren, formatie, progressie, titel en auteur van “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.';
   }
 
   @override

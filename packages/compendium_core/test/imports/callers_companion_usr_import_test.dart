@@ -89,75 +89,71 @@ Uint8List _ccUsrBytes({String? secondSetId}) {
 /// Same base fixture as [_ccUsrBytes], plus a `Dance_Related` table carrying
 /// [relatedRows] (each a `(zk_Dance1_ID, zk_Dance2_ID)` pair) — for issue #688
 /// related-dance import tests.
-Uint8List _ccUsrBytesWithRelated(List<(String, String)> relatedRows) =>
-    buildFmp12Fixture([
-      FmpFixtureTable(
-        index: 1,
-        name: 'Dance',
-        columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
-        rows: [
-          MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
-          MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
-        ],
-      ),
-      FmpFixtureTable(
-        index: 2,
-        name: 'Set',
-        columnNames: [
-          'zk_Set_ID',
-          'Date',
-          'Location',
-          'Band',
-          'Caller',
-          'Notes',
-        ],
-        rows: [
-          MapEntry(20, {
-            1: '1',
-            2: '3/14/2020',
-            3: 'Grange Hall',
-            4: 'The Band',
-            5: 'Jane',
-            6: 'a good night',
-          }),
-        ],
-      ),
-      FmpFixtureTable(
-        index: 3,
-        name: 'SetItem',
-        columnNames: [
-          'zk_Set_ID',
-          'zk_SetItem_ID',
-          'zk_Dance_ID',
-          'Order',
-          'Time',
-          'Break',
-        ],
-        rows: [
-          MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
-          MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
-        ],
-      ),
-      FmpFixtureTable(
-        index: 4,
-        name: 'Dance_Related',
-        columnNames: [
-          'zk_DanceRelatedID',
-          'zk_Dance1_ID',
-          'zk_Dance2_ID',
-          'zk_DanceRelatedID_PairID',
-        ],
-        rows: [
-          for (var i = 0; i < relatedRows.length; i++)
-            MapEntry(900 + i, {
-              1: '${i + 1}',
-              2: relatedRows[i].$1,
-              3: relatedRows[i].$2,
-              4: '${i + 1}',
-            }),
-        ],
-      ),
-    ]);
+Uint8List _ccUsrBytesWithRelated(
+  List<(String, String)> relatedRows, {
+  bool thirdDance = false,
+}) => buildFmp12Fixture([
+  FmpFixtureTable(
+    index: 1,
+    name: 'Dance',
+    columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
+    rows: [
+      MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
+      MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
+      if (thirdDance) MapEntry(12, {1: '9', 2: 'Chorus Jig', 3: 'Trad'}),
+    ],
+  ),
+  FmpFixtureTable(
+    index: 2,
+    name: 'Set',
+    columnNames: ['zk_Set_ID', 'Date', 'Location', 'Band', 'Caller', 'Notes'],
+    rows: [
+      MapEntry(20, {
+        1: '1',
+        2: '3/14/2020',
+        3: 'Grange Hall',
+        4: 'The Band',
+        5: 'Jane',
+        6: 'a good night',
+      }),
+    ],
+  ),
+  FmpFixtureTable(
+    index: 3,
+    name: 'SetItem',
+    columnNames: [
+      'zk_Set_ID',
+      'zk_SetItem_ID',
+      'zk_Dance_ID',
+      'Order',
+      'Time',
+      'Break',
+    ],
+    rows: [
+      MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
+      MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
+    ],
+  ),
+  FmpFixtureTable(
+    index: 4,
+    name: 'Dance_Related',
+    columnNames: [
+      'zk_DanceRelatedID',
+      'zk_Dance1_ID',
+      'zk_Dance2_ID',
+      'zk_DanceRelatedID_PairID',
+    ],
+    rows: [
+      for (var i = 0; i < relatedRows.length; i++)
+        MapEntry(900 + i, {
+          1: '${i + 1}',
+          2: relatedRows[i].$1,
+          3: relatedRows[i].$2,
+          4: '${i + 1}',
+        }),
+    ],
+  ),
+]);
 
 void main() {
   late CompendiumDatabase db;
@@ -1503,16 +1499,112 @@ void main() {
       expect(result.programs.single.slots.first.danceId, byExternal['4']);
     });
 
+    test('a dance the earlier Edit re-imported gets none of the file\'s links '
+        '(INTAKE-7)', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final (rest, editedId) = await editFirst(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        '4',
+        importer,
+      );
+
+      final result = await importer.commit(
+        rest,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': editedId},
+        earlierReimportedCcIds: {'4'},
+      );
+
+      expect(result.danceSession.records.single.action, CommitAction.reimport);
+      expect((await dances.getById(editedId))!.links, isEmpty);
+      expect(result.linksAddedToEarlierDances, isEmpty);
+      expect(result.relatedDanceLinkIssues, isEmpty);
+    });
+
+    test('a dance the earlier Edit re-imported still gets the file\'s links '
+        'when this batch links another row onto it', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      final first = await importer.import(
+        _ccUsrBytesWithRelated([], thirdDance: true),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final ids = await danceIdByExternalId(first.danceSession);
+      final (rest, editedId) = await editFirst(
+        _ccUsrBytesWithRelated([('7', '9')], thirdDance: true),
+        '4',
+        importer,
+      );
+      expect(editedId, ids['4']);
+      // Row 7 is treated as the same dance as the one row 4 re-imported: a
+      // link replaces that dance wholesale, so it takes row 7's links.
+      final linked = ImportBatchResult(
+        records: [
+          for (final r in rest.records)
+            r.draft.raw.externalId == '7'
+                ? ImportRecordPlan(
+                    draft: r.draft,
+                    verdict: DedupeVerdict.ambiguous(const []),
+                  )
+                : r,
+        ],
+      );
+      final row7 = linked.records.indexWhere(
+        (r) => r.draft.raw.externalId == '7',
+      );
+
+      final result = await importer.commit(
+        linked,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        resolutions: {row7: DedupeResolution.link(editedId)},
+        earlierDanceIds: {'4': editedId},
+        earlierReimportedCcIds: {'4'},
+      );
+
+      expect(result.danceSession.records[row7].action, CommitAction.link);
+      expect(
+        [
+          for (final l in (await dances.getById(editedId))!.links)
+            l.targetDanceId,
+        ],
+        [ids['9']],
+      );
+    });
+
     test(
       'a failed commit removes the link it added to the earlier dance',
       () async {
-        // As above, a re-import, so the failed commit restores dance 7 rather
-        // than deleting it and the repository cannot clean the link up itself.
-        await importer.import(
-          _ccUsrBytesWithRelated([]),
-          now: now,
-          venueEntityMode: false,
-          newId: nextId,
+        // Dance 7 is linked onto a dance the person already has, so the failed
+        // commit restores that dance rather than deleting it, and the
+        // repository cannot clean the link up itself. (Not a re-import, as
+        // above: a re-imported dance gets no links, INTAKE-7, so its write
+        // would not fail.)
+        final trad = await choreographers.upsert(
+          Choreographer(id: 'trad', name: 'Trad'),
+        );
+        await dances.create(
+          Dance(
+            id: 'mine-7',
+            title: 'Petronella',
+            authorIds: [trad],
+            createdAt: now,
+            updatedAt: now,
+          ),
         );
         final adapter = CallersCompanionUsrAdapter();
         final failing = _FailingLinkWriteDanceRepository(db);
@@ -1531,6 +1623,7 @@ void main() {
           reimporter,
         );
         failing.failLinksOnOtherThan = editedId;
+        expect(rest.records.single.verdict.isAmbiguous, isTrue);
 
         await expectLater(
           reimporter.commit(
@@ -1539,12 +1632,14 @@ void main() {
             now: now,
             venueEntityMode: false,
             newId: nextId,
+            resolutions: {0: DedupeResolution.link('mine-7')},
             earlierDanceIds: {'4': editedId},
           ),
           throwsA(isA<StateError>()),
         );
 
         expect((await dances.getById(editedId))!.links, isEmpty);
+        expect(await dances.getById('mine-7'), isNotNull);
         expect(await dances.listAll(), hasLength(2));
       },
     );
@@ -1571,6 +1666,62 @@ void main() {
       expect(link.targetDanceId, byExternal['7']);
       // Directional only: the target dance gets no reciprocal link.
       expect(target!.links, isEmpty);
+    });
+
+    test('a re-imported dance gets none of the file\'s links and keeps its '
+        'own (INTAKE-7)', () async {
+      final first = await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final id4 = (await danceIdByExternalId(first.danceSession))['4']!;
+      final mine = DanceLink(
+        id: 'mine',
+        kind: LinkKind.video,
+        url: 'https://example.com/video',
+      );
+      await dances.update((await dances.getById(id4))!.copyWith(links: [mine]));
+
+      final again = await importer.import(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+
+      expect(again.danceSession.records.map((r) => r.action), [
+        CommitAction.reimport,
+        CommitAction.reimport,
+      ]);
+      expect(
+        [for (final l in (await dances.getById(id4))!.links) l.id],
+        ['mine'],
+      );
+    });
+
+    test('a re-imported dance\'s pair raises no unresolved-endpoint warning, '
+        'since its link is left out anyway', () async {
+      await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+
+      final again = await importer.import(
+        _ccUsrBytesWithRelated([('4', '999')]), // '999' is not in the file
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+
+      expect(
+        again.danceSession.records.map((r) => r.action),
+        everyElement(CommitAction.reimport),
+      );
+      expect(again.relatedDanceLinkIssues, isEmpty);
     });
 
     test('a mirrored pair of rows in the archive yields two independent '

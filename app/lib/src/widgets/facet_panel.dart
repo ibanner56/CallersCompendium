@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/collection_facets_scope.dart';
+import '../search/called_venue_choices.dart';
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
+import 'calling_history_scopes.dart';
 import 'responsive_autocomplete.dart';
 
 /// The one-tap facet filter panel (`docs/design/ux.md` §1). Each section is a
 /// multi-select group of [FilterChip]s over the [FacetSelections] the parent
 /// owns; toggling a chip mutates that selection and calls [onChanged] so the
 /// parent re-runs the search. Within a section selections are OR-ed — except
-/// Tunes, which is AND-ed — and sections are AND-ed (see
-/// [buildCollectionFilter]).
+/// Tunes, which is AND-ed, and Tags, which offers an all / any choice once two
+/// tags are selected — and sections are AND-ed (see [buildCollectionFilter]).
 ///
 /// Sections the user hid under Settings → Defaults (#1419, read from
 /// [CollectionFacetsScope]) are omitted unless they hold a selection. This is
@@ -30,6 +32,7 @@ class FacetPanel extends StatelessWidget {
     required this.hasMixer,
     required this.hasRating,
     this.hasCallingHistory = false,
+    this.venueChoices,
     required this.authors,
     required this.tags,
     required this.citedSources,
@@ -59,6 +62,10 @@ class FacetPanel extends StatelessWidget {
 
   /// Whether any dance has a positive call count in the active history scope.
   final bool hasCallingHistory;
+
+  /// Where the Calling history section's venue chooser reads its rows. Null
+  /// leaves the venue row out of the section.
+  final VenueChoiceSource? venueChoices;
 
   final List<Choreographer> authors;
   final List<Tag> tags;
@@ -285,7 +292,7 @@ class FacetPanel extends StatelessWidget {
           key: const ValueKey('facet-row-call-status'),
           label: l10n.collectionFacetCallStatus,
           sectionId: 'call-status',
-          activeCount: facets.callStatuses.length,
+          activeCount: facets.callStatuses.length + facets.activeScopeCount,
           chips: [
             _chip(
               key: 'call-status-called',
@@ -302,6 +309,11 @@ class FacetPanel extends StatelessWidget {
               onSelected: (s) => toggle(facets.callStatuses, false, s),
             ),
           ],
+          footer: CallingHistoryScopes(
+            facets: facets,
+            venues: venueChoices,
+            onChanged: onChanged,
+          ),
         ),
       );
     }
@@ -363,9 +375,17 @@ class FacetPanel extends StatelessWidget {
                 label: t.name,
                 icon: Icons.label_outline,
                 selected: facets.tagIds.contains(t.id),
-                onSelected: (s) => toggle(facets.tagIds, t.id, s),
+                onSelected: (s) {
+                  facets.setTag(t.id, selected: s);
+                  onChanged();
+                },
               ),
           ],
+          // Below the chips, so it appears where the second tag was just
+          // picked without moving any chip.
+          footer: facets.tagIds.length > 1
+              ? _TagMatchModeToggle(facets: facets, onChanged: onChanged)
+              : null,
         ),
       );
     }
@@ -550,10 +570,14 @@ class _FacetSection extends StatelessWidget {
     required this.chips,
     required this.sectionId,
     this.activeCount = 0,
+    this.footer,
   });
 
   final String label;
   final List<Widget> chips;
+
+  /// A control shown under [chips], if any.
+  final Widget? footer;
 
   /// A stable, unique id for this section (built-in slug or custom-field id).
   /// Distinct from [label], which is user-authored for custom fields and so is
@@ -571,7 +595,59 @@ class _FacetSection extends StatelessWidget {
       activeCount: activeCount,
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Wrap(spacing: 8, runSpacing: 4, children: chips),
+        child: footer == null
+            ? Wrap(spacing: 8, runSpacing: 4, children: chips)
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(spacing: 8, runSpacing: 4, children: chips),
+                  const SizedBox(height: 8),
+                  footer!,
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// The Tags section's **All tags / Any tag** choice ([FacetSelections.tagsMatchAll]),
+/// shown while two or more tags are selected (FIND-14).
+///
+/// A [SegmentedButton], so a screen reader announces each segment as a
+/// button with its selected state; each segment's tooltip says what it does,
+/// and the whole is labelled as the tag-match choice.
+class _TagMatchModeToggle extends StatelessWidget {
+  const _TagMatchModeToggle({required this.facets, required this.onChanged});
+
+  final FacetSelections facets;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Semantics(
+      container: true,
+      label: l10n.collectionFacetTagsMatchLabel,
+      child: SegmentedButton<bool>(
+        key: const ValueKey('facet-tags-match-mode'),
+        showSelectedIcon: false,
+        segments: [
+          ButtonSegment(
+            value: true,
+            label: Text(l10n.collectionFacetTagsMatchAll),
+            tooltip: l10n.collectionFacetTagsMatchAllTooltip,
+          ),
+          ButtonSegment(
+            value: false,
+            label: Text(l10n.collectionFacetTagsMatchAny),
+            tooltip: l10n.collectionFacetTagsMatchAnyTooltip,
+          ),
+        ],
+        selected: {facets.tagsMatchAll},
+        onSelectionChanged: (selection) {
+          facets.tagsMatchAll = selection.single;
+          onChanged();
+        },
       ),
     );
   }

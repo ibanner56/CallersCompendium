@@ -79,7 +79,7 @@ String buildDanceShareBundle(
   return encodeArchive(
     CompendiumArchive(
       exportedAt: (now ?? DateTime.now()).toUtc(),
-      dances: [dance],
+      dances: [sanitizeDanceForShare(dance)],
       choreographers: choreographers,
       publishedSources: sources,
       customFields: customFields,

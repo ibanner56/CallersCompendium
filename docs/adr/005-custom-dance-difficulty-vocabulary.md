@@ -1,6 +1,17 @@
 # ADR-005: User-defined dance difficulty vocabulary
 
 - **Status**: Proposed
+- **Erratum (2026-10-30)**: "Decision" says a level "with any dance reference
+  is rejected", and "Consequences" says a level "cannot be deleted while
+  assigned". Both were read as counting dances in Recently Deleted. By the
+  maintainer's trash-policy decision (2026-10-29, option b; confirmed with
+  R2-trash-docs on 2026-10-30, both in
+  `docs/dev/audits/2026-10-behavior/` on the audit branch), only a **live**
+  dance's reference blocks deletion. A dance in Recently Deleted keeps its
+  reference to the tombstoned level. The text below is left as written; read
+  "dance reference" and "assigned" as live dances only. The guard is
+  `DifficultyLevelRepository.delete`, and sync-spec §6.8 was amended the same
+  day to match.
 - **Roadmap item**: Issue #1200
 - **Deciders**: Maintainers
 

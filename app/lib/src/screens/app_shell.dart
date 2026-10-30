@@ -75,8 +75,8 @@ class AppShellState extends State<AppShell> {
   CompendiumRepositories? _reimportRepos;
 
   /// The app-level tag-filter coordinator (issue #414). Subscribed so a tag tap
-  /// anywhere switches to the Collection destination and reveals the (now
-  /// filtered) list. Tracked so the listener is swapped/removed correctly.
+  /// anywhere switches to the Collection destination and reveals the list,
+  /// with the tag added to its filter. Tracked so the listener is swapped/removed correctly.
   CollectionFilterController? _filterController;
 
   /// The seq of the last tag-filter request this shell reacted to, so a repeat
@@ -116,10 +116,10 @@ class AppShellState extends State<AppShell> {
     super.dispose();
   }
 
-  /// Reacts to a "filter the Collection to this tag" request: selects the
+  /// Reacts to an "add this tag to the Collection's filter" request: selects the
   /// Collection destination and pops any pushed route (e.g. a full-screen dance
   /// detail on narrow layouts) so the filtered list is visible. The live
-  /// [DanceListScreen] applies the actual filter by listening to the same
+  /// [DanceListScreen] adds the tag to its filter by listening to the same
   /// controller. A no-op pop on wide layouts, where detail is embedded.
   void _onTagFilterRequested() {
     final request = _filterController?.pending;

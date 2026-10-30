@@ -12,6 +12,7 @@ import '../storage/repositories/choreographer_repository.dart';
 import '../storage/repositories/dance_repository.dart';
 import '../storage/repositories/difficulty_level_repository.dart';
 import 'callers_companion_mapping.dart';
+import 'dance_choreography_reimport.dart';
 import 'dedupe.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -24,6 +25,11 @@ enum CommitAction {
   create,
 
   /// Update an existing dance matched by exact `(source, externalId)`.
+  ///
+  /// Only its choreography and provenance change (see
+  /// [withReimportedChoreography]), plus its title and credit when the
+  /// verdict's [DedupeVerdict.alsoTitleAndCredit] is set; everything else the
+  /// caller keeps on the dance stays (INTAKE-7).
   reimport,
 
   /// Update an existing dance the caller chose to link a fuzzy match to.
@@ -639,7 +645,10 @@ class ImportPipeline {
   /// by their index into `batch.records`; an ambiguous record with no
   /// resolution is skipped (never guessed). New/duplicate inserts get a fresh
   /// id from [newId]; re-imports/links update the matched dance, preserving its
-  /// `createdAt`.
+  /// `createdAt`. A re-import writes only the draft's choreography and
+  /// provenance onto it ([withReimportedChoreography]), and its title and
+  /// credit too when [DedupeVerdict.alsoTitleAndCredit] is set; a link writes
+  /// the whole draft.
   ///
   /// [defaultTagIds] are added to every dance this commit **creates**
   /// (create / duplicate / variation), after any tags the draft already
@@ -718,7 +727,7 @@ class ImportPipeline {
     for (var i = 0; i < total; i++) {
       final plan = batch.records[i];
       final resolution = resolutions[i];
-      final (action, targetId) = _resolveAction(plan.verdict, resolution);
+      final (action, targetId) = resolveCommitAction(plan.verdict, resolution);
 
       if (action == CommitAction.skip) {
         committed.add(
@@ -771,16 +780,23 @@ class ImportPipeline {
         }
 
         // Resolve the record's author names to Choreographer ids, creating rows
-        // as needed. Done before the write so both create and reimport/link
-        // paths get real authorIds. Reimport/link REPLACES authors wholesale
-        // (consistent with re-import's overwrite of dance content).
-        final authorResolutions = await _resolveAuthors(
-          plan.draft.authorNames,
-          nameToId: nameToId,
-          newId: newId,
-          createdChoreographerIds: createdChoreographerIds,
-          revivedChoreographerIds: revivedChoreographerIds,
-        );
+        // as needed. Done before the write so both create and link paths get
+        // real authorIds. A link REPLACES authors wholesale (consistent with its
+        // overwrite of dance content). A re-import keeps the dance's authors
+        // (INTAKE-7), so it resolves none: a row minted for it would credit no
+        // dance. A re-import that also takes the title and credit resolves
+        // them as a link does.
+        final takesCredit =
+            action != CommitAction.reimport || plan.verdict.alsoTitleAndCredit;
+        final authorResolutions = !takesCredit
+            ? const <AuthorResolution>[]
+            : await _resolveAuthors(
+                plan.draft.authorNames,
+                nameToId: nameToId,
+                newId: newId,
+                createdChoreographerIds: createdChoreographerIds,
+                revivedChoreographerIds: revivedChoreographerIds,
+              );
         // Only override authorIds when the draft actually carried author NAMES
         // to resolve (the free-text adapters). Drafts that ship canonical
         // authorIds directly and no names (e.g. the generic archive/JSON
@@ -821,7 +837,7 @@ class ImportPipeline {
                   id: newId(),
                   kind: LinkKind.relatedDance,
                   // `wantsLinkBack` is only true for `CommitAction.variation`,
-                  // which `_resolveAction` only ever produces alongside a
+                  // which `resolveCommitAction` only ever produces alongside a
                   // non-null `resolution.targetDanceId` (`targetId` here) —
                   // `DedupeResolution.variation` requires one. The `!`
                   // documents that invariant rather than silently accepting
@@ -890,8 +906,44 @@ class ImportPipeline {
               authorResolutions: authorResolutions,
             ),
           );
+        } else if (action == CommitAction.reimport) {
+          // A re-import refreshes only the choreography (figures, formation,
+          // progression) and the provenance, from every source: the caller's
+          // own title, notes, rating, tags, links, authors and custom fields
+          // are never overwritten (maintainer decisions, 2026-10-29 and
+          // 2026-10-30, INTAKE-7). The draft's links are not written either,
+          // so none are held back for it. The row's "Also update title and
+          // credit" choice adds those two (maintainer decision, 2026-10-30).
+          final id = targetId!;
+          // Non-null: a missing target `continue`d before authors were resolved.
+          final existing = prior!;
+          if (priorCapturedFor.add(id)) priorStates.add(existing);
+          await _dances.update(
+            withReimportedChoreography(
+              existing,
+              // Only credit resolved here. Unlike a create or a link, a draft
+              // with no names does not fall back to its own `authorIds`: those
+              // are the sender's ids, and none of them may name a choreographer
+              // in this library. No resolved credit keeps the dance's.
+              plan.draft.dance.copyWith(authorIds: authorIds ?? const []),
+              updatedAt: now,
+              provenance: prov,
+              alsoTitleAndCredit: plan.verdict.alsoTitleAndCredit,
+            ),
+          );
+          if (plan.draft.raw.externalId case final externalId?) {
+            writtenIdByExternalId[externalId] = id;
+          }
+          committed.add(
+            CommittedRecord(
+              action: action,
+              danceId: id,
+              externalId: plan.draft.raw.externalId,
+              authorResolutions: authorResolutions,
+            ),
+          );
         } else {
-          // reimport / link: update the matched dance in place.
+          // link: update the matched dance in place, replacing its content.
           final id = targetId!;
           // Non-null: a missing target `continue`d before authors were resolved.
           final existing = prior!;
@@ -1401,30 +1453,6 @@ class ImportPipeline {
     return resolutions;
   }
 
-  (CommitAction, String?) _resolveAction(
-    DedupeVerdict verdict,
-    DedupeResolution? resolution,
-  ) {
-    switch (verdict.kind) {
-      case DedupeKind.isNew:
-        return (CommitAction.create, null);
-      case DedupeKind.reimport:
-        return (CommitAction.reimport, verdict.targetDanceId);
-      case DedupeKind.ambiguous:
-        if (resolution == null) return (CommitAction.skip, null);
-        switch (resolution.kind) {
-          case DedupeResolutionKind.link:
-            return (CommitAction.link, resolution.targetDanceId);
-          case DedupeResolutionKind.duplicate:
-            return (CommitAction.duplicate, null);
-          case DedupeResolutionKind.skip:
-            return (CommitAction.skip, null);
-          case DedupeResolutionKind.variation:
-            return (CommitAction.variation, resolution.targetDanceId);
-        }
-    }
-  }
-
   /// The normalized author-name set for a match comparison (blanks dropped),
   /// using the same [normalizeAuthor] the deduper uses so names match the way
   /// fuzzy matching does.
@@ -1477,14 +1505,14 @@ class ImportPipeline {
 
   /// Rebuilds [src] under a different identity/timestamps/provenance. Used to
   /// reassign an import's id (fresh insert) or re-target it onto an existing
-  /// dance (re-import/link) without the caller having to reconstruct every
+  /// dance (link) without the caller having to reconstruct every
   /// field. All content fields are carried over verbatim, except [authorIds]
   /// which may be overridden with the pipeline's resolved ids. When
   /// [authorIds] is null the draft's own ids are kept — free-text adapters
   /// resolve names at commit and pass the resolved list, while adapters that
   /// ship canonical ids directly (e.g. the generic archive/JSON adapter) pass
   /// null to preserve them. [keepCustomFieldsFrom] is the dance being
-  /// re-imported over: its custom-field values for fields [src] does not carry
+  /// linked over: its custom-field values for fields [src] does not carry
   /// survive.
   Dance _rebuildWithIdentity(
     Dance src, {
@@ -1519,7 +1547,7 @@ class ImportPipeline {
     // A source that carries no custom fields (every adapter but the native
     // archive and the CC user fields) must not erase the ones the person added
     // to the dance since: `DanceRepository.update` deletes every stored value
-    // and rewrites only what the dance carries. On a re-import the draft's value
+    // and rewrites only what the dance carries. On a link the draft's value
     // wins for a field it carries; every other stored value is kept.
     customFields: [
       ...src.customFields,
@@ -1536,4 +1564,33 @@ class ImportPipeline {
     createdAt: createdAt,
     updatedAt: updatedAt,
   );
+}
+
+/// The action [ImportPipeline.commit] takes for a record with [verdict], and
+/// the dance it targets: a resolution is read only for an ambiguous verdict,
+/// and an ambiguous record without one is skipped. Public so a caller that
+/// must prepare for the commit (the archive importer's metadata) can tell which
+/// records will write a dance.
+(CommitAction, String?) resolveCommitAction(
+  DedupeVerdict verdict,
+  DedupeResolution? resolution,
+) {
+  switch (verdict.kind) {
+    case DedupeKind.isNew:
+      return (CommitAction.create, null);
+    case DedupeKind.reimport:
+      return (CommitAction.reimport, verdict.targetDanceId);
+    case DedupeKind.ambiguous:
+      if (resolution == null) return (CommitAction.skip, null);
+      switch (resolution.kind) {
+        case DedupeResolutionKind.link:
+          return (CommitAction.link, resolution.targetDanceId);
+        case DedupeResolutionKind.duplicate:
+          return (CommitAction.duplicate, null);
+        case DedupeResolutionKind.skip:
+          return (CommitAction.skip, null);
+        case DedupeResolutionKind.variation:
+          return (CommitAction.variation, resolution.targetDanceId);
+      }
+  }
 }

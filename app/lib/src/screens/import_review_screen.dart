@@ -258,6 +258,12 @@ class _RowChoice {
   /// `true` to match [DedupeResolution.variation]'s own default, and only
   /// applies when [kind] is [_ActionKind.variation].
   bool linkBack = true;
+
+  /// Whether choosing [_ActionKind.reimport] also takes the incoming title and
+  /// author credit ([DedupeVerdict.alsoTitleAndCredit]). Off by default and
+  /// never remembered between imports (maintainer decision, 2026-10-30: "Ask
+  /// per import"); only applies when [kind] is [_ActionKind.reimport].
+  bool alsoTitleAndCredit = false;
 }
 
 class _ImportReviewScreenState extends State<ImportReviewScreen> {
@@ -512,6 +518,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// file's sets and related dances still name those dances instead of
   /// recording them as not imported.
   final Map<String, String> _editCommittedCcDanceIds = <String, String>{};
+
+  /// The keys of [_editCommittedCcDanceIds] whose dance the per-row **Edit**
+  /// re-imported. The batch [_commit] adds none of the file's related-dance
+  /// links to those, as it adds none to a dance it re-imports itself
+  /// (INTAKE-7).
+  final Set<String> _editReimportedCcDanceIds = <String>{};
 
   /// Existing dance id → title, for showing candidate/reimport target names.
   Map<String, String> _titlesById = const {};
@@ -1069,6 +1081,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       }
       _committed.clear();
       _editCommittedCcDanceIds.clear();
+      _editReimportedCcDanceIds.clear();
       _titleListProgress = null;
       _phase = _Phase.review;
     });
@@ -1242,9 +1255,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       case DedupeKind.isNew:
         return _RowChoice(_ActionKind.create);
       case DedupeKind.reimport:
-        // Default to keep-local (skip) so a re-import never silently overwrites
-        // local edits (issue #446). The target id is retained so the user can
-        // deliberately choose "Re-import onto …" to overwrite.
+        // Default to keep-local (skip) so a re-import never silently changes
+        // the dance (issue #446). The target id is retained so the user can
+        // deliberately choose "Re-import onto …".
         return _RowChoice(_ActionKind.skip, plan.verdict.targetDanceId);
       case DedupeKind.ambiguous:
         return _RowChoice(_ActionKind.skip);
@@ -1257,7 +1270,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// Sets every not-yet-committed row whose verdict is [kind] in one pass.
   /// Rows already committed through Edit are left alone. A re-import row keeps
-  /// its target id whichever way it is set, as [_defaultChoice] does.
+  /// its target id whichever way it is set, as [_defaultChoice] does, and its
+  /// Also update title and credit box as the user left it.
   void _setAllMatched(ImportBatchResult batch, _ActionKind action) {
     setState(() {
       _choices = [
@@ -1266,6 +1280,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             _choices[i]
           else if (batch.records[i].verdict.kind == DedupeKind.reimport)
             _RowChoice(action, batch.records[i].verdict.targetDanceId)
+              ..alsoTitleAndCredit = _choices[i].alsoTitleAndCredit
           else
             _choices[i],
       ];
@@ -1347,7 +1362,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         return (
           ImportRecordPlan(
             draft: draft,
-            verdict: DedupeVerdict.reimport(choice.linkTargetId!),
+            verdict: DedupeVerdict.reimport(
+              choice.linkTargetId!,
+              alsoTitleAndCredit: choice.alsoTitleAndCredit,
+            ),
           ),
           null,
         );
@@ -1459,14 +1477,29 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         record.draft.raw.externalId!: record.verdict.targetDanceId!,
   };
 
-  Future<bool?> _confirmEditOverwrite(String matchedTitle) {
+  /// Asks before Import and edit writes onto [matchedTitle]'s dance. A
+  /// re-import ([choice] is [_ActionKind.reimport]) says it replaces only the
+  /// choreography, plus the title and credit when its box is ticked; a link
+  /// says it replaces the dance.
+  Future<bool?> _confirmEditOverwrite(String matchedTitle, _RowChoice choice) {
     final l10n = AppLocalizations.of(context);
+    final reimport = choice.kind == _ActionKind.reimport;
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: const ValueKey('import-edit-overwrite-confirm'),
-        title: Text(l10n.importReviewEditOverwriteTitle),
-        content: Text(l10n.importReviewEditOverwriteBody(matchedTitle)),
+        title: Text(
+          reimport
+              ? l10n.importReviewEditReimportTitle
+              : l10n.importReviewEditOverwriteTitle,
+        ),
+        content: Text(
+          !reimport
+              ? l10n.importReviewEditOverwriteBody(matchedTitle)
+              : choice.alsoTitleAndCredit
+              ? l10n.importReviewEditReimportTitleAndCreditBody(matchedTitle)
+              : l10n.importReviewEditReimportBody(matchedTitle),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -1494,7 +1527,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (planned == null) return;
     final (plan, resolution) = planned;
 
-    // Re-import and Link replace the matched dance the moment this row is
+    // Re-import and Link write onto the matched dance the moment this row is
     // written, and that write is outside the batch Undo, so ask first. Asked
     // before the phase changes so Cancel leaves the screen untouched.
     final choice = _choices[i];
@@ -1503,6 +1536,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final targetId = choice.linkTargetId;
       final confirmed = await _confirmEditOverwrite(
         '${_titlesById[targetId] ?? targetId}',
+        choice,
       );
       if (confirmed != true || !mounted) return;
     }
@@ -1575,6 +1609,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _committed.add(i);
         if (isUsr && ccDanceId != null && ccDanceId.isNotEmpty) {
           _editCommittedCcDanceIds[ccDanceId] = danceId;
+          if (committed.first.action == CommitAction.reimport) {
+            _editReimportedCcDanceIds.add(ccDanceId);
+          }
         }
       });
       await Navigator.of(context).push(
@@ -1685,6 +1722,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           defaultTagIds: await resolveDefaultImportTagIds(_repos),
           onProgress: _onCommitProgress,
           earlierDanceIds: Map.of(_editCommittedCcDanceIds),
+          earlierReimportedCcIds: Set.of(_editReimportedCcDanceIds),
         );
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
@@ -3035,10 +3073,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         0;
     final hasPrograms = programCount > 0;
     // How many *distinct* existing local dances a commit would overwrite (issue
-    // #446): the unique target ids across rows the user has set to "Re-import
-    // onto …" or to link to an existing dance (Link and the variation block's
-    // "Same dance" share `_ActionKind.link`; the pipeline rewrites the matched
-    // dance from the incoming record for both), excluding rows already
+    // #446): the unique target ids across rows the user has set to link to an
+    // existing dance (Link and the variation block's "Same dance" share
+    // `_ActionKind.link`; the pipeline rewrites the matched dance from the
+    // incoming record for both). Rows set to "Re-import onto …" are counted
+    // apart, for [_buildReimportWarning], since a re-import replaces only the
+    // choreography (INTAKE-7). Both exclude rows already
     // committed on their own via Edit. Counting unique targets (not rows) is
     // deliberate — planning reuses one DedupeIndex, so several incoming records
     // that share a provenance key can all target the same local dance; only
@@ -3051,7 +3091,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         if (_committed.contains(i) && _ambiguousGroupOfRow[i] != null)
           _ambiguousGroupOfRow[i]!,
     };
+    // A link replaces its target; a re-import replaces only the choreography,
+    // plus the title and credit when its box is ticked. A target both kinds
+    // name in one batch is counted once, as replaced.
     final overwriteTargets = <String>{};
+    final reimportTargets = <String>{};
+    final retitleTargets = <String>{};
     for (var i = 0; i < _choices.length; i++) {
       if (_committed.contains(i) || _choices[i].kind == _ActionKind.skip) {
         continue;
@@ -3063,11 +3108,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       }
       final kind = _choices[i].kind;
       final target = _choices[i].linkTargetId;
-      if ((kind == _ActionKind.reimport || kind == _ActionKind.link) &&
-          target != null) {
+      if (target == null) continue;
+      if (kind == _ActionKind.link) {
         overwriteTargets.add(target);
+      } else if (kind == _ActionKind.reimport) {
+        reimportTargets.add(target);
+        if (_choices[i].alsoTitleAndCredit) retitleTargets.add(target);
       }
     }
+    reimportTargets.removeAll(overwriteTargets);
+    retitleTargets.removeAll(overwriteTargets);
     final overwriteCount = overwriteTargets.length;
     return Column(
       children: [
@@ -3102,6 +3152,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               children: [
                 if (overwriteCount > 0) ...[
                   _buildOverwriteWarning(context, overwriteCount),
+                  const SizedBox(height: 8),
+                ],
+                if (reimportTargets.isNotEmpty) ...[
+                  _buildReimportWarning(
+                    context,
+                    reimportTargets.length,
+                    retitleTargets.length,
+                  ),
                   const SizedBox(height: 8),
                 ],
                 if (hasPrograms) ...[
@@ -3452,8 +3510,34 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// The re-import counterpart of [_buildOverwriteWarning], styled and
+  /// announced the same way: how many existing dances get new choreography,
+  /// and how many of those also take the file's title and credit.
+  Widget _buildReimportWarning(BuildContext context, int count, int retitled) {
+    final l10n = AppLocalizations.of(context);
+    final message = [
+      l10n.importReviewReimportWarning(count),
+      if (retitled > 0) l10n.importReviewReimportTitleWarning(retitled),
+    ].join(' ');
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: l10n.importReviewWarningPrefix(message),
+      child: ExcludeSemantics(
+        child: NoticeCard(
+          key: const ValueKey('import-reimport-warning'),
+          kind: NoticeKind.warning,
+          child: Text(
+            message,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// An accessible pre-commit warning banner stating how many existing local
-  /// dances a commit will overwrite (issue #446). Meaning is carried by an icon
+  /// dances a commit will overwrite (issue #446): those a link replaces. Meaning is carried by an icon
   /// and text (not color alone), and a merged [Semantics] `label` announces the
   /// count to screen readers as a warning.
   Widget _buildOverwriteWarning(BuildContext context, int count) {
@@ -3827,7 +3911,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       case DedupeKind.reimport:
         final title =
             '${_titlesById[verdict.targetDanceId] ?? verdict.targetDanceId}';
-        return _radioGroup(i, choice, [
+        final group = _radioGroup(i, choice, [
           _option(
             i,
             l10n.importReviewOptionReimport(title),
@@ -3837,6 +3921,33 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           _option(i, l10n.importReviewOptionDuplicate, _ActionKind.duplicate),
           _option(i, l10n.importReviewOptionSkip, _ActionKind.skip),
         ]);
+        if (choice.kind != _ActionKind.reimport) return group;
+        // Shown only while the row is set to Re-import, the one choice it
+        // changes. A CheckboxListTile reads its title, its hint (which names
+        // the dance it applies to, since every re-import row has one) and its
+        // state to a screen reader as one control.
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            group,
+            Padding(
+              padding: const EdgeInsetsDirectional.only(start: 32),
+              child: CheckboxListTile(
+                key: ValueKey('import-row-$i-title-and-credit'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: choice.alsoTitleAndCredit,
+                title: Text(l10n.importReviewReimportTitleAndCredit),
+                subtitle: Text(
+                  l10n.importReviewReimportTitleAndCreditHint(title),
+                ),
+                onChanged: (value) =>
+                    setState(() => choice.alsoTitleAndCredit = value ?? false),
+              ),
+            ),
+          ],
+        );
       case DedupeKind.ambiguous:
         final confidentDiff = _confidentDiffs[i];
         final options = <_Option>[];

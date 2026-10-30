@@ -89,8 +89,25 @@ class AppLocalizationsDa extends AppLocalizations {
       'Detaljer blev også skrevet til diagnostiklogget i appens supportmappe.';
 
   @override
+  String get appBootstrapReleasesLink => 'Åbn Releases-siden';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Dine data bruger lagringsformat $fileVersionString. Denne version af appen kan læse op til format $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'Disse data blev oprettet med en nyere version af Caller’s Compendium — opdatér appen.';
+      'Disse data blev oprettet med en nyere version af Caller’s Compendium. Opdatér appen, og åbn den derefter igen.';
 
   @override
   String get migrationRelocationBothExist =>
@@ -3077,7 +3094,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      'Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Aldrig bevarer dem, indtil du renser manuelt.';
+      'Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Med enhedssynkronisering gælder det på alle dine enheder: et delt element ryddes overalt, og kun en lille sletningspost bliver tilbage. Aldrig bevarer dem, indtil du renser manuelt.';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3694,7 +3711,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'Vis danse tagget „$tagName“';
+    return 'Føj „$tagName“ til filtrene i Samling';
   }
 
   @override
@@ -3799,6 +3816,24 @@ class AppLocalizationsDa extends AppLocalizations {
   String collectionSelectedCount(int count) {
     return '$count valgt';
   }
+
+  @override
+  String collectionSelectAllTooltip(int count) {
+    return 'Vælg alle $count';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return 'Fravælg alle $count';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected valgt ($hidden ikke vist)';
+  }
+
+  @override
+  String get collectionDeselectNotShown => 'Fravælg dem, der ikke vises';
 
   @override
   String get collectionAddTags => 'Tilføj tags';
@@ -4085,6 +4120,67 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionFacetNotCalled => 'Ikke kaldt';
 
   @override
+  String get collectionFacetHistoryInert =>
+      'Gælder sammen med Kaldt eller Ikke kaldt';
+
+  @override
+  String get collectionFacetVenue => 'På spillested';
+
+  @override
+  String get collectionFacetVenueAny => 'Alle spillesteder';
+
+  @override
+  String get collectionFacetVenueUnnamed => 'Unavngivet spillested';
+
+  @override
+  String get collectionFacetVenueClear => 'Ryd spillested';
+
+  @override
+  String get collectionFacetVenueSheetTitle => 'Spillested';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer',
+      one: '1 program',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => 'indtastet';
+
+  @override
+  String get collectionFacetWithin => 'Inden for';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'Når som helst';
+
+  @override
+  String get collectionFacetWithinNever => 'Aldrig kaldt';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count måneder',
+      one: '1 måned',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => 'Siden en dato…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return 'Siden $date';
+  }
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override
@@ -4100,6 +4196,23 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'Uden tags';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'Krav til tags';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'Alle tags';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip =>
+      'Vis danse, der har alle de valgte tags';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'Mindst ét tag';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip =>
+      'Vis danse, der har mindst ét af de valgte tags';
 
   @override
   String get collectionFacetSource => 'Kilde';
@@ -4651,6 +4764,36 @@ class AppLocalizationsDa extends AppLocalizations {
   ) {
     return 'Tilføj „$danceTitle“ til $programTitle, $details';
   }
+
+  @override
+  String get programsDanceInThisProgram => 'I dette program';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'I dette program ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'Allerede i dette program';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '„$danceTitle“ er allerede i „$programTitle“ $count gange. Tilføj den igen?',
+      one: '„$danceTitle“ er allerede i „$programTitle“. Tilføj den igen?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'Tilføj igen';
 
   @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
@@ -7325,6 +7468,15 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit =>
+      'Opdatér også titel og forfatter';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Overtager filens titel og forfatterangivelse for „$title“. Din bedømmelse, dine tags, noter og links forbliver som de er.';
+  }
+
+  @override
   String get importReviewOptionDuplicate => 'Importér som ny (duplikat) dans';
 
   @override
@@ -7352,6 +7504,30 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other: '$count eksisterende danse overskrives',
       one: '1 eksisterende dans overskrives',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Reimport erstatter figurer, formation og progression for $count eksisterende danse. Deres bedømmelser, tags og noter bevares.',
+      one:
+          'Reimport erstatter figurer, formation og progression for 1 eksisterende dans. Dens bedømmelse, tags og noter bevares.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count af dem overtager også filens titel og forfatter.',
+      one: '1 af dem overtager også filens titel og forfatter.',
     );
     return '$_temp0';
   }
@@ -7498,6 +7674,20 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return 'Import til redigering erstatter „$title“ i din samling med det samme. Fortryd for hele importen gendanner den ikke.';
+  }
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Reimportér på den eksisterende dans nu?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'Import til redigering erstatter figurer, formation og progression for „$title“ i din samling med det samme. Fortryd for hele importen gendanner dem ikke.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'Import til redigering erstatter figurer, formation, progression, titel og forfatter for „$title“ i din samling med det samme. Fortryd for hele importen gendanner dem ikke.';
   }
 
   @override

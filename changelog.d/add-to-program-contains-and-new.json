@@ -1,0 +1,15 @@
+{
+  "id": "add-to-program-contains-and-new",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The Add to program sheet marks a program that already holds the dance, even only as an alternate, with \"In this program\" (and ×N when it appears more than once), and asks \"Add it again?\" before adding it a second time. Cancel keeps the sheet open.",
+      "\"Create a new program with this dance\" is now the first row of the Add to program sheet however many programs you have, not only when you have none."
+    ]
+  },
+  "core": {
+    "added": [
+      "`Program.danceSlotCount` and `Program.danceSlotCountsOf` count the slots holding a dance, alternates included, as the one definition behind the Add to program marker and the program builder's \"in program\" count."
+    ]
+  }
+}

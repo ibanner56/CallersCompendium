@@ -462,6 +462,7 @@ class _CustomThemesSection extends StatelessWidget {
 
   Future<void> _confirmDelete(BuildContext context, CustomTheme theme) async {
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -480,7 +481,11 @@ class _CustomThemesSection extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true) await controller.delete(theme.id);
+    if (confirmed != true) return;
+    await controller.delete(theme.id);
+    messenger?.showSnackBar(
+      SnackBar(content: Text(l10n.commonDeletedSnack(theme.name))),
+    );
   }
 
   @override

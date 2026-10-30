@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -232,4 +233,49 @@ void main() {
       );
     });
   });
+
+  // A desktop open is checked by path and read later, so the file can change
+  // in between (PLAT-3): swapped for a link to /dev/zero, or served by FUSE
+  // with a reported length of 0. The read itself must stop at the cap rather
+  // than trust the reported length.
+  test(
+    'the file read stops at the cap even when the reported length is 0',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('intake_bounded_read_');
+      addTearDown(() => dir.delete(recursive: true));
+      final fifo = '${dir.path}/stream.ccshare';
+      final made = await Process.run('mkfifo', [fifo]);
+      expect(made.exitCode, 0, reason: '${made.stderr}');
+      // Writes past the cap, then holds the pipe open: no EOF ever arrives.
+      final writer = await Process.start('sh', [
+        '-c',
+        'exec 3>"\$1"; head -c 4096 /dev/zero >&3; sleep 30',
+        'sh',
+        fifo,
+      ]);
+      addTearDown(writer.kill);
+
+      final validation = await ArchiveIntakeService(
+        maxBytes: 1024,
+      ).validateFromPath(fifo).timeout(const Duration(seconds: 10));
+
+      expect(validation.reason, ArchiveIntakeRejectionReason.tooLarge);
+    },
+    skip: Platform.isWindows ? 'no mkfifo on Windows' : null,
+  );
+
+  test(
+    'a read that never finishes is rejected as unreadable at the deadline',
+    () async {
+      final validation =
+          await ArchiveIntakeService(
+                readBytes: (_) => Completer<Uint8List>().future,
+                readTimeout: const Duration(milliseconds: 100),
+              )
+              .validateFromPath('/anywhere/hung.ccshare')
+              .timeout(const Duration(seconds: 5));
+
+      expect(validation.reason, ArchiveIntakeRejectionReason.unreadable);
+    },
+  );
 }

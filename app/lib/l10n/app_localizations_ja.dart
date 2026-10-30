@@ -84,8 +84,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appBootstrapLogHint => '詳細は、アプリのサポートフォルダ内の診断ログにも書き込まれました。';
 
   @override
+  String get appBootstrapReleasesLink => 'Releases ページを開く';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'お使いのデータの保存形式はバージョン $fileVersionString です。このバージョンのアプリは形式 $appVersionString まで読み込めます。';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してください。';
+      'このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してから、もう一度開いてください。';
 
   @override
   String get migrationRelocationBothExist =>
@@ -2924,7 +2941,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
-      '削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。';
+      '削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。デバイス同期を使っている場合はすべてのデバイスに適用され、共有された項目はどこでも消去されて小さな削除記録だけが残ります。「削除しない」を選択すると手動で削除するまで保持されます。';
 
   @override
   String settingsGeneralSoftDeleteRetentionDays(int days) {
@@ -3520,7 +3537,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
-    return 'タグ「$tagName」のダンスを表示';
+    return '「$tagName」をコレクションの絞り込みに追加';
   }
 
   @override
@@ -3623,6 +3640,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String collectionSelectedCount(int count) {
     return '$count件選択中';
   }
+
+  @override
+  String collectionSelectAllTooltip(int count) {
+    return '$count件すべてを選択';
+  }
+
+  @override
+  String collectionDeselectAllTooltip(int count) {
+    return '$count件すべての選択を解除';
+  }
+
+  @override
+  String collectionSelectionNotShown(int selected, int hidden) {
+    return '$selected件選択中（$hidden件は非表示）';
+  }
+
+  @override
+  String get collectionDeselectNotShown => '非表示の選択を解除';
 
   @override
   String get collectionAddTags => 'タグを追加';
@@ -3895,6 +3930,64 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetNotCalled => '未コール';
 
   @override
+  String get collectionFacetHistoryInert => '「コール済み」または「未コール」を選ぶと有効になります';
+
+  @override
+  String get collectionFacetVenue => '会場';
+
+  @override
+  String get collectionFacetVenueAny => 'すべての会場';
+
+  @override
+  String get collectionFacetVenueUnnamed => '名称なしの会場';
+
+  @override
+  String get collectionFacetVenueClear => '会場をクリア';
+
+  @override
+  String get collectionFacetVenueSheetTitle => '会場';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のプログラム',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => '入力';
+
+  @override
+  String get collectionFacetWithin => '期間';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'いつでも';
+
+  @override
+  String get collectionFacetWithinNever => '一度もコールされていない';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countか月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => '日付以降…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return '$date以降';
+  }
+
+  @override
   String get collectionFacetLevel => 'レベル';
 
   @override
@@ -3910,6 +4003,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionFacetUntagged => 'タグなし';
+
+  @override
+  String get collectionFacetTagsMatchLabel => 'タグの一致条件';
+
+  @override
+  String get collectionFacetTagsMatchAll => 'すべてのタグ';
+
+  @override
+  String get collectionFacetTagsMatchAllTooltip => '選択したタグをすべて持つダンスを表示';
+
+  @override
+  String get collectionFacetTagsMatchAny => 'いずれかのタグ';
+
+  @override
+  String get collectionFacetTagsMatchAnyTooltip => '選択したタグのうち少なくとも1つを持つダンスを表示';
 
   @override
   String get collectionFacetSource => 'ソース';
@@ -4445,6 +4553,35 @@ class AppLocalizationsJa extends AppLocalizations {
   ) {
     return '「$danceTitle」を$programTitle（$details）に追加';
   }
+
+  @override
+  String get programsDanceInThisProgram => 'このプログラムに含まれています';
+
+  @override
+  String programsDanceInThisProgramCount(int count) {
+    return 'このプログラムに含まれています ×$count';
+  }
+
+  @override
+  String get programsAddAgainTitle => 'すでにこのプログラムにあります';
+
+  @override
+  String programsAddAgainBody(
+    String danceTitle,
+    String programTitle,
+    int count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '「$danceTitle」はすでに「$programTitle」に$count回入っています。もう一度追加しますか？',
+      one: '「$danceTitle」はすでに「$programTitle」にあります。もう一度追加しますか？',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddAgain => 'もう一度追加';
 
   @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
@@ -7032,6 +7169,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit => 'タイトルと作者も更新する';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return '「$title」にこのファイルのタイトルと作者を反映します。評価、タグ、メモ、リンクはそのまま残ります。';
+  }
+
+  @override
   String get importReviewOptionDuplicate => '新しい（重複）ダンスとしてインポート';
 
   @override
@@ -7057,6 +7202,27 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count件の既存のダンスが上書きされます',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '再インポートで$count件の既存のダンスのフィギュア、フォーメーション、プログレッションが置き換えられます。評価、タグ、メモは残ります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'そのうち$count件はファイルのタイトルと作者も反映します。',
     );
     return '$_temp0';
   }
@@ -7192,6 +7358,19 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return '編集のためにインポートすると、コレクション内の「$title」がすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。';
+  }
+
+  @override
+  String get importReviewEditReimportTitle => '今すぐ既存のダンスに再インポートしますか？';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return '編集のためにインポートすると、コレクション内の「$title」のフィギュア、フォーメーション、プログレッションがすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return '編集のためにインポートすると、コレクション内の「$title」のフィギュア、フォーメーション、プログレッション、タイトル、作者がすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。';
   }
 
   @override

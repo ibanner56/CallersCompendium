@@ -531,6 +531,42 @@ void main() {
     });
   });
 
+  group('Program.danceSlotCount', () {
+    Program program(List<ProgramSlot> slots) => Program(
+      id: 'p1',
+      title: 'T',
+      slots: slots,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    test('counts primaries and alternates, and skips text and breaks', () {
+      final p = program([
+        ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+        ProgramSlot(id: 'b', position: 1, danceId: 'd1', isAlt: true),
+        ProgramSlot(id: 'c', position: 2, danceId: 'd2', isAlt: true),
+        ProgramSlot(id: 'd', position: 3, text: 'd1'),
+        ProgramSlot(id: 'e', position: 4, text: Program.breakSlotText),
+      ]);
+      expect(p.danceSlotCount('d1'), 2);
+      expect(p.danceSlotCount('d2'), 1, reason: 'an alternate-only match');
+      expect(p.danceSlotCount('absent'), 0);
+    });
+
+    test('the static form agrees with the getter for every dance', () {
+      final slots = [
+        ProgramSlot(id: 'a', position: 0, danceId: 'd1'),
+        ProgramSlot(id: 'b', position: 1, danceId: 'd2', isAlt: true),
+        ProgramSlot(id: 'c', position: 2, danceId: 'd1'),
+      ];
+      final counts = Program.danceSlotCountsOf(slots);
+      expect(counts, {'d1': 2, 'd2': 1});
+      for (final id in ['d1', 'd2', 'd3']) {
+        expect(program(slots).danceSlotCount(id), counts[id] ?? 0);
+      }
+    });
+  });
+
   group('Program.plannedDanceCount', () {
     Program program(List<ProgramSlot> slots) => Program(
       id: 'p1',

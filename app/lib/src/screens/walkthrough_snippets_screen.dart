@@ -73,7 +73,7 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
                 label: entry.label,
                 text: renderer.renderFreeText(entry.text, dialect),
                 onEdit: () => _edit(context, entry.signature, entry.text),
-                onDelete: () => _delete(context, entry.signature),
+                onDelete: () => _delete(context, entry.signature, entry.label),
               ),
         ],
       ),
@@ -94,9 +94,14 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
     await controller.setSnippet(signature, result);
   }
 
-  Future<void> _delete(BuildContext context, String signature) async {
+  Future<void> _delete(
+    BuildContext context,
+    String signature,
+    String label,
+  ) async {
     final controller = WalkthroughSnippetLibraryScope.controllerOf(context);
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -118,6 +123,9 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
     );
     if (confirm == true) {
       await controller.removeSnippet(signature);
+      messenger?.showSnackBar(
+        SnackBar(content: Text(l10n.commonDeletedSnack(label))),
+      );
     }
   }
 }
