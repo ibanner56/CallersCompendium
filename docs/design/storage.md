@@ -859,7 +859,12 @@ rather than deletions:
   already-synced import is a partial rollback by construction.
 - `DanceRepository`'s orphaned-reference GC (#462), which runs inside the
   retention purge and collects reusable rows the purge left unreferenced.
-  Nobody deleted those; they went away as a side effect.
+  Nobody deleted those; they went away as a side effect. Only *bare* rows go
+  (N2-6 (b)): a tag with a colour, an author with a website, notes, email,
+  location or deceased mark, or a source with an author, year, URL or notes
+  survives, unused. The user removes it in the Library managers (N2-T2 and
+  N2-T3), which have not shipped yet; until then only a tag's Undo path deletes
+  a reference row in the app.
 
 **Two consequences follow from soft delete, and both are load-bearing:**
 
