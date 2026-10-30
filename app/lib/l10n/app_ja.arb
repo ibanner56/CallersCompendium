@@ -92,9 +92,17 @@
   "@appBootstrapLogHint": {
     "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
   },
-  "migrationDowngradeMessage": "このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してください。",
+  "appBootstrapReleasesLink": "Releases ページを開く",
+  "@appBootstrapReleasesLink": {
+    "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
+  },
+  "migrationDowngradeVersions": "お使いのデータの保存形式はバージョン {fileVersion} です。このバージョンのアプリは形式 {appVersion} まで読み込めます。",
+  "@migrationDowngradeVersions": {
+    "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
+  },
+  "migrationDowngradeMessage": "このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してから、もう一度開いてください。",
   "@migrationDowngradeMessage": {
-    "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
+    "x-sourceSha256": "16e745baf449224ab5aedb863ef7ff32aacc237ac5e54e40b8cc9ba5c87a90e7"
   },
   "migrationRelocationBothExist": "保存データのファイルが新しい場所と以前のバージョンが使っていたフォルダーの両方で見つかったため、Caller’s Compendium を起動できませんでした。変更や削除は行われていません。残したいほうのコピーを選び、もう一方を別の場所へ移動してから、アプリをもう一度開いてください。FAQの「データはどこに保存されますか？」に保存場所が記載されています。",
   "@migrationRelocationBothExist": {
@@ -3088,9 +3096,9 @@
   "@settingsGeneralSoftDeleteRetentionTitle": {
     "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。「削除しない」を選択すると手動で削除するまで保持されます。",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "削除したダンスとプログラムは指定した期間保持され、アプリ起動時に完全に削除されます。デバイス同期を使っている場合はすべてのデバイスに適用され、共有された項目はどこでも消去されて小さな削除記録だけが残ります。「削除しない」を選択すると手動で削除するまで保持されます。",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
-    "x-sourceSha256": "e9121427d1a14e56df8a472c097142bf74ac95a239c8ba1756f1ef77e8a1ea76"
+    "x-sourceSha256": "6c4f9fdb230a5e41d5afc9b1d4d34e6fe145156254be79776a35fe1fbdb48151"
   },
   "settingsGeneralSoftDeleteRetentionDays": "{days}日間",
   "@settingsGeneralSoftDeleteRetentionDays": {
@@ -3796,9 +3804,9 @@
   "@commonMixer": {
     "x-sourceSha256": "8ae012d51747c9a3e51613b1ba8305b377fcada7de30e2b7156d51c19f0b89e0"
   },
-  "commonShowDancesTaggedTooltip": "タグ「{tagName}」のダンスを表示",
+  "commonShowDancesTaggedTooltip": "「{tagName}」をコレクションの絞り込みに追加",
   "@commonShowDancesTaggedTooltip": {
-    "x-sourceSha256": "5cb90a2d82c572c009f47e69f98fd959bc405c30b4058939243bc9085dc531a7"
+    "x-sourceSha256": "adf80e5ef33018bef6fbff7c25afa94e668c259ccfc1c44c00f2ebdc74b06bab"
   },
   "commonDeletedSnack": "「{title}」を削除しました。",
   "@commonDeletedSnack": {
@@ -4147,6 +4155,26 @@
   "collectionFacetUntagged": "タグなし",
   "@collectionFacetUntagged": {
     "x-sourceSha256": "9a28cbfaf271bc2dcfc7142f739445d8dc755b1e465b399ad96ba02e87fc9927"
+  },
+  "collectionFacetTagsMatchLabel": "タグの一致条件",
+  "@collectionFacetTagsMatchLabel": {
+    "x-sourceSha256": "f815c8eb1c0528d683edad42bc05ee6804c8cec5c4b70b6f1393b2d795b01825"
+  },
+  "collectionFacetTagsMatchAll": "すべてのタグ",
+  "@collectionFacetTagsMatchAll": {
+    "x-sourceSha256": "7c39c16dce7332ed63e1c6ac2bd05afc8c22405c748a705c022eb0da86c43a16"
+  },
+  "collectionFacetTagsMatchAllTooltip": "選択したタグをすべて持つダンスを表示",
+  "@collectionFacetTagsMatchAllTooltip": {
+    "x-sourceSha256": "483a3fe3057b0a7ad9a6e764902ef12489654d566bb3a98ef81e0612b5a420ee"
+  },
+  "collectionFacetTagsMatchAny": "いずれかのタグ",
+  "@collectionFacetTagsMatchAny": {
+    "x-sourceSha256": "092b9712bdd44445e888caf684749b183dd04ddc813c6c97e38abc65e3db0be9"
+  },
+  "collectionFacetTagsMatchAnyTooltip": "選択したタグのうち少なくとも1つを持つダンスを表示",
+  "@collectionFacetTagsMatchAnyTooltip": {
+    "x-sourceSha256": "8a4c10a619b2a7a86fd1bb6352b0672ca97b842c2a8cbe193709faa8b36160d1"
   },
   "collectionFacetSource": "ソース",
   "@collectionFacetSource": {

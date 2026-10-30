@@ -384,9 +384,34 @@ is carried on the envelope like any other, so it hides the record on every peer
 running a build that knows the mark, and after a restore. An older build shows
 it in Recently deleted under the placeholder title.
 
+The retention purge treats an expired published record the same way, with two
+differences, both the implementer's choices rather than part of the decision
+below:
+
+- `existenceAt` is left alone. Expiry is not a new deletion, and any later
+  stamp could outrank, or tie with, a revival a peer made after the record went
+  to the trash. A peer holding the same tombstone ties with it and, on a build
+  with the tie rule in §6.4, takes the mark. A build without that rule keeps its
+  own `deletedAt` and republishes the blank body with it, so the two copies tie
+  on `updatedAt` with different bodies and both devices report
+  `equalUpdatedAt` on every pass until it is updated. Nothing is lost: both
+  copies are the same blank deletion. Advancing `existenceAt` would avoid the
+  report but can tie with, and so delete, a revival stamped one tick after the
+  trash; the report was judged the lesser cost.
+- It never rewrites the records citing a dance. The purge, like the startup
+  sweep that finishes earlier marks, runs before the first sync pass, possibly
+  on a device that has been offline for weeks, and restamping its stale copies
+  of those records would overwrite other devices' edits. A dance a program slot
+  or a related-dance link still cites keeps its title until nothing does. Only
+  the user's own Permanently delete rewrites citers.
+
 *Amended 2026-10-30 (LIFE-2): the maintainer decided on 2026-10-29 (round 2,
 `R2-life2-retire`) to hide and blank such a record and not to retire it, so
 the "no retirement" rule above stands unchanged.*
+
+*Amended 2026-10-30 (LIFE-2 follow-up): the maintainer decided on 2026-10-30
+("Blank on retention too") that the retention purge blanks an expired published
+record as well, as described above.*
 
 `review_queue` requires a new review surface: `import_review_screen.dart`
 reviews dances only. A generic keep-both-or-merge list suffices; no per-kind
@@ -3056,6 +3081,17 @@ causal stamp — a device reviving a record it received as a tombstone stamps
 above that tombstone by construction, so it cannot tie with it — leaving only
 genuinely concurrent transitions on two devices that have not yet seen each
 other's, within one tick of each other.
+
+**Between tombstones, a tie takes the permanent-deletion mark.** When a
+tombstone tied at the greatest `existenceAt` carries
+`deletedAt` = the unix epoch (§3.2, *a permanently deleted record stays
+published*), the existence winner, and so the `deletedAt` every device keeps, is
+that copy. Both copies record the same deletion; the marked one has only gone
+further, and taking the other's `deletedAt` would list the record in Recently
+deleted again. The rule chooses among deleted copies only, so it never decides
+between a tombstone and a revival. *Amended 2026-10-30 (LIFE-2 follow-up); the
+implementer's choice, so that the retention purge need not stamp
+`existenceAt`.*
 
 **"By construction" holds only where the tombstone was applied to the row.** A
 tombstone held pending under §6.8 is deliberately *not* written to the row, so

@@ -290,8 +290,21 @@ often open the file directly:
   `.ccshare` type, so the app also appears for other files of unknown type;
   if you open something that isn't a share file, the app says so and imports
   nothing.
-- **Any device**, including Linux and Windows: go to **Settings › General** and
-  choose **Import…**, then pick the file.
+- **Windows:** if you installed the app with the installer, double-click the
+  `.ccshare` file, or pick Caller's Compendium under **Open with**. The portable
+  copy doesn't register the file type.
+- **Linux:** open the `.ccshare` file with Caller's Compendium once the file
+  type is set up (see [Installing on Linux](./installation.md#install-on-linux));
+  you can also run the app with the file's path, for example
+  `./CallersCompendium-*.AppImage "Contra Night.ccshare"`.
+- On Windows and Linux, if the app is already open, the file opens in the
+  window you have. If you open more files while one is in review, the app
+  keeps only the last one and shows it when you close that review. Only a `.ccshare` file stored on this computer opens this
+  way. For a file on a network share (a `\\server\folder` path) or a
+  symbolic link to a file, the app says it couldn't read the shared file:
+  copy the file itself to a local folder first.
+- **Any device**: go to **Settings › General** and choose **Import…**, then
+  pick the file.
   On Android the file picker lists every file of unknown type as well as share
   files, so choose the one you saved.
 

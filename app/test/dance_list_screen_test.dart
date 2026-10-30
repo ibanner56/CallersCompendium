@@ -1642,7 +1642,8 @@ void main() {
     expect(_titles(tester), ['Contra With Tag']);
   });
 
-  testWidgets('multiple tags OR within the tag facet', (tester) async {
+  testWidgets('two tags require all by default; "Any tag" ORs them '
+      '(FIND-14)', (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Alpha'));
@@ -1666,7 +1667,9 @@ void main() {
     await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
     await _tapVisible(tester, find.byKey(const ValueKey('tag-t1')));
     await _tapVisible(tester, find.byKey(const ValueKey('tag-t2')));
+    expect(_titles(tester), isEmpty, reason: 'no dance has both');
 
+    await _tapVisible(tester, find.text('Any tag'));
     expect(_titles(tester)..sort(), ['Has Alpha', 'Has Beta']);
     expect(find.text('Has Gamma'), findsNothing);
   });
