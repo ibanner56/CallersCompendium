@@ -189,6 +189,31 @@ class _AddToProgramListState extends State<AddToProgramList> {
     final showSearch = widget.programs.length > kAddToProgramSearchThreshold;
     final noMatches = open.isEmpty && performed.isEmpty;
 
+    final items = <WidgetBuilder>[
+      if (noMatches)
+        (context) => Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            l10n.programsAddToProgramNoMatches,
+            key: const ValueKey('add-to-program-no-matches'),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      for (final program in open)
+        (context) => _buildRow(context, program, l10n),
+      if (performed.isNotEmpty) ...[
+        (context) => _buildPerformedToggle(
+          context,
+          count: performed.length,
+          expanded: expanded,
+          l10n: l10n,
+        ),
+        if (expanded)
+          for (final program in performed)
+            (context) => _buildRow(context, program, l10n),
+      ],
+    ];
+
     return Column(
       children: [
         if (showSearch)
@@ -221,30 +246,11 @@ class _AddToProgramListState extends State<AddToProgramList> {
             ),
           ),
         Expanded(
-          child: ListView(
-            children: [
-              if (noMatches)
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    l10n.programsAddToProgramNoMatches,
-                    key: const ValueKey('add-to-program-no-matches'),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              for (final program in open) _buildRow(context, program, l10n),
-              if (performed.isNotEmpty) ...[
-                _buildPerformedToggle(
-                  context,
-                  count: performed.length,
-                  expanded: expanded,
-                  l10n: l10n,
-                ),
-                if (expanded)
-                  for (final program in performed)
-                    _buildRow(context, program, l10n),
-              ],
-            ],
+          // Built lazily: the list virtualizes like every list in the app
+          // (`docs/design/ux.md` cross-cutting rules), however many programs.
+          child: ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (context, index) => items[index](context),
           ),
         ),
       ],
