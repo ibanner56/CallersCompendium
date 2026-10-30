@@ -199,7 +199,10 @@ exactly as The Caller's Box models it (schema v24, issue #732).
 immutable IDs for Beginner, Intermediate, and Advanced; custom entries receive
 generated UUIDv4 IDs. A dance stores only its selected `difficultyLevelId`, so
 renaming or reordering a vocabulary entry does not rewrite dances. A level
-cannot be deleted while any dance, including a soft-deleted dance, refers to it.
+cannot be deleted while any live dance refers to it; a dance in Recently deleted
+does not count (the maintainer's trash-policy decision, 2026-10-29), and keeps
+its reference to the tombstoned level. A full backup or a program share sends
+such a dance without its level.
 
 ### Choreographer
 `id, name (unique), website?, notes?`. Merge tool needed eventually (imports

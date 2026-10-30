@@ -465,7 +465,8 @@ open this group. You can override any of them per dance, and
   collection filters, and batch actions. Add a level, rename it, or drag it into
   a different position; renaming keeps existing dances attached to that level.
   A level can't be removed while any dance uses it. A dance in **Recently
-  deleted** doesn't count, so it won't stop you removing a level. Once no dance
+  deleted** doesn't count, so it won't stop you removing a level; that dance is
+  then backed up and shared without a level. Once no dance
   uses it, you can remove any level, including the ones that ship with the app. Removing a level asks nothing first and shows
   **Undo** for a few seconds, which puts the level back in its place.
 - **Type**, **Formation**, and **Progression** — the starting choices for a new
