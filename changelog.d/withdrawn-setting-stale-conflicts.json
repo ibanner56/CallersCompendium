@@ -1,0 +1,14 @@
+{
+  "id": "withdrawn-setting-stale-conflicts",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If Device Sync had a conflict waiting about App language, Reduce motion, Auto-size Perform cards or the Perform stage theme from before you updated, it no longer appears or fails when you try to resolve it. These settings stay on each device now, so there is nothing to choose."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "`refreshConflictReviews` drops queued conflict choices for settings in `syncWithdrawnSettingKeys`, even when the pass did not evaluate the record, and never queues one (sync-spec §6.7 as amended)."
+    ]
+  }
+}

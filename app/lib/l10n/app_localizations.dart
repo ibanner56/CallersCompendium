@@ -5971,6 +5971,16 @@ abstract class AppLocalizations {
   /// **'{label}, {count, plural, =1{1 dance} other{{count} dances}}'**
   String collectionGroupSectionSemantics(String label, int count);
 
+  /// Accessibility label announced for a category section header while selecting dances; it names the checkbox that selects the section's rows. {label} is the section name, {count} the number of dances in it and {selected} how many of them are selected.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {count, plural, =1{1 dance} other{{count} dances}}, {selected} selected'**
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  );
+
   /// Tooltip for the button that leaves multi-select (batch) mode.
   ///
   /// In en, this message translates to:
@@ -9681,10 +9691,10 @@ abstract class AppLocalizations {
   /// **'Same dance (update existing)'**
   String get onlineImportVariationDialogActionLink;
 
-  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves id and createdAt from the existing dance, and keeps its custom-field values for every field the incoming draft does not carry (#1890; online drafts carry none, so all are kept). Every other field — title, figures, callingNotes, tagIds, rating, tunes, links, sourceCitations, hook, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
+  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves id and createdAt from the existing dance, and keeps its custom-field values for every field the incoming draft does not carry (#1890; online drafts carry none, so all are kept). Likewise its rating is kept whenever the incoming draft carries none (online drafts carry none). Every other field — title, figures, callingNotes, tagIds, tunes, links, sourceCitations, hook, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.'**
+  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.'**
   String onlineImportVariationDialogLinkWarning(String existingTitle);
 
   /// Title of the resolution dialog shown during a single-dance online import when a confident title+author match with identical figures is already in the collection, from a different source (issue #811) or entered by hand (INTAKE-5).
@@ -9720,7 +9730,7 @@ abstract class AppLocalizations {
   /// Secondary text in the possible-match dialog (issue #1907): choosing an existing dance replaces it as onlineImportVariationDialogLinkWarning describes for a single named dance. The title is named first because here it is certain to change: the two titles are written differently.
   ///
   /// In en, this message translates to:
-  /// **'The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.'**
+  /// **'The dance you choose will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.'**
   String get onlineImportPossibleMatchDialogLinkWarning;
 
   /// Note shown where an import would otherwise offer to replace an existing dance (the single-dance online import dialogs and the import review rows) when the incoming record carries no figures, for example a Caller's Box dance whose choreographer has not allowed its figures to be shared. Replacing would erase the dance's saved figures, so only importing it as a new dance (or, where offered, a variation) is available.
@@ -14663,6 +14673,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No venues match your search.'**
   String get venueManagerNoMatches;
+
+  /// Title of the dialog offering to link programs that have a venue typed in as text to a venue record with the same name (GIG-7).
+  ///
+  /// In en, this message translates to:
+  /// **'Link earlier programs?'**
+  String get venueLinkOfferTitle;
+
+  /// Body of the dialog offering to link typed-venue programs to a venue record (GIG-7). One line per venue follows it.
+  ///
+  /// In en, this message translates to:
+  /// **'Some programs have a venue typed in as text that matches a venue record. Linking them makes calling history count them as one venue. The typed text is kept.'**
+  String get venueLinkOfferBody;
+
+  /// One line of the link-programs-to-venue offer: the venue record's name and how many programs would be linked to it.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}”: {count, plural, =1{1 program} other{{count} programs}}'**
+  String venueLinkOfferRow(String name, int count);
+
+  /// Button that links the offered programs to their venue records.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get venueLinkOfferConfirm;
+
+  /// Button that declines the link-programs-to-venue offer. The answer is not remembered.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get venueLinkOfferDecline;
+
+  /// Snackbar after programs were linked to their venue records.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Linked 1 program.} other{Linked {count} programs.}}'**
+  String venueLinkOfferDone(int count);
 
   /// Title of the confirmation dialog for permanently deleting a venue.
   ///

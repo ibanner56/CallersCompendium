@@ -3137,17 +3137,23 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // two labeled sections — the selected tag's dances, then everyone else —
     // instead of a flat list. Grouping is a pure app-layer partition over the
     // already-sorted [_results], so the active sort still orders rows *within*
-    // each section. Selection mode suppresses grouping so the batch flow stays
-    // a single flat, uninterrupted list.
-    final groupItems = _selectionMode ? null : _buildGroupedItems();
+    // each section. Grouping stays on while selecting (N4-3): selecting changes
+    // no tag, so no row moves between sections, and each header gains a
+    // checkbox for its rows.
+    final groupItems = _buildGroupedItems();
     if (groupItems != null) {
       return SliverList.builder(
         itemCount: groupItems.length,
         itemBuilder: (context, index) {
           final item = groupItems[index];
           return switch (item) {
-            _SectionHeaderItem(:final keySuffix, :final label, :final count) =>
-              _buildSectionHeader(keySuffix, label, count, l10n),
+            _SectionHeaderItem(
+              :final keySuffix,
+              :final label,
+              :final count,
+              :final ids,
+            ) =>
+              _buildSectionHeader(keySuffix, label, count, ids, l10n),
             _DanceRowItem(:final entry) => _buildDanceRow(entry, l10n),
           };
         },
@@ -3184,62 +3190,111 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final l10n = AppLocalizations.of(context);
     final items = <_CollectionListItem>[];
     if (withTag.isNotEmpty) {
-      items.add(_SectionHeaderItem('tag', tag.name, withTag.length));
+      items.add(
+        _SectionHeaderItem('tag', tag.name, [
+          for (final e in withTag) e.dance.id,
+        ]),
+      );
       items.addAll(withTag.map(_DanceRowItem.new));
     }
     if (other.isNotEmpty) {
       items.add(
-        _SectionHeaderItem('other', l10n.collectionGroupOther, other.length),
+        _SectionHeaderItem('other', l10n.collectionGroupOther, [
+          for (final e in other) e.dance.id,
+        ]),
       );
       items.addAll(other.map(_DanceRowItem.new));
     }
     return items;
   }
 
+  /// Selects the section's rows, or deselects them when they are all selected.
+  /// Selections outside [ids] are kept, hidden ones included (N4-3, N4-1).
+  /// Like Select all it waits for a pending search, whose results would replace
+  /// the rows [ids] came from.
+  void _toggleSection(List<String> ids) {
+    if (!_canSelectAll) return;
+    setState(() {
+      if (_selection.coversAll(ids)) {
+        _selection.deselectAll(ids);
+      } else {
+        _selection.selectAll(ids);
+      }
+    });
+  }
+
   /// A sticky-styled section header for the grouped view. Announces its label
   /// and dance count as a single AT node (a11y) and is marked as a heading.
+  /// While selecting it also carries a tri-state checkbox for the section's
+  /// rows; that node keeps its own checked/mixed state and tap action, so a
+  /// screen reader can toggle the section without leaving the heading.
   /// [keySuffix] gives each header a stable, collision-free widget key even if a
   /// user's tag happens to be named the same as the "Other" section label.
   Widget _buildSectionHeader(
     String keySuffix,
     String label,
     int count,
+    List<String> ids,
     AppLocalizations l10n,
   ) {
     final theme = Theme.of(context);
+    final selected = _selectionMode ? ids.where(_selection.contains).length : 0;
+    final all = count > 0 && selected == count;
+    final canToggle = _canSelectAll;
+    final some = selected > 0 && !all;
+    Widget header = Container(
+      key: ValueKey('group-header-$keySuffix'),
+      width: double.infinity,
+      color: theme.colorScheme.surfaceContainerHighest,
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: _selectionMode ? 0 : AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          if (_selectionMode)
+            Checkbox(
+              key: ValueKey('group-checkbox-$keySuffix'),
+              tristate: true,
+              value: all ? true : (some ? null : false),
+              onChanged: canToggle ? (_) => _toggleSection(ids) : null,
+            ),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            '$count',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (_selectionMode) {
+      header = InkWell(
+        onTap: canToggle ? () => _toggleSection(ids) : null,
+        child: header,
+      );
+    }
+    // The visuals are hidden from AT; the Semantics node below carries the
+    // label, state and tap action, so the checkbox is reached exactly once.
+    header = ExcludeSemantics(child: header);
     return Semantics(
       header: true,
       container: true,
-      label: l10n.collectionGroupSectionSemantics(label, count),
-      child: ExcludeSemantics(
-        child: Container(
-          key: ValueKey('group-header-$keySuffix'),
-          width: double.infinity,
-          color: theme.colorScheme.surfaceContainerHighest,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '$count',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      label: _selectionMode
+          ? l10n.collectionGroupSectionSelectedSemantics(label, count, selected)
+          : l10n.collectionGroupSectionSemantics(label, count),
+      checked: _selectionMode ? all : null,
+      mixed: _selectionMode ? some : null,
+      onTap: _selectionMode && canToggle ? () => _toggleSection(ids) : null,
+      child: header,
     );
   }
 
@@ -3347,13 +3402,18 @@ sealed class _CollectionListItem {
 }
 
 class _SectionHeaderItem extends _CollectionListItem {
-  const _SectionHeaderItem(this.keySuffix, this.label, this.count);
+  const _SectionHeaderItem(this.keySuffix, this.label, this.ids);
 
   /// Stable, collision-free key part ('tag' or 'other'), independent of the
   /// display [label] (which could clash — e.g. a tag literally named "Other").
   final String keySuffix;
   final String label;
-  final int count;
+
+  /// The ids of the section's rows in `_results`, in display order. Never the
+  /// selection's hidden ids: a header acts on what the list shows (N4-1).
+  final List<String> ids;
+
+  int get count => ids.length;
 }
 
 class _DanceRowItem extends _CollectionListItem {

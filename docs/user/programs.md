@@ -299,7 +299,10 @@ reusable venue records** in [Settings › Program › Venues](./settings.md#venu
 a saved [venue](./glossary.md#venue) record you can reuse across programs, with
 its own address, contacts, and schedule that you edit in one place. A program
 linked to a saved venue shows and exports that record's details; otherwise the
-free-text label is used. Switching modes never loses what you typed.
+free-text label is used. Switching modes never loses what you typed. Older
+programs with a typed venue can be linked to a matching record when you turn
+the setting on or add the venue; see
+[Settings › Program › Venues](./settings.md#venues).
 
 If you often play the same role, set a default caller or band in
 [Settings › Defaults](./settings.md#program-defaults) and new programs will

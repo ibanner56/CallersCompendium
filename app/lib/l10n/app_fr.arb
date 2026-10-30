@@ -3904,6 +3904,10 @@
   "@collectionGroupSectionSemantics": {
     "x-sourceSha256": "93af04a8f9319ec6cd414c9b5059eee420b4f991ee2c13c6ac74a455c63cdf06"
   },
+  "collectionGroupSectionSelectedSemantics": "{label}, {count, plural, =1{1 danse} other{{count} danses}}, {selected} sélectionnée(s)",
+  "@collectionGroupSectionSelectedSemantics": {
+    "x-sourceSha256": "a7b4ef10339716e07567ba3b5c66bc77e65bff16373e886fac11540ba76f45f3"
+  },
   "collectionExitSelectionTooltip": "Quitter la sélection",
   "@collectionExitSelectionTooltip": {
     "x-sourceSha256": "22206bc678060c0d32cf2b53b314202f3803e2acb21ed6b123343f16889bf0c4"
@@ -6354,9 +6358,9 @@
   "@onlineImportVariationDialogActionLink": {
     "x-sourceSha256": "7a89241607bf07561ac5217d1fead66bc5c4636e6f94a7608108da241cd65443"
   },
-  "onlineImportVariationDialogLinkWarning": "Votre version de « {existingTitle} » sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
+  "onlineImportVariationDialogLinkWarning": "Votre version de « {existingTitle} » sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel et ses tags. Elle conserve votre note, vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
   "@onlineImportVariationDialogLinkWarning": {
-    "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
+    "x-sourceSha256": "1056677505f70fcc93e4c1e610f1c824a31479de32f29cacbe8fbec1213fcb8c"
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "Vous avez déjà cette danse",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
@@ -6378,9 +6382,9 @@
   "@onlineImportPossibleMatchDialogBody": {
     "x-sourceSha256": "c23d4f0bdd76d65aa431c58419d8a497eca0ed5d84d68e16e2ebee368fc2b303"
   },
-  "onlineImportPossibleMatchDialogLinkWarning": "La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel, ses tags et sa note. Elle conserve vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
+  "onlineImportPossibleMatchDialogLinkWarning": "La danse que vous choisissez sera remplacée par l’enregistrement en ligne — y compris son titre, ses figures, ses notes d’appel et ses tags. Elle conserve votre note, vos champs personnalisés, sa place dans vos programmes et son historique d’appel.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
-    "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
+    "x-sourceSha256": "198184a9f1d632e4877e2a250b04522e9893cd1161387dea8599a936ec044ef6"
   },
   "importFigurelessCannotReplace": "Cet enregistrement ne contient aucune figure : il ne peut donc pas remplacer l’une de vos danses. Il peut toutefois être importé comme nouvelle danse.",
   "@importFigurelessCannotReplace": {
@@ -9665,6 +9669,30 @@
   "venueManagerNoMatches": "Aucun lieu ne correspond à votre recherche.",
   "@venueManagerNoMatches": {
     "x-sourceSha256": "e940556921b9a433f18671d65cec482b884d67d4c9898e9c44dd3db74ba67d9c"
+  },
+  "venueLinkOfferTitle": "Lier les programmes précédents ?",
+  "@venueLinkOfferTitle": {
+    "x-sourceSha256": "86afa285ba0117e339f6459d01613537807434f2ba87823f515bb8ce85a63cfd"
+  },
+  "venueLinkOfferBody": "Certains programmes ont un lieu saisi en texte qui correspond à une fiche de lieu. Les lier permet à l'historique d'animation de les compter comme un seul lieu. Le texte saisi est conservé.",
+  "@venueLinkOfferBody": {
+    "x-sourceSha256": "51f75c042050f5a79ba5f14516a49da5b3bf3d2f11225d81acffb37a5b7b00f8"
+  },
+  "venueLinkOfferRow": "« {name} » : {count, plural, =1{1 programme} other{{count} programmes}}",
+  "@venueLinkOfferRow": {
+    "x-sourceSha256": "29c5f6c84b2376bb00998dfb55aa02c8033077b3e1f66526466ef41bc660f3b4"
+  },
+  "venueLinkOfferConfirm": "Lier",
+  "@venueLinkOfferConfirm": {
+    "x-sourceSha256": "a6a32dbc5618ea39f6df5b0f9808e3588b19e00d5f6f96c69492e40386e5aeab"
+  },
+  "venueLinkOfferDecline": "Pas maintenant",
+  "@venueLinkOfferDecline": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
+  "venueLinkOfferDone": "{count, plural, =1{1 programme lié.} other{{count} programmes liés.}}",
+  "@venueLinkOfferDone": {
+    "x-sourceSha256": "431a1aa3f4e20271f7a7aece28cd1fb67ebe75cda7f2b539844ec62712c7a0bb"
   },
   "venueManagerDeleteTitle": "Supprimer le lieu ?",
   "@venueManagerDeleteTitle": {

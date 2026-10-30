@@ -167,6 +167,7 @@ class FakeSourceAdapter implements SourceAdapter {
       title: title,
       difficultyLevelId: decoded['difficultyLevelId'] as String?,
       mixedLevel: decoded['mixedLevel'] as bool? ?? false,
+      rating: decoded['rating'] as int?,
       authorIds: authorIds,
       figures: figures,
       createdAt: now,

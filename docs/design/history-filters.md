@@ -125,7 +125,12 @@ These come from `decided-work-plan.md` ("Design notes" and N1) on
    "Merge by the displayed name" (`maintainer-decisions-2026-10-29.md`,
    `venue-history-merge`). History does not treat a typed name and a record as
    one hall just because the names match. B3 does the linking. B3's
-   `linkTypedVenues` bumps `updatedAt` on every program it links.
+   `linkTypedVenues` bumps `updatedAt` on every program it links, matches typed
+   text by `VenueKey` and links live programs only (a trashed program keeps its
+   typed venue; B3's call, not a maintainer decision). The offer appears when
+   venue records are turned on and when a record is created, from the manager
+   and from the program editor's add-a-venue path. A declined offer is not
+   remembered.
 5. **Venues have no natural key in sync.** `venues` inserts without
    reconciliation (`docs/design/sync-spec.md:3449-3450`), so two devices can each
    create a "Grange" record. A dangling `programs.venue_id` is kept verbatim

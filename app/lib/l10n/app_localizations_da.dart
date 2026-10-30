@@ -3810,6 +3810,21 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse',
+      one: '1 dans',
+    );
+    return '$label, $_temp0, $selected valgt';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => 'Afslut valg';
 
   @override
@@ -6361,7 +6376,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Din version af „$existingTitle“ erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
+    return 'Din version af „$existingTitle“ erstattes af onlineposten — inklusive dens titel, figurer, noter og tags. Den beholder din vurdering, dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
   }
 
   @override
@@ -6388,7 +6403,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
+      'Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter og tags. Den beholder din vurdering, dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
 
   @override
   String get importFigurelessCannotReplace =>
@@ -9984,6 +9999,41 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get venueManagerNoMatches => 'Ingen spillesteder matcher din søgning.';
+
+  @override
+  String get venueLinkOfferTitle => 'Vil du knytte tidligere programmer?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Nogle programmer har et spillested skrevet som tekst, der matcher en spillestedspost. Når du knytter dem, tæller opkaldshistorikken dem som ét spillested. Den skrevne tekst bevares.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer',
+      one: '1 program',
+    );
+    return '“$name”: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Knyt';
+
+  @override
+  String get venueLinkOfferDecline => 'Ikke nu';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer knyttet.',
+      one: '1 program knyttet.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get venueManagerDeleteTitle => 'Slet spillested?';

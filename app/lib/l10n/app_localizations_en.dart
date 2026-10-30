@@ -3780,6 +3780,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances',
+      one: '1 dance',
+    );
+    return '$label, $_temp0, $selected selected';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => 'Exit selection';
 
   @override
@@ -6328,7 +6343,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.';
+    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.';
   }
 
   @override
@@ -6355,7 +6370,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.';
+      'The dance you choose will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.';
 
   @override
   String get importFigurelessCannotReplace =>
@@ -9946,6 +9961,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get venueManagerNoMatches => 'No venues match your search.';
+
+  @override
+  String get venueLinkOfferTitle => 'Link earlier programs?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Some programs have a venue typed in as text that matches a venue record. Linking them makes calling history count them as one venue. The typed text is kept.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs',
+      one: '1 program',
+    );
+    return '“$name”: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Link';
+
+  @override
+  String get venueLinkOfferDecline => 'Not now';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Linked $count programs.',
+      one: 'Linked 1 program.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get venueManagerDeleteTitle => 'Delete venue?';

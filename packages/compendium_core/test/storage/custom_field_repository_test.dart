@@ -267,14 +267,19 @@ void main() {
     test('a restored dance keeps its field value, once the definition is '
         'restored too', () async {
       // `_customFieldsForMany` inner-joins on
-      // `custom_field_defs.deleted_at IS NULL`, so the dance-only restore shows
-      // nothing. Asserted so the release note's two-row requirement cannot
-      // quietly become "restoring the dance is enough".
+      // `custom_field_defs.deleted_at IS NULL`, so a restore that does not
+      // revive the definition shows nothing. This once took two restores;
+      // since B9 the dance's own restore revives the definition, and
+      // `reviveReferences: false` (an archive merge) still takes two.
       await seedTombstonedValue();
 
       await repo.delete('f1', permanent: true);
 
-      await dances.restore('d1', at: DateTime.utc(2026, 3));
+      await dances.restore(
+        'd1',
+        at: DateTime.utc(2026, 3),
+        reviveReferences: false,
+      );
       expect(
         (await dances.getById('d1'))!.customFields,
         isEmpty,
@@ -282,6 +287,18 @@ void main() {
       );
 
       await repo.restore('f1', at: DateTime.utc(2026, 3));
+      final restored = (await dances.getById('d1'))!.customFields.single;
+      expect(restored.fieldId, 'f1');
+      expect(restored.value, 'some note');
+    });
+
+    test('restoring the dance revives the definition with it (B9)', () async {
+      await seedTombstonedValue();
+
+      await repo.delete('f1', permanent: true);
+
+      await dances.restore('d1', at: DateTime.utc(2026, 3));
+      expect(await repo.getById('f1'), isNotNull);
       final restored = (await dances.getById('d1'))!.customFields.single;
       expect(restored.fieldId, 'f1');
       expect(restored.value, 'some note');

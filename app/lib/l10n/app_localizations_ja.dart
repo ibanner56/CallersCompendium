@@ -3634,6 +3634,20 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンス',
+    );
+    return '$label、$_temp0、$selected件選択中';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => '選択を終了';
 
   @override
@@ -6111,7 +6125,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグ、評価も含まれます。カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
+    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグも含まれます。評価、カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
   }
 
   @override
@@ -6136,7 +6150,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      '選択したダンスは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグ、評価も含まれます。カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
+      '選択したダンスは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグも含まれます。評価、カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
 
   @override
   String get importFigurelessCannotReplace =>
@@ -9592,6 +9606,39 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get venueManagerNoMatches => '検索に一致する会場がありません。';
+
+  @override
+  String get venueLinkOfferTitle => '以前のプログラムをリンクしますか？';
+
+  @override
+  String get venueLinkOfferBody =>
+      '会場がテキストで入力されたプログラムの中に、会場レコードと一致するものがあります。リンクすると、コール履歴で同じ会場として数えられます。入力したテキストは残ります。';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のプログラム',
+    );
+    return '「$name」：$_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'リンクする';
+
+  @override
+  String get venueLinkOfferDecline => '今はしない';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のプログラムをリンクしました。',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get venueManagerDeleteTitle => '会場を削除しますか？';

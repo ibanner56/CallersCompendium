@@ -17,6 +17,7 @@ import '../../data/track_history_for_all_callers_scope.dart';
 import '../../data/venue_call_count_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../widgets/link_typed_venues_offer.dart';
 import '../../widgets/readable_width.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
@@ -174,6 +175,13 @@ class _ProgramSectionState extends State<ProgramSection> {
     VenueEntityModeScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
     await persistSetting(repos.settings, kVenueEntityModeKey, value);
+    // GIG-7 = (b): when records are turned on, offer to link older programs
+    // whose typed venue matches an existing record. Turning it off offers
+    // nothing: the typed text was never cleared.
+    if (!value || !mounted) return;
+    final venues = await repos.venues.listAll();
+    if (!mounted) return;
+    await offerToLinkTypedVenues(context, venues: venues);
   }
 
   Future<void> _onMatrixExactBeatCollisionChanged(bool value) async {

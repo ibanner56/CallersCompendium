@@ -155,9 +155,11 @@ const String kDefaultProgramBandKey = 'default_program_band';
 /// [tryDecodeDefaultImportTagNames]. Names rather than ids because a tag's name
 /// is its natural key: merge-restore adoption and sync reconciliation can
 /// re-identify a tag under a different id but keep its name, and neither
-/// rewrites settings values. Nothing in the app renames a tag today; if a tag
-/// rename is ever added it must rewrite this setting. Absent, empty or
-/// unreadable ⇒ no tags are added. Names with no live tag are ignored at import
+/// rewrites settings values. A user's rename, merge or delete of a tag
+/// (`ReferenceEditRepository` in core) does not rewrite it either: the app
+/// caller must, in the same `repos.transaction` (`docs/design/tags-and-people.md`,
+/// "The import-tags setting"). No screen offers those operations yet.
+/// Absent, empty or unreadable ⇒ no tags are added. Names with no live tag are ignored at import
 /// time (see `resolveDefaultImportTagIds`).
 const String kDefaultImportTagNamesKey = 'default_import_tag_names';
 
