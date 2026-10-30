@@ -44,12 +44,13 @@ class DanceReimportJsonException implements Exception {
 
 /// Whether [draft] decoded to an empty figure list.
 ///
-/// Writing such a draft over an existing dance (re-import, or an import's
-/// "same dance" link) would erase its transcription, so every surface that
-/// offers to replace a dance asks this first. An *unreadable* incoming list is
-/// not figureless. Re-import ([replaceDanceChoreography]) keeps the saved
-/// figures for that; an import link writes the unreadable list through as is
-/// (`ImportPipeline` copies the draft's `figuresSource` whole).
+/// Linking such a draft onto an existing dance (an import's "same dance"
+/// link) would erase its transcription, so every surface that offers a link
+/// asks this first. A re-import ([withReimportedChoreography]) keeps the saved
+/// figures for an empty or unreadable incoming list, so for it this only
+/// decides whether to tell the user the source sent no figures. An
+/// *unreadable* incoming list is not figureless; an import link writes it
+/// through as is (`ImportPipeline` copies the draft's `figuresSource` whole).
 bool draftHasNoFigures(StructuredDraft draft) =>
     switch (draft.dance.figuresSource) {
       DecodedFigures(:final figures) => figures.isEmpty,
@@ -58,8 +59,10 @@ bool draftHasNoFigures(StructuredDraft draft) =>
 
 /// Refuses an online [plan] that brought no figures.
 ///
-/// [replaceDanceChoreography] would write an empty incoming list over the
-/// saved transcription. The common cause is The Caller's Box serving only
+/// [replaceDanceChoreography] keeps the saved figures for such a plan, so it
+/// would refresh only the formation and progression and say the dance was
+/// re-imported; this tells the user the source sent no figures instead, and
+/// changes nothing. The common cause is The Caller's Box serving only
 /// metadata for a dance without the `full` permission tier (the
 /// `callersbox_search_tier` issue); a ContraDB page without a figures table
 /// parses the same way. The title search hides the first case
