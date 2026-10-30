@@ -177,10 +177,13 @@ class CollectionSortMenuButton extends StatelessWidget {
 class SortDirectionButton extends StatelessWidget {
   const SortDirectionButton({
     super.key,
+    this.buttonKey,
     required this.direction,
     required this.onPressed,
   });
 
+  /// Goes on the [IconButton] itself, so a host's test key finds the button.
+  final Key? buttonKey;
   final SortDirection direction;
   final VoidCallback onPressed;
 
@@ -189,6 +192,7 @@ class SortDirectionButton extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final ascending = direction == SortDirection.ascending;
     return IconButton(
+      key: buttonKey,
       tooltip: ascending
           ? l10n.collectionSortAscendingTooltip
           : l10n.collectionSortDescendingTooltip,

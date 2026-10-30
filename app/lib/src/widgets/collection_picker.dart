@@ -286,6 +286,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineSeq++;
       setState(() {
         _onlineEnabled = false;
+        _ftsScope = _localFtsScope;
         _onlineResults = const [];
         _onlineError = null;
         _onlineImportError = null;
@@ -1081,7 +1082,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
               onSelected: _selectSort,
             ),
             SortDirectionButton(
-              key: const ValueKey('picker-sort-direction'),
+              buttonKey: const ValueKey('picker-sort-direction'),
               direction: _sortDir,
               onPressed: _toggleSortDirection,
             ),

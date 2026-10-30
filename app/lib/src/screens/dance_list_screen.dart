@@ -2066,7 +2066,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             _buildGroupByButton(l10n),
           if (onBar.contains(_CollectionBarGlyph.sortDirection))
             SortDirectionButton(
-              key: const ValueKey('collection-sort-direction'),
+              buttonKey: const ValueKey('collection-sort-direction'),
               direction: _sortDir,
               onPressed: _toggleSortDirection,
             ),

@@ -87,6 +87,7 @@ Future<void> _pumpPicker(
   ValueNotifier<bool>? sortIgnoreArticlesNotifier,
   ValueNotifier<Set<String>>? hiddenFacets,
   ValueNotifier<Set<CollectionTileField>>? tileFields,
+  String? callerFilter,
   Size surfaceSize = const Size(1200, 3000),
   double textScale = 1.0,
   Map<String, int> addedDanceCounts = const {},
@@ -102,7 +103,7 @@ Future<void> _pumpPicker(
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
-  final data = await CollectionData.load(repos);
+  final data = await CollectionData.load(repos, callerFilter: callerFilter);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -739,6 +740,53 @@ void main() {
         await repos.settings.get(kLastUsedCollectionSortDirectionKey),
         isNull,
       );
+    });
+
+    testWidgets('under Last used, opens in the Collection\'s last-used sort '
+        'and direction', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultCollectionSortKey,
+        kLastUsedSortSentinel,
+      );
+      await repos.settings.set(kLastUsedCollectionSortKey, 'title');
+      await repos.settings.set(
+        kLastUsedCollectionSortDirectionKey,
+        'descending',
+      );
+      for (final title in ['Alpha', 'Charlie', 'Bravo']) {
+        await repos.dances.create(_dance(id: title, title: title));
+      }
+
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Charlie', 'Bravo', 'Alpha']);
+    });
+
+    testWidgets('Last called sorts by the caller-scoped history, as the '
+        'Collection does (FIND-2)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'mine', title: 'Zed Mine'));
+      await repos.dances.create(_dance(id: 'guest', title: 'Alpha Guest'));
+      Program program(String id, String danceId, String caller, int month) =>
+          Program(
+            id: id,
+            title: id,
+            caller: caller,
+            eventDate: DateTime.utc(2026, month),
+            slots: [ProgramSlot(id: '$id-s', position: 0, danceId: danceId)],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          );
+      await repos.programs.create(program('ours', 'mine', 'Me', 2));
+      await repos.programs.create(program('theirs', 'guest', 'Guest', 5));
+
+      await _pumpPicker(tester, repos, onAddDance: (_) {}, callerFilter: 'Me');
+      await tester.pumpAndSettle();
+      await chooseSort(tester, 'Last called');
+
+      // An unscoped sort would put the guest's later program first.
+      expect(_titles(tester), ['Zed Mine', 'Alpha Guest']);
     });
 
     testWidgets('rows show the Collection card fields, live', (tester) async {

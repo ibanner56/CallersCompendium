@@ -161,8 +161,8 @@ picker.*
 - **Your program** — the ordered list of
   [slots](./glossary.md#slot) that make up the evening.
 - **The collection picker** — the same search tools you know from
-  [Collection & search](./collection.md): **Search in** beside the search box,
-  the **Filters** panel, the **Advanced** figure builder, the **By phrase**
+  [Collection & search](./collection.md): **Search in** beside the search box
+  (above it in a narrow pane or with large text), the **Filters** panel, the **Advanced** figure builder, the **By phrase**
   panel, and the **Sort** menu with its ascending / descending arrow at the end
   of the result count. The picker opens in your
   [Collection sort order](./settings.md#display-defaults); a sort you choose
