@@ -2574,8 +2574,9 @@ class DanceRepository {
   /// and any later stamp could outrank, or tie with, a revival a peer made
   /// since, and delete a dance someone restored. A peer holding the same
   /// tombstone still takes the mark: among tied tombstones the merge prefers
-  /// the marked copy (`sync_merge.dart`). Only the content is stamped, by
-  /// [_blank], so the blank body replaces theirs. (Both are the implementer's
+  /// the marked copy (`sync_merge.dart`). Only the content is stamped: by the
+  /// mark itself, and again by [_blank] when it runs, so the blank body
+  /// replaces theirs. (Both are the implementer's
   /// choices, not part of the decision.) Like any sweep it leaves citers alone;
   /// see [removePermanentlyDeleted].
   Future<void> _markExpiredPublished(
