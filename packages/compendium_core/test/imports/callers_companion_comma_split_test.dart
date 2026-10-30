@@ -206,6 +206,17 @@ void main() {
       expect(others.map((f) => f.move), ['balance', 'box_the_gnat']);
       expect(others.last.params.containsKey('balance'), isFalse);
 
+      // A move that cannot hold the pair: a petronella has no `who`, and a
+      // Rory O'More's takes no relationship.
+      for (final (line, move) in [
+        ('(8) Neighbor balance, petronella', 'petronella'),
+        ("(8) Neighbor balance, Rory O'More", 'rory_o_more'),
+      ]) {
+        final figures = await _ccFigures(line);
+        expect(figures.map((f) => f.move), ['balance', move], reason: line);
+        expect(figures.first.params['who'], 'neighbors', reason: line);
+      }
+
       final pullBy = await _ccFigures('(8) Partner R-hand balance, pull by');
       expect(pullBy.map((f) => f.move), ['balance', 'pull_by']);
       expect(pullBy.map((f) => f.params['beats']), [4, 4]);

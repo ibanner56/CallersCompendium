@@ -1897,8 +1897,10 @@ has to be judged in its own context.
     not its subject rule, which needs the balance and the move to name the
     same dancers: here the move takes the pair the balance names when it names
     none itself, a balance that names no pair (a bare `Balance` reads as
-    everyone) leaves the move's own, and a move that names other dancers keeps
-    the balance as its own figure. A ring balance folds into a petronella, as
+    everyone) leaves the move's own, and a move that names other dancers, or
+    cannot hold the pair (a petronella has no `who`; a Rory O'More's takes no
+    relationship), keeps the balance as its own figure. A ring balance folds
+    into a petronella, as
     Fold 1 does. A hand the move has no slot for (a swing) is dropped, as Fold
     1 drops it.
   - A figure's default is its taxonomy beats for the params it has, so a

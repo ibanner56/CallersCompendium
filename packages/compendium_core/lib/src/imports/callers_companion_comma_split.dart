@@ -47,8 +47,10 @@ import 'while_container.dart' show whileModifierMoves;
 ///   the balance and the move to name the same dancers: here the move takes
 ///   the pair the balance names when it names none itself, and a balance that
 ///   names no pair (a bare `Balance` reads as everyone) leaves the move's own.
-///   A move that names other dancers keeps the balance as its own figure. A
-///   ring balance folds into a petronella, as Fold 1 does.
+///   A move that names other dancers, or cannot hold the pair (a petronella
+///   has no `who`; a Rory O'More's takes no relationship), keeps the balance
+///   as its own figure. A ring balance folds into a petronella, as Fold 1
+///   does.
 /// * **A place to end** is a last piece opening with `face`, `facing`, `end`
 ///   or `to`, scrubbed like the rest of the line.
 /// * **Beats.** A figure's default is its taxonomy beats for the params it
@@ -240,7 +242,14 @@ Figure? _foldBalance(Figure balance, Figure move) {
       ? null
       : balanceWho;
   var assumed = move.assumedSubject;
-  if (who != null && def.params.containsKey('who')) {
+  if (who != null) {
+    // A pair the move cannot hold keeps the balance its own figure: a
+    // petronella has no `who` (its balance is the whole ring's), and a Rory
+    // O'More's `who` takes no relationship.
+    final whoSpec = def.params['who'];
+    if (whoSpec == null) return null;
+    final choices = whoSpec.choices;
+    if (choices != null && !choices.contains(who)) return null;
     final moveWho = move.params['who'];
     if (moveWho != null && !move.assumedSubject && moveWho != who) return null;
     params['who'] = who;
