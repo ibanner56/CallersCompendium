@@ -39,6 +39,7 @@ import '../widgets/formation_color_badge.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_status_chip.dart';
 import '../widgets/readable_width.dart';
+import '../widgets/selectable_content.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/tag_chip.dart';
 import 'dance_detail/calling_history_section.dart';
@@ -982,7 +983,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                           onRetry: _retryLoad,
                         )
                       : Center(child: Text(l10n.danceNotFound)))
-                : _buildBody(detail),
+                : SelectableContent(child: _buildBody(detail)),
             // Edit mirrors the program preview's builder affordance: a bottom-right
             // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
             // so opening the editor is consistent across the dance and program views.
@@ -1188,21 +1189,25 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               final filter = _isPreview || _isReadOnly
                   ? null
                   : CollectionFilterScope.maybeOf(context);
-              return Wrap(
-                spacing: 8,
-                children: [
-                  for (final tag in detail.tags)
-                    if (filter != null)
-                      TagChip(
-                        key: ValueKey('tag-filter-chip-${tag.id}'),
-                        name: tag.name,
-                        color: tag.color,
-                        tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
-                        onPressed: () => filter.filterByTag(tag.id),
-                      )
-                    else
-                      TagChip(name: tag.name, color: tag.color),
-                ],
+              // Chips are controls, not copy text: a drag that starts on a tag
+              // name must not select it, and its name stays out of a copy.
+              return SelectionContainer.disabled(
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final tag in detail.tags)
+                      if (filter != null)
+                        TagChip(
+                          key: ValueKey('tag-filter-chip-${tag.id}'),
+                          name: tag.name,
+                          color: tag.color,
+                          tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
+                          onPressed: () => filter.filterByTag(tag.id),
+                        )
+                      else
+                        TagChip(name: tag.name, color: tag.color),
+                  ],
+                ),
               );
             },
           ),

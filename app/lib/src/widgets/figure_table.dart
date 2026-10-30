@@ -238,17 +238,22 @@ class _FigureRow extends StatelessWidget {
                 ],
               ),
             ),
+            // The badge and the beats are chrome around the figure, not part of
+            // it: leaving them selectable would copy a label and stray digits
+            // between lines.
             if (isImportGap) ...[
               const SizedBox(width: 8),
-              const ImportGapBadge(),
+              const SelectionContainer.disabled(child: ImportGapBadge()),
             ],
             const SizedBox(width: 8),
-            Text(
-              beatsLabel,
-              textAlign: TextAlign.end,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            SelectionContainer.disabled(
+              child: Text(
+                beatsLabel,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ),
           ],
