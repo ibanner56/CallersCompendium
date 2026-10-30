@@ -1910,6 +1910,42 @@ class DanceRepository {
   Future<void> softDelete(String id, {required DateTime at}) =>
       _stampExistence(id, at: at, deleted: true);
 
+  /// Soft-deletes every live dance in [ids] at [at], in one transaction, for
+  /// the Collection multi-select Delete (N4-S3). Each dance goes through
+  /// [softDelete], so a bulk delete is exactly N single deletes; the
+  /// transaction only makes them all-or-nothing, so a failure part-way leaves
+  /// every dance live.
+  ///
+  /// Skips ids that are unknown or already in Recently deleted, and returns
+  /// the ids it deleted, in [ids]' order. That list is what Undo passes to
+  /// [restoreMany]: a dance that was already in the trash must not come back
+  /// with the ones this call put there.
+  Future<List<String>> softDeleteMany(
+    Iterable<String> ids, {
+    required DateTime at,
+  }) {
+    assertUtc(at, 'at');
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value(const []);
+    return _db.transaction(() async {
+      final live = <String>{};
+      for (final chunk in _chunkIds(list)) {
+        final query = _db.selectOnly(_db.dances)
+          ..addColumns([_db.dances.id])
+          ..where(_db.dances.id.isIn(chunk) & _db.dances.deletedAt.isNull());
+        live.addAll(await query.map((r) => r.read(_db.dances.id)!).get());
+      }
+      final deleted = [
+        for (final id in list)
+          if (live.contains(id)) id,
+      ];
+      for (final id in deleted) {
+        await softDelete(id, at: at);
+      }
+      return deleted;
+    });
+  }
+
   /// Revives the dance, stamping `existence_at` causally (schema v25, issue
   /// #898). A revival is an existence transition, so it must advance
   /// `existence_at`: leaving it at the tombstone's value would tie, and a tie
@@ -1985,6 +2021,43 @@ class DanceRepository {
       );
     }
   });
+
+  /// Restores every dance in [ids] that is in Recently deleted, at [at], in
+  /// one transaction: the Undo of [softDeleteMany]. Each dance goes through
+  /// [restore] with its defaults, never a second SQL path, so a bulk Undo
+  /// revives the level and custom fields each dance names and clears its
+  /// pending sync deletion exactly as a single restore does. A failure
+  /// part-way leaves every dance in the trash.
+  ///
+  /// Skips ids that are unknown, live or permanently deleted, so a dance
+  /// restored from Recently deleted in the meantime is not stamped with a second revival. Returns how
+  /// many dances it restored.
+  Future<int> restoreMany(Iterable<String> ids, {required DateTime at}) {
+    assertUtc(at, 'at');
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      final trashed = <String>{};
+      for (final chunk in _chunkIds(list)) {
+        final query = _db.selectOnly(_db.dances)
+          ..addColumns([_db.dances.id, _db.dances.deletedAt])
+          ..where(_db.dances.id.isIn(chunk) & _db.dances.deletedAt.isNotNull());
+        for (final row in await query.get()) {
+          // A permanently deleted dance is not in Recently deleted; [restore]
+          // would skip it, so it is not counted either.
+          if (isPermanentlyDeleted(row.read(_db.dances.deletedAt))) continue;
+          trashed.add(row.read(_db.dances.id)!);
+        }
+      }
+      var restored = 0;
+      for (final id in list) {
+        if (!trashed.contains(id)) continue;
+        await restore(id, at: at);
+        restored++;
+      }
+      return restored;
+    });
+  }
 
   /// Revives the tombstoned level and custom-field definitions [row] names;
   /// see [restore]. A revival derived from another record's restore must not
