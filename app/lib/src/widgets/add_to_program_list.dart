@@ -91,8 +91,9 @@ List<Program> filterProgramsForAdd(
   return [
     for (final program in programs)
       if (foldForTitleMatch(program.title).contains(needle) ||
-          foldForTitleMatch(resolveVenueLabel(program, venuesById) ?? '')
-              .contains(needle))
+          foldForTitleMatch(
+            resolveVenueLabel(program, venuesById) ?? '',
+          ).contains(needle))
         program,
   ];
 }

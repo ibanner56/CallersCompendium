@@ -2013,11 +2013,11 @@ void main() {
       expect(find.byKey(const ValueKey('program-pick-p2')), findsOneWidget);
       expect(find.text('Barn Dance'), findsOneWidget);
       expect(find.text('Contra Jam'), findsOneWidget);
-      // Subtitle: event date (when set) + slot count, joined with ' · '.
+      // Subtitle: status, event date (when set) + slot count, joined with ' · '.
       expect(find.textContaining('· 1 dance'), findsOneWidget);
-      // A program without an event date shows only the slot count — no
+      // A program without an event date shows only status and slot count — no
       // literal "null" leaks in from the omitted date label.
-      expect(find.text('0 dances'), findsOneWidget);
+      expect(find.text('Draft · 0 dances'), findsOneWidget);
       expect(find.textContaining('null'), findsNothing);
     });
 

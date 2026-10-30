@@ -1,5 +1,3 @@
-import 'dart:ui' show Size;
-
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/widgets/add_to_program_list.dart';
 import 'package:compendium_app/src/widgets/add_to_program_sheet.dart';

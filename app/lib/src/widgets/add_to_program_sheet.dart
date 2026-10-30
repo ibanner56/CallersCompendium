@@ -59,13 +59,15 @@ Future<void> showAddToProgramSheet(
     showDragHandle: true,
     builder: (sheetContext) {
       final media = MediaQuery.of(sheetContext);
-      // The keyboard's inset is not part of the sheet's own height, so size from
-      // what is left of the screen above it; with the keyboard up, use all of
-      // it, since 70% of a 640 px phone's remainder fits too little (§4.5).
-      final available = media.size.height - media.viewInsets.bottom;
-      final maxHeight = available * (media.viewInsets.bottom > 0 ? 1.0 : 0.7);
+      // The route does not lift a sheet above the keyboard, so pad by its inset
+      // and the sheet gets the height left above it. With the keyboard up the
+      // cap lifts from 70% to all of that, since 70% of what a 640 px phone has
+      // left fits too little (§4.5).
+      final keyboard = media.viewInsets.bottom;
+      final maxHeight =
+          (media.size.height - keyboard) * (keyboard > 0 ? 1 : 0.7);
       return Padding(
-        padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+        padding: EdgeInsets.only(bottom: keyboard),
         child: SafeArea(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxHeight: maxHeight),
