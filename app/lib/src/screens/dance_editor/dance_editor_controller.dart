@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show mapEquals;
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/widgets.dart';
 
 import '../../data/editor_draft_shutdown_scope.dart';
@@ -1486,6 +1486,40 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+  }
+
+  /// Credits [to] wherever the draft, or any step of its undo history,
+  /// credits one of [from]: the authors a merge combined into [to]. The first
+  /// credit keeps its position and later duplicates go, as the merge does to
+  /// the stored dances.
+  ///
+  /// Not an edit of the draft, so it pushes no undo step: the merge has its
+  /// own Undo, and undoing the draft must not bring back a merged-away id.
+  /// Returns whether the draft itself changed.
+  bool replaceAuthors(Set<String> from, String to) {
+    List<String> replaced(List<String> ids) {
+      final out = <String>[];
+      for (final id in ids) {
+        final mapped = from.contains(id) ? to : id;
+        if (!out.contains(mapped)) out.add(mapped);
+      }
+      return out;
+    }
+
+    _undoStack.mapAll(
+      (snapshot) => snapshot.copyWith(authorIds: replaced(snapshot.authorIds)),
+    );
+    final next = replaced(authorIds);
+    if (listEquals(next, authorIds)) return false;
+    authorIds
+      ..clear()
+      ..addAll(next);
+    // The merge rewrote the stored dance the same way, so this alone is no
+    // unsaved edit. A draft already holding one is re-saved, so a restored
+    // draft does not bring the merged-away id back.
+    if (_dirty) scheduleAutosave();
+    _notify();
+    return true;
   }
 
   void addTag(String id) {

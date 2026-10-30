@@ -2839,6 +2839,43 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get authorManagerTitle => 'Auteurs';
+
+  @override
+  String get authorManagerSearchHint => 'Rechercher des auteurs';
+
+  @override
+  String get authorManagerNameLabel => 'Nom de l’auteur';
+
+  @override
+  String get authorManagerEmpty =>
+      'Aucun auteur pour l’instant. Les auteurs que vous créditez sur une danse apparaissent ici.';
+
+  @override
+  String get authorManagerLoadError => 'Impossible de charger vos auteurs.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count auteurs regroupés dans « $into »';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Sources';
+
+  @override
+  String get sourceManagerSearchHint => 'Rechercher des sources';
+
+  @override
+  String get sourceManagerTitleLabel => 'Titre de la source';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Aucune source pour l’instant. Les livres et sites que vous citez sur une danse apparaissent ici.';
+
+  @override
+  String get sourceManagerLoadError => 'Impossible de charger vos sources.';
+
+  @override
   String get libraryManagerClearSearch => 'Effacer la recherche';
 
   @override
@@ -2922,6 +2959,38 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get libraryManagerEditFailed =>
       'Impossible d’enregistrer cette modification. Veuillez réessayer.';
+
+  @override
+  String get libraryManagerEditDetails => 'Modifier les détails…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '« $from » renommé en « $to »';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '« $from » fusionné dans « $into »';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '« $name » supprimé';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return 'Fusionner « $from » dans « $into » ?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Ces détails diffèrent. L’entrée fusionnée garde les siens, et ceux-ci sont abandonnés :';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field : $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliothèque';
@@ -3219,6 +3288,20 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsGeneralLibraryTagsSubtitle =>
       'Renommez, fusionnez, colorez et supprimez vos tags.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Auteurs';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Renommez, fusionnez et supprimez des auteurs, et modifiez leurs détails.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Sources';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Renommez, fusionnez et supprimez des sources, et modifiez leurs détails.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Accessibilité';

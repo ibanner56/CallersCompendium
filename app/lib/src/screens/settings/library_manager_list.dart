@@ -2,8 +2,10 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../diagnostics/error_log.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../utils/undo_snack_bar.dart';
 import '../../widgets/readable_width.dart';
 
 /// One entry of a [LibraryManagerList]: a tag, an author or a source.
@@ -13,6 +15,7 @@ class LibraryManagerEntry {
     required this.id,
     required this.name,
     required this.liveDanceCount,
+    this.detail,
   });
 
   final String id;
@@ -24,6 +27,11 @@ class LibraryManagerEntry {
   /// Live dances citing the entry. Dances in Recently deleted do not count
   /// (trash-policy (b)); zero shows as **Not used**.
   final int liveDanceCount;
+
+  /// A line telling the entry apart from others with the same [name], shown
+  /// above the count: a source's author and year, since titles are not
+  /// unique. Not searched.
+  final String? detail;
 }
 
 /// One action on an entry, offered both in the row's ⋮ menu and in the sheet
@@ -326,7 +334,7 @@ class _LibraryManagerListState extends State<LibraryManagerList> {
     return ListTile(
       key: ValueKey('$prefix-row-${entry.id}'),
       title: widget.titleBuilder?.call(context, entry) ?? Text(entry.name),
-      subtitle: Text(l10n.libraryManagerDanceCount(entry.liveDanceCount)),
+      subtitle: _EntrySubtitle(entry),
       onTap: () => _openSheet(entry),
       trailing: PopupMenuButton<LibraryManagerAction>(
         key: ValueKey('$prefix-actions-${entry.id}'),
@@ -511,11 +519,7 @@ class _MergePickerDialogState extends State<_MergePickerDialog> {
                           ListTile(
                             key: ValueKey('library-merge-into-${entry.id}'),
                             title: Text(entry.name),
-                            subtitle: Text(
-                              l10n.libraryManagerDanceCount(
-                                entry.liveDanceCount,
-                              ),
-                            ),
+                            subtitle: _EntrySubtitle(entry),
                             onTap: () => Navigator.of(context).pop(entry),
                           ),
                       ],
@@ -544,6 +548,11 @@ class _MergePickerDialogState extends State<_MergePickerDialog> {
 /// can coexist), it lists them and asks which to merge into, preselecting the
 /// one whose bytes equal [typedName]; the rest are merged into it too.
 ///
+/// [droppedFor], given the id merged into, lists the details the merge will
+/// discard ([showLibraryMergeConfirm] says how); with several matches the list
+/// follows the choice. Tags pass none: a tag holds only a colour, and the
+/// colour of the tag merged into wins.
+///
 /// A question, not a destructive confirm: the merge has an Undo. **Keep
 /// editing** and **Merge**, in D-1's order for the discard dialog. Returns
 /// the id chosen to merge into, or `null` to keep editing; the caller then
@@ -553,12 +562,14 @@ Future<String?> showLibraryMergeOffer(
   required String fromName,
   required String typedName,
   required List<LibraryManagerEntry> matches,
+  List<String> Function(String intoId)? droppedFor,
 }) => showDialog<String>(
   context: context,
   builder: (_) => _MergeOfferDialog(
     fromName: fromName,
     typedName: typedName,
     matches: matches,
+    droppedFor: droppedFor,
   ),
 );
 
@@ -567,11 +578,13 @@ class _MergeOfferDialog extends StatefulWidget {
     required this.fromName,
     required this.typedName,
     required this.matches,
+    required this.droppedFor,
   });
 
   final String fromName;
   final String typedName;
   final List<LibraryManagerEntry> matches;
+  final List<String> Function(String intoId)? droppedFor;
 
   @override
   State<_MergeOfferDialog> createState() => _MergeOfferDialogState();
@@ -629,13 +642,12 @@ class _MergeOfferDialogState extends State<_MergeOfferDialog> {
                         key: ValueKey('library-merge-offer-${entry.id}'),
                         value: entry.id,
                         title: Text(entry.name),
-                        subtitle: Text(
-                          l10n.libraryManagerDanceCount(entry.liveDanceCount),
-                        ),
+                        subtitle: _EntrySubtitle(entry),
                       ),
                   ],
                 ),
               ),
+            ?_droppedDetails(widget.droppedFor?.call(_intoId)),
           ],
         ),
       ),
@@ -653,4 +665,135 @@ class _MergeOfferDialogState extends State<_MergeOfferDialog> {
       ],
     );
   }
+}
+
+/// Asks before merging [fromName] into [intoName] when the merge will discard
+/// [dropped], the conflicting details (D-N2-2 = (b): "the dialog lists
+/// conflicting values it will drop; a longer dialog on conflict"). The caller
+/// asks only when [dropped] is not empty; a merge that drops nothing runs at
+/// once, with Undo.
+///
+/// Discarded values come back with Undo, and are gone once the snackbar
+/// closes. **Cancel** and **Merge**, as the merge offer orders its buttons.
+/// Returns true to merge.
+Future<bool> showLibraryMergeConfirm(
+  BuildContext context, {
+  required String fromName,
+  required String intoName,
+  required List<String> dropped,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final merge = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      key: const ValueKey('library-merge-confirm'),
+      title: Text(l10n.libraryManagerMergeConfirmTitle(fromName, intoName)),
+      content: SingleChildScrollView(child: _droppedDetails(dropped)),
+      actions: [
+        TextButton(
+          key: const ValueKey('library-merge-confirm-cancel'),
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: Text(l10n.commonCancel),
+        ),
+        FilledButton(
+          key: const ValueKey('library-merge-confirm-merge'),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: Text(l10n.libraryManagerMerge),
+        ),
+      ],
+    ),
+  );
+  return merge ?? false;
+}
+
+/// The list of details a merge discards, or `null` when it discards none.
+Widget? _droppedDetails(List<String>? dropped) {
+  if (dropped == null || dropped.isEmpty) return null;
+  return Builder(
+    builder: (context) {
+      final l10n = AppLocalizations.of(context);
+      return Padding(
+        key: const ValueKey('library-merge-dropped'),
+        padding: const EdgeInsets.only(top: AppSpacing.sm),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.libraryManagerMergeDropsHeading),
+            const SizedBox(height: AppSpacing.xs),
+            for (final line in dropped)
+              Padding(
+                padding: const EdgeInsets.only(left: AppSpacing.sm),
+                child: Text(line),
+              ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+/// An entry's [LibraryManagerEntry.detail], when it has one, above its count.
+class _EntrySubtitle extends StatelessWidget {
+  const _EntrySubtitle(this.entry);
+
+  final LibraryManagerEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = AppLocalizations.of(
+      context,
+    ).libraryManagerDanceCount(entry.liveDanceCount);
+    final detail = entry.detail;
+    return Text(detail == null ? count : '$detail\n$count');
+  }
+}
+
+/// Shows [message] with an Undo that runs [onUndo], for a rename, merge or
+/// delete made in a manager or the dance editor. The snackbar is the only
+/// Undo (D-N2-5).
+///
+/// An Undo that core refuses because a live entry has taken a name it would
+/// give back ([ReferenceUndoConflictException]) says so, naming the name,
+/// rather than the generic failure. Keys: `<keyPrefix>-undo-snackbar`,
+/// `<keyPrefix>-undo` and `<keyPrefix>-undo-conflict`.
+void showLibraryUndoSnackBar(
+  BuildContext context, {
+  required String keyPrefix,
+  required String message,
+  required Future<void> Function() onUndo,
+}) {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  showUndoSnackBar(
+    messenger,
+    key: ValueKey('$keyPrefix-undo-snackbar'),
+    actionKey: ValueKey('$keyPrefix-undo'),
+    message: message,
+    undoLabel: l10n.commonUndo,
+    undoFailedMessage: l10n.commonUndoFailed,
+    accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+    onUndo: () async {
+      try {
+        await onUndo();
+      } on ReferenceUndoConflictException catch (conflict, stackTrace) {
+        // Says more than the generic failure, so it reports itself and does
+        // not throw (see showUndoSnackBar).
+        logCaughtError(
+          conflict,
+          stackTrace,
+          source: 'library_manager_list.showLibraryUndoSnackBar',
+        );
+        if (!messenger.mounted) return;
+        messenger
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              key: ValueKey('$keyPrefix-undo-conflict'),
+              content: Text(l10n.libraryManagerUndoConflict(conflict.name)),
+            ),
+          );
+      }
+    },
+  );
 }

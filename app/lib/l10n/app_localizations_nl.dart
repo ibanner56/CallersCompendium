@@ -2810,6 +2810,43 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get authorManagerTitle => 'Auteurs';
+
+  @override
+  String get authorManagerSearchHint => 'Auteurs zoeken';
+
+  @override
+  String get authorManagerNameLabel => 'Naam van de auteur';
+
+  @override
+  String get authorManagerEmpty =>
+      'Nog geen auteurs. Auteurs die je bij een dans vermeldt, verschijnen hier.';
+
+  @override
+  String get authorManagerLoadError => 'Kon je auteurs niet laden.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count auteurs samengevoegd tot “$into”';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Bronnen';
+
+  @override
+  String get sourceManagerSearchHint => 'Bronnen zoeken';
+
+  @override
+  String get sourceManagerTitleLabel => 'Titel van de bron';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Nog geen bronnen. Boeken en websites die je bij een dans vermeldt, verschijnen hier.';
+
+  @override
+  String get sourceManagerLoadError => 'Kon je bronnen niet laden.';
+
+  @override
   String get libraryManagerClearSearch => 'Zoekopdracht wissen';
 
   @override
@@ -2894,6 +2931,38 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get libraryManagerEditFailed =>
       'Die wijziging kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get libraryManagerEditDetails => 'Details bewerken…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '“$from” hernoemd naar “$to”';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '“$from” samengevoegd met “$into”';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '“$name” verwijderd';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return '“$from” samenvoegen met “$into”?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Deze details verschillen. Het samengevoegde item houdt zijn eigen details, en deze vervallen:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotheek';
@@ -3190,6 +3259,20 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsGeneralLibraryTagsSubtitle =>
       'Je tags hernoemen, samenvoegen, kleuren en verwijderen.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Auteurs';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Auteurs hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Bronnen';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Bronnen hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';

@@ -2795,6 +2795,43 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get authorManagerTitle => 'Forfattere';
+
+  @override
+  String get authorManagerSearchHint => 'Søg i forfattere';
+
+  @override
+  String get authorManagerNameLabel => 'Forfatternavn';
+
+  @override
+  String get authorManagerEmpty =>
+      'Ingen forfattere endnu. Forfattere, du krediterer på en dans, vises her.';
+
+  @override
+  String get authorManagerLoadError => 'Dine forfattere kunne ikke indlæses.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return 'Samlede $count forfattere i „$into“';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Kilder';
+
+  @override
+  String get sourceManagerSearchHint => 'Søg i kilder';
+
+  @override
+  String get sourceManagerTitleLabel => 'Kildens titel';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Ingen kilder endnu. Bøger og websteder, du citerer på en dans, vises her.';
+
+  @override
+  String get sourceManagerLoadError => 'Dine kilder kunne ikke indlæses.';
+
+  @override
   String get libraryManagerClearSearch => 'Ryd søgning';
 
   @override
@@ -2878,6 +2915,38 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get libraryManagerEditFailed =>
       'Ændringen kunne ikke gemmes. Prøv igen.';
+
+  @override
+  String get libraryManagerEditDetails => 'Rediger detaljer…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return 'Omdøbte „$from“ til „$to“';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return 'Flettede „$from“ ind i „$into“';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return 'Slettede „$name“';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return 'Flet „$from“ ind i „$into“?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Disse detaljer er forskellige. Den flettede post beholder sine egne, og disse kasseres:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotek';
@@ -3164,6 +3233,20 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsGeneralLibraryTagsSubtitle =>
       'Omdøb, flet, farvelæg og slet dine tags.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Forfattere';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Omdøb, flet og slet forfattere, og rediger deres detaljer.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Kilder';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Omdøb, flet og slet kilder, og rediger deres detaljer.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';

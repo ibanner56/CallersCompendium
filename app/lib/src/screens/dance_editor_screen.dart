@@ -19,13 +19,14 @@ import '../search/dance_editor_reference_data.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/shortcut_platform.dart';
 import '../utils/undo_snack_bar.dart';
-import '../widgets/choreographer_details_dialog.dart';
+import '../widgets/author_details_flow.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/published_source_details_dialog.dart';
 import 'dance_editor/dance_editor_controller.dart';
 import 'dance_editor/dance_editor_form.dart';
 import 'dance_editor/name_picker.dart';
+import 'settings/library_manager_list.dart';
 import 'settings/settings_keys.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
@@ -745,27 +746,26 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// [_createSource]). This is an immediate shared-entity write — independent
   /// of the dance draft/autosave/undo stack (author *selection* lives in the
   /// snapshot; contact data does not).
+  ///
+  /// A new name another live author already holds is offered as a merge
+  /// (`docs/design/tags-and-people.md` T3), as the Authors manager offers it;
+  /// until T3 it was refused. A merge rewrites every dance's credits, this
+  /// one's draft and undo history included ([DanceEditorController.
+  /// replaceAuthors]), and offers Undo, which puts the draft back too.
   Future<void> _editChoreographer(String id) async {
     final existing = _choreographers.firstWhere(
       (c) => c.id == id,
       orElse: () => Choreographer(id: id, name: _choreographerNames[id] ?? id),
     );
-    final updated = await ChoreographerDetailsDialog.show(context, existing);
-    if (updated == null || !mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final AuthorDetailsOutcome? outcome;
     try {
-      // Safe discard: `updated` carries the id of the already-persisted
-      // `existing` row. No fresh UUID is minted here, so tombstone adoption
-      // cannot redirect the id; the returned id is always identical to
-      // updated.id.
-      // ignore: unused_result
-      await _repos.choreographers.upsert(updated, localUserEdit: true);
+      outcome = await editAuthorDetails(context, _repos, existing);
     } on DuplicateNaturalKeyError catch (error, stackTrace) {
-      // The rename was not saved, so the caches must not move. Until #1348 the
-      // repository kept the old name and raised nothing, and the block below
-      // then patched the cache from `updated` regardless — the editor showed a
-      // rename the database never took, until the next reload.
+      // The name collided, but no live author holds it any more, so there was
+      // nothing to merge with. The rename was not saved, so the caches must
+      // not move (#1348).
       logCaughtError(
         error,
         stackTrace,
@@ -775,31 +775,84 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('choreographer-duplicate-snackbar'),
-          content: Text(l10n.danceEditorChoreographerDuplicate(updated.name)),
+          content: Text(l10n.danceEditorChoreographerDuplicate(existing.name)),
         ),
       );
       return;
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_screen._editChoreographer',
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.libraryManagerEditFailed)),
+      );
+      return;
     }
-    if (!mounted) return;
-    // Read the row back rather than trusting `updated`: sync-spec §4.1's
-    // collision carve-out may store the name un-normalised, so what was written
-    // is not always what the dialog returned. A row that vanished under us
-    // falls back to `updated`, which is no worse than the old unconditional
-    // patch.
-    final stored = await _repos.choreographers.getById(id) ?? updated;
-    if (!mounted) return;
+    if (outcome == null || !mounted) return;
+    switch (outcome) {
+      case AuthorDetailsSaved(:final stored):
+        _patchChoreographer(stored);
+      case AuthorDetailsMerged(:final merge):
+        await _applyAuthorMerge(merge, editedId: id, fromName: existing.name);
+    }
+  }
+
+  /// Replaces [stored]'s entry in the in-memory caches, or appends it if the
+  /// author wasn't cached (mirrors the defensive `orElse` in
+  /// [_editChoreographer]), so the caches never go stale after a
+  /// shared-entity edit. [stored] is the row read back rather than what the
+  /// dialog returned: sync-spec §4.1's collision carve-out may store the name
+  /// un-normalised.
+  void _patchChoreographer(Choreographer stored) {
     setState(() {
-      // Replace the existing cache entry, or append if the author wasn't
-      // cached (mirrors the defensive `orElse` in the lookup above), so the
-      // in-memory caches never go stale after a shared-entity edit.
-      final hasEntry = _choreographers.any((c) => c.id == id);
+      final hasEntry = _choreographers.any((c) => c.id == stored.id);
       _choreographers = [
         for (final c in _choreographers)
-          if (c.id == id) stored else c,
+          if (c.id == stored.id) stored else c,
         if (!hasEntry) stored,
       ];
-      _choreographerNames = {..._choreographerNames, id: stored.name};
+      _choreographerNames = {..._choreographerNames, stored.id: stored.name};
     });
+  }
+
+  /// Follows [merge] in the draft: every merged author becomes the survivor.
+  /// Undo reverses the merge and, when the draft credited [editedId] and the
+  /// merge changed that, credits [editedId] again.
+  Future<void> _applyAuthorMerge(
+    AuthorMerge merge, {
+    required String editedId,
+    required String fromName,
+  }) async {
+    final survivorId = merge.survivorId;
+    final creditedSurvivor = _controller.authorIds.contains(survivorId);
+    final changed = _controller.replaceAuthors(
+      merge.mergedIds.difference({survivorId}),
+      survivorId,
+    );
+    final survivor = await _repos.choreographers.getById(survivorId);
+    if (!mounted) return;
+    if (survivor != null) _patchChoreographer(survivor);
+    final l10n = AppLocalizations.of(context);
+    final repos = _repos;
+    showLibraryUndoSnackBar(
+      context,
+      keyPrefix: 'dance-editor-author-merge',
+      message: merge.snackText(l10n, fromName),
+      onUndo: () async {
+        await repos.references.undo(merge.undo);
+        if (!mounted) return;
+        // Put the draft's credit back only when it was this author's and the
+        // merge moved it; a draft that already credited the survivor keeps it.
+        if (changed && !creditedSurvivor && editedId != survivorId) {
+          _controller.replaceAuthors({survivorId}, editedId);
+        }
+        final restored = await repos.choreographers.getById(editedId);
+        if (restored != null && mounted) _patchChoreographer(restored);
+      },
+    );
   }
 
   /// Opens the source details dialog to create a new [PublishedSource] with the

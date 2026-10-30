@@ -2661,6 +2661,41 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get authorManagerTitle => '作者';
+
+  @override
+  String get authorManagerSearchHint => '作者を検索';
+
+  @override
+  String get authorManagerNameLabel => '作者名';
+
+  @override
+  String get authorManagerEmpty => 'まだ作者がいません。ダンスにクレジットした作者がここに表示されます。';
+
+  @override
+  String get authorManagerLoadError => '作者を読み込めませんでした。';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count件の作者を「$into」にまとめました';
+  }
+
+  @override
+  String get sourceManagerTitle => 'ソース';
+
+  @override
+  String get sourceManagerSearchHint => 'ソースを検索';
+
+  @override
+  String get sourceManagerTitleLabel => 'ソースのタイトル';
+
+  @override
+  String get sourceManagerEmpty => 'まだソースがありません。ダンスで引用した本やウェブサイトがここに表示されます。';
+
+  @override
+  String get sourceManagerLoadError => 'ソースを読み込めませんでした。';
+
+  @override
   String get libraryManagerClearSearch => '検索をクリア';
 
   @override
@@ -2742,6 +2777,38 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get libraryManagerEditFailed => '変更を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get libraryManagerEditDetails => '詳細を編集…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '「$from」を「$to」に名前変更しました';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '「$from」を「$into」に統合しました';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '「$name」を削除しました';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return '「$from」を「$into」に統合しますか？';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      '次の詳細が異なります。統合後の項目は自身の値を保持し、以下は破棄されます：';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field：$value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'ライブラリ';
@@ -3010,6 +3077,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralLibraryTagsSubtitle => 'タグの名前変更、統合、色付け、削除を行います。';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => '作者';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      '作者の名前変更、統合、削除と、詳細の編集を行います。';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'ソース';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'ソースの名前変更、統合、削除と、詳細の編集を行います。';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';

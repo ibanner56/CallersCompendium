@@ -2774,6 +2774,43 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get authorManagerTitle => 'Authors';
+
+  @override
+  String get authorManagerSearchHint => 'Search authors';
+
+  @override
+  String get authorManagerNameLabel => 'Author name';
+
+  @override
+  String get authorManagerEmpty =>
+      'No authors yet. Authors you credit on a dance appear here.';
+
+  @override
+  String get authorManagerLoadError => 'Couldn\'t load your authors.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return 'Combined $count authors into “$into”';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Sources';
+
+  @override
+  String get sourceManagerSearchHint => 'Search sources';
+
+  @override
+  String get sourceManagerTitleLabel => 'Source title';
+
+  @override
+  String get sourceManagerEmpty =>
+      'No sources yet. Books and websites you cite on a dance appear here.';
+
+  @override
+  String get sourceManagerLoadError => 'Couldn\'t load your sources.';
+
+  @override
   String get libraryManagerClearSearch => 'Clear search';
 
   @override
@@ -2857,6 +2894,38 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get libraryManagerEditFailed =>
       'Couldn’t save that change. Please try again.';
+
+  @override
+  String get libraryManagerEditDetails => 'Edit details…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return 'Renamed “$from” to “$to”';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return 'Merged “$from” into “$into”';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return 'Deleted “$name”';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return 'Merge “$from” into “$into”?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'These details differ. The merged entry keeps its own, and these are dropped:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Library';
@@ -3139,6 +3208,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsGeneralLibraryTagsSubtitle =>
       'Rename, merge, colour and delete your tags.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Authors';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Rename, merge and delete authors, and edit their details.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Sources';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Rename, merge and delete sources, and edit their details.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Accessibility';
