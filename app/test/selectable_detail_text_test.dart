@@ -282,6 +282,46 @@ void main() {
       expect(find.text('target-hook-marker'), findsOneWidget);
     });
 
+    detailTest('a drag that stops partway copies no trailing newline', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Source Dance'));
+      await _pumpDetail(tester, repos, 'd1');
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      final title = tester.getRect(find.text('Source Dance'));
+      // From the left edge to the middle of the title: "Source", not the end.
+      final gesture = await tester.startGesture(
+        title.centerLeft + const Offset(1, 0),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveTo(title.center);
+      await gesture.up();
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+      expect(copied, isNotNull);
+      expect(copied, isNot(endsWith('\n')));
+      expect('Source Dance', startsWith(copied!));
+    });
+
     detailTest('a secondary tap on text shows Copy and Select all', (
       tester,
     ) async {

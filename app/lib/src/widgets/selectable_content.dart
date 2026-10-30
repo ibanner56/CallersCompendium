@@ -51,7 +51,8 @@ class SelectableContent extends StatelessWidget {
 ///
 /// Flutter joins the text of separate [Text] widgets with nothing between them,
 /// so a drag across a figure and its note would copy "partner swingwith your
-/// neighbor". Wrapping each block in a [SelectableLine] ends it with a newline.
+/// neighbor". Wrapping each block in a [SelectableLine] ends it with a newline
+/// when a selection reaches the block's end.
 /// It also keeps everything inside one block, such as a link's text inside a
 /// sentence, joined without a break.
 ///
@@ -86,6 +87,17 @@ class _LineDelegate extends StaticSelectionContainerDelegate {
   SelectedContent? getSelectedContent() {
     final content = super.getSelectedContent();
     if (content == null) return null;
-    return SelectedContent(plainText: '${content.plainText}\n');
+    // Only a selection that reaches the end of the block ends its line; a drag
+    // that stops partway, such as one word of a title, copies just those words.
+    final range = getSelection();
+    final reachesEnd =
+        range != null &&
+        (range.startOffset > range.endOffset
+                ? range.startOffset
+                : range.endOffset) >=
+            contentLength;
+    return reachesEnd
+        ? SelectedContent(plainText: '${content.plainText}\n')
+        : content;
   }
 }
