@@ -1506,13 +1506,22 @@ void main() {
     test(
       'a failed commit removes the link it added to the earlier dance',
       () async {
-        // As above, a re-import, so the failed commit restores dance 7 rather
-        // than deleting it and the repository cannot clean the link up itself.
-        await importer.import(
-          _ccUsrBytesWithRelated([]),
-          now: now,
-          venueEntityMode: false,
-          newId: nextId,
+        // Dance 7 is linked onto a dance the person already has, so the failed
+        // commit restores that dance rather than deleting it, and the
+        // repository cannot clean the link up itself. (Not a re-import, as
+        // above: a re-imported dance gets no links, INTAKE-7, so its write
+        // would not fail.)
+        final trad = await choreographers.upsert(
+          Choreographer(id: 'trad', name: 'Trad'),
+        );
+        await dances.create(
+          Dance(
+            id: 'mine-7',
+            title: 'Petronella',
+            authorIds: [trad],
+            createdAt: now,
+            updatedAt: now,
+          ),
         );
         final adapter = CallersCompanionUsrAdapter();
         final failing = _FailingLinkWriteDanceRepository(db);
@@ -1531,6 +1540,7 @@ void main() {
           reimporter,
         );
         failing.failLinksOnOtherThan = editedId;
+        expect(rest.records.single.verdict.isAmbiguous, isTrue);
 
         await expectLater(
           reimporter.commit(
@@ -1539,12 +1549,14 @@ void main() {
             now: now,
             venueEntityMode: false,
             newId: nextId,
+            resolutions: {0: DedupeResolution.link('mine-7')},
             earlierDanceIds: {'4': editedId},
           ),
           throwsA(isA<StateError>()),
         );
 
         expect((await dances.getById(editedId))!.links, isEmpty);
+        expect(await dances.getById('mine-7'), isNotNull);
         expect(await dances.listAll(), hasLength(2));
       },
     );
@@ -1571,6 +1583,39 @@ void main() {
       expect(link.targetDanceId, byExternal['7']);
       // Directional only: the target dance gets no reciprocal link.
       expect(target!.links, isEmpty);
+    });
+
+    test('a re-imported dance gets none of the file\'s links and keeps its '
+        'own (INTAKE-7)', () async {
+      final first = await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final id4 = (await danceIdByExternalId(first.danceSession))['4']!;
+      final mine = DanceLink(
+        id: 'mine',
+        kind: LinkKind.video,
+        url: 'https://example.com/video',
+      );
+      await dances.update((await dances.getById(id4))!.copyWith(links: [mine]));
+
+      final again = await importer.import(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+
+      expect(again.danceSession.records.map((r) => r.action), [
+        CommitAction.reimport,
+        CommitAction.reimport,
+      ]);
+      expect(
+        [for (final l in (await dances.getById(id4))!.links) l.id],
+        ['mine'],
+      );
     });
 
     test('a mirrored pair of rows in the archive yields two independent '

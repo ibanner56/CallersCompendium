@@ -10,9 +10,10 @@ import 'package:compendium_core/compendium_core.dart';
 /// urls — plus the serialized records the Device Sync review and deletion
 /// queues hold.
 ///
-/// Since the scrubbed export withholds `errorMessage` outright
-/// (`CrashLogRecord.scrubbed`), these terms are now defence in depth for the
-/// stack text and any other free text passed through the redactor; the
+/// Since the scrubbed export withholds `errorMessage` except for the typed
+/// types in `CrashLogRecord.messageSafeErrorTypes` (whose message still passes
+/// through the redactor), these terms are defence in depth for the stack
+/// text, those messages and any other free text passed through the redactor; the
 /// reasoning below about exception text describes why the list exists and why
 /// it could never be complete on its own.
 ///

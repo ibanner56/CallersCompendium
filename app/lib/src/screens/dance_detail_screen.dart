@@ -1189,10 +1189,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           const SizedBox(height: AppSpacing.md),
           Builder(
             builder: (context) {
-              // Tapping a tag filters the Collection to it (issue #414). Only
-              // wired for a saved dance (not an online preview) and only when
-              // the app-level coordinator scope is present; otherwise the chips
-              // stay non-interactive, preserving prior behaviour.
+              // Tapping a tag adds it to the Collection's filter (issue #414,
+              // FIND-14). Only wired for a saved dance (not an online preview)
+              // and only when the app-level coordinator scope is present;
+              // otherwise the chips stay non-interactive, preserving prior
+              // behaviour.
               final filter = _isPreview || _isReadOnly
                   ? null
                   : CollectionFilterScope.maybeOf(context);

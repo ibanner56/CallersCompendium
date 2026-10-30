@@ -420,6 +420,177 @@ void main() {
     });
   });
 
+  group('retention', () {
+    test('an expired published dance is blanked, not left whole', () async {
+      await createFullDance('d1');
+      await publish(SyncRecordKind.dance, 'd1');
+      await repos.dances.softDelete('d1', at: trashedAt);
+      final before = (await danceRow('d1'))!;
+
+      // Erased nothing, because nothing here may be erased.
+      expect(
+        await repos.dances.purgeDeleted(
+          now: now,
+          retention: const Duration(days: 7),
+        ),
+        0,
+      );
+
+      final row = (await danceRow('d1'))!;
+      expect(row.title, blankedRecordTitle);
+      expect(isPermanentlyDeleted(row.deletedAt), isTrue);
+      expect(await count('dance_authors', 'dance_id', 'd1'), 0);
+      expect(row.updatedAt.toUtc().isAfter(before.updatedAt.toUtc()), isTrue);
+      // Expiry is not a new deletion: the trash's own stamp stands, so a
+      // revival a peer made since still outranks it.
+      expect(row.existenceAt, before.existenceAt);
+    });
+
+    test('a published dance not yet expired is left alone', () async {
+      await createFullDance('d1');
+      await publish(SyncRecordKind.dance, 'd1');
+      await repos.dances.softDelete(
+        'd1',
+        at: now.subtract(const Duration(days: 5)),
+      );
+
+      await repos.dances.purgeDeleted(
+        now: now,
+        retention: const Duration(days: 7),
+      );
+
+      expect((await danceRow('d1'))!.title, 'Secret Title d1');
+    });
+
+    test('a sweep leaves what cites the dance alone, and the dance keeps its '
+        'title while cited', () async {
+      // A device offline past the window must not restamp its stale copies of
+      // the citing records before it syncs: that would overwrite whatever
+      // other devices changed in them.
+      await createFullDance('d1');
+      await publish(SyncRecordKind.dance, 'd1');
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Saturday',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      await repos.dances.create(
+        sampleDance(
+          id: 'owner',
+          links: [
+            DanceLink(
+              id: 'rel',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'd1',
+            ),
+          ],
+          updatedAt: created,
+        ),
+      );
+      await repos.dances.softDelete('d1', at: trashedAt);
+
+      await repos.dances.purgeDeleted(
+        now: now,
+        retention: const Duration(days: 7),
+      );
+
+      final program = (await repos.programs.getById('p1'))!;
+      expect(program.updatedAt, created);
+      expect(program.slots.single.danceId, 'd1');
+      final owner = (await repos.dances.getById('owner'))!;
+      expect(owner.updatedAt, created);
+      expect(owner.links.single.targetDanceId, 'd1');
+      final row = (await danceRow('d1'))!;
+      expect(isPermanentlyDeleted(row.deletedAt), isTrue);
+      expect(row.title, 'Secret Title d1');
+      expect(row.hook, isEmpty);
+      expect(await count('dance_authors', 'dance_id', 'd1'), 0);
+      // Settled: the next sweep does nothing while it is still cited...
+      expect(
+        await repos.dances.removePermanentlyDeleted(
+          now: now.add(const Duration(days: 1)),
+        ),
+        0,
+      );
+      // ...and blanks the title once nothing cites it.
+      await repos.programs.softDelete('p1', at: now);
+      await repos.programs.purgeDeleted(now: now.add(const Duration(days: 60)));
+      await repos.dances.update(
+        owner.copyWith(links: const [], updatedAt: now),
+      );
+      expect(
+        await repos.dances.removePermanentlyDeleted(
+          now: now.add(const Duration(days: 61)),
+        ),
+        1,
+      );
+      expect((await danceRow('d1'))!.title, blankedRecordTitle);
+    });
+
+    test('a cited dance holding only its title is still restamped, so a peer '
+        'takes the mark', () async {
+      await repos.dances.create(
+        Dance(id: 'd1', title: 'Bare', createdAt: created, updatedAt: created),
+      );
+      await publish(SyncRecordKind.dance, 'd1');
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Saturday',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      await repos.dances.softDelete('d1', at: trashedAt);
+      final before = (await danceRow('d1'))!;
+
+      await repos.dances.purgeDeleted(
+        now: now,
+        retention: const Duration(days: 7),
+      );
+
+      final row = (await danceRow('d1'))!;
+      expect(isPermanentlyDeleted(row.deletedAt), isTrue);
+      expect(row.title, 'Bare');
+      expect(row.updatedAt.toUtc().isAfter(before.updatedAt.toUtc()), isTrue);
+    });
+
+    test('an expired published program is blanked, not left whole', () async {
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Secret Gig',
+          notes: 'Private notes',
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      await publish(SyncRecordKind.program, 'p1');
+      await repos.programs.softDelete('p1', at: trashedAt);
+      final before = (await programRow('p1'))!;
+
+      expect(
+        await repos.programs.purgeDeleted(
+          now: now,
+          retention: const Duration(days: 7),
+        ),
+        0,
+      );
+
+      final row = (await programRow('p1'))!;
+      expect(row.title, blankedRecordTitle);
+      expect(row.notes, isEmpty);
+      expect(isPermanentlyDeleted(row.deletedAt), isTrue);
+      expect(row.updatedAt.toUtc().isAfter(before.updatedAt.toUtc()), isTrue);
+      expect(row.existenceAt, before.existenceAt);
+    });
+  });
+
   group('Device Sync', () {
     test('a peer holding the tombstone takes the blank body', () async {
       // Device A blanks; device B holds the same tombstone, content intact,
@@ -477,6 +648,117 @@ void main() {
       expect(rowB.title, blankedRecordTitle);
       expect(rowB.hook, isEmpty);
       expect(isPermanentlyDeleted(rowB.deletedAt), isTrue);
+    });
+
+    test('a peer holding the same tombstone takes a retention blank and hides '
+        'it', () async {
+      // Device A blanks; device B holds the same tombstone, content intact,
+      // and agreed with A at the last pass (its baseline names B's copy).
+      // Two in-memory devices, not one database opened twice.
+      final warned = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+      addTearDown(
+        () => driftRuntimeOptions.dontWarnAboutMultipleDatabases = warned,
+      );
+      final dbB = openTestDatabase();
+      addTearDown(dbB.close);
+      final reposB = CompendiumRepositories(dbB, contraTaxonomy);
+      final storageA = CompendiumSyncStorage(repos);
+      final storageB = CompendiumSyncStorage(reposB);
+      final address = (kind: SyncRecordKind.dance, recordId: 'd1');
+
+      for (final r in [repos, reposB]) {
+        await r.dances.create(
+          sampleDance(id: 'd1', title: 'Secret', updatedAt: created),
+        );
+        await r.dances.softDelete('d1', at: trashedAt);
+        await r.syncLocal.markPublished(kind: address.kind, recordId: 'd1');
+      }
+      final localB = (await storageB.snapshot()).local[address]!;
+
+      await repos.dances.purgeDeleted(
+        now: now,
+        retention: const Duration(days: 7),
+      );
+      final fromA = (await storageA.snapshot()).local[address]!;
+      expect(fromA.blob.body['title'], blankedRecordTitle);
+
+      final plan = const SyncMergeEngine().plan(
+        local: {address: localB},
+        baseline: {
+          address: SyncBaselineEntry(
+            kind: address.kind,
+            recordId: 'd1',
+            wireHash: localB.wireHash,
+          ),
+        },
+        peers: [
+          {address: fromA},
+        ],
+      );
+      final decision = plan.decisions.single;
+      expect(decision.action, SyncMergeAction.download);
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [decision.winner!],
+        storage: storageB,
+      );
+      expect(result.applied, [address]);
+      final rowB = (await (dbB.select(
+        dbB.dances,
+      )..where((t) => t.id.equals('d1'))).getSingle());
+      expect(rowB.title, blankedRecordTitle);
+      expect(rowB.hook, isEmpty);
+      expect(isPermanentlyDeleted(rowB.deletedAt), isTrue);
+    });
+    test('a revival made after the trash outranks a retention blank, even one '
+        'tick later', () async {
+      final storage = CompendiumSyncStorage(repos);
+      final address = (kind: SyncRecordKind.dance, recordId: 'd1');
+      await repos.dances.create(
+        sampleDance(id: 'd1', title: 'Secret', updatedAt: created),
+      );
+      await repos.dances.softDelete('d1', at: trashedAt);
+      await publish(SyncRecordKind.dance, 'd1');
+      final trashed = (await storage.snapshot()).local[address]!;
+
+      await repos.dances.purgeDeleted(
+        now: now,
+        retention: const Duration(days: 7),
+      );
+      final blanked = (await storage.snapshot()).local[address]!;
+      expect(blanked.blob.body['title'], blankedRecordTitle);
+
+      // Another device restored it as fast as the causal rule allows: one tick
+      // after the deletion it saw.
+      final revived = SyncMergeCandidate(
+        blob: SyncRecordBlob(
+          v: trashed.blob.v,
+          kind: SyncRecordKind.dance,
+          id: 'd1',
+          updatedAt: trashed.blob.updatedAt,
+          deletedAt: null,
+          existenceAt: trashed.existenceAt.add(existenceStampTick),
+          body: {...trashed.blob.body, 'deletedAt': null},
+        ),
+      );
+      final plan = const SyncMergeEngine().plan(
+        local: {address: blanked},
+        baseline: {
+          address: SyncBaselineEntry(
+            kind: address.kind,
+            recordId: 'd1',
+            wireHash: trashed.wireHash,
+          ),
+        },
+        peers: [
+          {address: revived},
+        ],
+      );
+      final decision = plan.decisions.single;
+      expect(decision.action, SyncMergeAction.download);
+      expect(decision.winner!.blob.deletedAt, isNull);
+      expect(decision.winner!.blob.body['title'], 'Secret');
     });
   });
 }

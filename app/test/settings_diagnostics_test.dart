@@ -287,6 +287,39 @@ void main() {
     expect(text, contains('dance_editor._save'));
   });
 
+  testWidgets('default export keeps a typed failure code and says so', (
+    tester,
+  ) async {
+    // FAIL-10: a timeout must be distinguishable from a 404 in the export we
+    // recommend attaching to a bug report, and the header must not claim the
+    // message was removed.
+    await store.append(
+      CrashLogRecord(
+        timestampUtc: DateTime.utc(2026, 3, 2, 1),
+        appVersion: '0.1.0',
+        platform: 'testos 1.0',
+        source: 'dance_list_screen._importOnline',
+        errorType: 'UrlFetchException',
+        errorMessage: 'UrlFetchException(httpStatus, statusCode: 404)',
+        stack: '',
+      ),
+    );
+
+    String? exported;
+    await _pumpDiagnostics(
+      tester,
+      store: store,
+      onExport: (contents) => exported = contents,
+    );
+    await tester.tap(find.byKey(const ValueKey('diagnostics-export')));
+    await tester.pumpAndSettle();
+
+    final text = exported!;
+    expect(text, contains('UrlFetchException(httpStatus, statusCode: 404)'));
+    expect(text, contains('error messages (except typed'));
+    expect(text, isNot(contains(CrashLogRecord.withheldMessage)));
+  });
+
   testWidgets('full-detail toggle exports the unredacted log', (tester) async {
     await store.append(_seededRecord());
 
