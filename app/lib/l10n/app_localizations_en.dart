@@ -3787,10 +3787,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search titles, authors, figures, notes…';
 
   @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Search online dances by title…';
-
-  @override
   String get collectionSearchScopeLabel => 'Search in';
 
   @override

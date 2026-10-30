@@ -42,6 +42,26 @@ CollectionSort? collectionSortFromName(Object? stored) {
   return null;
 }
 
+/// The sorts a Collection-style list offers for the current query, in menu
+/// order. [CollectionSort.relevance] is offered only while [bareFullText] —
+/// see [isBareFullText] — so the Collection and the program picker offer the
+/// same set (FIND-7).
+List<CollectionSort> availableCollectionSorts({required bool bareFullText}) => [
+  if (bareFullText) CollectionSort.relevance,
+  CollectionSort.title,
+  CollectionSort.author,
+  CollectionSort.recentlyAdded,
+  CollectionSort.lastCalled,
+];
+
+/// The **Search in** choice an online search uses. The online sources search
+/// by title, author or figure, so **All fields** falls back to
+/// [FullTextScope.title]; the other three pass through.
+FullTextScope onlineFullTextScope(FullTextScope scope) => switch (scope) {
+  FullTextScope.omni => FullTextScope.title,
+  FullTextScope.title || FullTextScope.author || FullTextScope.figure => scope,
+};
+
 /// The user's one-tap facet selections. Every facet is multi-select: within a
 /// single facet the selected leaves are OR-ed ("has any of these tags"), and
 /// distinct facets are AND-ed ("this form AND one of these tags") — the

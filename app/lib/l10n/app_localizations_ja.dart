@@ -3640,9 +3640,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionSearchFieldHint => 'タイトル、作者、フィギュア、ノートを検索…';
 
   @override
-  String get collectionPickerOnlineSearchFieldHint => 'タイトルでオンラインのダンスを検索…';
-
-  @override
   String get collectionSearchScopeLabel => '検索対象';
 
   @override

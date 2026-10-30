@@ -29,8 +29,9 @@ app cannot express either today:
 
 **Already covered elsewhere.** B14 (`feat/picker-parity`, FIND-7 = full parity)
 gives the picker Collection's sort control, which includes **Last called**. That
-is FIND-1's option (d), so this note does not repeat it. Today the picker searches
-with no `sort:` argument (`collection_picker.dart:374-379`).
+is FIND-1's option (d), so this note does not repeat it. When this note was
+written the picker searched with no `sort:` argument
+(`collection_picker.dart:374-379`); B14 has since added it.
 
 **Out of scope:**
 
