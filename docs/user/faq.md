@@ -167,7 +167,9 @@ The app couldn't open or get your collection ready at startup. Try, in order:
    when the database can't be opened. Its location depends on your system:
    - **Windows:** `%APPDATA%\org.callerscompendium\Caller's Compendium\diagnostics\crash.log`.
      This is the *Roaming* folder, not the `%LOCALAPPDATA%` folder that holds
-     your library. Type it into the File Explorer address bar.
+     your library. Type `%APPDATA%` into the File Explorer address bar and
+     open the app's folder from there; if you don't see a folder by that name,
+     look for the one that has a `diagnostics` folder inside it.
    - **macOS:** `~/Library/Containers/org.callerscompendium.compendiumApp/Data/Library/Application Support/org.callerscompendium.compendiumApp/diagnostics/crash.log`.
      In Finder, choose **Go › Go to Folder…** and paste the folder path.
    - **Linux:** `~/.local/share/org.callerscompendium.compendiumApp/diagnostics/crash.log`
