@@ -338,6 +338,10 @@ Here is how to read it:
   the floor, so the matrix flags them for you to notice and, if you like,
   reconsider. Only the two colliding cells are flagged; a repeat that is not in
   neighbouring dances, or whose beats don't actually overlap, is left alone.
+  A **break** separates two dances, so the last dance before a break and the
+  first dance after it are not neighbours and are never flagged against each
+  other. A waltz or a note between two dances, with no break, does not
+  separate them.
 
   An **alternate** and its primary are two choices for the same spot in the
   program, so they are never compared with each other. Instead, the primary

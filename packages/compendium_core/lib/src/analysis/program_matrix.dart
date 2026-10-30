@@ -19,8 +19,9 @@
 ///  * **Same-figure collision** (per cell): the move repeats in a
 ///    *strictly-adjacent* dance (the row immediately above or below in program
 ///    order — or, where a slot has alternates, any dance that could be called
-///    directly before or after it, see [MatrixRow.alternateGroup]) — the repeat
-///    a caller wants to reconsider
+///    directly before or after it, see [MatrixRow.alternateGroup]), and never
+///    across a break: rows in different numbered [MatrixRow.section]s are not
+///    neighbours — the repeat a caller wants to reconsider
 ///    ([ProgramMatrix.isCollision]). Positions are derived from cumulative
 ///    **effective** beats ([Taxonomy.effectiveParams], so figures with no
 ///    explicitly-stored count still land correctly) and threaded through
@@ -399,7 +400,8 @@ class MatrixRow {
   /// The numbered program section this dance's slot falls in
   /// (see [Program.sectionAtIndex]), or `null` when the program has no break
   /// or the slot itself is a break. Drives the ordinal badge on the matrix row
-  /// header.
+  /// header, and decides adjacency for [ProgramMatrix.isCollision]: dances in
+  /// different sections are separated by a break and never neighbours.
   final int? section;
 
   /// The alternate group this row's slot belongs to (see
@@ -536,7 +538,8 @@ class ProgramMatrix {
   /// appears in a dance that can be called immediately before OR after this one
   /// in program order — the row above or below, except that a primary and its
   /// alternates ([MatrixRow.alternateGroup]) are one choice for a single
-  /// position — under whichever comparison [collisionMode] selects:
+  /// position, and a row in a different numbered [MatrixRow.section] (a break
+  /// lies between them) is never a neighbour — under whichever comparison [collisionMode] selects:
   ///
   ///  * [MatrixCollisionMode.exactBeats] (the default, issue #962): the move's
   ///    beat span actually overlaps ([BeatSpan.overlaps]) with an occurrence in
@@ -552,7 +555,8 @@ class ProgramMatrix {
   /// never compared with each other (at most one is danced), and each is
   /// compared with every row of the group before and the group after (issue
   /// #1413), because any of them may be the one actually called. Without
-  /// groups, every row is its own position, i.e. the previous/next row. The collapsed [customMove] and
+  /// groups, every row is its own position, i.e. the previous/next row unless a
+  /// break separates them. The collapsed [customMove] and
   /// compound columns never collide in either mode (custom figures aren't
   /// reliably comparable, and compounds are per-dance booleans), because
   /// neither [MatrixRow.phraseLabelsByMove] nor [MatrixRow.beatSpansByMove]
@@ -574,7 +578,21 @@ class ProgramMatrix {
   /// immediately after it (see [MatrixRow.alternateGroup]). Rows of its own
   /// group are alternatives to it and are never neighbours. A row with no group
   /// is a group of one, so without groups this is just the row above and below.
+  ///
+  /// A break separates two dances: a neighbour whose [MatrixRow.section] differs from this row's is dropped when
+  /// both are known. A waltz or note between two dances does not separate them;
+  /// it shares its neighbours' section, and a `null` section (a program with no
+  /// break, or a matrix built without sections) never separates anything.
   Iterable<int> _neighborRowIndices(int rowIndex) sync* {
+    final section = rows[rowIndex].section;
+    for (final r in _adjacentRowIndices(rowIndex)) {
+      final other = rows[r].section;
+      if (section != null && other != null && section != other) continue;
+      yield r;
+    }
+  }
+
+  Iterable<int> _adjacentRowIndices(int rowIndex) sync* {
     final group = rows[rowIndex].alternateGroup;
     bool inGroup(int r, int? g) => g != null && rows[r].alternateGroup == g;
 
