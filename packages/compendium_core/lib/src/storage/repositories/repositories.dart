@@ -22,6 +22,7 @@ import 'dance_repository.dart';
 import 'difficulty_level_repository.dart';
 import 'program_repository.dart';
 import 'published_source_repository.dart';
+import 'reference_edit_repository.dart';
 import 'settings_repository.dart';
 import 'sync_local_repository.dart';
 import 'tag_repository.dart';
@@ -308,6 +309,13 @@ class CompendiumRepositories {
   /// The user's notes on shipped figures (#709).
   final FigureNoteRepository figureNotes;
   final SyncLocalRepository syncLocal;
+
+  /// Rename, merge and delete for tags, authors and sources, with Undo.
+  late final ReferenceEditRepository references = ReferenceEditRepository(
+    db,
+    dances,
+    syncLocal,
+  );
 
   /// Runs a cross-repository write as one database transaction.
   ///
