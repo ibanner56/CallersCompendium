@@ -92,7 +92,19 @@ final Map<String, DataClassification> settingsClassifications = {
   'active_custom_theme': _preference,
   'colour_dance_theme': _preference,
   'theme_mode': _preference,
-  'reduce_motion': _preference,
+  'reduce_motion': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'Screen-bound: an override set against one screen or one device\'s '
+        'system Reduce Motion setting is not an answer for another. '
+        'deviceLocal, not deviceScoped: it is withheld for what it means on '
+        'another screen, not for what it contains, and deviceScoped would '
+        'also drop it from the user\'s own backups, which should give it '
+        'back on restore. Per-device by the maintainer\'s decision '
+        '(settings-sync-scope, 2026-10-29).',
+  ),
   'set_list_color_coding': _preference,
 
   // -- Dialect and rendering ------------------------------------------------
@@ -109,7 +121,20 @@ final Map<String, DataClassification> settingsClassifications = {
   'canonical_discouraged_terms': _preference,
 
   // -- Regional -------------------------------------------------------------
-  'app_locale': _preference,
+  'app_locale': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'Screen-bound: a phone and the laptop driving a projector can want '
+        'different interface languages, and a synced change would re-render '
+        'the other device mid-session. '
+        'deviceLocal, not deviceScoped: it is withheld for what it means on '
+        'another screen, not for what it contains, and deviceScoped would '
+        'also drop it from the user\'s own backups, which should give it '
+        'back on restore. Per-device by the maintainer\'s decision '
+        '(settings-sync-scope, 2026-10-29).',
+  ),
   'date_format': _preference,
   'date_format_custom': _preference,
   'first_day_of_week': _preference,
@@ -285,7 +310,19 @@ final Map<String, DataClassification> settingsClassifications = {
         'It contains selected dance references and caller notes, so it travels '
         'with the user preference in local backups.',
   ),
-  'auto_size_perform_cards': _preference,
+  'auto_size_perform_cards': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'Screen-bound: whether a Perform card should fit the screen depends '
+        'on the screen, like perform_text_scale below. '
+        'deviceLocal, not deviceScoped: it is withheld for what it means on '
+        'another screen, not for what it contains, and deviceScoped would '
+        'also drop it from the user\'s own backups, which should give it '
+        'back on restore. Per-device by the maintainer\'s decision '
+        '(settings-sync-scope, 2026-10-29).',
+  ),
   'show_individual_perform_timer': _preference,
   'show_program_slot_caller_notes': _preference,
   'auto_commit_program_changes': _preference,
@@ -298,7 +335,19 @@ final Map<String, DataClassification> settingsClassifications = {
         'canonical toggle). Kept classified and travelling so older-version '
         'peers and backups, which still use it, round-trip it unchanged.',
   ),
-  'perform_stage_mode': _preference,
+  'perform_stage_mode': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'Screen-bound: the stage theme is chosen for the lighting a screen '
+        'is read under, like perform_text_scale below. '
+        'deviceLocal, not deviceScoped: it is withheld for what it means on '
+        'another screen, not for what it contains, and deviceScoped would '
+        'also drop it from the user\'s own backups, which should give it '
+        'back on restore. Per-device by the maintainer\'s decision '
+        '(settings-sync-scope, 2026-10-29).',
+  ),
   'perform_text_scale': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,
