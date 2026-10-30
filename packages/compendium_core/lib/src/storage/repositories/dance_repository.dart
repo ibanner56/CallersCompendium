@@ -2517,7 +2517,7 @@ class DanceRepository {
         ],
       );
       for (final row in marked) {
-        if (!publishedIds.contains(row.id) || _isBlank(row)) continue;
+        if (!publishedIds.contains(row.id) || await _isBlank(row)) continue;
         await _blank(row, now: now);
         removed++;
       }
@@ -2534,8 +2534,33 @@ class DanceRepository {
         current: [current],
       );
 
-  /// Whether [row] already holds nothing but a deletion record.
-  static bool _isBlank(DanceRow row) =>
+  /// Whether [row] already holds nothing but a deletion record. Dependent rows
+  /// are checked too: a peer applying a blank body keeps its own device-local
+  /// custom-field values (`writeFromSync` preserves them), and an older build
+  /// can tag or link a "—" row it restored, so a blank row alone is not proof.
+  Future<bool> _isBlank(DanceRow row) async {
+    if (!_isBlankRow(row)) return false;
+    for (final TableInfo<Table, dynamic> table in [
+      _db.danceAuthors,
+      _db.danceTags,
+      _db.danceLinks,
+      _db.danceSources,
+      _db.customFieldValues,
+      _db.provenance,
+    ]) {
+      final held = await _db
+          .customSelect(
+            'SELECT 1 FROM ${table.actualTableName} WHERE dance_id = ? LIMIT 1',
+            variables: [Variable<String>(row.id)],
+            readsFrom: {table},
+          )
+          .getSingleOrNull();
+      if (held != null) return false;
+    }
+    return true;
+  }
+
+  static bool _isBlankRow(DanceRow row) =>
       row.title == blankedRecordTitle &&
       row.form == DanceForm.contra &&
       row.formationShape == FormationShape.dupleImproper &&

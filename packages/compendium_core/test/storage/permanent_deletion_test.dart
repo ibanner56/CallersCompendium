@@ -265,6 +265,42 @@ void main() {
       expect((await danceRow('d1'))!.updatedAt, blanked.updatedAt);
     });
 
+    test('the sweep clears what a blank row still holds, such as a peer\'s '
+        'device-local custom-field values', () async {
+      await createFullDance('d1');
+      await publish(SyncRecordKind.dance, 'd1');
+      await repos.dances.softDelete('d1', at: trashedAt);
+      await repos.dances.permanentlyDelete('d1', now: now);
+      // What applying a blank body leaves on a peer with a field of its own
+      // that never syncs: `writeFromSync` preserves device-local values.
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'local',
+          key: 'local_field',
+          label: 'Local',
+          type: CustomFieldType.text,
+          shareable: false,
+        ),
+        at: created,
+      );
+      await db.customStatement(
+        "INSERT INTO custom_field_values (dance_id, field_id, value_text) "
+        "VALUES ('d1', 'local', 'private')",
+      );
+
+      final later = now.add(const Duration(days: 1));
+      expect(await repos.dances.removePermanentlyDeleted(now: later), 1);
+      expect(await count('custom_field_values', 'dance_id', 'd1'), 0);
+      // And it is then blank for good.
+      expect(
+        await repos.dances.removePermanentlyDeleted(
+          now: later.add(const Duration(days: 1)),
+        ),
+        0,
+      );
+    });
+
     test('the sweep leaves ordinary trashed dances alone', () async {
       await createFullDance('d1');
       await publish(SyncRecordKind.dance, 'd1');
