@@ -26,7 +26,8 @@ not the maintainer's:
 
 - **Wording of the no-window choice** (ambiguity 1). It is one chip in the
   **Within** row, selected when no window is set, and it reads **Never called**
-  while **Not called** is the only polarity chosen and **Any time** otherwise.
+  while **Not called** is the only polarity chosen and no venue is chosen (at a
+  venue it would mean "never called there"), and **Any time** otherwise.
   Rejected: a separate "Never called" chip, which would duplicate **Not called**.
 - **The venue chooser** is a bottom sheet, not an inline list, because venues are
   open-ended. It lists `ProgramRepository.watchCalledVenues` under the same
@@ -186,10 +187,13 @@ every option below.
 typed programs are linked to the record, they move from the `text:` key to the
 `id:` key, and the filter follows with no change. So H1 does not wait for B3.
 
-**The venue chooser.** This is Collection only; the picker uses the program's
-own venue (Q3).
+**The venue chooser.** *(Built in H2.)* It appears in the Filters panel of both
+hosts, Collection and the picker. The picker's own Not called here chip (Q3, H3)
+is separate and uses the program's own venue.
 - It lists the distinct keys over live programs, under the current calling
-  history settings. Each label comes from `resolveVenueLabelParts`.
+  history settings. A record key is labelled with the venue record's `name` (not the longer
+  `resolveVenueLabelParts` form, which suits a list but not a chip), and
+  otherwise with the most recent typed text.
 - Venues with no counted call are left out, because choosing one cannot change a
   result.
 - Every row shows how many programs it covers. A typed key also says "typed".
