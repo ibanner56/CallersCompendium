@@ -90,8 +90,25 @@ class AppLocalizationsNl extends AppLocalizations {
       'De details zijn ook naar het diagnoselogboek in de supportmap van de app geschreven.';
 
   @override
+  String get appBootstrapReleasesLink => 'Releases-pagina openen';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Je gegevens gebruiken opslagformaat $fileVersionString. Deze versie van de app leest tot en met formaat $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium — werk de app bij.';
+      'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij en open haar daarna opnieuw.';
 
   @override
   String get migrationRelocationBothExist =>

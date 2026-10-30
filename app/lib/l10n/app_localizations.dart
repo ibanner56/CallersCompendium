@@ -226,7 +226,7 @@ abstract class AppLocalizations {
   /// **'Could not prepare the collection.'**
   String get appBootstrapError;
 
-  /// Button on the startup error screen that copies the error type and stack trace (not the message) to the clipboard.
+  /// Button on the startup error screen that copies the error type, its stack trace (scrubbed of file paths) and, on the terminal startup screens, their typed details such as version numbers (never the error message) to the clipboard.
   ///
   /// In en, this message translates to:
   /// **'Copy details'**
@@ -244,10 +244,22 @@ abstract class AppLocalizations {
   /// **'Details were also written to the diagnostics log in the app’s support folder.'**
   String get appBootstrapLogHint;
 
-  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered.
+  /// Button on the terminal startup screens (newer data, too-old data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded.
   ///
   /// In en, this message translates to:
-  /// **'This data was created by a newer version of Caller’s Compendium — please update the app.'**
+  /// **'Open the Releases page'**
+  String get appBootstrapReleasesLink;
+
+  /// Second line of the newer-data startup screen. {fileVersion} is the storage format version recorded in the user's data file, {appVersion} the highest storage format version this build can read; both are plain integers. Helps a bug report and tells the user how far behind the app is.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.'**
+  String migrationDowngradeVersions(int fileVersion, int appVersion);
+
+  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered; the app has to be updated and reopened.
+  ///
+  /// In en, this message translates to:
+  /// **'This data was created by a newer version of Caller’s Compendium. Update the app, then reopen it.'**
   String get migrationDowngradeMessage;
 
   /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered.

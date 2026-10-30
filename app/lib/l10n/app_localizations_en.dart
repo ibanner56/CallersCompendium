@@ -88,8 +88,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Details were also written to the diagnostics log in the app’s support folder.';
 
   @override
+  String get appBootstrapReleasesLink => 'Open the Releases page';
+
+  @override
+  String migrationDowngradeVersions(int fileVersion, int appVersion) {
+    final intl.NumberFormat fileVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String fileVersionString = fileVersionNumberFormat.format(
+      fileVersion,
+    );
+    final intl.NumberFormat appVersionNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String appVersionString = appVersionNumberFormat.format(appVersion);
+
+    return 'Your data uses storage format $fileVersionString. This version of the app reads up to format $appVersionString.';
+  }
+
+  @override
   String get migrationDowngradeMessage =>
-      'This data was created by a newer version of Caller’s Compendium — please update the app.';
+      'This data was created by a newer version of Caller’s Compendium. Update the app, then reopen it.';
 
   @override
   String get migrationRelocationBothExist =>
