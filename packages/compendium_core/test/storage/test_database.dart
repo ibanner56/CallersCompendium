@@ -4,8 +4,13 @@ import 'package:drift/native.dart';
 
 /// An in-memory [CompendiumDatabase] for tests. Each call returns a fresh,
 /// isolated database (no shared state between tests).
-CompendiumDatabase openTestDatabase() =>
-    CompendiumDatabase(NativeDatabase.memory());
+///
+/// It runs the app's connection setup, [applyCompendiumSqliteSetup], so a
+/// typed-venue calling-history search finds its SQL function here as it does
+/// in the app.
+CompendiumDatabase openTestDatabase() => CompendiumDatabase(
+  NativeDatabase.memory(setup: applyCompendiumSqliteSetup),
+);
 
 /// Counts the SELECT statements executed against the database, keyed by a
 /// caller-supplied match on the statement text. Only SELECTs are observed —
@@ -151,8 +156,14 @@ class ChoreographerSelectCounter extends QueryCounter {
 
 /// An in-memory [CompendiumDatabase] whose executor is wrapped with [counter],
 /// letting a test observe how many (matching) statements a repository issues.
+///
+/// It runs the same setup as [openTestDatabase].
 CompendiumDatabase openCountingTestDatabase(QueryInterceptor counter) =>
-    CompendiumDatabase(NativeDatabase.memory().interceptWith(counter));
+    CompendiumDatabase(
+      NativeDatabase.memory(
+        setup: applyCompendiumSqliteSetup,
+      ).interceptWith(counter),
+    );
 
 /// Counts `BEGIN TRANSACTION` calls issued against the database — used to
 /// assert a multi-read/multi-write operation (e.g. archive export/restore)

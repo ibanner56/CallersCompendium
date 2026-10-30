@@ -110,4 +110,42 @@ void main() {
       expect(total.data['count'], 2);
     },
   );
+
+  // Both production connections (the app's, which drift opens on a background
+  // isolate, and the sync worker's, opened in place) run this setup, so both
+  // shapes are checked: a typed-venue calling-history scope compiles to this
+  // function and fails with "no such function" on a connection without it.
+  for (final (shape, open) in [
+    (
+      'in place',
+      () => NativeDatabase(File(path), setup: applyCompendiumSqliteSetup),
+    ),
+    (
+      'on a background isolate',
+      () => NativeDatabase.createInBackground(
+        File(path),
+        setup: applyCompendiumSqliteSetup,
+      ),
+    ),
+  ]) {
+    test(
+      'registers the venue-key function on a connection opened $shape',
+      () async {
+        final db = CompendiumDatabase(open());
+        addTearDown(db.close);
+
+        final rows = await db
+            .customSelect(
+              "SELECT cc_venue_key('  Salle  Église ') AS folded, "
+              "cc_venue_key('   ') AS blank, cc_venue_key(NULL) AS absent",
+            )
+            .getSingle();
+        expect(rows.data, {
+          'folded': 'salle église',
+          'blank': null,
+          'absent': null,
+        });
+      },
+    );
+  }
 }

@@ -250,6 +250,10 @@ jobs:
       # (security-6); the suite also checks the real manifest.
       - name: Guard the Android intent filters (no BROWSABLE local-file VIEW)
         run: python3 tools/ci/test_check_android_intent_filters.py
+      # path_provider derives the Windows data folders from CompanyName; a
+      # change would open an empty library for existing users.
+      - name: Guard the Windows CompanyName resource
+        run: python3 tools/ci/test_check_windows_company_name.py
       # The Android JVM unit tests (app/android/app/src/test) run only from a
       # Gradle step in ci.yml's build job; nothing else compiles them.
       - name: Guard the Android unit-test step in the build job

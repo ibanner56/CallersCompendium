@@ -2646,11 +2646,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
-      'Figurtakte aggressiv neu berechnen';
+      'Schlagzahl der Figuren aggressiv neu berechnen';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Takte hinzugefügt oder entfernt.';
+      'Wenn aktiviert, wird die Schlagzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Schlagzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Schlagzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Schläge hinzugefügt oder entfernt.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figur-Abkürzungen';
@@ -2703,7 +2703,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingFiguresSubtitle =>
-      'Die Figuren, mit denen ein neuer Tanz beginnt. Standard sind acht „Stand still“ (je 8 Takte), bei aktivierter Freitexteingabe keine; leer lassen für einen leeren neuen Tanz. Pro Tanz bearbeitbar.';
+      'Die Figuren, mit denen ein neuer Tanz beginnt. Standard sind acht „Stand still“ (je 8 Schläge), bei aktivierter Freitexteingabe keine; leer lassen für einen leeren neuen Tanz. Pro Tanz bearbeitbar.';
 
   @override
   String get settingsDefaultsMoveDefaultsTitle => 'Bewegungsstandards';
@@ -2713,7 +2713,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsUserFiguresSubtitle =>
-      'Jede deiner neuen Figuren hat ihre eigenen Standards: die Werte, mit denen sie beginnt, und ihre Takte. Wähle eine aus, um sie zu ändern.';
+      'Jede deiner neuen Figuren hat ihre eigenen Standards: die Werte, mit denen sie beginnt, und ihre Schläge. Wähle eine aus, um sie zu ändern.';
 
   @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
@@ -2831,11 +2831,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralMatrixExactCollisionTitle =>
-      'Nur exakte Taktüberschneidung markieren';
+      'Nur exakte Überschneidung der Schläge markieren';
 
   @override
   String get settingsGeneralMatrixExactCollisionSubtitle =>
-      'In der Programmiermatrix wird eine wiederholte Figur zwischen zwei aufeinanderfolgenden Tänzen nur markiert, wenn sich ihre Takte tatsächlich überschneiden — nicht schon, wenn sie in dieselbe benannte Phrase (A1, A2, B1, B2…) fällt. Schalte dies aus, um jede Wiederholung in derselben Phrase zu markieren, selbst wenn sich die Takte selbst nicht überschneiden.';
+      'In der Programmiermatrix wird eine wiederholte Figur zwischen zwei aufeinanderfolgenden Tänzen nur markiert, wenn sich ihre Schläge tatsächlich überschneiden — nicht schon, wenn sie in dieselbe benannte Phrase (A1, A2, B1, B2…) fällt. Schalte dies aus, um jede Wiederholung in derselben Phrase zu markieren, selbst wenn sich die Schläge selbst nicht überschneiden.';
 
   @override
   String get settingsProgramAutoCommitTitle =>
@@ -4475,8 +4475,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats Takte',
-      one: '1 Takt',
+      other: '$beats Schläge',
+      one: '1 Schlag',
     );
     return '$_temp0';
   }
@@ -5451,7 +5451,7 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(collision, {
       'phrase':
           ', wiederholt sich in derselben Phrase wie ein angrenzender Tanz',
-      'beats': ', teilt Taktschläge mit einem angrenzenden Tanz',
+      'beats': ', teilt Schläge mit einem angrenzenden Tanz',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -5515,7 +5515,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollisionBeats =>
-      'Teilt Takte mit Nachbartanz';
+      'Teilt Schläge mit Nachbartanz';
 
   @override
   String get programsMatrixEmptyTitle => 'Noch keine strukturierten Figuren';
@@ -5568,7 +5568,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Noch kein Tempo eingestellt. Tippen Sie auf das Ziel, um ein Tempo festzulegen.';
 
   @override
-  String get performRecordBeatHint => 'Takt aufzeichnen';
+  String get performRecordBeatHint => 'Schlag aufzeichnen';
 
   @override
   String get performTapRefineHint =>
@@ -5874,8 +5874,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp2 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats Takte',
-      one: '1 Takt',
+      other: '$beats Schläge',
+      one: '1 Schlag',
     );
     String _temp3 = intl.Intl.selectLogic(hasNote, {
       'yes': ', Notiz: $note',
@@ -6065,8 +6065,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count Takte',
-      one: '1 Takt',
+      other: '$count Schläge',
+      one: '1 Schlag',
     );
     return '$_temp0';
   }
@@ -6151,7 +6151,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportMatrixLegendCollision => 'Gleiche Phrase wie Nachbartanz';
 
   @override
-  String get exportMatrixLegendCollisionBeats => 'Teilt Takte mit Nachbartanz';
+  String get exportMatrixLegendCollisionBeats =>
+      'Teilt Schläge mit Nachbartanz';
 
   @override
   String exportMatrixOmittedCaption(int count) {
@@ -7214,7 +7215,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importIssueBeatsUnreadable =>
-      'Eine Taktzahl konnte nicht gelesen werden; 0 verwendet.';
+      'Eine Schlagzahl konnte nicht gelesen werden; 0 verwendet.';
 
   @override
   String get importIssueNoFiguresTable =>
@@ -7984,7 +7985,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String validationPhraseBeatMismatch(int actual, int expected) {
-    return 'Die Figuren ergeben insgesamt $actual Takte; die Phrasierungsstruktur erwartet $expected.';
+    return 'Die Figuren ergeben insgesamt $actual Schläge; die Phrasierungsstruktur erwartet $expected.';
   }
 
   @override
@@ -8417,15 +8418,15 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats Takte',
-      one: '1 Takt',
+      other: '$beats Schläge',
+      one: '1 Schlag',
     );
     return 'Wird beim Speichern des Tanzes zu $_temp0 ($_temp1).';
   }
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'Diese eigene Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleiben nur Name, Takte, Notiz und Progression erhalten.';
+      'Diese eigene Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleiben nur Name, Schläge, Notiz und Progression erhalten.';
 
   @override
   String get danceEditorIncompleteFigure =>
@@ -8455,8 +8456,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp2 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats Takte',
-      one: '1 Takt',
+      other: '$beats Schläge',
+      one: '1 Schlag',
     );
     String _temp3 = intl.Intl.selectLogic(hasMove, {
       'yes': ', $_temp2',
@@ -8671,8 +8672,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats geteilte Takte',
-      one: '1 geteilter Takt',
+      other: '$beats geteilte Schläge',
+      one: '1 geteilter Schlag',
     );
     return 'Gleichzeitig-Gruppe, $_temp0, $_temp1.';
   }
@@ -8735,17 +8736,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
-    return 'Gesamt: $total / $expected Takte';
+    return 'Gesamt: $total / $expected Schläge';
   }
 
   @override
   String danceEditorOverByBeats(int beats) {
-    return 'Um $beats Takte zu lang';
+    return 'Um $beats Schläge zu lang';
   }
 
   @override
   String danceEditorUnderByBeats(int beats) {
-    return 'Um $beats Takte zu kurz';
+    return 'Um $beats Schläge zu kurz';
   }
 
   @override
@@ -10328,7 +10329,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String glossaryCustomExpandsTo(int beats) {
-    return 'Wird erweitert zu ($beats Takte)';
+    return 'Wird erweitert zu ($beats Schläge)';
   }
 
   @override
@@ -10614,7 +10615,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get userFigureEditorDefaultBeats => 'Standard-Takte';
+  String get userFigureEditorDefaultBeats => 'Standard-Schläge';
 
   @override
   String get userFigureEditorDefaultBeatsHelper =>
@@ -10645,7 +10646,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get userFigureEditorBadBeats =>
-      'Standard-Takte müssen zwischen 0 und 64 liegen.';
+      'Standard-Schläge müssen zwischen 0 und 64 liegen.';
 
   @override
   String userFigureEditorUnusedBody(String params) {
@@ -10744,7 +10745,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get compoundParamKindPlaces => 'Plätze';
 
   @override
-  String get compoundParamKindBeats => 'Takte';
+  String get compoundParamKindBeats => 'Schläge';
 
   @override
   String get compoundParamKindFlag => 'Ein/Aus';
