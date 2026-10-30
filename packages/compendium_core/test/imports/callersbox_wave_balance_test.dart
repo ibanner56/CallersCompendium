@@ -287,7 +287,7 @@ void main() {
     // A balance line whose annotation does not decode would lose it in the
     // fold: only decoded params and notes carry over. It stays custom instead.
     for (final pair in const [
-      ['(4) Pass the ocean', '(4) Balance wave of four (C2R,WL)'],
+      ['(4) Pass the ocean', '(4) Balance wave of four (Ph1R,WL)'],
       [
         '(8) Same-role neighbor do-si-do 1 & 1/4; form wave of four',
         '(4) Balance wave of four (SRNR,1CL)',
@@ -605,5 +605,17 @@ void main() {
       expect(issues, isEmpty);
       expect(sections, hasLength(figures.length));
     });
+  });
+
+  test('a square corner on a balance line folds since taxonomy v38', () async {
+    // #1975: C2 decodes to the opposites, so the annotation is carried.
+    final figures = await _figuresFor([
+      '(4) Pass the ocean',
+      '(4) Balance wave of four (C2R,WL)',
+    ]);
+    expect(figures, hasLength(1));
+    expect(figures.single.move, 'pass_the_ocean');
+    expect(figures.single.params['sides'], 'opposites');
+    expect(figures.single.params['balance'], isTrue);
   });
 }

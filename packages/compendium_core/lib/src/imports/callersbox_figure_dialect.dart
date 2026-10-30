@@ -2524,9 +2524,11 @@ bool _isSquareRoleSetDescriptor(String body) =>
 ///     is a side run and the others are prose, which becomes the note
 ///     (`Pass through along (NR) (optional)`, #1971);
 ///   * the annotation is not entirely `<people-code><R|L>` cells, or any
-///     people code is absent from [tcbPassPeople] (`O`, `Ph`, `SRN`, `C1`–`C3`,
+///     people code is absent from [tcbPassPeople] (`O`, `Ph`, `SRN`, `C4`+,
 ///     out-of-range neighbors/shadows) — never approximated onto a token that
-///     means something else;
+///     means something else. A dancer the slot it would fill does not accept
+///     (`Form long waves (C2R)`: opposites are not an invertible pair) is not
+///     written either; the side still reads and the run is kept as the note;
 ///   * the sides do not alternate by position parity, which is the model both
 ///     two-pass renderers implement;
 ///   * a `square_through` 4-code list is not periodic (`code[2] == code[0]`,
@@ -2565,11 +2567,13 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   if (close == -1) return null;
   final List<_SideCell> decoded;
   final String sideBase;
+  final String runText;
   String? prose;
   if (lower.indexOf('(', close + 1) == -1) {
     final run = _decodeSideCells(_boundedPassListCellsIn(lower, open, close));
     if (run == null) return null;
     (cells: decoded, base: sideBase) = run;
+    runText = scrubbed.substring(open + 1, close).trim();
   } else {
     // More than one parenthetical: one side run plus prose, which becomes the
     // note (`Pass through along (NR) (optional)`, #1971). Anything else is
@@ -2577,6 +2581,7 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
     final split = _sideRunAndProse(scrubbed);
     if (split == null) return null;
     (cells: decoded, base: sideBase) = split.run;
+    runText = split.runText.trim();
     prose = _joinAnnotations(split.prose);
   }
 
@@ -2612,14 +2617,29 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   final who1 = _consistentWho(decoded, odd: true);
   final who2 = _consistentWho(decoded, odd: false);
   if (who1 == null) return null; // positions disagree -> ambiguous -> decline.
-  if (def.params.containsKey('who') && !match.params.containsKey('who')) {
-    params['who'] = who1;
-  }
-  if (who2 != null &&
+  final writesWho =
+      def.params.containsKey('who') && !match.params.containsKey('who');
+  final writesWho2 =
+      who2 != null &&
       def.params.containsKey('who2') &&
-      !match.params.containsKey('who2')) {
-    params['who2'] = who2;
+      !match.params.containsKey('who2');
+  // A dancer the slot it would fill does not accept is not approximated:
+  // since taxonomy v38 (#1975) a square corner decodes to `opposites`, which a
+  // `form_long_waves.who` (an invertible pair) cannot hold. The side still
+  // reads, and the run is kept as the note so the dancer it names is not lost.
+  bool fits(String slotName, String who) =>
+      def.params[slotName]?.validate(who) ?? true;
+  if ((writesWho && !fits('who', who1)) ||
+      (writesWho2 && !fits('who2', who2))) {
+    return FigureMatch(
+      match.moveId,
+      params: params,
+      note: combineFigureNotes(combineFigureNotes(match.note, prose), runText),
+      assumedSubject: match.assumedSubject,
+    );
   }
+  if (writesWho) params['who'] = who1;
+  if (writesWho2) params['who2'] = who2;
 
   return FigureMatch(
     match.moveId,
@@ -2674,7 +2694,11 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
 /// Splits [scrubbed]'s parentheticals into exactly one decodable side run and
 /// one or more prose annotations, or returns `null` when they are anything
 /// else. Lets a side run share its line with prose (#1971).
-({({List<_SideCell> cells, String base}) run, List<String> prose})?
+({
+  ({List<_SideCell> cells, String base}) run,
+  String runText,
+  List<String> prose,
+})?
 _sideRunAndProse(String scrubbed) {
   final annotations = _parenAnnotations(scrubbed);
   final prose = <String>[];
@@ -2691,7 +2715,7 @@ _sideRunAndProse(String scrubbed) {
   }
   if (shorthand == null || prose.isEmpty) return null;
   final run = _decodeSideCells(_boundedPassListCells(shorthand.toLowerCase()));
-  return run == null ? null : (run: run, prose: prose);
+  return run == null ? null : (run: run, runText: shorthand, prose: prose);
 }
 
 /// One decoded `<people-code><R|L>` cell: the dancer it names and the side.
@@ -2966,12 +2990,12 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// slot.
 ///
 /// Notable mappings and the deliberate omissions, per `Glossary.htm`:
-/// - `C1`/`C2`/`C3` — the glossary's *"Corners (square)"* are a DIFFERENT
-///   concept from its separate *"First/second corners"* entry ("First corners
-///   are man one and woman two"), which is what [ParamVocab]'s
-///   `firstCorners`/`secondCorners` model. C1 is "the non-partner next to you",
-///   C2 "the person across from you", C3 "the remaining person" — a square/
-///   four-face-four relationship the taxonomy has no token for.
+/// - `C1`/`C2`/`C3` — the glossary's *"Corners (square)"*: C1 is "the
+///   non-partner next to you", C2 "the person across from you", C3 "the
+///   remaining person". Since taxonomy v38 (#1975, maintainer decisions) they
+///   map to `firstCorners`, `opposites` and `thirdCorners`: a square's corner
+///   is a contra first corner. Before that they were declined as a concept the
+///   taxonomy had no token for.
 /// - `P0`, `P2`–`P5` — a mixer's previous/future partners (taxonomy v24,
 ///   issue #732). These map to `prevPartners`, `nextPartners`, `thirdPartners`,
 ///   `fourthPartners`, `fifthPartners` respectively (see entries below).
@@ -2992,15 +3016,16 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   is real, and a reader checking the glossary against this map would find it
 ///   missing with no reason given.
 ///
-///   Two separate things, and only one of them is a ruling:
-///   - **No `opposites` token — ruling by @ibanner56, confirmed 2026-08-11.**
-///     `O` is primarily meaningful for non-duple formations (squares), which
-///     are not a current priority; addressing them is not immediately pressing.
-///   - **No token added *for now* — derived, not chosen.** Given the ruling,
-///     the correct behaviour requires no code change: an unmapped code declines
-///     the run per the bucket list above, which is already what happens. This
-///     is a DOCUMENTATION fix only.
+///   The 2026-08-11 ruling that there was no `opposites` token is superseded:
+///   taxonomy v38 adds one (#1975) and maps `C2` to it. `O` itself is still
+///   declined. In the corpus it sits in side runs such as `Neighbor swing
+///   (OR)`, where "opposite" does not read, so mapping it waits on what those
+///   runs mean.
 const Map<String, String> tcbPassPeople = {
+  // Glossary (Corners (square)), mapped since taxonomy v38 (#1975).
+  'c1': 'firstCorners',
+  'c2': 'opposites',
+  'c3': 'thirdCorners',
   'm': 'role1s',
   'w': 'role2s',
   'p': 'partners',
@@ -3164,9 +3189,10 @@ FigureMatch? _circulate(String scrubbed) {
 ///   * the cell count does not equal `n` (a square through of `n` has `n`
 ///     passes; a mismatch is an unmodeled variant);
 ///   * any cell is not `<people-code><R|L>` with the people code present in
-///     [tcbPassPeople] (square corners, mixer partner series, out-of-range
-///     neighbors/shadows, phantoms and bare `R`/`L` therefore stay custom rather
-///     than being approximated onto a token that means something else);
+///     [tcbPassPeople] (square corners past `C3`, mixer partner series,
+///     out-of-range neighbors/shadows, phantoms and bare `R`/`L` therefore stay
+///     custom rather than being approximated onto a token that means something
+///     else);
 ///   * the odd/even dancers are not internally consistent, or the hands do not
 ///     alternate (an ambiguous list is never partially structured).
 ///
@@ -3618,7 +3644,8 @@ const String _grandRightAndLeftNote = 'grand right and left';
 ///   qualifier, a second parenthetical (`(ones and twos begin with neighbor…)`)
 ///   or any other leftover prose;
 /// - any cell is not `<people-code><R|L>` with the people code present in
-///   [tcbPassPeople] — square corners (`C1`..`C3`), out-of-range mixer partner
+///   [tcbPassPeople] — square corners past `C3` (`C1`..`C3` map since taxonomy
+///   v38, #1975), out-of-range mixer partner
 ///   codes (`P6`+/`P-n`), out-of-range neighbors/shadows, phantoms, trail
 ///   buddies and bare `R`/`L` (a hand with no dancer) therefore all stay custom
 ///   rather than being approximated onto a token that means something else;

@@ -63,6 +63,11 @@ const _circularHeyWho2Choices = [
 // chooser_pairz = pairDancerSets minus {everyone, centers}, so we spell it out
 // rather than derive it, keeping the domain explicit and stable.
 //
+// Extended again at v38 (#1975) with `thirdCorners` and `opposites`, which
+// ContraDB does not have either, so a square's hey can run until you meet
+// them. The tokens are the maintainer's; offering them here is the author's
+// call, as v24's was for the partner series.
+//
 // EXTENDED beyond ContraDB at v24 (issue #732, orchestrating-session decision):
 // the five mixer partner-series tokens (`prevPartners`/`nextPartners`/
 // `thirdPartners`/`fourthPartners`/`fifthPartners`) are included even though
@@ -77,14 +82,16 @@ const _heyMeetTargetChoices = [
   'partners',
   'neighbors',
   'sameRoles',
-  'firstCorners',
-  'secondCorners',
   'shadows',
   'secondShadows',
   'prevNeighbors',
   'nextNeighbors',
   'thirdNeighbors',
   'fourthNeighbors',
+  'firstCorners',
+  'secondCorners',
+  'thirdCorners',
+  'opposites',
   'prevPartners',
   'nextPartners',
   'thirdPartners',

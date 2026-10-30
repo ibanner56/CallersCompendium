@@ -48,9 +48,9 @@ void main() {
         );
       });
 
-      test('a numbered corner is not the first corner or an amount', () {
-        // A square's corners (Corner 1-3) are not modelled; the number must
-        // not be read as how far the move goes either.
+      test('a corner number is never an amount', () {
+        // "Corner 2" names a dancer (third_corner_opposite_test.dart), so its
+        // number must not be read as how far the move goes.
         for (final line in [
           'Corner 2 Do-si-do',
           'Corner 2 allemande Left',
@@ -58,7 +58,6 @@ void main() {
           '1st corner 2 allemande left',
         ]) {
           final f = read(line).single;
-          expect(f.params['who'], isNot('firstCorners'), reason: line);
           expect(f.params.containsKey('travel'), isFalse, reason: line);
         }
       });
