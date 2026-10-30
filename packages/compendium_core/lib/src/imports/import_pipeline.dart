@@ -921,9 +921,11 @@ class ImportPipeline {
           await _dances.update(
             withReimportedChoreography(
               existing,
-              authorIds == null
-                  ? plan.draft.dance
-                  : plan.draft.dance.copyWith(authorIds: authorIds),
+              // Only credit resolved here. Unlike a create or a link, a draft
+              // with no names does not fall back to its own `authorIds`: those
+              // are the sender's ids, and none of them may name a choreographer
+              // in this library. No resolved credit keeps the dance's.
+              plan.draft.dance.copyWith(authorIds: authorIds ?? const []),
               updatedAt: now,
               provenance: prov,
               alsoTitleAndCredit: plan.verdict.alsoTitleAndCredit,

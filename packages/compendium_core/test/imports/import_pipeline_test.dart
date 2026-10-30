@@ -1602,6 +1602,39 @@ void main() {
         expect(await authorNamesOf(id), ['First Author']);
       });
 
+      test('a re-import that also takes the title and credit never writes '
+          'author ids it did not resolve', () async {
+        final s1 = await pipeline.commit(
+          await pipeline.plan(
+            FakeSourceAdapter([
+              record('fake-1', 'Same', authorNames: ['First Author']),
+            ]),
+            const ImportRequest(),
+          ),
+          now: now,
+          newId: nextId,
+        );
+        final id = s1.insertedDanceIds.single;
+
+        // A sender's ids with no names to resolve them by (a shared file whose
+        // choreographer entry is missing) name no choreographer here.
+        final s2 = await pipeline.commit(
+          withTitleAndCredit(
+            await pipeline.plan(
+              FakeSourceAdapter([
+                record('fake-1', 'Renamed', authorIds: ['senders-id']),
+              ]),
+              const ImportRequest(),
+            ),
+          ),
+          now: DateTime.utc(2026, 9, 1),
+          newId: nextId,
+        );
+        expect(s2.records.single.succeeded, isTrue);
+        expect((await dances.getById(id))!.title, 'Renamed');
+        expect(await authorNamesOf(id), ['First Author']);
+      });
+
       test('undo removes a choreographer created by the batch', () async {
         final adapter = FakeSourceAdapter([
           record('fake-1', 'A Dance', authorNames: ['Ephemeral Author']),

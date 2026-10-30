@@ -1255,9 +1255,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       case DedupeKind.isNew:
         return _RowChoice(_ActionKind.create);
       case DedupeKind.reimport:
-        // Default to keep-local (skip) so a re-import never silently overwrites
-        // local edits (issue #446). The target id is retained so the user can
-        // deliberately choose "Re-import onto …" to overwrite.
+        // Default to keep-local (skip) so a re-import never silently changes
+        // the dance (issue #446). The target id is retained so the user can
+        // deliberately choose "Re-import onto …".
         return _RowChoice(_ActionKind.skip, plan.verdict.targetDanceId);
       case DedupeKind.ambiguous:
         return _RowChoice(_ActionKind.skip);
@@ -3073,10 +3073,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         0;
     final hasPrograms = programCount > 0;
     // How many *distinct* existing local dances a commit would overwrite (issue
-    // #446): the unique target ids across rows the user has set to "Re-import
-    // onto …" or to link to an existing dance (Link and the variation block's
-    // "Same dance" share `_ActionKind.link`; the pipeline rewrites the matched
-    // dance from the incoming record for both), excluding rows already
+    // #446): the unique target ids across rows the user has set to link to an
+    // existing dance (Link and the variation block's "Same dance" share
+    // `_ActionKind.link`; the pipeline rewrites the matched dance from the
+    // incoming record for both). Rows set to "Re-import onto …" are counted
+    // apart, for [_buildReimportWarning], since a re-import replaces only the
+    // choreography (INTAKE-7). Both exclude rows already
     // committed on their own via Edit. Counting unique targets (not rows) is
     // deliberate — planning reuses one DedupeIndex, so several incoming records
     // that share a provenance key can all target the same local dance; only

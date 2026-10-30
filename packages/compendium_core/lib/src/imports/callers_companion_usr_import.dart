@@ -581,8 +581,13 @@ class CallersCompanionUsrImporter {
       if (archive.relatedDancePairs.isNotEmpty) {
         // A re-import replaces only a dance's choreography (INTAKE-7), so a
         // re-imported dance gets none of the file's links: one this batch
-        // re-imported, or one an earlier per-row Edit re-imported that this
-        // batch did not write again.
+        // re-imported, or one an earlier per-row Edit re-imported. Not one
+        // another row of this batch then created or replaced (a link onto the
+        // same dance), which takes the file's links like any written dance.
+        final writtenOtherwise = {
+          for (final r in danceSession.records)
+            if (r.succeeded && r.action != CommitAction.reimport) ?r.danceId,
+        };
         final reimportedDanceIds = {
           for (final r in danceSession.records)
             if (r.succeeded && r.action == CommitAction.reimport) r.danceId!,
@@ -590,7 +595,7 @@ class CallersCompanionUsrImporter {
             if (committedEarlier[ccId] case final id?
                 when danceIdByCcRowId[ccId] == id)
               id,
-        };
+        }..removeAll(writtenOtherwise);
         final candidateDanceIds = <String>{
           for (final pair in archive.relatedDancePairs)
             if (danceIdByCcRowId[pair.sourceRecordId] case final id?

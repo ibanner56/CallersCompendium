@@ -656,6 +656,73 @@ void main() {
     },
   );
 
+  test('in a mixed batch, a created dance keeps the deleted tag it revived '
+      'while a re-imported one\'s goes back', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final tags = TagRepository(db);
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, ChoreographerRepository(db)),
+      ProgramRepository(db),
+      VenueRepository(db),
+      repositories: CompendiumRepositories(db, contraTaxonomy),
+      tags: tags,
+      sources: PublishedSourceRepository(db),
+      customFields: CustomFieldDefRepository(db),
+    );
+    Dance dance(String id, String tag) => Dance(
+      id: id,
+      title: 'Dance $id',
+      tagIds: [tag],
+      createdAt: _now,
+      updatedAt: _now,
+    );
+    final first = CompendiumArchive(
+      exportedAt: _now,
+      dances: [dance('old', 't1')],
+      tags: [Tag(id: 't1', name: 'chestnut')],
+    );
+    var nextId = 0;
+    String newId() => 'receiver-${++nextId}';
+    await importer.import(encodeArchive(first), first, now: _now, newId: newId);
+    final later = _now.add(const Duration(days: 1));
+    await tags.delete((await tags.listAll()).single.id, at: later);
+    final oak = await tags.upsert(
+      Tag(id: 'oak', name: 'oak'),
+      at: later,
+    );
+    await tags.delete(oak, at: later);
+
+    final mixed = CompendiumArchive(
+      exportedAt: _now,
+      dances: [dance('old', 't1'), dance('fresh', 't2')],
+      tags: [
+        Tag(id: 't1', name: 'chestnut'),
+        Tag(id: 't2', name: 'oak'),
+      ],
+    );
+    final result = await importer.import(
+      encodeArchive(mixed),
+      mixed,
+      now: _now.add(const Duration(days: 2)),
+      newId: newId,
+    );
+
+    expect(
+      result.danceSession.records.map((r) => r.action),
+      unorderedEquals([CommitAction.reimport, CommitAction.create]),
+    );
+    expect([for (final t in await tags.listAll()) t.name], ['oak']);
+    final created = await dances.getById(
+      result.danceSession.records
+          .singleWhere((r) => r.action == CommitAction.create)
+          .danceId!,
+    );
+    expect(created!.tagIds, [oak]);
+    expect(result.metadata!.restoredTagIds, [oak]);
+  });
+
   test('a re-import takes back the tags, fields and sources it revived or '
       'created, since it writes none of them (INTAKE-7)', () async {
     final db = openTestDatabase();
