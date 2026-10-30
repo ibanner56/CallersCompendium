@@ -669,7 +669,8 @@ void main() {
       },
     );
 
-    test('the file wins for a column it carries', () async {
+    test('keeps the stored value for a column the file carries, and adds no '
+        'field for a new one (INTAKE-7)', () async {
       await run(
         _usrBytes([
           row('4', 'A', [('blue', 'Card colour')]),
@@ -677,12 +678,15 @@ void main() {
       );
       await run(
         _usrBytes([
-          row('4', 'A', [('green', 'Card colour')]),
+          row('4', 'A', [('green', 'Card colour'), ('fast', 'Tempo')]),
         ]),
       );
+      // Custom fields are the person's own, so a re-import replaces only the
+      // choreography; a definition no committed dance uses is dropped.
       expect(await valuesByKey(await danceNamed('A')), {
-        'card_colour': 'green',
+        'card_colour': 'blue',
       });
+      expect([for (final f in await defs.listAll()) f.key], ['card_colour']);
     });
   });
 }

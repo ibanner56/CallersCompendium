@@ -279,26 +279,29 @@ void main() {
     expect(session.issues, isEmpty);
   });
 
-  test('Undo of a re-import takes back the link it added', () async {
+  test('a re-import adds none of the file\'s links, and Undo still restores '
+      'the dance (INTAKE-7)', () async {
     await _receive(
       db,
       _share([_dance('sender-a', 'Alpha'), _dance('sender-b', 'Beta')]),
     );
 
-    // The sender has since linked the two; both rows re-import.
+    // The sender has since linked the two; both rows re-import. Links are
+    // the caller's own, so a re-import writes only the choreography.
     final again = await _receive(
       db,
       _share([
-        _dance('sender-a', 'Alpha', links: [_related('link-1', 'sender-b')]),
+        _dance(
+          'sender-a',
+          'Alpha',
+          links: [_related('link-1', 'sender-b'), _video('link-2')],
+        ),
         _dance('sender-b', 'Beta'),
       ]),
     );
-    final all = await dances.listAll();
     expect(again.danceSession.updatedDancePriorStates, hasLength(2));
-    expect(
-      [for (final l in _titled(all, 'Alpha').links) l.targetDanceId],
-      [_titled(all, 'Beta').id],
-    );
+    expect(again.danceSession.issues, isEmpty);
+    expect(_titled(await dances.listAll(), 'Alpha').links, isEmpty);
 
     await _importer(db).undo(again);
 

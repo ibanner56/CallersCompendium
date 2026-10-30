@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import '../figures_support.dart';
 import 'support/fake_adapter.dart';
 
 String Function() sequentialIds() {
@@ -553,7 +554,14 @@ void main() {
   group('re-import by (source, externalId)', () {
     test('updates the same dance + provenance, preserving createdAt', () async {
       final first = FakeSourceAdapter([
-        record('fake-1', 'Original Title', version: 'v1'),
+        record(
+          'fake-1',
+          'Original Title',
+          version: 'v1',
+          figures: [
+            {'beats': 16, 'text': 'old figure'},
+          ],
+        ),
       ]);
       final s1 = await pipeline.commit(
         await pipeline.plan(first, const ImportRequest()),
@@ -563,9 +571,17 @@ void main() {
       final id = s1.insertedDanceIds.single;
       final created = (await dances.getById(id))!.createdAt;
 
-      // Re-fetch the same external record, changed title + version.
+      // Re-fetch the same external record: changed figures, title + version.
       final again = FakeSourceAdapter([
-        record('fake-1', 'Revised Title', version: 'v2'),
+        record(
+          'fake-1',
+          'Revised Title',
+          version: 'v2',
+          figures: [
+            {'beats': 8, 'text': 'new figure'},
+            {'beats': 8, 'text': 'another new figure'},
+          ],
+        ),
       ]);
       final later = DateTime.utc(2026, 8, 1);
       final batch = await pipeline.plan(again, const ImportRequest());
@@ -576,12 +592,94 @@ void main() {
       expect(s2.insertedDanceIds, isEmpty);
 
       final reloaded = (await dances.getById(id))!;
-      expect(reloaded.title, 'Revised Title');
+      expect(figuresOf(reloaded), hasLength(2));
+      // The title is the caller's, not choreography (INTAKE-7).
+      expect(reloaded.title, 'Original Title');
       expect(reloaded.createdAt, created);
+      expect(reloaded.updatedAt, later);
       expect(reloaded.provenance!.sourceVersion, 'v2');
       expect(reloaded.provenance!.importedAt, later);
       // Exactly one dance exists (no duplicate inserted).
       expect((await dances.listAll()).length, 1);
+    });
+
+    test('replaces only the choreography: the caller\'s own fields stay '
+        '(INTAKE-7)', () async {
+      final tagId = await TagRepository(
+        db,
+      ).upsert(Tag(id: 'tag-1', name: 'Favourite'));
+      final first = FakeSourceAdapter([
+        record(
+          'fake-1',
+          'A Dance',
+          authorNames: ['Original Author'],
+          figures: [
+            {'beats': 16, 'text': 'old figure'},
+          ],
+        ),
+      ]);
+      final s1 = await pipeline.commit(
+        await pipeline.plan(first, const ImportRequest()),
+        now: now,
+        newId: nextId,
+        defaultTagIds: [tagId],
+      );
+      final id = s1.insertedDanceIds.single;
+      final imported = (await dances.getById(id))!;
+      final edited = imported.copyWith(
+        callingNotes: 'My notes',
+        walkthrough: 'My walkthrough',
+        rating: 4,
+        status: DanceStatus.broken,
+        links: [
+          DanceLink(
+            id: 'video',
+            kind: LinkKind.video,
+            url: 'https://example.com/video',
+          ),
+        ],
+        updatedAt: DateTime.utc(2026, 7, 20),
+      );
+      await dances.update(edited);
+      final before = (await dances.getById(id))!;
+
+      final later = DateTime.utc(2026, 8, 1);
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([
+            record(
+              'fake-1',
+              'Renamed At The Source',
+              authorNames: ['Someone Else'],
+              figures: [
+                {'beats': 8, 'text': 'new figure'},
+                {'beats': 8, 'text': 'another new figure'},
+              ],
+            ),
+          ]),
+          const ImportRequest(),
+        ),
+        now: later,
+        newId: nextId,
+      );
+      expect(session.records.single.action, CommitAction.reimport);
+
+      final after = (await dances.getById(id))!;
+      expect(figuresOf(after), hasLength(2));
+      expect(after.title, before.title);
+      expect(after.authorIds, before.authorIds);
+      expect(after.callingNotes, 'My notes');
+      expect(after.walkthrough, 'My walkthrough');
+      expect(after.rating, 4);
+      expect(after.status, DanceStatus.broken);
+      expect(after.tagIds, [tagId]);
+      expect(after.links, before.links);
+      // The incoming author is neither credited nor created.
+      expect(session.createdChoreographerIds, isEmpty);
+      expect(
+        [for (final c in await choreographers.listAll()) c.name],
+        isNot(contains('Someone Else')),
+      );
     });
   });
 
@@ -951,17 +1049,27 @@ void main() {
       );
       final id = s1.insertedDanceIds.single;
 
-      final again = FakeSourceAdapter([record('fake-1', 'After')]);
+      final again = FakeSourceAdapter([
+        record(
+          'fake-1',
+          'After',
+          figures: [
+            {'beats': 16, 'text': 'new figure'},
+          ],
+        ),
+      ]);
       final s2 = await pipeline.commit(
         await pipeline.plan(again, const ImportRequest()),
         now: DateTime.utc(2026, 9, 1),
         newId: nextId,
       );
-      expect((await dances.getById(id))!.title, 'After');
+      expect(figuresOf((await dances.getById(id))!), hasLength(1));
 
       await pipeline.undo(s2);
       final restored = (await dances.getById(id))!;
       expect(restored.title, 'Before');
+      expect(figuresOf(restored), isEmpty);
+      expect(restored.updatedAt, now);
     });
 
     test('restores a dance two rows linked to in one batch to its true '
@@ -1355,7 +1463,7 @@ void main() {
         },
       );
 
-      test('reimport replaces the resolved authors', () async {
+      test('reimport keeps the dance\'s authors and creates none', () async {
         final first = FakeSourceAdapter([
           record('fake-1', 'Same', authorNames: ['First Author']),
         ]);
@@ -1370,12 +1478,18 @@ void main() {
         final again = FakeSourceAdapter([
           record('fake-1', 'Same', authorNames: ['Second Author']),
         ]);
-        await pipeline.commit(
+        final s2 = await pipeline.commit(
           await pipeline.plan(again, const ImportRequest()),
           now: DateTime.utc(2026, 9, 1),
           newId: nextId,
         );
-        expect(await authorNamesOf(id), ['Second Author']);
+        expect(await authorNamesOf(id), ['First Author']);
+        expect(s2.records.single.authorResolutions, isEmpty);
+        expect(s2.createdChoreographerIds, isEmpty);
+        expect(
+          [for (final c in await choreographers.listAll()) c.name],
+          isNot(contains('Second Author')),
+        );
       });
 
       test('undo removes a choreographer created by the batch', () async {
@@ -1615,9 +1729,11 @@ void main() {
       expect(session.createdChoreographerIds, isEmpty);
     });
 
-    test('a throwing reimport update rolls back the new author', () async {
+    test('a throwing reimport update leaves no author behind', () async {
       final target = await seedDance('fake-1', 'Original');
-      failing.failTitles.add('Revised');
+      // A re-import keeps the dance's title, so the write that fails is the
+      // one carrying 'Original'.
+      failing.failTitles.add('Original');
       final session = await failingPipeline.commit(
         await failingPipeline.plan(
           FakeSourceAdapter([

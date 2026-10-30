@@ -2,56 +2,6 @@ import 'package:compendium_core/compendium_core.dart';
 
 import '../search/dance_detail_data.dart';
 
-/// The safe, deliberately narrow update used by the detail-screen re-import.
-///
-/// Normal imports use their dedupe decision and can replace an entire record.
-/// This path is different: it keeps the collection entry's user-maintained
-/// metadata and refreshes only the choreography supplied by the source.
-enum DanceReimportResult { replaced, targetMissing, targetChanged }
-
-Future<DanceReimportResult> replaceDanceChoreography(
-  CompendiumRepositories repos, {
-  required String targetDanceId,
-  required Dance incoming,
-  required DateTime expectedUpdatedAt,
-  DateTime? now,
-}) async {
-  return repos.db.transaction(() async {
-    final existing = await repos.dances.getById(targetDanceId);
-    if (existing == null) return DanceReimportResult.targetMissing;
-    if (existing.updatedAt != expectedUpdatedAt) {
-      return DanceReimportResult.targetChanged;
-    }
-    // Deliberately no `localUserEdit`, even though the user asked for this.
-    // sync-spec §6.8 gates a held tombstone's cancellation on the write's
-    // provenance, and provenance is about where the *content* comes from, not
-    // about who pressed the button: the fields written here are the source's
-    // choreography, not anything the user authored. Cancelling a peer's
-    // deletion on the strength of imported content is the asymmetry ADR-004
-    // ranks worst. Editing the dance afterwards still cancels the hold,
-    // because that write is authored.
-    await repos.dances.update(
-      existing.copyWith(
-        figures: switch (incoming.figuresSource) {
-          DecodedFigures(:final figures) => figures,
-          // The incoming dance was just parsed from the source, so this is not
-          // reachable today. Returning the existing figures rather than an
-          // empty list means that if it ever becomes reachable, a reimport
-          // leaves the target's transcription alone instead of erasing it.
-          UnreadableFigures() => switch (existing.figuresSource) {
-            DecodedFigures(:final figures) => figures,
-            UnreadableFigures() => const <Figure>[],
-          },
-        },
-        formation: incoming.formation,
-        progression: incoming.progression,
-        updatedAt: now ?? DateTime.now().toUtc(),
-      ),
-    );
-    return DanceReimportResult.replaced;
-  });
-}
-
 /// Plans exactly one dance from a generic JSON payload without ever committing
 /// its archive-level entities. Program-bearing archives are intentionally not a
 /// valid detail re-import source.
