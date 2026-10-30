@@ -6,6 +6,7 @@ import 'sync_quarantine.dart';
 import 'sync_record_kind.dart';
 import 'sync_report.dart';
 import 'sync_retained_fields.dart';
+import 'sync_withdrawn_settings.dart';
 
 /// The transaction-facing value passed to an inbound storage adapter.
 class SyncApplyRecord {
@@ -219,6 +220,12 @@ class SyncApplyEngine {
     final windowEnd = syncQuarantineWindowEnd(now());
     final ordered = <SyncMergeCandidate>[];
     for (final candidate in candidates) {
+      // An older peer's value for a setting this build withdrew from sync is
+      // dropped before anything else judges it: not applied, not kept, not
+      // reported (spec §6.7, amended 2026-10-29).
+      if (isWithdrawnSyncSetting(candidate.blob.kind, candidate.blob.id)) {
+        continue;
+      }
       final assessment = const SyncQuarantineClassifier().assess(
         candidate,
         windowEnd: windowEnd,

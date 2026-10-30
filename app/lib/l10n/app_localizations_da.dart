@@ -8957,6 +8957,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get userGuideOpenOnline => 'Åbn vejledningen online';
 
   @override
+  String get userGuideEnglishOnly => 'Brugervejledningen er på engelsk.';
+
+  @override
   String get shorthandMappingsTitle => 'Figurkortformer';
 
   @override

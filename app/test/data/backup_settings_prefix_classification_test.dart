@@ -54,6 +54,12 @@ void main() {
       'remain backup eligible', () {
     const backupLocalKeys = {
       'perform_text_scale',
+      // Screen-bound, so per-device rather than synced, yet still restored
+      // from the user's own backup (settings-sync-scope, 2026-10-29).
+      'app_locale',
+      'reduce_motion',
+      'auto_size_perform_cards',
+      'perform_stage_mode',
       'seed.initialCollection.completed',
       'custom_fields.sharing.disclosed',
       'update_auto_check',

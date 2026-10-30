@@ -1177,7 +1177,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       final before = passes.length;
 
-      await repos.settings.set('reduce_motion', true);
+      await repos.settings.set('confirm_before_delete', true);
       await pumpEventQueue();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -1691,6 +1691,30 @@ void main() {
       ]);
       expect(admin.requestTimeouts, [kSyncDetachCleanupRequestTimeout]);
       expect(admin.closes, 1, reason: 'the clean-up owns its client');
+    });
+
+    test('removes a manifest from before an upgrade, though no peer carries '
+        'the settings this build withdrew from sync', () async {
+      // Written by the older build, so it still lists Reduce motion. Upgraded
+      // peers never list it (spec §6.7, amended 2026-10-29).
+      admin = _Admin(
+        devices: const ['device_1', 'peer_a'],
+        manifests: {
+          'device_1': manifest('device_1', {
+            'a': hash('1'),
+            'reduce_motion': hash('2'),
+          }),
+          'peer_a': manifest('peer_a', {'a': hash('1')}),
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.deleteSent,
+      );
     });
 
     test('keeps it when the only carrier wrote before this device did — an '
