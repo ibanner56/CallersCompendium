@@ -1720,6 +1720,10 @@
   "@settingsUpdatesAutoSubtitle": {
     "x-sourceSha256": "714fa486bfaec4f1907d33ca08c2096908d4bdb3ef3ed57405369ae3ced54400"
   },
+  "settingsUpdatesAutoStoreSubtitle": "Beim Start der App im Hintergrund nach einem Datum für das Ende der Unterstützung dieser Version suchen. Standardmäßig aus.",
+  "@settingsUpdatesAutoStoreSubtitle": {
+    "x-sourceSha256": "3a7d703804b7f49cf78065166a77bb567810a90345b58a283ded6683be7986b0"
+  },
   "settingsUpdatesPrivacyNote": "Die Update-Prüfung lädt über HTTPS nur eine kleine Versionsdatei herunter – es werden keinerlei Daten über Sie, Ihr Gerät oder Ihre Nutzung übertragen. Es wird nichts automatisch heruntergeladen oder installiert: Sie entscheiden, wann ein Update heruntergeladen wird, es wird vor dem Öffnen verifiziert, und Ihr Systeminstallationsprogramm schließt die Installation ab.",
   "@settingsUpdatesPrivacyNote": {
     "x-sourceSha256": "c8815fc787434dbbc8184498535e50532203e8bebe25e8ea4febae05cf99aafb"
@@ -1771,6 +1775,22 @@
   "settingsUpdatesMacosReadySubtitle": "Ihr Update ist bereit. Binden Sie das Disk-Image ein und schließen Sie die App, damit Sie sie im Ordner „Programme“ ersetzen können.",
   "@settingsUpdatesMacosReadySubtitle": {
     "x-sourceSha256": "005d5b6d4026d34cd4bb0a4ede76c2fd391bd3598b5fcfd2b21103f543100223"
+  },
+  "settingsUpdatesStoreTitle": "Updates kommen aus Ihrem App-Store",
+  "@settingsUpdatesStoreTitle": {
+    "x-sourceSha256": "53e9be4c9dadaca5e7677a817a615dd6d698146fe548efd09d346ebfa4afc5ad"
+  },
+  "settingsUpdatesStoreSubtitle": "Diese Kopie wurde aus einem App-Store installiert, der sie daher auch aktualisiert. Die App sucht nur nach einem Datum für das Ende der Unterstützung, nie nach einer neuen Version.",
+  "@settingsUpdatesStoreSubtitle": {
+    "x-sourceSha256": "db003b621e3b71c206dd26c0ff18cb86c13b0bee31bae687eefd882f6f3f12ba"
+  },
+  "settingsUpdatesPortableTitle": "Portable Kopie: neues Archiv herunterladen",
+  "@settingsUpdatesPortableTitle": {
+    "x-sourceSha256": "47aa3322aff392868cd8336d0caa2bcf41e7f1bc6d13b0ece461f5408f4c00ae"
+  },
+  "settingsUpdatesPortableSubtitle": "Diese Kopie läuft aus einem entpackten Archiv, daher kann die App das Update nicht für Sie installieren. Laden Sie das neue zip oder tar.gz vom Release herunter und entpacken Sie es.",
+  "@settingsUpdatesPortableSubtitle": {
+    "x-sourceSha256": "e81b7be2d5f5dea10b985580086853594ffb5da78c8fbaeb9ffc55c926863fb7"
   },
   "settingsUpdatesDownloadTitle": "Update herunterladen & installieren",
   "@settingsUpdatesDownloadTitle": {
@@ -3904,10 +3924,6 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
-  "collectionPickerOnlineSearchFieldHint": "Online-Tänze nach Titel suchen…",
-  "@collectionPickerOnlineSearchFieldHint": {
-    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
-  },
   "collectionSearchScopeLabel": "Suchen in",
   "@collectionSearchScopeLabel": {
     "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"
@@ -4824,6 +4840,14 @@
   "@programsDraftBody": {
     "x-sourceSha256": "c7f0f1a362476a5fd3dc3339ad8b7208aebe3d297ff8e4c340e9f28f40070aa8"
   },
+  "programsDraftAnotherNewProgramBody": "Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Programms, „{title}“. Möchten Sie ihn wiederherstellen, statt ein neues zu beginnen?",
+  "@programsDraftAnotherNewProgramBody": {
+    "x-sourceSha256": "7fef500f5f004887e99ac40cec6c9bd12e3cd990df20b751f3a8b7de584d5ee3"
+  },
+  "programsDraftAnotherNewProgramUntitledBody": "Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Programms, noch ohne Titel. Möchten Sie ihn wiederherstellen, statt ein neues zu beginnen?",
+  "@programsDraftAnotherNewProgramUntitledBody": {
+    "x-sourceSha256": "2ad41d85f235c3184fcf33a6400608446a19671bfcec3d592f0431761cb670d3"
+  },
   "programsDraftRestore": "Wiederherstellen",
   "@programsDraftRestore": {
     "x-sourceSha256": "a76e13b9839270eb73ed11417f7d8acca55df0ad52065799361631d0fff74f27"
@@ -5625,6 +5649,10 @@
   "performUndoNoLongerAvailable": "Rückgängig nicht möglich: Das Programm wurde inzwischen geändert.",
   "@performUndoNoLongerAvailable": {
     "x-sourceSha256": "b3e205dcae09a94dc4693a675f528a7f6aad490523457c362ed13b6d48e7f9c9"
+  },
+  "performProgramChangedElsewhere": "Dieses Programm wurde an anderer Stelle geändert, seit Perform geöffnet wurde. Perform zeigt jetzt die neueste Fassung, mit Ihrer Änderung.",
+  "@performProgramChangedElsewhere": {
+    "x-sourceSha256": "616c3dbe3deede99d9d6a64423eaa11100c10df1383c1c1430edbe78fe933e93"
   },
   "performProgramAdjustedSnack": "Programm angepasst.",
   "@performProgramAdjustedSnack": {
@@ -6889,6 +6917,14 @@
   "importIssueArchiveNewerSchema": "Diese Datei wurde mit einer neueren Version von Caller's Compendium erstellt. Aktualisiere die App vor dem Import, sonst fehlen möglicherweise einige Details.",
   "@importIssueArchiveNewerSchema": {
     "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+  },
+  "importIssueArchiveCustomFieldKeyConflict": "Ihr benutzerdefiniertes Feld „{label}“ hat in dieser Datei einen anderen Typ oder andere Auswahlwerte, daher kommen die Werte der Datei dafür stattdessen in das Feld mit dem Schlüssel „{key}“, das angelegt wird, falls Sie es noch nicht haben. Ihr Feld bleibt unverändert.",
+  "@importIssueArchiveCustomFieldKeyConflict": {
+    "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
+  },
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "Ein benutzerdefiniertes Feld in dieser Datei konnte seinen Schlüssel nicht verwenden, weil er bereits belegt ist, daher kommen seine Werte stattdessen in ein Feld mit einem nummerierten Schlüssel.",
+  "@importIssueArchiveCustomFieldKeyConflictGeneric": {
+    "x-sourceSha256": "3de2eecff77eb62db3dd735f85a9151293ca4ec9f3f9ed18154b9c3e3986142a"
   },
   "importIssueUsrFileTruncated": "Diese Datei wirkt unvollständig – nur ein Teil konnte gelesen werden. Kopiere sie erneut vom Original und importiere sie noch einmal.",
   "@importIssueUsrFileTruncated": {
@@ -8561,6 +8597,10 @@
   "updateBannerAvailable": "Eine neuere Version von {appName} ({version}) ist verfügbar.",
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"
+  },
+  "updateBannerPortable": "Eine neuere Version von {appName} ({version}) ist verfügbar. Dies ist eine portable Kopie – laden Sie das neue zip oder tar.gz vom Release herunter.",
+  "@updateBannerPortable": {
+    "x-sourceSha256": "aadaf3b38beb0a611010e02e3994fad057ac5a933a5b3d1d22674d2d167ceba0"
   },
   "retirementNoticeUpcoming": "Der Support für diese Version von {appName} ({version}) endet am {date}. Aktualisiere bis dahin auf eine neuere Version.",
   "@retirementNoticeUpcoming": {

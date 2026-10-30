@@ -932,6 +932,7 @@ void main() {
       );
       final stamp = DateTime.utc(2030, 1, 1);
       final persisting = perform.onProgramChanged!(
+        perform.program,
         perform.program.copyWith(
           slots: [perform.program.slots.single.copyWith(performedAt: stamp)],
         ),
@@ -1141,6 +1142,52 @@ void main() {
     expect(deleted, isTrue);
     expect(await repos.programs.listAll(), isEmpty);
     expect(await repos.programs.getById('p1', includeDeleted: true), isNotNull);
+  });
+
+  testWidgets('delete saves unsaved edits first, so Undo brings them back '
+      '(LIFE-14)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Doomed'));
+    await _pump(tester, repos, programId: 'p1', onDeleted: () {});
+
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Doomed, revised',
+    );
+    await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('delete-program')));
+    await tester.pumpAndSettle();
+
+    final trashed = (await repos.programs.getById('p1', includeDeleted: true))!;
+    expect(trashed.deletedAt, isNotNull);
+    expect(trashed.title, 'Doomed, revised');
+    expect(trashed.slots, hasLength(1));
+    expect(find.text('"Doomed, revised" deleted.'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    final restored = (await repos.programs.getById('p1'))!;
+    expect(restored.title, 'Doomed, revised');
+    expect(restored.slots.single.text, isNotNull);
+  });
+
+  testWidgets('delete with a blank title saves the other edits under the '
+      'stored title (LIFE-14)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Doomed'));
+    await _pump(tester, repos, programId: 'p1', onDeleted: () {});
+
+    await tester.enterText(find.byKey(const ValueKey('program-title')), '');
+    await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('delete-program')));
+    await tester.pumpAndSettle();
+
+    final trashed = (await repos.programs.getById('p1', includeDeleted: true))!;
+    expect(trashed.deletedAt, isNotNull);
+    expect(trashed.title, 'Doomed');
+    expect(trashed.slots, hasLength(1));
   });
 
   testWidgets(

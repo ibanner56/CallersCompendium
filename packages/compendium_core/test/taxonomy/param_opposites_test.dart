@@ -58,6 +58,9 @@ void main() {
           'nextNeighbors': 'partners',
           'thirdNeighbors': 'partners',
           'fourthNeighbors': 'partners',
+          // v38 (#1975): no nameable inverse, like the other non-pairs.
+          'thirdCorners': null,
+          'opposites': null,
           'prevPartners': null,
           'nextPartners': null,
           'thirdPartners': null,

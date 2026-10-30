@@ -87,10 +87,10 @@ void main() {
   });
 
   group('#799 — conservative declines (fall back to places-only)', () {
-    test('unknown people code (square corners) is not approximated', () {
-      // C1/C2 are square corners with no taxonomy token; decode declines and the
-      // shared recognizer still yields a bare, defaulted square_through.
-      final f = _parse('Square through 2 (C1R;C2L)', beats: 4).single;
+    test('unknown people code (phantoms) is not approximated', () {
+      // Phantoms have no taxonomy token; decode declines and the shared
+      // recognizer still yields a bare, defaulted square_through.
+      final f = _parse('Square through 2 (Ph1R;Ph2L)', beats: 4).single;
       expect(f.move, 'square_through');
       expect(f.params['places'], 2);
       expect(
@@ -98,6 +98,14 @@ void main() {
         isNull,
         reason: 'not structured → default applies',
       );
+    });
+
+    test('square corners read as the v38 corner sets (#1975)', () {
+      // Maintainer decision: C1 is the first corners and C2 the opposites.
+      final f = _parse('Square through 2 (C1R;C2L)', beats: 4).single;
+      expect(f.move, 'square_through');
+      expect(f.params['who'], 'firstCorners');
+      expect(f.params['who2'], 'opposites');
     });
 
     test('cell count that disagrees with the count declines', () {

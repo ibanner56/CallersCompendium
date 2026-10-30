@@ -354,17 +354,27 @@ pair of aliases.
 `AndFilter`/`OrFilter` wrap children in `( … AND … )` / `( … OR … )`; `NotFilter(child)` emits
 `NOT (<child>)`.
 
-**Execution model — one SELECT, plus a post-fetch sort for two cases.** The
+**Execution model — one SELECT, plus a post-fetch sort for three cases.** The
 single compiled `SELECT` performs *all filtering* and every **SQL-expressible**
 sort: `title COLLATE NOCASE` (the default), `created_at DESC` / `updated_at
 DESC` (recently added / edited, each with a `title COLLATE NOCASE` tiebreak,
 since timestamps are stored at one-second precision and an import batch shares
 one instant), and — only for a bare Omni `FullTextFilter` leaf with at most two
-Unicode scalar values — `bm25(dance_fts)` relevance. Two sorts are **not**
+Unicode scalar values — `bm25(dance_fts)` relevance. Three sorts are **not**
 expressible in that one statement and are
 applied as a **post-fetch pass in Dart** over the returned id set:
 
-- `author` — needs the author-name join/ordering; and
+- `title` — SQL `COLLATE NOCASE` folds only ASCII case, so "École" would file
+  after Z. The Dart pass sorts by `titleSortKey` (leading article dropped when
+  the setting is on) or `foldForTitleMatch` (setting off), both of which strip
+  combining marks, so É files with E (FIND-15). The SQL `title COLLATE NOCASE`
+  stays as the base order for ties and for the other sorts' tiebreak. This is
+  **accent folding, not locale-aware collation**: NFD leaves Æ and Ø (no
+  decomposition) after Z and folds Danish Å to A, and non-English articles are
+  not ignored. Decided in the 2026-10-29 maintainer decisions
+  (`locale-sorting`, option a: fold accents, no new dependency);
+- `author` — needs the author-name join/ordering, and compares the same
+  accent-folded keys; and
 - `last-called` — needs a per-dance aggregate over `program_slots`/`programs`
   (`DanceRepository._sortByLastCalled`), scoped by the same caller filter,
   performed setting and alternate rule as the "called ×N" count, and ordered by
@@ -372,7 +382,7 @@ applied as a **post-fetch pass in Dart** over the returned id set:
   orders by (GIG-2).
 
 So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
-requested sort is `author` or `last-called`, the id set it returns is reordered
+requested sort is `title`, `author` or `last-called`, the id set it returns is reordered
 by an explicit Dart post-processing step — not by the SQL. `bm25` relevance is
 available only for a bare short Omni `FullTextFilter`; scoped queries,
 long-substring queries, and any other tree fall back to the `title` default

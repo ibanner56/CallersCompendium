@@ -195,9 +195,6 @@ void main() {
     // Each entry is a real corpus line that must NOT decompose.
     final declines = <String, String>{
       'no pass list at all': 'Grand right and left',
-      'square corners are not the taxonomy first/second corners':
-          'Grand right and left (PR;C3L;C2R;C1L)',
-      'a corner code anywhere in the list': 'Grand right and left (C2R;C1L)',
       // P6+ has no taxonomy token; the whole list stays custom.
       // Falsify by adding p6→fifthPartners to tcbPassPeople.
       'P6 in the pass list — beyond modelled depth':
@@ -361,11 +358,24 @@ void main() {
     });
 
     test('a hey with an unmapped code still drops to custom', () {
-      // Square corners are deliberately absent from the map, so they degrade
-      // the hey exactly as they degrade a grand right and left.
-      expect(_line('Hey 1/2 (C1R;C2L)', beats: 16).single.isCustom, isTrue);
-      // P6+ is absent from the map (beyond modelled depth) — same decline.
+      // P6+ is absent from the map (beyond modelled depth), so it degrades the
+      // hey exactly as it degrades a grand right and left.
       expect(_line('Hey 1/2 (P6R;P7L)', beats: 16).single.isCustom, isTrue);
+    });
+
+    test('square corners read as the v38 corner sets (#1975)', () {
+      // Maintainer decision: C1, C2 and C3 are the first corners, the
+      // opposites and the third corners.
+      final hey = _line('Hey 1/2 (C1R;C2L)', beats: 16).single;
+      expect(hey.move, 'hey');
+      expect(hey.params['pass1'], 'firstCorners');
+      expect(hey.params['pass2'], 'opposites');
+      final grand = _line('Grand right and left (PR;C3L;C2R;C1L)', beats: 16);
+      expect(grand.every((f) => !f.isCustom), isTrue);
+      expect(
+        [for (final f in grand) f.params['who'] ?? f.params['whom']],
+        ['partners', 'thirdCorners', 'opposites', 'firstCorners'],
+      );
     });
   });
 
