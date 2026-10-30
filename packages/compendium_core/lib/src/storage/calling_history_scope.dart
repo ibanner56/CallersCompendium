@@ -51,6 +51,45 @@ String callingHistoryDateSql({
     'COALESCE($programTable.event_date, $slotTable.performed_at, '
     '$programTable.updated_at)';
 
+/// Returns the date a recency window gives one slot: [callingHistoryDateSql]
+/// without its last fallback, the program's `updated_at`.
+///
+/// An edit is not a call. Under the full expression, fixing a typo in an old
+/// undated program would date all its dances "this week", so a slot whose
+/// program has no event date and which was never marked performed has no
+/// recency date (NULL) and falls in no window. It still counts as called and
+/// in "called ×N" (N1-3, maintainer decision 2026-10-30). The Dart side of the
+/// same rule is `DanceCallingRecord.recencyDate`; the two must agree.
+///
+/// [slotTable] and [programTable] are internal, trusted SQL aliases, never
+/// user input.
+String callingHistoryRecencyDateSql({
+  required String slotTable,
+  required String programTable,
+}) => 'COALESCE($programTable.event_date, $slotTable.performed_at)';
+
+/// The name of the SQL function that folds a program's typed venue the way
+/// [callingHistoryVenueText] does. `applyCompendiumSqliteSetup` registers it on
+/// every connection; a connection opened without that setup fails a typed-venue
+/// scope with "no such function".
+const String callingHistoryVenueKeySqlFunction = 'cc_venue_key';
+
+/// Folds a program's typed venue into the text half of its venue key: trimmed,
+/// each whitespace run collapsed to one space, and lower-cased. Returns null
+/// for a null or blank venue, which has no key.
+///
+/// The repeated-venues summary groups by this fold, and a typed-venue
+/// `CalledFilter` scope matches by it through the SQL function
+/// [callingHistoryVenueKeySqlFunction], which calls this same function. SQLite
+/// cannot do the fold itself: it has no regular expressions to collapse a run,
+/// and its `LOWER` folds ASCII only, so `LOWER(TRIM(venue))` would split
+/// "Salle  Église" from the summary's key.
+String? callingHistoryVenueText(String? venue) {
+  final trimmed = venue?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  return trimmed.replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+}
+
 /// Returns the event-date rule for a calling-history query over the `programs`
 /// alias [programTable] (for example `programs` or `p`), or the empty string
 /// when [requireEventDate] is false.

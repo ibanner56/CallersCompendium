@@ -909,7 +909,10 @@ and does not leak into what the user sees.
   pass it as their `DatabaseSetup`. Neither is a default: sqlite ships the
   rollback journal (under which a sync write blocks every app read) and a zero
   busy timeout (under which an app write landing during an inbound apply fails
-  with "database is locked" rather than waiting).
+  with "database is locked" rather than waiting). The same setup registers
+  `cc_venue_key(text)`, the venue fold a typed-venue calling-history search
+  compiles to (see [search.md](search.md)); the shared test-database helpers
+  and the core benchmarks pass it too, so that search runs there.
 - All writes in transactions via repository layer; dance/program soft deletes
   purge after a configurable retention (default 30 days) via startup sweep,
   except for rows Device Sync has published: those are retained as tombstones

@@ -388,6 +388,9 @@ class FilterCompiler {
         :final callerFilter,
         :final performedOnly,
         :final requireEventDate,
+        :final venue,
+        :final since,
+        :final currentProgramId,
       ):
         final caller = normalizeCallingHistoryCaller(callerFilter);
         if (caller != null) binds.add(caller);
@@ -400,12 +403,39 @@ class FilterCompiler {
         final callerClause = caller == null
             ? ''
             : ' ${callingHistoryCallerClause(caller, callerColumn: 'p.caller').trimRight()}';
+        // The scopes narrow the slots the rules above select, so a negated
+        // scope is "no counted slot at V", never "a slot not at V". They
+        // follow the caller clause in the SQL, so their binds follow its bind.
+        final scopes = StringBuffer();
+        if (venue != null) {
+          if (venue.venueId case final venueId?) {
+            scopes.write(' AND p.venue_id = ?');
+            binds.add(venueId);
+          } else {
+            scopes.write(
+              ' AND p.venue_id IS NULL'
+              ' AND $callingHistoryVenueKeySqlFunction(p.venue) = ?',
+            );
+            binds.add(venue.typedVenue);
+          }
+        }
+        if (since != null) {
+          scopes.write(
+            ' AND ${callingHistoryRecencyDateSql(slotTable: 'ps', programTable: 'p')} >= ?',
+          );
+          binds.add(_calledSince(since));
+        }
+        if (currentProgramId != null) {
+          scopes.write(' AND p.id <> ?');
+          binds.add(currentProgramId);
+        }
         final exists =
             'EXISTS (SELECT 1 FROM program_slots ps '
             'JOIN programs p ON p.id = ps.program_id '
             'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL'
             ' ${callingHistoryAlternateClause(slotTable: 'ps').trimRight()}'
-            '$performed$eventDate$callerClause)';
+            '$performed$eventDate$callerClause'
+            '$scopes)';
         return called ? exists : 'NOT ($exists)';
       case RatingFilter(:final minimum):
         // Defensive: construction already asserts this, but never trust the
@@ -726,6 +756,25 @@ class FilterCompiler {
         final placeholders = List.filled(values.length, '?').join(', ');
         return 'v.value_text IN ($placeholders)';
     }
+  }
+
+  /// Checks a [CalledFilter.since] cutoff and returns it as its bind.
+  ///
+  /// The cutoff must be a calendar date stored the way an event date is,
+  /// UTC midnight, so a dated program compares `event_date >= cutoff`
+  /// exactly. A local or mid-day value would shift the boundary by the
+  /// device's offset, so it is rejected in every build, as an out-of-range
+  /// [RatingFilter] is.
+  DateTime _calledSince(DateTime since) {
+    if (!since.isUtc ||
+        since != DateTime.utc(since.year, since.month, since.day)) {
+      throw ArgumentError.value(
+        since,
+        'CalledFilter.since',
+        'must be a UTC calendar date, DateTime.utc(y, m, d)',
+      );
+    }
+    return since;
   }
 
   /// Compiles a [LevelFilter] against the configured difficulty vocabulary.
