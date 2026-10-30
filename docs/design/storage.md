@@ -13,7 +13,10 @@ lives in the core package; all access through repositories.*
   as the application *cache* directory, which is what the resolver asks for),
   the application support directory (`$XDG_DATA_HOME/<app id>`) on Linux, and the
   app's own documents directory on Android, iOS and macOS (sandboxed or
-  app-private). Earlier builds used `Documents` on Windows and Linux, which
+  app-private). On Windows the `<CompanyName>` folder comes from the
+  `Runner.rc` version resource, pinned to `org.callerscompendium` by
+  `tools/ci/check_windows_company_name.py`: changing it moves every Windows data
+  folder. Earlier builds used `Documents` on Windows and Linux, which
   OneDrive's folder backup syncs and which on Linux is `$HOME` itself when
   `XDG_DOCUMENTS_DIR` is unset. The first launch after updating moves the
   database, its `-wal`/`-shm` sidecars and the pre-migration snapshots out of
@@ -913,7 +916,10 @@ and does not leak into what the user sees.
   pass it as their `DatabaseSetup`. Neither is a default: sqlite ships the
   rollback journal (under which a sync write blocks every app read) and a zero
   busy timeout (under which an app write landing during an inbound apply fails
-  with "database is locked" rather than waiting).
+  with "database is locked" rather than waiting). The same setup registers
+  `cc_venue_key(text)`, the venue fold a typed-venue calling-history search
+  compiles to (see [search.md](search.md)); the shared test-database helpers
+  and the core benchmarks pass it too, so that search runs there.
 - All writes in transactions via repository layer; dance/program soft deletes
   purge after a configurable retention (default 30 days) via startup sweep,
   except for rows Device Sync has published: those are retained as tombstones

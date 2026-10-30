@@ -8,6 +8,7 @@ import '../data/decimal_turns_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../search/facet_labels.dart';
 import 'import_gap_badge.dart';
+import 'selectable_content.dart';
 import 'warnings_card.dart';
 
 /// Read-only figure table grouped by derived phrase section (`docs/design/ux.md`
@@ -220,35 +221,44 @@ class _FigureRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    capitalizeFirstLetter(
-                      showVerbose ? verboseText : text,
-                      capitalize: CapitalizeFiguresScope.of(context),
+                  SelectableLine(
+                    child: Text(
+                      capitalizeFirstLetter(
+                        showVerbose ? verboseText : text,
+                        capitalize: CapitalizeFiguresScope.of(context),
+                      ),
+                      style: theme.textTheme.bodyLarge,
                     ),
-                    style: theme.textTheme.bodyLarge,
                   ),
                   if (note != null && note!.trim().isNotEmpty)
-                    Text(
-                      note!.trim(),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: theme.colorScheme.onSurfaceVariant,
+                    SelectableLine(
+                      child: Text(
+                        note!.trim(),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
+            // The badge and the beats are chrome around the figure, not part of
+            // it: leaving them selectable would copy a label and stray digits
+            // between lines.
             if (isImportGap) ...[
               const SizedBox(width: 8),
-              const ImportGapBadge(),
+              const SelectionContainer.disabled(child: ImportGapBadge()),
             ],
             const SizedBox(width: 8),
-            Text(
-              beatsLabel,
-              textAlign: TextAlign.end,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            SelectionContainer.disabled(
+              child: Text(
+                beatsLabel,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ),
           ],

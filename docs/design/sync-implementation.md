@@ -1187,7 +1187,8 @@ the programme and the only one that can block a release on its own.
   automatic recreation fails.
   The worker opens the database file on its **own connection**, so it and the
   app are two writers against one file. Both therefore run
-  `applyCompendiumSqliteSetup` (WAL plus a busy timeout); without it an
+  `applyCompendiumSqliteSetup` (WAL, a busy timeout and the `cc_venue_key`
+  SQL function); without the first two an
   ordinary app write landing inside the pass's apply transaction fails with
   "database is locked" rather than waiting. See *Durability* in
   [storage.md](storage.md).

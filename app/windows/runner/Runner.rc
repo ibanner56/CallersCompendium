@@ -89,7 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "Caller's Compendium contributors" "\0"
+            // Do not change: path_provider builds %LOCALAPPDATA% and %APPDATA%
+            // folders from <CompanyName>\<ProductName>, so changing it moves every
+            // Windows data folder (an empty library for existing users).
+            // Pinned by tools/ci/check_windows_company_name.py.
+            VALUE "CompanyName", "org.callerscompendium" "\0"
             VALUE "FileDescription", "Caller's Compendium" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "compendium_app" "\0"
