@@ -3129,7 +3129,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Selects the section's rows, or deselects them when they are all selected.
   /// Selections outside [ids] are kept, hidden ones included (N4-3, N4-1).
+  /// Like Select all it waits for a pending search, whose results would replace
+  /// the rows [ids] came from.
   void _toggleSection(List<String> ids) {
+    if (!_canSelectAll) return;
     setState(() {
       if (_selection.coversAll(ids)) {
         _selection.deselectAll(ids);
@@ -3156,6 +3159,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final theme = Theme.of(context);
     final selected = _selectionMode ? ids.where(_selection.contains).length : 0;
     final all = count > 0 && selected == count;
+    final canToggle = _canSelectAll;
     final some = selected > 0 && !all;
     Widget header = Container(
       key: ValueKey('group-header-$keySuffix'),
@@ -3172,7 +3176,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
               key: ValueKey('group-checkbox-$keySuffix'),
               tristate: true,
               value: all ? true : (some ? null : false),
-              onChanged: (_) => _toggleSection(ids),
+              onChanged: canToggle ? (_) => _toggleSection(ids) : null,
             ),
           Expanded(
             child: Text(
@@ -3192,7 +3196,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
       ),
     );
     if (_selectionMode) {
-      header = InkWell(onTap: () => _toggleSection(ids), child: header);
+      header = InkWell(
+        onTap: canToggle ? () => _toggleSection(ids) : null,
+        child: header,
+      );
     }
     // The visuals are hidden from AT; the Semantics node below carries the
     // label, state and tap action, so the checkbox is reached exactly once.
@@ -3205,7 +3212,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           : l10n.collectionGroupSectionSemantics(label, count),
       checked: _selectionMode ? all : null,
       mixed: _selectionMode ? some : null,
-      onTap: _selectionMode ? () => _toggleSection(ids) : null,
+      onTap: _selectionMode && canToggle ? () => _toggleSection(ids) : null,
       child: header,
     );
   }

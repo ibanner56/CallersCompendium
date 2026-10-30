@@ -123,6 +123,25 @@ void main() {
     );
   });
 
+  testWidgets('a header waits while a search is pending, like Select all', (
+    tester,
+  ) async {
+    await _seed(tester);
+    await _longPress(tester, 'Banana');
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'Cherry',
+    );
+    await tester.pump(); // inside the debounce window: stale rows still shown
+    expect(tester.widget<Checkbox>(_tagBox).onChanged, isNull);
+    await tester.tap(_tagBox, warnIfMissed: false);
+    await tester.pump();
+    expect(find.text('1 selected'), findsOneWidget);
+
+    await tester.pumpAndSettle();
+    expect(tester.widget<Checkbox>(_tagBox).onChanged, isNotNull);
+  });
+
   testWidgets('a screen reader reaches the checkbox with state and action', (
     tester,
   ) async {
