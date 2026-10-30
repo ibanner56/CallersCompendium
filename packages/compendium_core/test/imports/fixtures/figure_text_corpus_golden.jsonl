@@ -6122,7 +6122,7 @@
 {"in":"Partner allemande Left 1.5","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"partners\",\"hand\":\"left\",\"travel\":1.5}}]"}
 {"in":"Larks allemande Left 1.0","scrub":"role1s allemande Left 1.0","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role1s\",\"hand\":\"left\",\"travel\":1.0}}]"}
 {"in":"Robins chain (to P)","scrub":"role2s chain (to P)","fanOut":"[{\"schemaVersion\":1,\"move\":\"chain\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\"},\"note\":\"(to P)\"}]"}
-{"in":"Partner R-hand balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Partner R-hand balance\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Partner R-hand balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"partners\",\"hand\":\"right\"}}]"}
 {"in":"Neighbor allemande Right 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"neighbors\",\"hand\":\"right\",\"travel\":0.5}}]"}
 {"in":"Balance wave and slide to the right (past Shadow)","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"wave and slide to the right (past Shadow)\"}]"}
 {"in":"Revolving Door","fanOut":"[{\"schemaVersion\":1,\"move\":\"revolving_door\"}]"}
@@ -6155,9 +6155,9 @@
 {"in":"Pass Shadow 1 by R-Shoulder","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Pass Shadow 1 by R-Shoulder\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Mad Robin CW (Robins in front)","scrub":"mad robin CW (role2s in front)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"mad robin CW (role2s in front)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Ring balance, spin to the right (look for Partner)","fanOut":"[{\"schemaVersion\":1,\"move\":\"petronella\",\"params\":{\"balance\":true},\"note\":\"look for Partner\"}]"}
-{"in":"Neighbor RH-balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor RH-balance\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Neighbor RH-balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"neighbors\",\"hand\":\"right\"}}]"}
 {"in":"3/4 Hey, Neighbor start Right shoulder (NR, Robins L, PR, Larks L, NR, Robins L)","scrub":"3/4 Hey, Neighbor start Right shoulder (NR, role2s L, PR, role1s L, NR, role2s L)","fanOut":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"pass1\":\"neighbors\",\"length\":\"betweenHalfAndFull\",\"shoulder\":\"right\"},\"note\":\"NR, role2s L, PR, role1s L, NR, role2s L\"}]"}
-{"in":"Partner RH-balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Partner RH-balance\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Partner RH-balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"partners\",\"hand\":\"right\"}}]"}
 {"in":"1/4 Hey, Partner start Right shoulder (PR, Larks L)","scrub":"1/4 Hey, Partner start Right shoulder (PR, role1s L)","fanOut":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"pass1\":\"partners\",\"length\":\"lessThanHalf\",\"shoulder\":\"right\"},\"note\":\"PR, role1s L\"}]"}
 {"in":"Revolving Door (close with N, cross set, Robins catch R-hand, drop off Lark, Robins alle R 1.0)","scrub":"Revolving Door (close with N, cross set, role2s catch R-hand, drop off role1, role2s alle R 1.0)","fanOut":"[{\"schemaVersion\":1,\"move\":\"revolving_door\",\"note\":\"(close with N, cross set, role2s catch R-hand, drop off role1, role2s alle R 1.0)\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Revolving Door (close with N, cross set, role2s catch R-hand, drop off role1, role2s alle R 1.0)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Lines of four forward and back","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Lines of four forward and back\"},\"customOrigin\":\"importGap\"}]"}

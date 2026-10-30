@@ -14,6 +14,7 @@ import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
 import 'author_tokenizer.dart';
 import 'beat_implied_balance.dart';
+import 'callers_companion_comma_split.dart';
 import 'callers_companion_user_fields.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
@@ -484,8 +485,10 @@ CcDanceMapping mapCallersCompanionDance(
   // (nothing to store). The fan-out applies the core `scrubFigureText`
   // chokepoint internally, and the TCB attempt `;`-splits a compound line into
   // multiple figures. A line the fan-out misses gets one more attempt from
-  // [_retryHyphenatedHand]. Section labels are NOT embedded in the figure text
-  // (they derive from cumulative beats), so the section label is not prefixed.
+  // [_retryHyphenatedHand], and then may split at its commas
+  // ([splitCallersCompanionCommaLine]). Section labels are NOT embedded in the
+  // figure text (they derive from cumulative beats), so the section label is
+  // not prefixed.
   final figures = <Figure>[];
   for (final section in record.body) {
     for (final rawLine in section.lines) {
@@ -500,9 +503,21 @@ CcDanceMapping mapCallersCompanionDance(
       final first = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
       final produced =
           _retryHyphenatedHand(prefix.text, prefix.beats, first) ?? first;
+      // A line that names several figures separated by commas is split only
+      // when it did not read whole, or read with a note holding its last piece
+      // (#1975); the split shares out the beats itself.
+      final split =
+          produced.any((f) => f.isCustom) ||
+              noteSwallowsPieces(prefix.text, produced)
+          ? splitCallersCompanionCommaLine(
+              prefix.text,
+              beats: prefix.beats,
+              parts: prefix.parts,
+            )
+          : null;
       final allocated = withBeatImpliedBalance(
         prefix.text,
-        _allocateCompoundBeats(produced, prefix.parts),
+        split ?? _allocateCompoundBeats(produced, prefix.parts),
       );
       lineCache?.remember(line, allocated);
       figures.addAll(allocated);

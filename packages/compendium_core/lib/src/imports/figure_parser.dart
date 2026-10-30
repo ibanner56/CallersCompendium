@@ -1437,12 +1437,50 @@ _Match? _balanceTheRing(List<String> w) {
 
 _Match? _balance(List<String> w) {
   final who = _takeDancer(w);
+  final hand = _takeBalanceHand(w);
   if (!_consumePhrase(w, ['balance'])) return null;
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('balance', {'who': who2 ?? 'neighbors'}, null, who2 == null);
+  return _Match(
+    'balance',
+    {'who': who2 ?? 'neighbors', 'hand': ?hand},
+    null,
+    who2 == null,
+  );
 }
+
+/// Takes the hand Caller's Companion names before a balance (#1975):
+/// `R-hand balance`, `Right-hand balance`, `Right hand balance`, `RH-balance`.
+/// A `RH-balance` token is split so the `balance` after it is still consumed.
+String? _takeBalanceHand(List<String> w) {
+  if (w.isEmpty) return null;
+  final hyphenated = _balanceHandToken.firstMatch(w[0]);
+  if (hyphenated != null) {
+    w.removeAt(0);
+    if (hyphenated[2] != null) w.insert(0, 'balance');
+    return hyphenated[1]!.startsWith('r') ? 'right' : 'left';
+  }
+  if (w.length >= 2 && w[1] == 'hand' && _balanceSides.containsKey(w[0])) {
+    final side = _balanceSides[w[0]]!;
+    w.removeRange(0, 2);
+    return side;
+  }
+  return null;
+}
+
+/// `r-hand`, `right-hand`, `rh`, and each followed by `-balance`.
+final RegExp _balanceHandToken = RegExp(
+  r'^(r|l|right|left)(?:-hand|h)(-balance)?$',
+);
+
+/// The sides [_takeBalanceHand] reads before `hand`.
+const Map<String, String> _balanceSides = {
+  'r': 'right',
+  'right': 'right',
+  'l': 'left',
+  'left': 'left',
+};
 
 _Match? _shoulderRound(List<String> w) {
   final who = _takeDancer(w);

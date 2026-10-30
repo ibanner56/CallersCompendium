@@ -1944,3 +1944,8 @@ class _Compound {
   final List<Figure> figures;
   final int nextIndex;
 }
+
+/// The moves a preceding balance folds into ([CallersBoxAdapter]'s Fold 1),
+/// shared with Caller's Companion's comma split so both sources fold the same
+/// moves (#1975).
+const Set<String> balanceFoldMoves = CallersBoxAdapter._balanceMergeMoves;

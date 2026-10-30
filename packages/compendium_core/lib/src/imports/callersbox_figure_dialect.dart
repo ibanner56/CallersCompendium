@@ -1008,6 +1008,10 @@ List<String> _splitTopLevel(String t, String sep) {
   return out.map((s) => s.trim()).toList();
 }
 
+/// [_splitTopLevel] for other readers: Caller's Companion's comma split
+/// (#1975).
+List<String> splitTopLevel(String t, String sep) => _splitTopLevel(t, sep);
+
 // --- Recognition-only annotation strip --------------------------------------
 
 /// Drops `()`/`[]` parenthetical annotations for RECOGNITION only (TCB appends
