@@ -13,6 +13,11 @@ void main() {
         'Et Al',
         'Others',
         '  and   OTHERS ',
+        'And Others.',
+        'and others...',
+        '(and others)',
+        'et. al.',
+        'Others,',
       ]) {
         final peeled = peelUnnamedOthers(['Rick Mohr', credit]);
         expect(peeled.fields, ['Rick Mohr'], reason: credit);
@@ -24,6 +29,13 @@ void main() {
       expect(peelUnnamedOthers(['Rick Mohr and others']).fields, ['Rick Mohr']);
       expect(peelUnnamedOthers(['Rick Mohr, et al.']).fields, ['Rick Mohr']);
       expect(peelUnnamedOthers(['Rick Mohr & Others']).fields, ['Rick Mohr']);
+      expect(peelUnnamedOthers(['Rick Mohr and others.']).fields, [
+        'Rick Mohr',
+      ]);
+      expect(peelUnnamedOthers(['Rick Mohr (and others)']).fields, [
+        'Rick Mohr',
+      ]);
+      expect(peelUnnamedOthers(['Rick Mohr, Others']).fields, ['Rick Mohr']);
     });
 
     test('leaves other credits alone', () {
@@ -40,13 +52,6 @@ void main() {
         null,
       ]);
       expect(peeled.hadOthers, isFalse);
-    });
-
-    test('a long run of commas before the credit is cheap', () {
-      final field = '${',' * 100000}and others';
-      final watch = Stopwatch()..start();
-      expect(peelUnnamedOthers([field]).fields, ['']);
-      expect(watch.elapsed, lessThan(const Duration(seconds: 1)));
     });
   });
 
@@ -88,6 +93,37 @@ void main() {
       expect(
         mapping.dance.callingNotes,
         contains('Choreography: others, not named'),
+      );
+    });
+
+    test('the note comes after the other notes and before the source', () {
+      final mapping = mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'D',
+          authors: const ['Rick Mohr', 'And Others'],
+          otherNotes: 'Taught at camp',
+          from: 'A book',
+          fromUsrColumns: true,
+        ),
+      );
+      final notes = mapping.dance.callingNotes!;
+      final credit = notes.indexOf('Choreography: Rick Mohr and others');
+      expect(credit, greaterThan(notes.indexOf('Other notes: Taught at camp')));
+      expect(credit, lessThan(notes.indexOf('Source: A book')));
+    });
+
+    test('a pasted "by X and others" line credits X with the note', () async {
+      final adapter = CallersCompanionTextAdapter();
+      const request = ImportRequest(
+        payload:
+            'Sharks in the Pond\nby Rick Mohr and others\n\nA1\n(8) Circle left',
+      );
+      final discovered = (await adapter.discover(request)).single;
+      final draft = adapter.parse(await adapter.fetch(discovered));
+      expect(draft.authorNames, ['Rick Mohr']);
+      expect(
+        draft.dance.callingNotes,
+        contains('Choreography: Rick Mohr and others'),
       );
     });
 

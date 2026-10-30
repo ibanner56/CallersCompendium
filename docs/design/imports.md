@@ -106,6 +106,18 @@ Acceptance: the same multi-author dance imported from Caller's Box (an
 to the **same** author set, so dedupe's author-overlap signal is consistent
 across sources regardless of which adapter produced it.
 
+**Caller's Companion "and others" (#1976).** Before splitting, the Caller's
+Companion mapping (`mapCallersCompanionDance`, both the `.USR` columns and the
+pasted "by" line) takes an unnamed-others credit off its author fields with
+`peelUnnamedOthers()`: `And Others`, `& others`, `et al.`, a bare `Others`, or
+one ending a field (`Rick Mohr and others.`, `Rick Mohr (and others)`). The
+named authors are credited and the dance gets a `Choreography: Rick Mohr and
+others` calling-notes line (`Choreography: others, not named` when nobody is
+named), so no choreographer called "Others" is made. This is CC-only: the
+maintainer's decision covers the CC import, and ContraDB and The Caller's Box
+still split "X and others" into `X` and `others`. The author set for dedupe
+still overlaps across sources on the named authors.
+
 - **Matching policy — exact, normalized, conservative.** A name matches an existing
   `Choreographer` iff its normalized form (NFC composition → trim → collapse
   internal whitespace → lowercase) equals an existing row's normalized name.

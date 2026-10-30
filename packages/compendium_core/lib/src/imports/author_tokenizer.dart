@@ -196,13 +196,14 @@ bool _isWordChar(int codeUnit) =>
     (codeUnit >= 0x41 && codeUnit <= 0x5A) || // A-Z
     (codeUnit >= 0x61 && codeUnit <= 0x7A); // a-z
 
-/// The spellings of an unnamed-others credit [peelUnnamedOthers] recognises,
-/// lower-cased, whitespace collapsed.
+/// The spellings of an unnamed-others credit [peelUnnamedOthers] recognises
+/// after a space, comma or `(`, lower-cased, whitespace collapsed, trailing
+/// `.` dropped.
 const List<String> _unnamedOthers = [
   'and others',
   '& others',
-  'et al.',
   'et al',
+  'et. al',
 ];
 
 /// [rawFields] with any "and others" credit taken off, and whether one was
@@ -211,9 +212,15 @@ const List<String> _unnamedOthers = [
 /// Caller's Companion credits a dance to "Rick Mohr" and "And Others", which
 /// [splitAuthorNames] would read as an author named "Others". The maintainer's
 /// decision (#1976, 2026-10-30) is to credit only the named authors and keep
-/// "and others" as a note. A field that is only such a credit (`And Others`,
-/// `& others`, `et al.`, `Others`) is dropped, and one that ends with it
-/// (`Rick Mohr and others`, `Rick Mohr, et al.`) keeps the names before it.
+/// "and others" as a note, for "& others" and "et al." too. A field that is
+/// only such a credit is dropped, and one that ends with it (`Rick Mohr and
+/// others.`, `Rick Mohr, et al.`, `Rick Mohr (and others)`) keeps the names
+/// before it. Trailing `.`, `…`, `)` and `,` are ignored.
+///
+/// Also the author's choice (not the maintainer's), on the same reading: a
+/// bare `Others` field, or `others` after a comma or `(`, is the same credit,
+/// since nobody is credited as "Others"; `Bob Others` is left alone.
+///
 /// Matching is case-insensitive and fixed-string, so it cannot backtrack.
 ({List<String?> fields, bool hadOthers}) peelUnnamedOthers(
   Iterable<String?> rawFields,
@@ -225,29 +232,38 @@ const List<String> _unnamedOthers = [
       fields.add(null);
       continue;
     }
-    final field = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+    var field = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+    var end = field.length;
+    while (end > 0 && '.…), '.contains(field[end - 1])) {
+      end--;
+    }
+    field = field.substring(0, end);
     final lower = field.toLowerCase();
-    if (lower == 'others') {
-      hadOthers = true;
+    int? cut;
+    for (final credit in [..._unnamedOthers, 'others']) {
+      if (!lower.endsWith(credit)) continue;
+      final before = lower.substring(0, lower.length - credit.length);
+      // "And others" follows a name after a space; a bare "others" only after
+      // a comma or `(`, so `Bob Others` stays a name.
+      final follows = credit == 'others'
+          ? before.trimRight().endsWith(',') || before.trimRight().endsWith('(')
+          : before.endsWith(' ') ||
+                before.endsWith(',') ||
+                before.endsWith('(');
+      if (before.isEmpty || before == '(' || follows) {
+        cut = field.length - credit.length;
+        break;
+      }
+    }
+    if (cut == null) {
+      fields.add(raw);
       continue;
     }
-    String? kept = raw;
-    for (final credit in _unnamedOthers) {
-      if (lower == credit) {
-        kept = null;
-      } else if (lower.endsWith(' $credit') || lower.endsWith(',$credit')) {
-        var end = field.length - credit.length;
-        while (end > 0 && (field[end - 1] == ' ' || field[end - 1] == ',')) {
-          end--;
-        }
-        kept = field.substring(0, end);
-      } else {
-        continue;
-      }
-      hadOthers = true;
-      break;
+    hadOthers = true;
+    while (cut! > 0 && ' ,('.contains(field[cut - 1])) {
+      cut--;
     }
-    if (kept != null) fields.add(kept);
+    if (cut > 0) fields.add(field.substring(0, cut));
   }
   return (fields: fields, hadOthers: hadOthers);
 }
