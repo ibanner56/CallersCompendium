@@ -3402,39 +3402,9 @@
   "@settingsAppearanceTagColoursSubtitle": {
     "description": "Explanation for the tag-colour customisation entry."
   },
-  "settingsTagColoursTitle": "Tag colours",
-  "@settingsTagColoursTitle": {
-    "description": "App-bar title of the per-tag colour settings screen."
-  },
-  "settingsTagColoursIntro": "Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag's name is always shown too, so tags stay readable without colour.",
-  "@settingsTagColoursIntro": {
-    "description": "Intro paragraph explaining per-tag colours."
-  },
-  "settingsTagColoursListHeader": "Tags",
-  "@settingsTagColoursListHeader": {
-    "description": "Section header above the list of tags."
-  },
   "settingsTagColoursEmpty": "You haven't created any tags yet. Add a tag to a dance and it will appear here.",
   "@settingsTagColoursEmpty": {
     "description": "Shown on the tag-colour screen when the collection has no tags."
-  },
-  "settingsTagColoursCustom": "Custom colour",
-  "@settingsTagColoursCustom": {
-    "description": "Subtitle shown when a tag has a custom colour set."
-  },
-  "settingsTagColoursNoColour": "No colour",
-  "@settingsTagColoursNoColour": {
-    "description": "Subtitle shown when a tag has no colour assigned."
-  },
-  "settingsTagColoursResetTooltip": "Remove {label}'s colour",
-  "@settingsTagColoursResetTooltip": {
-    "description": "Tooltip on the button that clears one tag's colour.",
-    "placeholders": {
-      "label": {
-        "type": "String",
-        "example": "chestnut"
-      }
-    }
   },
   "settingsTagColoursSaveError": "Couldn't save that colour. Please try again.",
   "@settingsTagColoursSaveError": {
@@ -3443,6 +3413,222 @@
   "settingsTagColoursLoadError": "Couldn't load your tags.",
   "@settingsTagColoursLoadError": {
     "description": "Shown on the tag-colour screen when the tag list fails to load."
+  },
+  "tagManagerTitle": "Tags",
+  "@tagManagerTitle": {
+    "description": "App-bar title of the Tags manager, where tags are renamed, merged, coloured and deleted."
+  },
+  "tagManagerSearchHint": "Search tags",
+  "@tagManagerSearchHint": {
+    "description": "Hint in the Tags manager's search field."
+  },
+  "tagManagerNameLabel": "Tag name",
+  "@tagManagerNameLabel": {
+    "description": "Label of the name field in the Tags manager's rename dialog."
+  },
+  "tagManagerColour": "Colour…",
+  "@tagManagerColour": {
+    "description": "Tags manager action: opens the colour picker for a tag."
+  },
+  "tagManagerRemoveColour": "Remove colour",
+  "@tagManagerRemoveColour": {
+    "description": "Tags manager action, offered only for a tag with a colour: removes the colour."
+  },
+  "tagManagerDeletedSnack": "{count, plural, =0{Deleted “{name}”} =1{Deleted “{name}” from 1 dance} other{Deleted “{name}” from {count} dances}}",
+  "@tagManagerDeletedSnack": {
+    "description": "Snackbar after deleting a tag in the Tags manager, with an Undo action. The count is the dances in the collection that lost the tag; dances in Recently deleted are not counted.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Bouncey"
+      },
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "tagManagerRenamedSnack": "Renamed “{from}” to “{to}”",
+  "@tagManagerRenamedSnack": {
+    "description": "Snackbar after renaming a tag in the Tags manager, with an Undo action.",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      },
+      "to": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "tagManagerMergedSnack": "Merged “{from}” into “{into}”",
+  "@tagManagerMergedSnack": {
+    "description": "Snackbar after merging one tag into another in the Tags manager, with an Undo action.",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      },
+      "into": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "tagManagerMergedSeveralSnack": "Combined {count} tags into “{into}”",
+  "@tagManagerMergedSeveralSnack": {
+    "description": "Snackbar after a rename merged three or more tags into one (case variants of the same name), with an Undo action. The count includes the tag merged into.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "into": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "libraryManagerClearSearch": "Clear search",
+  "@libraryManagerClearSearch": {
+    "description": "Tooltip of the button that clears the search field in the Tags, Authors and Sources managers."
+  },
+  "libraryManagerNotUsed": "Not used",
+  "@libraryManagerNotUsed": {
+    "description": "Filter chip in the Tags, Authors and Sources managers: shows only entries no dance uses."
+  },
+  "libraryManagerSortTooltip": "Sort",
+  "@libraryManagerSortTooltip": {
+    "description": "Tooltip of the sort menu in the Tags, Authors and Sources managers."
+  },
+  "libraryManagerSortByName": "Name",
+  "@libraryManagerSortByName": {
+    "description": "Sort choice in the Tags, Authors and Sources managers: alphabetical."
+  },
+  "libraryManagerSortByDanceCount": "Number of dances",
+  "@libraryManagerSortByDanceCount": {
+    "description": "Sort choice in the Tags, Authors and Sources managers: most-used first."
+  },
+  "libraryManagerNoMatches": "Nothing matches your search.",
+  "@libraryManagerNoMatches": {
+    "description": "Shown in the Tags, Authors and Sources managers when the search or filter leaves no entries."
+  },
+  "libraryManagerDanceCount": "{count, plural, =0{Not used} =1{1 dance} other{{count} dances}}",
+  "@libraryManagerDanceCount": {
+    "description": "Row subtitle in the Tags, Authors and Sources managers: how many dances in the collection use the entry. Dances in Recently deleted are not counted.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "libraryManagerActionsTooltip": "Actions for {name}",
+  "@libraryManagerActionsTooltip": {
+    "description": "Tooltip of the ⋮ menu on a row of the Tags, Authors and Sources managers.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "libraryManagerRename": "Rename",
+  "@libraryManagerRename": {
+    "description": "Action and dialog button in the Tags, Authors and Sources managers: renames the entry."
+  },
+  "libraryManagerRenameTitle": "Rename “{name}”",
+  "@libraryManagerRenameTitle": {
+    "description": "Title of the rename dialog in the Tags, Authors and Sources managers.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowing"
+      }
+    }
+  },
+  "libraryManagerMergeInto": "Merge into…",
+  "@libraryManagerMergeInto": {
+    "description": "Action in the Tags, Authors and Sources managers: opens a picker of the entry to merge this one into."
+  },
+  "libraryManagerMergePickerTitle": "Merge “{name}” into…",
+  "@libraryManagerMergePickerTitle": {
+    "description": "Title of the picker that chooses which entry to merge this one into.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowing"
+      }
+    }
+  },
+  "libraryManagerMergeOfferTitle": "Name already in use",
+  "@libraryManagerMergeOfferTitle": {
+    "description": "Title of the dialog shown when a rename in the Tags, Authors or Sources manager picks a name another entry already has."
+  },
+  "libraryManagerMergeOfferOne": "“{existing}” already exists. Merge “{from}” into it?",
+  "@libraryManagerMergeOfferOne": {
+    "description": "Body of the dialog shown when a rename picks a name another entry already has. Merging keeps one entry; it can be undone.",
+    "placeholders": {
+      "existing": {
+        "type": "String",
+        "example": "Flowy"
+      },
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      }
+    }
+  },
+  "libraryManagerMergeOfferOneRenamed": "“{existing}” already exists. Merge “{from}” into it and call it “{name}”?",
+  "@libraryManagerMergeOfferOneRenamed": {
+    "description": "Body of the dialog shown when a rename picks a name another entry already has with different capitals. Merging keeps one entry, under the name typed; it can be undone.",
+    "placeholders": {
+      "existing": {
+        "type": "String",
+        "example": "Flowy"
+      },
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      },
+      "name": {
+        "type": "String",
+        "example": "flowy"
+      }
+    }
+  },
+  "libraryManagerMergeOfferSeveral": "More than one entry is already called “{name}”. Choose the one to merge “{from}” into; the others are merged into it too.",
+  "@libraryManagerMergeOfferSeveral": {
+    "description": "Body of the dialog shown when a rename picks a name that several entries already have (they differ only in capitals). A list of them follows.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowy"
+      },
+      "from": {
+        "type": "String",
+        "example": "Flowing"
+      }
+    }
+  },
+  "libraryManagerMerge": "Merge",
+  "@libraryManagerMerge": {
+    "description": "Primary button of the merge dialog in the Tags, Authors and Sources managers."
+  },
+  "libraryManagerUndoConflict": "Couldn’t undo: “{name}” is now used by another entry.",
+  "@libraryManagerUndoConflict": {
+    "description": "Snackbar when Undo of a rename, merge or delete in the Tags, Authors or Sources manager cannot give a name back, because another entry has taken it since.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Flowy"
+      }
+    }
+  },
+  "libraryManagerEditFailed": "Couldn’t save that change. Please try again.",
+  "@libraryManagerEditFailed": {
+    "description": "Snackbar when a rename, merge or delete in the Tags, Authors or Sources manager fails."
   },
   "settingsGeneralLibraryHeader": "Library",
   "@settingsGeneralLibraryHeader": {
@@ -3753,6 +3939,14 @@
   "settingsGeneralCapitalizeFiguresSubtitle": "When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
     "description": "Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated."
+  },
+  "settingsGeneralLibraryTagsTitle": "Tags",
+  "@settingsGeneralLibraryTagsTitle": {
+    "description": "Settings › General › Library entry that opens the Tags manager."
+  },
+  "settingsGeneralLibraryTagsSubtitle": "Rename, merge, colour and delete your tags.",
+  "@settingsGeneralLibraryTagsSubtitle": {
+    "description": "Subtitle of the Settings › General › Library entry that opens the Tags manager."
   },
   "settingsGeneralAccessibilityHeader": "Accessibility",
   "@settingsGeneralAccessibilityHeader": {

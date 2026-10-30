@@ -188,6 +188,33 @@ class ReferenceEditRepository {
     );
   }
 
+  /// [liveDanceCount] for every entry of [kind] at once, as a live stream: the
+  /// counts now, then again after every write to the join table or to
+  /// `dances` (a dance moved to Recently deleted stops counting). An entry no
+  /// live dance cites is absent from the map rather than mapped to zero.
+  ///
+  /// One grouped query, so a manager listing hundreds of entries does not run
+  /// one count per row. Each join table's primary key is `(dance, entry)`, so
+  /// `COUNT(*)` counts dances, as [liveDanceCount] does.
+  Stream<Map<String, int>> watchLiveDanceCounts(ReferenceKind kind) {
+    final (join, key, dance) = _joinColumns(kind);
+    return _db
+        .customSelect(
+          'SELECT ${key.name} AS id, COUNT(*) AS n '
+          'FROM ${join.actualTableName} '
+          'WHERE ${dance.name} IN '
+          '(SELECT id FROM dances WHERE deleted_at IS NULL) '
+          'GROUP BY ${key.name}',
+          readsFrom: {join, _db.dances},
+        )
+        .watch()
+        .map(
+          (rows) => {
+            for (final row in rows) row.read<String>('id'): row.read<int>('n'),
+          },
+        );
+  }
+
   /// Renames the live entry [id] to [name].
   ///
   /// Throws [ReferenceNameTakenException], writing nothing, when a live entry

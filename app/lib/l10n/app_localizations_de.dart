@@ -2765,29 +2765,8 @@ class AppLocalizationsDe extends AppLocalizations {
       'Geben Sie einem Tag eine eigene Farbe, damit es auf Tanzkarten und in den Tanzdetails hervorsticht. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.';
 
   @override
-  String get settingsTagColoursTitle => 'Tag-Farben';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'Geben Sie einem Tag eine eigene Farbe, damit es überall hervorsticht, wo es erscheint. Nur die Tags, die Sie einfärben, ändern sich; alle anderen sehen genau so aus wie bisher. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
   String get settingsTagColoursEmpty =>
       'Sie haben noch keine Tags erstellt. Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.';
-
-  @override
-  String get settingsTagColoursCustom => 'Benutzerdefinierte Farbe';
-
-  @override
-  String get settingsTagColoursNoColour => 'Keine Farbe';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Farbe von $label entfernen';
-  }
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2796,6 +2775,133 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsTagColoursLoadError =>
       'Ihre Tags konnten nicht geladen werden.';
+
+  @override
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Tags durchsuchen';
+
+  @override
+  String get tagManagerNameLabel => 'Tag-Name';
+
+  @override
+  String get tagManagerColour => 'Farbe…';
+
+  @override
+  String get tagManagerRemoveColour => 'Farbe entfernen';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '„$name“ aus $count Tänzen gelöscht',
+      one: '„$name“ aus 1 Tanz gelöscht',
+      zero: '„$name“ gelöscht',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return '„$from“ in „$to“ umbenannt';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return '„$from“ mit „$into“ zusammengeführt';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return '$count Tags zu „$into“ zusammengeführt';
+  }
+
+  @override
+  String get libraryManagerClearSearch => 'Suche löschen';
+
+  @override
+  String get libraryManagerNotUsed => 'Nicht verwendet';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sortieren';
+
+  @override
+  String get libraryManagerSortByName => 'Name';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Anzahl der Tänze';
+
+  @override
+  String get libraryManagerNoMatches => 'Nichts passt zu Ihrer Suche.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze',
+      one: '1 Tanz',
+      zero: 'Nicht verwendet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Aktionen für $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Umbenennen';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return '„$name“ umbenennen';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Zusammenführen mit…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return '„$name“ zusammenführen mit…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Name bereits vergeben';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '„$existing“ gibt es bereits. „$from“ damit zusammenführen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '„$existing“ gibt es bereits. „$from“ damit zusammenführen und „$name“ nennen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'Mehrere Einträge heißen bereits „$name“. Wählen Sie den, mit dem „$from“ zusammengeführt wird; die anderen werden ebenfalls damit zusammengeführt.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Zusammenführen';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Rückgängig nicht möglich: „$name“ wird jetzt von einem anderen Eintrag verwendet.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.';
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliothek';
@@ -3085,6 +3191,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
       'Wenn aktiviert, beginnt jede Figur in der Tanzansicht, im Perform-Modus und im Figureneditor mit einem Großbuchstaben („Neighbors allemande left“). Wenn deaktiviert, werden Figuren so angezeigt, wie sie geschrieben sind; eingebaute Figuren beginnen wie in ContraDB mit einem Kleinbuchstaben. Nur die Darstellung der Figuren an diesen Stellen ändert sich; Exporte, Suche, Sync-Vergleiche und Screenreader-Wortlaut bleiben unverändert.';
+
+  @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Tags umbenennen, zusammenführen, einfärben und löschen.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Barrierefreiheit';

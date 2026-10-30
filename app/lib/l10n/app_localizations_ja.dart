@@ -2611,34 +2611,137 @@ class AppLocalizationsJa extends AppLocalizations {
       'タグに独自の色を設定すると、ダンスカードやダンスの詳細で目立つようになります。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
 
   @override
-  String get settingsTagColoursTitle => 'タグの色';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'タグに独自の色を設定すると、表示されるあらゆる場所で目立つようになります。変わるのは色を設定したタグだけで、それ以外は今までどおりです。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
-
-  @override
-  String get settingsTagColoursListHeader => 'タグ';
-
-  @override
   String get settingsTagColoursEmpty => 'まだタグを作成していません。ダンスにタグを追加すると、ここに表示されます。';
-
-  @override
-  String get settingsTagColoursCustom => 'カスタムカラー';
-
-  @override
-  String get settingsTagColoursNoColour => '色なし';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return '$labelの色を削除';
-  }
 
   @override
   String get settingsTagColoursSaveError => 'その色を保存できませんでした。もう一度お試しください。';
 
   @override
   String get settingsTagColoursLoadError => 'タグを読み込めませんでした。';
+
+  @override
+  String get tagManagerTitle => 'タグ';
+
+  @override
+  String get tagManagerSearchHint => 'タグを検索';
+
+  @override
+  String get tagManagerNameLabel => 'タグ名';
+
+  @override
+  String get tagManagerColour => '色…';
+
+  @override
+  String get tagManagerRemoveColour => '色を削除';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '「$name」を$count件のダンスから削除しました',
+      zero: '「$name」を削除しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return '「$from」を「$to」に名前変更しました';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return '「$from」を「$into」に統合しました';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return '$count件のタグを「$into」にまとめました';
+  }
+
+  @override
+  String get libraryManagerClearSearch => '検索をクリア';
+
+  @override
+  String get libraryManagerNotUsed => '未使用';
+
+  @override
+  String get libraryManagerSortTooltip => '並べ替え';
+
+  @override
+  String get libraryManagerSortByName => '名前';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'ダンス数';
+
+  @override
+  String get libraryManagerNoMatches => '検索に一致するものはありません。';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンス',
+      zero: '未使用',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return '$nameの操作';
+  }
+
+  @override
+  String get libraryManagerRename => '名前を変更';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return '「$name」の名前を変更';
+  }
+
+  @override
+  String get libraryManagerMergeInto => '統合先を選ぶ…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return '「$name」の統合先…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'その名前は使用中です';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '「$existing」はすでにあります。「$from」をそこに統合しますか？';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '「$existing」はすでにあります。「$from」をそこに統合し、名前を「$name」にしますか？';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return '「$name」という名前の項目が複数あります。「$from」の統合先を選んでください。ほかの項目もそこに統合されます。';
+  }
+
+  @override
+  String get libraryManagerMerge => '統合';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return '元に戻せません：「$name」は現在ほかの項目が使っています。';
+  }
+
+  @override
+  String get libraryManagerEditFailed => '変更を保存できませんでした。もう一度お試しください。';
 
   @override
   String get settingsGeneralLibraryHeader => 'ライブラリ';
@@ -2901,6 +3004,12 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
       'オンにすると、ダンス表示、Perform モード、フィギュアエディターの各フィギュアが大文字で始まります（「Neighbors allemande left」）。オフの場合は、フィギュアは書かれたとおりに表示され、組み込みのフィギュアは ContraDB と同様に小文字で始まります。変更されるのはこれらの場所での表示のみで、エクスポート、検索、同期の比較、スクリーンリーダーの読み上げ文言は変わりません。';
+
+  @override
+  String get settingsGeneralLibraryTagsTitle => 'タグ';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle => 'タグの名前変更、統合、色付け、削除を行います。';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';

@@ -40,6 +40,7 @@ import '../../widgets/settings_dropdown_row.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
+import '../tag_manager_screen.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -703,6 +704,16 @@ class _GeneralView extends StatelessWidget {
           title: Text(l10n.settingsGeneralCapitalizeFiguresTitle),
           subtitle: Text(l10n.settingsGeneralCapitalizeFiguresSubtitle),
           isThreeLine: true,
+        ),
+        ListTile(
+          key: const ValueKey('general-library-tags'),
+          leading: const Icon(Icons.label_outline),
+          title: Text(l10n.settingsGeneralLibraryTagsTitle),
+          subtitle: Text(l10n.settingsGeneralLibraryTagsSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const TagManagerScreen()),
+          ),
         ),
         SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),
         SwitchListTile(

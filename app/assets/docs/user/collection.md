@@ -89,11 +89,37 @@ connected — and organise a card box into those categories so they can jump to 
 give a dance one or more tags for its vibe or category, and they are ready to
 filter and group by.
 
-You can also give a tag its own colour, under **Settings → Appearance → Tag
-colours**, so a category stands out on dance cards and in dance detail. Tags
-start with no colour and look exactly as they always have until you pick one,
-and the tag's name is always shown beside the colour, so nothing depends on
-being able to tell the colours apart.
+You can also give a tag its own colour, so a category stands out on dance
+cards and in dance detail. Tags start with no colour and look exactly as they
+always have until you pick one, and the tag's name is always shown beside the
+colour, so nothing depends on being able to tell the colours apart.
+
+Colours, and everything else about your tags, are in the **Tags** manager:
+**Settings → General → Library → Tags** (**Settings → Appearance → Tag
+colours** opens it too). It lists every tag with the number of dances that use
+it, and you can search, show only the tags no dance uses (**Not used**), and
+sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
+
+- **Rename** it. Every dance with the tag shows the new name. If another tag
+  already has that name (ignoring capitals), the app offers to **merge** the two
+  instead, under the name you typed; **Keep editing** takes you back to the
+  name.
+- **Merge into…** another tag, picked from a searchable list. Every dance with
+  either tag ends up with the one you picked, which keeps its own colour (or
+  takes this tag's, if it had none).
+- Pick a **Colour…**, or **Remove colour**.
+- **Delete** it. The tag comes off every dance that has it, and the message
+  says how many dances that was (dances in
+  [Recently deleted](./settings.md#deleted-items) lose it too, but aren't
+  counted).
+
+Each of these happens at once, without asking first. A rename, merge or delete
+offers **Undo** in the message that follows (a colour change has none: pick
+another colour, or **Remove colour**, to change it back). That message is the
+only Undo: a deleted tag doesn't go to Recently deleted. If you create a tag with the same name later, it starts
+with no dances. A rename, merge or delete also updates the
+[tags given to imported dances](./settings.md#import-defaults), and Undo puts
+them back.
 
 Next to **Sort** is a **Group by category** control, which appears once you
 have tags. Pick one tag and the list splits into two labelled sections —

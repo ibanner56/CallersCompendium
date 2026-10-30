@@ -5,7 +5,7 @@ against `origin/main` at `acacb05`, and re-checked after merging `main` at
 `296b594`. Every `file:line` below is for `296b594` unless it names another
 branch. Of the files cited, only `ux.md` moved between the two.*
 
-**Status: decided; T1 and T4 built 2026-10-30, T2 and T3 not built.** The maintainer asked for this note (below), and
+**Status: decided; T1, T2 and T4 built 2026-10-30, T3 not built.** The maintainer asked for this note (below), and
 on 2026-10-29/30 answered all seven of its questions, each as the note
 recommended (N2-1 … N2-7 in `maintainer-decisions-2026-10-30.md` on
 `claude/app-audit-categories-k2pdon`; this note's D-N2-*n* is the file's
@@ -564,7 +564,32 @@ retired. The manager lists live tags through `TagRepository.watchAll`
 **Not proposed here:** a "show these dances" action. It would open Collection
 filtered to the row, and B15 is changing how an external tag filter behaves
 (`dance_list_screen.dart:503-530`). Add it after B15 lands, using whatever
-rule B15 settles.
+rule B15 settles. *B15 had merged by the time T2 was built; T2 still leaves
+the action out, as its scope says, and names it as a follow-up.*
+
+**What T2 built (2026-10-30).** The shared list is `LibraryManagerList`
+(`app/lib/src/screens/settings/library_manager_list.dart`), with the dialogs
+T3 reuses beside it: `showLibraryRenameDialog`, `showLibraryMergePicker` and
+`showLibraryMergeOffer`. The screen around the list owns the data and every
+write; the list owns only its session state. The counts come from one grouped
+query, `ReferenceEditRepository.watchLiveDanceCounts`, which re-runs when a
+dance changes, so a dance moved to Recently deleted stops counting at once.
+These choices are T2's own, not maintainer decisions:
+
+- Tapping a row opens the actions as a bottom sheet at every width, not only
+  on a phone. Rejected: a popup menu on wide screens, which would be a second
+  way to reach the same actions with no gain over the row's ⋮.
+- The merge offer's buttons are **Keep editing** (text) and **Merge**
+  (filled), as the add-to-program sheet's **Cancel** / **Add again**, which
+  reads D-1's pattern the same way for a question that has an Undo.
+- **Keep editing** in the merge offer re-opens the rename dialog with the
+  typed name, and when the one match differs from the typed name only in
+  case, the offer says the result takes the typed name ("Merge 'Flowing' into
+  it and call it 'flowy'?"), since the merge writes it.
+- Undo puts the import-tags setting back only while it still holds what the
+  edit wrote. Rejected: restoring it unconditionally, which would undo a
+  change made in Settings, or by a sync pass, between the edit and the
+  Undo.
 
 ## The purge GC (LIFE-5 option c)
 
@@ -626,6 +651,11 @@ should drop the name.
 - **Sync.** The setting is `shareable` and travels as an ordinary settings
   record, so peers take the rewrite by last-writer-wins. Its registry entry
   does not change.
+- **Built by T2** in `app/lib/src/data/tag_edits.dart`. Names are matched
+  exactly, as the import matches them (`resolveDefaultImportTagIds`), and the
+  rewrite is skipped when the stored value is unreadable, which import treats
+  as empty. A tag deleted by any other path, such as a peer's delete applied
+  by sync, still leaves its name behind; import skips it, as before.
 
 ## Privacy registry
 

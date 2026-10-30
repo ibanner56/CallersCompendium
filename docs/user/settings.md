@@ -55,6 +55,9 @@ The **General** section gathers everyday behavior into small groups.
   (built-in figures start in lower case, as in ContraDB). Only the look in those
   places changes; exports, search, sync comparisons and screen-reader wording are
   unaffected.
+- **Tags** — opens the Tags manager, where you rename, merge, colour and delete
+  your tags. See [Group by category](./collection.md#group-by-category-a-dances-vibe)
+  for what each action does.
 
 ### Accessibility
 
@@ -294,7 +297,8 @@ There's a **High contrast** theme for maximum legibility — see the
   every other tag looks exactly as it does now. The tag's name is always shown
   beside the colour, so tags stay readable without relying on colour, and the
   app picks a black or white label automatically so your colour stays legible in
-  every theme.
+  every theme. This opens the Tags manager (also under **General → Library →
+  Tags**): choose **Colour…** in a tag's menu to pick one, or **Remove colour**.
 
 ## Dialect
 
@@ -461,8 +465,11 @@ Select **Import defaults** to open this group.
   a file, from a title list, or from ContraDB), keep whatever tags they already
   have. A program in a Caller's Companion file, a shared file, or a published
   collection is still imported, but only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
-  survives a sync or a merge restore. If you later delete one of the tags,
-  imports simply skip it. Dances you create in the editor are not tagged either.
+  survives a sync or a merge restore. Renaming or merging a tag in the
+  [Tags manager](#library) updates the choice to the new name, and deleting one
+  there removes it from the choice, on every device you sync. A tag deleted
+  some other way, such as on a device running an older version of the app,
+  stays in the choice until you change it, and imports simply skip it. Dances you create in the editor are not tagged either.
   Choosing tags here does not change dances already in your collection, and
   **Undo** on an import removes the dances it created along with their tags
   (the tags themselves stay).

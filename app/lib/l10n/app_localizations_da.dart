@@ -2742,29 +2742,8 @@ class AppLocalizationsDa extends AppLocalizations {
       'Giv et tag sin egen farve, så det skiller sig ud på danskort og i dansdetaljer. Taggets navn vises altid også, så tags forbliver læsbare uden farve.';
 
   @override
-  String get settingsTagColoursTitle => 'Tagfarver';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'Giv et tag sin egen farve, så det skiller sig ud, hvor det end vises. Kun de tags, du farvelægger, ændrer sig; resten ser præcis ud, som de gør nu. Taggets navn vises altid også, så tags forbliver læsbare uden farve.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
   String get settingsTagColoursEmpty =>
       'Du har ikke oprettet nogen tags endnu. Tilføj et tag til en dans, så vises det her.';
-
-  @override
-  String get settingsTagColoursCustom => 'Brugerdefineret farve';
-
-  @override
-  String get settingsTagColoursNoColour => 'Ingen farve';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Fjern farven for $label';
-  }
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2772,6 +2751,133 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsTagColoursLoadError => 'Dine tags kunne ikke indlæses.';
+
+  @override
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Søg i tags';
+
+  @override
+  String get tagManagerNameLabel => 'Tagnavn';
+
+  @override
+  String get tagManagerColour => 'Farve…';
+
+  @override
+  String get tagManagerRemoveColour => 'Fjern farve';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Slettede „$name“ fra $count danse',
+      one: 'Slettede „$name“ fra 1 dans',
+      zero: 'Slettede „$name“',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return 'Omdøbte „$from“ til „$to“';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return 'Flettede „$from“ ind i „$into“';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return 'Samlede $count tags i „$into“';
+  }
+
+  @override
+  String get libraryManagerClearSearch => 'Ryd søgning';
+
+  @override
+  String get libraryManagerNotUsed => 'Ikke brugt';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sortér';
+
+  @override
+  String get libraryManagerSortByName => 'Navn';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Antal danse';
+
+  @override
+  String get libraryManagerNoMatches => 'Intet matcher din søgning.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse',
+      one: '1 dans',
+      zero: 'Ikke brugt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Handlinger for $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Omdøb';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return 'Omdøb „$name“';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Flet ind i…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return 'Flet „$name“ ind i…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Navnet er allerede i brug';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '„$existing“ findes allerede. Flet „$from“ ind i den?';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '„$existing“ findes allerede. Flet „$from“ ind i den og kald den „$name“?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'Flere poster hedder allerede „$name“. Vælg den, „$from“ skal flettes ind i; de andre flettes også ind i den.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Flet';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Kunne ikke fortryde: „$name“ bruges nu af en anden post.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Ændringen kunne ikke gemmes. Prøv igen.';
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotek';
@@ -3051,6 +3157,13 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
       'Når aktiveret, begynder hver figur i dansevisningen, Perform-tilstand og figureditoren med et stort bogstav (“Neighbors allemande left”). Når deaktiveret, vises figurer som skrevet; indbyggede figurer begynder med lille bogstav, som i ContraDB. Kun figurernes udseende disse steder ændres; eksport, søgning, synkroniseringssammenligninger og skærmlæserens ordlyd er upåvirket.';
+
+  @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Omdøb, flet, farvelæg og slet dine tags.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
