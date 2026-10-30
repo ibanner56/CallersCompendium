@@ -449,6 +449,16 @@ Built in #2057.
 
 All three match the recommendations. Builds as the UX6-2 branch, after D2.
 
+### B30 follow-up / PRES-1: stale conflict rows for withdrawn keys (2026-10-30 ~14:25 UTC)
+**Question:** a sync conflict on one of B30's four withdrawn keys queued before the upgrade can fail to resolve until the first full pass. Fix by having `refreshConflictReviews` drop such rows?
+
+**Decision:** "Yes, small fix PR". The option read: "A Sonnet branch drops stale conflict rows for the four withdrawn keys, with a guard test. No behaviour changes for anything else."
+
+### B6 follow-up: prove the rename stamp test can fail (2026-10-30 ~14:25 UTC)
+**Question:** #2042's test that a renamed program's stamp moves strictly forward was never shown to fail. Prove it now?
+
+**Decision:** "Yes, prove it". The option read: "A small session mutates renameDialect to reuse the old stamp and checks the test goes red. If it doesn't, the session strengthens the test in a small PR. A test-only change."
+
 ## Still open
 
 - Nothing on the decision page.
