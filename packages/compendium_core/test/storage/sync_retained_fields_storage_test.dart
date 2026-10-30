@@ -186,6 +186,50 @@ void main() {
     expect(mine.wireHash, SyncMergeCandidate(blob: peer).wireHash);
   });
 
+  test('a withdrawn setting from a build that still syncs it is dropped: '
+      'not applied, not kept, not shared back and not reported', () async {
+    // settings-sync-scope (2026-10-29): these keys became per-device without
+    // a migration, and an older peer still publishes its value. §6.7 as
+    // amended that day drops it, instead of keeping it whole as it keeps a
+    // setting a newer build added.
+    for (final (key, mine, theirs) in const [
+      ('app_locale', 'en', 'de'),
+      ('reduce_motion', false, true),
+      ('auto_size_perform_cards', true, false),
+      ('perform_stage_mode', true, false),
+    ]) {
+      await repositories.settings.set(key, mine);
+      final peer = SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: key,
+        updatedAt: DateTime.now().toUtc().add(const Duration(minutes: 1)),
+        deletedAt: null,
+        existenceAt: _stamp,
+        body: {'value': theirs},
+      );
+      final result = await const SyncApplyEngine().apply(
+        candidates: [SyncMergeCandidate(blob: peer)],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty, reason: key);
+      expect(result.reports, isEmpty, reason: key);
+      expect(await repositories.settings.get(key), mine, reason: key);
+      expect(
+        await db.select(db.retainedSyncFields).get(),
+        isEmpty,
+        reason: '$key: nothing is kept for the peer',
+      );
+      final snapshot = await storage.snapshot();
+      expect(snapshot.local.keys, isNot(contains(peer.address)), reason: key);
+      expect(
+        snapshot.withheld.map((report) => report.code),
+        isNot(contains(SyncReportCode.keptNewerFields)),
+        reason: key,
+      );
+    }
+  });
+
   test('two peers\' tags with the same name and the same kept field are one '
       'tag, not a review', () async {
     // A natural-key collision at the same `updatedAt` compares the whole body,

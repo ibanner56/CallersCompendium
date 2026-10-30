@@ -8604,6 +8604,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get userGuideOpenOnline => 'ガイドをオンラインで開く';
 
   @override
+  String get userGuideEnglishOnly => 'ユーザーガイドは英語で書かれています。';
+
+  @override
   String get shorthandMappingsTitle => 'フィギュアのショートハンド';
 
   @override
