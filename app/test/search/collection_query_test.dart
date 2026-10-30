@@ -273,7 +273,10 @@ void main() {
           ..setHistoryVenue(grange, label: 'Grange')
           ..setHistoryMonths(3);
         final plain = FacetSelections();
-        for (final polarities in [<bool>{}, <bool>{true, false}]) {
+        for (final polarities in [
+          <bool>{},
+          <bool>{true, false},
+        ]) {
           scoped.callStatuses
             ..clear()
             ..addAll(polarities);
@@ -1549,15 +1552,13 @@ void main() {
 
 /// Two filters are equal when they have the same shape; the filter classes
 /// have no `==`, so this compares what the tests care about.
-Matcher _sameFilterAs(DanceFilter expected) =>
-    predicate<DanceFilter>(
-      (actual) =>
-          actual.runtimeType == expected.runtimeType &&
-          (actual is! AndFilter ||
-              (actual.children.length ==
-                  (expected as AndFilter).children.length)),
-      'is shaped like $expected',
-    );
+Matcher _sameFilterAs(DanceFilter expected) => predicate<DanceFilter>(
+  (actual) =>
+      actual.runtimeType == expected.runtimeType &&
+      (actual is! AndFilter ||
+          (actual.children.length == (expected as AndFilter).children.length)),
+  'is shaped like $expected',
+);
 
 final Matcher _hasNoHistoryState = predicate<FacetSelections>(
   (f) =>

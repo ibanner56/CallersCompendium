@@ -19,6 +19,26 @@ and never searches (passing it would switch the dumped file to WAL for no
 query); and it passes the setup to the benchmarks' timed connections, not
 their schema-only ones. H2 and H3 are not built.
 
+*Update, 2026-10-30: H2 is built* (`claude/history-filter-controls`): **At venue**
+and **Within** in `FacetPanel`'s Calling history section, so both hosts (Collection
+and the picker) have them; H3 is not built. Three calls were the implementer's,
+not the maintainer's:
+
+- **Wording of the no-window choice** (ambiguity 1). It is one chip in the
+  **Within** row, selected when no window is set, and it reads **Never called**
+  while **Not called** is the only polarity chosen and **Any time** otherwise.
+  Rejected: a separate "Never called" chip, which would duplicate **Not called**.
+- **The venue chooser** is a bottom sheet, not an inline list, because venues are
+  open-ended. It lists `ProgramRepository.watchCalledVenues` under the same
+  caller, performed-only and event-date scope as the search, so a row is a venue
+  the filter can match. A record key is labelled from the venue catalogue, a
+  typed key from its latest typed text and marked **typed**. The row is left out
+  while no venue has a counted call, unless one is already chosen.
+- **A scope edit re-runs Collection's search** whenever a venue or window is
+  applying, on any data change, because moving a program to another venue
+  changes the result and no call count. The picker already re-searches on every
+  data change.
+
 **The gap.** A caller building tonight's program for the Grange wants a dance
 they have not called at the Grange, or not called in the last few months. The
 app cannot express either today:

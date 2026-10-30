@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
+import '../diagnostics/error_log.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_query.dart';
 import '../theme/app_shapes.dart';
@@ -64,9 +65,19 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
     _choices = null;
     final source = widget.venues;
     if (source == null) return;
-    _sub = source.watch().listen((choices) {
-      if (mounted) setState(() => _choices = choices);
-    }, onError: (_) {});
+    _sub = source.watch().listen(
+      (choices) {
+        if (mounted) setState(() => _choices = choices);
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        // The venue row just stays as it was; the rest of the section works.
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'calling_history_scopes.venues',
+        );
+      },
+    );
   }
 
   void _pickMonths(int? months) {
@@ -115,10 +126,17 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
     final theme = Theme.of(context);
     final facets = widget.facets;
     final venue = facets.historyVenue;
+    // The catalogue's current name beats the label stored when it was chosen,
+    // so a renamed venue reads right.
+    final venueLabel =
+        _choices?.where((c) => c.key == venue).firstOrNull?.label ??
+        facets.historyVenueLabel;
     final showVenue = venue != null || (_choices?.isNotEmpty ?? false);
-    final noWindow = facets.historyMonths == null && facets.historySince == null;
+    final noWindow =
+        facets.historyMonths == null && facets.historySince == null;
     final since = facets.historySince;
-    final neverCalled = facets.scopesApply && facets.callStatuses.single == false;
+    final neverCalled =
+        facets.scopesApply && facets.callStatuses.single == false;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -149,8 +167,8 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
                 label: Text(
                   venue == null
                       ? l10n.collectionFacetVenueAny
-                      : (facets.historyVenueLabel?.isNotEmpty ?? false)
-                      ? facets.historyVenueLabel!
+                      : (venueLabel?.isNotEmpty ?? false)
+                      ? venueLabel!
                       : l10n.collectionFacetVenueUnnamed,
                 ),
                 selected: venue != null,

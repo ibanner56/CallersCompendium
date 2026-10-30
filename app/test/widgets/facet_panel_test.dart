@@ -349,17 +349,21 @@ void main() {
         final repos = openTestRepositories();
         await repos.dances.create(_dance('d1'));
         await repos.venues.upsert(Venue(id: 'v1', name: 'Town Hall'));
-        Program program(String id, DateTime date, {String? venueId, String? venue}) =>
-            Program(
-              id: id,
-              title: id,
-              eventDate: date,
-              venueId: venueId,
-              venue: venue,
-              slots: [ProgramSlot(id: '$id-s', position: 0, danceId: 'd1')],
-              createdAt: DateTime.utc(2026),
-              updatedAt: DateTime.utc(2026),
-            );
+        Program program(
+          String id,
+          DateTime date, {
+          String? venueId,
+          String? venue,
+        }) => Program(
+          id: id,
+          title: id,
+          eventDate: date,
+          venueId: venueId,
+          venue: venue,
+          slots: [ProgramSlot(id: '$id-s', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        );
         await repos.programs.create(
           program('p1', DateTime.utc(2026, 3, 1), venueId: 'v1'),
         );
@@ -378,7 +382,9 @@ void main() {
           venueChoices: VenueChoiceSource(repos: repos),
           onChanged: () => changes++,
         );
-        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 200)),
+        );
         await tester.pump();
 
         expect(find.text('Any venue'), findsOneWidget);
@@ -415,7 +421,9 @@ void main() {
         venueChoices: VenueChoiceSource(repos: repos),
         onChanged: () {},
       );
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
       await tester.pump();
       expect(find.byKey(const ValueKey('facet-history-venue')), findsNothing);
       expect(within('3'), findsOneWidget);

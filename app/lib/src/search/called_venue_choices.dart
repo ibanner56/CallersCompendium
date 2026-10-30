@@ -79,9 +79,8 @@ class VenueChoiceSource {
         for (final venue in rows)
           VenueChoice(
             key: venue.key,
-            label: (venue.key.venueId == null
-                    ? null
-                    : byId[venue.key.venueId]) ??
+            label:
+                (venue.key.venueId == null ? null : byId[venue.key.venueId]) ??
                 venue.latestVenueText ??
                 '',
             programCount: venue.programCount,
@@ -122,6 +121,10 @@ class VenueChoiceSource {
       other.requireEventDate == requireEventDate;
 
   @override
-  int get hashCode =>
-      Object.hash(identityHashCode(repos), callerFilter, performedOnly, requireEventDate);
+  int get hashCode => Object.hash(
+    identityHashCode(repos),
+    callerFilter,
+    performedOnly,
+    requireEventDate,
+  );
 }

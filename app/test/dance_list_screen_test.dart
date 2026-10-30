@@ -1032,7 +1032,8 @@ void main() {
         await repos.dances.create(_dance(id: id, title: title));
       }
       final now = DateTime.now();
-      DateTime ago(int days) => DateTime.utc(now.year, now.month, now.day - days);
+      DateTime ago(int days) =>
+          DateTime.utc(now.year, now.month, now.day - days);
       Program program(String id, String danceId, DateTime date, String venue) =>
           Program(
             id: id,
@@ -1103,7 +1104,9 @@ void main() {
 
       await tapKey(tester, 'call-status-called');
       await tapKey(tester, 'facet-history-venue');
-      await tester.tap(find.byKey(const ValueKey('facet-history-venue-text:the grange')));
+      await tester.tap(
+        find.byKey(const ValueKey('facet-history-venue-text:the grange')),
+      );
       await tester.pumpAndSettle();
       expect(_titles(tester), ['Alpha', 'Bravo']);
 
