@@ -130,7 +130,15 @@ Perform mode, and calling history.
   schedule that many programs can share and you edit in one place. When off, a
   program's venue is a simple free-text field. Switching is **lossless and
   reversible**: your typed venue text and any linked record are both kept, so
-  flipping the toggle never discards either.
+  flipping the toggle never discards either. When you turn it on, and whenever
+  you add a venue record, the app also offers to **link earlier programs**: any
+  program whose typed venue matches a record's name (ignoring capitals and extra
+  spaces) can be linked to it in one step. Until a program is linked, calling
+  history counts a typed "Grange" and a saved "Grange" as two venues. Linking
+  keeps the typed text, only programs in your list are linked (a program in
+  **Recently deleted** keeps its typed venue), and choosing **Not now** just
+  skips it; the offer comes back the next time you turn the setting on or add
+  a matching venue.
 - **Manage venues** — browse, edit, and delete your saved venue records. You can
   also add a venue on the fly while editing a program (when reusable venue records
   are on). A deleted venue doesn't go to Recently deleted, so you can't restore

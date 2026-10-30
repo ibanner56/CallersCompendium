@@ -9946,6 +9946,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get venueManagerNoMatches => 'No venues match your search.';
 
   @override
+  String get venueLinkOfferTitle => 'Link earlier programs?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Some programs have a venue typed in as text that matches a venue record. Linking them makes calling history count them as one venue. The typed text is kept.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs',
+      one: '1 program',
+    );
+    return '“$name”: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Link';
+
+  @override
+  String get venueLinkOfferDecline => 'Not now';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Linked $count programs.',
+      one: 'Linked 1 program.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get venueManagerDeleteTitle => 'Delete venue?';
 
   @override

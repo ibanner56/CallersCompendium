@@ -9658,6 +9658,30 @@
   "@venueManagerNoMatches": {
     "x-sourceSha256": "e940556921b9a433f18671d65cec482b884d67d4c9898e9c44dd3db74ba67d9c"
   },
+  "venueLinkOfferTitle": "Vil du knytte tidligere programmer?",
+  "@venueLinkOfferTitle": {
+    "x-sourceSha256": "86afa285ba0117e339f6459d01613537807434f2ba87823f515bb8ce85a63cfd"
+  },
+  "venueLinkOfferBody": "Nogle programmer har et spillested skrevet som tekst, der matcher en spillestedspost. Når du knytter dem, tæller opkaldshistorikken dem som ét spillested. Den skrevne tekst bevares.",
+  "@venueLinkOfferBody": {
+    "x-sourceSha256": "51f75c042050f5a79ba5f14516a49da5b3bf3d2f11225d81acffb37a5b7b00f8"
+  },
+  "venueLinkOfferRow": "“{name}”: {count, plural, =1{1 program} other{{count} programmer}}",
+  "@venueLinkOfferRow": {
+    "x-sourceSha256": "29c5f6c84b2376bb00998dfb55aa02c8033077b3e1f66526466ef41bc660f3b4"
+  },
+  "venueLinkOfferConfirm": "Knyt",
+  "@venueLinkOfferConfirm": {
+    "x-sourceSha256": "a6a32dbc5618ea39f6df5b0f9808e3588b19e00d5f6f96c69492e40386e5aeab"
+  },
+  "venueLinkOfferDecline": "Ikke nu",
+  "@venueLinkOfferDecline": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
+  "venueLinkOfferDone": "{count, plural, =1{1 program knyttet.} other{{count} programmer knyttet.}}",
+  "@venueLinkOfferDone": {
+    "x-sourceSha256": "431a1aa3f4e20271f7a7aece28cd1fb67ebe75cda7f2b539844ec62712c7a0bb"
+  },
   "venueManagerDeleteTitle": "Slet spillested?",
   "@venueManagerDeleteTitle": {
     "x-sourceSha256": "a9aed6966427e7a9a7a69cb29965442d52da1a8627dfaf18e03624e6f4283efa"

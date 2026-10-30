@@ -10120,6 +10120,41 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun lieu ne correspond à votre recherche.';
 
   @override
+  String get venueLinkOfferTitle => 'Lier les programmes précédents ?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Certains programmes ont un lieu saisi en texte qui correspond à une fiche de lieu. Les lier permet à l\'historique d\'animation de les compter comme un seul lieu. Le texte saisi est conservé.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmes',
+      one: '1 programme',
+    );
+    return '« $name » : $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Lier';
+
+  @override
+  String get venueLinkOfferDecline => 'Pas maintenant';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmes liés.',
+      one: '1 programme lié.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get venueManagerDeleteTitle => 'Supprimer le lieu ?';
 
   @override

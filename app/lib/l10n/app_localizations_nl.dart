@@ -10052,6 +10052,41 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geen locaties komen overeen met je zoekopdracht.';
 
   @override
+  String get venueLinkOfferTitle => 'Eerdere programma\'s koppelen?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Bij sommige programma\'s is een locatie als tekst ingevoerd die overeenkomt met een locatiegegeven. Door ze te koppelen telt de oproephistorie ze als één locatie. De ingevoerde tekst blijft bewaard.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s',
+      one: '1 programma',
+    );
+    return '“$name”: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Koppelen';
+
+  @override
+  String get venueLinkOfferDecline => 'Niet nu';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s gekoppeld.',
+      one: '1 programma gekoppeld.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get venueManagerDeleteTitle => 'Locatie verwijderen?';
 
   @override

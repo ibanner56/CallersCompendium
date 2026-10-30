@@ -10099,6 +10099,41 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine Veranstaltungsorte entsprechen Ihrer Suche.';
 
   @override
+  String get venueLinkOfferTitle => 'Frühere Programme verknüpfen?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Bei einigen Programmen ist ein Veranstaltungsort als Text eingetragen, der zu einem Veranstaltungsort-Eintrag passt. Wenn Sie sie verknüpfen, zählt die Ansageliste sie als einen Ort. Der eingetragene Text bleibt erhalten.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Programme',
+      one: '1 Programm',
+    );
+    return '„$name“: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Verknüpfen';
+
+  @override
+  String get venueLinkOfferDecline => 'Nicht jetzt';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Programme verknüpft.',
+      one: '1 Programm verknüpft.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get venueManagerDeleteTitle => 'Veranstaltungsort löschen?';
 
   @override

@@ -9592,6 +9592,39 @@ class AppLocalizationsJa extends AppLocalizations {
   String get venueManagerNoMatches => '検索に一致する会場がありません。';
 
   @override
+  String get venueLinkOfferTitle => '以前のプログラムをリンクしますか？';
+
+  @override
+  String get venueLinkOfferBody =>
+      '会場がテキストで入力されたプログラムの中に、会場レコードと一致するものがあります。リンクすると、コール履歴で同じ会場として数えられます。入力したテキストは残ります。';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のプログラム',
+    );
+    return '「$name」：$_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'リンクする';
+
+  @override
+  String get venueLinkOfferDecline => '今はしない';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のプログラムをリンクしました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get venueManagerDeleteTitle => '会場を削除しますか？';
 
   @override
