@@ -26,13 +26,13 @@ void main() {
   late InMemorySyncServer server;
   late InMemorySyncDevice a;
   late InMemorySyncDevice b;
-  // Every user write is stamped a few seconds after the last, so two
+  // Every user write is stamped a minute after the last, so two
   // devices' edits never tie (a tie is a conflict choice, §6.3). It starts at
   // the real clock, so each one is also later than the writes sync stamps
   // from the real clock as it applies: started any earlier, which of the two
   // is newer would depend on the second the test ran in.
   late DateTime clock;
-  DateTime tick() => clock = clock.add(const Duration(seconds: 5));
+  DateTime tick() => clock = clock.add(const Duration(minutes: 1));
 
   setUp(() {
     final now = DateTime.now().toUtc();
@@ -321,5 +321,40 @@ void main() {
         d1: {s},
       }, reason: device.deviceId);
     }
+  });
+
+  test('a held deletion that did not give up its name still asks, rather '
+      'than holding a rename back without a word', () async {
+    // Not a merge: on A, "Foo" is renamed "Old" and deleted, then "Bar" is
+    // renamed "Foo". B holds Foo's deletion for a dance only B has, which
+    // nothing on A will ever rewrite, so the hold may never end.
+    await tag(a, s, 'Foo');
+    await tag(a, l, 'Bar');
+    await a.sync();
+    await b.sync();
+    await a.sync();
+    await dance(b, d2, [s]);
+    await a.repositories.references.rename(
+      ReferenceKind.tag,
+      s,
+      'Old',
+      at: tick(),
+    );
+    await a.repositories.references.deleteTag(s, at: tick());
+    await a.repositories.references.rename(
+      ReferenceKind.tag,
+      l,
+      'Foo',
+      at: tick(),
+    );
+    await a.sync();
+    await b.sync();
+    await b.sync();
+
+    expect(await pending(b), [s]);
+    expect(await reviews(b), [
+      'known UUID natural-key rename collides with another local row: '
+          '$l / $s',
+    ]);
   });
 }
