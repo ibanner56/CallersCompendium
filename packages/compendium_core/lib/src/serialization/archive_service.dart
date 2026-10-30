@@ -394,7 +394,14 @@ class ArchiveRestorer {
             ? await _repos.dances.getById(d.id, includeDeleted: true)
             : null;
         if (wasTombstoned) {
-          await _repos.dances.restore(d.id, at: causalAt, clearPending: false);
+          // The archive's own dance overwrites this row next, so the
+          // references the tombstone holds must not be revived with it.
+          await _repos.dances.restore(
+            d.id,
+            at: causalAt,
+            clearPending: false,
+            reviveReferences: false,
+          );
         }
         Future<void> compensate() async {
           if (existing != null) {
@@ -473,10 +480,13 @@ class ArchiveRestorer {
             ? await _repos.programs.getById(p.id, includeDeleted: true)
             : null;
         if (wasTombstoned) {
+          // As for dances above: the archive's program overwrites this row,
+          // so the venue the tombstone names must not be revived with it.
           await _repos.programs.restore(
             p.id,
             at: causalAt,
             clearPending: false,
+            reviveReferences: false,
           );
         }
         Future<void> compensate() async {

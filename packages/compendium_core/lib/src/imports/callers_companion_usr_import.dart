@@ -541,7 +541,13 @@ class CallersCompanionUsrImporter {
             priorStates.add(prior);
           }
           if (prior.deletedAt != null) {
-            await _programs.restore(existingId, at: now);
+            // [target] overwrites the row next, so the venue the tombstone
+            // names is not revived with it.
+            await _programs.restore(
+              existingId,
+              at: now,
+              reviveReferences: false,
+            );
             if (restoredProgramIdSet.add(existingId)) {
               restoredProgramIds.add(existingId);
             }
