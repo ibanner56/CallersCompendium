@@ -126,6 +126,14 @@ search box over whatever you're doing. Start typing to filter your dances and
 programs, use the **up** and **down arrow keys** to move through results, press
 **Enter** to open the highlighted item, and press **Esc** to close.
 
+**Selecting and copying text (Windows, macOS and Linux).** On a dance's page,
+drag across any text to select it, then press **Ctrl-C** (**Cmd-C** on macOS) to
+copy it. **Ctrl-A** (**Cmd-A**) selects everything on the page, and a right-click
+on text offers **Copy** and **Select all**. A figure's beat count and the tags
+are left out of a copy. Screen readers announce each figure as a single item, so
+they can't select part of a figure; use **Copy dance** for a figure's full text.
+Phones and Perform mode don't offer text selection.
+
 **Moving through Perform mode.** In [Perform mode](./glossary.md#perform-mode),
 move between [slots](./glossary.md#slot) with the **left** and **right arrow
 keys**, or with **Page Up** and **Page Down**. These work alongside the on-screen

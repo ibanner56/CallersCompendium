@@ -27,6 +27,12 @@ the dance's **More actions** menu.) There are five actions:
 | **Export dance as JSON** | Builds the same file as **Share dance file**, named `.json` instead, then offers **Save**, **Copy raw JSON**, **Share**, or **Cancel** |
 | **Export / print PDF** | Builds a PDF and opens your system's print dialog |
 
+**Copying a selection instead.** On Windows, macOS and Linux you can also drag
+across part of a dance's page and press **Ctrl-C** (**Cmd-C** on macOS). That copy
+is what the page shows: it follows the canonical-text toggle and your dialect,
+like **Copy dance**, but it also carries **Always show verbose figure text** and
+figure capitalization when those are on, which **Copy dance** never applies.
+
 **Export / print PDF** is a real print path, not a save-to-PDF shortcut: your
 operating system's own dialog opens, and from there you can send it to a printer,
 save it as a PDF, or cancel. This works on every platform the app runs on,
