@@ -238,12 +238,12 @@ class ShareMetadataImporter {
   /// receiver's own dances, which `isInUse` counts. Created rows still go
   /// through the guarded erase, so one a live dance holds is kept.
   ///
-  /// Why: [commit] writes every entry the archive carries before any dance is
-  /// committed, because a dance's write refuses an id that does not exist. So
-  /// a share whose matching rows were skipped or re-imported brought back a
-  /// tag, field or source the receiver had deleted, attached to nothing (or to
-  /// their own dances again). The `.USR` importer drops its unused
-  /// definitions and sources after the commit the same way.
+  /// Why: [commit] writes what the rows about to be written need before any
+  /// dance is committed, because a dance's write refuses an id that does not
+  /// exist. A row that then fails to commit (a link whose target has gone, say)
+  /// leaves those entries unused, and this takes them back. The `.USR`
+  /// importer drops its unused definitions and sources after the commit the
+  /// same way.
   Future<void> dropUnused(
     ShareMetadataImportResult result, {
     required ({Set<String> tags, Set<String> fields, Set<String> sources}) used,

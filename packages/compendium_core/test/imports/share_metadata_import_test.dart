@@ -723,6 +723,70 @@ void main() {
     expect(result.metadata!.restoredTagIds, [oak]);
   });
 
+  test('a row that fails after the metadata commit leaves nothing it needed '
+      'behind', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final tags = TagRepository(db);
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, ChoreographerRepository(db)),
+      ProgramRepository(db),
+      VenueRepository(db),
+      repositories: CompendiumRepositories(db, contraTaxonomy),
+      tags: tags,
+      sources: PublishedSourceRepository(db),
+      customFields: CustomFieldDefRepository(db),
+    );
+    final chestnut = await tags.upsert(Tag(id: 'mine', name: 'chestnut'));
+    await tags.delete(chestnut, at: _now);
+    final archive = CompendiumArchive(
+      exportedAt: _now,
+      dances: [
+        Dance(
+          id: 'shared',
+          title: 'Shared dance',
+          tagIds: const ['t1', 't2'],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      ],
+      tags: [
+        Tag(id: 't1', name: 'chestnut'),
+        Tag(id: 't2', name: 'brand new'),
+      ],
+    );
+    final planned = await importer.plan(encodeArchive(archive));
+    // Linked onto a dance that is gone by the time the commit runs: the
+    // pipeline records the row as failed, after its tags were committed.
+    final batch = ImportBatchResult(
+      records: [
+        ImportRecordPlan(
+          draft: planned.records.single.draft,
+          verdict: DedupeVerdict.ambiguous(const []),
+        ),
+      ],
+    );
+    var nextId = 0;
+
+    final result = await importer.commit(
+      batch,
+      archive,
+      now: _now.add(const Duration(days: 1)),
+      newId: () => 'receiver-${++nextId}',
+      resolutions: {0: DedupeResolution.link('gone')},
+    );
+
+    expect(result.danceSession.records.single.succeeded, isFalse);
+    expect(await tags.listAll(), isEmpty);
+    expect(
+      [for (final t in await tags.listAllWithDeleted()) t.tag.name],
+      ['chestnut'],
+    );
+    expect(result.metadata!.restoredTagIds, isEmpty);
+    expect(result.metadata!.insertedTagIds, isEmpty);
+  });
+
   test('a re-import takes back the tags, fields and sources it revived or '
       'created, since it writes none of them (INTAKE-7)', () async {
     final db = openTestDatabase();
