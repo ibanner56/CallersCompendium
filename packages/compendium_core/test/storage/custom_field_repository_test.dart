@@ -651,6 +651,32 @@ void main() {
       },
     );
 
+    test(
+      'a change from text to choice drops a value outside the options',
+      () async {
+        await seedField(text);
+        await seedDance('trashed-kept', 'driving', inTrash: true);
+        await seedDance('trashed-dropped', 'a note', inTrash: true);
+
+        // ignore: unused_result
+        await repo.upsert(choice, at: edited);
+
+        expect(await valuesByDance(), {'trashed-kept': 'driving'});
+      },
+    );
+
+    test('a change between number and boolean drops the value', () async {
+      // Both store `value_num`, but 2.5 read as a boolean is `true`: the value
+      // would change under the dance rather than survive.
+      await seedField(field(CustomFieldType.number));
+      await seedDance('trashed', 2.5, inTrash: true);
+
+      // ignore: unused_result
+      await repo.upsert(field(CustomFieldType.boolean), at: edited);
+
+      expect(await valuesByDance(), isEmpty);
+    });
+
     test('a live dance\'s value is never dropped by a field edit', () async {
       // The editor locks the type while a live dance holds a value; this write
       // is not where that is enforced, so it must leave live values alone.

@@ -263,10 +263,12 @@ class CustomFieldDefRepository {
   }
 
   /// Deletes the values that dances in Recently deleted hold for field [id]
-  /// once an edit has left them no longer fitting it: every such value when the
+  /// once a local write (an edit, an import, a merge restore; never an inbound
+  /// sync write) has left them no longer fitting it: every such value when the
   /// type changed from [typeBefore] to [type] (other than between text and
-  /// choice, which store the same text), and, for a choice field, any value
-  /// that is not one of [choices].
+  /// choice, which store the same text; number and boolean are dropped too,
+  /// since a number read as a boolean changes the value), and, for a choice
+  /// field, any value that is not one of [choices].
   ///
   /// The trash does not protect what its records use (the maintainer's
   /// trash-policy decision, 2026-10-29, option b), so [isInUse] and

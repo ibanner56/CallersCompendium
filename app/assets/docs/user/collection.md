@@ -389,8 +389,8 @@ A few properties lock once a field is in use on real dances, so the data you hav
 already entered stays consistent. The app tells you which ones when you edit a
 field in use. A dance in **Recently deleted** doesn't count: it doesn't lock a
 field's type or keep you from removing a choice it uses. If you change the type,
-or remove that choice, the deleted dance loses its value for the field, and
-restoring it won't bring the value back.
+or remove that choice, the deleted dance loses its value for the field unless
+the value still fits, and restoring the dance won't bring it back.
 
 ## Keep your collection tidy
 
