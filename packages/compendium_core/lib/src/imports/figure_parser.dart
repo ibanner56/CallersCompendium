@@ -769,8 +769,9 @@ String? _takeNamedDancerAt(List<String> w, int i) {
 }
 
 /// The corner words, which are not [dancerWords] keys: [_takeNamedDancerAt]
-/// reads them, and [_foldDancerNumbers] marks a number after one, as
-/// `Corner 2 swing` names a numbered corner, not a swing twice.
+/// reads them. [_foldDancerNumbers] folds `Corner 1`/`2`/`3` into a
+/// [_numberedCorners] mark and marks any other number after one, as
+/// `Corner 5 swing` names a numbered corner, not a swing five times.
 const Set<String> _cornerWords = {'corner', 'corners'};
 
 const Map<String, String> _cornerOrdinals = {
