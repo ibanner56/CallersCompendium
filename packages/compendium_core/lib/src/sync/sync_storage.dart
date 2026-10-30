@@ -3678,12 +3678,19 @@ final class CompendiumSyncStorage
             )) {
               continue;
             }
-            await _enqueueCollisionReview(
+            final yielded = await _tombstoneYieldsNaturalKey(
               candidate,
-              incumbent.id,
-              reason: syncNaturalKeyRenameCollisionReason,
+              incumbent,
             );
-            continue;
+            if (yielded == null) {
+              await _enqueueCollisionReview(
+                candidate,
+                incumbent.id,
+                reason: syncNaturalKeyRenameCollisionReason,
+              );
+              continue;
+            }
+            candidate = yielded;
           } else if (incumbent != null &&
               kind == SyncRecordKind.customFieldDef &&
               incumbent.shareable == false &&
@@ -4099,6 +4106,110 @@ final class CompendiumSyncStorage
     if (nextKey == null || nextKey == naturalKey) return false;
     final nextHolder = await _naturalKeyRow(kind, nextKey);
     return nextHolder == null || nextHolder.id == holderId;
+  }
+
+  /// Settles a §6.6 step-1 collision between a tag or an author and a
+  /// tombstone, by moving the tombstone off the name (amended 2026-10-30).
+  /// Returns the candidate to apply, or null when this rule does not settle
+  /// it and the collision is queued as before.
+  ///
+  /// A tombstone holds its name only because the `UNIQUE` index covers
+  /// tombstones (§4.1); nobody sees it. A user merge frees its loser's name
+  /// before tombstoning it, and a user rename frees a tombstone's, but a peer
+  /// that deleted the same entry on its own, before hearing of the merge,
+  /// holds a tombstone under the old name — and a newer one, so it wins the
+  /// existence comparison everywhere. Queued, the pair would ask the user to
+  /// keep both or merge an entry nobody can see, on every device.
+  ///
+  /// The tombstone gives up the name as a user merge's loser does:
+  /// `<name>_<first 8 hex digits of its id>`, or all 32 if that is taken. That
+  /// is a pure function of the tombstone's own id, so every device that meets
+  /// the pair derives the same name, which is what lets the renamed tombstone
+  /// converge by last-writer-wins. A local tombstone is renamed in place; an
+  /// inbound one is applied renamed, stamped past its own `updatedAt` so that
+  /// two bodies never share one stamp (I1). Where both are tombstones, the
+  /// larger id yields, so both devices pick the same one.
+  Future<SyncMergeCandidate?> _tombstoneYieldsNaturalKey(
+    SyncMergeCandidate candidate,
+    _NaturalKeyValue holder,
+  ) async {
+    final kind = candidate.blob.kind;
+    if (kind != SyncRecordKind.tag && kind != SyncRecordKind.choreographer) {
+      return null;
+    }
+    final candidateDead = candidate.blob.deletedAt != null;
+    if (!candidateDead && !holder.deleted) return null;
+    final holderYields =
+        holder.deleted &&
+        (!candidateDead || holder.id.compareTo(candidate.blob.id) > 0);
+    final now = DateTime.now().toUtc();
+    if (holderYields) {
+      final String name;
+      final DateTime? updatedAt;
+      if (kind == SyncRecordKind.tag) {
+        final row = await (_db.select(
+          _db.tags,
+        )..where((t) => t.id.equals(holder.id))).getSingle();
+        name = row.name;
+        updatedAt = row.updatedAt;
+      } else {
+        final row = await (_db.select(
+          _db.choreographers,
+        )..where((t) => t.id.equals(holder.id))).getSingle();
+        name = row.name;
+        updatedAt = row.updatedAt;
+      }
+      final freed = await _freedTombstoneName(kind, holder.id, name);
+      if (freed == null) return null;
+      final stamp = nextExistenceStamp(now: now, current: updatedAt);
+      if (kind == SyncRecordKind.tag) {
+        await (_db.update(_db.tags)..where((t) => t.id.equals(holder.id)))
+            .write(TagsCompanion(name: Value(freed), updatedAt: Value(stamp)));
+      } else {
+        await (_db.update(
+          _db.choreographers,
+        )..where((t) => t.id.equals(holder.id))).write(
+          ChoreographersCompanion(name: Value(freed), updatedAt: Value(stamp)),
+        );
+      }
+      _naturalKeyIndex?.replace(
+        kind: kind,
+        id: holder.id,
+        key: normalizeShareableText(freed).toLowerCase(),
+        type: null,
+        deleted: true,
+        shareable: true,
+      );
+      return candidate;
+    }
+    if (!candidateDead) return null;
+    final name = candidate.blob.body['name'];
+    if (name is! String) return null;
+    final freed = await _freedTombstoneName(kind, candidate.blob.id, name);
+    if (freed == null) return null;
+    return _candidateWithBody(candidate, candidate.blob.id, {
+      ...candidate.blob.body,
+      'name': freed,
+    }, updatedAt: nextExistenceStamp(now: now, current: candidate.updatedAt));
+  }
+
+  /// [name] freed for the tombstone [id]: see [_tombstoneYieldsNaturalKey].
+  /// Null when both forms are held by another row.
+  Future<String?> _freedTombstoneName(
+    SyncRecordKind kind,
+    String id,
+    String name,
+  ) async {
+    final hex = id.replaceAll('-', '').toLowerCase();
+    for (final suffix in {hex.length > 8 ? hex.substring(0, 8) : hex, hex}) {
+      final freed = '${name}_$suffix';
+      final held = await _naturalKeyRow(
+        kind,
+        normalizeShareableText(freed).toLowerCase(),
+      );
+      if (held == null || held.id == id) return freed;
+    }
+    return null;
   }
 
   /// Whether [candidate] is a tombstone of a user merge's loser, which keeps

@@ -21,9 +21,6 @@ final class InMemorySyncServer {
   final _blobs = <String, List<int>>{};
   final _devices = <String>[];
 
-  /// Every blob fetch, as `deviceId:hash`, for tests that ask what was read.
-  final fetches = <String>[];
-
   /// The manifest [deviceId] last wrote, decoded; null before its first.
   SyncManifest? manifestOf(String deviceId) {
     final body = _manifests[deviceId];
@@ -89,7 +86,6 @@ final class _InMemoryTransport implements SyncCoordinatorTransport {
 
   @override
   Future<SyncHttpResponse> getBlob(String hash) async {
-    _server.fetches.add('$_deviceId:$hash');
     final body = _server._blobs[hash];
     if (body == null) return _response(404);
     return SyncHttpResponse(

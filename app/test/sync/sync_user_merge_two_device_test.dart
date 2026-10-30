@@ -1,27 +1,39 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/src/storage/database.dart';
-import 'package:drift/drift.dart' show Value, BooleanExpressionOperators, driftRuntimeOptions;
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/in_memory_sync_server.dart';
 import '../support/test_repositories.dart';
 
-const _s = '00000000-0000-4000-8000-000000000001';
-const _l = '00000000-0000-4000-8000-000000000002';
-const _d1 = '00000000-0000-4000-8000-0000000000d1';
-const _d2 = '00000000-0000-4000-8000-0000000000d2';
-
+/// A user's merge, rename and delete of a tag reaching another device
+/// (`docs/design/tags-and-people.md`, T1; sync-spec §6.6 "The remap",
+/// amended 2026-10-30). Two real databases sync through an in-memory store
+/// with real coordinators.
 void main() {
+  // Two databases in one isolate is the point of these tests.
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   final productionKdfIterations = syncIdentityKdfIterations;
   setUpAll(() => syncIdentityKdfIterations = 1000);
   tearDownAll(() => syncIdentityKdfIterations = productionKdfIterations);
 
+  // Ids sort in this order, so the smaller-UUID rule is easy to read.
+  const s = '00000000-0000-4000-8000-000000000001';
+  const l = '00000000-0000-4000-8000-000000000002';
+  const t = '00000000-0000-4000-8000-000000000003';
+  const d1 = '00000000-0000-4000-8000-0000000000d1';
+  const d2 = '00000000-0000-4000-8000-0000000000d2';
+
   late InMemorySyncServer server;
   late InMemorySyncDevice a;
   late InMemorySyncDevice b;
+  // Every user write is stamped a few seconds after the last, so two
+  // devices' edits never tie (a tie is a conflict choice, §6.3).
+  late DateTime clock;
+  DateTime tick() => clock = clock.add(const Duration(seconds: 5));
 
   setUp(() {
+    final now = DateTime.now().toUtc();
+    clock = DateTime.utc(now.year, now.month, now.day, now.hour, now.minute);
     server = InMemorySyncServer();
     a = InMemorySyncDevice(
       server,
@@ -37,106 +49,263 @@ void main() {
     addTearDown(b.dispose);
   });
 
-  Future<void> dance(InMemorySyncDevice device, String id, List<String> tags) =>
-      device.repositories.dances.create(
-        Dance(
-          id: id,
-          title: 'Dance $id',
-          tagIds: tags,
-          createdAt: DateTime.now().toUtc(),
-          updatedAt: DateTime.now().toUtc(),
-        ),
-      );
+  Future<void> tag(InMemorySyncDevice device, String id, String name) async {
+    // ignore: unused_result
+    await device.repositories.tags.upsert(
+      Tag(id: id, name: name),
+      at: tick(),
+      localUserEdit: true,
+    );
+  }
 
-  Future<List<String>> state(InMemorySyncDevice device) async {
+  Future<void> dance(InMemorySyncDevice device, String id, List<String> tags) {
+    final at = tick();
+    return device.repositories.dances.create(
+      Dance(
+        id: id,
+        title: 'Dance $id',
+        tagIds: tags,
+        createdAt: at,
+        updatedAt: at,
+      ),
+    );
+  }
+
+  /// Live tags by id, as each device's user sees them.
+  Future<Map<String, String>> liveTags(InMemorySyncDevice device) async => {
+    for (final tag in await device.repositories.tags.listAll())
+      tag.id: tag.name,
+  };
+
+  /// Which live tags each dance shows.
+  Future<Map<String, Set<String>>> danceTags(InMemorySyncDevice device) async {
     final db = device.repositories.db;
-    final tags = await db.select(db.tags).get();
-    final joins = await db.select(db.danceTags).get();
-    final pending = await device.repositories.syncLocal.listPendingDeletions();
-    final queue = await device.repositories.syncLocal.listReviewQueue();
-    return [
-      for (final t in tags)
-        'tag ${t.id.substring(34)} "${t.name}"${t.deletedAt == null ? '' : ' (deleted)'}',
-      for (final j in joins) 'join ${j.danceId.substring(34)}->${j.tagId.substring(34)}',
-      for (final p in pending) 'pending ${p.recordId.substring(34)}',
-      for (final q in queue)
-        'review ${q.reason} ${q.recordId.substring(34)}/${q.counterpartId.length > 34 ? q.counterpartId.substring(34) : q.counterpartId}',
-    ];
+    final live = (await liveTags(device)).keys.toSet();
+    final result = <String, Set<String>>{};
+    for (final row in await db.select(db.danceTags).get()) {
+      if (!live.contains(row.tagId)) continue;
+      result.putIfAbsent(row.danceId, () => {}).add(row.tagId);
+    }
+    return result;
   }
 
-  /// What a user merge of S-renamed-to-"Flowy" into L writes on [device],
-  /// by hand: the loser's name freed, joins re-pointed, survivor renamed,
-  /// loser tombstoned, alias recorded.
-  Future<void> simulatedMerge(InMemorySyncDevice device) async {
-    final repos = device.repositories;
-    final db = repos.db;
-    await repos.transaction(() async {
-      final now = DateTime.now().toUtc();
-      await (db.update(db.tags)..where((t) => t.id.equals(_l))).write(
-        TagsCompanion(
-          name: const Value('Flowy_00000000'),
-          updatedAt: Value(now),
-        ),
-      );
-      final joins = await (db.select(
-        db.danceTags,
-      )..where((t) => t.tagId.equals(_l))).get();
-      for (final j in joins) {
-        await (db.update(db.danceTags)..where(
-              (t) => t.danceId.equals(j.danceId) & t.tagId.equals(_l),
-            ))
-            .write(const DanceTagsCompanion(tagId: Value(_s)));
-        final d = await (db.select(
-          db.dances,
-        )..where((t) => t.id.equals(j.danceId))).getSingle();
-        await (db.update(db.dances)..where((t) => t.id.equals(j.danceId)))
-            .write(
-              DancesCompanion(
-                updatedAt: Value(d.updatedAt.add(const Duration(seconds: 1))),
-              ),
-            );
-      }
-      // ignore: unused_result
-      await repos.tags.upsert(
-        Tag(id: _s, name: 'Flowy'),
-        localUserEdit: true,
-      );
-      await repos.tags.delete(_l);
-      await repos.syncLocal.remapIdentity(
-        kind: SyncRecordKind.tag,
-        losingId: _l,
-        survivingId: _s,
-      );
-    });
+  Future<List<String>> reviews(InMemorySyncDevice device) async => [
+    for (final row in await device.repositories.syncLocal.listReviewQueue())
+      '${row.reason}: ${row.recordId} / ${row.counterpartId}',
+  ];
+
+  Future<List<String>> pending(InMemorySyncDevice device) async => [
+    for (final row
+        in await device.repositories.syncLocal.listPendingDeletions())
+      row.recordId,
+  ];
+
+  /// Runs passes alternately until neither device changes, failing if a
+  /// review row is raised on the way or the devices never settle.
+  Future<void> settle({int maxRounds = 6}) async {
+    String? previous;
+    for (var round = 0; round < maxRounds; round++) {
+      await b.sync();
+      await a.sync();
+      expect(await reviews(a), isEmpty, reason: 'device A, round $round');
+      expect(await reviews(b), isEmpty, reason: 'device B, round $round');
+      final state =
+          '${await liveTags(a)} ${await danceTags(a)} '
+          '${await liveTags(b)} ${await danceTags(b)}';
+      if (state == previous) return;
+      previous = state;
+    }
+    fail('the devices did not settle in $maxRounds rounds: $previous');
   }
 
-  test('explore: held peer after a merge', () async {
-    // ignore: unused_result
-    await a.repositories.tags.upsert(Tag(id: _s, name: 'Flowing'));
-    // ignore: unused_result
-    await a.repositories.tags.upsert(Tag(id: _l, name: 'Flowy'));
-    await dance(a, _d1, [_l]);
+  /// Both devices hold S "Flowing" and L "Flowy", with d1 tagged L.
+  Future<void> seed() async {
+    await tag(a, s, 'Flowing');
+    await tag(a, l, 'Flowy');
+    await dance(a, d1, [l]);
     await a.sync();
     await b.sync();
     await a.sync();
-    printOnFailure('B start: ${await state(b)}');
+    expect(await liveTags(b), {s: 'Flowing', l: 'Flowy'});
+  }
 
-    await dance(b, _d2, [_l]);
-    await simulatedMerge(a);
-    print('A after merge: ${await state(a)}');
+  /// "Rename 'Flowing' to 'Flowy'", which collides and merges: the user
+  /// merges into L, the larger id, so S survives holding L's name.
+  Future<ReferenceEditUndo> mergeFlowingIntoFlowy(InMemorySyncDevice device) =>
+      device.repositories.references.merge(
+        ReferenceKind.tag,
+        intoId: l,
+        otherIds: [s],
+        name: 'Flowy',
+        at: tick(),
+      );
+
+  test('a peer that tagged a dance with the loser while offline holds the '
+      'deletion, then converges on the survivor with no review row', () async {
+    await seed();
+    // B, offline, tags a new dance with "Flowy" (L).
+    await dance(b, d2, [l]);
+    await mergeFlowingIntoFlowy(a);
     await a.sync();
-    print('A manifest tags: ${server.manifestOf('device-a')!.records[SyncRecordKind.tag]}');
-    print('B manifest tags: ${server.manifestOf('device-b')!.records[SyncRecordKind.tag]}');
-    server.fetches.clear();
-    for (var pass = 1; pass <= 4; pass++) {
-      final r = await b.sync();
-      print('B pass $pass: ${await state(b)} fetched ${server.fetches}');
-      server.fetches.clear();
-      for (final rep in r.reports) {
-        print('  report ${rep.code} ${rep.kind} ${rep.recordId} ${rep.message}');
-      }
-      await a.sync();
-      print('A pass $pass: ${await state(a)}');
+
+    // B now holds L's deletion: d2, which A has never seen, still cites it.
+    await b.sync();
+    expect(await pending(b), [l]);
+    expect(await reviews(b), isEmpty);
+
+    await settle();
+    for (final device in [a, b]) {
+      expect(await liveTags(device), {s: 'Flowy'}, reason: device.deviceId);
+      expect(await danceTags(device), {
+        d1: {s},
+        d2: {s},
+      }, reason: device.deviceId);
+    }
+  });
+
+  test('opposite merges on two offline devices keep the same id', () async {
+    await seed();
+    // A merges "Flowing" into "Flowy"; B, offline, the other way round.
+    await mergeFlowingIntoFlowy(a);
+    await b.repositories.references.merge(
+      ReferenceKind.tag,
+      intoId: s,
+      otherIds: [l],
+      at: tick(),
+    );
+
+    await settle();
+    // Both kept S. B merged last, so its fields win by last-writer-wins.
+    for (final device in [a, b]) {
+      expect(await liveTags(device), {s: 'Flowing'}, reason: device.deviceId);
+      expect(await danceTags(device), {
+        d1: {s},
+      }, reason: device.deviceId);
+    }
+  });
+
+  test("another device's tombstone of the loser never tombstones the "
+      'survivor', () async {
+    await seed();
+    await mergeFlowingIntoFlowy(a);
+    // B, before it hears of the merge, deletes "Flowy" itself: a tombstone of
+    // L stamped after A's. On A the alias names L's survivor, S.
+    await b.repositories.references.deleteTag(l, at: tick());
+
+    await settle();
+    for (final device in [a, b]) {
+      expect(await liveTags(device), {s: 'Flowy'}, reason: device.deviceId);
+    }
+  });
+
+  test('Undo of a merge reaches a peer that held the deletion', () async {
+    await seed();
+    await dance(b, d2, [l]);
+    final undo = await mergeFlowingIntoFlowy(a);
+    await a.sync();
+    await b.sync();
+    expect(await pending(b), [l]);
+
+    await a.repositories.references.undo(undo, at: tick());
+    await settle();
+    for (final device in [a, b]) {
+      expect(await liveTags(device), {
+        s: 'Flowing',
+        l: 'Flowy',
+      }, reason: device.deviceId);
+      expect(await danceTags(device), {
+        d1: {l},
+        d2: {l},
+      }, reason: device.deviceId);
+    }
+  });
+
+  test('a rename onto a name a tombstone holds reaches a peer still holding '
+      "that tombstone's deletion", () async {
+    await seed();
+    // L is deleted on A; B has a dance citing it that A has not seen, so B
+    // holds the deletion.
+    await dance(b, d2, [l]);
+    await a.repositories.references.deleteTag(l, at: tick());
+    await a.sync();
+    await b.sync();
+    expect(await pending(b), [l]);
+
+    // A renames S onto the name L's tombstone holds there.
+    await a.repositories.references.rename(
+      ReferenceKind.tag,
+      s,
+      'Flowy',
+      at: tick(),
+    );
+    await settle();
+    expect(await liveTags(a), {s: 'Flowy'});
+    // B keeps L live while d2 cites it (§6.8). The rename waits behind it,
+    // unqueued.
+    expect(await liveTags(b), {s: 'Flowing', l: 'Flowy'});
+
+    // Once B's user takes the tag off d2, the deletion lands and the rename
+    // follows.
+    final d2OnB = (await b.repositories.dances.getById(d2))!;
+    await b.repositories.dances.update(
+      d2OnB.copyWith(tagIds: const [], updatedAt: tick()),
+      localUserEdit: true,
+    );
+    await settle();
+    for (final device in [a, b]) {
+      expect(await liveTags(device), {s: 'Flowy'}, reason: device.deviceId);
+    }
+  });
+
+  test('a merge of several matches where a loser other than the renamed '
+      'entry held the exact name', () async {
+    // S "Flowing" is renamed onto "Flowy", which L holds exactly and T, only
+    // on A, holds as "FLOWY". Sync folds case and reconciles case variants
+    // between devices (§6.6 step 2), so a peer never holds both L and T; the
+    // matches only coexist on the device that merges. S, the smallest id,
+    // survives holding L's bytes.
+    await seed();
+    await tag(a, t, 'FLOWY');
+    await dance(b, d2, [l]);
+
+    await a.repositories.references.merge(
+      ReferenceKind.tag,
+      intoId: l,
+      otherIds: [s, t],
+      name: 'Flowy',
+      at: tick(),
+    );
+    await a.sync();
+    await b.sync();
+    expect(await pending(b), [l]);
+
+    await settle();
+    for (final device in [a, b]) {
+      expect(await liveTags(device), {s: 'Flowy'}, reason: device.deviceId);
+      expect(await danceTags(device), {
+        d1: {s},
+        d2: {s},
+      }, reason: device.deviceId);
+    }
+  });
+
+  test('a rename of the loser on a peer that has not seen the merge loses to '
+      "the merge's tombstone, as an edit loses to a later delete", () async {
+    await seed();
+    await mergeFlowingIntoFlowy(a);
+    await b.repositories.references.rename(
+      ReferenceKind.tag,
+      l,
+      'Flowier',
+      at: tick(),
+    );
+
+    await settle();
+    for (final device in [a, b]) {
+      expect(await liveTags(device), {s: 'Flowy'}, reason: device.deviceId);
+      expect(await danceTags(device), {
+        d1: {s},
+      }, reason: device.deviceId);
     }
   });
 }
