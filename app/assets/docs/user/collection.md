@@ -32,9 +32,11 @@ the essentials at a glance:
 - any custom fields you have chosen to show in the list (more on those under
   [Make your own fields](#make-your-own-fields)).
 
-Select a tag chip on a row to show every dance with that tag. To choose which
-of these details appear on each row, open **Settings → Defaults → Collection
-card fields**.
+Select a tag chip on a row to add that tag to the **Tags** filter. The rest of
+your search stays as it was: the words in the search bar, your other filters,
+**By phrase** and **Advanced**. A tag chip on a dance's own page does the same,
+and takes you to the Collection. To choose which of these details appear on
+each row, open **Settings → Defaults → Collection card fields**.
 
 *The Collection screen with a search query, the Filters panel open, and matching
 dances visible.*
@@ -189,11 +191,32 @@ Two simple rules govern how filters combine, and knowing them makes the panel
 predictable:
 
 - **Within one filter, choices are "any."** Ticking *Improper* and *Becket*
-  under Formation finds dances in **either** formation. The one exception is
-  **Tunes**, described below.
+  under Formation finds dances in **either** formation. The exceptions are
+  **Tunes** and **Tags**, described below.
 - **Across different filters, choices are "all."** Adding an author on top of
   those formations finds dances that match one of the formations **and** are by
   that author.
+
+### Filter by tags
+
+When you pick a second tag, a choice appears under the tag chips:
+
+- **All tags**, the starting choice: a dance must have every tag you picked.
+  *Smooth* and *Easy* finds only dances tagged with both.
+- **Any tag**: a dance needs only one of them, so *Smooth* and *Easy* finds
+  dances with either.
+
+Tags you pick after the second follow the choice that is showing. If you go
+back to one tag, the next second tag starts at **All tags** again. The choice
+lasts as long as your search does, like the rest of the panel; **Clear filters**
+puts it back to **All tags**.
+
+**Untagged** is always an alternative to the tags you picked: *Untagged*,
+*Smooth* and *Easy* with **All tags** finds dances that have no tags, and
+dances that have both *Smooth* and *Easy*.
+
+To mix tags with figures, or to say "this tag but not that one", use a tag row
+in **Advanced**.
 
 ### Filter by tunes
 

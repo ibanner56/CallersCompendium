@@ -323,8 +323,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool _dataSubscribed = false;
 
   /// The app-level tag-filter coordinator (issue #414). When a tag chip is
-  /// tapped (here, on a dance detail, or on a list row), this list applies a
-  /// single-tag filter. Tracked so the listener is swapped correctly.
+  /// tapped (here, on a dance detail, or on a list row), this list adds the
+  /// tag to its Tags facet. Tracked so the listener is swapped correctly.
   CollectionFilterController? _filterController;
 
   /// The seq of the last tag-filter request applied, so a repeat request (even
@@ -460,7 +460,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
 
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
-    // anywhere publishes a request; this list reacts by applying a single-tag
+    // anywhere publishes a request; this list reacts by adding the tag to its
     // filter. Registers a rebuild dependency; the controller is stable across
     // the app's lifetime, so this attaches once.
     final filter = CollectionFilterScope.maybeOf(context);
