@@ -48,6 +48,7 @@ void main() {
     List<String> authorNames = const [],
     List<String> authorIds = const [],
     String? difficultyLevelLabel,
+    int? rating,
   }) => {
     'id': id,
     'title': title,
@@ -57,6 +58,7 @@ void main() {
     'authorNames': authorNames,
     'authorIds': authorIds,
     'difficultyLevelLabel': ?difficultyLevelLabel,
+    'rating': ?rating,
     'figures': figures,
   };
 
@@ -733,6 +735,45 @@ void main() {
       expect(all.single.id, existingId);
       expect(all.single.title, 'Nice Combination');
     });
+
+    // "Same dance — replace" keeps the caller's rating when the incoming
+    // record carries none (share files, Caller's Box), and takes the incoming
+    // one when it has one. Guards the `src.rating ?? keepFrom?.rating` rule in
+    // `_rebuildWithIdentity`: without the fallback the first test sees null.
+    Future<Dance> linkOverRated({int? incomingRating}) async {
+      final existingId = await seedExisting();
+      final rated = (await dances.getById(existingId))!.copyWith(rating: 4);
+      await dances.update(rated);
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('fake-2', 'Nice Combination', rating: incomingRating),
+        ]),
+        const ImportRequest(),
+      );
+      final session = await pipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      return (await dances.getById(existingId))!;
+    }
+
+    test('resolution link keeps the existing rating when the incoming record '
+        'carries none', () async {
+      final linked = await linkOverRated();
+      expect(linked.title, 'Nice Combination');
+      expect(linked.rating, 4);
+    });
+
+    test(
+      'resolution link applies an incoming rating over the existing one',
+      () async {
+        final linked = await linkOverRated(incomingRating: 2);
+        expect(linked.rating, 2);
+      },
+    );
 
     test('resolution duplicate imports a separate new dance', () async {
       await seedExisting();

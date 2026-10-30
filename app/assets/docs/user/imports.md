@@ -613,7 +613,8 @@ watches for matches:
   than adding a second copy. You can choose **Same
   dance (update existing)** to link the import to your existing copy — this
   replaces your version of the dance with the online record's, including its
-  title, figures, notes, tags, and rating; your custom fields, its place in your
+  title, figures, notes, and tags; your rating (unless the online record carries
+  one), custom fields, its place in your
   programs and its calling history are kept — **Import a second copy** to add it alongside
   your existing dance and keep both source records, or **Cancel** to leave your
   collection unchanged. This applies to single-dance online imports only; the
@@ -624,10 +625,11 @@ watches for matches:
   to choose: **Same dance — replace**, keep both as a **duplicate**, or **skip** the new
   one. **Same dance — replace** keeps the existing dance's identity (its id,
   created date and history) but replaces its content with the imported version,
-  including its title, calling notes, rating, tags, hook, walkthrough, status,
-  links and source citations. Custom fields the import carries replace yours;
-  the rest of your custom fields are kept. Share files carry no star rating, so
-  replacing a dance from one clears the rating you gave it. The review warns
+  including its title, calling notes, tags, hook, walkthrough, status, links
+  and source citations. Custom fields the import carries replace yours; the rest
+  of your custom fields are kept. Your star rating is kept whenever the
+  incoming file carries none, as share files and The Caller's Box never do; a
+  rating the file does carry replaces yours. The review warns
   how many existing dances will be overwritten before you commit.
 - **Same dance, written another way.** Archives spell and annotate titles
   differently: The Caller's Box has `A-1 Reel {variant}` where your collection
@@ -641,9 +643,10 @@ watches for matches:
   possible match, the choices are added to that row, which defaults to **Skip**
   as before. A single-dance online import asks the same question in a dialog
   (**Is this a dance you already have?**), where you pick the dance to replace
-  or **Import as a new dance**; replacing it keeps your custom fields, its place
-  in your programs and its calling history, but takes the incoming title,
-  figures, notes, tags and rating. A title like `New Dance (Velvet)`, whose
+  or **Import as a new dance**; replacing it keeps your rating, custom fields, its
+  place in your programs and its calling history, but takes the incoming title,
+  figures, notes and tags. (A rating the incoming record carries would replace
+  yours.) A title like `New Dance (Velvet)`, whose
   bracket is the dance's real name, is not treated this way, and nor is a
   bracket holding only a part number, as in `Rickett's Hornpipe {#2}`.
 - **Same name, different choreography.** When the title and author match
@@ -658,8 +661,9 @@ watches for matches:
   this same confirmation appears as a dialog rather than a review-screen block.
   The choices are identical: **Import as a variation**, **Same dance (update
   existing)**, or **Cancel**. "Same dance" overwrites the existing dance with the
-  incoming version — your edits, tags, and rating for the existing dance will be
-  replaced — but your calling history is preserved.
+  incoming version — your edits and tags for the existing dance will be
+  replaced, and so will its rating if the incoming record carries one — but
+  your calling history is preserved.
 - **A record with no figures.** Some sources send a dance without its figures —
   The Caller's Box does when the choreographer has not allowed them to be
   shared. Replacing one of your dances with such a record would erase its

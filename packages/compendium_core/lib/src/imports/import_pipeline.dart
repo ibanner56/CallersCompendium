@@ -959,7 +959,7 @@ class ImportPipeline {
             createdAt: existing.createdAt,
             updatedAt: now,
             provenance: prov,
-            keepCustomFieldsFrom: existing,
+            keepFrom: existing,
           );
           await _dances.update(dance);
           if (plan.draft.raw.externalId case final externalId?) {
@@ -1511,9 +1511,9 @@ class ImportPipeline {
   /// [authorIds] is null the draft's own ids are kept — free-text adapters
   /// resolve names at commit and pass the resolved list, while adapters that
   /// ship canonical ids directly (e.g. the generic archive/JSON adapter) pass
-  /// null to preserve them. [keepCustomFieldsFrom] is the dance being
-  /// linked over: its custom-field values for fields [src] does not carry
-  /// survive.
+  /// null to preserve them. [keepFrom] is the dance being linked over: its
+  /// custom-field values for fields [src] does not carry survive, and so does
+  /// its rating when [src] carries none.
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
@@ -1521,7 +1521,7 @@ class ImportPipeline {
     required DateTime updatedAt,
     List<String>? authorIds,
     Provenance? provenance,
-    Dance? keepCustomFieldsFrom,
+    Dance? keepFrom,
   }) => Dance(
     id: id,
     title: src.title,
@@ -1540,7 +1540,10 @@ class ImportPipeline {
     difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,
     mixer: src.mixer,
-    rating: src.rating,
+    // A source that carries no rating (share files, Caller's Box) must not
+    // erase the one the person gave the dance: on a link the incoming rating
+    // wins when present, otherwise the linked-over dance's is kept.
+    rating: src.rating ?? keepFrom?.rating,
     // Carried through whole, so a re-identified dance keeps a tune list
     // that could not be decoded instead of silently becoming empty.
     tunesSource: src.tunesSource,
@@ -1551,8 +1554,8 @@ class ImportPipeline {
     // wins for a field it carries; every other stored value is kept.
     customFields: [
       ...src.customFields,
-      if (keepCustomFieldsFrom != null)
-        for (final value in keepCustomFieldsFrom.customFields)
+      if (keepFrom != null)
+        for (final value in keepFrom.customFields)
           if (!src.customFields.any((v) => v.fieldId == value.fieldId)) value,
     ],
     tagIds: src.tagIds,
