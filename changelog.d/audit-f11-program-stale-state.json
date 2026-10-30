@@ -1,0 +1,18 @@
+{
+  "id": "audit-f11-program-stale-state",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A change you make in Perform no longer overwrites a change to the program that arrived while Perform was open, for example from Device Sync. Your change is saved on top of it, Perform switches to the newer program, and it tells you so. Undo, during Perform or just after, takes back only your change.",
+      "Undo after adding a dance to a program takes that dance back out without undoing other changes made to the program since.",
+      "Deleting a program from the builder saves your unsaved edits first, so the program in Recently deleted, and the one Undo brings back, is the one you were editing.",
+      "Each new program now keeps its own draft, so two new programs no longer overwrite each other's. A draft left by a new program you never saved is offered back by its title, as another new program.",
+      "Rotating a tablet while performing a program no longer loses your place: when you leave Perform, Perform this program still picks up where you left off."
+    ]
+  },
+  "core": {
+    "added": [
+      "`ProgramRepository.replaceIfUnchangedAndReadBack` compares and replaces like `replaceIfUnchanged`, and returns the program as stored."
+    ]
+  }
+}

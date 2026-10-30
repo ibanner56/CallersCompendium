@@ -1,10 +1,14 @@
 # Design: Bulk selection
 
-*Design note N4 for audit finding FIND-8 · v0.1 (2026-10-29) · **Status: proposal.**
-The maintainer chose "design note now" for `design-bulk-select` in
-`maintainer-decisions-2026-10-29.md`. That is the only decision recorded here.
-Everything else is a recommendation from the session that wrote this note, and
-each one says what it rejected. Line numbers are against `origin/main` at
+*Design note N4 for audit finding FIND-8 · v0.2 (2026-10-30) · **Status: decided,
+not built.** The maintainer chose "design note now" for `design-bulk-select` in
+`maintainer-decisions-2026-10-29.md`, and answered this note's six questions on
+2026-10-29/30 (N4-1 … N4-6 in `maintainer-decisions-2026-10-30.md`). Those are
+quoted under [Decisions](#decisions). One answer differs from the
+recommendation: N4-5 builds the batch actions together rather than deferring
+two, and its note drops two of them ("but not mixer or mixed level"). The text
+below follows the answers. Everything still marked as a recommendation is this
+note's, not the maintainer's, and says what it rejected. Line numbers are against `origin/main` at
 `acacb05`. The audit files (`docs/dev/audits/2026-10-behavior/`, including
 `reports/FIND.md` and `decided-work-plan.md`) live on the branch
 `claude/app-audit-categories-k2pdon`, not on `main`. Conforms to
@@ -19,9 +23,9 @@ to the selected dances. It answers the four questions the work plan set:
 2. What happens to selections a new search hides?
 3. Should *Group by category* stay on while selecting?
 4. Which batch actions to add: delete, status, mixer, mixed level, add to
-   program, source?
+   program, source? (Decided: all except mixer and mixed level, N4-5.)
 
-It adds a fifth question the first four force: where do six more actions go on a
+It adds a fifth question the first four force: where do the new actions go on a
 phone-width selection bar?
 
 **Out of scope.** Save, New and header placement belong to D-11, which is still
@@ -107,7 +111,7 @@ choice is between two scopes:
 | **Results** | Every dance in `_results`: the current search, facets, By phrase and Advanced filter | One scope, always what the caller sees counted in the result line (`:2854`) |
 | **Whole collection** | Every live dance, whatever is filtered | A second control; a one-tap path to a huge, invisible selection |
 
-**Recommendation: Results only.** One verb, *Select all*, whose scope is
+**Decided: Results only** (N4-2 = (a), 2026-10-30, as recommended). One verb, *Select all*, whose scope is
 exactly the list the caller is looking at. To select the whole collection, the
 caller clears the filters first, which is the same gesture that lets them see
 what they are about to change. We reject a Gmail-style "select all N in the
@@ -155,7 +159,7 @@ what triggers it.
 | **B. Keep and say so** | Keep the selection; show how many are not in the list; offer one tap to drop them | Accumulation works; nothing is silent; one tap restores A | A selection the caller cannot see; a bigger result-line |
 | **C. Act on shown only** | Keep the set but let batch actions touch only the shown rows | The action matches the screen | The count in the title lies; the same selection does different things per search; hardest to explain |
 
-**Recommendation: B.** The audit already notes the current title is "the right
+**Decided: B** (N4-1 = (b), 2026-10-30, as recommended). The audit already notes the current title is "the right
 total", so the gap is that the caller cannot tell the rows are off-screen. B
 fixes the information, not the data. In detail:
 
@@ -186,9 +190,8 @@ fixes the information, not the data. In detail:
   function with unit tests. This also keeps the diff in `dance_list_screen.dart`
   (3,214 lines, contended by U9, B14, B15 and B16) small.
 
-**Rejected:** A, as the default. It stays available if the maintainer prefers a
-simpler model; the switch is one line in the reconcile rule. See Decisions
-needed.
+**Not chosen:** A, prune on every search. The switch would be one line in the
+reconcile rule.
 
 ## Q3. Keep *Group by category* while selecting?
 
@@ -205,7 +208,7 @@ flat list when it re-sorts. The exception is the *batch tag* flow itself: if
 the caller adds the grouping tag to the selection, the rows move on exit. That
 is expected, and it already happens today because exit restores the sections.
 
-**Recommendation: keep grouping on.** Remove the `_selectionMode ? null :` at
+**Decided: keep grouping on** (N4-3 = (a), 2026-10-30, as recommended). Remove the `_selectionMode ? null :` at
 `:2994`. Give each section header a tri-state checkbox that selects or clears
 that section's rows. This answers "batch-tag within a drawer" directly and costs
 no extra bar control.
@@ -225,27 +228,32 @@ re-creates grouping inside the bar and leaves the reflow bug standing.
 ## Q4. Which batch actions to add
 
 The audit lists delete, status, mixer, mixed level, add to program and source.
-The table gives each one's repository path, what Undo restores and what is new.
-"New" means a core method or a dialog that does not exist yet.
+**Decided: build delete, status, add to program and source together; not mixer
+or mixed level** (N4-5 = (b), 2026-10-30, with the maintainer's note "but not
+mixer or mixed level"). *This differs from the recommendation, which built
+delete, status, mixer and mixed level first and deferred the other two until N2
+and N3 were decided.* Both notes are now decided, so neither action pre-empts
+them. The table keeps the two dropped rows for the record. It gives each
+action's repository path, what Undo restores and what is new. "New" means a
+core method or a dialog that does not exist yet.
 
 | Action | Fields written | Core call | Undo | Size of new work |
 | --- | --- | --- | --- | --- |
 | **Delete** | `deleted_at`, `existence_at` | New `softDeleteMany` over the existing `softDelete` (`:1882`) | New `restoreMany` over `restore` (`:1914`) | Core + dialog + snackbar |
 | **Status** | `dances.status` | New `setStatusForMany` beside `setLevelForMany` (`:2482`) | Per-dance prior status | Core + one dialog |
-| **Mixer** | `dances.mixer` | New `setMixerForMany` | Per-dance prior value | Core + one dialog |
-| **Mixed level** | `dances.mixed_level` | New `setMixedLevelForMany` | Per-dance prior value | Core + one dialog |
-| **Add to program** | `program_slots` | Existing program `update`, as the single-dance sheet does (`widgets/add_to_program_sheet.dart:196-247`) | Restore each program's prior slot list | Depends on N3 |
+| ~~Mixer~~ (not built, N4-5) | `dances.mixer` | — | — | — |
+| ~~Mixed level~~ (not built, N4-5) | `dances.mixed_level` | — | — | — |
+| **Add to program** | `program_slots` | Existing program `update`, as the single-dance sheet does (`widgets/add_to_program_sheet.dart:196-247`) | Restore each program's prior slot list | The N3 sheet's list widget, plus a list of dances |
 | **Source** | `dance_sources` | New `addSourceForMany` (add only) | Per-dance prior citation list | Core + picker reuse |
 
-The four field writes (status, mixer, mixed level, source) are `_updateMany`
-calls. That gives them the transaction and the `localUserEdit` stamp the
+The two field writes (status, source) are `_updateMany` calls. That gives them the transaction and the `localUserEdit` stamp the
 existing handlers use. **Delete is the exception.** It is an existence
 transition (`_stampExistence`, `dance_repository.dart:1881-1882`), not a content
 edit, so `softDeleteMany` and `restoreMany` loop over `softDelete` and `restore`
 inside one transaction. They cannot use `_updateMany`, which only selects live
 rows (`deletedAt.isNull()`, `:2424-2458`) and would skip every dance a restore
 has to revive. Add to program writes programs, not dances. `Dance.copyWith`
-already carries `status`, `mixer`, `mixedLevel` and `sourceCitations`
+already carries `status` and `sourceCitations`
 (`packages/compendium_core/lib/src/model/dance.dart`).
 
 ### Delete
@@ -273,7 +281,10 @@ without a second change.
   single-row delete does not either. A "used in N programs" line in the
   confirmation is possible (one query over `program_slots`), but we do not
   recommend it for the first PR: it would make the bulk path stricter than the
-  row path for no stated reason. It is listed as a decision.
+  row path for no stated reason. N4-5's answer did not address it; see
+  [Decisions](#decisions), item 5 (no warning: the planner's reading,
+  accepted by the maintainer 2026-10-30; `design-work-plan.md` ambiguity 6, on
+  the audit branch).
 
 **Confirmation.** `ux.md:192-193` says to confirm only where Undo is impossible,
 and bulk delete has Undo and a trash. Options:
@@ -284,15 +295,16 @@ and bulk delete has Undo and a trash. Options:
 | **B. Always confirm** | A count-bearing dialog every time | No accidental mass delete | Breaks `ux.md:192-193`; contradicts the *Confirm before delete* setting, which then means nothing for this path |
 | **C. Confirm above a size or when hidden dances are included** | Dialog only for large or partly hidden selections | Protects the case the audit worried about (a bad 200-dance import clean-up goes wrong) | A threshold nobody chose; two rules to document |
 
-**Recommendation: A, with the count and the trash named in the snackbar.** The
+**Decided: A** (N4-4 = (a), 2026-10-30, as recommended), **with the count and
+the trash named in the snackbar** (this note's detail). The
 snackbar reads "Deleted 12 dances" with *Undo*, and its screen-reader text points
 at Recently Deleted so the recovery path outlasts the snackbar. The
 `confirmDeleteIfEnabled` body (`confirmDeleteBody(itemLabel)`) gets a plural
 variant for N dances. We recommend A because the app already built the trash for
 exactly this and the cost of a mistake is one trip to Recently Deleted.
-We note that `_batchClearTunes` (`:1818`) already breaks `ux.md:192-193`, so
-the maintainer may judge the rule as already bent. That is the maintainer's call, not this
-note's.
+N4-4 does not mention `_batchClearTunes`'s unconditional confirm (`:1818`),
+which already bends `ux.md:192-193`. *My reading:* it stays as it is, and bulk
+delete does not copy it.
 
 **Other requirements.**
 - A failure path from the start: `try`/`catch`, `logCaughtError`,
@@ -312,34 +324,29 @@ note's.
   verified here**; S3 checks it against §6.8 before it ships. The cost of a very large delete (every dance in a 5,000-row
   collection) has **not been measured** and is a risk named below.
 
-### Status, mixer and mixed level
+### Status
 
-**Fit.** All three are plain columns on `dances`, classified
+*(This section first covered status, mixer and mixed level together. N4-5's note
+drops mixer and mixed level, so only status remains.)*
+
+**Fit.** `dances.status` is a plain column, classified
 (`privacy/field_registry.dart:365-368`) and edited today in the dance editor
-(`screens/dance_editor/dance_editor_form.dart:667`, `:369`, `:684`). The Collection
-already filters on them (`search/collection_query.dart:54`, `:60`), so the batch
-action closes the "find, then fix" loop the audit describes.
+(`screens/dance_editor/dance_editor_form.dart:667`). The Collection already
+filters on it (`search/collection_query.dart:54`), so the batch action closes
+the "find, then fix" loop the audit describes.
 
 **Shape.**
-- *Status*: a single-choice dialog over `DanceStatus.values` (active, deprecated,
-  broken, draft, variation), as `showBatchLevelDialog` does for level. The
-  labels reuse the editor's.
-- *Mixer* and *Mixed level*: a two-choice dialog ("Mark as mixer" and "Not a
-  mixer"), with the same cancel and apply rules as the level dialog. There is no
-  "clear" because they are booleans, not nullable.
-- Each follows `setLevelForMany`: skip dances already at the target, stamp
+- A single-choice dialog over `DanceStatus.values` (active, deprecated, broken,
+  draft, variation), as `showBatchLevelDialog` does for level. The labels reuse
+  the editor's.
+- It follows `setLevelForMany`: skip dances already at the target, stamp
   `updatedAt` only on those that change, return the count, and let the handler
   report "no changes" when it is zero (`collectionBatchNoChanges`).
 - Undo restores each dance's prior value, narrowed to the dances that changed,
   exactly as `_batchSetLevel` does (`:1582-1585`).
-
-**Options for the menu.** One entry per field is consistent with level and
-rating. A single *Edit details…* dialog with three sections, each defaulting to
-*leave unchanged*, is shorter in the menu and one transaction for all three, but
-it is a new pattern and a bigger dialog. **Recommendation: one entry per field,
-under one divider**, because it matches the existing handlers and the three
-`*ForMany` methods stay independently testable. See "Selection bar layout" for
-the menu length this causes.
+- It sits in the menu's *Details* group beside Set rating (see "Selection bar
+  layout"). With one field left, the combined *Edit details…* dialog this note
+  weighed is moot.
 
 ### Source
 
@@ -347,7 +354,8 @@ the menu length this causes.
 (`model/source_citation.dart:11`). A batch can reasonably set *which* source,
 but not the page or number, which differ per dance.
 
-**Recommendation: add only.** *Add source* picks (or creates) a
+**Recommendation: add only** (this note's; N4-5 decided *that* source is built,
+not its shape). *Add source* picks (or creates) a
 `PublishedSource` and appends a citation with no page or number to every
 selected dance that does not already cite it. A dance that already cites the
 source, with whatever page, is left alone and not counted. We reject *replace*
@@ -357,10 +365,10 @@ Undo of a replace is a second multi-field restore. Remove can come later.
 **Dependencies.** The picker and the create dialog are private to the dance
 editor (`screens/dance_editor_screen.dart:801-840`; the citations editor is
 `dance_editor_form.dart:756`), so a reusable picker has to be extracted first.
-N2 is also deciding how sources are renamed and merged, and a batch add must
-not pre-empt that. **Recommendation: build this last, after N2 decides.** It is
-the lowest-value action in the list: the audit's own cleanup scenarios (bad
-import, duplicates) are served by delete, tags and status.
+N2 has decided how sources are renamed and merged (N2-1, N2-4), and an add-only
+batch writes plain citations, so it pre-empts none of that. N4-5 builds it with
+the others rather than last. T3 (N2's Authors and Sources managers) also edits
+`dance_editor_screen.dart`, so the two branches serialize their merges there.
 
 ### Add to program
 
@@ -376,29 +384,37 @@ must not redesign any of them.
   active sort), because the caller can predict it. The rejected alternative is
   tap order, which is invisible and breaks with accumulate-across-searches.
   The program editor reorders afterwards in either case.
-- **Duplicates.** Whether a dance already in the program is skipped, added again
-  or flagged is N3's "already contains" answer. Bulk reuses it.
+- **Duplicates.** N3 decided that the single-dance sheet asks before adding a
+  dance the program already holds (N3-4 = (b)), with alternates counted
+  (N3-6). Bulk reuses that answer. *Planner's reading, accepted by the
+  maintainer 2026-10-30* (`design-work-plan.md` ambiguity 5, on the audit
+  branch): one question per program tapped, not one per dance:
+  "4 of 12 dances are already in 'Friday dance'", with **Add all**, **Skip those
+  4** and **Cancel**. The marker for a multi-dance selection reads "4 of 12 in
+  this program".
 
-**Dependencies.** N3 (the sheet), plus F10 and F11 (they edit the program editor
-and summary, and F11 fixes the program Undo this reuses). So this action is not
-sized until N3 is decided, and it should not be the first thing built.
+**Dependencies.** N3's sheet branches (the list widget N3-A2 extracts, §4.8 of
+that note), plus F11 (#2040, which fixes the program Undo this reuses; F10
+has merged). Sized at M (~350) now that N3 is decided.
 
 ### Order of value
 
-Recommended order, by what the audit's scenarios need: **Select all and the
-hidden-selection count**, then **delete**, then **status, mixer and mixed level**,
-then **add to program**, then **source**.
+N4-5 builds the actions together, so there is no value order. Select all and
+the hidden-selection count (S1) still come first, because every action branch
+builds on its `CollectionSelection` class.
 
 ## Selection bar layout
 
-With these additions the bar would carry up to fourteen actions, counting Select all. At the 48 dp
+With these additions the bar would carry up to twelve actions, counting Select
+all (fourteen before N4-5 dropped mixer and mixed level). At the 48 dp
 slot width the file already assumes (`_actionSlotWidth`, `:2032`), a 360 dp
 phone fits the close button, a count, and about three icons.
 
-**Recommendation.** Keep the three icons that exist (Add tags, Remove tags, Set
+**Decided: the grouped ⋮ menu, with a Select all icon where it fits** (N4-6 =
+(a), 2026-10-30, as recommended). Keep the three icons that exist (Add tags, Remove tags, Set
 level). Add *Select all* as a fourth icon, only on widths that fit it. The ⋮
 menu becomes a grouped menu, with dividers between:
-1. *Details*: Set rating, Status, Mixer, Mixed level.
+1. *Details*: Set rating, Status.
 2. *Other*: Add tunes, Clear tunes, Edit custom field, Add source.
 3. *Programs*: Add to program.
 4. *Delete* (error colour).
@@ -415,14 +431,14 @@ one.
 - A **bottom sheet** of grouped actions behind one *Actions* button scales
   better than a menu but costs a tap for the commonest actions.
 
-We reject both for now. The ⋮ menu is the existing pattern, and the PR measures
+Neither was chosen. The ⋮ menu is the existing pattern, and the PR measures
 the menu at 320 × 568 and at the largest text scale before it ships.
 
 ## Constraints
 
 **Sync (`sync-spec.md`).** None of the new actions adds a record kind, a column
 or a settings key, so **§6.15 (capability gate, `:4417`) and §6.6 (id aliases,
-`:3197`) are not engaged.** Each field edit (status, mixer, mixed level, source) is an ordinary dance edit
+`:3197`) are not engaged.** Each field edit (status, source) is an ordinary dance edit
 with `localUserEdit: true`, the provenance §6.8 (`:3722`) counts as a deliberate
 local edit. Delete and its Undo are not content edits: they are existence
 transitions stamped by `_stampExistence`, which §6.8 handles separately.
@@ -434,7 +450,8 @@ through §6.6 and §6.15 first. Nothing here should.
 **Privacy registry (`AGENTS.md`; `field_registry.dart`).** No new persisted field
 is introduced. The selection, the hidden count and the grouping choice are
 session-only widget state, like `_groupTagId` (`:275`). The columns written
-(`dances.status`, `.mixer`, `.mixed_level`, `dance_sources.*`) are already
+(`dances.status`, `dance_sources.*`, and `program_slots.*` for Add to program)
+are already
 classified (`field_registry.dart:365-368`, `:654-658`). Persisting a selection or
 a per-device "selection mode default" would need entries on all three axes and is
 not proposed. Subject-axis note: a source citation names a third-party work, and
@@ -443,8 +460,8 @@ them.
 
 **`ux.md`.**
 - *Undo/soft-delete everywhere, confirm only where Undo is impossible*
-  (`ux.md:192-193`): every action here has Undo. Delete's confirmation is
-  Decision 4.
+  (`ux.md:192-193`): every action here has Undo. Delete's confirmation
+  follows *Confirm before delete* (N4-4).
 - *Phone first*: Question 4's layout section is the check. The note's tests
   include a 320 dp width and 2× text scale.
 - `ux.md:58-60` lists Collection's actions ("new dance, import, duplicate, batch
@@ -475,48 +492,75 @@ are.
 - ARB keys in all six locales, each beside related keys, and a
   `changelog.d/<id>.json` fragment per user-visible PR.
 
-## Decisions needed
+## Decisions
 
-Each is a recommendation, not a decision.
+*Planner's readings.* Where an answer left a detail open, the planning session
+proposed a reading in `design-work-plan.md` ("Ambiguities the answers leave
+open", on the audit branch). The maintainer accepted all eight on 2026-10-30
+("Accept all 8 (Recommended)"), as recorded in `maintainer-decisions-2026-10-30.md`
+under "Design plan / N1–N5". This note labels each one "planner's reading,
+accepted by the maintainer 2026-10-30".
 
-1. **Hidden selections (Q2).** Recommend **B, keep and say so**, with
-   *Deselect those not shown*. The alternative is A, prune on every search.
-2. **Select all scope (Q1).** Recommend **the current results only**, no
-   "whole collection" step.
-3. **Grouping while selecting (Q3).** Recommend **keep grouping on**, with a
-   tri-state checkbox per section header.
-4. **Bulk delete confirmation (Q4).** Recommend **follow the *Confirm before
-   delete* setting** (option A). Options B (always) and C (above a threshold or
-   with hidden dances) are in the Delete section. Say whether `_batchClearTunes`'s
-   unconditional confirmation is the pattern you want for bulk delete.
-5. **Which actions, and in what order (Q4).** Recommend delete, then status,
-   mixer and mixed level now; **defer source until N2** and **add to program
-   until N3**. Also whether delete should warn when selected dances appear in
-   programs (not recommended for the first PR).
-6. **Selection bar structure.** Recommend the **grouped ⋮ menu** with *Select
-   all* as a bar icon where it fits. Alternatives: a bottom bar, a combined
-   *Edit details…* dialog.
+The maintainer answered all six on 2026-10-29/30. Each entry quotes the decision
+as `maintainer-decisions-2026-10-30.md` (on `claude/app-audit-categories-k2pdon`)
+records it, and the maintainer's note verbatim where there is one.
 
-## Proposed branch breakdown
+1. **N4-1, hidden selections (Q2).** "(b) Keep them and show the count. The
+   count line says 14 selected (9 not shown), with Deselect those not shown; a
+   longer result line." As recommended.
+2. **N4-2, Select all scope (Q1).** "(a) Current results only. Selects exactly
+   the list on screen; to select everything, clear the filters first." As
+   recommended.
+3. **N4-3, grouping while selecting (Q3).** "(a) Keep groups, add section
+   checkboxes. Sections stay put, and each header gets a checkbox that selects
+   or clears its rows." As recommended.
+4. **N4-4, bulk delete confirmation (Q4).** "(a) Follow Confirm before delete.
+   One rule for every delete; with the setting off a 200-dance delete is one
+   tap, recoverable from Recently deleted." As recommended.
+5. **N4-5, which actions (Q4).** "(b) All six together. Everything at once, but
+   Add to program and Add source would pre-empt open decisions in those two
+   notes." Maintainer's note: "but not mixer or mixed level". *Differs from the
+   recommendation, (a).* So: delete, status, add to program and source. N2 and
+   N3 were decided the same day, so neither pre-emption happens. The sub-question
+   whether delete warns when selected dances appear in programs was not
+   answered. The *planner's reading, accepted by the maintainer 2026-10-30*
+   (`design-work-plan.md` ambiguity 6, on the audit branch): the note's
+   recommendation, no warning in the first PR. Ambiguity 8, also accepted: "all six together" means the
+   same wave as separate branches, not one PR.
+6. **N4-6, selection bar structure.** "(a) Grouped ⋮ menu, Select all icon.
+   Keeps three icons, plus Select all where it fits; the rest go in a grouped
+   menu with Delete last, in the error colour." As recommended.
+
+## Branches
 
 Format and sizing follow `decided-work-plan.md`: S < 150, M 150–400, L 400+
 changed lines, tests included. Each UI branch adds its keys to all six ARBs and
-a `changelog.d` fragment. The sizes are this session's estimates, not
-measurements.
+a `changelog.d` fragment. The sizes are estimates, not measurements. Updated
+2026-10-30 for the decisions above and for what has merged (`main` at
+`90fe5e8`: U9 #2027, F10 #2022 and U7 #2033 have merged; F11 #2040 is open).
+In the audit branch's `design-work-plan.md` these are N4-S1 … N4-S6, with their
+guard tests, docs and waves.
 
 | # | Branch | Items | Main files | Size | Model | Depends on |
 | --- | --- | --- | --- | --- | --- | --- |
 | S1 | `feat/collection-select-all` | Select all; "N not shown" and *Deselect those not shown*; drop ids that no longer exist; end selection when online search turns on; `CollectionSelection` class | `search/collection_selection.dart` (new), `screens/dance_list_screen.dart` (`:374`, `:645`, `:814`, `:944`, `:2330`, `:2854`), ARBs, `docs/user/collection.md`, `docs/design/ux.md:58-60`, tests | M (~300) | Sonnet | B14 and B15 (same file) |
 | S2 | `feat/selection-keeps-groups` | Keep grouping while selecting; section checkbox with semantics | `screens/dance_list_screen.dart` (`:2994`, `:3055`), ARBs, tests | S–M (~200) | Sonnet | S1 |
-| S3 | `feat/batch-delete` | `softDeleteMany`, `restoreMany`, Delete in the menu, confirmation, snackbar, failure path | `dance_repository.dart` (`:1882`, `:1914`), `dance_list_screen.dart`, `utils/confirm_delete.dart`, ARBs, core and widget tests | M (~350) | Opus (transaction, sync tombstones, shares the restore path with B9) | S1, B9 |
-| S4 | `feat/batch-details` | Status, mixer, mixed level: three core methods, three dialogs, grouped ⋮ menu | `dance_repository.dart` (beside `:2482`), new batch dialogs, `dance_list_screen.dart` (`:159`, `:2330`), ARBs, tests | M (~400) | Sonnet | S1 |
-| S5 | `feat/batch-add-to-program` | Add to program for a list of dances, in list order | `widgets/add_to_program_sheet.dart`, `dance_list_screen.dart`, ARBs, tests | M (size after N3) | Sonnet | N3 decided, F10, F11, S1 |
-| S6 | `feat/batch-add-source` | Add source (add only); extract the editor's source picker | `screens/dance_editor_screen.dart` (`:801-840`), `dance_repository.dart`, new picker widget, ARBs, tests | M–L (~450) | Sonnet | N2 decided, S4 |
+| S3 | `feat/batch-delete` | `softDeleteMany`, `restoreMany`, Delete in the menu, confirmation through *Confirm before delete*, snackbar, failure path | `dance_repository.dart` (`:1882`, `:1914`), `dance_list_screen.dart`, `utils/confirm_delete.dart`, ARBs, core and widget tests | M (~350) | Opus (transaction, sync tombstones, shares the restore path with B9) | S1, B9 |
+| S4 | `feat/batch-status` | Status: one core method, one dialog; the grouped ⋮ menu | `dance_repository.dart` (beside `:2482`), a new batch dialog, `dance_list_screen.dart` (`:159`, `:2330`), ARBs, tests | M (~220) | Sonnet | S1 |
+| S5 | `feat/batch-add-to-program` | Add to program for a list of dances, in list order; the multi-dance "already contains" question | `widgets/add_to_program_sheet.dart` and N3's list widget, `dance_list_screen.dart`, ARBs, tests | M (~350) | Opus (a multi-slot append and its Undo) | S4 (the grouped menu), N3-A2 (the list widget), F11 |
+| S6 | `feat/batch-add-source` | Add source (add only); extract the editor's source picker | `screens/dance_editor_screen.dart` (`:801-840`), `dance_repository.dart`, new picker widget, ARBs, tests | M–L (~450) | Sonnet | S4; serialize with T3 on `dance_editor_screen.dart` |
+
+S4 was `feat/batch-details` (status, mixer and mixed level, ~400), the name the
+decisions file's N4-6 entry still uses. With mixer and mixed level dropped, *my
+call* renames it and it shrinks to ~220: one core method and one dialog, plus the
+menu restructure every later action needs. S5 changes model from Sonnet to Opus
+under the work plan's rule, because it adds a transactional multi-slot write
+and its Undo.
 
 **Order.** S1, then S2, S3 and S4 in parallel (they edit different parts of the
-selection bar, so serialise their merges), then S5 and S6 when their
-dependencies land. All six edit `dance_list_screen.dart`, so none starts while
-U9, B14 or B15 is unmerged, and merges go one at a time.
+selection bar, so serialise their merges), then S5 and S6 after S4 and their
+other dependencies. All six edit `dance_list_screen.dart`, so none starts while
+B14 or B15 is unmerged, and merges go one at a time.
 
 **Every branch.** Run `python3 tools/preflight.py`. For each new behaviour,
 show the guard test failing against the naive version first
@@ -535,4 +579,4 @@ list; for S3, a failure mid-batch must leave every dance live.
   *Select all* then Add tags and Delete on the lowest-end target, and quote the
   figures in the PR body after the final rebase.
 - **Sync after a mass delete.** 5,000 tombstones in the next pass is untested.
-- **Menu length** at 320 × 568 with the grouped menu (up to 11 entries and three dividers) is unchecked.
+- **Menu length** at 320 × 568 with the grouped menu (up to 9 entries and three dividers) is unchecked.

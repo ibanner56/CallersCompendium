@@ -197,7 +197,8 @@ void main() {
     });
 
     // Mutation caught: approximating an unmapped people code onto some nearby
-    // token. `c` (TCB square corners) has no taxonomy equivalent, so the
+    // token. A bare `C` (a square corner with no number) has no taxonomy
+    // equivalent, so the
     // annotation must survive verbatim instead of being decoded. This is the
     // real corpus line 5018 in miniature — the single non-conforming
     // annotation among the 626.

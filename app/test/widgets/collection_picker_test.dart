@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
+import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/online_search.dart';
@@ -30,10 +32,12 @@ Dance _dance({
   bool mixedLevel = false,
   bool mixer = false,
   int? rating,
+  List<String> authorIds = const [],
+  DateTime? createdAt,
 }) => Dance(
   id: id,
   title: title,
-  authorIds: const [],
+  authorIds: authorIds,
   tagIds: tagIds,
   tunes: tunes,
   form: DanceForm.contra,
@@ -46,7 +50,7 @@ Dance _dance({
   mixedLevel: mixedLevel,
   mixer: mixer,
   rating: rating,
-  createdAt: DateTime.utc(2026, 1, 1),
+  createdAt: createdAt ?? DateTime.utc(2026, 1, 1),
   updatedAt: DateTime.utc(2026, 1, 1),
 );
 
@@ -82,6 +86,8 @@ Future<void> _pumpPicker(
   void Function(OnlineSearchResultRow result)? onViewOnlineDetails,
   ValueNotifier<bool>? sortIgnoreArticlesNotifier,
   ValueNotifier<Set<String>>? hiddenFacets,
+  ValueNotifier<Set<CollectionTileField>>? tileFields,
+  String? callerFilter,
   Size surfaceSize = const Size(1200, 3000),
   double textScale = 1.0,
   Map<String, int> addedDanceCounts = const {},
@@ -97,7 +103,7 @@ Future<void> _pumpPicker(
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
-  final data = await CollectionData.load(repos);
+  final data = await CollectionData.load(repos, callerFilter: callerFilter);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -117,23 +123,26 @@ Future<void> _pumpPicker(
             // supplies a notifier so every other test runs without it.
             child: _maybeFacetsScope(
               hiddenFacets,
-              CollectionPicker(
-                data: data,
-                dialect: Dialect.larksRobins,
-                enrichment: enrichment,
-                onAddDance: onAddDance,
-                rowAction: rowAction,
-                enableOnlineSearch: enableOnlineSearch,
-                callersBoxOnline: callersBoxOnline,
-                contraDbOnline: contraDbOnline,
-                onDanceImported: onDanceImported,
-                onPreviewDanceStarted: onPreviewDanceStarted,
-                onPreviewDanceEnded: onPreviewDanceEnded,
-                onViewDanceDetails: onViewDanceDetails,
-                onPreviewOnlineStarted: onPreviewOnlineStarted,
-                onPreviewOnlineEnded: onPreviewOnlineEnded,
-                onViewOnlineDetails: onViewOnlineDetails,
-                addedDanceCounts: addedDanceCounts,
+              _maybeTileFieldsScope(
+                tileFields,
+                CollectionPicker(
+                  data: data,
+                  dialect: Dialect.larksRobins,
+                  enrichment: enrichment,
+                  onAddDance: onAddDance,
+                  rowAction: rowAction,
+                  enableOnlineSearch: enableOnlineSearch,
+                  callersBoxOnline: callersBoxOnline,
+                  contraDbOnline: contraDbOnline,
+                  onDanceImported: onDanceImported,
+                  onPreviewDanceStarted: onPreviewDanceStarted,
+                  onPreviewDanceEnded: onPreviewDanceEnded,
+                  onViewDanceDetails: onViewDanceDetails,
+                  onPreviewOnlineStarted: onPreviewOnlineStarted,
+                  onPreviewOnlineEnded: onPreviewOnlineEnded,
+                  onViewOnlineDetails: onViewOnlineDetails,
+                  addedDanceCounts: addedDanceCounts,
+                ),
               ),
             ),
           ),
@@ -142,6 +151,13 @@ Future<void> _pumpPicker(
     ),
   );
 }
+
+Widget _maybeTileFieldsScope(
+  ValueNotifier<Set<CollectionTileField>>? fields,
+  Widget child,
+) => fields == null
+    ? child
+    : CollectionTileFieldsScope(notifier: fields, child: child);
 
 Widget _maybeFacetsScope(ValueNotifier<Set<String>>? hidden, Widget child) =>
     hidden == null
@@ -162,6 +178,7 @@ class _DedupeOnlineService implements OnlineSearchService {
   final Object? importFailure;
   var importCalls = 0;
   final searchedTitles = <String>[];
+  final searchedQueries = <OnlineSearchQuery>[];
 
   @override
   OnlineSource get source => onlineSource;
@@ -169,6 +186,7 @@ class _DedupeOnlineService implements OnlineSearchService {
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     searchedTitles.add(query.title);
+    searchedQueries.add(query);
     return [
       OnlineSearchResultRow(
         source: onlineSource,
@@ -541,6 +559,254 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_titles(tester), ['Plain Title', 'Swing Title']);
+  });
+
+  // FIND-7 / PRES-15 (maintainer decision 2026-10-29, picker-parity = full
+  // parity): the picker offers the Collection's Search in, sort, online scopes
+  // and card fields.
+  group('Collection parity (FIND-7, PRES-15)', () {
+    FullTextScope scopeOf(WidgetTester tester) => tester
+        .state<FormFieldState<FullTextScope>>(
+          find.byKey(const ValueKey('picker-search-scope')),
+        )
+        .value!;
+
+    Future<void> chooseScope(WidgetTester tester, String label) async {
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-search-scope')),
+      );
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> chooseSort(WidgetTester tester, String label) async {
+      await _tapVisible(tester, find.byKey(const ValueKey('picker-sort')));
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Search in Title leaves out a figure-only match', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'title', title: 'Swing Title'));
+      await repos.dances.create(
+        _dance(
+          id: 'figure',
+          title: 'Plain Title',
+          figures: [
+            Figure(move: 'swing', params: const {'beats': 16}),
+          ],
+        ),
+      );
+
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+      expect(scopeOf(tester), FullTextScope.omni);
+      await chooseScope(tester, 'Title');
+      await tester.enterText(
+        find.byKey(const ValueKey('picker-search')),
+        'swing',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(_titles(tester), ['Swing Title']);
+    });
+
+    testWidgets('Search in Author searches authors only', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Alice Smith'),
+      );
+      await repos.dances.create(
+        _dance(id: 'author', title: 'Plain Title', authorIds: const ['c1']),
+      );
+      await repos.dances.create(_dance(id: 'other', title: 'Alice Waltz'));
+
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+      await chooseScope(tester, 'Author');
+      await tester.enterText(
+        find.byKey(const ValueKey('picker-search')),
+        'Alice',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(_titles(tester), ['Plain Title']);
+    });
+
+    testWidgets('online search sends the Search in choice, maps All fields '
+        'to Title, and restores the local choice afterwards', (tester) async {
+      final online = _DedupeOnlineService(OnlineImportKind.created);
+      final repos = openTestRepositories();
+      await _pumpPicker(
+        tester,
+        repos,
+        onAddDance: (_) {},
+        enableOnlineSearch: true,
+        callersBoxOnline: online,
+      );
+      await tester.pumpAndSettle();
+      expect(scopeOf(tester), FullTextScope.omni);
+
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-online-search-enable')),
+      );
+      expect(scopeOf(tester), FullTextScope.title);
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-search-scope')),
+      );
+      expect(find.text('All fields'), findsNothing);
+      await tester.tap(find.text('Author').last);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('picker-search')),
+        'Alice',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(online.searchedQueries.last.author, 'Alice');
+      expect(online.searchedQueries.last.title, isEmpty);
+
+      await chooseScope(tester, 'Figure');
+      expect(online.searchedQueries.last.figure, 'Alice');
+      expect(online.searchedQueries.last.author, isEmpty);
+
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-online-search-enable')),
+      );
+      expect(scopeOf(tester), FullTextScope.omni);
+    });
+
+    testWidgets('the sort menu reorders the list and the arrow reverses it', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Alpha', createdAt: DateTime.utc(2026, 1, 1)),
+      );
+      await repos.dances.create(
+        _dance(id: 'c', title: 'Charlie', createdAt: DateTime.utc(2026, 3, 1)),
+      );
+      await repos.dances.create(
+        _dance(id: 'b', title: 'Bravo', createdAt: DateTime.utc(2026, 2, 1)),
+      );
+
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie']);
+
+      await chooseSort(tester, 'Recently added');
+      expect(_titles(tester), ['Charlie', 'Bravo', 'Alpha']);
+
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('picker-sort-direction')),
+      );
+      expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie']);
+    });
+
+    testWidgets('opens in the Collection sort order and never saves its own '
+        'sort as the last used', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultCollectionSortKey, 'recentlyAdded');
+      await repos.settings.set(kDefaultCollectionSortDirectionKey, 'ascending');
+      await repos.dances.create(
+        _dance(id: 'b', title: 'Bravo', createdAt: DateTime.utc(2026, 2, 1)),
+      );
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Alpha', createdAt: DateTime.utc(2026, 3, 1)),
+      );
+      await repos.dances.create(
+        _dance(id: 'c', title: 'Charlie', createdAt: DateTime.utc(2026, 1, 1)),
+      );
+
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Charlie', 'Bravo', 'Alpha']);
+
+      await chooseSort(tester, 'Title');
+      expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie']);
+      expect(await repos.settings.get(kLastUsedCollectionSortKey), isNull);
+      expect(
+        await repos.settings.get(kLastUsedCollectionSortDirectionKey),
+        isNull,
+      );
+    });
+
+    testWidgets('under Last used, opens in the Collection\'s last-used sort '
+        'and direction', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultCollectionSortKey,
+        kLastUsedSortSentinel,
+      );
+      await repos.settings.set(kLastUsedCollectionSortKey, 'title');
+      await repos.settings.set(
+        kLastUsedCollectionSortDirectionKey,
+        'descending',
+      );
+      for (final title in ['Alpha', 'Charlie', 'Bravo']) {
+        await repos.dances.create(_dance(id: title, title: title));
+      }
+
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Charlie', 'Bravo', 'Alpha']);
+    });
+
+    testWidgets('Last called sorts by the caller-scoped history, as the '
+        'Collection does (FIND-2)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'mine', title: 'Zed Mine'));
+      await repos.dances.create(_dance(id: 'guest', title: 'Alpha Guest'));
+      Program program(String id, String danceId, String caller, int month) =>
+          Program(
+            id: id,
+            title: id,
+            caller: caller,
+            eventDate: DateTime.utc(2026, month),
+            slots: [ProgramSlot(id: '$id-s', position: 0, danceId: danceId)],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          );
+      await repos.programs.create(program('ours', 'mine', 'Me', 2));
+      await repos.programs.create(program('theirs', 'guest', 'Guest', 5));
+
+      await _pumpPicker(tester, repos, onAddDance: (_) {}, callerFilter: 'Me');
+      await tester.pumpAndSettle();
+      await chooseSort(tester, 'Last called');
+
+      // An unscoped sort would put the guest's later program first.
+      expect(_titles(tester), ['Zed Mine', 'Alpha Guest']);
+    });
+
+    testWidgets('rows show the Collection card fields, live', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'a', title: 'Alpha'));
+      final fields = ValueNotifier<Set<CollectionTileField>>({
+        CollectionTileField.tags,
+      });
+      addTearDown(fields.dispose);
+
+      await _pumpPicker(tester, repos, onAddDance: (_) {}, tileFields: fields);
+      await tester.pumpAndSettle();
+      DanceListTile tile() =>
+          tester.widget<DanceListTile>(find.byType(DanceListTile));
+      expect(tile().visibleFields, {CollectionTileField.tags});
+
+      fields.value = {CollectionTileField.authors};
+      await tester.pumpAndSettle();
+      expect(tile().visibleFields, {CollectionTileField.authors});
+    });
   });
 
   testWidgets('by phrase: figure-in-A1 query filters the picker results', (
@@ -1182,7 +1448,7 @@ void main() {
           .widget<TextField>(find.byKey(const ValueKey('picker-search')))
           .decoration
           ?.hintText,
-      'Search online dances by title…',
+      'Search online dances by title, author, or figure…',
     );
     await tester.enterText(
       find.byKey(const ValueKey('picker-search')),
@@ -1723,7 +1989,10 @@ void main() {
           );
         }
         expect(tester.takeException(), isNull);
-        // Routing: the title adds; a control hits only itself.
+        // Routing: the title adds; a control hits only itself. At 2x text
+        // Search in stacks above the search box, pushing the row down.
+        await tester.ensureVisible(find.text(longTitle));
+        await tester.pumpAndSettle();
         await tester.tap(find.text(longTitle));
         await tester.pump();
         expect(added, ['a']);

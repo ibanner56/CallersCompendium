@@ -24,6 +24,7 @@ import '../../l10n/app_localizations.dart';
 /// falls back to [AppLocalizations.importIssueGeneric]. Exposed for the coverage
 /// test that guards against a silent English leak.
 const Set<String> mappedImportIssueCodes = {
+  'archive_custom_field_key_conflict',
   'archive_newer_schema',
   'archive_program_empty_slot',
   'archive_program_unresolved_dance',
@@ -111,6 +112,15 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
       return l10n.importIssueArchiveReadWarning;
     case 'archive_newer_schema':
       return l10n.importIssueArchiveNewerSchema;
+    case 'archive_custom_field_key_conflict':
+      // Both values are the receiver's own: their field's label, and their
+      // key plus a number. A clash between two of the file's own fields
+      // carries neither, so the file's text is never shown.
+      final label = data['label'];
+      final key = data['key'];
+      return label is String && key is String
+          ? l10n.importIssueArchiveCustomFieldKeyConflict(label, key)
+          : l10n.importIssueArchiveCustomFieldKeyConflictGeneric;
     case 'usr_file_truncated':
       return l10n.importIssueUsrFileTruncated;
     case 'usr_figures_from_dance_rows':

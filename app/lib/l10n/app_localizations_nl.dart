@@ -1884,6 +1884,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Controleer bij het opstarten op een nieuwere versie op de achtergrond. Standaard uitgeschakeld.';
 
   @override
+  String get settingsUpdatesAutoStoreSubtitle =>
+      'Zoek bij het opstarten van de app op de achtergrond naar een einddatum van de ondersteuning voor deze versie. Standaard uit.';
+
+  @override
   String get settingsUpdatesPrivacyNote =>
       'De updatecontrole downloadt alleen een klein versiebestand via HTTPS — er worden nooit gegevens over jou, je apparaat of je gebruik verstuurd. Er wordt niets automatisch gedownload of geïnstalleerd: jij kiest wanneer je een update downloadt, het wordt geverifieerd voordat het wordt geopend, en je systeeminstaller voltooit de installatie.';
 
@@ -1929,6 +1933,21 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsUpdatesMacosReadySubtitle =>
       'Je update is klaar. Koppel de schijfkopie aan en sluit de app zodat je deze in Programma\'s kunt vervangen.';
+
+  @override
+  String get settingsUpdatesStoreTitle => 'Updates komen uit je appstore';
+
+  @override
+  String get settingsUpdatesStoreSubtitle =>
+      'Deze kopie is geïnstalleerd vanuit een appstore, dus de store werkt hem bij. De app zoekt alleen naar een einddatum van de ondersteuning, nooit naar een nieuwe versie.';
+
+  @override
+  String get settingsUpdatesPortableTitle =>
+      'Draagbare kopie: download het nieuwe archief';
+
+  @override
+  String get settingsUpdatesPortableSubtitle =>
+      'Deze kopie draait vanuit een uitgepakt archief, dus de app kan de update niet voor je installeren. Download de nieuwe zip of tar.gz van de release en pak hem uit.';
 
   @override
   String get settingsUpdatesDownloadTitle => 'Update downloaden en installeren';
@@ -3825,10 +3844,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Zoek titels, auteurs, figuren, notities…';
 
   @override
-  String get collectionPickerOnlineSearchFieldHint =>
-      'Zoek online naar dansen op titel…';
-
-  @override
   String get collectionSearchScopeLabel => 'Zoeken in';
 
   @override
@@ -4776,6 +4791,15 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je hebt een niet-opgeslagen concept voor dit programma. Wil je het herstellen?';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'Je hebt een niet-opgeslagen concept van een ander nieuw programma, ‘$title’. Wil je het herstellen in plaats van een nieuw te beginnen?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'Je hebt een niet-opgeslagen concept van een ander nieuw programma, nog zonder titel. Wil je het herstellen in plaats van een nieuw te beginnen?';
+
+  @override
   String get programsDraftRestore => 'Herstellen';
 
   @override
@@ -5614,6 +5638,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get performUndoNoLongerAvailable =>
       'Kan niet ongedaan maken: het programma is sindsdien gewijzigd.';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'Dit programma was elders gewijzigd sinds Uitvoeren werd geopend. Uitvoeren toont nu de nieuwste versie, met jouw wijziging.';
 
   @override
   String get performProgramAdjustedSnack => 'Programma aangepast.';
@@ -7018,6 +7046,15 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importIssueArchiveNewerSchema =>
       'Dit bestand is gemaakt met een nieuwere versie van Caller\'s Compendium. Werk de app bij voordat je importeert, anders ontbreken mogelijk sommige details.';
+
+  @override
+  String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
+    return 'Je aangepaste veld “$label” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in plaats daarvan in het veld met de sleutel “$key”, dat wordt toegevoegd als je het nog niet hebt. Je eigen veld blijft ongewijzigd.';
+  }
+
+  @override
+  String get importIssueArchiveCustomFieldKeyConflictGeneric =>
+      'Een aangepast veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden ervan komen in plaats daarvan in een veld met een genummerde sleutel.';
 
   @override
   String get importIssueUsrFileTruncated =>
@@ -8832,6 +8869,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String updateBannerAvailable(String appName, String version) {
     return 'Een nieuwere versie van $appName ($version) is beschikbaar.';
+  }
+
+  @override
+  String updateBannerPortable(String appName, String version) {
+    return 'Er is een nieuwere versie van $appName ($version) beschikbaar. Dit is een draagbare kopie, dus download de nieuwe zip of tar.gz van de release.';
   }
 
   @override

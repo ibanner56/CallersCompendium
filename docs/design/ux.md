@@ -133,7 +133,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   list/detail split-pane breakpoint, same as Collection above.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection, including caller-scoped Called / Not called
-  history filtering. A sustained primary press is an optional, temporary preview
+  history filtering, and Collection's Search in, sort (session-only, opening in
+  the Collection default sort and never written back) and card-field choice;
+  online search takes Search in's Title / Author / Figure as Collection does
+  (FIND-7, PRES-15; shared controls in `widgets/collection_search_controls.dart`). A sustained primary press is an optional, temporary preview
   shortcut: a picker result replaces the program pane while held and a dance
   slot replaces the picker pane while held. Each eligible result and dance slot
   also exposes a visible, keyboard-operable **View details** action that opens

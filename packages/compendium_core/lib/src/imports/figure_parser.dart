@@ -593,10 +593,11 @@ final RegExp _bareInteger = RegExp(r'^\d+$');
 ///
 /// A neighbour word followed by `0`–`4` becomes the matching `n0`–`n4` tag, so
 /// both spellings resolve through the same [dancerWords] entry. Any other
-/// number after a dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) or a
-/// corner word (`Corner 2`) is marked with a leading `#`, which no recognizer
-/// reads, so the line falls to custom (or into a prefix match's note) rather
-/// than lending its number to an amount. A number that starts a mixed number is left alone: it is the amount
+/// `Corner 1`/`2`/`3` names a corner set (below). Any other number after a
+/// dancer word (`Neighbor 5`, `Partner 2`, `Shadow 3`) or a corner word
+/// (`Corner 5`) is marked with a leading `#`, which no recognizer reads, so the
+/// line falls to custom (or into a prefix match's note) rather than lending
+/// its number to an amount. A number that starts a mixed number is left alone: it is the amount
 /// (`Gypsy partner 1 1/2`, `Allemande left neighbor 1½`).
 void _foldDancerNumbers(List<String> w) {
   for (var i = 0; i + 1 < w.length; i++) {
@@ -612,6 +613,13 @@ void _foldDancerNumbers(List<String> w) {
         w.removeAt(i + 1);
         continue;
       }
+    }
+    // Caller's Companion's numbered corners (maintainer decision, #1975):
+    // Corner 1, 2 and 3 are The Caller's Box's C1, C2 and C3.
+    if (w[i] == 'corner' && _numberedCorners.containsKey('#corner$number')) {
+      w[i] = '#corner$number';
+      w.removeAt(i + 1);
+      continue;
     }
     if (dancerWords.containsKey(w[i]) || _cornerWords.contains(w[i])) {
       w[i + 1] = '#$number';
@@ -770,15 +778,27 @@ bool _isSameRolePair(List<String> w, int i) =>
 
 /// Removes and returns the dancer set Caller's Companion names at `w[i]`, or
 /// null (#1975): "New Neighbor" is the next neighbors, and "Corner" the first
-/// corners ("1st"/"2nd", "first"/"second" corner name either). A bare plural
-/// ("the corners") may mean both corners in turn, so only the singular is
-/// read.
+/// corners ("1st"/"2nd"/"3rd", "first"/"second"/"third" corner name each one,
+/// and [_foldDancerNumbers] has read "Corner 1"/"2"/"3"). A bare plural ("the
+/// corners") may mean both corners in turn, so only the singular is read.
+/// "Opposite(s)" is the opposites, unless it describes a role, side,
+/// direction, way or hand ("opposite role pull by L"). These are maintainer
+/// decisions, except "3rd"/"third", the author's extension of the ordinals.
 String? _takeNamedDancerAt(List<String> w, int i) {
   final word = w[i];
   final next = i + 1 < w.length ? w[i + 1] : null;
   if (word == 'new' && _neighborWords.contains(next)) {
     w.removeRange(i, i + 2);
     return 'nextNeighbors';
+  }
+  if (_numberedCorners[word] case final corners?) {
+    w.removeAt(i);
+    return corners;
+  }
+  if ((word == 'opposite' || word == 'opposites') &&
+      !_oppositeDescribes.contains(next)) {
+    w.removeAt(i);
+    return 'opposites';
   }
   if (_cornerOrdinals[word] case final corners?
       when _cornerWords.contains(next)) {
@@ -793,8 +813,9 @@ String? _takeNamedDancerAt(List<String> w, int i) {
 }
 
 /// The corner words, which are not [dancerWords] keys: [_takeNamedDancerAt]
-/// reads them, and [_foldDancerNumbers] marks a number after one, as
-/// `Corner 2 swing` names a numbered corner, not a swing twice.
+/// reads them. [_foldDancerNumbers] folds `Corner 1`/`2`/`3` into a
+/// [_numberedCorners] mark and marks any other number after one, as
+/// `Corner 5 swing` names a numbered corner, not a swing five times.
 const Set<String> _cornerWords = {'corner', 'corners'};
 
 const Map<String, String> _cornerOrdinals = {
@@ -802,6 +823,34 @@ const Map<String, String> _cornerOrdinals = {
   '1st': 'firstCorners',
   'second': 'secondCorners',
   '2nd': 'secondCorners',
+  'third': 'thirdCorners',
+  '3rd': 'thirdCorners',
+};
+
+/// The marks [_foldDancerNumbers] leaves for "Corner 1"/"2"/"3", which no
+/// other reader takes, and the dancer sets they name.
+const Map<String, String> _numberedCorners = {
+  '#corner1': 'firstCorners',
+  '#corner2': 'opposites',
+  '#corner3': 'thirdCorners',
+};
+
+/// The words after which "opposite" describes something rather than naming the
+/// opposites (maintainer decision, #1975; the plurals are the author's). Today
+/// the described word is never read, so such a line stays text even without
+/// this; it keeps a recognizer that tolerated a leftover word from reading
+/// "opposite role" as the opposites.
+const Set<String> _oppositeDescribes = {
+  'role',
+  'roles',
+  'side',
+  'sides',
+  'direction',
+  'directions',
+  'way',
+  'ways',
+  'hand',
+  'hands',
 };
 
 /// Like [_takeDancer] but ONLY matches a dancer set at the FRONT of [w].

@@ -1209,6 +1209,12 @@ the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.
 > [Upload to Google Play](#upload-to-google-play) and
 > [store-submission/google-play.md](store-submission/google-play.md)).
 >
+> The `.aab` build alone passes `--dart-define=CALLERS_COMPENDIUM_PLAY_BUILD=true`,
+> which is how an installed Play build knows the store updates it and the in-app
+> updater stays out of the way (`app/lib/src/update/install_kind.dart`). The
+> sideload APK must not set it: it shares the manifest channel.
+> `tools/release/test_release_workflow_recovery.py` pins both.
+>
 > Both Android artifacts receive the tag-derived `versionCode` described below;
 > `app/pubspec.yaml` remains exactly the visible `X.Y.Z` release version.
 >

@@ -21,4 +21,6 @@ const Set<String> rollAwayRelationships = {
   'fifthPartners',
   'firstCorners',
   'secondCorners',
+  'thirdCorners',
+  'opposites',
 };

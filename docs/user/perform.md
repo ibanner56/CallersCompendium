@@ -217,7 +217,15 @@ Undo is still offered for a moment after you leave Perform (for as long as you
 need with a screen reader), but only while the program is as the change left
 it. So if the program has been changed since, for example edited in the
 builder, Undo does nothing except tell you it can no longer undo, and the later
-change is kept. If you have set calling history to count
+change is kept.
+
+Perform shows the program as it was when you opened it. If the program changes
+somewhere else while Perform is open — most often when
+[Device Sync](./settings.md#device-sync) brings in an edit from another device
+— your next change is saved on top of that edit rather than replacing it.
+Perform then switches to the newer program and says so: *This program had
+changed elsewhere since Perform opened. Perform now shows the latest version,
+with your change.* Undo still takes back only your own change. If you have set calling history to count
 only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 
@@ -246,8 +254,12 @@ Choose **Exit performance view** and the app checks first:
 **Keep performing** returns you to the card; **Exit** leaves. When you are
 calling a program, your place and the clock are kept for as long as that
 program stays open, so you can step out to check something and choose **Perform
-this program** again to pick up where you left off. Closing the program, or
-performing a single dance, starts the next session fresh. For that reason the
+this program** again to pick up where you left off. That holds when a tablet is
+rotated while you perform, too, even though the Programs screen switches
+between its one- and two-pane layouts: if it shows the list when you leave,
+open the program again. Closing the program — choosing another one, or going
+back from it to the list — or performing a single dance starts the next session
+fresh. For that reason the
 exit check on a single dance says so instead of promising a resume: *Performing
 a single dance doesn't keep your place, so the next time starts fresh.*
 
