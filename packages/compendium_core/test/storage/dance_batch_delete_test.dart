@@ -8,9 +8,9 @@ import 'package:test/test.dart';
 import 'fixtures.dart';
 import 'test_database.dart';
 
-/// Counts the statements that delete one dance's FTS rows by `dance_id = ?`,
-/// a scan of the whole index each (`dance_id` is `UNINDEXED`).
-final class _PerDanceFtsDeletes extends QueryInterceptor {
+/// Counts the statements that delete FTS rows. `dance_id` is `UNINDEXED`, so
+/// each is a scan of the whole index, whether it names one dance or many.
+final class _FtsDeletes extends QueryInterceptor {
   var count = 0;
 
   @override
@@ -19,11 +19,7 @@ final class _PerDanceFtsDeletes extends QueryInterceptor {
     String statement,
     List<Object?> args,
   ) {
-    if (RegExp(
-      r'DELETE FROM dance\w*fts WHERE dance_id = \?',
-    ).hasMatch(statement)) {
-      count++;
-    }
+    if (RegExp(r'DELETE FROM dance\w*fts').hasMatch(statement)) count++;
     return super.runCustom(executor, statement, args);
   }
 }
@@ -214,9 +210,51 @@ void main() {
       expect((await repos.dances.searchText('lyrical')).toSet(), {'a', 'b'});
     });
 
+    test('clears the pending sync deletion of every dance', () async {
+      // §6.8: an explicit restore cancels a pending tombstone, in bulk as for
+      // one dance.
+      await createAll(['a', 'b']);
+      final deleted = await repos.dances.softDeleteMany([
+        'a',
+        'b',
+      ], at: deletedAt);
+      for (final id in deleted) {
+        final dance = (await repos.dances.getById(id, includeDeleted: true))!;
+        await repos.syncLocal.upsertPendingDeletion(
+          kind: SyncRecordKind.dance,
+          recordId: id,
+          tombstonedAt: deletedAt,
+          tombstoneHash: 'hash',
+          tombstoneBlob: encodeSyncRecordBlob(
+            SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: id,
+              updatedAt: deletedAt,
+              deletedAt: deletedAt,
+              existenceAt: deletedAt,
+              body: syncBodyForEntity(SyncRecordKind.dance, dance),
+            ),
+          ),
+        );
+      }
+
+      await repos.dances.restoreMany(deleted, at: restoredAt);
+
+      for (final id in deleted) {
+        expect(
+          await repos.syncLocal.getPendingDeletion(
+            kind: SyncRecordKind.dance,
+            recordId: id,
+          ),
+          isNull,
+          reason: id,
+        );
+      }
+    });
+
     test('rebuilds the search index once, not with a scan per dance', () async {
       // A scan per dance made a 5,000-dance Undo take about 25 s.
-      final counter = _PerDanceFtsDeletes();
+      final counter = _FtsDeletes();
       final counted = CompendiumDatabase(
         NativeDatabase.memory(
           setup: applyCompendiumSqliteSetup,
@@ -233,7 +271,8 @@ void main() {
 
       expect(await dances.restoreMany(deleted, at: restoredAt), 12);
 
-      expect(counter.count, 0);
+      // One statement per FTS table for the whole batch, not two per dance.
+      expect(counter.count, 2);
       expect((await dances.searchText('Dance')).length, 12);
     });
 

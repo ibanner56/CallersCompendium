@@ -2044,12 +2044,12 @@ class DanceRepository {
 
   /// The body of [restore], for one dance or many, so [restoreMany] is
   /// [restore] and never a second path beside it. Each step runs for every
-  /// dance before the next: the revivals, then the existence stamps, then one
-  /// rebuild of the derived rows ([_reindexDerived]), then the pending sync
-  /// deletions. Rebuilding per dance instead scanned both FTS tables once per
-  /// dance, which made a 5,000-dance Undo take about 25 s (N4-S3, in-memory
-  /// database); the order matters only in that a revival precedes the rebuild,
-  /// so the index sees the revived parents.
+  /// dance before the next: the revivals, then the existence stamps, then the
+  /// rebuild of the derived rows, then the pending sync deletions. The order
+  /// matters only in that a revival precedes the rebuild, so the index sees
+  /// the revived parents. Many dances are rebuilt together ([_reindexDerived]):
+  /// rebuilding each one scans both FTS tables, which made a 5,000-dance Undo
+  /// take about 25 s (N4-S3, in-memory database).
   Future<void> _restoreAll(
     List<String> ids, {
     required DateTime at,
@@ -2078,7 +2078,15 @@ class DanceRepository {
     for (final id in restoring) {
       await _stampExistence(id, at: at, deleted: false);
     }
-    await _reindexDerived(restoring);
+    // One dance keeps the per-dance rebuild: [_reindexDerived] reads its
+    // lookups from whole tables, which costs more than two FTS scans when one
+    // dance is restored at a time (the archive merge restores per dance).
+    if (restoring.length == 1) {
+      final restored = await getById(restoring.single, includeDeleted: true);
+      if (restored != null) await _rebuildDerived(restored);
+    } else {
+      await _reindexDerived(restoring);
+    }
     if (clearPending) {
       for (final id in restoring) {
         await clearPendingSyncDeletionForRestore(
