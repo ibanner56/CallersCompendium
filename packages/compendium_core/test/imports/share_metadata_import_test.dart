@@ -794,6 +794,14 @@ void main() {
     await fields.delete(fieldId, at: later);
     await sources.delete(sourceId, at: later);
     await tags.delete(tagId, at: later);
+    Future<(DateTime?, DateTime?, DateTime?)> stampsOf(String id) async {
+      final row = await (db.select(
+        db.tags,
+      )..where((t) => t.id.equals(id))).getSingle();
+      return (row.deletedAt, row.existenceAt, row.updatedAt);
+    }
+
+    final deletedStamps = await stampsOf(tagId);
 
     final again = share(withNewTag: true);
     final result = await importer.import(
@@ -808,7 +816,10 @@ void main() {
     expect(await sources.listAll(), isEmpty);
     expect(await fields.listAll(), isEmpty);
     expect((await dances.getById(imported.id))!.tagIds, isEmpty);
-    // The tag the share created is erased, not left as a tombstone.
+    // Never revived, so its deletion keeps its own stamps: a new one would
+    // outrank a peer's later revival in sync.
+    expect(await stampsOf(tagId), deletedStamps);
+    // The tag the share would have created never existed.
     expect(
       [for (final t in await tags.listAllWithDeleted()) t.tag.name],
       ['chestnut'],

@@ -68,10 +68,20 @@ class ShareMetadataImporter {
   final PublishedSourceRepository sources;
   final CustomFieldDefRepository customFields;
 
+  /// Commits the metadata [archive] carries, before its dances.
+  ///
+  /// [only], when given, names the archive ids the dances about to be written
+  /// will carry (see [CompendiumArchiveImporter.commit]); nothing else is
+  /// created or revived. A re-imported or skipped row writes no tags, fields
+  /// or citations (INTAKE-7), so reviving a deleted entry only it names would
+  /// bring back what the receiver deleted, and taking it back afterwards would
+  /// stamp a new deletion that outranks a peer's later revival in sync. A row
+  /// that then fails leaves its entries unused; [dropUnused] takes those back.
   Future<ShareMetadataImportResult> commit(
     CompendiumArchive archive, {
     required DateTime now,
     required String Function() newId,
+    ({Set<String> tags, Set<String> fields, Set<String> sources})? only,
   }) async {
     _validateDuplicateIds(archive);
     final existingTags = await tags.listAllWithDeleted();
@@ -103,17 +113,29 @@ class ShareMetadataImporter {
       restoredFieldIds: [],
     );
 
-    _planTags(archive.tags, existingTags, result, freshId);
-    _planSources(archive.publishedSources, existingSources, result, freshId);
+    final incomingTags = [
+      for (final tag in archive.tags)
+        if (only == null || only.tags.contains(tag.id)) tag,
+    ];
+    final incomingSources = [
+      for (final source in archive.publishedSources)
+        if (only == null || only.sources.contains(source.id)) source,
+    ];
+    final incomingFields = [
+      for (final field in archive.customFields)
+        if (only == null || only.fields.contains(field.id)) field,
+    ];
+    _planTags(incomingTags, existingTags, result, freshId);
+    _planSources(incomingSources, existingSources, result, freshId);
     final plannedFields = _planFields(
-      archive.customFields,
+      incomingFields,
       existingFields,
       result,
       freshId,
     );
 
     try {
-      for (final tag in archive.tags) {
+      for (final tag in incomingTags) {
         final id = result.tagIdByArchiveId[tag.id]!;
         if (result.restoredTagIds.contains(id)) {
           await tags.restore(id, at: now);
@@ -129,7 +151,7 @@ class ShareMetadataImporter {
           }
         }
       }
-      for (final source in archive.publishedSources) {
+      for (final source in incomingSources) {
         final id = result.sourceIdByArchiveId[source.id]!;
         if (result.restoredSourceIds.contains(id)) {
           await sources.restore(id, at: now);
@@ -147,7 +169,7 @@ class ShareMetadataImporter {
           );
         }
       }
-      for (final field in archive.customFields) {
+      for (final field in incomingFields) {
         final id = result.fieldIdByArchiveId[field.id]!;
         if (result.restoredFieldIds.contains(id)) {
           await customFields.restore(id, at: now);
@@ -202,8 +224,9 @@ class ShareMetadataImporter {
   /// Takes back each definition, source and tag [result] created or revived
   /// that no dance this import wrote uses, and takes it out of [result], which
   /// is left holding only what stays (and what [undo] will revert). Created
-  /// ones are erased, revived ones tombstoned again, so the receiver's library
-  /// is as it was before the import for each of them.
+  /// ones are erased, revived ones tombstoned again with a new deletion
+  /// stamped [now], as [undo] does. With [commit]'s `only`, this is reached
+  /// only for the entries of a row that failed to commit.
   ///
   /// [used] holds the receiver ids the written dances carry: their tags,
   /// custom-field values and source citations, as committed. A dance the
@@ -279,9 +302,10 @@ class ShareMetadataImporter {
         return false;
       }
     });
-    // Back to the tombstone it was, joins and all. Unlike [undo], no
-    // `isInUse` read: only the receiver's own dances can hold it here, through
-    // the joins its deletion kept, and those were hidden before the import.
+    // Tombstoned again (a new deletion at [now]), joins and all. Unlike
+    // [undo], no `isInUse` read: only the receiver's own dances can hold it
+    // here, through the joins its deletion kept, and those were hidden before
+    // the import.
     await sweep(result.restoredTagIds, used.tags, (id) async {
       await tags.delete(id, at: now);
       return true;

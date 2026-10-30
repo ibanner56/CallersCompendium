@@ -727,7 +727,7 @@ class ImportPipeline {
     for (var i = 0; i < total; i++) {
       final plan = batch.records[i];
       final resolution = resolutions[i];
-      final (action, targetId) = _resolveAction(plan.verdict, resolution);
+      final (action, targetId) = resolveCommitAction(plan.verdict, resolution);
 
       if (action == CommitAction.skip) {
         committed.add(
@@ -837,7 +837,7 @@ class ImportPipeline {
                   id: newId(),
                   kind: LinkKind.relatedDance,
                   // `wantsLinkBack` is only true for `CommitAction.variation`,
-                  // which `_resolveAction` only ever produces alongside a
+                  // which `resolveCommitAction` only ever produces alongside a
                   // non-null `resolution.targetDanceId` (`targetId` here) —
                   // `DedupeResolution.variation` requires one. The `!`
                   // documents that invariant rather than silently accepting
@@ -1453,30 +1453,6 @@ class ImportPipeline {
     return resolutions;
   }
 
-  (CommitAction, String?) _resolveAction(
-    DedupeVerdict verdict,
-    DedupeResolution? resolution,
-  ) {
-    switch (verdict.kind) {
-      case DedupeKind.isNew:
-        return (CommitAction.create, null);
-      case DedupeKind.reimport:
-        return (CommitAction.reimport, verdict.targetDanceId);
-      case DedupeKind.ambiguous:
-        if (resolution == null) return (CommitAction.skip, null);
-        switch (resolution.kind) {
-          case DedupeResolutionKind.link:
-            return (CommitAction.link, resolution.targetDanceId);
-          case DedupeResolutionKind.duplicate:
-            return (CommitAction.duplicate, null);
-          case DedupeResolutionKind.skip:
-            return (CommitAction.skip, null);
-          case DedupeResolutionKind.variation:
-            return (CommitAction.variation, resolution.targetDanceId);
-        }
-    }
-  }
-
   /// The normalized author-name set for a match comparison (blanks dropped),
   /// using the same [normalizeAuthor] the deduper uses so names match the way
   /// fuzzy matching does.
@@ -1588,4 +1564,33 @@ class ImportPipeline {
     createdAt: createdAt,
     updatedAt: updatedAt,
   );
+}
+
+/// The action [ImportPipeline.commit] takes for a record with [verdict], and
+/// the dance it targets: a resolution is read only for an ambiguous verdict,
+/// and an ambiguous record without one is skipped. Public so a caller that
+/// must prepare for the commit (the archive importer's metadata) can tell which
+/// records will write a dance.
+(CommitAction, String?) resolveCommitAction(
+  DedupeVerdict verdict,
+  DedupeResolution? resolution,
+) {
+  switch (verdict.kind) {
+    case DedupeKind.isNew:
+      return (CommitAction.create, null);
+    case DedupeKind.reimport:
+      return (CommitAction.reimport, verdict.targetDanceId);
+    case DedupeKind.ambiguous:
+      if (resolution == null) return (CommitAction.skip, null);
+      switch (resolution.kind) {
+        case DedupeResolutionKind.link:
+          return (CommitAction.link, resolution.targetDanceId);
+        case DedupeResolutionKind.duplicate:
+          return (CommitAction.duplicate, null);
+        case DedupeResolutionKind.skip:
+          return (CommitAction.skip, null);
+        case DedupeResolutionKind.variation:
+          return (CommitAction.variation, resolution.targetDanceId);
+      }
+  }
 }
