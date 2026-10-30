@@ -3821,6 +3821,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionSetRating => '評価を設定';
 
   @override
+  String get collectionSetStatus => 'ステータスを設定';
+
+  @override
   String get collectionAddTunes => 'チューンを追加';
 
   @override
@@ -3845,6 +3848,16 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count件のダンスの評価をクリアしました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスのステータスを設定しました',
     );
     return '$_temp0';
   }
@@ -4285,6 +4298,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionBatchRatingConfirm => '設定';
+
+  @override
+  String get collectionBatchStatusConfirm => '設定';
 
   @override
   String get collectionBatchTunesFieldLabel => 'チューンを追加';

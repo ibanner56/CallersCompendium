@@ -6221,6 +6221,12 @@ abstract class AppLocalizations {
   /// **'Set rating'**
   String get collectionSetRating;
 
+  /// Batch action (menu item and dialog title) for setting the lifecycle status (active, deprecated, broken, draft, variation) on the selected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Set status'**
+  String get collectionSetStatus;
+
   /// Batch action (menu item and dialog title) for adding tunes to the selected dances (additive; never removes).
   ///
   /// In en, this message translates to:
@@ -6250,6 +6256,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Cleared rating on 1 dance} other{Cleared rating on {count} dances}}'**
   String collectionBatchRatingCleared(int count);
+
+  /// Announcement/snackbar confirming a status was set on the given number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Set status on 1 dance} other{Set status on {count} dances}}'**
+  String collectionBatchStatusSet(int count);
 
   /// Announcement/snackbar confirming tunes were added to the given number of dances.
   ///
@@ -6946,6 +6958,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set'**
   String get collectionBatchRatingConfirm;
+
+  /// Confirm button of the batch set-status dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get collectionBatchStatusConfirm;
 
   /// Label of the text field for typing a tune to add in the batch add-tunes dialog.
   ///

@@ -57,7 +57,7 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   detail page's tag chip selects one) stays visible until it is cleared, so no
   control-less filter can narrow the list. When every available section is
   hidden the panel says so rather than reporting an empty collection.
-- Actions: new dance, import, duplicate, batch tag (with Select all over the
+- Actions: new dance, import, duplicate, batch tag, level, rating, status, tunes and custom field (with Select all over the
   current results; picks a search hides stay selected and are counted as "not
   shown", N4). Group by category stays on while selecting; each section
   header carries a tri-state checkbox for its shown rows, as one semantics node

@@ -101,8 +101,8 @@ final RegExp _legacyCallersBoxRollAwayClauseRe = RegExp(
 /// `docs/design/storage.md` — the derived tables are never the source of
 /// truth and are always safe to drop and recompute (see [rebuildAllDerived]).
 ///
-/// Some writes skip the rebuild. The batch level, rating and tune setters
-/// change none of the rebuild's inputs and pass `rebuildDerived: false` for
+/// Some writes skip the rebuild. The batch level, status, rating and tune
+/// setters change none of the rebuild's inputs and pass `rebuildDerived: false` for
 /// speed (see [_updateMany]). Sync writes can pass it too: the phased inbound
 /// writes ([writeFromSyncParent], [writeFromSyncRelations]) do not rebuild, and
 /// the sync apply reindexes the dances its batch affected itself afterwards
@@ -2928,7 +2928,7 @@ class DanceRepository {
   /// `false` only for an edit that changes none of the inputs to
   /// [_insertDerivedRows]: id, title, resolved authors, hook, calling notes, the
   /// figures (their rows and canonical text), custom-field values and source
-  /// texts. Difficulty level, rating and tunes are none of those, so the three
+  /// texts. Difficulty level, status, rating and tunes are none of those, so the
   /// batch methods over them skip the rebuild — it deletes by scanning both FTS
   /// tables, which dominates a large batch. A custom-field edit changes
   /// `custom_values`, so those pass `true`. **Adding a column to the FTS insert
@@ -3027,6 +3027,31 @@ class DanceRepository {
         clearDifficultyLevel: target == null,
         updatedAt: now,
       );
+    }, rebuildDerived: false);
+  }
+
+  /// Sets the lifecycle [status] on many dances at once, in a single
+  /// transaction, for the Collection multi-select "batch status" flow.
+  /// Direct analogue of [setLevelForMany], minus the clear option: a status is
+  /// never null.
+  ///
+  /// Skips unknown ids and dances already at [status] (idempotent), and stamps
+  /// [now] as `updatedAt` only on dances that actually change. Returns the
+  /// number of dances changed. An empty [ids] is a no-op returning `0`. Because
+  /// the whole batch runs in one transaction, an error leaves the collection
+  /// untouched rather than half-updated. Status is no input to the derived
+  /// figure/FTS rows, so the rebuild is skipped (see [_updateMany]).
+  Future<int> setStatusForMany(
+    Iterable<String> ids, {
+    required DanceStatus status,
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _updateMany(list, (dance) {
+      if (dance.status == status) return null;
+      return dance.copyWith(status: status, updatedAt: now);
     }, rebuildDerived: false);
   }
 
