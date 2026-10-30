@@ -1,0 +1,17 @@
+{
+  "id": "batch-delete",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Collection selection mode can delete every selected dance at once, from the bottom of More batch actions. The dances go to Recently Deleted together or not at all, the message says how many, and Undo brings them all back, with any level or custom field you deleted meanwhile. It asks first only when Confirm before delete is on, and then says how many dances your search hides."
+    ]
+  },
+  "core": {
+    "added": [
+      "DanceRepository.softDeleteMany and restoreMany delete and restore many dances in one transaction each, through the single-dance soft delete and restore."
+    ],
+    "changed": [
+      "DanceRepository.restore rebuilds the search index through the batched reindex, which restoreMany shares, so restoring 5,000 dances takes about a second rather than 25."
+    ]
+  }
+}

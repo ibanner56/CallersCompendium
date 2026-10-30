@@ -254,7 +254,8 @@ The two field writes (status, source) are `_updateMany` calls. That gives them t
 existing handlers use. **Delete is the exception.** It is an existence
 transition (`_stampExistence`, `dance_repository.dart:1881-1882`), not a content
 edit, so `softDeleteMany` and `restoreMany` loop over `softDelete` and `restore`
-inside one transaction. They cannot use `_updateMany`, which only selects live
+inside one transaction (as built, `restoreMany` runs `restore`'s own body over
+all of them at once; see *Built in S3*). They cannot use `_updateMany`, which only selects live
 rows (`deletedAt.isNull()`, `:2424-2458`) and would skip every dance a restore
 has to revive. Add to program writes programs, not dances. `Dance.copyWith`
 already carries `status` and `sourceCitations`
@@ -333,7 +334,7 @@ selected dance in one transaction and returns the ids it deleted; Undo passes
 exactly those to `restoreMany`, so a dance that was already in the trash stays
 there. `restoreMany` skips a dance that is live again or permanently deleted.
 The confirmation is `confirmDeleteDancesIfEnabled`, the row menu's dialog with a
-counted body. The rows leave and return through the `dances` stream: the widget
+body that gives the count and, as Q1 asks, how many of them a search hides. The rows leave and return through the `dances` stream: the widget
 test needs neither `_results` editing nor `_boot()`, which settles the open
 point above. Implementer's calls, not maintainer decisions:
 
@@ -485,7 +486,7 @@ or a settings key, so **§6.15 (capability gate, `:4417`) and §6.6 (id aliases,
 with `localUserEdit: true`, the provenance §6.8 (`:3722`) counts as a deliberate
 local edit. Delete and its Undo are not content edits: they are existence
 transitions stamped by `_stampExistence`, which §6.8 handles separately.
-`restoreMany` goes through `restore`, which clears a pending deletion itself
+`restoreMany` runs `restore`'s own body, which clears a pending deletion itself
 (`:1914-1932`). If a later
 decision adds a new kind (for example, a persisted saved selection), that goes
 through §6.6 and §6.15 first. Nothing here should.
@@ -514,7 +515,7 @@ them.
 Undo and a failure path. The new handlers copy `_batchSetLevel` and
 `_undoBatchLevel` (`:1545`, `:1627`) and `_finishBatch` (`:1646`).
 
-**B8 and B9.** Covered under Delete. `restoreMany` calls the single `restore`
+**B8 and B9.** Covered under Delete. `restoreMany` runs the single `restore`'s body
 inside one transaction.
 
 **B14 (picker parity).** B14 extracts Collection's private search controls into

@@ -577,7 +577,7 @@ The changes:
 - **Delete** — moves every selected dance, shown or not, to **Recently
   Deleted**, all together or not at all. It asks first only when
   **Confirm before delete** is on in [Settings](./settings.md), and then the
-  question gives the number of dances. The message reads, for example, "Deleted
+  question gives the number of dances and how many of them your search hides. The message reads, for example, "Deleted
   12 dances", with **Undo**; once it has gone, restore them from Recently
   Deleted. Undo brings back a level or custom field you deleted while the
   dances were in the trash, as restoring one dance does. Programs that include
