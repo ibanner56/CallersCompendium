@@ -3493,9 +3493,11 @@ reconciliation.
 > 2. **Each loser gives up its name, then is tombstoned, not erased.** The
 >    name becomes `<name>_<first 8 hex digits of its UUID>`, or all 32 if that
 >    is taken, by a write that changes only the name and `updatedAt`. It
->    cancels no pending deletion and is not a revival (§6.4, §6.8). Erasing
->    the loser would leave peers holding it live, and the next pass would
->    download it back (§3.1).
+>    cancels no pending deletion and is not a revival (§6.4, §6.8). The
+>    tombstone that follows is stamped past the loser's `updated_at` as well
+>    as its `existence_at`, so the two bodies never share a stamp (I1).
+>    Erasing the loser would leave peers holding it live, and the next pass
+>    would download it back (§3.1).
 > 3. **The merge records `loser → survivor` through the remap above**, which
 >    collapses chains, moves retained sync fields and unions publication
 >    markers. The loser's join rows move to the survivor, trashed dances'
@@ -3522,11 +3524,17 @@ reconciliation.
 > 6. **Step 1 waits, without queueing, while the row holding the name is
 >    leaving it.** That is the case when the holder's own tombstone or edit is
 >    in the same batch under another name, or this device holds the holder's
->    deletion pending (§6.8) under another name. Either way, no other row may
->    hold that other name. The colliding update is then neither applied nor
+>    deletion pending (§6.8) and that tombstone gave up this very name. Gave
+>    up means it is named `<holder's name>_<hex of its own UUID>`, as rules 2
+>    and 7 and a user rename name it. Either way, no other row may hold the
+>    holder's next name. The colliding update is then neither applied nor
 >    queued. It is planned again next pass, and applies once the holder has
->    gone. A held deletion lasts as long as this device's own citations of the
->    loser, which round-trip through the merging device's alias.
+>    gone. Tags and choreographers only.
+>
+>    Such a hold lasts as long as this device's own citations of the loser,
+>    which round-trip through the merging device's alias. Any other held
+>    deletion can last as long as a dance only this device holds keeps citing
+>    it, so its collision is queued as before.
 >
 >    This is the fix for the open risk N2-1 names. A peer holding the loser's
 >    deletion keeps the row live under its old name, so the survivor's rename
@@ -3558,11 +3566,13 @@ reconciliation.
 >    Rejected: queueing, as before. Custom fields and difficulty levels are
 >    unchanged, because their keys follow rules of their own above.
 > 8. **Undo** writes the survivor's old fields first, then revives each loser
->    under its old name, stamped above its tombstone (§6.4). It restores the
->    join rows and the alias rows the remap added or rewrote, unless a pass
->    has changed them since. The survivor's publication marker stays: a marker
->    is never dropped, and a pass in between may have published the survivor
->    in its own right.
+>    under its old name. Each revival is stamped past the tombstone's
+>    `existence_at` (§6.4) and its `updated_at` (I1). Undo restores the join
+>    rows and the alias rows the remap added or rewrote, unless a pass has
+>    changed them since. It is refused, writing nothing, if a live record
+>    outside the merge has taken an old name since. The survivor's
+>    publication marker stays: a marker is never dropped, and a pass in
+>    between may have published the survivor in its own right.
 >
 > **Limits.** The branch's tests found these, and did not close them:
 >

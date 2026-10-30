@@ -4,7 +4,7 @@
   "app": {
     "fixed": [
       "Searching for a published source's new title or author finds the dances that cite it as soon as you edit the source.",
-      "Device Sync no longer asks you about another device's rename onto a name that a deleted tag or choreographer holds here. The deleted one gives the name up and the rename goes ahead. It also stops asking while the record holding the name is already on its way to another name, or to being deleted; the rename waits, then applies."
+      "Device Sync no longer asks you about another device's rename onto a name that a deleted tag or choreographer holds here. The deleted one gives the name up and the rename goes ahead. It also stops asking while the record holding the name is already on its way to another name; the rename waits until it has moved, then applies."
     ]
   },
   "core": {
@@ -15,7 +15,7 @@
     "changed": [
       "`CompendiumSyncStorage._rewriteLocalReferences` moved, unchanged, to the storage helper `rewriteLocalReferences`, which returns the affected dance ids.",
       "Sync publishes and applies a user merge's loser tombstone under its own id rather than the survivor's (sync-spec §6.6, amended 2026-10-30).",
-      "At §6.6 step 1, a colliding update waits, unqueued, while the row holding the name is leaving it; and a tag or choreographer tombstone gives up the name with the suffix derivation."
+      "At §6.6 step 1, for tags and choreographers, a colliding update waits, unqueued, while the row holding the name is leaving it (in the same batch, or as a held tombstone that gave the name up with the suffix); and a tag or choreographer tombstone gives up the name with the suffix derivation."
     ],
     "fixed": [
       "`PublishedSourceRepository.upsert` refreshes the search index's `sources` text of the citing dances when a source's title or author changes."

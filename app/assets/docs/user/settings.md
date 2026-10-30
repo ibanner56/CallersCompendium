@@ -1273,8 +1273,7 @@ are.
     You aren't asked when the tag or choreographer holding the name has been
     deleted: a deleted one gives the name up, and the rename goes ahead. Nor
     are you asked while the record holding the name is already on its way to
-    another name, or to being deleted once no dance here uses it; the rename
-    waits until it has gone, then applies.
+    another name; the rename waits until it has moved, then applies.
 
     Merging two choreographers is the one case that loses something: an email
     address, location, and deceased marker are kept only on your own device and

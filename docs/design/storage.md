@@ -918,7 +918,8 @@ around both rules above rather than through them:
   `rewriteLocalReferences` (shared with sync's reconciliation), tombstones it,
   and records an `id_aliases` row through `remapIdentity`. Dances in Recently
   deleted are re-pointed too. Undo restores the before-image, including the
-  alias rows the remap collapsed, and is kept in memory only.
+  alias rows the remap collapsed, and is kept in memory only. It is refused,
+  writing nothing, if a live row has taken an old name since.
 - **A tag delete strips its join rows** from live and trashed dances and bumps
   them, then tombstones the tag (D-N2-7). So, unlike the repository's own
   delete above, bringing the tag back does not re-tag old dances. Author and

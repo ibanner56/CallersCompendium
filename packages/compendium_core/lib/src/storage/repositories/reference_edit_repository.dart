@@ -273,6 +273,10 @@ class ReferenceEditRepository {
   /// Then the survivor's fields are written, a tombstone holding [name] is
   /// freed as [rename] frees it, and the affected dances' search rows are
   /// rebuilt.
+  ///
+  /// Throws [ReferenceNameTakenException], writing nothing, when a live entry
+  /// outside the merge holds the result's name: one created, or brought by a
+  /// sync pass, since the rename that offered the merge.
   Future<ReferenceEditUndo> merge(
     ReferenceKind kind, {
     required String intoId,
@@ -424,20 +428,29 @@ class ReferenceEditRepository {
   }
 
   /// Reverses [token]'s edit, as ordinary edits stamped now, so peers take
-  /// the undone state whether or not a sync pass ran in between (§6.4: a
-  /// revival stamps above the tombstone it revives).
+  /// the undone state whether or not a sync pass ran in between. A revival is
+  /// stamped past both the tombstone's `existence_at` (§6.4) and its
+  /// `updated_at` (I1).
+  ///
+  /// Throws [ReferenceUndoConflictException], writing nothing, when a live
+  /// entry outside the edit now holds a name Undo would give back. A
+  /// tombstone holding one gives it up, as [rename] frees it.
   ///
   /// For a merge, in order: the survivor's fields come back first, freeing
   /// its old name for a loser; each loser is revived under its old name with
-  /// its old fields; the join rows come back with their positions and
-  /// citation page and number; the `id_aliases` rows the merge's
-  /// [SyncLocalRepository.remapIdentity] added or rewrote are put back, and
-  /// both ids' retained sync fields and held deletions restored. The
-  /// survivor's publication marker stays: §6.6 never drops one, and a pass in
-  /// between may have published the survivor in its own right. Every touched
-  /// dance is bumped again.
+  /// its old fields; each loser's join row comes back, moved back in place
+  /// from the survivor where the merge moved it, otherwise at its old
+  /// position, or after the last if an edit has taken that position since;
+  /// the `id_aliases` rows the merge's [SyncLocalRepository.remapIdentity]
+  /// added or rewrote are put back, with the losers' retained sync fields and
+  /// held deletions. The survivor's publication marker stays: §6.6 never drops
+  /// one, and a pass in between may have published the survivor in its own
+  /// right. So does the cancellation of a held deletion of the survivor,
+  /// because the merge raised its existence stamp for it (§6.8). Every
+  /// touched dance is bumped again.
   ///
-  /// An alias row a sync pass has changed since is left as the pass left it.
+  /// An alias row, or a retained part of the survivor, that a sync pass has
+  /// changed since is left as the pass left it.
   Future<void> undo(ReferenceEditUndo token, {DateTime? at}) {
     final now = resolveStamp(at);
     final kind = token.kind;

@@ -466,9 +466,9 @@ class TagRepository {
   /// it either way.
   ///
   /// The default (tombstone) path is deliberately **unguarded**: a tombstone
-  /// strands nothing. Its callers are archive restore and the Undo of a batch
-  /// tagging or a share import, which tombstone only an unused tag they created
-  /// or revived. A user deleting a tag goes through
+  /// strands nothing. Its callers are [restoreArchivedTombstone] (archive
+  /// restore of a deleted tag) and the Undo of a batch tagging or a share
+  /// import, which tombstone only an unused tag they created or revived. A user deleting a tag goes through
   /// `ReferenceEditRepository.deleteTag`, which strips the join rows this
   /// keeps. The [permanent] path is guarded, because it erases: `dance_tags.tag_id` is
   /// `ON DELETE CASCADE` (`tables.dart`), so erasing a referenced tag strips it
