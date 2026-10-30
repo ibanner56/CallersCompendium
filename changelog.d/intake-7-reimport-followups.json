@@ -1,0 +1,24 @@
+{
+  "id": "intake-7-reimport-followups",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A row set to Re-import onto in the import review now offers Also update title and credit. It is off by default, applies to that row only, and is not remembered between imports. Ticked, the dance also takes the incoming title and author credit, so a corrected title or credit in a newer version of a published collection can reach a dance you already have. Its rating, tags, notes, links and status still never change."
+    ],
+    "changed": [
+      "The import review no longer says a re-import will overwrite a dance. A note above Import says how many dances a re-import will update (their figures, formation and progression, and how many also take the title and credit), and Import and edit on a re-import row asks to re-import onto the dance rather than to replace it. Same dance — replace still warns that it overwrites."
+    ],
+    "fixed": [
+      "Importing a shared file no longer brings back a tag, custom field or published source you had deleted, or adds a new one, when only a dance you re-imported or skipped used it.",
+      "A Caller's Companion .USR dance you re-imported with Import and edit no longer gets the file's related-dance links when you then import the rest, as a re-imported dance never does.",
+      "A Caller's Companion .USR re-import no longer notes a related-dance link left out for a dance you re-imported, which gets no links from the file anyway."
+    ]
+  },
+  "core": {
+    "added": [
+      "`DedupeVerdict.reimport` takes `alsoTitleAndCredit`, and `withReimportedChoreography` an `alsoTitleAndCredit` flag: a re-import with it set also takes the incoming title and resolved authors (an empty incoming credit keeps the dance's).",
+      "`ShareMetadataImporter.dropUnused` takes back created or revived metadata no written dance carries; `CompendiumArchiveImporter.commit` calls it after the dances and programs are written.",
+      "`CallersCompanionUsrImporter.commit` takes `earlierReimportedCcIds`, and `buildCcRelatedDanceLinks` takes `skippedSourceDanceIds`."
+    ]
+  }
+}

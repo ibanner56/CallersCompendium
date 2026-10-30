@@ -1503,6 +1503,38 @@ void main() {
       expect(result.programs.single.slots.first.danceId, byExternal['4']);
     });
 
+    test('a dance the earlier Edit re-imported gets none of the file\'s links '
+        '(INTAKE-7)', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final importer = importerWith(adapter);
+      await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+      final (rest, editedId) = await editFirst(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        '4',
+        importer,
+      );
+
+      final result = await importer.commit(
+        rest,
+        adapter.discoveredArchive!,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        earlierDanceIds: {'4': editedId},
+        earlierReimportedCcIds: {'4'},
+      );
+
+      expect(result.danceSession.records.single.action, CommitAction.reimport);
+      expect((await dances.getById(editedId))!.links, isEmpty);
+      expect(result.linksAddedToEarlierDances, isEmpty);
+      expect(result.relatedDanceLinkIssues, isEmpty);
+    });
+
     test(
       'a failed commit removes the link it added to the earlier dance',
       () async {
@@ -1616,6 +1648,29 @@ void main() {
         [for (final l in (await dances.getById(id4))!.links) l.id],
         ['mine'],
       );
+    });
+
+    test('a re-imported dance\'s pair raises no unresolved-endpoint warning, '
+        'since its link is left out anyway', () async {
+      await importer.import(
+        _ccUsrBytesWithRelated([]),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+
+      final again = await importer.import(
+        _ccUsrBytesWithRelated([('4', '999')]), // '999' is not in the file
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+      );
+
+      expect(
+        again.danceSession.records.map((r) => r.action),
+        everyElement(CommitAction.reimport),
+      );
+      expect(again.relatedDanceLinkIssues, isEmpty);
     });
 
     test('a mirrored pair of rows in the archive yields two independent '

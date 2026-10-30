@@ -27,8 +27,9 @@ enum CommitAction {
   /// Update an existing dance matched by exact `(source, externalId)`.
   ///
   /// Only its choreography and provenance change (see
-  /// [withReimportedChoreography]); everything the caller keeps on the dance
-  /// stays (INTAKE-7).
+  /// [withReimportedChoreography]), plus its title and credit when the
+  /// verdict's [DedupeVerdict.alsoTitleAndCredit] is set; everything else the
+  /// caller keeps on the dance stays (INTAKE-7).
   reimport,
 
   /// Update an existing dance the caller chose to link a fuzzy match to.
@@ -645,8 +646,9 @@ class ImportPipeline {
   /// resolution is skipped (never guessed). New/duplicate inserts get a fresh
   /// id from [newId]; re-imports/links update the matched dance, preserving its
   /// `createdAt`. A re-import writes only the draft's choreography and
-  /// provenance onto it ([withReimportedChoreography]); a link writes the
-  /// whole draft.
+  /// provenance onto it ([withReimportedChoreography]), and its title and
+  /// credit too when [DedupeVerdict.alsoTitleAndCredit] is set; a link writes
+  /// the whole draft.
   ///
   /// [defaultTagIds] are added to every dance this commit **creates**
   /// (create / duplicate / variation), after any tags the draft already
@@ -782,8 +784,11 @@ class ImportPipeline {
         // real authorIds. A link REPLACES authors wholesale (consistent with its
         // overwrite of dance content). A re-import keeps the dance's authors
         // (INTAKE-7), so it resolves none: a row minted for it would credit no
-        // dance.
-        final authorResolutions = action == CommitAction.reimport
+        // dance. A re-import that also takes the title and credit resolves
+        // them as a link does.
+        final takesCredit =
+            action != CommitAction.reimport || plan.verdict.alsoTitleAndCredit;
+        final authorResolutions = !takesCredit
             ? const <AuthorResolution>[]
             : await _resolveAuthors(
                 plan.draft.authorNames,
@@ -907,7 +912,8 @@ class ImportPipeline {
           // own title, notes, rating, tags, links, authors and custom fields
           // are never overwritten (maintainer decisions, 2026-10-29 and
           // 2026-10-30, INTAKE-7). The draft's links are not written either,
-          // so none are held back for it.
+          // so none are held back for it. The row's "Also update title and
+          // credit" choice adds those two (maintainer decision, 2026-10-30).
           final id = targetId!;
           // Non-null: a missing target `continue`d before authors were resolved.
           final existing = prior!;
@@ -915,9 +921,12 @@ class ImportPipeline {
           await _dances.update(
             withReimportedChoreography(
               existing,
-              plan.draft.dance,
+              authorIds == null
+                  ? plan.draft.dance
+                  : plan.draft.dance.copyWith(authorIds: authorIds),
               updatedAt: now,
               provenance: prov,
+              alsoTitleAndCredit: plan.verdict.alsoTitleAndCredit,
             ),
           );
           if (plan.draft.raw.externalId case final externalId?) {

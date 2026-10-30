@@ -7327,6 +7327,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit =>
+      'Also update title and credit';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Takes this file\'s title and author credit for \"$title\". Your rating, tags, notes and links stay as they are.';
+  }
+
+  @override
   String get importReviewOptionDuplicate => 'Import as a new (duplicate) dance';
 
   @override
@@ -7354,6 +7363,30 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count existing dances will be overwritten',
       one: '1 existing dance will be overwritten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Re-import replaces the figures, formation and progression of $count existing dances. Their ratings, tags and notes stay.',
+      one:
+          'Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count of them also take the file\'s title and credit.',
+      one: '1 of them also takes the file\'s title and credit.',
     );
     return '$_temp0';
   }
@@ -7500,6 +7533,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return 'Importing to edit replaces \"$title\" in your collection immediately. The batch Undo will not restore it.';
+  }
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Re-import onto the existing dance now?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'Importing to edit replaces the figures, formation and progression of \"$title\" in your collection immediately. The batch Undo will not restore them.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'Importing to edit replaces the figures, formation, progression, title and credit of \"$title\" in your collection immediately. The batch Undo will not restore them.';
   }
 
   @override

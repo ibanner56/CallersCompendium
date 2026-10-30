@@ -95,8 +95,15 @@ Dance _dance(
 
 /// Encodes a one-or-more-dance [CompendiumArchive] as the generic-JSON payload
 /// the [GenericJsonAdapter] consumes.
-String _archivePayload(List<Dance> dances) => encodeArchive(
-  CompendiumArchive(exportedAt: DateTime.utc(2026, 7, 15), dances: dances),
+String _archivePayload(
+  List<Dance> dances, {
+  List<Choreographer> choreographers = const [],
+}) => encodeArchive(
+  CompendiumArchive(
+    exportedAt: DateTime.utc(2026, 7, 15),
+    dances: dances,
+    choreographers: choreographers,
+  ),
 );
 
 Future<void> _pump(
@@ -590,9 +597,93 @@ void main() {
     expect(all.single.callingNotes, 'My notes');
   });
 
+  testWidgets('Also update title and credit is offered only on Re-import, '
+      'off by default, and takes the title and credit when ticked', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final author = await repos.choreographers.upsert(
+      Choreographer(id: 'old-author', name: 'Old Author'),
+    );
+    await repos.dances.create(
+      _dance(
+        'existing',
+        'Old Title',
+        provenance: Provenance(
+          source: ProvenanceSource.json,
+          externalId: 'ext1',
+          importedAt: DateTime.utc(2026, 1, 1),
+        ),
+      ).copyWith(authorIds: [author], rating: 4, callingNotes: 'My notes'),
+    );
+
+    await _pump(
+      tester,
+      repos,
+      payload: _archivePayload(
+        [
+          _dance(
+            'incoming',
+            'Corrected Title',
+            figures: [customFigure('Circle right once around')],
+            provenance: Provenance(
+              source: ProvenanceSource.json,
+              externalId: 'ext1',
+              importedAt: DateTime.utc(2026, 6, 1),
+            ),
+          ).copyWith(authorIds: ['new-author']),
+        ],
+        choreographers: [Choreographer(id: 'new-author', name: 'New Author')],
+      ),
+    );
+    await _toReview(tester);
+
+    final box = find.byKey(const ValueKey('import-row-0-title-and-credit'));
+    // Not on a skipped row: it changes nothing there.
+    expect(box, findsNothing);
+    await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+    await tester.pumpAndSettle();
+    expect(box, findsOneWidget);
+    expect(tester.widget<CheckboxListTile>(box).value, isFalse);
+    // One control to a screen reader: its label, the dance it applies to, and
+    // its state.
+    expect(
+      tester.getSemantics(
+        find.descendant(of: box, matching: find.byType(Checkbox)),
+      ),
+      containsSemantics(
+        label:
+            'Also update title and credit\n'
+            'Takes this file\'s title and author credit for "Old Title". '
+            'Your rating, tags, notes and links stay as they are.',
+        hasCheckedState: true,
+        isChecked: false,
+        hasTapAction: true,
+      ),
+    );
+
+    await tester.tap(box);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pumpAndSettle();
+
+    final dance = (await repos.dances.getById('existing'))!;
+    expect(dance.title, 'Corrected Title');
+    expect(
+      [
+        for (final id in dance.authorIds)
+          (await repos.choreographers.getById(id))!.name,
+      ],
+      ['New Author'],
+    );
+    expect(figuresOf(dance), hasLength(1));
+    expect(dance.rating, 4);
+    expect(dance.callingNotes, 'My notes');
+  });
+
   testWidgets(
     'reimport row defaults to keep-local (skip) and shows an accessible '
-    'overwrite warning only once overwrite is chosen',
+    're-import warning only once Re-import is chosen',
     (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(
@@ -639,18 +730,36 @@ void main() {
         findsNothing,
       );
 
-      // Choosing to overwrite surfaces the accessible count banner.
+      // Choosing Re-import surfaces the accessible count banner. A re-import
+      // replaces only the choreography (INTAKE-7), so it says that, not
+      // "overwritten".
       await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
       await tester.pumpAndSettle();
 
+      const reimportOne =
+          'Re-import replaces the figures, formation and progression of 1 '
+          'existing dance. Its rating, tags and notes stay.';
       expect(
-        find.byKey(const ValueKey('import-overwrite-warning')),
+        find.byKey(const ValueKey('import-reimport-warning')),
         findsOneWidget,
       );
-      expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
-      // The count is announced to assistive tech as a warning (not color-only).
       expect(
-        find.bySemanticsLabel('Warning: 1 existing dance will be overwritten'),
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsNothing,
+      );
+      expect(find.text(reimportOne), findsOneWidget);
+      // The count is announced to assistive tech as a warning (not color-only).
+      expect(find.bySemanticsLabel('Warning: $reimportOne'), findsOneWidget);
+
+      // Ticking Also update title and credit adds that to the banner.
+      await tester.tap(
+        find.byKey(const ValueKey('import-row-0-title-and-credit')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          "$reimportOne 1 of them also takes the file's title and credit.",
+        ),
         findsOneWidget,
       );
 
@@ -658,14 +767,14 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('import-row-0-skip')));
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey('import-overwrite-warning')),
+        find.byKey(const ValueKey('import-reimport-warning')),
         findsNothing,
       );
     },
   );
 
   testWidgets(
-    'the overwrite warning aggregates and pluralizes across reimport rows',
+    'the re-import warning aggregates and pluralizes across reimport rows',
     (tester) async {
       final repos = openTestRepositories();
       for (final ext in ['ext1', 'ext2']) {
@@ -706,21 +815,28 @@ void main() {
         findsNothing,
       );
 
-      // Choose overwrite on the first row → singular banner.
+      // Choose Re-import on the first row → singular banner.
       await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
       await tester.pumpAndSettle();
-      expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
-
-      // Choose overwrite on the second row → aggregated, pluralized banner.
-      await tester.tap(find.byKey(const ValueKey('import-row-1-reimport')));
-      await tester.pumpAndSettle();
       expect(
-        find.text('2 existing dances will be overwritten'),
+        find.text(
+          'Re-import replaces the figures, formation and progression of 1 '
+          'existing dance. Its rating, tags and notes stay.',
+        ),
         findsOneWidget,
       );
+
+      // Choose Re-import on the second row → aggregated, pluralized banner.
+      await tester.tap(find.byKey(const ValueKey('import-row-1-reimport')));
+      await tester.pumpAndSettle();
+      const reimportTwo =
+          'Re-import replaces the figures, formation and progression of 2 '
+          'existing dances. Their ratings, tags and notes stay.';
+      expect(find.text(reimportTwo), findsOneWidget);
+      expect(find.bySemanticsLabel('Warning: $reimportTwo'), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Warning: 2 existing dances will be overwritten'),
-        findsOneWidget,
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsNothing,
       );
     },
   );
@@ -2384,6 +2500,7 @@ void main() {
       bool thirdDance = false,
       bool secondSet = false,
       String? userField,
+      List<(String, String)> related = const [],
     }) => buildFmp12Fixture([
       FmpFixtureTable(
         index: 1,
@@ -2449,6 +2566,16 @@ void main() {
           if (secondSet) MapEntry(34, {1: '2', 2: '201', 3: '4', 4: '1'}),
         ],
       ),
+      if (related.isNotEmpty)
+        FmpFixtureTable(
+          index: 4,
+          name: 'Dance_Related',
+          columnNames: ['zk_Dance1_ID', 'zk_Dance2_ID'],
+          rows: [
+            for (var i = 0; i < related.length; i++)
+              MapEntry(40 + i, {1: related[i].$1, 2: related[i].$2}),
+          ],
+        ),
     ]);
 
     List<ImportSource> sourcesFor(ImportBytePicker picker) => [
@@ -2509,6 +2636,57 @@ void main() {
 
       final program = (await repos.programs.listAll()).single;
       expect(program.slots.first.danceId, edited.id);
+    });
+
+    // A dance re-imported through Import and edit reached the batch Import
+    // only as an earlier dance, which did not say how it was written, so it
+    // still got the file's related-dance links (INTAKE-7).
+    testWidgets('a dance re-imported through Import and edit gets none of the '
+        "file's related-dance links", (tester) async {
+      final repos = openTestRepositories();
+      final first = ccUsrBytes();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => first),
+        bytePicker: () async => first,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox.shrink());
+
+      final bytes = ccUsrBytes(related: [('4', '7')]);
+      await _pumpForEdit(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => bytes),
+        bytePicker: () async => bytes,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-bulk-reimport')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('import-edit-overwrite-continue')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final swing = (await repos.dances.listAll()).singleWhere(
+        (d) => d.title == 'Simplicity Swing',
+      );
+      expect(swing.links, isEmpty);
     });
 
     testWidgets('the byte source shows a .USR file button, not URL/paste', (
@@ -2694,7 +2872,7 @@ void main() {
         await chooseAndReview(tester);
         expect(find.text(l10n.importReviewWillImport(0, 3)), findsOneWidget);
         expect(
-          find.byKey(const ValueKey('import-overwrite-warning')),
+          find.byKey(const ValueKey('import-reimport-warning')),
           findsNothing,
         );
 
@@ -2702,7 +2880,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(l10n.importReviewWillImport(3, 3)), findsOneWidget);
         expect(
-          find.byKey(const ValueKey('import-overwrite-warning')),
+          find.byKey(const ValueKey('import-reimport-warning')),
           findsOneWidget,
         );
 
@@ -2710,7 +2888,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(l10n.importReviewWillImport(0, 3)), findsOneWidget);
         expect(
-          find.byKey(const ValueKey('import-overwrite-warning')),
+          find.byKey(const ValueKey('import-reimport-warning')),
           findsNothing,
         );
 
@@ -2718,6 +2896,14 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
         await tester.pumpAndSettle();
         expect(find.text(l10n.importReviewWillImport(1, 3)), findsOneWidget);
+
+        // A bulk change keeps a row's Also update title and credit tick.
+        final box = find.byKey(const ValueKey('import-row-0-title-and-credit'));
+        await tester.tap(box);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-bulk-reimport')));
+        await tester.pumpAndSettle();
+        expect(tester.widget<CheckboxListTile>(box).value, isTrue);
       },
     );
 
@@ -3530,11 +3716,14 @@ void main() {
           find.byKey(const ValueKey('import-edit-overwrite-confirm')),
           findsOneWidget,
         );
-        expect(find.text(l10n.importReviewEditOverwriteTitle), findsOneWidget);
+        // A re-import is not a replacement (INTAKE-7), so the dialog says what
+        // it does replace.
+        expect(find.text(l10n.importReviewEditReimportTitle), findsOneWidget);
         expect(
-          find.text(l10n.importReviewEditOverwriteBody('Old Title')),
+          find.text(l10n.importReviewEditReimportBody('Old Title')),
           findsOneWidget,
         );
+        expect(find.text(l10n.importReviewEditOverwriteTitle), findsNothing);
 
         await tester.tap(find.text(l10n.commonCancel));
         await tester.pumpAndSettle();
@@ -3576,6 +3765,34 @@ void main() {
           findsOneWidget,
         );
       });
+
+      testWidgets('with Also update title and credit ticked, says so and '
+          'takes the title', (tester) async {
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        final repos = await pumpMatched(tester);
+        await tester.tap(
+          find.byKey(const ValueKey('import-row-0-title-and-credit')),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            l10n.importReviewEditReimportTitleAndCreditBody('Old Title'),
+          ),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('import-edit-overwrite-continue')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DanceEditorScreen), findsOneWidget);
+        final existing = await repos.dances.getById('existing');
+        expect(existing!.title, 'Refreshed Title');
+        expect(figuresOf(existing), hasLength(1));
+      });
     });
 
     group('Import and edit on a Link row', () {
@@ -3611,6 +3828,7 @@ void main() {
           find.byKey(const ValueKey('import-edit-overwrite-confirm')),
           findsOneWidget,
         );
+        expect(find.text(l10n.importReviewEditOverwriteTitle), findsOneWidget);
         expect(
           find.text(l10n.importReviewEditOverwriteBody("Sackett's Harbor")),
           findsOneWidget,

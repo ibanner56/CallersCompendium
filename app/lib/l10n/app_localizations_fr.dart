@@ -7457,6 +7457,15 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit =>
+      'Mettre aussi à jour le titre et l’auteur';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Reprend le titre et l’auteur de ce fichier pour « $title ». Votre note, vos étiquettes, notes et liens restent tels quels.';
+  }
+
+  @override
   String get importReviewOptionDuplicate =>
       'Importer comme nouvelle danse (doublon)';
 
@@ -7485,6 +7494,31 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other: '$count danses existantes seront écrasées',
       one: '1 danse existante sera écrasée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'La ré-importation remplace les figures, la formation et la progression de $count danses existantes. Leurs notes, étiquettes et remarques restent.',
+      one:
+          'La ré-importation remplace les figures, la formation et la progression d’une danse existante. Sa note, ses étiquettes et ses notes restent.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count d’entre elles reprennent aussi le titre et l’auteur du fichier.',
+      one: 'L’une d’elles reprend aussi le titre et l’auteur du fichier.',
     );
     return '$_temp0';
   }
@@ -7633,6 +7667,20 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return 'L’importation pour modification remplace immédiatement « $title » dans votre collection. L’annulation de l’import groupé ne la restaurera pas.';
+  }
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Ré-importer sur la danse existante maintenant ?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'L’importation pour modification remplace immédiatement les figures, la formation et la progression de « $title » dans votre collection. L’annulation de l’import groupé ne les restaurera pas.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'L’importation pour modification remplace immédiatement les figures, la formation, la progression, le titre et l’auteur de « $title » dans votre collection. L’annulation de l’import groupé ne les restaurera pas.';
   }
 
   @override

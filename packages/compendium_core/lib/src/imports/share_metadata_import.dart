@@ -199,6 +199,95 @@ class ShareMetadataImporter {
     return result.issues;
   }
 
+  /// Takes back each definition, source and tag [result] created or revived
+  /// that no dance this import wrote uses, and takes it out of [result], which
+  /// is left holding only what stays (and what [undo] will revert). Created
+  /// ones are erased, revived ones tombstoned again, so the receiver's library
+  /// is as it was before the import for each of them.
+  ///
+  /// [used] holds the receiver ids the written dances carry: their tags,
+  /// custom-field values and source citations, as committed. A dance the
+  /// import re-imported is not one of them, because a re-import writes none
+  /// of those (INTAKE-7), and neither is one it skipped.
+  ///
+  /// It is "used by a written dance", not the repositories' `isInUse`, because
+  /// a deleted tag keeps its joins: reviving it showed it again on the
+  /// receiver's own dances, which `isInUse` counts. Created rows still go
+  /// through the guarded erase, so one a live dance holds is kept.
+  ///
+  /// Why: [commit] writes every entry the archive carries before any dance is
+  /// committed, because a dance's write refuses an id that does not exist. So
+  /// a share whose matching rows were skipped or re-imported brought back a
+  /// tag, field or source the receiver had deleted, attached to nothing (or to
+  /// their own dances again). The `.USR` importer drops its unused
+  /// definitions and sources after the commit the same way.
+  Future<void> dropUnused(
+    ShareMetadataImportResult result, {
+    required ({Set<String> tags, Set<String> fields, Set<String> sources}) used,
+    required DateTime now,
+  }) async {
+    Future<void> sweep(
+      List<String> ids,
+      Set<String> keep,
+      Future<bool> Function(String id) remove,
+    ) async {
+      for (final id in List.of(ids)) {
+        if (keep.contains(id)) continue;
+        // Taken out of the ledger as each one goes, so a failure part-way
+        // leaves [result] naming exactly what is still there for [undo].
+        if (await remove(id)) ids.remove(id);
+      }
+    }
+
+    await sweep(result.insertedFieldIds, used.fields, (id) async {
+      try {
+        await customFields.delete(id, at: now, permanent: true);
+        return true;
+      } on CustomFieldInUseException {
+        return false;
+      }
+    });
+    await sweep(result.restoredFieldIds, used.fields, (id) async {
+      try {
+        await customFields.delete(id, at: now);
+        return true;
+      } on CustomFieldInUseException {
+        return false;
+      }
+    });
+    await sweep(result.insertedSourceIds, used.sources, (id) async {
+      try {
+        await sources.delete(id, at: now, permanent: true);
+        return true;
+      } on StateError {
+        return false;
+      }
+    });
+    await sweep(result.restoredSourceIds, used.sources, (id) async {
+      try {
+        await sources.delete(id, at: now);
+        return true;
+      } on StateError {
+        return false;
+      }
+    });
+    await sweep(result.insertedTagIds, used.tags, (id) async {
+      try {
+        await tags.delete(id, at: now, permanent: true);
+        return true;
+      } on StateError {
+        return false;
+      }
+    });
+    // Back to the tombstone it was, joins and all. Unlike [undo], no
+    // `isInUse` read: only the receiver's own dances can hold it here, through
+    // the joins its deletion kept, and those were hidden before the import.
+    await sweep(result.restoredTagIds, used.tags, (id) async {
+      await tags.delete(id, at: now);
+      return true;
+    });
+  }
+
   /// Reverts a committed [result]: removes the definitions, sources and tags
   /// this import created, and re-tombstones the ones it revived.
   ///

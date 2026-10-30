@@ -7278,6 +7278,14 @@
   "@importReviewOptionReimport": {
     "x-sourceSha256": "8249cab6d7f9413d09113b73b5d65ae41968266f1d724baeec3f04bb3f25b4c6"
   },
+  "importReviewReimportTitleAndCredit": "Opdatér også titel og forfatter",
+  "@importReviewReimportTitleAndCredit": {
+    "x-sourceSha256": "a142dcbde6be9269e06950ee3738fc3dbcf82105bd06dabdb3eb6790dca67718"
+  },
+  "importReviewReimportTitleAndCreditHint": "Overtager filens titel og forfatterangivelse for „{title}“. Din bedømmelse, dine tags, noter og links forbliver som de er.",
+  "@importReviewReimportTitleAndCreditHint": {
+    "x-sourceSha256": "98022c8d2659302f60dd9f7d3b5a3601b664ff80c8e5593d2a0e54f987f1bdb7"
+  },
   "importReviewOptionDuplicate": "Importér som ny (duplikat) dans",
   "@importReviewOptionDuplicate": {
     "x-sourceSha256": "b4ed3ed8907b60111f687f32d121971db2fd9cf7381dce15d89d00295559c2f1"
@@ -7301,6 +7309,14 @@
   "importReviewOverwriteWarning": "{count, plural, =1{1 eksisterende dans overskrives} other{{count} eksisterende danse overskrives}}",
   "@importReviewOverwriteWarning": {
     "x-sourceSha256": "32e898771354de5a51675debb5473f13fe146fec3e2bf8e86485fb3f27407f54"
+  },
+  "importReviewReimportWarning": "{count, plural, =1{Reimport erstatter figurer, formation og progression for 1 eksisterende dans. Dens bedømmelse, tags og noter bevares.} other{Reimport erstatter figurer, formation og progression for {count} eksisterende danse. Deres bedømmelser, tags og noter bevares.}}",
+  "@importReviewReimportWarning": {
+    "x-sourceSha256": "c5aa953aba540e25ed5200df2027d40bbc0253f2d5f2268e420c36b3a5b5eaae"
+  },
+  "importReviewReimportTitleWarning": "{count, plural, =1{1 af dem overtager også filens titel og forfatter.} other{{count} af dem overtager også filens titel og forfatter.}}",
+  "@importReviewReimportTitleWarning": {
+    "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
   },
   "importReviewWarningPrefix": "Advarsel: {message}",
   "@importReviewWarningPrefix": {
@@ -7393,6 +7409,18 @@
   "importReviewEditOverwriteBody": "Import til redigering erstatter „{title}“ i din samling med det samme. Fortryd for hele importen gendanner den ikke.",
   "@importReviewEditOverwriteBody": {
     "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
+  },
+  "importReviewEditReimportTitle": "Reimportér på den eksisterende dans nu?",
+  "@importReviewEditReimportTitle": {
+    "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
+  },
+  "importReviewEditReimportBody": "Import til redigering erstatter figurer, formation og progression for „{title}“ i din samling med det samme. Fortryd for hele importen gendanner dem ikke.",
+  "@importReviewEditReimportBody": {
+    "x-sourceSha256": "275389cd8066eadc9e742cd019dda14c517874a5a2552849c4fc3dac6232452d"
+  },
+  "importReviewEditReimportTitleAndCreditBody": "Import til redigering erstatter figurer, formation, progression, titel og forfatter for „{title}“ i din samling med det samme. Fortryd for hele importen gendanner dem ikke.",
+  "@importReviewEditReimportTitleAndCreditBody": {
+    "x-sourceSha256": "62a5cb4886e354759fc6422859381272be05217b50b9c73e838470f91d3e3ee3"
   },
   "importReviewImportError": "Kunne ikke fuldføre importen.",
   "@importReviewImportError": {

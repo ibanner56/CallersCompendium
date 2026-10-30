@@ -7064,6 +7064,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit => 'タイトルと作者も更新する';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return '「$title」にこのファイルのタイトルと作者を反映します。評価、タグ、メモ、リンクはそのまま残ります。';
+  }
+
+  @override
   String get importReviewOptionDuplicate => '新しい（重複）ダンスとしてインポート';
 
   @override
@@ -7089,6 +7097,27 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count件の既存のダンスが上書きされます',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '再インポートで$count件の既存のダンスのフィギュア、フォーメーション、プログレッションが置き換えられます。評価、タグ、メモは残ります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'そのうち$count件はファイルのタイトルと作者も反映します。',
     );
     return '$_temp0';
   }
@@ -7224,6 +7253,19 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return '編集のためにインポートすると、コレクション内の「$title」がすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。';
+  }
+
+  @override
+  String get importReviewEditReimportTitle => '今すぐ既存のダンスに再インポートしますか？';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return '編集のためにインポートすると、コレクション内の「$title」のフィギュア、フォーメーション、プログレッションがすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return '編集のためにインポートすると、コレクション内の「$title」のフィギュア、フォーメーション、プログレッション、タイトル、作者がすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。';
   }
 
   @override

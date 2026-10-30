@@ -7359,6 +7359,15 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit =>
+      'Opdatér også titel og forfatter';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Overtager filens titel og forfatterangivelse for „$title“. Din bedømmelse, dine tags, noter og links forbliver som de er.';
+  }
+
+  @override
   String get importReviewOptionDuplicate => 'Importér som ny (duplikat) dans';
 
   @override
@@ -7386,6 +7395,30 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other: '$count eksisterende danse overskrives',
       one: '1 eksisterende dans overskrives',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Reimport erstatter figurer, formation og progression for $count eksisterende danse. Deres bedømmelser, tags og noter bevares.',
+      one:
+          'Reimport erstatter figurer, formation og progression for 1 eksisterende dans. Dens bedømmelse, tags og noter bevares.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count af dem overtager også filens titel og forfatter.',
+      one: '1 af dem overtager også filens titel og forfatter.',
     );
     return '$_temp0';
   }
@@ -7532,6 +7565,20 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return 'Import til redigering erstatter „$title“ i din samling med det samme. Fortryd for hele importen gendanner den ikke.';
+  }
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Reimportér på den eksisterende dans nu?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'Import til redigering erstatter figurer, formation og progression for „$title“ i din samling med det samme. Fortryd for hele importen gendanner dem ikke.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'Import til redigering erstatter figurer, formation, progression, titel og forfatter for „$title“ i din samling med det samme. Fortryd for hele importen gendanner dem ikke.';
   }
 
   @override

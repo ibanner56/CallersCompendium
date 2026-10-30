@@ -40,7 +40,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
 | **dedupe** | Match by (source, externalId) first — re-import replaces only the matched dance's choreography (figures, formation, progression) and updates its provenance; see *Re-import replaces only the choreography*. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers never silently duplicate a confident match whose figures are identical: the title-list program import skips it, and the ContraDB program import links its slot to the existing dance (INTAKE-3; see *Program-import path*). Below the fuzzy tier, `DedupeVerdict.possibleMatchIds` lists dances that are **possibly** the same under a differently written title (see *Possible matches under another title*); it never changes the verdict. |
-| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. An overwrite warning counts the existing dances a commit would change (a link replaces the dance's content; a re-import, its choreography); nothing silently mutates existing user data. |
+| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. A row whose only matches are *possible matches under another title* (#1907) is not a possible match in this sense: it keeps the **new** default and the bulk controls leave it alone. Two warnings count the existing dances a commit would change: one the dances links replace, one the dances re-imports update (only their choreography, and how many of them also take the title and credit). A target named by both counts as replaced. Nothing silently mutates existing user data. |
 | **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. A draft's links are in the source's id space (a shared file carries the sender's link ids and dance ids), so each gets a fresh id. A related-dance link names its target by the target's external id (the generic JSON and published-collection adapters rewrite the file's dance id to the target's record key when the file carries the target), and is added only after the whole batch is written: to the dance the batch wrote under that key, else a live dance already received from the same source under it, else a live dance whose id it is (a file this library wrote). One that resolves to neither is left out with an `archive_related_dance_unresolved` note on `ImportSession.issues`, which the import result lists with the rest of the commit's notes. |
 
 Adapters implement a small interface (`discover() / fetch() / parse()`) in the
@@ -126,7 +126,9 @@ across sources regardless of which adapter produced it.
   manually-added co-author on the target dance is dropped. A re-import replaces
   only the choreography (see *Re-import replaces only the choreography*), so it
   keeps the dance's authors and resolves none of the record's names: a
-  choreographer created for it would credit no dance.
+  choreographer created for it would credit no dance. A re-import row with
+  **Also update title and credit** ticked resolves them as a link does, and
+  takes them.
 - **Undo.** The import session tracks the ids of choreographers it created. Undo
   hard-deletes inserted dances (cascading away their `dance_authors` rows) and
   restores updated dances, then removes each created choreographer — but only those
@@ -191,21 +193,68 @@ stays as the caller has it: title, authors, calling notes, walkthrough, status,
 rating, tags, links, tunes, hook, custom fields, source citations and the rest.
 The draft's links are not written, so a re-import holds none back for
 related-dance resolution, and a `.USR` import adds no `Dance_Related` link to a
-dance its batch re-imported. Known gap: a `.USR` dance re-imported earlier by
-the review's **Import and edit** is passed to the batch commit only as an
-`earlierDanceIds` entry, which does not say how it was written, so it still
-receives the file's `Dance_Related` links (added, never replacing its own).
+re-imported dance: one its batch re-imported, or one the review's **Import and
+edit** re-imported earlier (named in `earlierReimportedCcIds`, *amended
+2026-10-30*; before that, an `earlierDanceIds` entry did not say how it was
+written, and such a dance still received the file's links).
+`buildCcRelatedDanceLinks` takes the re-imported dances as
+`skippedSourceDanceIds` and leaves out a pair whose source is one of them before
+resolving its target, so no `cc_related_dance_unresolved` warning is raised for
+a link that would be dropped anyway.
+
+**Title and credit, per row** (*amended 2026-10-30*, maintainer decision "Ask
+per import": "The review screen offers \"Also update title and credit\" as a
+checkbox on re-import rows"). A re-import row offers **Also update title and
+credit**, off by default. Ticked, the row's verdict is built as
+`DedupeVerdict.reimport(id, alsoTitleAndCredit: true)`, and the commit also
+takes the incoming title and the resolved author credit
+(`withReimportedChoreography(alsoTitleAndCredit: true)`). An incoming record
+with no credit keeps the dance's. Ratings, tags, notes, links and status never
+change. The choice rides on the verdict because the `.USR` and archive
+importers rebuild each `ImportRecordPlan` before the pipeline commits it,
+copying the verdict through. The implementer's calls, not the maintainer's:
+- **One checkbox per row**, shown only while the row is set to Re-import. A
+  single batch-wide box was the alternative; the decision names re-import
+  *rows*, and one row can be a correction you want while another is not. The
+  bulk Re-import / Skip controls keep each row's tick.
+- **Never remembered between imports.** No setting stores it, so there is no
+  privacy-registry entry. Remembering it would turn a per-import question into
+  a standing overwrite of titles, which #446's "never a silent overwrite"
+  default argues against.
+- **Screen readers** hear it as one `CheckboxListTile`: the label, then a hint
+  naming the dance it applies to ("Takes this file's title and author credit
+  for "…""), then its state. Every re-import row has one, so the hint says
+  which dance each box is for.
+- The review's re-import warning and the Import and edit confirmation say what
+  a re-import replaces, with the title and credit when ticked; a link keeps the
+  "overwritten" / "Replace the existing dance now?" wording, which is still
+  true of it. Those keys keep their names, since their meaning is unchanged; the
+  re-import strings are new keys.
 
 An unreadable incoming transcription keeps the saved figures, and so does one
 that decoded to no figures (The Caller's Box serves none below its `full`
 tier): a re-import never erases a transcription, an unreadable one included.
 
-A share file's tags, custom-field definitions and published sources are still
-committed as the archive references them (`ShareMetadataImporter`), reusing a
-live match or **reviving** a deleted one. So one that only re-imported rows use
-is left unused — and, if the receiver had deleted it, brought back — as one
-only skipped rows use already was. Dropping unused metadata after the commit,
-as the `.USR` importer does, is a follow-up.
+A share file's tags, custom-field definitions and published sources are
+committed before the dances, as the archive references them
+(`ShareMetadataImporter.commit`), reusing a live match or **reviving** a deleted
+one, because a dance's write refuses an id that does not exist. *Amended
+2026-10-30:* after the dances and programs are written,
+`ShareMetadataImporter.dropUnused` takes back each one it created or revived
+that no dance the commit wrote carries (a created or linked dance's draft; a
+re-imported, skipped or failed row counts for nothing): a created one is
+erased through the guarded delete, a revived one tombstoned again. The ledger
+on the result then names only what stayed, for `undo`. Before this, a share
+whose matching rows were all re-imports or skips brought back a tag the
+receiver had deleted. The test is "carried by a written dance", not the
+repositories' `isInUse`, because a deleted tag keeps its joins: reviving it
+showed it on the receiver's own dances again, which `isInUse` counts. The
+`.USR` importer drops its unused definitions and sources the same way, by
+`isInUse`, since it revives no tags. Dropping every created or revived entry no
+written dance uses, including one the archive carries without any dance
+referencing it, is the implementer's call; keeping such unreferenced entries
+was the alternative, but a share file is built from its dances' metadata, and
+the `.USR` path drops them too.
 
 `withReimportedChoreography` (`compendium_core`) is the one helper both paths
 use; the detail screen's **Re-import choreography** (`replaceDanceChoreography`,
@@ -215,8 +264,9 @@ provenance.
 This applies to every source that reaches the pipeline: `.ccshare` and other
 Compendium archives, published collections, Caller's Companion `.USR`, ContraDB
 and The Caller's Box. For a published collection it means a newer version's
-corrected title, credit or notes do not reach a dance already imported, while
-its provenance records the new version.
+corrected notes do not reach a dance already imported, while its provenance
+records the new version; a corrected title or credit does only on a row with
+**Also update title and credit** ticked (above).
 
 The maintainer chose the choreography-only update for batch re-import
 (*batch-reimport*, 2026-10-29: "Batch re-import replaces only figures,
@@ -635,7 +685,9 @@ declines the collapse.
   as `earlierDanceIds`, so set slots and `Dance_Related` pairs naming it resolve
   to it rather than becoming "not imported" placeholders; an entry whose dance
   no longer exists is ignored, and the batch's own dance wins for a CC id it
-  also commits. A related-dance link the batch adds **to** such a dance is
+  also commits. The CC ids among them that the Edit re-imported go as
+  `earlierReimportedCcIds`, and those dances get no `Dance_Related` link, as a
+  dance the batch re-imports gets none. A related-dance link the batch adds **to** such a dance is
   recorded (`CcUsrImportResult.linksAddedToEarlierDances`) and removed by id on
   undo or a failed commit, since that dance is not the batch's to restore.
 - Library-scale behaviour (a ~20 000-dance `.USR` is ~240 MB and ~40 s of

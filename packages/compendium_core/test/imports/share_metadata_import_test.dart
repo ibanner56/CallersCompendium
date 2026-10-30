@@ -655,6 +655,106 @@ void main() {
       expect(await tags.getById('t-nfc'), isNotNull);
     },
   );
+
+  test('a re-import takes back the tags, fields and sources it revived or '
+      'created, since it writes none of them (INTAKE-7)', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final tags = TagRepository(db);
+    final sources = PublishedSourceRepository(db);
+    final fields = CustomFieldDefRepository(db);
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, ChoreographerRepository(db)),
+      ProgramRepository(db),
+      VenueRepository(db),
+      repositories: CompendiumRepositories(db, contraTaxonomy),
+      tags: tags,
+      sources: sources,
+      customFields: fields,
+    );
+    CompendiumArchive share({bool withNewTag = false}) => CompendiumArchive(
+      exportedAt: _now,
+      dances: [
+        Dance(
+          id: 'shared',
+          title: 'Shared dance',
+          tagIds: ['t1', if (withNewTag) 't2'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+          customFields: [CustomFieldValue(fieldId: 'f1', value: 'yes')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      ],
+      tags: [
+        Tag(id: 't1', name: 'chestnut'),
+        if (withNewTag) Tag(id: 't2', name: 'brand new'),
+      ],
+      publishedSources: [PublishedSource(id: 's1', title: 'Shared source')],
+      customFields: [
+        CustomFieldDef(
+          id: 'f1',
+          key: 'swing',
+          label: 'Swing',
+          type: CustomFieldType.text,
+        ),
+      ],
+    );
+    var nextId = 0;
+    String newId() => 'receiver-${++nextId}';
+
+    await importer.import(
+      encodeArchive(share()),
+      share(),
+      now: _now,
+      newId: newId,
+    );
+    // The receiver drops the field value and citation, then deletes the
+    // field, the source and the tag. A deleted tag keeps its join to the
+    // dance, hidden.
+    final imported = (await dances.listAll()).single;
+    final tagId = imported.tagIds.single;
+    final sourceId = imported.sourceCitations.single.sourceId;
+    final fieldId = imported.customFields.single.fieldId;
+    await dances.update(
+      imported.copyWith(
+        sourceCitations: const [],
+        customFields: const [],
+        updatedAt: _now.add(const Duration(days: 1)),
+      ),
+    );
+    final later = _now.add(const Duration(days: 2));
+    await fields.delete(fieldId, at: later);
+    await sources.delete(sourceId, at: later);
+    await tags.delete(tagId, at: later);
+
+    final again = share(withNewTag: true);
+    final result = await importer.import(
+      encodeArchive(again),
+      again,
+      now: _now.add(const Duration(days: 3)),
+      newId: newId,
+    );
+
+    expect(result.danceSession.records.single.action, CommitAction.reimport);
+    expect(await tags.listAll(), isEmpty);
+    expect(await sources.listAll(), isEmpty);
+    expect(await fields.listAll(), isEmpty);
+    expect((await dances.getById(imported.id))!.tagIds, isEmpty);
+    // The tag the share created is erased, not left as a tombstone.
+    expect(
+      [for (final t in await tags.listAllWithDeleted()) t.tag.name],
+      ['chestnut'],
+    );
+    expect(result.metadata!.insertedTagIds, isEmpty);
+    expect(result.metadata!.restoredTagIds, isEmpty);
+    expect(result.metadata!.restoredFieldIds, isEmpty);
+    expect(result.metadata!.restoredSourceIds, isEmpty);
+
+    // Nothing is left for undo to revert, and it does not throw.
+    await importer.undo(result);
+    expect(await tags.listAll(), isEmpty);
+  });
 }
 
 class _FailingProgramCreateRepository extends ProgramRepository {
