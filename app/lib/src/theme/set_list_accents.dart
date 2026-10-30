@@ -120,6 +120,27 @@ Color? setListAccentForShapeAndMixer(
   highContrast: highContrast,
 );
 
+/// Resolves the accent for a set-list row when the user may have coloured the
+/// formation (PRES-12): the mixer accent always wins (a safety cue for the
+/// band, maintainer decision R2-pres12-mixer), then the user's own
+/// [userColor] for the shape where they set one, then the family tint.
+///
+/// [userColor] is `FormationColorsController.overrideFor(shape)`, applied as
+/// chosen in every theme, high contrast included: the same colour already
+/// highlights the formation on the dance tile, detail and Perform header
+/// regardless of theme, and here it paints only the row's 4 px edge, never
+/// text. Only an uncoloured shape falls through to the family tint, which is
+/// the one that switches palette under high contrast.
+Color? setListAccentForRow(
+  FormationShape shape,
+  bool mixer, {
+  required Color? userColor,
+  required bool highContrast,
+}) => mixer
+    ? setListAccent(FormationFamily.mixer, highContrast: highContrast)
+    : userColor ??
+          setListAccent(formationFamilyOf(shape), highContrast: highContrast);
+
 /// Convenience: resolve a [Dance] straight to its themed accent.
 /// Delegates to [setListAccentForShapeAndMixer] with the dance's shape and
 /// mixer flag.

@@ -46,6 +46,8 @@ class DanceExportLabels {
     this.callingNotes = 'Calling notes',
     this.walkthrough = 'Walkthrough',
     this.tunes = 'Tunes',
+    this.hook = 'Hook',
+    this.sources = 'Sources',
     this.beats = _englishBeats,
     this.pageOf = _englishPageOf,
   });
@@ -65,6 +67,14 @@ class DanceExportLabels {
   /// only when `DanceShareField.tunes` is selected — no renderer emitted this
   /// section before that field existed.
   final String tunes;
+
+  /// Label for the hook line (OUT-6). Rendered only when
+  /// `DanceShareField.hook` is selected.
+  final String hook;
+
+  /// Header label for the published-sources section (OUT-6). Rendered only when
+  /// `DanceShareField.sources` is selected.
+  final String sources;
   final String Function(int beats) beats;
 
   /// Page footer of the dance PDF, e.g. `"Page 2 of 3"`.

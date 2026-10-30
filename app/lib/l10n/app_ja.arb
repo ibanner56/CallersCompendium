@@ -2548,6 +2548,14 @@
   "@settingsDefaultsShareFieldsTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
   },
+  "settingsDefaultsShareFieldsHook": "フック",
+  "@settingsDefaultsShareFieldsHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "settingsDefaultsShareFieldsSources": "ソース",
+  "@settingsDefaultsShareFieldsSources": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
   "settingsDefaultsCollectionFiltersHeader": "コレクションのフィルター",
   "@settingsDefaultsCollectionFiltersHeader": {
     "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"
@@ -6249,6 +6257,14 @@
   "exportLabelTunes": "チューン",
   "@exportLabelTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
+  },
+  "exportLabelHook": "フック",
+  "@exportLabelHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "exportLabelSources": "ソース",
+  "@exportLabelSources": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
   },
   "exportSlotAuthorSuffix": "作: {names}",
   "@exportSlotAuthorSuffix": {

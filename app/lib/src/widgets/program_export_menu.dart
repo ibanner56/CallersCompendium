@@ -13,6 +13,7 @@ import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dance_share_fields_scope.dart';
+import '../export/dance_source_lines.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
@@ -273,6 +274,11 @@ class ProgramExportMenu extends StatelessWidget {
       ),
       levelLabel: levelLabel,
       statusLabel: danceStatusLabel(l10n, dance.status),
+      sourceLines: danceSourceLines(
+        l10n,
+        dance,
+        (id) => publishedSourceFor?.call(id),
+      ),
     );
   }
 
@@ -319,6 +325,7 @@ class ProgramExportMenu extends StatelessWidget {
           renderer: renderer,
           labels: danceLabels,
           fields: shareFields,
+          sourceLines: cardLabels.sourceLines,
         ),
       );
     }

@@ -3227,6 +3227,14 @@
   "@settingsDefaultsShareFieldsTunes": {
     "description": "Label for the Tunes share-field toggle (#1434). Unlike every other field here this defaults off, since no renderer emitted tunes before this preference existed."
   },
+  "settingsDefaultsShareFieldsHook": "Hook",
+  "@settingsDefaultsShareFieldsHook": {
+    "description": "Label for the Hook share-field toggle (OUT-6). Defaults off, like Tunes: no export carried the hook before this option existed."
+  },
+  "settingsDefaultsShareFieldsSources": "Sources",
+  "@settingsDefaultsShareFieldsSources": {
+    "description": "Label for the published-sources share-field toggle (OUT-6). Defaults off, like Tunes: no export carried source citations before this option existed."
+  },
   "settingsDefaultsCollectionFiltersHeader": "Collection filters",
   "@settingsDefaultsCollectionFiltersHeader": {
     "description": "Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419)."
@@ -8190,6 +8198,14 @@
   "exportLabelTunes": "Tunes",
   "@exportLabelTunes": {
     "description": "Section heading for the suggested tune list on an exported dance card (plain text and PDF), issue #1434."
+  },
+  "exportLabelHook": "Hook",
+  "@exportLabelHook": {
+    "description": "Label before the hook text on an exported dance card (plain text and PDF), shown only when the Hook share field is on (OUT-6)."
+  },
+  "exportLabelSources": "Sources",
+  "@exportLabelSources": {
+    "description": "Section heading for the published-source citations on an exported dance card (plain text and PDF), shown only when the Sources share field is on (OUT-6)."
   },
   "exportSlotAuthorSuffix": "by {names}",
   "@exportSlotAuthorSuffix": {

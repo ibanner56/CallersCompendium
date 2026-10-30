@@ -16,12 +16,14 @@ void main() {
     String callingNotes = ' The role1s lead out. ',
     String walkthrough = 'Everyone forms a big circle.',
     List<String> tunes = const ['Tune One'],
+    String hook = '',
   }) => Dance(
     id: 'd1',
     title: "Rory O'More",
     callingNotes: callingNotes,
     walkthrough: walkthrough,
     tunes: tunes,
+    hook: hook,
     figures: [
       Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
     ],
@@ -33,6 +35,7 @@ void main() {
     Dance d, {
     Set<DanceShareField> fields = DanceShareField.allExceptTunes,
     Dialect? dialect,
+    List<String> sourceLines = const [],
   }) => DanceCardContent.build(
     d,
     dialect: dialect ?? Dialect.canonical,
@@ -42,6 +45,7 @@ void main() {
     renderer: fig,
     labels: labels,
     fields: fields,
+    sourceLines: sourceLines,
   );
 
   /// Every string a list of widgets lays out (headers and text).
@@ -116,19 +120,51 @@ void main() {
     });
   });
 
+  const sourceLines = ['Give-and-Take — A. Author, 1990 (p. 12)'];
+
+  group('hook and sources (OUT-6)', () {
+    test('appear on the dance PDF only when selected', () {
+      final d = dance(hook: 'Open with a long swing');
+      final off = textsOf(danceCard(d, content(d), Dialect.canonical));
+      expect(off, isNot(contains('${labels.hook}: Open with a long swing')));
+      expect(off, isNot(contains(labels.sources)));
+
+      final on = textsOf(
+        danceCard(
+          d,
+          content(
+            d,
+            fields: {DanceShareField.hook, DanceShareField.sources},
+            sourceLines: sourceLines,
+          ),
+          Dialect.canonical,
+        ),
+      );
+      expect(on, contains('${labels.hook}: Open with a long swing'));
+      expect(on, contains(labels.sources));
+      expect(on, contains(sourceLines.single));
+    });
+  });
+
   group('programAppendixWidgets', () {
     List<pw.Widget> appendix(
       Dance d, {
       required bool withContent,
       Set<DanceShareField> fields = DanceShareField.allExceptTunes,
       Dialect? dialect,
+      List<String> sources = const [],
     }) => programAppendixWidgets(
       [
         (
           dance: d,
           isAlternate: false,
           content: withContent
-              ? content(d, fields: fields, dialect: dialect)
+              ? content(
+                  d,
+                  fields: fields,
+                  dialect: dialect,
+                  sourceLines: sources,
+                )
               : null,
         ),
       ],
@@ -207,6 +243,41 @@ void main() {
         expect(texts, contains('Notes Only Reel'));
         expect(texts, contains('Watch the slide.'));
         expect(texts, contains('Circle left.'));
+      });
+
+      test('gets a card for a selected hook or source alone (OUT-6)', () {
+        final d = Dance(
+          id: 'd3',
+          title: 'Cited Reel',
+          hook: 'Starts with a pass-through',
+          figures: const [],
+          createdAt: now,
+          updatedAt: now,
+        );
+        final texts = textsOf(
+          appendix(
+            d,
+            withContent: true,
+            fields: {DanceShareField.hook, DanceShareField.sources},
+            sources: sourceLines,
+          ),
+        );
+        expect(texts, contains('Cited Reel'));
+        expect(texts, contains('${labels.hook}: Starts with a pass-through'));
+        expect(texts, contains(labels.sources));
+        expect(texts, contains(sourceLines.single));
+        // Deselected: nothing to put beneath the title, so no card.
+        expect(
+          textsOf(
+            appendix(
+              d,
+              withContent: true,
+              fields: {DanceShareField.formation},
+              sources: sourceLines,
+            ),
+          ),
+          isEmpty,
+        );
       });
 
       test('gets no card when neither field is selected', () {

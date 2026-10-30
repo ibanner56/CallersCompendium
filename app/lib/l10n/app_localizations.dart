@@ -3937,6 +3937,18 @@ abstract class AppLocalizations {
   /// **'Tunes'**
   String get settingsDefaultsShareFieldsTunes;
 
+  /// Label for the Hook share-field toggle (OUT-6). Defaults off, like Tunes: no export carried the hook before this option existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get settingsDefaultsShareFieldsHook;
+
+  /// Label for the published-sources share-field toggle (OUT-6). Defaults off, like Tunes: no export carried source citations before this option existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsDefaultsShareFieldsSources;
+
   /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
   ///
   /// In en, this message translates to:
@@ -9532,6 +9544,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tunes'**
   String get exportLabelTunes;
+
+  /// Label before the hook text on an exported dance card (plain text and PDF), shown only when the Hook share field is on (OUT-6).
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get exportLabelHook;
+
+  /// Section heading for the published-source citations on an exported dance card (plain text and PDF), shown only when the Sources share field is on (OUT-6).
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get exportLabelSources;
 
   /// Author-names suffix appended to a numbered set-list slot line, e.g. "1. Waltz Quadrille — by Jane Smith" (issue #1434).
   ///

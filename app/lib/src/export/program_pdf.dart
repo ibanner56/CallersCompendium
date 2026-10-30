@@ -77,6 +77,7 @@ typedef DanceCardLabels = ({
   String formationLabel,
   String? levelLabel,
   String statusLabel,
+  List<String> sourceLines,
 });
 
 /// One figure-appendix entry: the dance, whether it is an alternate, and its
@@ -223,6 +224,7 @@ Future<Uint8List> buildProgramPdf(
             labels: resolvedDanceLabels,
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
             fields: fields,
+            sourceLines: card.sourceLines,
           ),
           null => null,
         },
@@ -327,7 +329,10 @@ List<pw.Widget> programAppendixWidgets(
           UnreadableFigures() => false,
         } ||
         (content != null &&
-            (content.callingNotes != null || content.walkthrough != null));
+            (content.callingNotes != null ||
+                content.walkthrough != null ||
+                content.hook != null ||
+                content.sourceLines.isNotEmpty));
     if (!hasBody) continue;
     final titlePrefix = entry.isAlternate ? '${labels.alternate}: ' : '';
     widgets.add(pw.SizedBox(height: 10));
@@ -348,6 +353,14 @@ List<pw.Widget> programAppendixWidgets(
       }
       for (final line in content.metaLines) {
         widgets.add(pw.Text(line, style: const pw.TextStyle(fontSize: 11)));
+      }
+      if (content.hook case final hook?) {
+        widgets.add(
+          pw.Text(
+            '${danceLabels.hook}: $hook',
+            style: const pw.TextStyle(fontSize: 11),
+          ),
+        );
       }
     }
     widgets.addAll(
@@ -391,6 +404,13 @@ List<pw.Widget> programAppendixWidgets(
             style: const pw.TextStyle(fontSize: 11),
           ),
         );
+      }
+      if (content.sourceLines.isNotEmpty) {
+        widgets.add(pw.SizedBox(height: 4));
+        widgets.add(_appendixHeading(danceLabels.sources));
+        for (final line in content.sourceLines) {
+          widgets.add(pw.Text(line, style: const pw.TextStyle(fontSize: 11)));
+        }
       }
     }
   }

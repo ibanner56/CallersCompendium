@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -2626,6 +2627,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsTunes => 'Airs';
+
+  @override
+  String get settingsDefaultsShareFieldsHook => 'Accroche';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Sources';
 
   @override
   String get settingsDefaultsCollectionFiltersHeader =>
@@ -6357,6 +6364,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportLabelTunes => 'Airs';
+
+  @override
+  String get exportLabelHook => 'Accroche';
+
+  @override
+  String get exportLabelSources => 'Sources';
 
   @override
   String exportSlotAuthorSuffix(String names) {

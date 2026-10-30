@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -2462,6 +2463,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsTunes => 'チューン';
+
+  @override
+  String get settingsDefaultsShareFieldsHook => 'フック';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'ソース';
 
   @override
   String get settingsDefaultsCollectionFiltersHeader => 'コレクションのフィルター';
@@ -6023,6 +6030,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportLabelTunes => 'チューン';
+
+  @override
+  String get exportLabelHook => 'フック';
+
+  @override
+  String get exportLabelSources => 'ソース';
 
   @override
   String exportSlotAuthorSuffix(String names) {

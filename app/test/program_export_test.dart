@@ -2115,6 +2115,98 @@ void main() {
       });
     });
 
+    group('hook and sources on a set-list card (OUT-6)', () {
+      final cited = Dance(
+        id: 'd4',
+        title: 'Cited Reel',
+        figures: const [],
+        hook: 'Opens with a pass-through.',
+        sourceCitations: [SourceCitation(sourceId: 'src1', page: '12')],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final book = PublishedSource(
+        id: 'src1',
+        title: 'Give-and-Take',
+        author: 'A. Author',
+        year: 1990,
+      );
+
+      Future<({String? text, bool prompted})> shareText(
+        WidgetTester tester,
+        Set<DanceShareField> fields,
+      ) async {
+        ShareParams? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceShareFieldsScope(
+              notifier: ValueNotifier(fields),
+              child: Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    ProgramExportMenu(
+                      program: _program(
+                        slots: [
+                          ProgramSlot(id: 's1', position: 0, danceId: 'd4'),
+                        ],
+                      ),
+                      titleFor: (_) => cited.title,
+                      danceFor: (_) => cited,
+                      publishedSourceFor: (id) => id == 'src1' ? book : null,
+                      shareInvoker: (params) async => captured = params,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+        final prompted = find
+            .byKey(const ValueKey('program-figures-prompt-dialog'))
+            .evaluate()
+            .isNotEmpty;
+        if (prompted) {
+          await tester.tap(
+            find.byKey(
+              const ValueKey('program-figures-prompt-set-list-and-figures'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('program-figures-prompt-confirm')),
+          );
+          await tester.pumpAndSettle();
+        }
+        return (text: captured?.text, prompted: prompted);
+      }
+
+      testWidgets('are off by default: no prompt, no card', (tester) async {
+        final result = await shareText(tester, DanceShareField.allExceptTunes);
+        expect(result.prompted, isFalse);
+        expect(result.text, isNot(contains('Opens with a pass-through.')));
+        expect(result.text, isNot(contains('Give-and-Take')));
+      });
+
+      testWidgets('appear on the card, with the source resolved, once '
+          'selected', (tester) async {
+        final result = await shareText(tester, DanceShareField.all);
+        expect(result.prompted, isTrue);
+        expect(result.text, contains('Hook: Opens with a pass-through.'));
+        expect(result.text, contains('Sources:'));
+        expect(
+          result.text,
+          contains('Give-and-Take — A. Author, 1990 (p. 12)'),
+        );
+      });
+    });
+
     testWidgets('Cancel on prompt aborts the share — captured stays null', (
       tester,
     ) async {

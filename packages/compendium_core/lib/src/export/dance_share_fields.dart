@@ -45,10 +45,19 @@ enum DanceShareField {
   /// The dance's suggested tune list. Unlike every other value here, no
   /// current renderer emits this field at all — enabling it is what actually
   /// turns tune rendering on for the first time (issue #1434).
-  tunes;
+  tunes,
 
-  /// Every field, including [tunes]. Not the default for a fresh install —
-  /// see [allExceptTunes].
+  /// The dance's hook. Like [tunes], no renderer emitted it before this value
+  /// existed, so it is off until selected (OUT-6).
+  hook,
+
+  /// The dance's published-source citations (title, author/year, page and
+  /// number). Off until selected, like [tunes] (OUT-6). The app resolves each
+  /// citation to a display line; this core only gates and lays them out.
+  sources;
+
+  /// Every field, including [tunes], [hook] and [sources]. Not the default for
+  /// a fresh install — see [allExceptTunes].
   static const Set<DanceShareField> all = {
     DanceShareField.authors,
     DanceShareField.formation,
@@ -59,12 +68,17 @@ enum DanceShareField {
     DanceShareField.callingNotes,
     DanceShareField.walkthrough,
     DanceShareField.tunes,
+    DanceShareField.hook,
+    DanceShareField.sources,
   };
 
-  /// Every field the renderers already emit unconditionally today, minus
-  /// [tunes]. This is the default for a fresh install / untouched setting,
-  /// so a user who never opens the new Settings picker sees no change to
-  /// their existing exports.
+  /// Every field the renderers emitted unconditionally before the picker
+  /// existed: all of them except the opt-in [tunes], [hook] and [sources].
+  /// This is the default for a fresh install / untouched setting, so a user who
+  /// never opens the Settings picker sees no change to their existing exports.
+  ///
+  /// The name predates [hook] and [sources]; it is kept because renaming a
+  /// public constant would ripple through every call site.
   static const Set<DanceShareField> allExceptTunes = {
     DanceShareField.authors,
     DanceShareField.formation,
