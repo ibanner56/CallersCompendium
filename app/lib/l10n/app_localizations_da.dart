@@ -6039,6 +6039,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performShowWalkthrough => 'Vis gennemgang';
 
   @override
+  String get performFullScreen => 'Fuld skærm';
+
+  @override
   String get performWalkthroughEmpty => 'Ingen gennemgang for denne dans.';
 
   @override

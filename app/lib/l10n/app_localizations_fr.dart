@@ -6118,6 +6118,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get performShowWalkthrough => 'Afficher le déroulé';
 
   @override
+  String get performFullScreen => 'Plein écran';
+
+  @override
   String get performWalkthroughEmpty => 'Aucun déroulé pour cette danse.';
 
   @override

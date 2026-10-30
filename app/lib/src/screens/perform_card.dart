@@ -61,6 +61,7 @@ class PerformCard extends StatelessWidget {
     this.authorNames = const [],
     this.difficultyLevel,
     this.fitScaleCache,
+    this.scrollController,
   });
 
   final Dance dance;
@@ -85,6 +86,11 @@ class PerformCard extends StatelessWidget {
   /// view that navigates between slots of different card types so the fit does
   /// not flash on revisit; null for one-off uses.
   final PerformFitScaleCache? fitScaleCache;
+
+  /// Controls the card's scroll view, in both the manual and the auto-size
+  /// layouts, so a parent can scroll an overflowing card from the keyboard
+  /// (PLAT-10). Null leaves the scroll view its own.
+  final ScrollController? scrollController;
 
   /// The padded card content at [scale], composed on top of the system text
   /// scaling. Produced without its own scroll view so [_FitToHeight] can
@@ -162,9 +168,13 @@ class PerformCard extends StatelessWidget {
         ),
         builder: _body,
         scaleCache: fitScaleCache,
+        scrollController: scrollController,
       );
     }
-    return SingleChildScrollView(child: _body(context, textScale));
+    return SingleChildScrollView(
+      controller: scrollController,
+      child: _body(context, textScale),
+    );
   }
 }
 
@@ -181,6 +191,7 @@ class PerformTextCard extends StatelessWidget {
     this.canonicalizeDiscouragedTerms = false,
     this.autoSize = false,
     this.fitScaleCache,
+    this.scrollController,
   });
 
   final String text;
@@ -194,6 +205,9 @@ class PerformTextCard extends StatelessWidget {
 
   /// See [PerformCard.fitScaleCache].
   final PerformFitScaleCache? fitScaleCache;
+
+  /// See [PerformCard.scrollController].
+  final ScrollController? scrollController;
 
   Widget _body(BuildContext context, double scale) {
     final theme = Theme.of(context);
@@ -230,9 +244,13 @@ class PerformTextCard extends StatelessWidget {
         resetToken: Object.hash(text, canonicalizeDiscouragedTerms, dialect),
         builder: _body,
         scaleCache: fitScaleCache,
+        scrollController: scrollController,
       );
     }
-    return SingleChildScrollView(child: _body(context, textScale));
+    return SingleChildScrollView(
+      controller: scrollController,
+      child: _body(context, textScale),
+    );
   }
 }
 
@@ -319,6 +337,7 @@ class _FitToHeight extends StatefulWidget {
     required this.resetToken,
     required this.builder,
     this.scaleCache,
+    this.scrollController,
   });
 
   final double minScale;
@@ -329,6 +348,9 @@ class _FitToHeight extends StatefulWidget {
   /// Parent-owned cache of converged scales that survives the dance-vs-free-text
   /// card-type switch. When null, an internal per-state cache is used instead.
   final PerformFitScaleCache? scaleCache;
+
+  /// See [PerformCard.scrollController].
+  final ScrollController? scrollController;
 
   @override
   State<_FitToHeight> createState() => _FitToHeightState();
@@ -503,6 +525,7 @@ class _FitToHeightState extends State<_FitToHeight> {
         return Opacity(
           opacity: reduceMotion && !_converged ? 0.0 : 1.0,
           child: SingleChildScrollView(
+            controller: widget.scrollController,
             child: KeyedSubtree(
               key: _contentKey,
               child: widget.builder(context, _scale),

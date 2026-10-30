@@ -5796,6 +5796,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get performShowWalkthrough => 'ウォークスルーを表示';
 
   @override
+  String get performFullScreen => '全画面表示';
+
+  @override
   String get performWalkthroughEmpty => 'このダンスのウォークスルーはありません。';
 
   @override

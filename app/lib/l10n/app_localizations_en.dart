@@ -6003,6 +6003,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get performShowWalkthrough => 'Show walkthrough';
 
   @override
+  String get performFullScreen => 'Full screen';
+
+  @override
   String get performWalkthroughEmpty => 'No walkthrough for this dance.';
 
   @override

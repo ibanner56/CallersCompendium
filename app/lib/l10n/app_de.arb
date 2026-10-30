@@ -5986,6 +5986,10 @@
   "@performShowWalkthrough": {
     "x-sourceSha256": "64f01c3e30adb389ccdd0650799fed8a51beeb4a3137e888f5f49cfd3970c1c0"
   },
+  "performFullScreen": "Vollbild",
+  "@performFullScreen": {
+    "x-sourceSha256": "674fe2acd0d5f47b46180dd66e26e349cd9c9db215046f5e86ea2f5728d18117"
+  },
   "performWalkthroughEmpty": "Kein Ablauf für diesen Tanz.",
   "@performWalkthroughEmpty": {
     "x-sourceSha256": "4a06a15c574a27546aefaab25f6251d757d4685f97a8b3da52f8ad67104848b1"

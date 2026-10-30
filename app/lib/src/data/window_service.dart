@@ -157,6 +157,14 @@ class WindowService with WindowListener {
   /// restore so we don't immediately persist what we just applied.
   bool _restoring = false;
 
+  /// True between the window's enter- and leave-full-screen events, whether
+  /// Perform's toggle or the OS's own control put it there. Full-screen bounds
+  /// are the display's, not a frame the caller chose, so nothing is persisted
+  /// meanwhile and a window closed full screen reopens at its last ordinary
+  /// frame (PLAT-9). [_captureAndPersist] also asks the plugin directly, in
+  /// case an event is late or never comes.
+  bool _fullScreen = false;
+
   /// True once [initialize] has restored and shown the window. [raise] is a
   /// no-op before then: the first launch shows the window itself, and raising
   /// mid-restore would fight the programmatic bounds.
@@ -305,6 +313,9 @@ class WindowService with WindowListener {
 
   @override
   void onWindowMaximize() {
+    // Windows re-maximizes a window that was maximized before full screen as
+    // it leaves; any earlier maximize while full screen is not the caller's.
+    if (_fullScreen) return;
     // Persist maximized immediately but keep the last restored size to fall
     // back to on un-maximize.
     final restored = _lastRestoredFrame ?? WindowFrame.defaultFrame;
@@ -318,19 +329,32 @@ class WindowService with WindowListener {
   }
 
   @override
+  void onWindowEnterFullScreen() {
+    _fullScreen = true;
+    _debounce?.cancel();
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    _fullScreen = false;
+    _schedulePersist();
+  }
+
+  @override
   void onWindowClose() {
     final coordinator = _closeCoordinator;
     if (coordinator != null) unawaited(coordinator.handle());
   }
 
   void _schedulePersist() {
-    if (_restoring) return;
+    if (_restoring || _fullScreen) return;
     _debounce?.cancel();
     _debounce = Timer(_persistDebounce, () => unawaited(_captureAndPersist()));
   }
 
   Future<void> _captureAndPersist() async {
-    if (!isDesktopWindowPlatform || _restoring) return;
+    if (!isDesktopWindowPlatform || _restoring || _fullScreen) return;
+    if (await windowManager.isFullScreen()) return;
     final maximized = await windowManager.isMaximized();
     // While maximized the reported bounds are the maximized ones; keep the
     // stored restored size instead so un-maximizing later is sensible.
