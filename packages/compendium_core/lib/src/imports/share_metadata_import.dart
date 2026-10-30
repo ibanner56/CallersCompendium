@@ -1,4 +1,5 @@
 import '../model/custom_field.dart';
+import '../model/enums.dart';
 import '../model/published_source.dart';
 import '../model/tag.dart';
 import '../serialization/compendium_archive.dart';
@@ -6,6 +7,7 @@ import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/published_source_repository.dart';
 import '../storage/repositories/tag_repository.dart';
 import '../storage/shareable_text.dart';
+import 'structured_draft.dart';
 
 /// The receiver-side ids and rollback ledger for metadata in a shared archive.
 class ShareMetadataImportResult {
@@ -19,7 +21,8 @@ class ShareMetadataImportResult {
     required this.restoredSourceIds,
     required this.insertedFieldIds,
     required this.restoredFieldIds,
-  });
+    List<ImportIssue>? issues,
+  }) : issues = issues ?? [];
 
   final Map<String, String> tagIdByArchiveId;
   final Map<String, String> sourceIdByArchiveId;
@@ -30,14 +33,27 @@ class ShareMetadataImportResult {
   final List<String> restoredSourceIds;
   final List<String> insertedFieldIds;
   final List<String> restoredFieldIds;
+
+  /// One `archive_custom_field_key_conflict` note per incoming custom field
+  /// that went in under a suffixed key (see [ShareMetadataImporter]).
+  final List<ImportIssue> issues;
 }
 
 /// Imports only the metadata referenced by a shared archive.
 ///
 /// Archive ids are never trusted as receiver ids. Live compatible records are
 /// reused without being overwritten; exact tombstones are revived; all other
-/// records get freshly generated ids. An incompatible custom-field key is
-/// rejected because renaming it would silently change the meaning of values.
+/// records get freshly generated ids.
+///
+/// A custom field is compatible with the receiver's when the key, the type and
+/// (for a choice field) the set of choices match. The receiver's label, choice
+/// order, and Show in list / Searchable / Include in sharing settings are their
+/// own and never block a match (maintainer decision, 2026-10-29, INTAKE-2). A
+/// field that is not compatible is never merged into theirs, which would change
+/// what their values mean: it goes in under `<key>_2`, `<key>_3`, … as the
+/// `.USR` import does, with an `archive_custom_field_key_conflict` note
+/// (maintainer decision, 2026-10-29 round 2). [preview] raises the same notes
+/// before anything is written, so the review can show them.
 class ShareMetadataImporter {
   ShareMetadataImporter({
     required this.tags,
@@ -86,7 +102,12 @@ class ShareMetadataImporter {
 
     _planTags(archive.tags, existingTags, result, freshId);
     _planSources(archive.publishedSources, existingSources, result, freshId);
-    _planFields(archive.customFields, existingFields, result, freshId);
+    final plannedFields = _planFields(
+      archive.customFields,
+      existingFields,
+      result,
+      freshId,
+    );
 
     try {
       for (final tag in archive.tags) {
@@ -128,22 +149,12 @@ class ShareMetadataImporter {
         if (result.restoredFieldIds.contains(id)) {
           await customFields.restore(id, at: now);
         } else if (result.insertedFieldIds.contains(id)) {
-          final actualId = await customFields.upsert(
-            CustomFieldDef(
-              id: id,
-              key: field.key,
-              label: field.label,
-              type: field.type,
-              choices: field.choices,
-              showInList: field.showInList,
-              searchable: field.searchable,
-              shareable: field.shareable,
-            ),
-            at: now,
-          );
+          final planned = plannedFields[id]!;
+          final actualId = await customFields.upsert(planned, at: now);
           if (actualId != id) {
             throw StateError(
-              'custom field "${field.key}" resolved to an unexpected receiver id',
+              'custom field "${planned.key}" resolved to an unexpected '
+              'receiver id',
             );
           }
         }
@@ -153,6 +164,36 @@ class ShareMetadataImporter {
       await undo(result);
       rethrow;
     }
+  }
+
+  /// The notes [commit] would raise for [archive] against the receiver's
+  /// custom fields as they are now, without writing anything. The import
+  /// review shows them before the user commits (INTAKE-2).
+  Future<List<ImportIssue>> preview(CompendiumArchive archive) async {
+    if (archive.customFields.isEmpty) return const [];
+    final existingFields = await customFields.listAllWithDeleted();
+    final usedIds = {for (final item in existingFields) item.field.id};
+    var next = 0;
+    String placeholderId() {
+      while (true) {
+        final id = 'preview-${next++}';
+        if (usedIds.add(id)) return id;
+      }
+    }
+
+    final result = ShareMetadataImportResult(
+      tagIdByArchiveId: {},
+      sourceIdByArchiveId: {},
+      fieldIdByArchiveId: {},
+      insertedTagIds: [],
+      restoredTagIds: [],
+      insertedSourceIds: [],
+      restoredSourceIds: [],
+      insertedFieldIds: [],
+      restoredFieldIds: [],
+    );
+    _planFields(archive.customFields, existingFields, result, placeholderId);
+    return result.issues;
   }
 
   /// Reverts a committed [result]: removes the definitions, sources and tags
@@ -314,7 +355,9 @@ class ShareMetadataImporter {
     }
   }
 
-  void _planFields(
+  /// Plans every incoming custom field onto a receiver id, and returns the
+  /// definitions to insert by their new id.
+  Map<String, CustomFieldDef> _planFields(
     List<CustomFieldDef> incoming,
     List<({CustomFieldDef field, bool deleted})> existing,
     ShareMetadataImportResult result,
@@ -331,42 +374,71 @@ class ShareMetadataImporter {
           .putIfAbsent(normalizeShareableText(item.field.key), () => [])
           .add(item);
     }
+    // Rows this plan creates. Only a clash with one of the receiver's own rows
+    // may name the field in the note: a clash with another field of the same
+    // file would echo the file's text (see [ImportIssue.data]).
+    final planned = <String, CustomFieldDef>{};
     for (final field in incoming) {
-      final canonical = normalizeShareableText(field.key);
-      final match = _bestMatch(
-        buckets[canonical],
-        field.key,
-        (c) => c.field.key,
-        (c) => c.field.id,
-        (c) => c.deleted,
-      );
-      if (match != null) {
-        if (!_sameField(match.field, field)) {
-          throw StateError(
-            'shared archive custom field conflicts with local key "${field.key}"',
-          );
-        }
-        result.fieldIdByArchiveId[field.id] = match.field.id;
-        if (match.deleted) result.restoredFieldIds.add(match.field.id);
-      } else {
-        final id = newId();
-        result.fieldIdByArchiveId[field.id] = id;
-        result.insertedFieldIds.add(id);
-        buckets.putIfAbsent(canonical, () => []).add((
-          field: CustomFieldDef(
-            id: id,
-            key: field.key,
+      // The row whose key this field could not use, and the key it tries next:
+      // `<their key>_2`, `<their key>_3`, … until a free key or a compatible
+      // row, so a file received twice lands on the same `_2` field again.
+      ({CustomFieldDef field, bool deleted})? clash;
+      var candidate = field.key;
+      for (var n = 2; ; n++) {
+        final canonical = normalizeShareableText(candidate);
+        final match = _bestMatch(
+          buckets[canonical],
+          candidate,
+          (c) => c.field.key,
+          (c) => c.field.id,
+          (c) => c.deleted,
+        );
+        if (match == null) {
+          final def = CustomFieldDef(
+            id: newId(),
+            key: candidate,
             label: field.label,
             type: field.type,
             choices: field.choices,
             showInList: field.showInList,
             searchable: field.searchable,
             shareable: field.shareable,
+          );
+          result.fieldIdByArchiveId[field.id] = def.id;
+          result.insertedFieldIds.add(def.id);
+          planned[def.id] = def;
+          buckets.putIfAbsent(canonical, () => []).add((
+            field: def,
+            deleted: false,
+          ));
+          break;
+        }
+        if (_sameField(match.field, field)) {
+          result.fieldIdByArchiveId[field.id] = match.field.id;
+          if (match.deleted) result.restoredFieldIds.add(match.field.id);
+          break;
+        }
+        clash ??= match;
+        candidate = '${clash.field.key}_$n';
+      }
+      if (clash != null) {
+        final theirs = !planned.containsKey(clash.field.id);
+        result.issues.add(
+          ImportIssue(
+            severity: ImportIssueSeverity.warning,
+            code: 'archive_custom_field_key_conflict',
+            message:
+                'shared custom field "${field.key}" (${field.type.name}) '
+                'differs from the field already under that key; imported as '
+                '"$candidate".',
+            data: theirs
+                ? {'label': clash.field.label, 'key': candidate}
+                : const {},
           ),
-          deleted: false,
-        ));
+        );
       }
     }
+    return planned;
   }
 
   /// Chooses which row an incoming record adopts from a canonical-key [bucket].
@@ -403,25 +475,24 @@ class ShareMetadataImporter {
       a.url == b.url &&
       a.notes == b.notes;
 
+  /// Whether an incoming field means the same as receiver row [a]: the type
+  /// and, for a choice field, the same set of choices. The caller matched the
+  /// key already (canonically, so an NFC/NFD-equivalent key is the same key).
+  ///
+  /// The label, the choice order and the three display settings are the
+  /// receiver's own and are deliberately not compared (INTAKE-2): a label that
+  /// differs only in case (Caller's Companion's "Card" and "card" make the
+  /// same key) or a field the receiver keeps out of sharing is still theirs.
+  /// Choices are compared as raw strings because a stored choice value must
+  /// equal one of them exactly (`CustomFieldValue.matchesType`).
   static bool _sameField(CustomFieldDef a, CustomFieldDef b) =>
-      // Keys are compared canonically because the caller already matched on the
-      // canonical key; a raw compare would treat an NFC/NFD-equivalent key as a
-      // conflict and reject an otherwise-identical field.
-      normalizeShareableText(a.key) == normalizeShareableText(b.key) &&
-      a.label == b.label &&
       a.type == b.type &&
-      _listEquals(a.choices, b.choices) &&
-      a.showInList == b.showInList &&
-      a.searchable == b.searchable &&
-      a.shareable == b.shareable;
+      (a.type != CustomFieldType.choice ||
+          _sameChoices(a.choices ?? const [], b.choices ?? const []));
 
-  static bool _listEquals(List<String>? a, List<String>? b) {
-    if (a == null || b == null) return a == b;
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
+  static bool _sameChoices(List<String> a, List<String> b) {
+    final set = a.toSet();
+    return set.length == b.toSet().length && set.containsAll(b);
   }
 
   static void _validateDuplicateIds(CompendiumArchive archive) {
