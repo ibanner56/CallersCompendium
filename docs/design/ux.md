@@ -206,8 +206,15 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   `meanwhile` container (#590/#594) shows both concurrent sides on one card
   row joined by "while", on their single shared beat span; the screen-reader
   announcement reads the pair as one continuous "A while B" phrase.
+- Full screen (PLAT-9): phones and tablets go immersive for the whole view.
+  Desktop offers a toolbar toggle plus F11 (Ctrl-Cmd-F on macOS); Esc leaves
+  full screen but never Perform. Exit restores the window's entry state, and no
+  window frame is persisted while the window is full screen.
 - Navigation: giant next/prev hit zones at screen edges (44pt+), swipe,
   arrow keys/page keys, jump-to-slot overview. ALT dances one tap to swap.
+  ↓/Page Down scroll an overflowing card to its end before advancing, and
+  ↑/Page Up scroll to its top before going back; ←/→ always change slot, and a
+  new slot opens at its top (PLAT-10).
 - Zero destructive actions reachable; exit via deliberate gesture/button with
   confirm. Optional: per-slot timer/clock display.
 - On-the-fly: reorder remaining slots, insert from quick-search, add ad-hoc

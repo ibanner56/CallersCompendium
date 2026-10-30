@@ -329,10 +329,7 @@ class WindowService with WindowListener {
   }
 
   @override
-  void onWindowEnterFullScreen() {
-    _fullScreen = true;
-    _debounce?.cancel();
-  }
+  void onWindowEnterFullScreen() => _fullScreen = true;
 
   @override
   void onWindowLeaveFullScreen() {
