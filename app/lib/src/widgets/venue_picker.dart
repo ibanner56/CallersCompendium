@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../screens/venue_editor_sheet.dart';
+import 'link_typed_venues_offer.dart';
 import 'responsive_autocomplete.dart';
 
 /// A single-select picker over the reusable [Venue] records. Used by the
@@ -28,6 +29,7 @@ class VenuePicker extends StatefulWidget {
     super.key,
     required this.selectedVenueId,
     required this.onChanged,
+    this.programId,
   });
 
   /// The currently linked venue id, or `null` when no venue is linked.
@@ -36,6 +38,10 @@ class VenuePicker extends StatefulWidget {
   /// Called with the newly selected venue id, or `null` when the link is
   /// cleared. The host persists the id onto the program.
   final ValueChanged<String?> onChanged;
+
+  /// The program this picker edits, left out of the offer to link older
+  /// programs with the same typed venue: the host saves its own link.
+  final String? programId;
 
   @override
   State<VenuePicker> createState() => _VenuePickerState();
@@ -168,6 +174,12 @@ class _VenuePickerState extends State<VenuePicker> {
     await pending.arrived.future;
     if (!mounted) return;
     widget.onChanged(created.id);
+    if (!mounted) return;
+    await offerToLinkTypedVenues(
+      context,
+      venues: [created],
+      excludeProgramId: widget.programId,
+    );
   }
 
   @override

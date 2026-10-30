@@ -14646,6 +14646,42 @@ abstract class AppLocalizations {
   /// **'No venues match your search.'**
   String get venueManagerNoMatches;
 
+  /// Title of the dialog offering to link programs that have a venue typed in as text to a venue record with the same name (GIG-7).
+  ///
+  /// In en, this message translates to:
+  /// **'Link earlier programs?'**
+  String get venueLinkOfferTitle;
+
+  /// Body of the dialog offering to link typed-venue programs to a venue record (GIG-7). One line per venue follows it.
+  ///
+  /// In en, this message translates to:
+  /// **'Some programs have a venue typed in as text that matches a venue record. Linking them makes calling history count them as one venue. The typed text is kept.'**
+  String get venueLinkOfferBody;
+
+  /// One line of the link-programs-to-venue offer: the venue record's name and how many programs would be linked to it.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}”: {count, plural, =1{1 program} other{{count} programs}}'**
+  String venueLinkOfferRow(String name, int count);
+
+  /// Button that links the offered programs to their venue records.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get venueLinkOfferConfirm;
+
+  /// Button that declines the link-programs-to-venue offer. The answer is not remembered.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get venueLinkOfferDecline;
+
+  /// Snackbar after programs were linked to their venue records.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Linked 1 program.} other{Linked {count} programs.}}'**
+  String venueLinkOfferDone(int count);
+
   /// Title of the confirmation dialog for permanently deleting a venue.
   ///
   /// In en, this message translates to:

@@ -632,6 +632,103 @@ class ProgramRepository {
     });
   }
 
+  // --- Linking typed venues to a venue record (GIG-7 = (b)) ---------------
+
+  /// The live programs that carry [name] as typed venue text and no linked
+  /// record, matched by [VenueKey] (the same folding the repeated-venues list
+  /// and the venue filter use). Empty for a blank [name].
+  ///
+  /// Trashed programs are not matched: a trashed program keeps its typed
+  /// venue, so restoring it brings back the text it was trashed with.
+  Future<List<ProgramRow>> _typedVenueMatches(
+    String name, {
+    String? excludeProgramId,
+  }) async {
+    if (callingHistoryVenueText(name) == null) return const [];
+    final key = VenueKey.typed(name);
+    final rows =
+        await (_db.select(_db.programs)..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  t.venueId.isNull() &
+                  t.venue.isNotNull() &
+                  (excludeProgramId == null
+                      ? const Constant(true)
+                      : t.id.equals(excludeProgramId).not()),
+            ))
+            .get();
+    return [
+      for (final row in rows)
+        if (VenueKey.forProgram(venue: row.venue) == key) row,
+    ];
+  }
+
+  /// How many live programs [linkTypedVenues] would link for [name]: the
+  /// programs with that typed venue and no linked record, other than
+  /// [excludeProgramId].
+  Future<int> countTypedVenuePrograms(
+    String name, {
+    String? excludeProgramId,
+  }) async => (await _typedVenueMatches(
+    name,
+    excludeProgramId: excludeProgramId,
+  )).length;
+
+  /// Links every live program whose typed venue matches [name] (by
+  /// [VenueKey]) and has no linked record to the venue record [venueId], and
+  /// returns how many it linked.
+  ///
+  /// Lossless: the typed `venue` text is kept, so unlinking later shows what
+  /// was typed. Each linked program gets a stamp after its current one (at or
+  /// after [updatedAt]), so the link travels in Device Sync as an ordinary
+  /// newer program record. Programs already linked to any record, trashed
+  /// programs, and [excludeProgramId] (the program an open editor is about to
+  /// save with its own link) are left alone. Throws [StateError] when [venueId] is not a
+  /// live venue record.
+  Future<int> linkTypedVenues({
+    required String venueId,
+    required String name,
+    required DateTime updatedAt,
+    String? excludeProgramId,
+  }) {
+    assertUtc(updatedAt, 'updatedAt');
+    return _db.transaction(() async {
+      final venue =
+          await (_db.select(_db.venues)
+                ..where((t) => t.id.equals(venueId) & t.deletedAt.isNull())
+                ..limit(1))
+              .getSingleOrNull();
+      if (venue == null) {
+        throw StateError(
+          'cannot link programs to venue "$venueId": it does not exist or is '
+          'soft-deleted',
+        );
+      }
+      final matches = await _typedVenueMatches(
+        name,
+        excludeProgramId: excludeProgramId,
+      );
+      for (final row in matches) {
+        await (_db.update(
+          _db.programs,
+        )..where((t) => t.id.equals(row.id))).write(
+          ProgramsCompanion(
+            venueId: Value(venueId),
+            updatedAt: Value(
+              nextStoredTimestamp(
+                now: updatedAt.isAfter(row.updatedAt)
+                    ? updatedAt
+                    : row.updatedAt.add(storedTimestampTick),
+                current: [row.updatedAt],
+              ),
+            ),
+          ),
+        );
+      }
+      return matches.length;
+    });
+  }
+
   Future<void> _upsert(
     Program program, {
     LiveVenueIds? knownVenueIds,
@@ -1159,8 +1256,9 @@ class ProgramRepository {
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
     bool requireEventDate = false,
-  }) async =>
-      _programDerivedRows(_normalizedCallerFilter(callerFilter)).get().then(
+  }) async => _programDerivedRows(_normalizedCallerFilter(callerFilter))
+      .get()
+      .then(
         (rows) => _lastCalledFromRows(rows, requireEventDate: requireEventDate),
       );
 
@@ -1183,9 +1281,10 @@ class ProgramRepository {
   /// [callingHistoryForDance].
   Future<Map<String, DanceCallCounts>> countByDance({
     String? callerFilter,
-  }) async => _programDerivedRows(
-    _normalizedCallerFilter(callerFilter),
-  ).get().then(_countsFromRows);
+  }) async =>
+      _programDerivedRows(_normalizedCallerFilter(callerFilter))
+          .get()
+          .then(_countsFromRows);
 
   /// The ONE query behind [lastCalledByDance], [countByDance] and
   /// [watchProgramDerivedCounts]. [caller] is already normalized.

@@ -4210,6 +4210,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         VenuePicker(
           key: const ValueKey('program-venue-picker'),
           selectedVenueId: _venueId,
+          programId: _existing?.id ?? widget.programId,
           onChanged: _onVenueLinkChanged,
         ),
       ],
