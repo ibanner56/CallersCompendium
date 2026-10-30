@@ -2576,11 +2576,11 @@
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "x-sourceSha256": "7ce45913e600a61a763026ceb578ca9bae732dd38cf98eb5085d0255fe6eb049"
   },
-  "settingsDefaultsAggressiveBeatsUpdateTitle": "Figurtakte aggressiv neu berechnen",
+  "settingsDefaultsAggressiveBeatsUpdateTitle": "Schlagzahl der Figuren aggressiv neu berechnen",
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Takte hinzugefügt oder entfernt.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Wenn aktiviert, wird die Schlagzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Schlagzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Schlagzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Schläge hinzugefügt oder entfernt.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
     "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
@@ -2632,7 +2632,7 @@
   "@settingsDefaultsStartingFiguresTitle": {
     "x-sourceSha256": "1bffd9755117239ce75f839aff4265a5f9298efeea26aaa9f1986fbfc25de14f"
   },
-  "settingsDefaultsStartingFiguresSubtitle": "Die Figuren, mit denen ein neuer Tanz beginnt. Standard sind acht „Stand still“ (je 8 Takte), bei aktivierter Freitexteingabe keine; leer lassen für einen leeren neuen Tanz. Pro Tanz bearbeitbar.",
+  "settingsDefaultsStartingFiguresSubtitle": "Die Figuren, mit denen ein neuer Tanz beginnt. Standard sind acht „Stand still“ (je 8 Schläge), bei aktivierter Freitexteingabe keine; leer lassen für einen leeren neuen Tanz. Pro Tanz bearbeitbar.",
   "@settingsDefaultsStartingFiguresSubtitle": {
     "x-sourceSha256": "6c977376ba7d8485e571afbd397afd4c1e8ccd4fb37864e54cddb2f4176e0b2c"
   },
@@ -2644,7 +2644,7 @@
   "@settingsDefaultsUserFiguresTitle": {
     "x-sourceSha256": "7a5620524eb36c2842c797c0ef3a21a9e023f4529ee7592b615f199808b2c560"
   },
-  "settingsDefaultsUserFiguresSubtitle": "Jede deiner neuen Figuren hat ihre eigenen Standards: die Werte, mit denen sie beginnt, und ihre Takte. Wähle eine aus, um sie zu ändern.",
+  "settingsDefaultsUserFiguresSubtitle": "Jede deiner neuen Figuren hat ihre eigenen Standards: die Werte, mit denen sie beginnt, und ihre Schläge. Wähle eine aus, um sie zu ändern.",
   "@settingsDefaultsUserFiguresSubtitle": {
     "x-sourceSha256": "cd250d812df72953f432f85e544a5337cc20ae01885e63913dca1dfa998267ac"
   },
@@ -2776,11 +2776,11 @@
   "@settingsGeneralProgramsHeader": {
     "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
   },
-  "settingsGeneralMatrixExactCollisionTitle": "Nur exakte Taktüberschneidung markieren",
+  "settingsGeneralMatrixExactCollisionTitle": "Nur exakte Überschneidung der Schläge markieren",
   "@settingsGeneralMatrixExactCollisionTitle": {
     "x-sourceSha256": "6877e4a9153aed977728160cf1cccaf58f10d5b1500280fb8c9c0343213f1a2e"
   },
-  "settingsGeneralMatrixExactCollisionSubtitle": "In der Programmiermatrix wird eine wiederholte Figur zwischen zwei aufeinanderfolgenden Tänzen nur markiert, wenn sich ihre Takte tatsächlich überschneiden — nicht schon, wenn sie in dieselbe benannte Phrase (A1, A2, B1, B2…) fällt. Schalte dies aus, um jede Wiederholung in derselben Phrase zu markieren, selbst wenn sich die Takte selbst nicht überschneiden.",
+  "settingsGeneralMatrixExactCollisionSubtitle": "In der Programmiermatrix wird eine wiederholte Figur zwischen zwei aufeinanderfolgenden Tänzen nur markiert, wenn sich ihre Schläge tatsächlich überschneiden — nicht schon, wenn sie in dieselbe benannte Phrase (A1, A2, B1, B2…) fällt. Schalte dies aus, um jede Wiederholung in derselben Phrase zu markieren, selbst wenn sich die Schläge selbst nicht überschneiden.",
   "@settingsGeneralMatrixExactCollisionSubtitle": {
     "x-sourceSha256": "d433fe862ddd3dc1f28811aa7a4fdf16562e53f4ad6e664bb57d18586a978c77"
   },
@@ -4504,7 +4504,7 @@
   "@danceFiguresEmpty": {
     "x-sourceSha256": "8f22773e556767be04a5cee8f2df5fe2bafb16d8c8b903018a8a7e8688652b09"
   },
-  "danceFigureBeats": "{beats, plural, =1{1 Takt} other{{beats} Takte}}",
+  "danceFigureBeats": "{beats, plural, =1{1 Schlag} other{{beats} Schläge}}",
   "@danceFigureBeats": {
     "x-sourceSha256": "b1c2cd5ecb9cd06da41bcdc00cc188ef57533504a89a622f5a0146c65ac22144"
   },
@@ -5430,7 +5430,7 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{nicht vorhanden} other{vorhanden{collision, select, phrase{, wiederholt sich in derselben Phrase wie ein angrenzender Tanz} beats{, teilt Taktschläge mit einem angrenzenden Tanz} other{}}{debut, select, yes{, hier eingeführt} other{}}{first, select, yes{, erste Figur des Tanzes} other{}}}}{phrases, select, none{} other{, Phrase(n): {phrases}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{nicht vorhanden} other{vorhanden{collision, select, phrase{, wiederholt sich in derselben Phrase wie ein angrenzender Tanz} beats{, teilt Schläge mit einem angrenzenden Tanz} other{}}{debut, select, yes{, hier eingeführt} other{}}{first, select, yes{, erste Figur des Tanzes} other{}}}}{phrases, select, none{} other{, Phrase(n): {phrases}}}",
   "@programsMatrixCellSemantic": {
     "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },
@@ -5478,7 +5478,7 @@
   "@programsMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
   },
-  "programsMatrixLegendCollisionBeats": "Teilt Takte mit Nachbartanz",
+  "programsMatrixLegendCollisionBeats": "Teilt Schläge mit Nachbartanz",
   "@programsMatrixLegendCollisionBeats": {
     "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
@@ -5538,7 +5538,7 @@
   "@performNoTempoSemantic": {
     "x-sourceSha256": "5cf2246b24906f07684a381ffecc9ba23f2e0dbed5a33e169ac89a1a03f387c7"
   },
-  "performRecordBeatHint": "Takt aufzeichnen",
+  "performRecordBeatHint": "Schlag aufzeichnen",
   "@performRecordBeatHint": {
     "x-sourceSha256": "994699d0a76d695f79d2990f81961d1bc1eb3e97b5c367a3d9dc665d016eb1cf"
   },
@@ -5786,7 +5786,7 @@
   "@performProgression": {
     "x-sourceSha256": "f193d07c37765ecb1de9acb1af52d788851273a68ddd8b3791e4288c5e85ef77"
   },
-  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, Progression} other{}}, {beats, plural, =1{1 Takt} other{{beats} Takte}}{hasNote, select, yes{, Notiz: {note}} other{}}",
+  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, Progression} other{}}, {beats, plural, =1{1 Schlag} other{{beats} Schläge}}{hasNote, select, yes{, Notiz: {note}} other{}}",
   "@performFigureSemantic": {
     "x-sourceSha256": "8d80202ff6be06e607cc29eda341e32192b8990564c815166530272d593245a9"
   },
@@ -6006,7 +6006,7 @@
   "@exportSlotAuthorSuffix": {
     "x-sourceSha256": "79ac564bb32e62bcab69cdf18ff4753eae39a6616fe7569f062ab5795c484347"
   },
-  "exportBeatsLabel": "{count, plural, =1{1 Takt} other{{count} Takte}}",
+  "exportBeatsLabel": "{count, plural, =1{1 Schlag} other{{count} Schläge}}",
   "@exportBeatsLabel": {
     "x-sourceSha256": "cea968646a87fe6d3b7829baf8627aa0f6250dfefffc3750240af12828a26f56"
   },
@@ -6106,7 +6106,7 @@
   "@exportMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
   },
-  "exportMatrixLegendCollisionBeats": "Teilt Takte mit Nachbartanz",
+  "exportMatrixLegendCollisionBeats": "Teilt Schläge mit Nachbartanz",
   "@exportMatrixLegendCollisionBeats": {
     "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
@@ -7034,7 +7034,7 @@
   "@importIssueFiguresUnreadable": {
     "x-sourceSha256": "54c870224bfc8a5a9a8b61defb7c1c87458db57287b8c0061bf1b2524bba2c2b"
   },
-  "importIssueBeatsUnreadable": "Eine Taktzahl konnte nicht gelesen werden; 0 verwendet.",
+  "importIssueBeatsUnreadable": "Eine Schlagzahl konnte nicht gelesen werden; 0 verwendet.",
   "@importIssueBeatsUnreadable": {
     "x-sourceSha256": "e0de3c1018f463211f526a6983043b4981125d87afd95fd4d17e4d1cf4686994"
   },
@@ -7798,7 +7798,7 @@
   "@danceEditorWarningsTitle": {
     "x-sourceSha256": "0e04cd10f9afd7e546e176b34b56a243d8c741198aa0bfee27d7661a370dc043"
   },
-  "validationPhraseBeatMismatch": "Die Figuren ergeben insgesamt {actual} Takte; die Phrasierungsstruktur erwartet {expected}.",
+  "validationPhraseBeatMismatch": "Die Figuren ergeben insgesamt {actual} Schläge; die Phrasierungsstruktur erwartet {expected}.",
   "@validationPhraseBeatMismatch": {
     "x-sourceSha256": "cbcfd5cfa1932d621756cac5a7dd64ad714b041a96c3a293ac1a3833dc29002a"
   },
@@ -8198,11 +8198,11 @@
   "@danceEditorCompoundSemantic": {
     "x-sourceSha256": "d04eb81bad5803bb1ed81eb9e75652aa7f2f8fd2fe282bc5d93eb028378a4aae"
   },
-  "danceEditorCompoundExpandsTo": "Wird beim Speichern des Tanzes zu {count, plural, =1{1 Figur} other{{count} Figuren}} ({beats, plural, =1{1 Takt} other{{beats} Takte}}).",
+  "danceEditorCompoundExpandsTo": "Wird beim Speichern des Tanzes zu {count, plural, =1{1 Figur} other{{count} Figuren}} ({beats, plural, =1{1 Schlag} other{{beats} Schläge}}).",
   "@danceEditorCompoundExpandsTo": {
     "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
   },
-  "danceEditorCompoundUnavailable": "Diese eigene Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleiben nur Name, Takte, Notiz und Progression erhalten.",
+  "danceEditorCompoundUnavailable": "Diese eigene Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleiben nur Name, Schläge, Notiz und Progression erhalten.",
   "@danceEditorCompoundUnavailable": {
     "x-sourceSha256": "ed634f3cb27197c9dbd7a4c570a64adccedace935c49e3fbf8cbb4c54e532732"
   },
@@ -8210,7 +8210,7 @@
   "@danceEditorIncompleteFigure": {
     "x-sourceSha256": "a94c6fd28cd88d631dc65171fee6a1ec2665e1d82ac33275a06a7fc64d24b7f3"
   },
-  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, Progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 Takt} other{{beats} Takte}}} other{}}{hasNote, select, yes{, Notiz: {note}} other{}}. Figur {position} von {total}.",
+  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, Progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 Schlag} other{{beats} Schläge}}} other{}}{hasNote, select, yes{, Notiz: {note}} other{}}. Figur {position} von {total}.",
   "@danceEditorFigureSummarySemantic": {
     "x-sourceSha256": "e6e055515213aca43227e08180eedb9332836f9adc9dff767e7e5b0d47d55858"
   },
@@ -8366,7 +8366,7 @@
   "@danceEditorMeanwhileGroupLabel": {
     "x-sourceSha256": "182377025ac57fc5f2a7008a610a8c7a268dda54f8f347f02758ccdc58a73dc1"
   },
-  "danceEditorMeanwhileGroupSemantic": "Gleichzeitig-Gruppe, {count, plural, =1{1 gleichzeitige Figur} other{{count} gleichzeitige Figuren}}, {beats, plural, =1{1 geteilter Takt} other{{beats} geteilte Takte}}.",
+  "danceEditorMeanwhileGroupSemantic": "Gleichzeitig-Gruppe, {count, plural, =1{1 gleichzeitige Figur} other{{count} gleichzeitige Figuren}}, {beats, plural, =1{1 geteilter Schlag} other{{beats} geteilte Schläge}}.",
   "@danceEditorMeanwhileGroupSemantic": {
     "x-sourceSha256": "1e8c980ae2f65dceccb93859c9320eee887f40cd63dbbaba3c4b0e2490491f28"
   },
@@ -8426,15 +8426,15 @@
   "@danceEditorLingoStylingHelper": {
     "x-sourceSha256": "dad9477c721781411e575d8ab7388d8d97b37402d9399db55fad5096e3c992ca"
   },
-  "danceEditorBeatTotal": "Gesamt: {total} / {expected} Takte",
+  "danceEditorBeatTotal": "Gesamt: {total} / {expected} Schläge",
   "@danceEditorBeatTotal": {
     "x-sourceSha256": "0b95fb71ebdb8fee3e19df8074f8e1c1f3ff39f076b782ca97aa6fdfc80a05aa"
   },
-  "danceEditorOverByBeats": "Um {beats} Takte zu lang",
+  "danceEditorOverByBeats": "Um {beats} Schläge zu lang",
   "@danceEditorOverByBeats": {
     "x-sourceSha256": "fb14b34c042dd89290ea0ad4b9952a7411a97a5a4ffe89784cdd1e61fddf6861"
   },
-  "danceEditorUnderByBeats": "Um {beats} Takte zu kurz",
+  "danceEditorUnderByBeats": "Um {beats} Schläge zu kurz",
   "@danceEditorUnderByBeats": {
     "x-sourceSha256": "2931d84e5fea1cad70a43acbef80c3039fe87f2242a58ee8a43148bb688e44a7"
   },
@@ -9958,7 +9958,7 @@
   "@glossaryCustomUnsupportedBody": {
     "x-sourceSha256": "5a1cadea5dfe1d947a05dfeff086782cecfed7a6b18821dfdf454436be77a42e"
   },
-  "glossaryCustomExpandsTo": "Wird erweitert zu ({beats} Takte)",
+  "glossaryCustomExpandsTo": "Wird erweitert zu ({beats} Schläge)",
   "@glossaryCustomExpandsTo": {
     "x-sourceSha256": "1b63b35172b700aae5b91bd0436f54ff21226d2f95f529991816a3f0a7ed23ae"
   },
@@ -10278,7 +10278,7 @@
   "@userFigureEditorWordingSlots": {
     "x-sourceSha256": "531291804de7dc8760c321ea2fc08d2e6c73fcc8cd953ec4f4d45f10cbe743af"
   },
-  "userFigureEditorDefaultBeats": "Standard-Takte",
+  "userFigureEditorDefaultBeats": "Standard-Schläge",
   "@userFigureEditorDefaultBeats": {
     "x-sourceSha256": "2f205792b8c5e048cbd658bfcbbb9e07b7ddb616348b948a9d1a56d230d0ddbc"
   },
@@ -10306,7 +10306,7 @@
   "@userFigureEditorBadChoices": {
     "x-sourceSha256": "7ae4d0b10bff17bbb8923de146f56e55cebd192e73c16a01657ddf2da32425c6"
   },
-  "userFigureEditorBadBeats": "Standard-Takte müssen zwischen 0 und 64 liegen.",
+  "userFigureEditorBadBeats": "Standard-Schläge müssen zwischen 0 und 64 liegen.",
   "@userFigureEditorBadBeats": {
     "x-sourceSha256": "1b2b9fae59537a1f29ed22b6d77e2ed8387cb2cdc7e8db14d05abb3aa51e53c3"
   },
@@ -10386,7 +10386,7 @@
   "@compoundParamKindPlaces": {
     "x-sourceSha256": "a48fcb713243b3d460ca7f05e4e4e5ef1cd4d8ce4981ce20cdd3e98a39d4fd38"
   },
-  "compoundParamKindBeats": "Takte",
+  "compoundParamKindBeats": "Schläge",
   "@compoundParamKindBeats": {
     "x-sourceSha256": "d5803722f3983afbfa30b24a1ea991d1b2cb78805311b360128269ef495105af"
   },

@@ -49,7 +49,8 @@ class DatabaseLocations {
 /// - **Windows**: the per-app folder under `%LOCALAPPDATA%`. `path_provider`
 ///   exposes LocalAppData only as the application *cache* directory
 ///   (`getApplicationCacheDirectory`, which is
-///   `%LOCALAPPDATA%\<company>\<product>`; nothing evicts it). The application
+///   `%LOCALAPPDATA%\<company>\<product>`, the company pinned to
+///   org.callerscompendium in Runner.rc; nothing evicts it). The application
 ///   *support* directory is Roaming AppData, which roaming profiles copy: a poor
 ///   home for a live WAL database. Roaming is used only if LocalAppData cannot
 ///   be resolved. Earlier builds used Documents (which OneDrive's folder backup
