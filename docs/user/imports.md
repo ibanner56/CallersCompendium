@@ -600,7 +600,8 @@ watches for matches:
   created date and history) but replaces its content with the imported version,
   including its title, calling notes, rating, tags, hook, walkthrough, status,
   links and source citations. Custom fields the import carries replace yours;
-  the rest of your custom fields are kept. The review warns how many existing
+  the rest of your custom fields are kept. A file with no rating, as share
+  files are, leaves your own rating as it was. The review warns how many existing
   dances will be overwritten before you commit.
 - **Same dance, written another way.** Archives spell and annotate titles
   differently: The Caller's Box has `A-1 Reel {variant}` where your collection
@@ -616,7 +617,7 @@ watches for matches:
   (**Is this a dance you already have?**), where you pick the dance to replace
   or **Import as a new dance**; replacing it keeps your custom fields, its place
   in your programs and its calling history, but takes the incoming title,
-  figures, notes, tags and rating. A title like `New Dance (Velvet)`, whose
+  figures, notes and tags, and its rating when the file has one. A title like `New Dance (Velvet)`, whose
   bracket is the dance's real name, is not treated this way, and nor is a
   bracket holding only a part number, as in `Rickett's Hornpipe {#2}`.
 - **Same name, different choreography.** When the title and author match

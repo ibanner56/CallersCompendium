@@ -84,7 +84,8 @@ sources it cites, its [custom fields](./glossary.md#custom-field), and any of
 notes on them. The only
 difference is the name — `.ccshare` or `.json`. Choreographers' private details
 are removed (see [What stays private](#what-stays-private)), and custom fields
-with **Include in sharing** turned off are left out.
+with **Include in sharing** turned off are left out. Your star rating of the
+dance is left out too; it stays on your devices and in your backup.
 
 On Linux the system has no file share sheet, so **Share dance file** is
 labelled **Save dance file…** and saves the file through the system dialog
@@ -299,6 +300,11 @@ leave, and one thing asks you first.
   private in the editor and are removed from anything you share — see
   [Write & edit dances](./authoring.md#author-and-source-details-are-shared). The
   choreographer's name, website, and notes do travel.
+
+- **Your pay, Perform dialect and star ratings.** A program file leaves out the
+  program's **Pay** and its **Perform dialect**, and every share file leaves
+  out your star rating of a dance. They stay on your devices, still move with
+  Device Sync, and are kept in a [backup](./backup-portability.md).
 
 - **Your notes on your own figures.** A shared file carries each of
   [your own new figures](./authoring.md#your-own-figures) its dances use, but
