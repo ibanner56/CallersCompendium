@@ -758,11 +758,6 @@ class FilterCompiler {
     }
   }
 
-  /// Compiles a [LevelFilter] against the configured difficulty vocabulary.
-  ///
-  /// Ordered comparisons resolve the requested level's current position in a
-  /// scalar subquery. This keeps the query parameterized while making a user
-  /// reorder effective immediately, with no dance-row rewrite.
   /// Checks a [CalledFilter.since] cutoff and returns it as its bind.
   ///
   /// The cutoff must be a calendar date stored the way an event date is,
@@ -782,6 +777,11 @@ class FilterCompiler {
     return since;
   }
 
+  /// Compiles a [LevelFilter] against the configured difficulty vocabulary.
+  ///
+  /// Ordered comparisons resolve the requested level's current position in a
+  /// scalar subquery. This keeps the query parameterized while making a user
+  /// reorder effective immediately, with no dance-row rewrite.
   String _level(String difficultyLevelId, LevelOp op, List<Object?> binds) {
     switch (op) {
       case LevelOp.eq:

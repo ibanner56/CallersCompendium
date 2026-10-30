@@ -278,9 +278,8 @@ class CalledFilter extends DanceFilter {
 /// A record key never matches a typed one, even when the names agree: a typed
 /// "Grange" and a record named "Grange" are two venues until the old programs
 /// are linked to the record (GIG-7 = (b), maintainer decision 2026-10-29;
-/// N1-1). Two records
-/// with the same name are two venues as well, because venues have no natural
-/// key in sync.
+/// N1-1). Two records with the same name are two venues as well, because
+/// venues have no natural key in sync.
 ///
 /// [storageKey] is the summary's string form: `id:<venueId>` or
 /// `text:<folded venue>`.
