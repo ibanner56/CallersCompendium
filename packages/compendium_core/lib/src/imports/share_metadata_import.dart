@@ -378,7 +378,13 @@ class ShareMetadataImporter {
     // may name the field in the note: a clash with another field of the same
     // file would echo the file's text (see [ImportIssue.data]).
     final planned = <String, CustomFieldDef>{};
+    // Receiver id → the archive field that resolved onto it. Two fields of one
+    // file must never resolve to one definition, or a dance carrying both would
+    // keep only one of the values (the `.USR` importer's `createdFor` rule).
+    final claimedBy = <String, String>{};
     for (final field in incoming) {
+      // A file may list the same definition twice; it is planned once.
+      if (result.fieldIdByArchiveId.containsKey(field.id)) continue;
       // The row whose key this field could not use, and the key it tries next:
       // `<their key>_2`, `<their key>_3`, … until a free key or a compatible
       // row, so a file received twice lands on the same `_2` field again.
@@ -407,14 +413,18 @@ class ShareMetadataImporter {
           result.fieldIdByArchiveId[field.id] = def.id;
           result.insertedFieldIds.add(def.id);
           planned[def.id] = def;
+          claimedBy[def.id] = field.id;
           buckets.putIfAbsent(canonical, () => []).add((
             field: def,
             deleted: false,
           ));
           break;
         }
-        if (_sameField(match.field, field)) {
+        final claimed = claimedBy[match.field.id];
+        if ((claimed == null || claimed == field.id) &&
+            _sameField(match.field, field)) {
           result.fieldIdByArchiveId[field.id] = match.field.id;
+          claimedBy[match.field.id] = field.id;
           if (match.deleted) result.restoredFieldIds.add(match.field.id);
           break;
         }
@@ -422,15 +432,17 @@ class ShareMetadataImporter {
         candidate = '${clash.field.key}_$n';
       }
       if (clash != null) {
-        final theirs = !planned.containsKey(clash.field.id);
+        // Named only for a live field of the receiver's: a deleted one is not
+        // "theirs" any more, and a row this plan made holds the file's text.
+        final theirs = !clash.deleted && !planned.containsKey(clash.field.id);
         result.issues.add(
           ImportIssue(
             severity: ImportIssueSeverity.warning,
             code: 'archive_custom_field_key_conflict',
             message:
                 'shared custom field "${field.key}" (${field.type.name}) '
-                'differs from the field already under that key; imported as '
-                '"$candidate".',
+                'differs from the field already under that key; its values go '
+                'into "$candidate".',
             data: theirs
                 ? {'label': clash.field.label, 'key': candidate}
                 : const {},
@@ -483,16 +495,17 @@ class ShareMetadataImporter {
   /// receiver's own and are deliberately not compared (INTAKE-2): a label that
   /// differs only in case (Caller's Companion's "Card" and "card" make the
   /// same key) or a field the receiver keeps out of sharing is still theirs.
-  /// Choices are compared as raw strings because a stored choice value must
-  /// equal one of them exactly (`CustomFieldValue.matchesType`).
+  /// Choices are compared canonically (`normalizeShareableText`), as both
+  /// the definition's choices and a dance's value are stored that way.
   static bool _sameField(CustomFieldDef a, CustomFieldDef b) =>
       a.type == b.type &&
       (a.type != CustomFieldType.choice ||
           _sameChoices(a.choices ?? const [], b.choices ?? const []));
 
   static bool _sameChoices(List<String> a, List<String> b) {
-    final set = a.toSet();
-    return set.length == b.toSet().length && set.containsAll(b);
+    final setA = a.map(normalizeShareableText).toSet();
+    final setB = b.map(normalizeShareableText).toSet();
+    return setA.length == setB.length && setA.containsAll(setB);
   }
 
   static void _validateDuplicateIds(CompendiumArchive archive) {

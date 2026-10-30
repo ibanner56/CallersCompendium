@@ -222,6 +222,182 @@ void main() {
     expect(note.data, isEmpty);
   });
 
+  test('two fields of one file never land in one field, so a dance keeps '
+      'both values', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final fields = CustomFieldDefRepository(db);
+    await fields.upsert(
+      CustomFieldDef(
+        id: 'local-tempo',
+        key: 'tempo',
+        label: 'Tempo',
+        type: CustomFieldType.text,
+      ),
+    );
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, ChoreographerRepository(db)),
+      ProgramRepository(db),
+      VenueRepository(db),
+      repositories: CompendiumRepositories(db, contraTaxonomy),
+      tags: TagRepository(db),
+      sources: PublishedSourceRepository(db),
+      customFields: fields,
+    );
+    // The sender's own `tempo_2` is what the first field would move to.
+    final archive = CompendiumArchive(
+      exportedAt: _now,
+      dances: [
+        Dance(
+          id: 'd1',
+          title: 'Shared dance',
+          customFields: [
+            CustomFieldValue(fieldId: 'a', value: 120),
+            CustomFieldValue(fieldId: 'b', value: 90),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      ],
+      customFields: [
+        CustomFieldDef(
+          id: 'a',
+          key: 'tempo',
+          label: 'Tempo',
+          type: CustomFieldType.number,
+        ),
+        CustomFieldDef(
+          id: 'b',
+          key: 'tempo_2',
+          label: 'Tempo 2',
+          type: CustomFieldType.number,
+        ),
+      ],
+    );
+
+    final result = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: _now,
+      newId: _ids('receiver'),
+    );
+
+    final map = result.metadata!.fieldIdByArchiveId;
+    expect(map['a'], isNot(map['b']));
+    final values = (await dances.listAll()).single.customFields;
+    final keyed = {
+      for (final v in values) (await fields.getById(v.fieldId))!.key: v.value,
+    };
+    // `b` finds its own key taken by `a`'s new field, so it moves on from
+    // there; neither value is lost.
+    expect(keyed, {'tempo_2': 120, 'tempo_2_2': 90});
+  });
+
+  test('a file listing one field twice plans it once, with one note', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final fields = CustomFieldDefRepository(db);
+    await fields.upsert(
+      CustomFieldDef(
+        id: 'local-tempo',
+        key: 'tempo',
+        label: 'Tempo',
+        type: CustomFieldType.text,
+      ),
+    );
+    final field = CustomFieldDef(
+      id: 'archive-tempo',
+      key: 'tempo',
+      label: 'Tempo',
+      type: CustomFieldType.number,
+    );
+
+    final result = await _importer(
+      db,
+    ).commit(_archive([field, field]), now: _now, newId: _ids('fresh'));
+
+    expect(result.insertedFieldIds, hasLength(1));
+    expect(result.issues, hasLength(1));
+  });
+
+  test(
+    'a deleted field of another type is not named as the caller\'s',
+    () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final fields = CustomFieldDefRepository(db);
+      await fields.upsert(
+        CustomFieldDef(
+          id: 'old-tempo',
+          key: 'tempo',
+          label: 'Old tempo',
+          type: CustomFieldType.text,
+        ),
+      );
+      await fields.delete('old-tempo');
+
+      final result = await _importer(db).commit(
+        _archive([
+          CustomFieldDef(
+            id: 'archive-tempo',
+            key: 'tempo',
+            label: 'Tempo',
+            type: CustomFieldType.number,
+          ),
+        ]),
+        now: _now,
+        newId: _ids('fresh'),
+      );
+
+      // The tombstone still holds the key, so the field moves on; the note
+      // does not call a deleted field "your field".
+      expect(
+        (await fields.getById(
+          result.fieldIdByArchiveId['archive-tempo']!,
+        ))!.key,
+        'tempo_2',
+      );
+      expect(result.issues.single.data, isEmpty);
+    },
+  );
+
+  test(
+    'choices that differ only in Unicode form are the same choices',
+    () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final fields = CustomFieldDefRepository(db);
+      await fields.upsert(
+        CustomFieldDef(
+          id: 'local-mood',
+          key: 'mood',
+          label: 'Mood',
+          type: CustomFieldType.choice,
+          choices: const ['café'],
+        ),
+      );
+
+      final result = await _importer(db).commit(
+        _archive([
+          CustomFieldDef(
+            id: 'archive-mood',
+            key: 'mood',
+            label: 'Mood',
+            type: CustomFieldType.choice,
+            // NFD: e + combining acute.
+            choices: const ['cafe\u0301'],
+          ),
+        ]),
+        now: _now,
+        newId: _ids('fresh'),
+      );
+
+      expect(result.fieldIdByArchiveId['archive-mood'], 'local-mood');
+      expect(result.issues, isEmpty);
+    },
+  );
+
   test('preview raises the notes commit would, and writes nothing', () async {
     final db = openTestDatabase();
     addTearDown(db.close);
