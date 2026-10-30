@@ -30,6 +30,31 @@ void main() {
       );
     });
 
+    test('keeps up to three annotations, of any bracket and spacing', () {
+      expect(
+        frontTrailingArticle('Baby Rose, The (Imp Var) (2)'),
+        'The Baby Rose (Imp Var) (2)',
+      );
+      expect(frontTrailingArticle('Baby Rose, The {v}'), 'The Baby Rose {v}');
+      expect(
+        frontTrailingArticle('Baby Rose, The\u00A0(var)'),
+        'The Baby Rose (var)',
+      );
+      expect(
+        frontTrailingArticle('Rose, The (a) (b) (c) (d)'),
+        'Rose, The (a) (b) (c) (d)',
+      );
+    });
+
+    test("matches L' in any case and with a modifier-letter apostrophe", () {
+      expect(frontTrailingArticle("Amour, l'"), "L'Amour");
+      expect(frontTrailingArticle('Amour, L\u02BC'), 'L\u02BCAmour');
+    });
+
+    test('keeps an all-caps article as written', () {
+      expect(frontTrailingArticle('Rose, THE'), 'THE Rose');
+    });
+
     test('capitalises an article written in lower case', () {
       expect(frontTrailingArticle('Baby Rose, the'), 'The Baby Rose');
     });
@@ -61,6 +86,17 @@ void main() {
         CcDanceRecord(name: 'Baby Rose, The', fromUsrColumns: true),
       );
       expect(mapping.dance.title, 'The Baby Rose');
+    });
+
+    test('a pasted dance is fronted too, title and label', () async {
+      final adapter = CallersCompanionTextAdapter();
+      const request = ImportRequest(
+        payload: 'Bastringue, La\nby Jane Doe\n\nA1\n(8) Circle left',
+      );
+      final discovered = (await adapter.discover(request)).single;
+      expect(discovered.label, 'La Bastringue');
+      final draft = adapter.parse(await adapter.fetch(discovered));
+      expect(draft.dance.title, 'La Bastringue');
     });
 
     test('the missing-title warning does not say the dance was pasted', () {

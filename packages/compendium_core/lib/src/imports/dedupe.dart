@@ -4,6 +4,7 @@ import 'package:unorm_dart/unorm_dart.dart';
 import '../model/dance.dart';
 import '../model/enums.dart';
 import '../serialization/archive_entity_codec.dart';
+import 'title_article.dart';
 
 const _choreographyFields = [
   'form',
@@ -323,14 +324,18 @@ class DedupeIndex {
       if (e.source != null && ext != null) {
         _byExternalKey['${e.source!.name}\u0000$ext'] = e.danceId;
       }
-      final nTitle = normalizeTitle(e.title);
+      // Titles are keyed with a trailing article fronted (#1976): the library
+      // can hold "Bastringue, La" from before Caller's Companion titles were
+      // fronted on import, and an incoming "La Bastringue" is the same dance.
+      // The stored title, and sync's `normalizeTitle` keys, are unchanged.
+      final nTitle = normalizeTitle(frontTrailingArticle(e.title));
       // Never `''`: an empty normalized title is never scored, so it must not
       // be reachable through the exact-title map either.
       if (nTitle.isNotEmpty) {
         (_byNormalizedTitle[nTitle] ??= []).add(_normalized.length);
       }
       // Same rule for the core-title key: `''` carries no identity signal.
-      final coreTitle = dedupeCoreTitleKey(e.title);
+      final coreTitle = dedupeCoreTitleKey(frontTrailingArticle(e.title));
       if (coreTitle.isNotEmpty) {
         (_byCoreTitle[coreTitle] ??= []).add(_normalized.length);
       }
@@ -403,7 +408,7 @@ class DedupeIndex {
     Iterable<String> authorNames, {
     double threshold = defaultThreshold,
   }) {
-    final nTitle = normalizeTitle(title);
+    final nTitle = normalizeTitle(frontTrailingArticle(title));
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
     if (nTitle.isEmpty) return const [];
     final out = <DedupeCandidate>[];
@@ -505,13 +510,13 @@ class DedupeIndex {
     String title,
     Iterable<String> authorNames,
   ) {
-    final coreTitle = dedupeCoreTitleKey(title);
+    final coreTitle = dedupeCoreTitleKey(frontTrailingArticle(title));
     if (coreTitle.isEmpty) return const [];
     final indices = _byCoreTitle[coreTitle];
     if (indices == null) return const [];
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
     if (nAuthors.isEmpty) return const [];
-    final nTitle = normalizeTitle(title);
+    final nTitle = normalizeTitle(frontTrailingArticle(title));
     return [
       for (final i in indices)
         if (_normalized[i].normalizedTitle != nTitle &&

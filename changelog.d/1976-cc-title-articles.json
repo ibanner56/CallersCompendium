@@ -3,12 +3,18 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A Caller's Companion title filed with its article at the end, such as \"Baby Rose, The\", now imports as \"The Baby Rose\". This covers The, A, An, La, Le, Les and L'."
+      "A Caller's Companion title filed with its article at the end, such as \"Baby Rose, The\", now imports as \"The Baby Rose\". This covers The, A, An, La, Le, Les and L'.",
+      "When an import looks for a dance you already have, \"Bastringue, La\" and \"La Bastringue\" now count as the same title."
     ]
   },
   "core": {
+    "added": [
+      "`frontTrailingArticle` moves a trailing `, The`/`A`/`An`/`La`/`Le`/`Les`/`L'` to the front of a title, keeping up to three bracketed annotations at the end."
+    ],
     "changed": [
-      "`mapCallersCompanionDance` moves a trailing article to the front of the title with the new `frontTrailingArticle`, and its `cc_missing_title` diagnostic no longer says the dance was pasted, since a `.USR` row reaches it too."
+      "`mapCallersCompanionDance` and both Caller's Companion adapters' discovery labels front a trailing article.",
+      "`DedupeIndex` and `ImportPipeline.autoResolveAmbiguous` compare titles with any trailing article fronted. `normalizeTitle`, the sync title key, is unchanged.",
+      "The `cc_missing_title` diagnostic no longer says the dance was pasted, since a `.USR` row reaches it too."
     ]
   }
 }

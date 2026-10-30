@@ -18,6 +18,7 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
+import 'title_article.dart';
 
 /// The commit action chosen (or defaulted) for one record of a batch.
 enum CommitAction {
@@ -1179,7 +1180,10 @@ class ImportPipeline {
       if (!plan.verdict.isAmbiguous) continue;
 
       final incoming = plan.draft.dance;
-      final incomingTitle = normalizeTitle(incoming.title);
+      // Fronted like the dedupe index's keys (#1976).
+      final incomingTitle = normalizeTitle(
+        frontTrailingArticle(incoming.title),
+      );
       if (incomingTitle.isEmpty) {
         // A title that folds to nothing (non-Latin, punctuation-only) carries
         // no identity signal, so the exact-title gate below would pass on
@@ -1196,7 +1200,10 @@ class ImportPipeline {
         if (existing == null) continue;
         // Exact normalized-title gate: a fuzzy-but-inexact title is never
         // confident (that is the "two different dances share a title" trap).
-        if (normalizeTitle(existing.title) != incomingTitle) continue;
+        if (normalizeTitle(frontTrailingArticle(existing.title)) !=
+            incomingTitle) {
+          continue;
+        }
         // Try the cheap in-memory content comparison first: a canonical
         // choreography match is confident on its own and short-circuits before
         // any author lookup. Only when content differs AND the incoming dance

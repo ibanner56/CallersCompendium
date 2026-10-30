@@ -789,6 +789,39 @@ void main() {
       );
       expect(resolutions[0]?.kind, DedupeResolutionKind.duplicate);
     });
+
+    test('links a library-style title to its fronted twin (#1976)', () async {
+      final seeded = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-1', 'Bastringue, La')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      final existingId = seeded.insertedDanceIds.single;
+
+      final adapter = FakeSourceAdapter([record('fake-2', 'La Bastringue')]);
+      final discovered = await adapter.discover(const ImportRequest());
+      final draft = adapter.parse(await adapter.fetch(discovered.single));
+      final batch = ImportBatchResult(
+        records: [
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.ambiguous([
+              DedupeCandidate(danceId: existingId, score: 1.0),
+            ]),
+          ),
+        ],
+      );
+
+      final resolutions = await pipeline.autoResolveAmbiguous(
+        batch,
+        authorNamesOf: (_) => const [],
+      );
+      expect(resolutions[0]?.kind, DedupeResolutionKind.link);
+      expect(resolutions[0]?.targetDanceId, existingId);
+    });
   });
 
   group('variation resolution (issue #686)', () {
