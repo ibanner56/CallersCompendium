@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "App language, Reduce motion, Auto-size Perform cards and the Perform stage theme now stay on each device instead of syncing, so connecting your phone to Device Sync no longer changes the language or Perform look on the laptop you call from. Your theme still syncs, and a backup still restores all four."
+      "App language, Reduce motion, Auto-size Perform cards and the Perform stage theme now stay on each device instead of syncing, so connecting your phone to Device Sync no longer changes the language or Perform look on the laptop you call from. Your theme still syncs, and a backup still restores all four. Until you update every device, one still on an older version may say an updated device isn't taking some of its changes; updating the older device clears it."
     ]
   },
   "core": {

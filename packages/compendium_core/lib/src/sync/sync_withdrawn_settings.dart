@@ -16,8 +16,14 @@ import 'sync_record_kind.dart';
 /// and so would never die out: a peer that upgrades later receives its own
 /// last value back, keeps it in turn, and shares it on. It would also raise
 /// `keptNewerFields` on every pass, telling an up-to-date user to update.
-/// Dropping is safe because a record missing from a manifest is never read as
-/// a deletion (spec §4.5), so the older peer keeps its own value.
+/// Dropping loses no data, because a record missing from a manifest is never
+/// read as a deletion (spec §4.5), so the older peer keeps its own value.
+///
+/// It does cost the older peer a false notice. That device sees its value go
+/// uncarried by upgraded peers, so it reports `unreflectedPublication` against
+/// them ("may need an app update") until it is itself updated. The maintainer
+/// accepted that on 2026-10-30, because keeping the copy would have made every
+/// upgraded device republish deviceLocal values indefinitely.
 ///
 /// A key goes on this list only when it is withdrawn from sync. If a later
 /// build makes one shareable again, it must come off the list in that change.

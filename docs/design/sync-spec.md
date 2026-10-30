@@ -3613,7 +3613,7 @@ field is kept like an unknown one.
 > end. Every pass would publish the kept copy back. A peer that upgrades later
 > would receive its own last value from this device, keep it in turn and
 > publish it on. It would also raise `keptNewerFields` on every pass, which
-> tells an up-to-date user to update the app. Dropping it loses nothing: a
+> tells an up-to-date user to update the app. Dropping it loses no data: a
 > record absent from a manifest is never a deletion (§4.5), so the older peer
 > keeps its own value. A later build that makes a withdrawn key `shareable`
 > again MUST remove it from the list in the same change. The detach clean-up
@@ -3622,6 +3622,22 @@ field is kept like an unknown one.
 > question raised while this change was built (recorded in its pull request).
 > The alternatives were keeping the record but suppressing the notice, and
 > leaving the notice standing.
+>
+> **Amended 2026-10-30, by the maintainer's decision.** The drop has a cost on
+> the *older* device, which the first version of this amendment did not state.
+> A device on an older build that has set one of these keys keeps publishing
+> it. No upgraded peer carries it, so once an upgraded peer has published
+> twice, the older device raises `unreflectedPublication` against that peer
+> (§6.9). The user sees a "needs you" notice saying the upgraded device isn't
+> taking some changes and may need an app update. The peer's waiting count
+> under *Other devices* stays above zero too. Both are false, and an older
+> build cannot be changed to stop them. They clear once the older device is
+> updated, because its own copy is then `deviceLocal` and no longer
+> published. The user guide says so. Keeping the record whole would have
+> avoided this notice. The maintainer kept the drop anyway, because it is
+> temporary and clears itself. Keeping the record would have had every
+> upgraded device republish, indefinitely, values the registry classifies
+> `deviceLocal`.
 
 A record this device shares none of has no body to put kept parts back into. A
 custom-field definition made private (`shareable: false`) projects to an empty

@@ -954,6 +954,14 @@ Sync is off and open while it is on.
   opened since doesn't raise this notice: it just shows changes waiting for it
   under **Other devices**. Like every notice, it never blocks anything and goes
   away on its own once the other device catches up.
+
+  This notice can also point the wrong way for a while after an update. A
+  device still on an older version of the app may say an *updated* device
+  isn't taking some of its changes, and that the updated device may need an
+  app update. This happens when the older device has set **App language**,
+  **Reduce motion**, **Auto-size Perform cards** or Perform's stage theme. Those
+  settings now stay on each device, so the updated device leaves them alone. To
+  clear the notice, update the app on the older device.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
@@ -962,7 +970,9 @@ Sync is off and open while it is on.
   cards**, and Perform's stage theme and text size. Unlike the sync settings
   above, a backup includes them. Your theme and custom themes do sync. A
   device still on an older version of the app keeps syncing these with other
-  older devices, but this device ignores what it sends.
+  older devices, but this device ignores what it sends. Until you update it,
+  that older device may wrongly say this one isn't taking its changes; see
+  **"Needs you"** above.
 
 **Connecting.** Once Device Sync is on, choose **Connect**, then either:
 
