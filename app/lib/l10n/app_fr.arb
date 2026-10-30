@@ -4152,6 +4152,62 @@
   "@collectionFacetNotCalled": {
     "x-sourceSha256": "606124ade426a3e8c2a0da3680ae9b518934979c772e0e7564630fd46e96e592"
   },
+  "collectionFacetHistoryInert": "S'applique avec Appelées ou Non appelées",
+  "@collectionFacetHistoryInert": {
+    "x-sourceSha256": "4f5b3dbbeda62c4bdc66382e9d23713565237140a21ed4bbb6bf72e3765e0842"
+  },
+  "collectionFacetVenue": "Lieu",
+  "@collectionFacetVenue": {
+    "x-sourceSha256": "15eb58b66f23bfdd0886b1836f7d53ee09b9f83eed1c48965678024d957b0ea6"
+  },
+  "collectionFacetVenueAny": "Tous les lieux",
+  "@collectionFacetVenueAny": {
+    "x-sourceSha256": "458db77c1c503d46bd543c8ebbdc892c139c2b2903bbf1af707b3263b5a89545"
+  },
+  "collectionFacetVenueUnnamed": "Lieu sans nom",
+  "@collectionFacetVenueUnnamed": {
+    "x-sourceSha256": "d05aef5da8914bd969562f34dd344d7251dd248c6e2cf2674efd76ee9f84704b"
+  },
+  "collectionFacetVenueClear": "Effacer le lieu",
+  "@collectionFacetVenueClear": {
+    "x-sourceSha256": "f07d0528a8fb25d5f9ed27af5d3f7512d1afa86dfdc5f576fb7d51a856a7f1d9"
+  },
+  "collectionFacetVenueSheetTitle": "Lieu",
+  "@collectionFacetVenueSheetTitle": {
+    "x-sourceSha256": "aea1b15df626f337de5eb359dd6f7651b9f25a39ddb515b6ab765e1167456d87"
+  },
+  "collectionFacetVenuePrograms": "{count, plural, =1{1 programme} other{{count} programmes}}",
+  "@collectionFacetVenuePrograms": {
+    "x-sourceSha256": "a7b7d768632c302855b92c62c230f4bec8af1fd58ced4388e2407d9ecfd42e06"
+  },
+  "collectionFacetVenueTyped": "saisi",
+  "@collectionFacetVenueTyped": {
+    "x-sourceSha256": "2259e961582c9ae17235db655c751ddb198605c3bea788a4170a8baa3511c614"
+  },
+  "collectionFacetWithin": "Depuis moins de",
+  "@collectionFacetWithin": {
+    "x-sourceSha256": "2c46a91dc5c6930274259f8bfd4af2e357b609cfc6e07736972d34a8e3302c9a"
+  },
+  "collectionFacetWithinAnyTime": "À tout moment",
+  "@collectionFacetWithinAnyTime": {
+    "x-sourceSha256": "5e7de49a40c3d7546e1c0e7a514ca92bd4c524553f6f3eadb8b9de6b35909dfe"
+  },
+  "collectionFacetWithinNever": "Jamais appelées",
+  "@collectionFacetWithinNever": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "collectionFacetWithinMonths": "{count, plural, =1{1 mois} other{{count} mois}}",
+  "@collectionFacetWithinMonths": {
+    "x-sourceSha256": "66be719ed3455ce0c8690aabb3c822e941f268edc163a37a050194e1f6d12926"
+  },
+  "collectionFacetWithinSince": "Depuis une date…",
+  "@collectionFacetWithinSince": {
+    "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
+  },
+  "collectionFacetWithinSinceDate": "Depuis le {date}",
+  "@collectionFacetWithinSinceDate": {
+    "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
+  },
   "collectionFacetLevel": "Niveau",
   "@collectionFacetLevel": {
     "x-sourceSha256": "1709305c9fa966d14f56f0da3c3614bbc10adcf53d72f90341bb96d24afcfca3"
@@ -4767,6 +4823,26 @@
   "programsAddDanceToProgramSemantic": "Ajouter « {danceTitle} » à {programTitle}, {details}",
   "@programsAddDanceToProgramSemantic": {
     "x-sourceSha256": "9fa501db30d27eee1a7bf66b0b21f4b0199c64d3916d360bd1a732eaa9fecb97"
+  },
+  "programsDanceInThisProgram": "Dans ce programme",
+  "@programsDanceInThisProgram": {
+    "x-sourceSha256": "d89bcdd00f3d2fadec89bf242fe294cdaef8bcd2ef2715290ab59880f6cf35bf"
+  },
+  "programsDanceInThisProgramCount": "Dans ce programme ×{count}",
+  "@programsDanceInThisProgramCount": {
+    "x-sourceSha256": "0532a02041eea24333369f6c5c913c5ccc0d438ee717be5a2711aff816ab0261"
+  },
+  "programsAddAgainTitle": "Déjà dans ce programme",
+  "@programsAddAgainTitle": {
+    "x-sourceSha256": "f99872aa4d82f914408cba53f419d396218e55ec34b2757febfd2835fde9027c"
+  },
+  "programsAddAgainBody": "{count, plural, =1{« {danceTitle} » est déjà dans « {programTitle} ». L’ajouter à nouveau ?} other{« {danceTitle} » est déjà {count} fois dans « {programTitle} ». L’ajouter à nouveau ?}}",
+  "@programsAddAgainBody": {
+    "x-sourceSha256": "489e328703df7401f74e0d08100e3ed5f693229fa2296e272b58d3bf737011c9"
+  },
+  "programsAddAgain": "Ajouter à nouveau",
+  "@programsAddAgain": {
+    "x-sourceSha256": "7cfbee3aafa052fb0bd1adaa3e07514abc389966d5adec7e1a88ce02e15e9b25"
   },
   "programsAddedToProgramSnack": "« {danceTitle} » ajouté à {programTitle}.",
   "@programsAddedToProgramSnack": {
@@ -7294,6 +7370,14 @@
   "@importReviewOptionReimport": {
     "x-sourceSha256": "8249cab6d7f9413d09113b73b5d65ae41968266f1d724baeec3f04bb3f25b4c6"
   },
+  "importReviewReimportTitleAndCredit": "Mettre aussi à jour le titre et l’auteur",
+  "@importReviewReimportTitleAndCredit": {
+    "x-sourceSha256": "a142dcbde6be9269e06950ee3738fc3dbcf82105bd06dabdb3eb6790dca67718"
+  },
+  "importReviewReimportTitleAndCreditHint": "Reprend le titre et l’auteur de ce fichier pour « {title} ». Votre note, vos étiquettes, notes et liens restent tels quels.",
+  "@importReviewReimportTitleAndCreditHint": {
+    "x-sourceSha256": "98022c8d2659302f60dd9f7d3b5a3601b664ff80c8e5593d2a0e54f987f1bdb7"
+  },
   "importReviewOptionDuplicate": "Importer comme nouvelle danse (doublon)",
   "@importReviewOptionDuplicate": {
     "x-sourceSha256": "b4ed3ed8907b60111f687f32d121971db2fd9cf7381dce15d89d00295559c2f1"
@@ -7317,6 +7401,14 @@
   "importReviewOverwriteWarning": "{count, plural, =1{1 danse existante sera écrasée} other{{count} danses existantes seront écrasées}}",
   "@importReviewOverwriteWarning": {
     "x-sourceSha256": "32e898771354de5a51675debb5473f13fe146fec3e2bf8e86485fb3f27407f54"
+  },
+  "importReviewReimportWarning": "{count, plural, =1{La ré-importation remplace les figures, la formation et la progression d’une danse existante. Sa note, ses étiquettes et ses notes restent.} other{La ré-importation remplace les figures, la formation et la progression de {count} danses existantes. Leurs notes, étiquettes et remarques restent.}}",
+  "@importReviewReimportWarning": {
+    "x-sourceSha256": "c5aa953aba540e25ed5200df2027d40bbc0253f2d5f2268e420c36b3a5b5eaae"
+  },
+  "importReviewReimportTitleWarning": "{count, plural, =1{L’une d’elles reprend aussi le titre et l’auteur du fichier.} other{{count} d’entre elles reprennent aussi le titre et l’auteur du fichier.}}",
+  "@importReviewReimportTitleWarning": {
+    "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
   },
   "importReviewWarningPrefix": "Avertissement : {message}",
   "@importReviewWarningPrefix": {
@@ -7409,6 +7501,18 @@
   "importReviewEditOverwriteBody": "L’importation pour modification remplace immédiatement « {title} » dans votre collection. L’annulation de l’import groupé ne la restaurera pas.",
   "@importReviewEditOverwriteBody": {
     "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
+  },
+  "importReviewEditReimportTitle": "Ré-importer sur la danse existante maintenant ?",
+  "@importReviewEditReimportTitle": {
+    "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
+  },
+  "importReviewEditReimportBody": "L’importation pour modification remplace immédiatement les figures, la formation et la progression de « {title} » dans votre collection. L’annulation de l’import groupé ne les restaurera pas.",
+  "@importReviewEditReimportBody": {
+    "x-sourceSha256": "275389cd8066eadc9e742cd019dda14c517874a5a2552849c4fc3dac6232452d"
+  },
+  "importReviewEditReimportTitleAndCreditBody": "L’importation pour modification remplace immédiatement les figures, la formation, la progression, le titre et l’auteur de « {title} » dans votre collection. L’annulation de l’import groupé ne les restaurera pas.",
+  "@importReviewEditReimportTitleAndCreditBody": {
+    "x-sourceSha256": "62a5cb4886e354759fc6422859381272be05217b50b9c73e838470f91d3e3ee3"
   },
   "importReviewImportError": "Impossible de terminer l’import.",
   "@importReviewImportError": {

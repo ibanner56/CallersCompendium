@@ -2422,19 +2422,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _pickerCounts.value = _danceSlotCounts();
   }
 
-  /// How many times each dance already appears in the program being built.
-  ///
-  /// Keyed by dance id; dances absent from the program are absent from the map.
-  /// Free-text and break slots carry no dance id and are skipped.
-  Map<String, int> _danceSlotCounts() {
-    final counts = <String, int>{};
-    for (final slot in _slots) {
-      final danceId = slot.danceId;
-      if (danceId == null) continue;
-      counts[danceId] = (counts[danceId] ?? 0) + 1;
-    }
-    return counts;
-  }
+  /// How many times each dance already appears in the program being built, by
+  /// the same rule as the add-to-program sheet's marker
+  /// ([Program.danceSlotCountsOf]).
+  Map<String, int> _danceSlotCounts() => Program.danceSlotCountsOf(_slots);
 
   void _addDanceSlot(String danceId) {
     if (!mounted) return;
