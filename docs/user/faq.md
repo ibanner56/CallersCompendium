@@ -180,7 +180,7 @@ The app couldn't open or get your collection ready at startup. Try, in order:
      details** is what you can send.
 
    A scrubbed export of this log keeps the short, fixed descriptions of
-   failed update downloads, online imports, published collections and syncs (for example,
+   failed update downloads, online imports and published-collection downloads (for example,
    "timed out" or "HTTP 404"); the text of any other error message is left
    out.
 

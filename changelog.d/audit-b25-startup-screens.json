@@ -6,7 +6,7 @@
       "The four startup screens that stop the app (newer data, data too old to open, a backup that couldn't be made, data that couldn't be moved) now have a **Copy details** button and a link to the Releases page. The newer-data screen also shows which storage versions are involved, and every one of them tells you to reopen the app once the problem is fixed."
     ],
     "changed": [
-      "A scrubbed diagnostics export now keeps the short, fixed description of a failed update download, online import, published-collection download or sync, so a report can tell a timeout from a 404. Other error messages are still left out.",
+      "A scrubbed diagnostics export now keeps the short, fixed description of a failed update download, online import or published-collection download, so a report can tell a timeout from a 404. Other error messages are still left out.",
       "The FAQ now lists where the diagnostics log is on Windows, macOS, Linux, Android and iOS."
     ]
   },

@@ -583,8 +583,8 @@ still lets you try to export or clear it.
 - **Include full detail (may contain your content)** — **off by default**. Left
   off, the export removes the text of error messages, your content, file paths,
   email addresses, and phone numbers. The one exception is the short, fixed
-  description the app itself writes for a failed update download, online import,
-  published-collection download or sync (such as a timeout or an HTTP status
+  description the app itself writes for a failed update download, online import
+  or published-collection download (such as a timeout or an HTTP status
   code), which has no content or path in it and stays, so a report can tell a
   timeout from a 404. Turn it on only when you mean to share the full,
   unredacted log.
