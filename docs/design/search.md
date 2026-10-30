@@ -73,7 +73,9 @@ sealed DanceFilter
   LevelFilter(String difficultyLevelId, [LevelOp op = eq]) // ordered scale; see LevelOp below
   MixedLevelFilter(bool mixed)               // → dances.mixed_level
   MixerFilter(bool mixer)                    // → dances.mixer (issue #732)
-  CalledFilter(bool called, {String? callerFilter, bool performedOnly = false})
+  CalledFilter(bool called, {String? callerFilter, bool performedOnly = false,
+               bool requireEventDate = false, VenueKey? venue,
+               DateTime? since, String? currentProgramId})
                                                // → scoped calling-history EXISTS
   RatingFilter(int minimum)                  // minimum-star floor, 1..5
   TagFilter(String tagId)
@@ -164,9 +166,20 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `LevelFilter(l, lte/gte)` | `level_id IN (SELECT candidate.id FROM difficulty_levels candidate CROSS JOIN (SELECT position, id FROM difficulty_levels WHERE id = ?) target WHERE (candidate.position, candidate.id) <=/>= (target.position, target.id))` |
 | `MixedLevelFilter(b)` | `mixed_level = ?` (bind `1`/`0`) |
 | `MixerFilter(b)` | `mixer = ?` (bind `1`/`0`) |
-| `CalledFilter(true, scope)` | `EXISTS` over `program_slots` joined to non-deleted `programs`; an optional caller scope includes matching, NULL, and blank host callers, and `performedOnly` adds `performed_at IS NOT NULL` |
-| `CalledFilter(false, scope)` | `NOT (EXISTS …)` with the same caller, performed, and non-deleted-program scope |
+| `CalledFilter(true, scope)` | `EXISTS` over `program_slots` joined to non-deleted `programs`. An alternate slot matches only once it is marked performed (`callingHistoryAlternateClause`). An optional caller scope includes matching, NULL, and blank host callers; `performedOnly` adds `performed_at IS NOT NULL`, and `requireEventDate` adds `event_date IS NOT NULL`. The scopes narrow the same slots: `venue` adds `p.venue_id = ?` for a record key, or `p.venue_id IS NULL AND cc_venue_key(p.venue) = ?` for a typed one; `since` adds `COALESCE(p.event_date, ps.performed_at) >= ?` (`callingHistoryRecencyDateSql`; no end date, and a slot with neither date is in no window); `currentProgramId` adds `p.id <> ?` |
+| `CalledFilter(false, scope)` | `NOT (EXISTS …)` with the same rules and scopes, so a scope reads "no counted slot at the venue, in the window", never "a slot elsewhere" |
 | `RatingFilter(n)` | `rating >= ?` (unrated dances excluded — NULL is not on the scale) |
+
+A `VenueKey` is the repeated-venues summary's key: `id:<venueId>` for a program
+linked to a venue record, else `text:<folded typed venue>`, so a typed "Grange"
+never matches the record "Grange" (N1-1). SQLite cannot fold the typed text the
+way the summary does (it cannot collapse whitespace runs, and its `LOWER` is
+ASCII-only), so `applyCompendiumSqliteSetup` registers `cc_venue_key(text)`, a
+Dart function, on every connection. A connection opened without that setup
+fails a typed-venue scope with "no such function". `since` must be a UTC
+calendar date, like a stored event date; the compiler rejects any other value.
+`ProgramRepository.calledVenues` lists the venue keys with a counted call, for
+the venue chooser. Design: [history-filters.md](history-filters.md).
 
 The Collection and Programs picker expose the calling-history facet only when
 the active caller/performed scope has at least one qualifying call. An entirely
