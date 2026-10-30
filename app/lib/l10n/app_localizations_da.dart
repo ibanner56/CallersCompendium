@@ -6978,7 +6978,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Et brugerdefineret felt i denne fil har en nøgle, der allerede bruges af et felt af en anden type eller med andre valgmuligheder, så dets værdier lægges i stedet i et felt med en nummereret nøgle.';
+      'Et brugerdefineret felt i denne fil kunne ikke bruge sin nøgle, som allerede er i brug, så dets værdier lægges i stedet i et felt med en nummereret nøgle.';
 
   @override
   String get importIssueUsrFileTruncated =>

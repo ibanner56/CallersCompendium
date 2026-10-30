@@ -7026,7 +7026,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Een aangepast veld in dit bestand heeft een sleutel die al in gebruik is door een veld van een ander type of met andere keuzes, dus de waarden ervan komen in plaats daarvan in een veld met een genummerde sleutel.';
+      'Een aangepast veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden ervan komen in plaats daarvan in een veld met een genummerde sleutel.';
 
   @override
   String get importIssueUsrFileTruncated =>

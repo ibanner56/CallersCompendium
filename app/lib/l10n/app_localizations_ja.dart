@@ -6695,7 +6695,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'このファイルのカスタムフィールドのキーが、種類または選択肢の異なる別のフィールドですでに使われているため、その値は代わりに番号付きのキーのフィールドに入ります。';
+      'このファイルのカスタムフィールドは、キーがすでに使われているため使用できませんでした。その値は代わりに番号付きのキーのフィールドに入ります。';
 
   @override
   String get importIssueUsrFileTruncated =>

@@ -6947,7 +6947,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'A custom field in this file has a key that is already taken by a field of another type or with other choices, so its values go into a field with a numbered key instead.';
+      'A custom field in this file could not use its key, which is already taken, so its values go into a field with a numbered key instead.';
 
   @override
   String get importIssueUsrFileTruncated =>

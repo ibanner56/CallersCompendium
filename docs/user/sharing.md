@@ -92,8 +92,9 @@ which keeps their name, choice order, **Show in list**, **Searchable** and
 **Include in sharing** settings. If the type or the choices differ, the values
 go into the field with their key plus `_2` instead, so their own field never
 changes meaning. That field is added the first time; when the same file comes
-again, its values go into the same `_2` field. If `_2` is taken by a field that
-differs too, the next number is used. Import review says so before anything is
+again, its values go into the same `_2` field. If `_2` is already taken by a
+field that differs, or by another field in the same file, the next number is
+used. Import review says so before anything is
 added. A link to a video or web page
 comes along as it is. A link to a related dance comes along when that dance is
 imported from the same file. It also comes along when the recipient already has

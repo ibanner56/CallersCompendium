@@ -6894,9 +6894,9 @@
   "@importIssueArchiveCustomFieldKeyConflict": {
     "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
   },
-  "importIssueArchiveCustomFieldKeyConflictGeneric": "Un champ personnalisé de ce fichier a une clé déjà prise par un champ d’un autre type ou avec d’autres choix : ses valeurs vont donc dans un champ avec une clé numérotée.",
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "Un champ personnalisé de ce fichier n’a pas pu utiliser sa clé, déjà prise : ses valeurs vont donc dans un champ avec une clé numérotée.",
   "@importIssueArchiveCustomFieldKeyConflictGeneric": {
-    "x-sourceSha256": "e5e3ca061c91499215ebb08719bbf778b6936c3047e5fa6b283298fe93590d6c"
+    "x-sourceSha256": "3de2eecff77eb62db3dd735f85a9151293ca4ec9f3f9ed18154b9c3e3986142a"
   },
   "importIssueUsrFileTruncated": "Ce fichier semble incomplet : seule une partie a pu être lue. Copiez-le de nouveau depuis l'original, puis réimportez-le.",
   "@importIssueUsrFileTruncated": {

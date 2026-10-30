@@ -6894,9 +6894,9 @@
   "@importIssueArchiveCustomFieldKeyConflict": {
     "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
   },
-  "importIssueArchiveCustomFieldKeyConflictGeneric": "Et brugerdefineret felt i denne fil har en nøgle, der allerede bruges af et felt af en anden type eller med andre valgmuligheder, så dets værdier lægges i stedet i et felt med en nummereret nøgle.",
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "Et brugerdefineret felt i denne fil kunne ikke bruge sin nøgle, som allerede er i brug, så dets værdier lægges i stedet i et felt med en nummereret nøgle.",
   "@importIssueArchiveCustomFieldKeyConflictGeneric": {
-    "x-sourceSha256": "e5e3ca061c91499215ebb08719bbf778b6936c3047e5fa6b283298fe93590d6c"
+    "x-sourceSha256": "3de2eecff77eb62db3dd735f85a9151293ca4ec9f3f9ed18154b9c3e3986142a"
   },
   "importIssueUsrFileTruncated": "Denne fil ser ufuldstændig ud – kun en del af den kunne læses. Kopiér den igen fra originalen, og importér den på ny.",
   "@importIssueUsrFileTruncated": {

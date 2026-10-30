@@ -10487,10 +10487,10 @@ abstract class AppLocalizations {
   /// **'Your custom field \"{label}\" has a different type or other choices in this file, so the file\'s values for it go into the field with the key \"{key}\" instead, which is added if you don\'t have it yet. Your field is unchanged.'**
   String importIssueArchiveCustomFieldKeyConflict(String label, String key);
 
-  /// Import review warning for a shared file (INTAKE-2), used when the key is held by another field of the same file or by a field the user deleted, so no field is named (the file's text is never shown). The values go into a field under a numbered key.
+  /// Import review warning for a shared file (INTAKE-2), used when the key is held by another field of the same file or by a field the user deleted, so no field is named and no difference is claimed (the file's text is never shown). The values go into a field under a numbered key.
   ///
   /// In en, this message translates to:
-  /// **'A custom field in this file has a key that is already taken by a field of another type or with other choices, so its values go into a field with a numbered key instead.'**
+  /// **'A custom field in this file could not use its key, which is already taken, so its values go into a field with a numbered key instead.'**
   String get importIssueArchiveCustomFieldKeyConflictGeneric;
 
   /// Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file.

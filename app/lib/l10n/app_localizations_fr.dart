@@ -7070,7 +7070,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Un champ personnalisé de ce fichier a une clé déjà prise par un champ d’un autre type ou avec d’autres choix : ses valeurs vont donc dans un champ avec une clé numérotée.';
+      'Un champ personnalisé de ce fichier n’a pas pu utiliser sa clé, déjà prise : ses valeurs vont donc dans un champ avec une clé numérotée.';
 
   @override
   String get importIssueUsrFileTruncated =>

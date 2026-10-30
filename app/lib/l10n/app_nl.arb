@@ -6894,9 +6894,9 @@
   "@importIssueArchiveCustomFieldKeyConflict": {
     "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
   },
-  "importIssueArchiveCustomFieldKeyConflictGeneric": "Een aangepast veld in dit bestand heeft een sleutel die al in gebruik is door een veld van een ander type of met andere keuzes, dus de waarden ervan komen in plaats daarvan in een veld met een genummerde sleutel.",
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "Een aangepast veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden ervan komen in plaats daarvan in een veld met een genummerde sleutel.",
   "@importIssueArchiveCustomFieldKeyConflictGeneric": {
-    "x-sourceSha256": "e5e3ca061c91499215ebb08719bbf778b6936c3047e5fa6b283298fe93590d6c"
+    "x-sourceSha256": "3de2eecff77eb62db3dd735f85a9151293ca4ec9f3f9ed18154b9c3e3986142a"
   },
   "importIssueUsrFileTruncated": "Dit bestand lijkt onvolledig – slechts een deel kon worden gelezen. Kopieer het opnieuw van het origineel en importeer het nogmaals.",
   "@importIssueUsrFileTruncated": {

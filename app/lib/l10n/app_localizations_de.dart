@@ -7053,7 +7053,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Ein benutzerdefiniertes Feld in dieser Datei hat einen Schlüssel, der bereits von einem Feld eines anderen Typs oder mit anderen Auswahlwerten belegt ist, daher kommen seine Werte stattdessen in ein Feld mit einem nummerierten Schlüssel.';
+      'Ein benutzerdefiniertes Feld in dieser Datei konnte seinen Schlüssel nicht verwenden, weil er bereits belegt ist, daher kommen seine Werte stattdessen in ein Feld mit einem nummerierten Schlüssel.';
 
   @override
   String get importIssueUsrFileTruncated =>

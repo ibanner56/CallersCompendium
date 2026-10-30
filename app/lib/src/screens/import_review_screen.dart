@@ -3477,8 +3477,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   /// The file-level warnings from [ImportBatchResult.warnings], one bullet per
-  /// distinct message (so two custom fields that each went in under a new key
-  /// get a bullet each, while a code with no detail shows once). Styled and announced like [_buildOverwriteWarning]; the copy
+  /// distinct message (so two custom fields of the caller's that each sent a
+  /// field to a numbered key get a bullet each, while identical messages,
+  /// such as a code with no detail, show once). Styled and announced like [_buildOverwriteWarning]; the copy
   /// comes from [importIssueMessage], never the issue's English `message`.
   Widget _buildBatchWarnings(BuildContext context, List<ImportIssue> warnings) {
     final l10n = AppLocalizations.of(context);

@@ -6894,9 +6894,9 @@
   "@importIssueArchiveCustomFieldKeyConflict": {
     "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
   },
-  "importIssueArchiveCustomFieldKeyConflictGeneric": "このファイルのカスタムフィールドのキーが、種類または選択肢の異なる別のフィールドですでに使われているため、その値は代わりに番号付きのキーのフィールドに入ります。",
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "このファイルのカスタムフィールドは、キーがすでに使われているため使用できませんでした。その値は代わりに番号付きのキーのフィールドに入ります。",
   "@importIssueArchiveCustomFieldKeyConflictGeneric": {
-    "x-sourceSha256": "e5e3ca061c91499215ebb08719bbf778b6936c3047e5fa6b283298fe93590d6c"
+    "x-sourceSha256": "3de2eecff77eb62db3dd735f85a9151293ca4ec9f3f9ed18154b9c3e3986142a"
   },
   "importIssueUsrFileTruncated": "このファイルは不完全のようです。一部しか読み取れませんでした。元のファイルからもう一度コピーして、再度インポートしてください。",
   "@importIssueUsrFileTruncated": {
