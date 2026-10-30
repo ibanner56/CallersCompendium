@@ -216,6 +216,24 @@ void main() {
       expect(find.text('Performed (1)'), findsOneWidget);
     });
 
+    testWidgets('open rows run soonest event first, then by edit', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final day = DateTime.now().toUtc();
+      DateTime inDays(int n) => DateTime.utc(day.year, day.month, day.day + n);
+      await repos.programs.create(
+        _program('undated', updatedAt: DateTime.utc(2026, 6, 1)),
+      );
+      await repos.programs.create(_program('later', eventDate: inDays(30)));
+      await repos.programs.create(_program('soon', eventDate: inDays(2)));
+      await _openSheet(tester, repos);
+
+      double top(String id) => tester.getTopLeft(_row(id)).dy;
+      expect(top('soon'), lessThan(top('later')));
+      expect(top('later'), lessThan(top('undated')));
+    });
+
     testWidgets('Performed expands on tap and collapses again', (tester) async {
       final repos = openTestRepositories();
       await repos.programs.create(_program('open'));

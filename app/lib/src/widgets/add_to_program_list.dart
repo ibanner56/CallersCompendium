@@ -271,14 +271,17 @@ class _AddToProgramListState extends State<AddToProgramList> {
     required AppLocalizations l10n,
   }) {
     final status = programStatusPresentation(ProgramStatus.performed, l10n);
-    return Semantics(
-      expanded: expanded,
-      child: ListTile(
-        key: const ValueKey('add-to-program-performed-toggle'),
-        leading: Icon(status.icon),
-        title: Text(l10n.programsAddToProgramPerformedGroup(count)),
-        trailing: Icon(expanded ? Icons.expand_less : Icons.expand_more),
-        onTap: () => setState(() => _performedFlipped = !_performedFlipped),
+    return MergeSemantics(
+      child: Semantics(
+        expanded: expanded,
+        button: true,
+        child: ListTile(
+          key: const ValueKey('add-to-program-performed-toggle'),
+          leading: Icon(status.icon),
+          title: Text(l10n.programsAddToProgramPerformedGroup(count)),
+          trailing: Icon(expanded ? Icons.expand_less : Icons.expand_more),
+          onTap: () => setState(() => _performedFlipped = !_performedFlipped),
+        ),
       ),
     );
   }
