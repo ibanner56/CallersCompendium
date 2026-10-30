@@ -676,7 +676,12 @@ void main() {
 
       // Feedback is announced and the change is written through immediately —
       // the summary shows a saved program, not a draft.
-      expect(find.text('Marked all dances performed.'), findsOneWidget);
+      expect(
+        find.text(
+          'Marked all dances performed and set the status to Performed.',
+        ),
+        findsOneWidget,
+      );
       final saved = await repos.programs.getById('p1');
       expect(saved!.slots.single.performedAt, isNotNull);
     },
@@ -710,8 +715,8 @@ void main() {
 
     expect(
       find.text(
-        'Marked all dances performed except alternates. '
-        'Mark an alternate yourself if you called it.',
+        'Marked all dances performed except alternates, and set the status '
+        'to Performed. Mark an alternate yourself if you called it.',
       ),
       findsOneWidget,
     );
@@ -746,7 +751,9 @@ void main() {
       ),
     );
 
-    await _pumpWide(tester, repos);
+    // With the status left alone (GIG-12's setting off) there is nothing at
+    // all to do; the status-setting case is covered by the GIG-12 group.
+    await _pumpWide(tester, repos, markAllSetsStatus: false);
     await tester.tap(find.text('Barn Dance'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));

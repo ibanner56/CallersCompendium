@@ -2747,8 +2747,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'Marked all dances performed except alternates. '
-        'Mark an alternate yourself if you called it.',
+        'Marked all dances performed except alternates, and set the status '
+        'to Performed. Mark an alternate yourself if you called it.',
       ),
       findsOneWidget,
     );
@@ -2782,7 +2782,14 @@ void main() {
         ],
       ),
     );
-    await _pumpBuilder(tester, repos, programId: 'p1');
+    // With the status left alone (GIG-12's setting off) there is nothing at
+    // all to do; the status-setting case is covered by the GIG-12 group.
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      markAllSetsStatus: false,
+    );
 
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
     await tester.pumpAndSettle();
