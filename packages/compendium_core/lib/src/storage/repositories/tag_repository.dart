@@ -15,15 +15,19 @@ import 'sync_local_repository.dart';
 /// Colours are normalized on the way in and out ([normalizeArgb]), so
 /// `tags.color` holds either `null` — "no colour assigned" — or a fully opaque
 /// 32-bit ARGB int, and never a value that would paint an invisible chip
-/// (issue #786). This is the single write choke point for tags: the editor, the
-/// batch dialog, and archive restore all go through [upsert].
+/// (issue #786). The editor, the batch dialog, and archive restore all write
+/// through [upsert]. A user's rename or merge (`ReferenceEditRepository`)
+/// writes names itself, because [upsert] would revive a tombstone whose name it
+/// frees; it writes only names normalised the same way and colours read back
+/// from tag rows.
 ///
 /// Tags are **soft-deleted** as of schema v25 (issue #898): [delete] used to
 /// rely purely on the `dance_tags` FK cascade to unlink the tag from every
 /// dance. A tombstone fires no cascade, so those join rows now outlive the
 /// delete — deliberately, so a revived tag keeps its dances — and every read
 /// that reaches a tag through `dance_tags` filters on `deleted_at IS NULL`
-/// instead.
+/// instead. The user's delete is not this one: `ReferenceEditRepository
+/// .deleteTag` takes the tag off every dance first (D-N2-7).
 ///
 /// The ordinary tombstoning [delete] is the one converted kind's delete with no
 /// referential guard, which is safe precisely because it strands nothing. Its
@@ -461,9 +465,12 @@ class TagRepository {
   /// association. Reads filter the tag out instead, so the dances stop showing
   /// it either way.
   ///
-  /// The default (tombstone) path is deliberately **unguarded** — it is what
-  /// the tag manager calls, and a tombstone strands nothing. The [permanent]
-  /// path is guarded, because it erases: `dance_tags.tag_id` is
+  /// The default (tombstone) path is deliberately **unguarded**: a tombstone
+  /// strands nothing. Its callers are archive restore and the Undo of a batch
+  /// tagging or a share import, which tombstone only an unused tag they created
+  /// or revived. A user deleting a tag goes through
+  /// `ReferenceEditRepository.deleteTag`, which strips the join rows this
+  /// keeps. The [permanent] path is guarded, because it erases: `dance_tags.tag_id` is
   /// `ON DELETE CASCADE` (`tables.dart`), so erasing a referenced tag strips it
   /// from the referencing dances with no error at all. Until issue #1357 this
   /// hatch had no check of any kind — the only sibling in that state — and was

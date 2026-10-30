@@ -50,6 +50,9 @@ class PublishedSourceRepository {
   }) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
+      final current = await (_db.select(
+        _db.publishedSources,
+      )..where((t) => t.id.equals(s.id))).getSingleOrNull();
       await _db
           .into(_db.publishedSources)
           .insertOnConflictUpdate(
@@ -86,7 +89,47 @@ class PublishedSourceRepository {
           at: now,
         );
       }
+      // A sync apply reindexes the dances its batch touched itself
+      // (`reindexDerivedAfterApply`); an edit here has nothing else to do it.
+      if (!fromSync &&
+          current != null &&
+          (current.title != normalizeShareableText(s.title) ||
+              current.author !=
+                  (s.author == null
+                      ? null
+                      : normalizeShareableText(s.author!)) ||
+              current.deletedAt != null)) {
+        await _refreshSourceIndex(s.id);
+      }
     });
+  }
+
+  /// Keeps the search index's `sources` text in step with an edit of a
+  /// source's title or author, for the dances citing it, as
+  /// `ChoreographerRepository` keeps `authors` in step with a rename. The text
+  /// is what `DanceRepository` indexes: each live cited source's title, then
+  /// its author when it has one, in citation order.
+  Future<void> _refreshSourceIndex(String sourceId) async {
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      await _db.customStatement(
+        'UPDATE $table '
+        'SET sources = COALESCE(('
+        '  SELECT group_concat(text, \' \') FROM ('
+        '    SELECT CASE WHEN ps.author IS NULL THEN ps.title '
+        '      ELSE ps.title || \' \' || ps.author END AS text '
+        '    FROM dance_sources ds '
+        '    JOIN published_sources ps ON ps.id = ds.source_id '
+        '    WHERE ds.dance_id = $table.dance_id '
+        '      AND ps.deleted_at IS NULL '
+        '    ORDER BY ds.position'
+        '  )'
+        '), \'\') '
+        'WHERE dance_id IN ('
+        '  SELECT dance_id FROM dance_sources WHERE source_id = ?'
+        ')',
+        [sourceId],
+      );
+    }
   }
 
   Future<PublishedSource?> getById(String id) async {
