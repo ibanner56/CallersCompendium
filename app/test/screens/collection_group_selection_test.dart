@@ -1,3 +1,5 @@
+import 'dart:ui' show CheckedState;
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -133,7 +135,7 @@ void main() {
     );
     final data = node.getSemanticsData();
     expect(data.hasAction(SemanticsAction.tap), isTrue);
-    expect(data.hasFlag(SemanticsFlag.isCheckStateMixed), isTrue);
+    expect(data.flagsCollection.isChecked, CheckedState.mixed);
 
     await tester.tap(find.bySemanticsLabel('Other, 2 dances, 1 selected'));
     await tester.pumpAndSettle();
