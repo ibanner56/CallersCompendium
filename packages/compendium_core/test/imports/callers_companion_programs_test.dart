@@ -265,6 +265,28 @@ void main() {
       expect(slotCallers('Mary Kate Olsen', ['Mary Kate']), [null]);
       expect(slotCallers('Mary-Kate Olsen', ['Mary-Kate']), [null]);
       expect(slotCallers('Michaela Smith', ['Michael']), ['Michael']);
+      expect(slotCallers('Michael', ['Michael Smith']), [null]);
+      expect(slotCallers('Michael\u00A0Smith', ['Michael']), [null]);
+    });
+
+    test('a surname or middle name alone is a different caller', () {
+      expect(slotCallers('Graham Christian', ['Christian']), ['Christian']);
+      expect(slotCallers('Michael Smith', ['Smith']), ['Smith']);
+      expect(slotCallers('Mary Kate Olsen', ['Kate']), ['Kate']);
+    });
+
+    test('two spellings of the set caller count as one caller', () {
+      expect(slotCallers('Michael Smith', ['Michael', 'Michael Smith']), [
+        null,
+        null,
+      ]);
+    });
+
+    test('a co-called set keeps the other caller', () {
+      expect(slotCallers('Michael Smith & Lisa Greenleaf', [null, 'Lisa']), [
+        null,
+        'Lisa',
+      ]);
     });
 
     test("a skipped empty item's caller does not count", () {

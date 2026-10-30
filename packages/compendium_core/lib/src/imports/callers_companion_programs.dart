@@ -186,7 +186,7 @@ CcProgramsResult buildCcPrograms(
 /// calculation, `YYYY/MM/DD - Location`, so the program takes that
 /// ("2024/04/20 - NEFFA Contra Party", maintainer decision on #1976), or just
 /// the date when there is no Location. Without a parsed date it is the
-/// Location, else "Caller's Companion set — <raw date>", else the set's id.
+/// Location, else `Caller's Companion set — <raw date>`, else the set's id.
 String _titleFor(CcSet set, DateTime? eventDate) {
   final title = _cleanLine(set.title);
   if (title != null) return title;
@@ -210,41 +210,62 @@ String _titleFor(CcSet set, DateTime? eventDate) {
 /// caller's included, so on a set one person called every slot just repeats
 /// them. The maintainer's rule (#1976, 2026-10-28, clarified 2026-10-30): keep
 /// the slots' callers when they name more than one caller, or when a name is
-/// not the set's own caller. A name is the set's caller when its words appear,
-/// in order, among the set caller's words, ignoring case and `,`/`.`: "Michael"
-/// and "Michael Smith" for "Michael Smith", also "Michael" for "Smith, Michael"
-/// or "J. Michael Smith", and "Mary Kate" for "Mary Kate Olsen". A set with no
-/// `Caller` keeps a lone name, as nothing else records who called.
+/// not the set's own caller, matched by first name.
+///
+/// A name is the set's caller when, read from the given name on (see
+/// [_givenNameWords]), one is the start of the other: "Michael" and "Michael
+/// Smith" for "Michael Smith", "Smith, Michael" or "J. Michael Smith", and
+/// "Mary Kate" for "Mary Kate Olsen". A surname or middle name alone is not
+/// ("Christian" for "Graham Christian"). Names that are the set's caller count
+/// as one. These readings beyond a plain first name are the implementer's, not
+/// the maintainer's. A set with no `Caller` keeps a lone name, as nothing else
+/// records who called.
 bool _keepsSlotCallers(List<ProgramSlot> slots, String? setCaller) {
+  final caller = _cleanLine(setCaller);
+  final callerWords = caller == null ? null : _givenNameWords(caller);
+  const setCallerKey = '\u0000';
   final names = <String>{
     for (final slot in slots)
-      if (slot.guestCaller case final name?) _callerWords(name).join(' '),
-  }..remove('');
+      if (slot.guestCaller case final name?)
+        if (_givenNameWords(name) case final words when words.isNotEmpty)
+          callerWords != null && _sameStart(words, callerWords)
+              ? setCallerKey
+              : words.join(' '),
+  };
   if (names.length > 1) return true;
   if (names.isEmpty) return false;
-  final caller = _cleanLine(setCaller);
-  if (caller == null) return true;
-  return !_containsRun(_callerWords(caller), names.single.split(' '));
+  return names.single != setCallerKey;
 }
 
-/// [name] lower-cased and split into words, `,` and `.` dropped.
-List<String> _callerWords(String name) => name
-    .toLowerCase()
-    .replaceAll(RegExp('[,.]'), ' ')
-    .split(' ')
-    .where((w) => w.isNotEmpty)
-    .toList();
-
-/// Whether [run] appears, in order and adjacent, within [words].
-bool _containsRun(List<String> words, List<String> run) {
-  for (var i = 0; i + run.length <= words.length; i++) {
-    var j = 0;
-    while (j < run.length && words[i + j] == run[j]) {
-      j++;
-    }
-    if (j == run.length) return true;
+/// [name]'s words, lower-cased, from the given name on: "Smith, Michael" reads
+/// "michael smith", and leading initials ("J.", "J") are skipped.
+List<String> _givenNameWords(String name) {
+  final comma = name.indexOf(',');
+  final ordered = comma < 0
+      ? name
+      : '${name.substring(comma + 1)} ${name.substring(0, comma)}';
+  final words = ordered
+      .toLowerCase()
+      .split(RegExp(r'[\s,]+'))
+      .where((w) => w.isNotEmpty)
+      .toList();
+  var first = 0;
+  while (first < words.length - 1 &&
+      (words[first].length == 1 ||
+          (words[first].endsWith('.') && words[first].length <= 2))) {
+    first++;
   }
-  return false;
+  return [for (final w in words.skip(first)) w.replaceAll('.', '')];
+}
+
+/// Whether the shorter of [a] and [b] is the start of the other.
+bool _sameStart(List<String> a, List<String> b) {
+  final n = a.length < b.length ? a.length : b.length;
+  if (n == 0) return false;
+  for (var i = 0; i < n; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
 
 (DateTime?, ImportIssue?) _parseEventDate(String? raw, String recordId) {
