@@ -5,7 +5,7 @@ against `origin/main` at `acacb05`, and re-checked after merging `main` at
 `296b594`. Every `file:line` below is for `296b594` unless it names another
 branch. Of the files cited, only `ux.md` moved between the two.*
 
-**Status: decided, not built.** The maintainer asked for this note (below), and
+**Status: decided; T1 and T4 built 2026-10-30, T2 and T3 not built.** The maintainer asked for this note (below), and
 on 2026-10-29/30 answered all seven of its questions, each as the note
 recommended (N2-1 … N2-7 in `maintainer-decisions-2026-10-30.md` on
 `claude/app-audit-categories-k2pdon`; this note's D-N2-*n* is the file's
@@ -155,6 +155,8 @@ already handles normalisation and sync stamping (`tag_repository.dart:89-212`,
   counterpart for the index's `sources` column (`database.dart:25-31`). I did
   not check whether another path rebuilds that column after a source edit.
   The source branch must check, and fix it if the column goes stale.
+  *T1 checked (2026-10-30):* nothing did, so any edit of a source's title or
+  author left the citing dances' search text stale. T1 refreshes it.
 
 ### Merge
 
@@ -249,9 +251,10 @@ The steps run in one transaction:
      this device files the tag under the survivor, bumps the dance and
      re-uploads it. The peer then drops its last citation, and its pending
      deletion of the loser lands.
-   - A peer's edit *of the loser itself* lands on the survivor too. After the
-     merge they are one entry, so that is the intended reading, but the §6.6
-     amendment must say so.
+   - A peer's edit *of the loser itself* was expected to land on the
+     survivor too. *T1 found otherwise (2026-10-30):* the loser's tombstone
+     wins it, as a deletion wins an earlier edit, and only the peer's
+     citations follow the alias. The §6.6 amendment says so (rule 5).
 7. **Rewrite `default_import_tag_names`** (tags only). The loser's name is
    replaced by the chosen name, then de-duplicated. See
    [The import-tags setting](#the-import-tags-setting).
@@ -348,6 +351,32 @@ the spec. I did not run them.
   as a limit if T1 cannot close it.
 - A peer whose advertised tombstone of the loser is rewritten onto the
   survivor by the alias: that must never tombstone the survivor.
+
+**What T1 found (2026-10-30).** T1 ran these cases on two real databases
+syncing through an in-memory store
+(`app/test/sync/sync_user_merge_two_device_test.dart`). Its fixes are T1's own
+choices, not maintainer decisions. The dated §6.6 amendment ("User merges")
+states each one with the alternative it rejected.
+
+- **The open risk was worse than traced above.** The merging device resolved
+  its own tombstone of the loser onto the survivor through the alias, so it
+  never published it. Peers kept the loser live, and the survivor's rename
+  collided on every pass. The fix: a tombstone whose id still has a row here
+  keeps that id (rule 4).
+- **The held peer**, once the tombstone travels, behaved as traced: held,
+  queued, and then left a stale review row after the hold landed. The fix:
+  step 1 waits without queueing while the holder is leaving the name (rule 6).
+  Rejected: renaming the held row from its tombstone, and ordering
+  tombstones first.
+- **A peer that deleted the loser itself** holds a tombstone under the old
+  name that wins everywhere. The fix: at step 1 a tombstone gives up a tag's or
+  author's name (rule 7).
+- **Opposite merges, rename versus merge, Undo on a held peer, a rename that
+  frees a held tombstone's name, and a multi-match merge** converge with no
+  review row. A multi-match merge's case variants exist only on the merging
+  device, because sync folds case and reconciles them on a peer.
+- **Three-way merges, and a citation arriving after its alias has gone,** do
+  not converge. The amendment states both as limits.
 
 ### Delete
 

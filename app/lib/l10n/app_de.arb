@@ -3904,6 +3904,10 @@
   "@collectionGroupSectionSemantics": {
     "x-sourceSha256": "93af04a8f9319ec6cd414c9b5059eee420b4f991ee2c13c6ac74a455c63cdf06"
   },
+  "collectionGroupSectionSelectedSemantics": "{label}, {count, plural, =1{1 Tanz} other{{count} Tänze}}, {selected} ausgewählt",
+  "@collectionGroupSectionSelectedSemantics": {
+    "x-sourceSha256": "a7b4ef10339716e07567ba3b5c66bc77e65bff16373e886fac11540ba76f45f3"
+  },
   "collectionExitSelectionTooltip": "Auswahl beenden",
   "@collectionExitSelectionTooltip": {
     "x-sourceSha256": "22206bc678060c0d32cf2b53b314202f3803e2acb21ed6b123343f16889bf0c4"
@@ -6358,9 +6362,9 @@
   "@onlineImportVariationDialogActionLink": {
     "x-sourceSha256": "7a89241607bf07561ac5217d1fead66bc5c4636e6f94a7608108da241cd65443"
   },
-  "onlineImportVariationDialogLinkWarning": "Ihre Version von „{existingTitle}“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen, Tags und Bewertung. Sie behält Ihre benutzerdefinierten Felder, ihren Platz in Ihren Programmen und ihren Calling-Verlauf.",
+  "onlineImportVariationDialogLinkWarning": "Ihre Version von „{existingTitle}“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen und Tags. Sie behält Ihre Bewertung, Ihre benutzerdefinierten Felder, ihren Platz in Ihren Programmen und ihren Calling-Verlauf.",
   "@onlineImportVariationDialogLinkWarning": {
-    "x-sourceSha256": "f8b05d49958fd3a68177f47b9cdf78f0821e4e29e64d76d33e6cf33875d047f1"
+    "x-sourceSha256": "1056677505f70fcc93e4c1e610f1c824a31479de32f29cacbe8fbec1213fcb8c"
   },
   "onlineImportCrossSourceDuplicateDialogTitle": "Sie haben diesen Tanz bereits",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
@@ -6382,9 +6386,9 @@
   "@onlineImportPossibleMatchDialogBody": {
     "x-sourceSha256": "c23d4f0bdd76d65aa431c58419d8a497eca0ed5d84d68e16e2ebee368fc2b303"
   },
-  "onlineImportPossibleMatchDialogLinkWarning": "Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen, Tags und Bewertung. Er behält Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.",
+  "onlineImportPossibleMatchDialogLinkWarning": "Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen und Tags. Er behält Ihre Bewertung, Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
-    "x-sourceSha256": "9b22e3103e98010d7b6aba8a40c733936cc6f1e851bc9e3aaa08595f804d5720"
+    "x-sourceSha256": "198184a9f1d632e4877e2a250b04522e9893cd1161387dea8599a936ec044ef6"
   },
   "importFigurelessCannotReplace": "Dieser Datensatz enthält keine Figuren und kann daher keinen deiner Tänze ersetzen. Er kann aber weiterhin als neuer Tanz importiert werden.",
   "@importFigurelessCannotReplace": {

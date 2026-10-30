@@ -21,10 +21,9 @@ import '../widgets/tag_chip.dart';
 /// renders exactly as it always has, so this screen has no on/off switch: the
 /// off state is simply not assigning a colour.
 ///
-/// This is deliberately *only* colours. Tags still have no rename or delete UI
-/// anywhere in the app; adding them is a separate piece of work with its own
-/// design questions (merging on a rename collision, what a delete tells the
-/// user about the dances that lose the tag).
+/// This is deliberately *only* colours. Rename, merge and delete exist in core
+/// (`ReferenceEditRepository`) but no screen offers them yet: the Tags manager
+/// that replaces this screen will (`docs/design/tags-and-people.md`, T2).
 class TagColorsScreen extends StatefulWidget {
   const TagColorsScreen({super.key});
 

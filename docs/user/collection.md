@@ -103,6 +103,12 @@ section, and picking a dance behaves exactly as it does anywhere else in
 **Collection** (open it to read or perform; press and hold to select several).
 Choose **No grouping** to return to the flat list.
 
+Grouping stays on while you [select several dances](#change-many-dances-at-once),
+so the list does not change shape under your finger. Each section's header gains
+a checkbox that selects the section's dances shown in the list, or clears them
+when they are all selected; it shows a dash when only some are. It never touches
+a selected dance that a search is hiding.
+
 Grouping is for the current session only: it keeps out of your way next time you
 open the app, so you always start from your usual order and pick a category when
 you want one.
@@ -456,7 +462,9 @@ already entered stays consistent. The app tells you which ones when you edit a
 field in use. A dance in **Recently deleted** doesn't count: it doesn't lock a
 field's type or keep you from removing a choice it uses. If you change the type,
 or remove that choice, the deleted dance loses its value for the field unless
-the value still fits, and restoring the dance won't bring it back.
+the value still fits, and restoring the dance won't bring it back. It doesn't
+keep you from deleting the whole field either; if you do, restoring the dance
+brings the field back with its value.
 
 ## Keep your collection tidy
 
@@ -494,6 +502,10 @@ undone.
     difference: while a program or another dance still includes it, it keeps
     its title, which they show, and they are left exactly as they are. The
     title goes once nothing includes the dance.
+  - A dance in Recently Deleted doesn't stop you deleting its level or a custom
+    field it uses. Restoring the dance brings back any you deleted meanwhile,
+    so it returns as it was. A restored program brings back its saved
+    [venue](./settings.md#venues) the same way.
 
 ### Change many dances at once
 
@@ -516,6 +528,10 @@ for example "14 selected (9 not shown)" — with **Deselect those not shown** to
 drop them. Every change applies to all selected dances, shown or not. A
 selected dance that is deleted, or removed by another device, leaves the
 selection by itself. Turning on **Online search** ends selection mode.
+
+With **Group by category** on, the sections stay while you select, and each
+section header has a checkbox for the dances it shows (see
+[Group by category](#group-by-category-a-dances-vibe)).
 
 The changes:
 

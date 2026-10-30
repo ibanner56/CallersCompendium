@@ -878,7 +878,9 @@ rather than deletions:
   referential guard, so a tombstone with live join rows is reachable by ordinary
   use rather than only defensively. (That is safe precisely because it strands
   nothing. The tag's *erasing* branch is a different matter, and has carried a
-  guard since issue #1357 — see below.)
+  guard since issue #1357 — see below.) A user's delete of a tag is not that
+  delete: `ReferenceEditRepository.deleteTag` takes the tag off every dance,
+  trashed ones included, before tombstoning it (see below).
 - **The referential guards stay.** Soft delete does not make it safe to remove
   an entity a live record still references, and a tombstone for a still-cited
   entity could not be applied by a peer anyway.
@@ -912,6 +914,29 @@ the user got an empty tag, and keeping them would mean deleting a tag from two
 hundred dances and then re-creating it silently re-tagged all two hundred.
 Reusing the old row's id is an implementation detail forced by the foreign keys
 and does not leak into what the user sees.
+
+**A user's rename, merge and delete of a tag, author or source** (added
+2026-10-30; `ReferenceEditRepository`, `docs/design/tags-and-people.md`) work
+around both rules above rather than through them:
+
+- **A name a tombstone holds is freed, not adopted.** A rename onto it, and the
+  name a merge leaves, first rename every tombstone holding the name (as the
+  app matches names, folding case) to `<name>_<first 8 hex digits of its id>`,
+  or all 32 digits if that is taken. It is a name-only write: it bumps
+  `updated_at` and leaves `deleted_at` and `existence_at` alone. It cannot go
+  through the upsert, which would revive the tombstone.
+- **A merge keeps the smaller id** (`sync-spec.md` §6.6), writes the fields of
+  the entry the user merged into under it, and for every other entry frees its
+  name the same way, moves its join rows to the survivor with
+  `rewriteLocalReferences` (shared with sync's reconciliation), tombstones it,
+  and records an `id_aliases` row through `remapIdentity`. Dances in Recently
+  deleted are re-pointed too. Undo restores the before-image, including the
+  alias rows the remap collapsed, and is kept in memory only. It is refused,
+  writing nothing, if a live row has taken an old name since.
+- **A tag delete strips its join rows** from live and trashed dances and bumps
+  them, then tombstones the tag (D-N2-7). So, unlike the repository's own
+  delete above, bringing the tag back does not re-tag old dances. Author and
+  source deletes keep their guard.
 
 ## Durability
 
