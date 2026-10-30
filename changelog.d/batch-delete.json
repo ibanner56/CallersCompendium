@@ -8,10 +8,7 @@
   },
   "core": {
     "added": [
-      "DanceRepository.softDeleteMany and restoreMany delete and restore many dances in one transaction each, through the single-dance soft delete and restore."
-    ],
-    "changed": [
-      "DanceRepository.restore rebuilds the search index through the batched reindex, which restoreMany shares, so restoring 5,000 dances takes about a second rather than 25."
+      "DanceRepository.softDeleteMany and restoreMany delete and restore many dances in one transaction each, through the single-dance soft delete and restore. restoreMany shares restore's own body and rebuilds the search index once for the whole batch."
     ]
   }
 }

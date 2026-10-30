@@ -252,7 +252,7 @@ core method or a dialog that does not exist yet.
 
 The two field writes (status, source) are `_updateMany` calls. That gives them the transaction and the `localUserEdit` stamp the
 existing handlers use. **Delete is the exception.** It is an existence
-transition (`_stampExistence`, `dance_repository.dart:1881-1882`), not a content
+transition (`_stampExistence` in `dance_repository.dart`), not a content
 edit, so `softDeleteMany` and `restoreMany` loop over `softDelete` and `restore`
 inside one transaction (as built, `restoreMany` runs `restore`'s own body over
 all of them at once; see *Built in S3*). They cannot use `_updateMany`, which only selects live
@@ -269,7 +269,7 @@ Undo (F14's pattern: `_undoBatchLevel`, `:1627`). The trash holds them for the
 retention window (30 days by default; `docs/user/collection.md:377-382`).
 
 **Why a core method, not a loop in the screen.** `restore` also rebuilds the
-dance's derived rows and clears a pending sync deletion (`:1914-1932`). B9 is
+dance's derived rows and clears a pending sync deletion (`restore`). B9 is
 about to add reference revival to that same method (`decided-work-plan.md`, B9).
 `restoreMany` must therefore **call the same single-dance logic inside one
 transaction**, never a second SQL path, so B9's revival applies to bulk Undo
@@ -340,12 +340,15 @@ point above. Implementer's calls, not maintainer decisions:
 
 - `restore` and `restoreMany` share one private body, `_restoreAll`, with
   `restore` as its one-dance case. Each step runs for every dance before the
-  next (revivals, existence stamps, one `_reindexDerived`, pending deletions).
+  next (revivals, existence stamps, the index rebuild, pending deletions).
+  Many dances are rebuilt together by `_reindexDerived`; one dance keeps the
+  per-dance rebuild, because `_reindexDerived` reads its lookups from whole
+  tables and the archive merge restores one dance at a time.
   Looping `restore` rebuilt the search index one dance at a time, scanning both
   FTS tables each time, so a 5,000-dance Undo took about 25 s. Rejected: a loop
   over `restore`, as this note first said, for that cost; and a separate bulk
-  SQL path, which this note rules out. A single restore costs the same as
-  before (about 6 ms median on 5,000 dances).
+  SQL path, which this note rules out. A single restore does what it did
+  before.
 - The screen-reader announcement is the longer "Deleted 12 dances. Restore them
   from Recently Deleted."; the snackbar shows "Deleted 12 dances".
 
@@ -487,7 +490,7 @@ with `localUserEdit: true`, the provenance §6.8 (`:3722`) counts as a deliberat
 local edit. Delete and its Undo are not content edits: they are existence
 transitions stamped by `_stampExistence`, which §6.8 handles separately.
 `restoreMany` runs `restore`'s own body, which clears a pending deletion itself
-(`:1914-1932`). If a later
+(`_restoreAll`). If a later
 decision adds a new kind (for example, a persisted saved selection), that goes
 through §6.6 and §6.15 first. Nothing here should.
 
