@@ -114,6 +114,34 @@ void main() {
     expect(find.text('Deleted 2 dances'), findsOneWidget);
   });
 
+  testWidgets('the confirmation names the selected dances a search hides', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _seed(repos);
+    await pumpBatchScreen(tester, repos, confirmBeforeDelete: true);
+
+    await _selectFirstTwo(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'Bravo',
+    );
+    await tester.pumpAndSettle();
+    await _tapDelete(tester);
+
+    expect(
+      find.text(
+        '2 dances will be deleted, 1 of them hidden by your search. '
+        'You can undo this.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('confirm-delete-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(await _liveIds(repos), {'d3'}, reason: 'hidden dances go too');
+  });
+
   testWidgets('Undo revives a level deleted while the dances were in the '
       'trash', (tester) async {
     final repos = openTestRepositories();

@@ -236,6 +236,10 @@
   "@confirmDeleteDancesBody": {
     "x-sourceSha256": "5bf4789578375243769bbeaa1a924d2dfe8584634cac8e15d22e0a36e5aa0519"
   },
+  "confirmDeleteDancesNotShownBody": "{count, plural, =1{1 Tanz wird gelöscht. Ihre Suche blendet ihn aus. Sie können dies rückgängig machen.} other{{count} Tänze werden gelöscht, davon {notShown} durch Ihre Suche ausgeblendet. Sie können dies rückgängig machen.}}",
+  "@confirmDeleteDancesNotShownBody": {
+    "x-sourceSha256": "5eec5a5f7dd5f0845c6736bb763c8017983643cfaf238442db0a9c103f98044f"
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "x-sourceSha256": "69493e6f1a6957cad7e3ece5267a57e8a8ed035b5ea5fd7e360ce9eb2405c30b"

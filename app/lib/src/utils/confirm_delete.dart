@@ -27,14 +27,18 @@ Future<bool> confirmDeleteIfEnabled(
 
 /// [confirmDeleteIfEnabled] for [count] dances deleted at once from
 /// Collection's selection mode: the same setting, dialog and keys, with a body
-/// that names the count instead of a title. One rule for every delete (N4-4 =
-/// a), so a bulk delete with the setting off asks nothing either.
+/// that names the count instead of a title, and how many of them ([notShown])
+/// the current search hides. One rule for every delete (N4-4 = a), so a bulk
+/// delete with the setting off asks nothing either.
 Future<bool> confirmDeleteDancesIfEnabled(
   BuildContext context, {
   required int count,
+  required int notShown,
 }) => _confirmDeleteIfEnabled(
   context,
-  (l10n) => l10n.confirmDeleteDancesBody(count),
+  (l10n) => notShown == 0
+      ? l10n.confirmDeleteDancesBody(count)
+      : l10n.confirmDeleteDancesNotShownBody(count, notShown),
 );
 
 Future<bool> _confirmDeleteIfEnabled(

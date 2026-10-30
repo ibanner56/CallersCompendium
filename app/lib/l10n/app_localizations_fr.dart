@@ -259,6 +259,19 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danses seront supprimées, dont $notShown masquées par votre recherche. Vous pouvez annuler cette action.',
+      one:
+          '1 danse sera supprimée. Votre recherche la masque. Vous pouvez annuler cette action.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override

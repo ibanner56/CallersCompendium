@@ -464,6 +464,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 dance will be deleted. You can undo this.} other{{count} dances will be deleted. You can undo this.}}'**
   String confirmDeleteDancesBody(int count);
 
+  /// Body of the confirm-before-delete dialog for a batch delete from Collection's selection mode when some selected dances are hidden by the current search or filters. {count} is every selected dance; {notShown} (at least 1) is how many of them the list does not show.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance will be deleted. Your search hides it. You can undo this.} other{{count} dances will be deleted, {notShown} of them hidden by your search. You can undo this.}}'**
+  String confirmDeleteDancesNotShownBody(int count, int notShown);
+
   /// Field label for the hexadecimal colour input in the shared colour-picker dialog.
   ///
   /// In en, this message translates to:

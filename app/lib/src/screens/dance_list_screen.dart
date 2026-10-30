@@ -1678,6 +1678,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!await confirmDeleteDancesIfEnabled(
           context,
           count: selectedIds.length,
+          notShown: _selection.notShown(_shownIds),
         ) ||
         !mounted) {
       return;
