@@ -201,7 +201,7 @@ class _RegionalView extends StatelessWidget {
     // A live example of how today's date renders in the chosen format, shown as
     // the date-format control's subtitle so the choice is concrete. For a valid
     // custom pattern this reflects the pattern; for an invalid one, and for System
-    // default, it follows the device's locale (not the app language), matching
+    // default, it follows the device's region (not the app language), matching
     // runtime behavior.
     final example = formatEventDate(
       DateTime.now(),

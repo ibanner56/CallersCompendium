@@ -6,7 +6,7 @@
 ///
 /// The key, enum, and resolver below are Flutter-free pure functions so they
 /// can be unit-tested directly. Only [formatEventDate] touches Flutter, and only
-/// for the `system` default, where it follows the device's locale.
+/// for the `system` default, where it follows the device's region.
 library;
 
 import 'dart:ui' show Locale, PlatformDispatcher;
@@ -33,7 +33,7 @@ const String kDateFormatCustomPatternKey = 'date_format_custom';
 
 /// How program event dates render on screen.
 enum DateFormatPref {
-  /// Follow the device's locale (language and region): its numeric date (see
+  /// Follow the device's region: its numeric date (see
   /// [formatEventDate]).
   system('system'),
 
