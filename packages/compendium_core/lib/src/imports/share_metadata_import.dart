@@ -42,7 +42,8 @@ class ShareMetadataImportResult {
 /// Imports only the metadata referenced by a shared archive.
 ///
 /// Archive ids are never trusted as receiver ids. Live compatible records are
-/// reused without being overwritten; exact tombstones are revived; all other
+/// reused without being overwritten; matching tombstones are revived (exact
+/// ones for tags and sources, compatible ones for custom fields); all other
 /// records get freshly generated ids.
 ///
 /// A custom field is compatible with the receiver's when the key, the type and
@@ -51,7 +52,8 @@ class ShareMetadataImportResult {
 /// own and never block a match (maintainer decision, 2026-10-29, INTAKE-2). A
 /// field that is not compatible is never merged into theirs, which would change
 /// what their values mean: it goes to `<key>_2`, `<key>_3`, … (the first free
-/// key, or a compatible row already there) as the `.USR` import does, with an
+/// key, or a compatible row already there; a deleted field of another type
+/// still holds its key) as the `.USR` import does, with an
 /// `archive_custom_field_key_conflict` note
 /// (maintainer decision, 2026-10-29 round 2). [preview] raises the same notes
 /// before anything is written, so the review can show them.
@@ -383,73 +385,93 @@ class ShareMetadataImporter {
     // file must never resolve to one definition, or a dance carrying both would
     // keep only one of the values (the `.USR` importer's `createdFor` rule).
     final claimedBy = <String, String>{};
-    for (final field in incoming) {
-      // A file may list the same definition twice; it is planned once.
-      if (result.fieldIdByArchiveId.containsKey(field.id)) continue;
-      // The row whose key this field could not use, and the key it tries next:
-      // `<their key>_2`, `<their key>_3`, … until a free key or a compatible
-      // row, so a file received twice lands on the same `_2` field again.
-      ({CustomFieldDef field, bool deleted})? clash;
-      var candidate = field.key;
-      for (var n = 2; ; n++) {
-        final canonical = normalizeShareableText(candidate);
-        final match = _bestMatch(
-          buckets[canonical],
-          candidate,
-          (c) => c.field.key,
-          (c) => c.field.id,
-          (c) => c.deleted,
+    // Places [field] under [key] when the key is free, or holds a compatible
+    // row no other field of this file has claimed, and returns null; otherwise
+    // returns the row in the way.
+    ({CustomFieldDef field, bool deleted})? place(
+      CustomFieldDef field,
+      String key,
+    ) {
+      final canonical = normalizeShareableText(key);
+      final match = _bestMatch(
+        buckets[canonical],
+        key,
+        (c) => c.field.key,
+        (c) => c.field.id,
+        (c) => c.deleted,
+      );
+      if (match == null) {
+        final def = CustomFieldDef(
+          id: newId(),
+          key: key,
+          label: field.label,
+          type: field.type,
+          choices: field.choices,
+          showInList: field.showInList,
+          searchable: field.searchable,
+          shareable: field.shareable,
         );
-        if (match == null) {
-          final def = CustomFieldDef(
-            id: newId(),
-            key: candidate,
-            label: field.label,
-            type: field.type,
-            choices: field.choices,
-            showInList: field.showInList,
-            searchable: field.searchable,
-            shareable: field.shareable,
-          );
-          result.fieldIdByArchiveId[field.id] = def.id;
-          result.insertedFieldIds.add(def.id);
-          planned[def.id] = def;
-          claimedBy[def.id] = field.id;
-          buckets.putIfAbsent(canonical, () => []).add((
-            field: def,
-            deleted: false,
-          ));
-          break;
-        }
-        final claimed = claimedBy[match.field.id];
-        if ((claimed == null || claimed == field.id) &&
-            _sameField(match.field, field)) {
-          result.fieldIdByArchiveId[field.id] = match.field.id;
-          claimedBy[match.field.id] = field.id;
-          if (match.deleted) result.restoredFieldIds.add(match.field.id);
-          break;
-        }
-        clash ??= match;
+        result.fieldIdByArchiveId[field.id] = def.id;
+        result.insertedFieldIds.add(def.id);
+        planned[def.id] = def;
+        claimedBy[def.id] = field.id;
+        buckets.putIfAbsent(canonical, () => []).add((
+          field: def,
+          deleted: false,
+        ));
+        return null;
+      }
+      final claimed = claimedBy[match.field.id];
+      if ((claimed == null || claimed == field.id) &&
+          _sameField(match.field, field)) {
+        result.fieldIdByArchiveId[field.id] = match.field.id;
+        claimedBy[match.field.id] = field.id;
+        if (match.deleted) result.restoredFieldIds.add(match.field.id);
+        return null;
+      }
+      return match;
+    }
+
+    // Every field tries its own key before any field moves to a numbered one,
+    // so where a field lands never depends on the order of the file: a file
+    // carrying both `tempo` and its own `tempo_2` keeps `tempo_2` for the
+    // latter either way. A file may list the same definition twice; it is
+    // planned once.
+    final clashes =
+        <(CustomFieldDef, ({CustomFieldDef field, bool deleted}))>[];
+    for (final field in incoming) {
+      if (result.fieldIdByArchiveId.containsKey(field.id)) continue;
+      final clash = place(field, field.key);
+      if (clash != null) clashes.add((field, clash));
+    }
+    for (final (field, clash) in clashes) {
+      if (result.fieldIdByArchiveId.containsKey(field.id)) continue;
+      // `<their key>_2`, `<their key>_3`, … until a free key or a compatible
+      // row, so a file received twice lands on the same field again.
+      var candidate = '${clash.field.key}_2';
+      for (var n = 3; place(field, candidate) != null; n++) {
         candidate = '${clash.field.key}_$n';
       }
-      if (clash != null) {
-        // Named only for a live field of the receiver's: a deleted one is not
-        // "theirs" any more, and a row this plan made holds the file's text.
-        final theirs = !clash.deleted && !planned.containsKey(clash.field.id);
-        result.issues.add(
-          ImportIssue(
-            severity: ImportIssueSeverity.warning,
-            code: 'archive_custom_field_key_conflict',
-            message:
-                'shared custom field "${field.key}" (${field.type.name}) '
-                'differs from the field already under that key; its values go '
-                'into "$candidate".',
-            data: theirs
-                ? {'label': clash.field.label, 'key': candidate}
-                : const {},
-          ),
-        );
-      }
+      // Named only when a live field of the receiver's really differs: a
+      // deleted one is not "theirs" any more, a row this plan made holds the
+      // file's text, and a field moved only because another field of the file
+      // claimed a compatible row is not "different" from it.
+      final theirs =
+          !clash.deleted &&
+          !planned.containsKey(clash.field.id) &&
+          !_sameField(clash.field, field);
+      result.issues.add(
+        ImportIssue(
+          severity: ImportIssueSeverity.warning,
+          code: 'archive_custom_field_key_conflict',
+          message:
+              'shared custom field "${field.key}" (${field.type.name}) '
+              'could not use that key; its values go into "$candidate".',
+          data: theirs
+              ? {'label': clash.field.label, 'key': candidate}
+              : const {},
+        ),
+      );
     }
     return planned;
   }

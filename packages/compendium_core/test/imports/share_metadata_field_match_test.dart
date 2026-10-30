@@ -298,9 +298,92 @@ void main() {
     final keyed = {
       for (final v in values) (await fields.getById(v.fieldId))!.key: v.value,
     };
-    // `b` finds its own key taken by `a`'s new field, so it moves on from
-    // there; neither value is lost.
-    expect(keyed, {'tempo_2': 120, 'tempo_2_2': 90});
+    // `b` keeps its own key, so `a` moves on to the next one; neither value
+    // is lost.
+    expect(keyed, {'tempo_3': 120, 'tempo_2': 90});
+  });
+
+  test(
+    'where each field lands does not depend on the order of the file',
+    () async {
+      Future<Map<String, String>> keysFor(List<CustomFieldDef> order) async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final fields = CustomFieldDefRepository(db);
+        await _seed(
+          fields,
+          CustomFieldDef(
+            id: 'local-tempo',
+            key: 'tempo',
+            label: 'Tempo',
+            type: CustomFieldType.number,
+          ),
+        );
+        final result = await _importer(
+          db,
+        ).commit(_archive(order), now: _now, newId: _ids('fresh'));
+        return {
+          for (final e in result.fieldIdByArchiveId.entries)
+            e.key: (await fields.getById(e.value))!.key,
+        };
+      }
+
+      final a = CustomFieldDef(
+        id: 'a',
+        key: 'tempo',
+        label: 'Tempo',
+        type: CustomFieldType.text,
+      );
+      final b = CustomFieldDef(
+        id: 'b',
+        key: 'tempo_2',
+        label: 'Tempo 2',
+        type: CustomFieldType.number,
+      );
+
+      expect(await keysFor([a, b]), {'a': 'tempo_3', 'b': 'tempo_2'});
+      expect(await keysFor([b, a]), {'a': 'tempo_3', 'b': 'tempo_2'});
+    },
+  );
+
+  test('a field moved only because another field of the file took a '
+      'compatible row is not called different', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final fields = CustomFieldDefRepository(db);
+    await _seed(
+      fields,
+      CustomFieldDef(
+        id: 'local-tempo',
+        key: 'tempö',
+        label: 'Tempo',
+        type: CustomFieldType.text,
+      ),
+    );
+
+    final result = await _importer(db).commit(
+      _archive([
+        // NFC and NFD forms of one key: canonically the same, both text.
+        CustomFieldDef(
+          id: 'a',
+          key: 'tempö',
+          label: 'Tempo',
+          type: CustomFieldType.text,
+        ),
+        CustomFieldDef(
+          id: 'b',
+          key: 'tempö',
+          label: 'Tempo',
+          type: CustomFieldType.text,
+        ),
+      ]),
+      now: _now,
+      newId: _ids('fresh'),
+    );
+
+    expect(result.fieldIdByArchiveId['a'], 'local-tempo');
+    expect(result.fieldIdByArchiveId['b'], isNot('local-tempo'));
+    expect(result.issues.single.data, isEmpty);
   });
 
   test('a file listing one field twice plans it once, with one note', () async {
