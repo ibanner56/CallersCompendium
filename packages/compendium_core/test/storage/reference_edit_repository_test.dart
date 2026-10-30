@@ -669,6 +669,47 @@ void main() {
         c: (null, '7'),
       });
     });
+
+    test("the merged-into source's page wins over the survivor id's", () async {
+      await source(a, 'Zesty Contras');
+      await source(b, 'Zesty Contras (2nd ed.)');
+      await dance(
+        'both',
+        sources: [
+          SourceCitation(sourceId: a, page: '12'),
+          SourceCitation(sourceId: b, page: '34', number: '5'),
+        ],
+      );
+
+      // "Merge A into B": the id kept is A's, the locator B's.
+      await edits.merge(ReferenceKind.source, intoId: b, otherIds: [a]);
+
+      expect(await citations('both'), {a: ('34', '5')});
+    });
+
+    test('a dance citing two losers but not the survivor keeps one citation '
+        'with both locators, and Undo puts both back', () async {
+      await source(a, 'Zesty');
+      await source(b, 'Zesty Contras');
+      await source(c, 'Zesty Contras (2nd ed.)');
+      await dance(
+        'losers',
+        sources: [
+          SourceCitation(sourceId: b, page: '1'),
+          SourceCitation(sourceId: c, number: '2'),
+        ],
+      );
+
+      final undo = await edits.merge(
+        ReferenceKind.source,
+        intoId: a,
+        otherIds: [b, c],
+      );
+      expect(await citations('losers'), {a: ('1', '2')});
+
+      await edits.undo(undo);
+      expect(await citations('losers'), {b: ('1', null), c: (null, '2')});
+    });
   });
 
   group('deleteUnused (T3)', () {

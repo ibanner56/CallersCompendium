@@ -83,6 +83,14 @@ final class ReferenceEditUndo {
   final _UndoState _state;
 }
 
+/// The page and number a dance's one remaining citation gets from a source
+/// merge, and the survivor's citation of it before the merge, if it had one.
+typedef _LocatorPlan = ({
+  String? page,
+  String? number,
+  DanceSourceRow? survivorBefore,
+});
+
 /// The before-image [ReferenceEditRepository.undo] restores.
 final class _UndoState {
   _UndoState({
@@ -117,8 +125,8 @@ final class _UndoState {
   /// join was dropped rather than moved.
   final Set<String> survivorDancesBefore;
 
-  /// For a source merge: the survivor's citations whose empty page or number
-  /// took a loser's, each before the merge and as the merge left it.
+  /// For a source merge: the survivor's own citations whose page or number
+  /// the merge changed, each before the merge and as the merge left it.
   final List<({DanceSourceRow before, DanceSourceRow after})> citationFills;
   final String? survivorId;
   final List<IdAliasRow> aliasesBefore;
@@ -309,8 +317,9 @@ class ReferenceEditRepository {
   /// 2. its join rows move to the survivor, live and trashed dances alike,
   ///    and a dance citing both keeps the survivor's
   ///    ([rewriteLocalReferences]), which bumps every affected dance. For a
-  ///    source, an empty page or number on the citation kept takes the
-  ///    loser's first, so a dance citing both loses no locator;
+  ///    source, the citation kept then takes the page and number of [intoId]'s
+  ///    citation, each filled from the others' when empty, so a dance citing
+  ///    both keeps the merged-into entry's locator and loses none it lacked;
   /// 3. it is tombstoned, not erased: the tombstone is how peers learn of the
   ///    merge;
   /// 4. `loser → survivor` is recorded through
@@ -398,11 +407,10 @@ class ReferenceEditRepository {
           }
         }
       }
-      final citationFills = <({DanceSourceRow before, DanceSourceRow after})>[];
+      final locators = kind == ReferenceKind.source
+          ? await _planCitationLocators(intoId, ordered, survivorId)
+          : const <String, _LocatorPlan>{};
       for (final loser in losers) {
-        if (kind == ReferenceKind.source) {
-          citationFills.addAll(await _fillCitations(loser, survivorId));
-        }
         await rewriteLocalReferences(_db, kind.syncKind, loser, survivorId);
         await _syncLocal.deletePendingDeletion(
           kind: kind.syncKind,
@@ -415,6 +423,7 @@ class ReferenceEditRepository {
           survivingId: survivorId,
         );
       }
+      final citationFills = await _applyCitationLocators(locators, survivorId);
       await _writeFields(kind, merged, now: now);
       // Merging into an entry is a deliberate edit of it, so it cancels a
       // peer's deletion this device holds for it (§6.8).
@@ -459,8 +468,8 @@ class ReferenceEditRepository {
   /// would re-tag old dances and not there. Re-creating the name later
   /// therefore does not re-tag them either.
   ///
-  /// Authors and sources have no delete here: they keep their guarded
-  /// repository deletes, offered only for an unused entry (D-N2-4).
+  /// Authors and sources are deleted by [deleteUnused], only when unused
+  /// (D-N2-4).
   Future<ReferenceEditUndo> deleteTag(String id, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -571,8 +580,7 @@ class ReferenceEditRepository {
         );
       }
 
-      // Newest first: a later loser can fill what an earlier one left empty.
-      for (final fill in state.citationFills.reversed) {
+      for (final fill in state.citationFills) {
         await _restoreCitationFill(fill.before, fill.after);
       }
 
@@ -645,32 +653,73 @@ class ReferenceEditRepository {
     });
   }
 
-  /// Where a dance cites both [loser] and [survivorId], gives the survivor's
-  /// citation the loser's page and number wherever its own is empty, before
-  /// [rewriteLocalReferences] drops the loser's citation. A value both hold
-  /// stays the survivor's. Returns each citation changed, before and after.
+  /// For a source merge: the page and number each dance citing two or more
+  /// of [ordered] keeps once [rewriteLocalReferences] has left it one
+  /// citation. Each is [intoId]'s citation's, as the merged entry's fields are
+  /// [intoId]'s, or where that is empty the first non-empty one among the
+  /// others in ascending id order (D-N2-2's fill rule, applied to the
+  /// citation). Keyed by dance id, with the survivor's citation as it stood.
   ///
   /// Only the user merge does this. Sync's reconciliation keeps the
   /// survivor's citation as it stands, and so does the shared helper.
-  Future<List<({DanceSourceRow before, DanceSourceRow after})>> _fillCitations(
-    String loser,
+  Future<Map<String, _LocatorPlan>> _planCitationLocators(
+    String intoId,
+    List<String> ordered,
+    String survivorId,
+  ) async {
+    final priority = [intoId, ...ordered.where((id) => id != intoId)];
+    final rows = await (_db.select(
+      _db.danceSources,
+    )..where((t) => t.sourceId.isIn(ordered))).get();
+    final byDance = <String, Map<String, DanceSourceRow>>{};
+    for (final row in rows) {
+      (byDance[row.danceId] ??= {})[row.sourceId] = row;
+    }
+    String? first(
+      Map<String, DanceSourceRow> cited,
+      String? Function(DanceSourceRow) read,
+    ) {
+      for (final id in priority) {
+        final row = cited[id];
+        if (row != null && !_isBlank(read(row))) return read(row);
+      }
+      return null;
+    }
+
+    return {
+      for (final MapEntry(key: danceId, value: cited) in byDance.entries)
+        if (cited.length > 1)
+          danceId: (
+            page: first(cited, (r) => r.page),
+            number: first(cited, (r) => r.number),
+            survivorBefore: cited[survivorId],
+          ),
+    };
+  }
+
+  /// Writes each planned page and number onto the survivor's citation, and
+  /// returns, for the dances the survivor already cited, its citation before
+  /// and after: Undo puts that one back. A citation the merge moved from a
+  /// loser needs no record, because Undo moves it back with the loser's own
+  /// page and number.
+  Future<List<({DanceSourceRow before, DanceSourceRow after})>>
+  _applyCitationLocators(
+    Map<String, _LocatorPlan> plans,
     String survivorId,
   ) async {
     final fills = <({DanceSourceRow before, DanceSourceRow after})>[];
-    final loserRows = await (_db.select(
-      _db.danceSources,
-    )..where((t) => t.sourceId.equals(loser))).get();
-    for (final from in loserRows) {
-      final kept = await _citation(from.danceId, survivorId);
+    for (final MapEntry(key: danceId, value: plan) in plans.entries) {
+      final kept = await _citation(danceId, survivorId);
       if (kept == null) continue;
-      final page = _isBlank(kept.page) ? from.page : kept.page;
-      final number = _isBlank(kept.number) ? from.number : kept.number;
-      if (page == kept.page && number == kept.number) continue;
-      await _writeCitationLocator(kept, page: page, number: number);
-      fills.add((
-        before: kept,
-        after: (await _citation(kept.danceId, survivorId))!,
-      ));
+      if (kept.page == plan.page && kept.number == plan.number) continue;
+      await _writeCitationLocator(kept, page: plan.page, number: plan.number);
+      final before = plan.survivorBefore;
+      if (before != null) {
+        fills.add((
+          before: before,
+          after: (await _citation(danceId, survivorId))!,
+        ));
+      }
     }
     return fills;
   }

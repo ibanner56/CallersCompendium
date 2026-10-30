@@ -763,8 +763,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     try {
       outcome = await editAuthorDetails(context, _repos, existing);
     } on DuplicateNaturalKeyError catch (error, stackTrace) {
-      // The name collided, but no live author holds it any more, so there was
-      // nothing to merge with. The rename was not saved, so the caches must
+      // The name collided, but no live author holds it (a deleted one can),
+      // so there was nothing to merge with. The rename was not saved, so the caches must
       // not move (#1348).
       logCaughtError(
         error,
@@ -775,7 +775,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('choreographer-duplicate-snackbar'),
-          content: Text(l10n.danceEditorChoreographerDuplicate(existing.name)),
+          content: Text(l10n.danceEditorChoreographerDuplicate(error.value)),
         ),
       );
       return;
@@ -796,7 +796,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       case AuthorDetailsSaved(:final stored):
         _patchChoreographer(stored);
       case AuthorDetailsMerged(:final merge):
-        await _applyAuthorMerge(merge, editedId: id, fromName: existing.name);
+        await _applyAuthorMerge(merge, fromName: existing.name);
     }
   }
 
@@ -819,16 +819,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   }
 
   /// Follows [merge] in the draft: every merged author becomes the survivor.
-  /// Undo reverses the merge and, when the draft credited [editedId] and the
-  /// merge changed that, credits [editedId] again.
+  /// Undo reverses the merge and puts the draft's authors, and its undo
+  /// history, back as they were, unless the draft has been edited since.
   Future<void> _applyAuthorMerge(
     AuthorMerge merge, {
-    required String editedId,
     required String fromName,
   }) async {
     final survivorId = merge.survivorId;
-    final creditedSurvivor = _controller.authorIds.contains(survivorId);
-    final changed = _controller.replaceAuthors(
+    final replacement = _controller.replaceAuthors(
       merge.mergedIds.difference({survivorId}),
       survivorId,
     );
@@ -844,13 +842,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       onUndo: () async {
         await repos.references.undo(merge.undo);
         if (!mounted) return;
-        // Put the draft's credit back only when it was this author's and the
-        // merge moved it; a draft that already credited the survivor keeps it.
-        if (changed && !creditedSurvivor && editedId != survivorId) {
-          _controller.replaceAuthors({survivorId}, editedId);
+        _controller.restoreAuthors(replacement);
+        for (final id in merge.mergedIds) {
+          final restored = await repos.choreographers.getById(id);
+          if (restored != null && mounted) _patchChoreographer(restored);
         }
-        final restored = await repos.choreographers.getById(editedId);
-        if (restored != null && mounted) _patchChoreographer(restored);
       },
     );
   }

@@ -1495,8 +1495,9 @@ class DanceEditorController extends ChangeNotifier {
   ///
   /// Not an edit of the draft, so it pushes no undo step: the merge has its
   /// own Undo, and undoing the draft must not bring back a merged-away id.
-  /// Returns whether the draft itself changed.
-  bool replaceAuthors(Set<String> from, String to) {
+  /// Returns what [restoreAuthors] needs to put it all back when that Undo
+  /// runs.
+  AuthorReplacement replaceAuthors(Set<String> from, String to) {
     List<String> replaced(List<String> ids) {
       final out = <String>[];
       for (final id in ids) {
@@ -1506,11 +1507,16 @@ class DanceEditorController extends ChangeNotifier {
       return out;
     }
 
-    _undoStack.mapAll(
-      (snapshot) => snapshot.copyWith(authorIds: replaced(snapshot.authorIds)),
-    );
+    final history = Map<EditorSnapshot, EditorSnapshot>.identity();
+    _undoStack.mapAll((snapshot) {
+      final mapped = snapshot.copyWith(authorIds: replaced(snapshot.authorIds));
+      history[mapped] = snapshot;
+      return mapped;
+    });
+    final before = List<String>.of(authorIds);
     final next = replaced(authorIds);
-    if (listEquals(next, authorIds)) return false;
+    final replacement = AuthorReplacement._(before, next, history);
+    if (listEquals(next, authorIds)) return replacement;
     authorIds
       ..clear()
       ..addAll(next);
@@ -1519,7 +1525,24 @@ class DanceEditorController extends ChangeNotifier {
     // draft does not bring the merged-away id back.
     if (_dirty) scheduleAutosave();
     _notify();
-    return true;
+    return replacement;
+  }
+
+  /// Undoes [replacement], for the Undo of the merge that made it: the draft's
+  /// authors come back while they still read as the merge left them, and so
+  /// does each undo step [replaceAuthors] rewrote. An edit made since is
+  /// newer, and stays.
+  void restoreAuthors(AuthorReplacement replacement) {
+    _undoStack.mapAll((snapshot) => replacement._history[snapshot] ?? snapshot);
+    if (!listEquals(authorIds, replacement._after) ||
+        listEquals(authorIds, replacement._before)) {
+      return;
+    }
+    authorIds
+      ..clear()
+      ..addAll(replacement._before);
+    if (_dirty) scheduleAutosave();
+    _notify();
   }
 
   void addTag(String id) {
@@ -2126,4 +2149,16 @@ class DanceEditorController extends ChangeNotifier {
     pendingMoveText.dispose();
     super.dispose();
   }
+}
+
+/// What [DanceEditorController.replaceAuthors] changed, for
+/// [DanceEditorController.restoreAuthors]. Opaque.
+final class AuthorReplacement {
+  AuthorReplacement._(this._before, this._after, this._history);
+
+  final List<String> _before;
+  final List<String> _after;
+
+  /// Each rewritten undo step, by identity, to the step it replaced.
+  final Map<EditorSnapshot, EditorSnapshot> _history;
 }

@@ -2882,7 +2882,7 @@ void main() {
       controller.addAuthor('other');
       controller.addAuthor('survivor');
 
-      expect(controller.replaceAuthors({'loser'}, 'survivor'), isTrue);
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
       expect(controller.authorIds, ['survivor', 'other']);
 
       // Undoing past the merge must not bring the merged-away id back.
@@ -2893,15 +2893,34 @@ void main() {
       controller.redo();
       controller.redo();
       expect(controller.authorIds, ['survivor', 'other']);
+
+      // The merge's Undo puts the draft and its history back.
+      controller.restoreAuthors(replacement);
+      expect(controller.authorIds, ['loser', 'other', 'survivor']);
+      controller.undo();
+      expect(controller.authorIds, ['loser', 'other']);
     });
 
-    test('reports no change when the draft credits none of them', () async {
+    test('restoreAuthors leaves a draft edited since the merge', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      controller.addAuthor('loser');
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
+      controller.addAuthor('new');
+
+      controller.restoreAuthors(replacement);
+      expect(controller.authorIds, ['survivor', 'new']);
+    });
+
+    test('leaves a draft that credits none of them', () async {
       final repos = openTestRepositories();
       final controller = await newDanceController(repos);
       addTearDown(controller.dispose);
 
       controller.addAuthor('other');
-      expect(controller.replaceAuthors({'loser'}, 'survivor'), isFalse);
+      final _ = controller.replaceAuthors({'loser'}, 'survivor');
       expect(controller.authorIds, ['other']);
     });
   });

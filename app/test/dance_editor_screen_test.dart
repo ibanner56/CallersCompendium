@@ -332,6 +332,29 @@ void main() {
       expect(find.byKey(const ValueKey('author-chip-c1')), findsNothing);
     });
 
+    testWidgets('Undo of a merge of two authors the dance both credits '
+        'puts both credits back in the draft', (tester) async {
+      final repos = await seed();
+      await repos.dances.update(_dance(id: 'd1', authorIds: ['c2', 'c1']));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith');
+      await tester.tap(find.byKey(const ValueKey('library-merge-offer-merge')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('author-chip-c2')), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey('dance-editor-author-merge-undo')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('author-chip-c2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('author-chip-c1')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect((await repos.dances.getById('d1'))!.authorIds, ['c2', 'c1']);
+    });
+
     testWidgets('after a merge, Save credits the merged author', (
       tester,
     ) async {
