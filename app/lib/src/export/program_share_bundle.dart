@@ -81,7 +81,8 @@ import 'share_sanitization.dart';
 /// levels. A level id neither knows throws a
 /// [StateError], the same strict contract as the resolvers above, except for a
 /// dance from the sender's Recently deleted, which travels without its level
-/// instead: the trash does not protect a level, so it may be gone.
+/// instead: the trash does not protect a level, so it may be gone. A shipped
+/// level always resolves through [DifficultyLevel.knownForId].
 ///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
@@ -214,9 +215,10 @@ String buildProgramShareBundle(
     if (level == null) {
       // A dance in Recently deleted does not hold its level back (the
       // maintainer's trash-policy decision, 2026-10-29), so the level it names
-      // may have been removed since. It travels without one, as a full backup
-      // sends it. A live dance's level is always live, so for one of those
-      // this is still a missing lookup, and strict.
+      // may have been removed since. It travels without one. (A removed
+      // shipped level still resolves through `knownForId` above and travels;
+      // the recipient knows it already.) A live dance's level is always live,
+      // so for one of those this is still a missing lookup, and strict.
       if (trashedIds.contains(dance.id)) {
         dances[i] = dance.copyWith(clearDifficultyLevel: true);
         continue;

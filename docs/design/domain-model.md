@@ -201,8 +201,9 @@ generated UUIDv4 IDs. A dance stores only its selected `difficultyLevelId`, so
 renaming or reordering a vocabulary entry does not rewrite dances. A level
 cannot be deleted while any live dance refers to it; a dance in Recently deleted
 does not count (the maintainer's trash-policy decision, 2026-10-29), and keeps
-its reference to the tombstoned level. A full backup or a program share sends
-such a dance without its level.
+its reference to the tombstoned level. A full backup sends such a dance without
+its level; a program share does too for a custom level, while a shipped level
+still resolves through `DifficultyLevel.knownForId` and travels.
 
 ### Choreographer
 `id, name (unique), website?, notes?`. Merge tool needed eventually (imports
