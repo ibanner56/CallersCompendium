@@ -41,6 +41,7 @@ import 'sync_quarantine.dart'
 import 'sync_record_kind.dart';
 import 'sync_reconciliation.dart';
 import 'sync_report.dart';
+import 'sync_withdrawn_settings.dart';
 import 'sync_retained_fields.dart';
 import 'sync_review.dart';
 
@@ -1845,6 +1846,11 @@ final class CompendiumSyncStorage
   /// a peer that could not be read this pass is not evidence the conflict
   /// ended. An unchanged row keeps its `queued_at`. Returns how many choice
   /// rows this call added; copy rows are not counted.
+  ///
+  /// A row for a setting this build withdrew from sync
+  /// ([syncWithdrawnSettingKeys]) is dropped even when its address is in
+  /// [unevaluated], and none is queued: an older build queued it, and this one
+  /// can neither resolve it nor offer it (sync-spec §6.7, amended 2026-10-30).
   Future<int> refreshConflictReviews(
     Iterable<SyncMergeDecision> reviews, {
     Set<SyncRecordAddress> unevaluated = const {},
@@ -1857,6 +1863,12 @@ final class CompendiumSyncStorage
     for (final decision in reviews) {
       final conflict = decision.conflict;
       if (conflict == null) continue;
+      if (isWithdrawnSyncSetting(
+        decision.address.kind,
+        decision.address.recordId,
+      )) {
+        continue;
+      }
       for (final hash in conflict.copies) {
         expected[(decision.address.kind, decision.address.recordId, hash)] = (
           reason: syncConflictChoiceCopyReason,
@@ -1884,7 +1896,10 @@ final class CompendiumSyncStorage
     };
     for (final entry in existing.entries) {
       final (kind, recordId, _) = entry.key;
-      if (unevaluated.contains((kind: kind, recordId: recordId))) continue;
+      if (!isWithdrawnSyncSetting(kind, recordId) &&
+          unevaluated.contains((kind: kind, recordId: recordId))) {
+        continue;
+      }
       final want = expected[entry.key];
       if (want != null &&
           want.reason == entry.value.reason &&

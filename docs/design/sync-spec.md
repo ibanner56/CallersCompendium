@@ -3834,6 +3834,15 @@ field is kept like an unknown one.
 > temporary and clears itself. Keeping the record would have had every
 > upgraded device republish, indefinitely, values the registry classifies
 > `deviceLocal`.
+>
+> **Amended 2026-10-30, by the maintainer's decision (closing a gap).** A
+> conflict choice (§6.3) for a withdrawn setting may already be queued, because
+> an older build raised it before the upgrade. This build can neither offer it
+> nor resolve it, since no peer's copy of the key is read. A client MUST
+> therefore drop every queued conflict choice for a withdrawn setting when it
+> refreshes the queue after a pass, including one whose record the pass did not
+> evaluate (`refreshConflictReviews`). It MUST NOT queue one. Conflict choices
+> for every other record are unchanged.
 
 A record this device shares none of has no body to put kept parts back into. A
 custom-field definition made private (`shareable: false`) projects to an empty
