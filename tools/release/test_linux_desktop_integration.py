@@ -20,6 +20,14 @@ These tests cannot run a desktop session. They pin the *contract* between the
 files that have to agree: the CMake id, the ``.desktop`` file's name and
 ``StartupWMClass``, the icon the runner loads and the icon CMake installs, and
 the release step that copies the launcher and icon into both Linux downloads.
+
+**The ``.ccshare`` file type** (PLAT-3). The launcher declares
+``MimeType=`` and passes the file as ``%f``; the shared-mime-info XML beside it
+defines that type for ``*.ccshare``; both downloads carry the XML. Linux ships
+only as a tar.gz and an AppImage, with no installer, so nothing here registers
+the type on a user's system: the user installs the launcher and the XML
+(``docs/user/installation.md``), or an AppImage integration tool does. That is
+best-effort, and these tests pin only that the files agree and ship.
 """
 
 from __future__ import annotations
@@ -27,6 +35,7 @@ from __future__ import annotations
 import configparser
 import re
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,6 +44,7 @@ RUNNER = ROOT / "app" / "linux" / "runner" / "my_application.cc"
 PACKAGING = ROOT / "packaging" / "linux"
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 PACKAGE_STEP = "Package Linux (tar.gz + AppImage)"
+MIME_NS = "{http://www.freedesktop.org/standards/shared-mime-info}"
 
 
 def cmake_set(name: str) -> str:
@@ -105,15 +115,47 @@ def test_runner_uses_the_cmake_id_as_program_name() -> None:
     )
 
 
-def test_no_file_association_is_declared() -> None:
-    # Opening files from the launcher needs the single-instance raise channel to
-    # carry a path, which it deliberately does not (no payload). Not approved.
+def mime_xml() -> Path:
+    return PACKAGING / f"{cmake_set('APPLICATION_ID')}.xml"
+
+
+def test_ccshare_file_type_matches_the_launcher() -> None:
+    xml = mime_xml()
+    assert xml.is_file(), f"{xml.relative_to(ROOT)} must define the .ccshare MIME type"
+    types = ET.parse(xml).getroot().findall(f"{MIME_NS}mime-type")
+    assert len(types) == 1, f"{xml.name} must define exactly one mime-type, found {len(types)}"
+    mime = types[0].get("type")
+    globs = [g.get("pattern") for g in types[0].findall(f"{MIME_NS}glob")]
+    assert globs == ["*.ccshare"], f"{xml.name} must match *.ccshare only; got {globs}"
+
     entry = desktop_entry()
-    assert "MimeType" not in entry, "MimeType= would register a file association"
-    exec_line = entry.get("Exec", "")
-    assert not re.search(r"%[fFuU]", exec_line), (
-        f"Exec={exec_line!r} passes files or URLs to the app, which it cannot accept"
+    declared = [t for t in entry.get("MimeType", "").split(";") if t]
+    assert declared == [mime], (
+        f"the launcher's MimeType= must name the XML's type {mime!r}; got {declared}"
     )
+    # The app reads one path (desktopOpenPathFromArgs): %f, not %F or URLs.
+    exec_line = entry.get("Exec", "")
+    codes = re.findall(r"%[a-zA-Z]", exec_line)
+    assert codes == ["%f"], f"Exec={exec_line!r} must pass exactly one file as %f"
+
+
+def test_both_downloads_carry_the_mime_xml() -> None:
+    name = mime_xml().name
+    run = step_run(PACKAGE_STEP)
+    tar_at = run.find('tar -czf "dist/${stage}.tar.gz" "$stage"')
+    assert tar_at >= 0, "the package step no longer builds the tar.gz from $stage"
+    assert re.search(
+        rf'cp\s+packaging/linux/{re.escape(name)}\s+"\$stage/{re.escape(name)}"',
+        run[:tar_at],
+    ), f"the tar.gz stage must get packaging/linux/{name} before it is archived"
+    assert name in run[tar_at : run.find("# AppImage:", tar_at)], (
+        f"the package step does not check that the tar.gz holds {name}"
+    )
+    assert re.search(
+        rf"packaging/linux/{re.escape(name)}\s*\\?\s*"
+        rf'"\$appdir/usr/share/mime/packages/{re.escape(name)}"',
+        run,
+    ), f"the AppDir must carry {name} under usr/share/mime/packages/"
 
 
 def test_icon_is_installed_into_the_bundle_and_set_on_the_window() -> None:
@@ -198,7 +240,8 @@ def test_appimage_uses_the_same_launcher_and_icon() -> None:
 TESTS = [
     test_launcher_matches_application_id,
     test_runner_uses_the_cmake_id_as_program_name,
-    test_no_file_association_is_declared,
+    test_ccshare_file_type_matches_the_launcher,
+    test_both_downloads_carry_the_mime_xml,
     test_icon_is_installed_into_the_bundle_and_set_on_the_window,
     test_tarball_ships_the_launcher_and_icon,
     test_appimage_uses_the_same_launcher_and_icon,

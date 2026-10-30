@@ -122,10 +122,13 @@ input.
 Open the dance or program and use its share/export options — you can share as
 text or export a PDF. A program also offers **Share (program + dances)**, which
 bundles the set list together with every dance it uses into one file — dances and
-all, not just a list of titles. The recipient can **open that file directly**
-(AirDrop, "Open with", or a share intent), which takes them to the import review
-screen already loaded with it, or they can import it from **Settings › General** by
-choosing **Import…**.
+all, not just a list of titles. On a Mac, iPhone, iPad, Android device, or a Windows
+computer where the app was installed with the installer, the recipient can
+**open that file directly** (AirDrop, double-click, "Open with", or a share
+intent), which takes them to the import review screen already loaded with it. On
+Linux that works once the file type is set up (see
+[Installing](./installation.md#install-on-linux)). Anywhere, they can import it
+from **Settings › General** by choosing **Import…**.
 Either way nothing lands in their collection until they confirm. This is separate
 from a full backup. See [Share, print & export](./sharing.md).
 

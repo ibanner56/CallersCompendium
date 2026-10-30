@@ -1,0 +1,9 @@
+{
+  "id": "plat-3-desktop-open-ccshare",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "On Windows, the installer registers `.ccshare` share files, so double-clicking one opens it in import review. On Linux, the downloads carry the file type and launcher you can install to do the same, and you can run the app with a share file's path. If the app is already open, the file opens in the window you have, and nothing is imported until you confirm."
+    ]
+  }
+}

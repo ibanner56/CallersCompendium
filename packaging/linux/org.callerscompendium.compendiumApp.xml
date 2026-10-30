@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The .ccshare file type for Linux desktops (PLAT-3), in the freedesktop
+  shared-mime-info format. The launcher's MimeType= names this type, so a file
+  manager offers Caller's Compendium for it once both are installed. The
+  tar.gz and the AppImage carry this file; neither installs it, so
+  registration is up to the user or an AppImage integration tool
+  (docs/user/installation.md). tools/release/test_linux_desktop_integration.py
+  pins the type, the glob and the launcher together.
+-->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-callerscompendium-share">
+    <comment>Caller's Compendium share file</comment>
+    <sub-class-of type="application/json"/>
+    <glob pattern="*.ccshare"/>
+  </mime-type>
+</mime-info>
