@@ -2,7 +2,7 @@
 
 The maintainer (ibanner56) recorded these answers on the decision page https://claude.ai/artifact/MRVAeqpyG34SKbv48Xomdy between 2026-10-29 22:33 UTC and 2026-10-30 00:47 UTC. Each entry quotes the chosen option's label and text as the page showed it, and the maintainer's own note verbatim where they left one. Entries marked *(differs from the recommendation)* are where the maintainer chose another option than the page recommended.
 
-Three further decisions were made in conversation with the orchestrating session on 2026-10-29/30 and relayed to the branch sessions; they are recorded at the end.
+Four further decisions were made in conversation with the orchestrating session on 2026-10-29/30 and relayed to the branch sessions; they are recorded at the end.
 
 
 ## Round 2 (follow-ups to the 2026-10-29 decisions)
@@ -397,6 +397,13 @@ These were asked through a question dialog and answered by the maintainer direct
 
 ### B31 / PLAT-12: English-language phones with a non-English region (2026-10-30 ~00:31 UTC)
 **Decision:** "Merge, follow-up PR". #2044 merges with the limit documented; a follow-up adds a region fallback (for en_DK, the numeric order of a locale for that region).
+
+### Design plan / N1–N5: the eight readings in `design-work-plan.md` (2026-10-30, relayed ~01:19 UTC)
+**Question:** the eight ambiguities `design-work-plan.md` lists ("Ambiguities the answers leave open"), each with the planner's recommended reading, as the planning session gave them.
+
+**Decision:** "Accept all 8 (Recommended)". The option read: "Builders follow these readings, labelled as the planner's reading that you accepted."
+
+The design notes label each one "planner's reading, accepted by the maintainer 2026-10-30". The readings themselves are in `design-work-plan.md`; this entry records only that the maintainer accepted them.
 
 ## Still open
 
