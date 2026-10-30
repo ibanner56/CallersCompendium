@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/tag_manager_screen.dart';
@@ -351,9 +353,10 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('library-merge-into-$a')));
       await tester.pumpAndSettle();
 
+      // Raw, because the decoder drops duplicates itself.
       expect(
-        tryDecodeDefaultImportTagNames(
-          await repos.settings.get(kDefaultImportTagNamesKey),
+        jsonDecode(
+          await repos.settings.get(kDefaultImportTagNamesKey) as String,
         ),
         ['Flowy'],
       );

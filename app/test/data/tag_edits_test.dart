@@ -44,9 +44,14 @@ void main() {
     encodeDefaultImportTagNames(names),
   );
 
-  Future<List<String>?> importTags() async => tryDecodeDefaultImportTagNames(
-    await repos.settings.get(kDefaultImportTagNamesKey),
-  );
+  // Decoded raw, not through `tryDecodeDefaultImportTagNames`, which drops
+  // duplicates itself and would hide a rewrite that kept two.
+  Future<List<String>?> importTags() async {
+    final stored = await repos.settings.get(kDefaultImportTagNamesKey);
+    return stored == null
+        ? null
+        : List<String>.from(jsonDecode(stored as String) as List);
+  }
 
   Future<Set<String>> tagsOf(String danceId) async =>
       (await repos.dances.getById(danceId))!.tagIds.toSet();
