@@ -195,6 +195,71 @@ void main() {
     expect(find.text('Nav Target Program'), findsNothing);
   });
 
+  testWidgets('a rotation across the rail breakpoint mid-set keeps the '
+      "program's Perform place (GIG-14)", (tester) async {
+    final repos = openTestRepositories();
+    final now = DateTime.utc(2026, 1, 1);
+    for (final (id, title) in [('d1', 'First Dance'), ('d2', 'Second Dance')]) {
+      await repos.dances.create(
+        Dance(
+          id: id,
+          title: title,
+          authorIds: const [],
+          tagIds: const [],
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: const [],
+          customFields: const [],
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    }
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Rotation Night',
+        slots: [
+          ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await _pump(tester, repos, size: const Size(1400, 900));
+    await tester.tap(find.text('Programs').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rotation Night'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-next')));
+    await tester.pump();
+
+    // AppShell swaps rail for bottom bar at the same width the Programs shell
+    // splits at, which rebuilds everything under it unless it is moved. The
+    // shells are laid out again only once Perform has gone.
+    await tester.binding.setSurfaceSize(const Size(600, 1200));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
+
+    // The program it was performing resumes at slot 2.
+    await tester.tap(find.text('Rotation Night'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('perform-position'))).data,
+      'Slot 2 of 2',
+    );
+  });
+
   testWidgets('exposes four destinations including Settings and Guide', (
     tester,
   ) async {

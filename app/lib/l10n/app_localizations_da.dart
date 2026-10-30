@@ -4742,6 +4742,15 @@ class AppLocalizationsDa extends AppLocalizations {
       'Du har en ugemt kladde til dette program. Vil du gendanne den?';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'Du har en ugemt kladde til et andet nyt program, „$title“. Vil du gendanne den i stedet for at starte et nyt?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'Du har en ugemt kladde til et andet nyt program, der endnu ikke har en titel. Vil du gendanne den i stedet for at starte et nyt?';
+
+  @override
   String get programsDraftRestore => 'Gendan';
 
   @override
@@ -5575,6 +5584,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get performUndoNoLongerAvailable =>
       'Kan ikke fortrydes: programmet er ændret siden.';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'Programmet var ændret et andet sted, siden Fremfør åbnede. Fremfør viser nu den nyeste version, med din ændring.';
 
   @override
   String get performProgramAdjustedSnack => 'Program justeret.';

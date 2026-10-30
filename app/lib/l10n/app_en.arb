@@ -6056,6 +6056,20 @@
   "@programsDraftBody": {
     "description": "Body of the dialog offering to restore an autosaved program draft."
   },
+  "programsDraftAnotherNewProgramBody": "You have an unsaved draft of another new program, “{title}”. Would you like to restore it instead of starting a new one?",
+  "@programsDraftAnotherNewProgramBody": {
+    "description": "Dialog body when the caller starts a new program and a draft of a different new program, never saved, is waiting from an earlier session. Restoring continues that program; discarding deletes it.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Spring Fling"
+      }
+    }
+  },
+  "programsDraftAnotherNewProgramUntitledBody": "You have an unsaved draft of another new program, not yet titled. Would you like to restore it instead of starting a new one?",
+  "@programsDraftAnotherNewProgramUntitledBody": {
+    "description": "Dialog body when the caller starts a new program and an untitled draft of a different new program, never saved, is waiting from an earlier session."
+  },
   "programsDraftRestore": "Restore",
   "@programsDraftRestore": {
     "description": "Button that restores the autosaved program draft into the editor."
@@ -7226,6 +7240,10 @@
   "performUndoNoLongerAvailable": "Can't undo: the program has changed since.",
   "@performUndoNoLongerAvailable": {
     "description": "Snackbar shown when the user taps Undo on a live program adjustment after leaving Perform, but the program was edited in the meantime, so the undo is refused to keep that later edit."
+  },
+  "performProgramChangedElsewhere": "This program had changed elsewhere since Perform opened. Perform now shows the latest version, with your change.",
+  "@performProgramChangedElsewhere": {
+    "description": "Snackbar shown in Perform when saving a live program adjustment found that the program had been changed elsewhere (for example by Device Sync) since Perform opened it. The adjustment was saved on top of that change instead of overwriting it, and Perform now shows the updated program."
   },
   "performProgramAdjustedSnack": "Program adjusted.",
   "@performProgramAdjustedSnack": {

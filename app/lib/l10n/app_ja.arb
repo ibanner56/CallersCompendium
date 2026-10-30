@@ -4824,6 +4824,14 @@
   "@programsDraftBody": {
     "x-sourceSha256": "c7f0f1a362476a5fd3dc3339ad8b7208aebe3d297ff8e4c340e9f28f40070aa8"
   },
+  "programsDraftAnotherNewProgramBody": "別の新しいプログラム「{title}」の未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？",
+  "@programsDraftAnotherNewProgramBody": {
+    "x-sourceSha256": "7fef500f5f004887e99ac40cec6c9bd12e3cd990df20b751f3a8b7de584d5ee3"
+  },
+  "programsDraftAnotherNewProgramUntitledBody": "まだタイトルのない、別の新しいプログラムの未保存の下書きがあります。新しく始める代わりに、この下書きを復元しますか？",
+  "@programsDraftAnotherNewProgramUntitledBody": {
+    "x-sourceSha256": "2ad41d85f235c3184fcf33a6400608446a19671bfcec3d592f0431761cb670d3"
+  },
   "programsDraftRestore": "復元",
   "@programsDraftRestore": {
     "x-sourceSha256": "a76e13b9839270eb73ed11417f7d8acca55df0ad52065799361631d0fff74f27"
@@ -5625,6 +5633,10 @@
   "performUndoNoLongerAvailable": "元に戻せません。その後プログラムが変更されています。",
   "@performUndoNoLongerAvailable": {
     "x-sourceSha256": "b3e205dcae09a94dc4693a675f528a7f6aad490523457c362ed13b6d48e7f9c9"
+  },
+  "performProgramChangedElsewhere": "パフォームを開いた後に、このプログラムが別の場所で変更されていました。パフォームには、あなたの変更を含む最新の版が表示されています。",
+  "@performProgramChangedElsewhere": {
+    "x-sourceSha256": "616c3dbe3deede99d9d6a64423eaa11100c10df1383c1c1430edbe78fe933e93"
   },
   "performProgramAdjustedSnack": "プログラムを調整しました。",
   "@performProgramAdjustedSnack": {

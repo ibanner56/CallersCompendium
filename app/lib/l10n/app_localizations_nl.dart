@@ -4776,6 +4776,15 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je hebt een niet-opgeslagen concept voor dit programma. Wil je het herstellen?';
 
   @override
+  String programsDraftAnotherNewProgramBody(String title) {
+    return 'Je hebt een niet-opgeslagen concept van een ander nieuw programma, ‘$title’. Wil je het herstellen in plaats van een nieuw te beginnen?';
+  }
+
+  @override
+  String get programsDraftAnotherNewProgramUntitledBody =>
+      'Je hebt een niet-opgeslagen concept van een ander nieuw programma, nog zonder titel. Wil je het herstellen in plaats van een nieuw te beginnen?';
+
+  @override
   String get programsDraftRestore => 'Herstellen';
 
   @override
@@ -5614,6 +5623,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get performUndoNoLongerAvailable =>
       'Kan niet ongedaan maken: het programma is sindsdien gewijzigd.';
+
+  @override
+  String get performProgramChangedElsewhere =>
+      'Dit programma was elders gewijzigd sinds Uitvoeren werd geopend. Uitvoeren toont nu de nieuwste versie, met jouw wijziging.';
 
   @override
   String get performProgramAdjustedSnack => 'Programma aangepast.';

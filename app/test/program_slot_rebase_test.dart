@@ -141,4 +141,16 @@ void main() {
     final undone = rebaseSlotEdits(before: after, after: before, onto: applied);
     expect(undone, onto);
   });
+
+  test('a slot Perform added that the target already holds is not added '
+      'again', () {
+    // The target is a program that already took Perform's insert (GIG-6: a
+    // change from elsewhere carried onto Perform's own copy).
+    final result = rebaseSlotEdits(
+      before: [_slot('a')],
+      after: [_slot('a'), _slot('new'), _slot('elsewhere')],
+      onto: [_slot('a'), _slot('new')],
+    );
+    expect(_ids(result), ['a', 'new', 'elsewhere']);
+  });
 }

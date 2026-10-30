@@ -4824,6 +4824,14 @@
   "@programsDraftBody": {
     "x-sourceSha256": "c7f0f1a362476a5fd3dc3339ad8b7208aebe3d297ff8e4c340e9f28f40070aa8"
   },
+  "programsDraftAnotherNewProgramBody": "Du har en ugemt kladde til et andet nyt program, „{title}“. Vil du gendanne den i stedet for at starte et nyt?",
+  "@programsDraftAnotherNewProgramBody": {
+    "x-sourceSha256": "7fef500f5f004887e99ac40cec6c9bd12e3cd990df20b751f3a8b7de584d5ee3"
+  },
+  "programsDraftAnotherNewProgramUntitledBody": "Du har en ugemt kladde til et andet nyt program, der endnu ikke har en titel. Vil du gendanne den i stedet for at starte et nyt?",
+  "@programsDraftAnotherNewProgramUntitledBody": {
+    "x-sourceSha256": "2ad41d85f235c3184fcf33a6400608446a19671bfcec3d592f0431761cb670d3"
+  },
   "programsDraftRestore": "Gendan",
   "@programsDraftRestore": {
     "x-sourceSha256": "a76e13b9839270eb73ed11417f7d8acca55df0ad52065799361631d0fff74f27"
@@ -5625,6 +5633,10 @@
   "performUndoNoLongerAvailable": "Kan ikke fortrydes: programmet er ændret siden.",
   "@performUndoNoLongerAvailable": {
     "x-sourceSha256": "b3e205dcae09a94dc4693a675f528a7f6aad490523457c362ed13b6d48e7f9c9"
+  },
+  "performProgramChangedElsewhere": "Programmet var ændret et andet sted, siden Fremfør åbnede. Fremfør viser nu den nyeste version, med din ændring.",
+  "@performProgramChangedElsewhere": {
+    "x-sourceSha256": "616c3dbe3deede99d9d6a64423eaa11100c10df1383c1c1430edbe78fe933e93"
   },
   "performProgramAdjustedSnack": "Program justeret.",
   "@performProgramAdjustedSnack": {

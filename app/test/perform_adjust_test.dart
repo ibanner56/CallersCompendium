@@ -91,7 +91,10 @@ Future<List<Program>> _pumpAdjustable(
         danceOverrides: danceOverrides,
         authorNameOverrides: authorNameOverrides,
         initialGroup: initialGroup,
-        onProgramChanged: (updated) async => persisted.add(updated),
+        onProgramChanged: (_, updated) async {
+          persisted.add(updated);
+          return null;
+        },
       ),
     ),
   );

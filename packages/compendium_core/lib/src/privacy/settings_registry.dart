@@ -463,7 +463,8 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
     egress: EgressClass.deviceScoped,
     note:
         'Transient program-editor autosave draft, keyed per program '
-        '(program_editor_draft:<id>). Same rationale as editor_draft:.',
+        '(program_editor_draft:<id>, or program_editor_draft:new:<editor id> '
+        'for a program not yet saved). Same rationale as editor_draft:.',
   ),
   // Each sync device's capability record (#709): which sync capabilities its
   // build understands, so a device holds back data a peer could not read.
