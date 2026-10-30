@@ -415,6 +415,11 @@ void main() {
         // the pinned New row and a whole program row fit as well; at 200% the
         // title and New row scroll in place, so the field and the list keep
         // their room (a RenderFlex overflow would fail the test).
+        // The sheet itself stays below the status bar, not only its contents.
+        expect(
+          tester.getRect(find.byType(BottomSheet)).top,
+          greaterThanOrEqualTo(notch),
+        );
         final search = tester.getRect(_search);
         expect(search.top, greaterThanOrEqualTo(notch));
         expect(search.bottom, lessThanOrEqualTo(visibleBottom));
