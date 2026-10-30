@@ -2242,6 +2242,14 @@ class DanceRepository {
   /// remove a still-referenced row; here the last reference is already gone, so
   /// the removal is safe hygiene rather than silent data loss.
   ///
+  /// **Only bare rows are erased (N2-6 (b)).** A row that holds a detail the
+  /// user (or an import they chose) entered survives as a **Not used** row: a
+  /// tag with a colour; a choreographer with a website, notes, email, location
+  /// or deceased mark; a source with an author, year, URL or notes. A blank or
+  /// whitespace-only text value is not a detail. See [_bareTagSql],
+  /// [_bareChoreographerSql] and [_bareSourceSql]. The test reads columns that
+  /// already exist, so it adds no persisted field.
+  ///
   /// **Stays a HARD delete after the schema-v25 soft-delete conversion (#898),
   /// unlike the guarded deletes it mirrors.** Those now tombstone, so this is a
   /// deliberate divergence rather than an oversight. Two reasons: this only
@@ -2300,7 +2308,8 @@ class DanceRepository {
       await _db.customUpdate(
         'DELETE FROM ${_db.choreographers.actualTableName} '
         'WHERE id IN ($placeholders) '
-        'AND id NOT IN (SELECT choreographer_id FROM dance_authors)',
+        'AND id NOT IN (SELECT choreographer_id FROM dance_authors) '
+        'AND $_bareChoreographerSql',
         variables: [for (final id in chunk) Variable<String>(id)],
         updates: {_db.choreographers},
         updateKind: UpdateKind.delete,
@@ -2319,7 +2328,8 @@ class DanceRepository {
       await _db.customUpdate(
         'DELETE FROM ${_db.publishedSources.actualTableName} '
         'WHERE id IN ($placeholders) '
-        'AND id NOT IN (SELECT source_id FROM dance_sources)',
+        'AND id NOT IN (SELECT source_id FROM dance_sources) '
+        'AND $_bareSourceSql',
         variables: [for (final id in chunk) Variable<String>(id)],
         updates: {_db.publishedSources},
         updateKind: UpdateKind.delete,
@@ -2335,6 +2345,18 @@ class DanceRepository {
     );
   }
 
+  /// SQL predicates, ANDed into the GC's `DELETE`s, that are true only for a
+  /// row with none of the details [_garbageCollectOrphanedRefs] spares. A text
+  /// column counts as empty when it is NULL or blank.
+  static const _bareTagSql = 'color IS NULL';
+  static const _bareChoreographerSql =
+      "COALESCE(TRIM(website), '') = '' AND COALESCE(TRIM(notes), '') = '' "
+      "AND COALESCE(TRIM(email), '') = '' "
+      "AND COALESCE(TRIM(location), '') = '' AND deceased = 0";
+  static const _bareSourceSql =
+      "COALESCE(TRIM(author), '') = '' AND year IS NULL "
+      "AND COALESCE(TRIM(url), '') = '' AND COALESCE(TRIM(notes), '') = ''";
+
   Future<void> _garbageCollectOrphanedTags(
     Iterable<String> candidateIds,
   ) async {
@@ -2343,7 +2365,8 @@ class DanceRepository {
       await _db.customUpdate(
         'DELETE FROM ${_db.tags.actualTableName} '
         'WHERE id IN ($placeholders) '
-        'AND id NOT IN (SELECT tag_id FROM ${_db.danceTags.actualTableName})',
+        'AND id NOT IN (SELECT tag_id FROM ${_db.danceTags.actualTableName}) '
+        'AND $_bareTagSql',
         variables: [for (final id in chunk) Variable<String>(id)],
         updates: {_db.tags},
         updateKind: UpdateKind.delete,
@@ -2363,7 +2386,8 @@ class DanceRepository {
   /// When [gcOrphanedRefs] is `true` (the default), reusable `choreographers` /
   /// `published_sources` / `tags` rows this delete leaves referenced by ZERO
   /// remaining dances are garbage-collected in the same transaction (#462,
-  /// #1199). Tag GC includes rows retained by soft-deleted dances in its
+  /// #1199) — but only *bare* ones: a row holding a detail survives, unused
+  /// (see [_garbageCollectOrphanedRefs]). Tag GC includes rows retained by soft-deleted dances in its
   /// reference check. The
   /// import-session **undo** path passes `false`: undo is a faithful rollback
   /// to the pre-import state, so it must leave pre-existing reference rows in
