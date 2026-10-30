@@ -286,10 +286,10 @@ A program carries the details of its event:
 - **Pay**, an amount and currency under **More details**, shown on the
   program's summary but never in the shared program text or PDF;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
-  Programs list. Choosing **Performed** marks every unmarked dance in the
-  program performed, except alternates, and that writes calling history.
-  Changing the status back later keeps the marks: clear them one by one if
-  you chose Performed by mistake. **Mark all performed** also sets the status
+  Programs list. Saving a change to **Performed** marks every unmarked dance
+  in the program performed, except alternates, and that writes calling
+  history. Changing the status back later keeps the marks: clear them one by
+  one if you saved Performed by mistake. **Mark all performed** also sets the status
   to Performed, unless you turn that off (see
   [Track what you have called](#track-what-you-have-called));
 - **Hide alternates in set list**, which leaves alternates out of the summary,

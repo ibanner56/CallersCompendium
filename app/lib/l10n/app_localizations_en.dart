@@ -5189,11 +5189,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsStatusHelper =>
-      'Choosing Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.';
+      'Saving a change to Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.';
 
   @override
   String get programsStatusHelperMarkAllSetsStatus =>
-      'Choosing Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.';
+      'Saving a change to Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.';
 
   @override
   String get programsHideAlternatesTitle => 'Hide alternates in set list';

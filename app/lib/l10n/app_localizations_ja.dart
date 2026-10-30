@@ -5000,11 +5000,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsStatusHelper =>
-      '「実施済み」を選ぶと、代替を除く未マークのダンスがすべて実施済みになります。ステータスを戻してもマークは残ります。';
+      '「実施済み」への変更を保存すると、代替を除く未マークのダンスがすべて実施済みになります。ステータスを戻してもマークは残ります。';
 
   @override
   String get programsStatusHelperMarkAllSetsStatus =>
-      '「実施済み」を選ぶと、代替を除く未マークのダンスがすべて実施済みになります。「すべて実施済みにする」でもこのステータスになります。ステータスを戻してもマークは残ります。';
+      '「実施済み」への変更を保存すると、代替を除く未マークのダンスがすべて実施済みになります。「すべて実施済みにする」でもこのステータスになります。ステータスを戻してもマークは残ります。';
 
   @override
   String get programsHideAlternatesTitle => 'セットリストで代替を非表示';

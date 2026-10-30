@@ -5276,11 +5276,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsStatusHelper =>
-      'Wenn Sie Aufgeführt wählen, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.';
+      'Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.';
 
   @override
   String get programsStatusHelperMarkAllSetsStatus =>
-      'Wenn Sie Aufgeführt wählen, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert, und „Alle als aufgeführt markieren“ setzt diesen Status. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.';
+      'Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert, und „Alle als aufgeführt markieren“ setzt diesen Status. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.';
 
   @override
   String get programsHideAlternatesTitle =>

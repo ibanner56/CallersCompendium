@@ -5257,11 +5257,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsStatusHelper =>
-      'Kies je Uitgevoerd, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd. Zet je de status terug, dan blijven de markeringen staan.';
+      'Sla je een wijziging naar Uitgevoerd op, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd. Zet je de status terug, dan blijven de markeringen staan.';
 
   @override
   String get programsStatusHelperMarkAllSetsStatus =>
-      'Kies je Uitgevoerd, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd, en Alles markeren als uitgevoerd zet deze status. Zet je de status terug, dan blijven de markeringen staan.';
+      'Sla je een wijziging naar Uitgevoerd op, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd, en Alles markeren als uitgevoerd zet deze status. Zet je de status terug, dan blijven de markeringen staan.';
 
   @override
   String get programsHideAlternatesTitle =>

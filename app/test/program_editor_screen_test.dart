@@ -2743,8 +2743,8 @@ void main() {
       );
       expect(
         find.text(
-          'Choosing Performed marks every unmarked dance performed, except '
-          'alternates. Changing the status back keeps the marks.',
+          'Saving a change to Performed marks every unmarked dance performed, '
+          'except alternates. Changing the status back keeps the marks.',
         ),
         findsOneWidget,
       );

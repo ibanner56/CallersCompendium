@@ -8066,13 +8066,13 @@ abstract class AppLocalizations {
   /// Helper text under the program status dropdown when Mark all performed does not set the status.
   ///
   /// In en, this message translates to:
-  /// **'Choosing Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.'**
+  /// **'Saving a change to Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.'**
   String get programsStatusHelper;
 
   /// Helper text under the program status dropdown when the Mark all performed sets the status setting is on.
   ///
   /// In en, this message translates to:
-  /// **'Choosing Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.'**
+  /// **'Saving a change to Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.'**
   String get programsStatusHelperMarkAllSetsStatus;
 
   /// Title of the toggle that hides alternate (ALT) slots from the exported set list.

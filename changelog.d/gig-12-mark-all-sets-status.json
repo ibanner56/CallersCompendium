@@ -4,7 +4,7 @@
   "app": {
     "changed": [
       "Mark all performed now also sets the program's status to Performed, so a finished gig no longer stays a Draft on the Programs list. This is on by default: turn off Mark all performed sets the status in Settings › Program › Calling history to keep the status separate. Undo puts the marks and the status back together.",
-      "The status field in the program editor now says what choosing Performed does: it marks every unmarked dance except alternates, and changing the status back keeps the marks."
+      "The status field in the program editor now says what saving a change to Performed does: it marks every unmarked dance except alternates, and changing the status back keeps the marks."
     ]
   },
   "core": {

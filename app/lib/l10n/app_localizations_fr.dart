@@ -5293,11 +5293,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsStatusHelper =>
-      'Choisir Joué marque comme jouée chaque danse non marquée, sauf les alternatives. Revenir à un autre statut conserve les marques.';
+      'Enregistrer le passage à Joué marque comme jouée chaque danse non marquée, sauf les alternatives. Revenir à un autre statut conserve les marques.';
 
   @override
   String get programsStatusHelperMarkAllSetsStatus =>
-      'Choisir Joué marque comme jouée chaque danse non marquée, sauf les alternatives, et Tout marquer comme joué choisit ce statut. Revenir à un autre statut conserve les marques.';
+      'Enregistrer le passage à Joué marque comme jouée chaque danse non marquée, sauf les alternatives, et Tout marquer comme joué choisit ce statut. Revenir à un autre statut conserve les marques.';
 
   @override
   String get programsHideAlternatesTitle =>

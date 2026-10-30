@@ -5288,13 +5288,13 @@
   "@programsStatusFieldLabel": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
   },
-  "programsStatusHelper": "「実施済み」を選ぶと、代替を除く未マークのダンスがすべて実施済みになります。ステータスを戻してもマークは残ります。",
+  "programsStatusHelper": "「実施済み」への変更を保存すると、代替を除く未マークのダンスがすべて実施済みになります。ステータスを戻してもマークは残ります。",
   "@programsStatusHelper": {
-    "x-sourceSha256": "b8d1dfd22305f71ed01d531531501e40bf0a4f470154d5b01d89d11fd82dac72"
+    "x-sourceSha256": "13c213fc0bb92d21e225a5bd47a860397774df1e549a8472cac026618c228027"
   },
-  "programsStatusHelperMarkAllSetsStatus": "「実施済み」を選ぶと、代替を除く未マークのダンスがすべて実施済みになります。「すべて実施済みにする」でもこのステータスになります。ステータスを戻してもマークは残ります。",
+  "programsStatusHelperMarkAllSetsStatus": "「実施済み」への変更を保存すると、代替を除く未マークのダンスがすべて実施済みになります。「すべて実施済みにする」でもこのステータスになります。ステータスを戻してもマークは残ります。",
   "@programsStatusHelperMarkAllSetsStatus": {
-    "x-sourceSha256": "14174717fd7f7b66356a918c7d6c0b5dd8b4220ed4ed5e6e96c0e1cc3161bd75"
+    "x-sourceSha256": "fc80bbf8e47a656eb66ce43ecdea30aa25cc819b5d5b6c4020ed1d6ca2954dac"
   },
   "programsHideAlternatesTitle": "セットリストで代替を非表示",
   "@programsHideAlternatesTitle": {

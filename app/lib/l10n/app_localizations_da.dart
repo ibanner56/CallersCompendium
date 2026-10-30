@@ -5224,11 +5224,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsStatusHelper =>
-      'Vælger du Fremført, markeres alle umarkerede danse som fremført, undtagen alternativer. Ændrer du status tilbage, beholdes markeringerne.';
+      'Når du gemmer en ændring til Fremført, markeres alle umarkerede danse som fremført, undtagen alternativer. Ændrer du status tilbage, beholdes markeringerne.';
 
   @override
   String get programsStatusHelperMarkAllSetsStatus =>
-      'Vælger du Fremført, markeres alle umarkerede danse som fremført, undtagen alternativer, og Markér alle som fremført sætter denne status. Ændrer du status tilbage, beholdes markeringerne.';
+      'Når du gemmer en ændring til Fremført, markeres alle umarkerede danse som fremført, undtagen alternativer, og Markér alle som fremført sætter denne status. Ændrer du status tilbage, beholdes markeringerne.';
 
   @override
   String get programsHideAlternatesTitle => 'Skjul alternativer i sætliste';
