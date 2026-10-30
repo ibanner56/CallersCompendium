@@ -420,6 +420,78 @@ void main() {
     });
   });
 
+  group('retention', () {
+    test('an expired published dance is blanked, not left whole', () async {
+      await createFullDance('d1');
+      await publish(SyncRecordKind.dance, 'd1');
+      await repos.dances.softDelete('d1', at: trashedAt);
+      final before = (await danceRow('d1'))!;
+
+      // Erased nothing, because nothing here may be erased.
+      expect(
+        await repos.dances.purgeDeleted(
+          now: now,
+          retention: const Duration(days: 7),
+        ),
+        0,
+      );
+
+      final row = (await danceRow('d1'))!;
+      expect(row.title, blankedRecordTitle);
+      expect(isPermanentlyDeleted(row.deletedAt), isTrue);
+      expect(await count('dance_authors', 'dance_id', 'd1'), 0);
+      expect(row.updatedAt.toUtc().isAfter(before.updatedAt.toUtc()), isTrue);
+      // Expiry is not a new deletion: a revival a peer made since must still
+      // outrank it.
+      expect(row.existenceAt, before.existenceAt);
+    });
+
+    test('a published dance not yet expired is left alone', () async {
+      await createFullDance('d1');
+      await publish(SyncRecordKind.dance, 'd1');
+      await repos.dances.softDelete(
+        'd1',
+        at: now.subtract(const Duration(days: 5)),
+      );
+
+      await repos.dances.purgeDeleted(
+        now: now,
+        retention: const Duration(days: 7),
+      );
+
+      expect((await danceRow('d1'))!.title, 'Secret Title d1');
+    });
+
+    test('an expired published program is blanked, not left whole', () async {
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Secret Gig',
+          notes: 'Private notes',
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      await publish(SyncRecordKind.program, 'p1');
+      await repos.programs.softDelete('p1', at: trashedAt);
+      final before = (await programRow('p1'))!;
+
+      expect(
+        await repos.programs.purgeDeleted(
+          now: now,
+          retention: const Duration(days: 7),
+        ),
+        0,
+      );
+
+      final row = (await programRow('p1'))!;
+      expect(row.title, blankedRecordTitle);
+      expect(row.notes, isEmpty);
+      expect(isPermanentlyDeleted(row.deletedAt), isTrue);
+      expect(row.existenceAt, before.existenceAt);
+    });
+  });
+
   group('Device Sync', () {
     test('a peer holding the tombstone takes the blank body', () async {
       // Device A blanks; device B holds the same tombstone, content intact,

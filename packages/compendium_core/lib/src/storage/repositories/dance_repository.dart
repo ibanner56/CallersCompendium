@@ -1977,8 +1977,10 @@ class DanceRepository {
   );
 
   /// Hard-deletes unpublished soft-deleted dances whose `deletedAt` is older
-  /// than [retention] (default 30 days). Published dances remain as
-  /// tombstones so peers can still learn about their deletion. Physical
+  /// than [retention] (default 30 days). A published dance cannot be erased,
+  /// so an expired one is blanked instead, as "Permanently delete" blanks it
+  /// ([_markExpiredPublished]); its deletion record stays so peers still learn
+  /// of the deletion. Returns how many dances it erased. Physical
   /// purges cascade to child rows (authors, tags, links, custom values,
   /// provenance, derived figures) via FK; any `program_slots.dance_id`
   /// pointing at a purged dance is set to `NULL` (the slot's `text`, if any,
@@ -2033,6 +2035,12 @@ class DanceRepository {
         kind: SyncRecordKind.dance,
         recordIds: toPurge.map((row) => row.id),
       );
+      await _markExpiredPublished([
+        for (final row in toPurge)
+          if (publishedIds.contains(row.id) &&
+              !isPermanentlyDeleted(row.deletedAt))
+            row.id,
+      ], now: now);
       final erasable = [
         for (final row in toPurge)
           if (!publishedIds.contains(row.id)) row,
@@ -2533,6 +2541,29 @@ class DanceRepository {
         now: now.isAfter(current) ? now : current.add(storedTimestampTick),
         current: [current],
       );
+
+  /// Blanks published dances whose retention has run out, as "Permanently
+  /// delete" would, so the retention setting applies on every device rather
+  /// than leaving shared items in the trash for good (LIFE-2 follow-up).
+  ///
+  /// Unlike [permanentlyDelete] this does **not** restamp `existence_at`.
+  /// Expiry is not a new decision: the user deleted the dance when it went to
+  /// the trash, and that stamp already orders the deletion. Restamping it now
+  /// would let this expiry outrank a revival a peer made since, and delete a
+  /// dance someone restored. Only the content is stamped, by [_blank], so the
+  /// blank body still wins on every peer holding the tombstone.
+  Future<void> _markExpiredPublished(
+    List<String> ids, {
+    required DateTime now,
+  }) async {
+    if (ids.isEmpty) return;
+    for (final chunk in _chunkIds(ids)) {
+      await (_db.update(_db.dances)..where((t) => t.id.isIn(chunk))).write(
+        DancesCompanion(deletedAt: Value(permanentlyDeletedAt)),
+      );
+    }
+    await removePermanentlyDeleted(now: now, onlyIds: ids);
+  }
 
   /// Whether [row] already holds nothing but a deletion record. Dependent rows
   /// are checked too: a peer applying a blank body keeps its own device-local
