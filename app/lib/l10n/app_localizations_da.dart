@@ -6973,12 +6973,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
-    return 'Dit brugerdefinerede felt „$label“ har en anden type eller andre valgmuligheder i denne fil, så filens værdier for det lægges i et nyt felt med nøglen „$key“. Dit felt er uændret.';
+    return 'Dit brugerdefinerede felt „$label“ har en anden type eller andre valgmuligheder i denne fil, så filens værdier for det lægges i stedet i feltet med nøglen „$key“, som tilføjes, hvis du ikke har det endnu. Dit felt er uændret.';
   }
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Et brugerdefineret felt i denne fil har samme nøgle som et andet, men en anden type eller andre valgmuligheder, så dets værdier lægges i et nyt felt.';
+      'Et brugerdefineret felt i denne fil har en nøgle, der allerede bruges af et felt af en anden type eller med andre valgmuligheder, så dets værdier lægges i stedet i et felt med en nummereret nøgle.';
 
   @override
   String get importIssueUsrFileTruncated =>

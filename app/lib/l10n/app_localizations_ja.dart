@@ -6690,12 +6690,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
-    return 'あなたのカスタムフィールド「$label」は、このファイルでは種類または選択肢が異なるため、ファイルの値はキー「$key」の新しいフィールドに入ります。あなたのフィールドは変更されません。';
+    return 'あなたのカスタムフィールド「$label」は、このファイルでは種類または選択肢が異なるため、ファイルの値は代わりにキー「$key」のフィールドに入ります（まだない場合は追加されます）。あなたのフィールドは変更されません。';
   }
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'このファイルのカスタムフィールドに、キーは同じでも種類または選択肢が異なるものがあるため、その値は新しいフィールドに入ります。';
+      'このファイルのカスタムフィールドのキーが、種類または選択肢の異なる別のフィールドですでに使われているため、その値は代わりに番号付きのキーのフィールドに入ります。';
 
   @override
   String get importIssueUsrFileTruncated =>

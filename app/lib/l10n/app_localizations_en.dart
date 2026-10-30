@@ -6942,12 +6942,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
-    return 'Your custom field \"$label\" has a different type or other choices in this file, so the file\'s values for it go into a new field with the key \"$key\". Your field is unchanged.';
+    return 'Your custom field \"$label\" has a different type or other choices in this file, so the file\'s values for it go into the field with the key \"$key\" instead, which is added if you don\'t have it yet. Your field is unchanged.';
   }
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'A custom field in this file has the same key as another but a different type or other choices, so its values go into a new field.';
+      'A custom field in this file has a key that is already taken by a field of another type or with other choices, so its values go into a field with a numbered key instead.';
 
   @override
   String get importIssueUsrFileTruncated =>

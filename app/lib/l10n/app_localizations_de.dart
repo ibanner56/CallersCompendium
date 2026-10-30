@@ -7048,12 +7048,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
-    return 'Ihr benutzerdefiniertes Feld „$label“ hat in dieser Datei einen anderen Typ oder andere Auswahlwerte, daher kommen die Werte der Datei dafür in ein neues Feld mit dem Schlüssel „$key“. Ihr Feld bleibt unverändert.';
+    return 'Ihr benutzerdefiniertes Feld „$label“ hat in dieser Datei einen anderen Typ oder andere Auswahlwerte, daher kommen die Werte der Datei dafür stattdessen in das Feld mit dem Schlüssel „$key“, das angelegt wird, falls Sie es noch nicht haben. Ihr Feld bleibt unverändert.';
   }
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Ein benutzerdefiniertes Feld in dieser Datei hat denselben Schlüssel wie ein anderes, aber einen anderen Typ oder andere Auswahlwerte, daher kommen seine Werte in ein neues Feld.';
+      'Ein benutzerdefiniertes Feld in dieser Datei hat einen Schlüssel, der bereits von einem Feld eines anderen Typs oder mit anderen Auswahlwerten belegt ist, daher kommen seine Werte stattdessen in ein Feld mit einem nummerierten Schlüssel.';
 
   @override
   String get importIssueUsrFileTruncated =>

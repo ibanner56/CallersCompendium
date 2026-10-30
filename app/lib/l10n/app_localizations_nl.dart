@@ -7021,12 +7021,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
-    return 'Je aangepaste veld “$label” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in een nieuw veld met de sleutel “$key”. Je eigen veld blijft ongewijzigd.';
+    return 'Je aangepaste veld “$label” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in plaats daarvan in het veld met de sleutel “$key”, dat wordt toegevoegd als je het nog niet hebt. Je eigen veld blijft ongewijzigd.';
   }
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Een aangepast veld in dit bestand heeft dezelfde sleutel als een ander, maar een ander type of andere keuzes, dus de waarden ervan komen in een nieuw veld.';
+      'Een aangepast veld in dit bestand heeft een sleutel die al in gebruik is door een veld van een ander type of met andere keuzes, dus de waarden ervan komen in plaats daarvan in een veld met een genummerde sleutel.';
 
   @override
   String get importIssueUsrFileTruncated =>

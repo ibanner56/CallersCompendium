@@ -7065,12 +7065,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
-    return 'Votre champ personnalisé « $label » a un autre type ou d’autres choix dans ce fichier : ses valeurs venant du fichier vont donc dans un nouveau champ avec la clé « $key ». Votre champ n’est pas modifié.';
+    return 'Votre champ personnalisé « $label » a un autre type ou d’autres choix dans ce fichier : ses valeurs venant du fichier vont donc dans le champ avec la clé « $key », qui est ajouté si vous ne l’avez pas encore. Votre champ n’est pas modifié.';
   }
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Un champ personnalisé de ce fichier a la même clé qu’un autre, mais un autre type ou d’autres choix : ses valeurs vont donc dans un nouveau champ.';
+      'Un champ personnalisé de ce fichier a une clé déjà prise par un champ d’un autre type ou avec d’autres choix : ses valeurs vont donc dans un champ avec une clé numérotée.';
 
   @override
   String get importIssueUsrFileTruncated =>

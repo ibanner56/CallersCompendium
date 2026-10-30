@@ -50,8 +50,9 @@ class ShareMetadataImportResult {
 /// order, and Show in list / Searchable / Include in sharing settings are their
 /// own and never block a match (maintainer decision, 2026-10-29, INTAKE-2). A
 /// field that is not compatible is never merged into theirs, which would change
-/// what their values mean: it goes in under `<key>_2`, `<key>_3`, … as the
-/// `.USR` import does, with an `archive_custom_field_key_conflict` note
+/// what their values mean: it goes to `<key>_2`, `<key>_3`, … (the first free
+/// key, or a compatible row already there) as the `.USR` import does, with an
+/// `archive_custom_field_key_conflict` note
 /// (maintainer decision, 2026-10-29 round 2). [preview] raises the same notes
 /// before anything is written, so the review can show them.
 class ShareMetadataImporter {

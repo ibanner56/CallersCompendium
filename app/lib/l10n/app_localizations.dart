@@ -10481,16 +10481,16 @@ abstract class AppLocalizations {
   /// **'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
   String get importIssueArchiveNewerSchema;
 
-  /// Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so it is imported as a new field under the key shown (the user's key plus _2, _3, …) and the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.
+  /// Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so its values go into the field under the key shown (the user's key plus _2, _3, …), which is created unless an earlier import made it; the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Your custom field \"{label}\" has a different type or other choices in this file, so the file\'s values for it go into a new field with the key \"{key}\". Your field is unchanged.'**
+  /// **'Your custom field \"{label}\" has a different type or other choices in this file, so the file\'s values for it go into the field with the key \"{key}\" instead, which is added if you don\'t have it yet. Your field is unchanged.'**
   String importIssueArchiveCustomFieldKeyConflict(String label, String key);
 
-  /// Import review warning for a shared file (INTAKE-2), used when the clash is between two fields of the same file rather than with one of the user's own, so neither can be named (the file's text is never shown). The field is imported as a new field under a numbered key.
+  /// Import review warning for a shared file (INTAKE-2), used when the key is held by another field of the same file or by a field the user deleted, so no field is named (the file's text is never shown). The values go into a field under a numbered key.
   ///
   /// In en, this message translates to:
-  /// **'A custom field in this file has the same key as another but a different type or other choices, so its values go into a new field.'**
+  /// **'A custom field in this file has a key that is already taken by a field of another type or with other choices, so its values go into a field with a numbered key instead.'**
   String get importIssueArchiveCustomFieldKeyConflictGeneric;
 
   /// Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file.

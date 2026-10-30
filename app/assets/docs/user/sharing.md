@@ -90,9 +90,11 @@ with the same key as one of theirs is the same field when it has the same type
 (and, for a choice field, the same choices): its values go into their field,
 which keeps their name, choice order, **Show in list**, **Searchable** and
 **Include in sharing** settings. If the type or the choices differ, the values
-go into a new field with their key plus `_2` (or `_3`, and so on, if that is
-taken too), so their own field never changes meaning. Import review says so
-before anything is added. A link to a video or web page
+go into the field with their key plus `_2` instead, so their own field never
+changes meaning. That field is added the first time; when the same file comes
+again, its values go into the same `_2` field. If `_2` is taken by a field that
+differs too, the next number is used. Import review says so before anything is
+added. A link to a video or web page
 comes along as it is. A link to a related dance comes along when that dance is
 imported from the same file. It also comes along when the recipient already has
 the related dance from an earlier file, as long as that dance is in this file
