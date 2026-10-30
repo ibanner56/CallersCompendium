@@ -495,9 +495,11 @@ void _recordRounded(String fraction, {String? whole, bool bridged = false}) {
 }
 
 /// Lowercases, applies the front-end's optional recognition-only normalization
-/// (e.g. the CallersBox `()`/`[]` annotation strip), maps `&`→`and` and
-/// `thru`→`through`, folds the common unicode halves/quarters, strips
-/// surrounding punctuation, and splits into words.
+/// (e.g. the CallersBox `()`/`[]` annotation strip), reads `R&L` as right and
+/// left (through), maps `&`→`and`, `thru`→`through` and `alle`→`allemande`,
+/// folds the common unicode halves/quarters, strips surrounding punctuation,
+/// splits into words, spells a bare side after a move ([_spellBareSides]) and
+/// folds dancer numbers ([_foldDancerNumbers]).
 ///
 /// [recognitionNormalize] affects RECOGNITION only: a structured match does NOT
 /// retain whatever it removed, but the *custom fallback* runs on the
@@ -510,6 +512,10 @@ List<String> _normalize(
   var s = text.toLowerCase();
   if (recognitionNormalize != null) s = recognitionNormalize(s);
   s = s
+      // Caller's Companion's `R&L` is right and left through (maintainer
+      // decision, #1975).
+      .replaceAll(_rAndLThrough, ' right and left through ')
+      .replaceAll(_rAndL, ' right and left ')
       .replaceAll('&', ' and ')
       .replaceAll('½', ' 1/2 ')
       .replaceAll('¼', ' 1/4 ')
@@ -519,10 +525,48 @@ List<String> _normalize(
       .map(_stripEdgePunct)
       .where((w) => w.isNotEmpty)
       .map((w) => w == 'thru' ? 'through' : w)
+      .map((w) => w == 'alle' ? 'allemande' : w)
       .toList();
+  _spellBareSides(words);
   _foldDancerNumbers(words);
   return words;
 }
+
+final RegExp _rAndL = RegExp(r'\br\s*&\s*l\b');
+final RegExp _rAndLThrough = RegExp(r'\br\s*&\s*l\b(?!\s*(?:through|thru)\b)');
+
+/// Spells a bare `l`/`r` as `left`/`right` straight after a move that takes a
+/// direction, hand or shoulder (maintainer decision, #1975): `Circle L`,
+/// `pull by R`, `pass L`, `Slide L`, `Slice L`, `alle R`. The set of moves is
+/// the author's reading of the maintainer's list: the shared reader has no
+/// `loop`, `cross` or `step` move, and ContraDB's zig-zag reads its own
+/// sides (`_zigZagSide`), so those words are not listed. Anywhere else a lone
+/// letter stays as written, so a position note such as `(Rob R, Lar L)` is not
+/// read as directions.
+void _spellBareSides(List<String> w) {
+  for (var i = 1; i < w.length; i++) {
+    final side = switch (w[i]) {
+      'l' => 'left',
+      'r' => 'right',
+      _ => null,
+    };
+    if (side == null) continue;
+    final before = w[i - 1];
+    final afterMove =
+        _sideTakingMoves.contains(before) ||
+        (before == 'by' && i >= 2 && w[i - 2] == 'pull');
+    if (afterMove) w[i] = side;
+  }
+}
+
+/// The move words a bare side directly after reads as a side (#1975).
+const Set<String> _sideTakingMoves = {
+  'circle',
+  'pass',
+  'slide',
+  'slice',
+  'allemande',
+};
 
 /// The neighbour words a following `0`–`4` folds onto, as `Neighbor 2` is the
 /// same dancer as the `N2` tag (#1971).
