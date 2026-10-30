@@ -745,7 +745,11 @@ class _EntrySubtitle extends StatelessWidget {
       context,
     ).libraryManagerDanceCount(entry.liveDanceCount);
     final detail = entry.detail;
-    return Text(detail == null ? count : '$detail\n$count');
+    if (detail == null) return Text(count);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [Text(detail), Text(count)],
+    );
   }
 }
 
