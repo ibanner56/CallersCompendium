@@ -4598,6 +4598,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsAddAgain => 'もう一度追加';
 
   @override
+  String get programsAddToProgramSearchHint => 'プログラムを検索';
+
+  @override
+  String get programsAddToProgramSearchClear => '検索をクリア';
+
+  @override
+  String get programsAddToProgramNoMatches => '検索に一致するプログラムはありません。';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return '実施済み（$count）';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return '「$danceTitle」を$programTitleに追加しました。';
   }

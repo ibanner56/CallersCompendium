@@ -528,6 +528,11 @@ calling it: if Hull's Victory is the alternate to Chorus Jig and you call Chorus
 Jig, only Chorus Jig's count goes up. Mark Hull's Victory performed too if you
 called it instead, or as well.
 
+Adding a dance to a program that is already **Performed** does not mark the
+new slot performed, because only the change to Performed stamps the slots. By
+default it still counts as a call; with **Require "mark performed" for calling
+history** on, it counts once you mark that slot.
+
 To mark one slot, tap the circle at the end of its row on a saved program's
 summary (alternates included; tap it again to clear the mark), choose **Mark
 performed** from its **…** menu in the editor, or mark it from

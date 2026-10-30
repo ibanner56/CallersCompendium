@@ -64,7 +64,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   with checked/mixed state and a tap action (N4-S2). Each row's ⋮ menu also
   offers Duplicate, Add to program, Add tags (one dance, same picker and Undo
   as batch tag) and Delete (#1416). Add to program opens a sheet whose pinned
-  first row creates a new program with the dance; a program already holding the
+  first row creates a new program with the dance. Its list shows open programs
+  first (soonest event, then last edit), a status on each row, Performed ones
+  collapsed under "Performed (N)", and a search over title and venue above eight
+  programs (N3-A2). A program already holding the
   dance, as a main slot or an alternate, is marked "In this program" and asks
   before adding it again (N3-A1; `docs/design/add-to-program-sheet.md`).
 

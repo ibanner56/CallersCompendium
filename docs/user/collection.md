@@ -388,7 +388,13 @@ From the detail view you can:
 - **Add to program** — drop it into a [program](./programs.md) you are building.
   An **Undo** option takes the dance back out again, and keeps any other change
   made to the program since. **Create a new program with this dance** is always
-  the first row, however many programs you have. A program that already holds
+  the first row, however many programs you have. Programs you can still plan
+  come first, the soonest event at the top and then the rest by last edit, each
+  showing its status. Programs already marked **Performed** are gathered under a
+  **Performed (N)** row; tap it to open them. It opens by itself when nothing
+  else is left, or when a search matches only Performed programs. Once you have
+  more than eight programs, a search field appears above the list; it finds a
+  program by title or venue, ignoring case and accents. A program that already holds
   the dance, even only as an alternate, shows **In this program** (with ×N when
   it appears more than once); tapping it asks whether to add the dance again,
   and **Cancel** leaves the sheet open so you can pick another program.

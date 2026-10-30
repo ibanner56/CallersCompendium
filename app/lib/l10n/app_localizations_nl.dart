@@ -4841,6 +4841,21 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsAddAgain => 'Opnieuw toevoegen';
 
   @override
+  String get programsAddToProgramSearchHint => 'Programma\'s zoeken';
+
+  @override
+  String get programsAddToProgramSearchClear => 'Zoekopdracht wissen';
+
+  @override
+  String get programsAddToProgramNoMatches =>
+      'Geen programma\'s komen overeen met je zoekopdracht.';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return 'Uitgevoerd ($count)';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return '“$danceTitle” toegevoegd aan $programTitle.';
   }

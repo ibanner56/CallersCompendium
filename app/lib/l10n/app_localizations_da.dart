@@ -4811,6 +4811,21 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsAddAgain => 'Tilføj igen';
 
   @override
+  String get programsAddToProgramSearchHint => 'Søg i programmer';
+
+  @override
+  String get programsAddToProgramSearchClear => 'Ryd søgning';
+
+  @override
+  String get programsAddToProgramNoMatches =>
+      'Ingen programmer matcher din søgning.';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return 'Gennemført ($count)';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return 'Tilføjede „$danceTitle“ til $programTitle.';
   }

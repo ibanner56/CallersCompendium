@@ -7399,6 +7399,30 @@ abstract class AppLocalizations {
   /// **'Add again'**
   String get programsAddAgain;
 
+  /// Hint of the search field in the add-to-program sheet, shown when there are many programs. Matches a program's title or venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Search programs'**
+  String get programsAddToProgramSearchHint;
+
+  /// Tooltip of the button that empties the add-to-program sheet's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get programsAddToProgramSearchClear;
+
+  /// Shown in the add-to-program sheet when a search matches no program.
+  ///
+  /// In en, this message translates to:
+  /// **'No programs match your search.'**
+  String get programsAddToProgramNoMatches;
+
+  /// Row in the add-to-program sheet that expands the programs already marked Performed, which are collapsed beneath the open ones. The count is the number of Performed programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Performed ({count})'**
+  String programsAddToProgramPerformedGroup(int count);
+
   /// Confirmation snackbar after appending a dance to an existing program.
   ///
   /// In en, this message translates to:
