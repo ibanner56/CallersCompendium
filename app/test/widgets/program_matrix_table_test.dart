@@ -944,22 +944,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Both dances open with the partner swing at the identical beat span
-      // (A1), so it also collides under the default exact-beat mode (#962;
-      // formerly phrase mode, #582).
+      // The dances are in different sections, so a break separates them and
+      // the identical partner swing is not flagged as shared (GIG-8).
       expect(
         find.bySemanticsLabel(
           "A (section 8th), formation: Improper, partner swing: "
-          "present, shares beats with an adjacent dance, "
-          "introduced here, dance's first figure",
+          "present, introduced here, dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
           "B (section 9th), formation: Improper, partner swing: "
-          "present, shares beats with an adjacent dance, "
-          "dance's first figure",
+          "present, dance's first figure",
         ),
         findsOneWidget,
       );
