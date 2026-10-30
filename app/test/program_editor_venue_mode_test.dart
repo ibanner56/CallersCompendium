@@ -389,6 +389,37 @@ void main() {
       });
     }
 
+    testWidgets('an unlink made while the editor is open survives a save', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await repos.programs.create(
+        _program(venue: 'Grange Hall', venueId: 'v1'),
+      );
+      await _pumpEditor(tester, repos, enriched: true, programId: 'p1');
+
+      // Another device unlinks it; sync applies the row here.
+      final stored = (await repos.programs.getById('p1'))!;
+      await repos.programs.updateAndReadBack(
+        stored.copyWith(
+          clearVenueId: true,
+          updatedAt: DateTime.utc(2026, 10, 30),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed night',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.title, 'Renamed night');
+      expect(saved.venueId, isNull, reason: 'the unlink was not undone');
+    });
+
     testWidgets('clearing the venue in the editor still unlinks it', (
       tester,
     ) async {

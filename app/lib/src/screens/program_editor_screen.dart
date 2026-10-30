@@ -3008,7 +3008,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         existing.id,
         includeDeleted: true,
       );
-      venueId = stored?.venueId ?? venueId;
+      // A null stored link is a real value (an unlink); only a missing row
+      // leaves the draft's.
+      if (stored != null) venueId = stored.venueId;
     }
     final persisted = Program(
       id: existing?.id ?? uuidV4(),
