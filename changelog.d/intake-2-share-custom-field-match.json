@@ -1,0 +1,16 @@
+{
+  "id": "intake-2-share-custom-field-match",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A shared file now imports when it has a custom field with the same key as one of yours but another name or other display settings, such as Caller's Companion's \"Card\" and \"card\". Your field is used as it is, with your name, choice order, Show in list, Searchable and Include in sharing settings. Before, the whole import failed with \"Couldn't complete the import.\"",
+      "When a shared file's custom field has the same key as yours but another type or other choices, its values now go into a new field with your key plus \"_2\" (\"_3\" if that is taken too), and import review says so before you import. Your own field is not changed. Before, the whole import failed."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`ShareMetadataImporter` matches a custom field on its canonical key, type and, for a choice field, the set of choices. A field that differs is planned under `<receiver key>_2`, `_3`, … and noted as an `archive_custom_field_key_conflict` `ImportIssue` on the new `ShareMetadataImportResult.issues`, instead of throwing a `StateError`. Its `data` carries the receiver's own `label` and the new `key`, or nothing when the clash is between two fields of the same file.",
+      "`ShareMetadataImporter.preview` and `CompendiumArchiveImporter.planMetadataIssues` return those notes at plan time without writing."
+    ]
+  }
+}

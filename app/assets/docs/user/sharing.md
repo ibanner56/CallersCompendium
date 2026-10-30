@@ -85,9 +85,14 @@ instead; choosing **Share** in the JSON dialog does the same.
 
 Opening either file in Caller's Compendium goes through import review before
 anything is added. Tags, sources, and custom fields the recipient already has are
-reused, and their own edits are never overwritten. If the file has a custom field
-with the same key as one of theirs but set up differently, the import is refused
-rather than changing what their field means. A link to a video or web page
+reused, and their own edits are never overwritten. A custom field in the file
+with the same key as one of theirs is the same field when it has the same type
+(and, for a choice field, the same choices): its values go into their field,
+which keeps their name, choice order, **Show in list**, **Searchable** and
+**Include in sharing** settings. If the type or the choices differ, the values
+go into a new field with their key plus `_2` (or `_3`, and so on, if that is
+taken too), so their own field never changes meaning. Import review says so
+before anything is added. A link to a video or web page
 comes along as it is. A link to a related dance comes along when that dance is
 imported from the same file. It also comes along when the recipient already has
 the related dance from an earlier file, as long as that dance is in this file
