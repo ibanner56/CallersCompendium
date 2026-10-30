@@ -19,6 +19,10 @@ ShareMetadataImporter _importer(CompendiumDatabase db) => ShareMetadataImporter(
 CompendiumArchive _archive(List<CustomFieldDef> fields) =>
     CompendiumArchive(exportedAt: _now, customFields: fields);
 
+/// Stores [def] as the receiver's own field, under its own id.
+Future<void> _seed(CustomFieldDefRepository fields, CustomFieldDef def) async =>
+    expect(await fields.upsert(def), def.id);
+
 String Function() _ids(String prefix) {
   var next = 0;
   return () => '$prefix-${++next}';
@@ -40,7 +44,7 @@ void main() {
       searchable: false,
       shareable: false,
     );
-    await fields.upsert(local);
+    await _seed(fields, local);
 
     final result = await _importer(db).commit(
       _archive([
@@ -73,7 +77,8 @@ void main() {
     final db = openTestDatabase();
     addTearDown(db.close);
     final fields = CustomFieldDefRepository(db);
-    await fields.upsert(
+    await _seed(
+      fields,
       CustomFieldDef(
         id: 'local-card',
         key: 'card',
@@ -112,7 +117,8 @@ void main() {
       final db = openTestDatabase();
       addTearDown(db.close);
       final fields = CustomFieldDefRepository(db);
-      await fields.upsert(
+      await _seed(
+        fields,
         CustomFieldDef(
           id: 'local-tempo',
           key: 'tempo',
@@ -154,7 +160,8 @@ void main() {
     final db = openTestDatabase();
     addTearDown(db.close);
     final fields = CustomFieldDefRepository(db);
-    await fields.upsert(
+    await _seed(
+      fields,
       CustomFieldDef(
         id: 'local-tempo',
         key: 'tempo',
@@ -162,7 +169,8 @@ void main() {
         type: CustomFieldType.text,
       ),
     );
-    await fields.upsert(
+    await _seed(
+      fields,
       CustomFieldDef(
         id: 'local-tempo-2',
         key: 'tempo_2',
@@ -228,7 +236,8 @@ void main() {
     addTearDown(db.close);
     final dances = DanceRepository(db, contraTaxonomy);
     final fields = CustomFieldDefRepository(db);
-    await fields.upsert(
+    await _seed(
+      fields,
       CustomFieldDef(
         id: 'local-tempo',
         key: 'tempo',
@@ -298,7 +307,8 @@ void main() {
     final db = openTestDatabase();
     addTearDown(db.close);
     final fields = CustomFieldDefRepository(db);
-    await fields.upsert(
+    await _seed(
+      fields,
       CustomFieldDef(
         id: 'local-tempo',
         key: 'tempo',
@@ -327,7 +337,8 @@ void main() {
       final db = openTestDatabase();
       addTearDown(db.close);
       final fields = CustomFieldDefRepository(db);
-      await fields.upsert(
+      await _seed(
+        fields,
         CustomFieldDef(
           id: 'old-tempo',
           key: 'tempo',
@@ -368,7 +379,8 @@ void main() {
       final db = openTestDatabase();
       addTearDown(db.close);
       final fields = CustomFieldDefRepository(db);
-      await fields.upsert(
+      await _seed(
+        fields,
         CustomFieldDef(
           id: 'local-mood',
           key: 'mood',
@@ -402,7 +414,8 @@ void main() {
     final db = openTestDatabase();
     addTearDown(db.close);
     final fields = CustomFieldDefRepository(db);
-    await fields.upsert(
+    await _seed(
+      fields,
       CustomFieldDef(
         id: 'local-tempo',
         key: 'tempo',
@@ -442,7 +455,8 @@ void main() {
     addTearDown(db.close);
     final dances = DanceRepository(db, contraTaxonomy);
     final fields = CustomFieldDefRepository(db);
-    await fields.upsert(
+    await _seed(
+      fields,
       CustomFieldDef(
         id: 'local-tempo',
         key: 'tempo',

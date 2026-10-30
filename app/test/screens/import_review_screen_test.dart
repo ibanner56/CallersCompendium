@@ -3833,22 +3833,28 @@ void main() {
         'review, then imported under <key>_2', (tester) async {
       final l10n = lookupAppLocalizations(const Locale('en'));
       final repos = openTestRepositories();
-      await repos.customFieldDefs.upsert(
-        CustomFieldDef(
-          id: 'local-tempo',
-          key: 'tempo',
-          label: 'My tempo',
-          type: CustomFieldType.text,
+      expect(
+        await repos.customFieldDefs.upsert(
+          CustomFieldDef(
+            id: 'local-tempo',
+            key: 'tempo',
+            label: 'My tempo',
+            type: CustomFieldType.text,
+          ),
         ),
+        'local-tempo',
       );
-      await repos.customFieldDefs.upsert(
-        CustomFieldDef(
-          id: 'local-card',
-          key: 'card',
-          label: 'Card',
-          type: CustomFieldType.choice,
-          choices: const ['A'],
+      expect(
+        await repos.customFieldDefs.upsert(
+          CustomFieldDef(
+            id: 'local-card',
+            key: 'card',
+            label: 'Card',
+            type: CustomFieldType.choice,
+            choices: const ['A'],
+          ),
         ),
+        'local-card',
       );
       final archive = CompendiumArchive(
         exportedAt: DateTime.utc(2026, 7, 15),
