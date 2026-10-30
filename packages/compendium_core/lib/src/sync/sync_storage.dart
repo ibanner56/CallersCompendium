@@ -40,6 +40,7 @@ import 'sync_quarantine.dart'
 import 'sync_record_kind.dart';
 import 'sync_reconciliation.dart';
 import 'sync_report.dart';
+import 'sync_withdrawn_settings.dart';
 import 'sync_retained_fields.dart';
 import 'sync_review.dart';
 
@@ -1843,6 +1844,11 @@ final class CompendiumSyncStorage
   /// a peer that could not be read this pass is not evidence the conflict
   /// ended. An unchanged row keeps its `queued_at`. Returns how many choice
   /// rows this call added; copy rows are not counted.
+  ///
+  /// A row for a setting this build withdrew from sync
+  /// ([syncWithdrawnSettingKeys]) is dropped even when its address is in
+  /// [unevaluated], and none is queued: an older build queued it, and this one
+  /// can neither resolve it nor offer it (sync-spec §6.7, amended 2026-10-30).
   Future<int> refreshConflictReviews(
     Iterable<SyncMergeDecision> reviews, {
     Set<SyncRecordAddress> unevaluated = const {},
@@ -1855,6 +1861,12 @@ final class CompendiumSyncStorage
     for (final decision in reviews) {
       final conflict = decision.conflict;
       if (conflict == null) continue;
+      if (isWithdrawnSyncSetting(
+        decision.address.kind,
+        decision.address.recordId,
+      )) {
+        continue;
+      }
       for (final hash in conflict.copies) {
         expected[(decision.address.kind, decision.address.recordId, hash)] = (
           reason: syncConflictChoiceCopyReason,
@@ -1882,7 +1894,10 @@ final class CompendiumSyncStorage
     };
     for (final entry in existing.entries) {
       final (kind, recordId, _) = entry.key;
-      if (unevaluated.contains((kind: kind, recordId: recordId))) continue;
+      if (!isWithdrawnSyncSetting(kind, recordId) &&
+          unevaluated.contains((kind: kind, recordId: recordId))) {
+        continue;
+      }
       final want = expected[entry.key];
       if (want != null &&
           want.reason == entry.value.reason &&
@@ -2187,9 +2202,8 @@ final class CompendiumSyncStorage
       expected[plan.address] = current?.wireHash;
       stamps[plan.address] = stamp;
     }
-    final result = await SyncApplyEngine(
-      now: () => clockNow,
-    ).apply(candidates: writes, storage: this, expectedWireHashes: expected);
+    final result = await SyncApplyEngine(now: () => clockNow)
+        .apply(candidates: writes, storage: this, expectedWireHashes: expected);
     if (result.applied.toSet().length != writes.length) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
@@ -5557,9 +5571,8 @@ final class CompendiumSyncStorage
     if (pending == null) return;
     final DateTime tombstonedExistence;
     try {
-      tombstonedExistence = decodeSyncRecordBlob(
-        pending.tombstoneBlob,
-      ).existenceAt;
+      tombstonedExistence = decodeSyncRecordBlob(pending.tombstoneBlob)
+          .existenceAt;
     } on Object {
       // A tombstone blob that will not decode cannot be compared against, and
       // `_revalidatePendingDeletions` owns that failure. Leave it alone.
@@ -6460,24 +6473,20 @@ final class CompendiumSyncStorage
       try {
         switch (entry.key.kind) {
           case SyncRecordKind.dance:
-            final dance =
-                _decodeEntity(
-                      SyncRecordKind.dance,
-                      _normalizeInboundRecord(entry.value).body,
-                    )
-                    as Dance;
+            final dance = _decodeEntity(
+              SyncRecordKind.dance,
+              _normalizeInboundRecord(entry.value).body,
+            ) as Dance;
             for (final link in dance.links) {
               index.danceLinkOwners
                   .putIfAbsent(link.id, () => <SyncRecordAddress>[])
                   .add(entry.key);
             }
           case SyncRecordKind.program:
-            final program =
-                _decodeEntity(
-                      SyncRecordKind.program,
-                      _normalizeInboundRecord(entry.value).body,
-                    )
-                    as Program;
+            final program = _decodeEntity(
+              SyncRecordKind.program,
+              _normalizeInboundRecord(entry.value).body,
+            ) as Program;
             for (final slot in program.slots) {
               index.programSlotOwners
                   .putIfAbsent(slot.id, () => <SyncRecordAddress>[])
@@ -6528,9 +6537,10 @@ final class CompendiumSyncStorage
       final inbound = inboundRecords[address];
       if (inbound != null) {
         try {
-          final definition =
-              _decodeEntity(SyncRecordKind.customFieldDef, inbound.body)
-                  as CustomFieldDef;
+          final definition = _decodeEntity(
+            SyncRecordKind.customFieldDef,
+            inbound.body,
+          ) as CustomFieldDef;
           if (!definition.shareable) {
             return 'Inbound dance contains a value for non-shareable custom '
                 'field "${value.fieldId}".';
@@ -6575,9 +6585,10 @@ final class CompendiumSyncStorage
         final inbound = inboundRecords[address];
         if (inbound == null) continue;
         try {
-          definition =
-              _decodeEntity(SyncRecordKind.customFieldDef, inbound.body)
-                  as CustomFieldDef;
+          definition = _decodeEntity(
+            SyncRecordKind.customFieldDef,
+            inbound.body,
+          ) as CustomFieldDef;
         } on Object catch (error) {
           return 'Dance "${dance.id}" references malformed custom field '
               '"${value.fieldId}": $error';
