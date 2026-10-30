@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/collection_filter_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/widgets/figure_table.dart';
@@ -254,6 +255,22 @@ void main() {
       final copied = await _copyAll(tester, find.text('a hook'));
       expect(copied, contains('a hook'));
       expect(copied, isNot(contains('zesty-tag')));
+    });
+
+    detailTest('the canonical switch label stays out of a copy', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kCanonicalFigureTextKey, true);
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Source Dance', hook: 'a hook'),
+      );
+      await _pumpDetail(tester, repos, 'd1');
+      // The switch is shown: canonical text is on and the dialect is not canonical.
+      expect(find.text('Canonical'), findsOneWidget);
+      final copied = await _copyAll(tester, find.text('a hook'));
+      expect(copied, contains('a hook'));
+      expect(copied, isNot(contains('Canonical')));
     });
 
     detailTest('a link in the notes copies once and a click opens it', (

@@ -1229,13 +1229,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               ),
             ),
             const Spacer(),
+            // A control, not copy text: its label stays out of a copy.
             if (_canonicalFigureTextEnabled && !isCanonicalDialect)
-              _DialectToggle(
-                canonical: _canonicalView,
-                onChanged: (value) => setState(() {
-                  _canonicalUserSet = true;
-                  _canonicalView = value;
-                }),
+              SelectionContainer.disabled(
+                child: _DialectToggle(
+                  canonical: _canonicalView,
+                  onChanged: (value) => setState(() {
+                    _canonicalUserSet = true;
+                    _canonicalView = value;
+                  }),
+                ),
               ),
           ],
         ),
