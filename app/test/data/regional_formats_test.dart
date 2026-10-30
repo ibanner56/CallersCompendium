@@ -247,6 +247,15 @@ void main() {
       expect(sys(const Locale('en', 'MX')), '15/7/2026');
     });
 
+    test('a country with several shipped variants still follows the country '
+        '(de_US, fr_US, de_CA)', () {
+      // The US has en_US and es_US, Canada en_CA and fr_CA, so the
+      // single-variant rule skips them and the table decides.
+      expect(sys(const Locale('de', 'US')), '7/15/2026');
+      expect(sys(const Locale('fr', 'US')), '7/15/2026');
+      expect(sys(const Locale('de', 'CA')), '2026-07-15');
+    });
+
     test('a multilingual or unlisted country keeps the language default', () {
       // BE is deliberately not in kRegionDateLocales (nl, fr and de all apply);
       // a country-code-equals-language-code rule would wrongly pick Belarusian.
@@ -473,15 +482,18 @@ void main() {
       }
     });
 
-    test('no key already has its own shipped regional variant', () {
-      // Such a country is resolved by resolveDateLocale before the table, so an
-      // entry would be dead and would hide a later change to the shipped list.
+    test('no key is dead: a country with exactly one shipped variant is '
+        'resolved before the table', () {
+      // resolveDateLocale takes the single shipped `<language>_<CC>` set first,
+      // so an entry for such a country never runs and would hide a later
+      // change to the shipped list. Countries with several (US, CA) are live.
       final shipped = DateFormat.allLocalesWithSymbols();
       for (final key in kRegionDateLocales.keys) {
         expect(
-          shipped.where((l) => l.toUpperCase().endsWith('_$key')),
-          isEmpty,
-          reason: '$key now has a shipped variant; drop it from the table',
+          shipped.where((l) => l.toUpperCase().endsWith('_$key')).length,
+          isNot(1),
+          reason:
+              '$key has exactly one shipped variant; drop it from the table',
         );
       }
     });

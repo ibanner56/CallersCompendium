@@ -190,10 +190,11 @@ MonthNames monthNamesFromL10n(AppLocalizations l10n) => MonthNames(
 /// `intl` carries no region data, so this cannot be derived from its locale
 /// list (a "country code equals language code" rule picks Belarusian for
 /// Belgium). It is a small table, limited to countries with one dominant date
-/// convention; multilingual ones (BE, LU, CA, CH) and those with their own
-/// shipped variant (GB, AU, MX, …) are left to [resolveDateLocale]'s other
-/// rules. A drift test checks every value is a locale `intl` ships and no key
-/// is already covered by a shipped `_<CC>` variant.
+/// convention; multilingual ones with differing orders (BE, LU) and those with
+/// exactly one shipped variant of their own (GB, AU, MX, CH, …) are left to
+/// [resolveDateLocale]'s other rules. A drift test checks every value is a
+/// locale `intl` ships and no key is dead, i.e. covered by a single shipped
+/// `_<CC>` variant.
 const Map<String, String> kRegionDateLocales = {
   'DK': 'da',
   'SE': 'sv',
@@ -234,6 +235,11 @@ const Map<String, String> kRegionDateLocales = {
   'ID': 'id',
   'TH': 'th',
   'VN': 'vi',
+  // Countries with several shipped variants, which the single-variant rule
+  // skips: the US (`en_US`, `es_US`) and Canada (`en_CA`, `fr_CA`, which share
+  // one numeric order).
+  'US': 'en_US',
+  'CA': 'en_CA',
 };
 
 /// The `intl` date-symbol locale whose numeric date order [locale] should use,
