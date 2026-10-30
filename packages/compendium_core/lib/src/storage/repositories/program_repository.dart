@@ -1794,17 +1794,17 @@ class ProgramRepository {
     final current = asUtc(row.updatedAt);
     await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
       ProgramsCompanion(
-        title: const Value(blankedRecordTitle),
+        title: Value(normalizeShareableText(blankedRecordTitle)),
         eventDate: const Value(null),
-        venue: const Value(null),
+        venue: Value(normalizeShareableTextOrNull(null)),
         venueId: const Value(null),
-        band: const Value(null),
-        caller: const Value(null),
-        dancerLevel: const Value(null),
-        notes: const Value(''),
+        band: Value(normalizeShareableTextOrNull(null)),
+        caller: Value(normalizeShareableTextOrNull(null)),
+        dancerLevel: Value(normalizeShareableTextOrNull(null)),
+        notes: Value(normalizeShareableText('')),
         status: const Value(ProgramStatus.draft),
         hideAlternates: const Value(false),
-        dialectName: const Value(null),
+        dialectName: Value(normalizeShareableTextOrNull(null)),
         payMinorUnits: const Value(null),
         payCurrency: const Value(null),
         updatedAt: Value(
