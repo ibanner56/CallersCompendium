@@ -1,0 +1,9 @@
+{
+  "id": "find-1-called-filter-scopes",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "Add venue, recency (since a calendar date) and current-program scopes to CalledFilter, with VenueKey, the cc_venue_key SQL function registered by applyCompendiumSqliteSetup, DanceCallingRecord.recencyDate, VenueCallCount.key and ProgramRepository.calledVenues / watchCalledVenues."
+    ]
+  }
+}

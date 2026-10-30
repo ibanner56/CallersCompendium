@@ -16,8 +16,11 @@ import 'package:flutter_test/flutter_test.dart' show addTearDown;
 /// mention streams themselves, because they merely mount a shell containing a
 /// converted screen, so the fix belongs here once rather than in each of them.
 ///
-/// Pass [executor] to wrap a non-default one (e.g. `NativeDatabase.memory()`
-/// with an interceptor).
+/// The default executor runs the app's connection setup,
+/// [applyCompendiumSqliteSetup], so a typed-venue calling-history search finds
+/// its SQL function as it does in the app. Pass [executor] to wrap a
+/// non-default one (e.g. `NativeDatabase.memory()` with an interceptor); pass
+/// the same setup to it if the test searches by a typed venue.
 ///
 /// Databases close automatically when the current test tears down. Set
 /// [closeOnTearDown] to false when the caller owns an explicit or early close.
@@ -26,7 +29,7 @@ CompendiumDatabase openWidgetTestDatabase({
   bool closeOnTearDown = true,
 }) {
   final db = CompendiumDatabase(
-    executor ?? NativeDatabase.memory(),
+    executor ?? NativeDatabase.memory(setup: applyCompendiumSqliteSetup),
     closeStreamsSynchronously: true,
   );
   if (closeOnTearDown) addTearDown(db.close);
