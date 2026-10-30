@@ -105,6 +105,7 @@ void main() {
     });
 
     test('counts authors and sources through their own join tables', () async {
+      // ignore: unused_result
       await repos.choreographers.upsert(Choreographer(id: a, name: 'Gene'));
       await repos.publishedSources.upsert(
         PublishedSource(id: b, title: 'Zesty Contras'),
