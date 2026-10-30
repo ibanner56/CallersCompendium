@@ -242,8 +242,11 @@ produces no file, clipboard change, or share.
 That matters on the receiving end. A `.ccshare` file is Caller's Compendium's
 own file type: on a Mac, iPhone, or iPad with the app installed, opening one goes
 straight to import review, on Android it is offered under **Open with** (the app
-checks the file and tells you if it isn't a share file), and on any device the recipient can bring it in with
-**Settings › General › Import…**. A device without the app may not know what to
+checks the file and tells you if it isn't a share file), and on Windows the
+installer registers it, so double-clicking one opens import review. On Linux it
+opens the same way once the file type is set up, which the downloads don't do
+for you (see [Installing on Linux](./installation.md#install-on-linux)). On any
+device the recipient can bring it in with **Settings › General › Import…**. A device without the app may not know what to
 do with it at all. A `.json` file is a plain document anywhere, so reach for this
 one when you are:
 

@@ -33,6 +33,7 @@ import 'src/data/contradb_online.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
+import 'src/data/desktop_open_path.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
 import 'src/data/ecd_conversion.dart';
@@ -137,7 +138,7 @@ const String _requestApplicationShutdownMethod = 'requestApplicationShutdown';
 Future<ResetResult> _resetDatabaseFile(File dbFile) =>
     performReset(dbFile: dbFile);
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   // Install the local, offline crash log and global error-capture stack (issue
   // #458) as the very first thing, so an error during startup itself is still
   // recorded. [CrashLogStore] resolves its directory lazily on first write, so
@@ -167,7 +168,16 @@ Future<void> main() async {
     // The raise request is ignored until a [WindowService] exists and has shown
     // the window (the first launch shows it by itself); [raiseForwarder] follows
     // the service when a Retry or reset replaces it.
+    //
+    // PLAT-3: on Windows and Linux a double-clicked `.ccshare` arrives as an
+    // argument. A second launch forwards it to the running instance; the
+    // first launch opens it once ready. [IncomingFileChannel] checks the path
+    // either way, and it only ever reaches import review.
     final raiseForwarder = WindowRaiseForwarder();
+    final desktopOpenPath = desktopOpenPathFromArgs(args);
+    final incomingFileChannel = IncomingFileChannel(
+      initialDesktopPath: desktopOpenPath,
+    );
     final singleInstance = DesktopSingleInstance.isSupportedPlatform
         ? DesktopSingleInstance()
         : null;
@@ -175,6 +185,8 @@ Future<void> main() async {
         await handleSecondLaunch(
               singleInstance,
               onRaise: raiseForwarder.raise,
+              onOpen: incomingFileChannel.openDesktopPath,
+              openPath: desktopOpenPath,
             ) ==
             SecondLaunchOutcome.exitNow) {
       exit(0);
@@ -240,7 +252,7 @@ Future<void> main() async {
           onSnapshotFailure: onSnapshotFailure,
         ),
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
-        incomingFileChannel: IncomingFileChannel(),
+        incomingFileChannel: incomingFileChannel,
       ),
     );
   }, crashReporter);
@@ -1260,11 +1272,18 @@ class _CompendiumAppState extends State<CompendiumApp>
       return;
     }
     try {
-      // Native refused to stage an over-cap file: there is no path to read or
-      // delete, so surface the same rejection intake would have produced.
-      if (incomingFile.rejection == IncomingFileRejection.tooLarge) {
+      // Native refused to stage an over-cap file, or a desktop open named a
+      // file the app won't read: there is no path to read or delete, so
+      // surface the same rejection intake would have produced.
+      final rejection = incomingFile.rejection;
+      if (rejection != null) {
         if (!mounted) return;
-        _showIncomingFileRejection(ArchiveIntakeRejectionReason.tooLarge);
+        _showIncomingFileRejection(switch (rejection) {
+          IncomingFileRejection.tooLarge =>
+            ArchiveIntakeRejectionReason.tooLarge,
+          IncomingFileRejection.unreadable =>
+            ArchiveIntakeRejectionReason.unreadable,
+        });
         return;
       }
       final intake = ArchiveIntakeService(readBytes: widget.incomingFileReader);
@@ -1289,6 +1308,8 @@ class _CompendiumAppState extends State<CompendiumApp>
         ),
       );
     } finally {
+      // Lets the next coalesced desktop open through (PLAT-3).
+      widget.incomingFileChannel?.fileHandled(incomingFile);
       await _cleanupOwnedIncomingFile(incomingFile.path);
     }
   }
