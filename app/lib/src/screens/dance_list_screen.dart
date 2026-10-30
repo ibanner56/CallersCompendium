@@ -635,6 +635,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// derived from that same source?
   void _onCollectionData(CollectionData data) {
     final previous = _data;
+    // Every path that changes the offered tags also changes a dance today, so
+    // `tagsDropped` is a safeguard: dropping a tag must never skip the search.
     final tagsDropped = _facets.retainTags([for (final t in data.tags) t.id]);
     final searchAffected =
         previous == null ||
