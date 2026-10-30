@@ -7370,6 +7370,14 @@
   "@importReviewOptionReimport": {
     "x-sourceSha256": "8249cab6d7f9413d09113b73b5d65ae41968266f1d724baeec3f04bb3f25b4c6"
   },
+  "importReviewReimportTitleAndCredit": "Ook titel en auteur bijwerken",
+  "@importReviewReimportTitleAndCredit": {
+    "x-sourceSha256": "a142dcbde6be9269e06950ee3738fc3dbcf82105bd06dabdb3eb6790dca67718"
+  },
+  "importReviewReimportTitleAndCreditHint": "Neemt de titel en auteursvermelding uit dit bestand over voor “{title}”. Je beoordeling, tags, notities en links blijven zoals ze zijn.",
+  "@importReviewReimportTitleAndCreditHint": {
+    "x-sourceSha256": "98022c8d2659302f60dd9f7d3b5a3601b664ff80c8e5593d2a0e54f987f1bdb7"
+  },
   "importReviewOptionDuplicate": "Importeren als nieuwe (dubbele) dans",
   "@importReviewOptionDuplicate": {
     "x-sourceSha256": "b4ed3ed8907b60111f687f32d121971db2fd9cf7381dce15d89d00295559c2f1"
@@ -7393,6 +7401,14 @@
   "importReviewOverwriteWarning": "{count, plural, =1{1 bestaande dans wordt overschreven} other{{count} bestaande dansen worden overschreven}}",
   "@importReviewOverwriteWarning": {
     "x-sourceSha256": "32e898771354de5a51675debb5473f13fe146fec3e2bf8e86485fb3f27407f54"
+  },
+  "importReviewReimportWarning": "{count, plural, =1{Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans. De beoordeling, tags en notities blijven.} other{Opnieuw importeren vervangt de figuren, formatie en progressie van {count} bestaande dansen. Hun beoordelingen, tags en notities blijven.}}",
+  "@importReviewReimportWarning": {
+    "x-sourceSha256": "c5aa953aba540e25ed5200df2027d40bbc0253f2d5f2268e420c36b3a5b5eaae"
+  },
+  "importReviewReimportTitleWarning": "{count, plural, =1{Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.} other{Bij {count} daarvan worden ook de titel en auteur uit het bestand overgenomen.}}",
+  "@importReviewReimportTitleWarning": {
+    "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
   },
   "importReviewWarningPrefix": "Waarschuwing: {message}",
   "@importReviewWarningPrefix": {
@@ -7485,6 +7501,18 @@
   "importReviewEditOverwriteBody": "Importeren om te bewerken vervangt “{title}” in je verzameling meteen. Ongedaan maken van de hele import herstelt hem niet.",
   "@importReviewEditOverwriteBody": {
     "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
+  },
+  "importReviewEditReimportTitle": "Nu opnieuw importeren in de bestaande dans?",
+  "@importReviewEditReimportTitle": {
+    "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
+  },
+  "importReviewEditReimportBody": "Importeren om te bewerken vervangt de figuren, formatie en progressie van “{title}” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.",
+  "@importReviewEditReimportBody": {
+    "x-sourceSha256": "275389cd8066eadc9e742cd019dda14c517874a5a2552849c4fc3dac6232452d"
+  },
+  "importReviewEditReimportTitleAndCreditBody": "Importeren om te bewerken vervangt de figuren, formatie, progressie, titel en auteur van “{title}” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.",
+  "@importReviewEditReimportTitleAndCreditBody": {
+    "x-sourceSha256": "62a5cb4886e354759fc6422859381272be05217b50b9c73e838470f91d3e3ee3"
   },
   "importReviewImportError": "De import kon niet worden voltooid.",
   "@importReviewImportError": {

@@ -7370,6 +7370,14 @@
   "@importReviewOptionReimport": {
     "x-sourceSha256": "8249cab6d7f9413d09113b73b5d65ae41968266f1d724baeec3f04bb3f25b4c6"
   },
+  "importReviewReimportTitleAndCredit": "タイトルと作者も更新する",
+  "@importReviewReimportTitleAndCredit": {
+    "x-sourceSha256": "a142dcbde6be9269e06950ee3738fc3dbcf82105bd06dabdb3eb6790dca67718"
+  },
+  "importReviewReimportTitleAndCreditHint": "「{title}」にこのファイルのタイトルと作者を反映します。評価、タグ、メモ、リンクはそのまま残ります。",
+  "@importReviewReimportTitleAndCreditHint": {
+    "x-sourceSha256": "98022c8d2659302f60dd9f7d3b5a3601b664ff80c8e5593d2a0e54f987f1bdb7"
+  },
   "importReviewOptionDuplicate": "新しい（重複）ダンスとしてインポート",
   "@importReviewOptionDuplicate": {
     "x-sourceSha256": "b4ed3ed8907b60111f687f32d121971db2fd9cf7381dce15d89d00295559c2f1"
@@ -7393,6 +7401,14 @@
   "importReviewOverwriteWarning": "{count, plural, other{{count}件の既存のダンスが上書きされます}}",
   "@importReviewOverwriteWarning": {
     "x-sourceSha256": "32e898771354de5a51675debb5473f13fe146fec3e2bf8e86485fb3f27407f54"
+  },
+  "importReviewReimportWarning": "{count, plural, other{再インポートで{count}件の既存のダンスのフィギュア、フォーメーション、プログレッションが置き換えられます。評価、タグ、メモは残ります。}}",
+  "@importReviewReimportWarning": {
+    "x-sourceSha256": "c5aa953aba540e25ed5200df2027d40bbc0253f2d5f2268e420c36b3a5b5eaae"
+  },
+  "importReviewReimportTitleWarning": "{count, plural, other{そのうち{count}件はファイルのタイトルと作者も反映します。}}",
+  "@importReviewReimportTitleWarning": {
+    "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
   },
   "importReviewWarningPrefix": "警告: {message}",
   "@importReviewWarningPrefix": {
@@ -7485,6 +7501,18 @@
   "importReviewEditOverwriteBody": "編集のためにインポートすると、コレクション内の「{title}」がすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。",
   "@importReviewEditOverwriteBody": {
     "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
+  },
+  "importReviewEditReimportTitle": "今すぐ既存のダンスに再インポートしますか？",
+  "@importReviewEditReimportTitle": {
+    "x-sourceSha256": "0ef9a017ae65f8bd0f7ca657bfb1ea8e3bae8ca0a57b4a9cfe4c4e142e01467d"
+  },
+  "importReviewEditReimportBody": "編集のためにインポートすると、コレクション内の「{title}」のフィギュア、フォーメーション、プログレッションがすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。",
+  "@importReviewEditReimportBody": {
+    "x-sourceSha256": "275389cd8066eadc9e742cd019dda14c517874a5a2552849c4fc3dac6232452d"
+  },
+  "importReviewEditReimportTitleAndCreditBody": "編集のためにインポートすると、コレクション内の「{title}」のフィギュア、フォーメーション、プログレッション、タイトル、作者がすぐに置き換えられます。一括インポートの「元に戻す」では復元されません。",
+  "@importReviewEditReimportTitleAndCreditBody": {
+    "x-sourceSha256": "62a5cb4886e354759fc6422859381272be05217b50b9c73e838470f91d3e3ee3"
   },
   "importReviewImportError": "インポートを完了できませんでした。",
   "@importReviewImportError": {

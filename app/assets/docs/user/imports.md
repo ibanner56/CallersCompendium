@@ -182,8 +182,9 @@ Importing a newer version of a collection you already have offers
 **Re-import onto** for its dances, which updates only their figures, formation
 and progression, as for any other source (see
 [Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
-A corrected title, credit or note in the new version does not reach a dance you
-already have.
+A corrected title or credit in the new version reaches a dance you already have
+only if you tick **Also update title and credit** on its row; a corrected note
+never does.
 
 If the catalog or a collection cannot be loaded, the message tells you which of
 three things happened: the catalog **could not be reached** (check your
@@ -377,7 +378,8 @@ A `.USR` import brings across both your **dances** and your **program history**
 before it commits and undoable right after. Dances and programs you have imported
 before are recognised and offered as updates rather than duplicated. A dance
 you bring in early with **Import and edit** still takes its place in your
-programs and related dances when you then import the rest of the file. The review
+programs and related dances when you then import the rest of the file (one you
+re-imported that way gets no new related-dance links, as with any re-import). The review
 says how many programs the file includes, and they are imported even when you
 leave every dance at **Skip** — so importing a fresher export just to pick up new
 sets works when you already have all its dances.
@@ -435,7 +437,8 @@ same place, and creating a new one when it isn't (an ambiguous match always
 creates a fresh venue rather than guessing). That happens when venue entities
 are switched on; with them off, the location is kept as plain text exactly as
 before. Dances that pointed at each other in Caller's Companion arrive linked as
-**related dances**.
+**related dances**. A dance you re-import gets no related-dance links from the
+file, and the review notes no link left out for it.
 
 If the `.USR` file is an **incomplete copy** — cut short by an interrupted
 download or copy — the review shows a warning above the list: *"This file looks
@@ -683,6 +686,21 @@ Caller's Box. Only the dance's record of where it came from is updated, to the
 version you re-imported. If the incoming version has no figures the app can
 read, your figures are kept.
 
+To pick up a corrected **title or credit** as well, tick **Also update title
+and credit** under that row's **Re-import onto** choice. It is off on every row
+each time you import, and applies only to the row you tick it on. The dance
+then also takes the incoming title and authors; if the incoming version names
+no author, yours are kept. Its rating, tags, notes, links and status still
+never change.
+
+Before you commit, a note above the **Import** button says how many existing
+dances a re-import will update, and how many of those will also take the
+file's title and credit.
+
+A shared file carries the tags, custom fields and published sources its dances
+use. Those that only a re-imported or skipped dance needed are not added to
+your collection, and one you had deleted stays deleted.
+
 Dances already in your collection show **Re-import** and **Skip** choices in the
 review list, and **Skip** is the default, so choose **Re-import** on the ones you
 want updated. When many dances match, use **Set all matched dances to:
@@ -703,8 +721,8 @@ including a **Possible match** you skip — still becomes a *Dance not imported*
 note in the program.
 
 Re-importing replaces that dance's figures, formation, and progression with the
-incoming version's, so if you have edited them in your copy, look before you
-commit. The **Undo** on the summary reverses the
+incoming version's (and its title and credit, if you ticked the box), so if you
+have edited them in your copy, look before you commit. The **Undo** on the summary reverses the
 whole batch import if it was not what you wanted (but not a dance you brought in
 with **Import and edit**).
 

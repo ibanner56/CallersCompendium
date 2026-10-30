@@ -11205,6 +11205,18 @@ abstract class AppLocalizations {
   /// **'Re-import onto \"{title}\"'**
   String importReviewOptionReimport(String title);
 
+  /// Checkbox under a record set to Re-import, off by default. When ticked, the re-import also takes the imported title and author credit; otherwise it replaces only the figures, formation and progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Also update title and credit'**
+  String get importReviewReimportTitleAndCredit;
+
+  /// Explanation under the Also update title and credit checkbox; screen readers read it with the checkbox. The title is the existing local dance's title, an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Takes this file\'s title and author credit for \"{title}\". Your rating, tags, notes and links stay as they are.'**
+  String importReviewReimportTitleAndCreditHint(String title);
+
   /// Per-record option: import this record as a new dance even though a match exists.
   ///
   /// In en, this message translates to:
@@ -11235,11 +11247,23 @@ abstract class AppLocalizations {
   /// **'Same dance — replace \"{title}\" with this version ({percent}% match)'**
   String importReviewOptionLink(String title, int percent);
 
-  /// Pre-commit warning stating how many existing local dances a commit will overwrite.
+  /// Pre-commit warning stating how many existing local dances a commit will overwrite: those of records set to Same dance (replace). A re-import does not overwrite a dance and is counted by importReviewReimportWarning instead.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 existing dance will be overwritten} other{{count} existing dances will be overwritten}}'**
   String importReviewOverwriteWarning(int count);
+
+  /// Pre-commit warning stating how many existing local dances a commit will re-import onto. A re-import replaces only their choreography.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.} other{Re-import replaces the figures, formation and progression of {count} existing dances. Their ratings, tags and notes stay.}}'**
+  String importReviewReimportWarning(int count);
+
+  /// Second sentence of the re-import warning: how many of those re-imports have Also update title and credit ticked.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 of them also takes the file\'s title and credit.} other{{count} of them also take the file\'s title and credit.}}'**
+  String importReviewReimportTitleWarning(int count);
 
   /// Screen-reader label that prefixes the overwrite-warning message with 'Warning:'.
   ///
@@ -11367,7 +11391,7 @@ abstract class AppLocalizations {
   /// **'Couldn\'t import that dance to edit.'**
   String get importReviewEditError;
 
-  /// Title of the confirmation shown when Import and edit is pressed on a row set to Re-import or Link, because the matched dance is replaced immediately.
+  /// Title of the confirmation shown when Import and edit is pressed on a row set to Same dance (replace), because the matched dance is replaced immediately. A row set to Re-import uses importReviewEditReimportTitle.
   ///
   /// In en, this message translates to:
   /// **'Replace the existing dance now?'**
@@ -11378,6 +11402,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Importing to edit replaces \"{title}\" in your collection immediately. The batch Undo will not restore it.'**
   String importReviewEditOverwriteBody(String title);
+
+  /// Title of the confirmation shown when Import and edit is pressed on a row set to Re-import, because the matched dance is updated immediately, outside the batch Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import onto the existing dance now?'**
+  String get importReviewEditReimportTitle;
+
+  /// Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit off. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing to edit replaces the figures, formation and progression of \"{title}\" in your collection immediately. The batch Undo will not restore them.'**
+  String importReviewEditReimportBody(String title);
+
+  /// Body of the Import and edit confirmation for a row set to Re-import with Also update title and credit ticked. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing to edit replaces the figures, formation, progression, title and credit of \"{title}\" in your collection immediately. The batch Undo will not restore them.'**
+  String importReviewEditReimportTitleAndCreditBody(String title);
 
   /// Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///

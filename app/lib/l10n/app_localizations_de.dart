@@ -7550,6 +7550,15 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit =>
+      'Auch Titel und Autorenangabe aktualisieren';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Übernimmt Titel und Autorenangabe aus dieser Datei für „$title“. Deine Bewertung, Tags, Notizen und Links bleiben, wie sie sind.';
+  }
+
+  @override
   String get importReviewOptionDuplicate =>
       'Als neuen (doppelten) Tanz importieren';
 
@@ -7578,6 +7587,32 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: '$count vorhandene Tänze werden überschrieben',
       one: '1 vorhandener Tanz wird überschrieben',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Neu importieren ersetzt Figuren, Formation und Progression von $count vorhandenen Tänzen. Ihre Bewertungen, Tags und Notizen bleiben.',
+      one:
+          'Neu importieren ersetzt Figuren, Formation und Progression von 1 vorhandenen Tanz. Seine Bewertung, Tags und Notizen bleiben.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Bei $count davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
+      one:
+          'Bei 1 davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
     );
     return '$_temp0';
   }
@@ -7726,6 +7761,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return 'Beim Importieren zum Bearbeiten wird „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt ihn nicht wieder her.';
+  }
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Jetzt auf den vorhandenen Tanz neu importieren?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'Beim Importieren zum Bearbeiten werden Figuren, Formation und Progression von „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt sie nicht wieder her.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'Beim Importieren zum Bearbeiten werden Figuren, Formation, Progression, Titel und Autorenangabe von „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt sie nicht wieder her.';
   }
 
   @override

@@ -7518,6 +7518,15 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get importReviewReimportTitleAndCredit =>
+      'Ook titel en auteur bijwerken';
+
+  @override
+  String importReviewReimportTitleAndCreditHint(String title) {
+    return 'Neemt de titel en auteursvermelding uit dit bestand over voor “$title”. Je beoordeling, tags, notities en links blijven zoals ze zijn.';
+  }
+
+  @override
   String get importReviewOptionDuplicate =>
       'Importeren als nieuwe (dubbele) dans';
 
@@ -7546,6 +7555,32 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: '$count bestaande dansen worden overschreven',
       one: '1 bestaande dans wordt overschreven',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van $count bestaande dansen. Hun beoordelingen, tags en notities blijven.',
+      one:
+          'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans. De beoordeling, tags en notities blijven.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportTitleWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Bij $count daarvan worden ook de titel en auteur uit het bestand overgenomen.',
+      one:
+          'Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.',
     );
     return '$_temp0';
   }
@@ -7693,6 +7728,20 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String importReviewEditOverwriteBody(String title) {
     return 'Importeren om te bewerken vervangt “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt hem niet.';
+  }
+
+  @override
+  String get importReviewEditReimportTitle =>
+      'Nu opnieuw importeren in de bestaande dans?';
+
+  @override
+  String importReviewEditReimportBody(String title) {
+    return 'Importeren om te bewerken vervangt de figuren, formatie en progressie van “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.';
+  }
+
+  @override
+  String importReviewEditReimportTitleAndCreditBody(String title) {
+    return 'Importeren om te bewerken vervangt de figuren, formatie, progressie, titel en auteur van “$title” in je verzameling meteen. Ongedaan maken van de hele import herstelt ze niet.';
   }
 
   @override
