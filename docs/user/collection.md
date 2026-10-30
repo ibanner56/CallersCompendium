@@ -506,7 +506,9 @@ undone.
   tags or create new ones, and the change can be undone.
 - **Delete** a dance and it is only *soft-deleted* — an **Undo** option appears
   right away, and the dance moves to a **Recently Deleted** area rather than
-  vanishing.
+  vanishing. To delete several at once, select them and use **Delete** at the
+  bottom of **More batch actions** (see
+  [Change many dances at once](#change-many-dances-at-once)).
 - **Restore or remove** from **Recently Deleted** (in the **More actions**
   menu on the **Collection** page) — bring a dance back, or delete
   it permanently when you are sure. Anything left there is purged automatically
@@ -540,7 +542,7 @@ or long-press
 a row on a touchscreen. Tick as many dances as you like, then apply one change
 across all of them. Tags and level are on the toolbar; the rest are under
 **More batch actions**, grouped as details (rating, status) and other (tunes,
-custom field).
+custom field), with **Delete** on its own at the bottom.
 
 **Select all** picks every dance in the list you are looking at — the current
 search, filters and By phrase included — and becomes **Deselect all** once they
@@ -572,6 +574,14 @@ The changes:
 - **Edit custom field** — set one of your fields to a value, or choose **Clear
   this field**. For a choice field, the **+** button beside the list adds a new
   option on the spot, just as it does when editing a single dance.
+- **Delete** — moves every selected dance, shown or not, to **Recently
+  Deleted**, all together or not at all. It asks first only when
+  **Confirm before delete** is on in [Settings](./settings.md), and then the
+  question gives the number of dances. The message reads, for example, "Deleted
+  12 dances", with **Undo**; once it has gone, restore them from Recently
+  Deleted. Undo brings back a level or custom field you deleted while the
+  dances were in the trash, as restoring one dance does. Programs that include
+  a deleted dance still show it, as they do when you delete one dance.
 
 Every batch change is announced to screen readers and can be undone, and the app
 tells you plainly when a change would affect nothing. If a change can't be

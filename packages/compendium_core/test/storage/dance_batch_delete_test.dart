@@ -1,11 +1,32 @@
 // Bulk delete and its Undo (N4-S3): softDeleteMany and restoreMany run the
 // single-dance softDelete and restore inside one transaction each.
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show Variable;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
 import 'package:test/test.dart';
 
 import 'fixtures.dart';
 import 'test_database.dart';
+
+/// Counts the statements that delete one dance's FTS rows by `dance_id = ?`,
+/// a scan of the whole index each (`dance_id` is `UNINDEXED`).
+final class _PerDanceFtsDeletes extends QueryInterceptor {
+  var count = 0;
+
+  @override
+  Future<void> runCustom(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (RegExp(
+      r'DELETE FROM dance\w*fts WHERE dance_id = \?',
+    ).hasMatch(statement)) {
+      count++;
+    }
+    return super.runCustom(executor, statement, args);
+  }
+}
 
 void main() {
   late CompendiumDatabase db;
@@ -157,6 +178,63 @@ void main() {
       // The failure B8 left open, had the level stayed tombstoned.
       final back = (await repos.dances.getById('b'))!;
       await repos.dances.update(back.copyWith(title: 'Edited'));
+    });
+
+    test('revives a custom field before rebuilding the search index', () async {
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'feel',
+          label: 'Feel',
+          type: CustomFieldType.text,
+        ),
+        at: DateTime.utc(2026, 1, 1),
+      );
+      for (final id in ['a', 'b']) {
+        await repos.dances.create(
+          sampleDance(
+            id: id,
+            title: 'Dance $id',
+            customFields: [CustomFieldValue(fieldId: 'f1', value: 'lyrical')],
+          ),
+        );
+      }
+      final deleted = await repos.dances.softDeleteMany([
+        'a',
+        'b',
+      ], at: deletedAt);
+      await repos.customFieldDefs.delete(
+        'f1',
+        at: DateTime.utc(2026, 6, 1, 12),
+      );
+
+      await repos.dances.restoreMany(deleted, at: restoredAt);
+
+      expect((await repos.dances.searchText('lyrical')).toSet(), {'a', 'b'});
+    });
+
+    test('rebuilds the search index once, not with a scan per dance', () async {
+      // A scan per dance made a 5,000-dance Undo take about 25 s.
+      final counter = _PerDanceFtsDeletes();
+      final counted = CompendiumDatabase(
+        NativeDatabase.memory(
+          setup: applyCompendiumSqliteSetup,
+        ).interceptWith(counter),
+      );
+      addTearDown(counted.close);
+      final dances = DanceRepository(counted, contraTaxonomy);
+      final ids = twelve();
+      for (final id in ids) {
+        await dances.create(sampleDance(id: id, title: 'Dance $id'));
+      }
+      final deleted = await dances.softDeleteMany(ids, at: deletedAt);
+      counter.count = 0;
+
+      expect(await dances.restoreMany(deleted, at: restoredAt), 12);
+
+      expect(counter.count, 0);
+      expect((await dances.searchText('Dance')).length, 12);
     });
 
     test(

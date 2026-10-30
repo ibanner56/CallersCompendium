@@ -1967,7 +1967,7 @@ class DanceRepository {
   /// tombstoned would save two FTS delete-by-scans on a single-dance user
   /// action, at the cost of a second code path that can drift from this one.
   ///
-  /// [getById] hydrates, so this decodes `figures_json`. That used to make
+  /// The rebuild hydrates the dance, so this decodes `figures_json`. That used to make
   /// restore throw for a row whose stored text cannot be decoded, and this
   /// comment used to say so and call failing loudly deliberate "in the
   /// meantime", pending #1347. #1347 has landed: the load path is total for
@@ -1999,32 +1999,16 @@ class DanceRepository {
     required DateTime at,
     bool clearPending = true,
     bool reviveReferences = true,
-  }) => _db.transaction(() async {
-    if (reviveReferences) {
-      final row = await (_db.select(
-        _db.dances,
-      )..where((t) => t.id.equals(id))).getSingleOrNull();
-      if (row == null || isPermanentlyDeleted(row.deletedAt)) return;
-      await _reviveReferences(row, at: at);
-    }
-    await _stampExistence(id, at: at, deleted: false);
-    final restored = await getById(id, includeDeleted: true);
-    if (restored != null) await _rebuildDerived(restored);
-    if (clearPending) {
-      await clearPendingSyncDeletionForRestore(
-        _db,
-        kind: SyncRecordKind.dance,
-        recordId: id,
-        table: _db.dances,
-        keyColumn: 'id',
-        at: at,
-      );
-    }
-  });
+  }) => _restoreAll(
+    [id],
+    at: at,
+    clearPending: clearPending,
+    reviveReferences: reviveReferences,
+  );
 
   /// Restores every dance in [ids] that is in Recently deleted, at [at], in
-  /// one transaction: the Undo of [softDeleteMany]. Each dance goes through
-  /// [restore] with its defaults, never a second SQL path, so a bulk Undo
+  /// one transaction: the Undo of [softDeleteMany]. It runs [restore]'s own
+  /// body with its defaults ([_restoreAll]), never a second path, so a bulk Undo
   /// revives the level and custom fields each dance names and clears its
   /// pending sync deletion exactly as a single restore does. A failure
   /// part-way leaves every dance in the trash.
@@ -2049,15 +2033,65 @@ class DanceRepository {
           trashed.add(row.read(_db.dances.id)!);
         }
       }
-      var restored = 0;
-      for (final id in list) {
-        if (!trashed.contains(id)) continue;
-        await restore(id, at: at);
-        restored++;
-      }
-      return restored;
+      final restoring = [
+        for (final id in list)
+          if (trashed.contains(id)) id,
+      ];
+      await _restoreAll(restoring, at: at);
+      return restoring.length;
     });
   }
+
+  /// The body of [restore], for one dance or many, so [restoreMany] is
+  /// [restore] and never a second path beside it. Each step runs for every
+  /// dance before the next: the revivals, then the existence stamps, then one
+  /// rebuild of the derived rows ([_reindexDerived]), then the pending sync
+  /// deletions. Rebuilding per dance instead scanned both FTS tables once per
+  /// dance, which made a 5,000-dance Undo take about 25 s (N4-S3, in-memory
+  /// database); the order matters only in that a revival precedes the rebuild,
+  /// so the index sees the revived parents.
+  Future<void> _restoreAll(
+    List<String> ids, {
+    required DateTime at,
+    bool clearPending = true,
+    bool reviveReferences = true,
+  }) => _db.transaction(() async {
+    var restoring = ids;
+    if (reviveReferences) {
+      restoring = [];
+      for (final chunk in _chunkIds(ids)) {
+        final rows = {
+          for (final row in await (_db.select(
+            _db.dances,
+          )..where((t) => t.id.isIn(chunk))).get())
+            row.id: row,
+        };
+        for (final id in chunk) {
+          final row = rows[id];
+          if (row == null || isPermanentlyDeleted(row.deletedAt)) continue;
+          await _reviveReferences(row, at: at);
+          restoring.add(id);
+        }
+      }
+    }
+    if (restoring.isEmpty) return;
+    for (final id in restoring) {
+      await _stampExistence(id, at: at, deleted: false);
+    }
+    await _reindexDerived(restoring);
+    if (clearPending) {
+      for (final id in restoring) {
+        await clearPendingSyncDeletionForRestore(
+          _db,
+          kind: SyncRecordKind.dance,
+          recordId: id,
+          table: _db.dances,
+          keyColumn: 'id',
+          at: at,
+        );
+      }
+    }
+  });
 
   /// Revives the tombstoned level and custom-field definitions [row] names;
   /// see [restore]. A revival derived from another record's restore must not
