@@ -1,10 +1,13 @@
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../reference_rewrite.dart';
 import '../shareable_text.dart';
+import '../../model/choreographer.dart';
+import '../../model/published_source.dart';
 import '../../model/stored_timestamp.dart';
 import 'dance_repository.dart';
 import 'sync_local_repository.dart';
@@ -88,6 +91,7 @@ final class _UndoState {
     this.revive = const {},
     this.joinsBefore = const [],
     this.survivorDancesBefore = const {},
+    this.citationFills = const [],
     this.survivorId,
     this.aliasesBefore = const [],
     this.aliasesAfter = const [],
@@ -112,6 +116,10 @@ final class _UndoState {
   /// For a merge: the dances that already cited the survivor, whose loser
   /// join was dropped rather than moved.
   final Set<String> survivorDancesBefore;
+
+  /// For a source merge: the survivor's citations whose empty page or number
+  /// took a loser's, each before the merge and as the merge left it.
+  final List<({DanceSourceRow before, DanceSourceRow after})> citationFills;
   final String? survivorId;
   final List<IdAliasRow> aliasesBefore;
   final List<IdAliasRow> aliasesAfter;
@@ -300,7 +308,9 @@ class ReferenceEditRepository {
   ///    cancels no pending deletion;
   /// 2. its join rows move to the survivor, live and trashed dances alike,
   ///    and a dance citing both keeps the survivor's
-  ///    ([rewriteLocalReferences]), which bumps every affected dance;
+  ///    ([rewriteLocalReferences]), which bumps every affected dance. For a
+  ///    source, an empty page or number on the citation kept takes the
+  ///    loser's first, so a dance citing both loses no locator;
   /// 3. it is tombstoned, not erased: the tombstone is how peers learn of the
   ///    merge;
   /// 4. `loser → survivor` is recorded through
@@ -388,7 +398,11 @@ class ReferenceEditRepository {
           }
         }
       }
+      final citationFills = <({DanceSourceRow before, DanceSourceRow after})>[];
       for (final loser in losers) {
+        if (kind == ReferenceKind.source) {
+          citationFills.addAll(await _fillCitations(loser, survivorId));
+        }
         await rewriteLocalReferences(_db, kind.syncKind, loser, survivorId);
         await _syncLocal.deletePendingDeletion(
           kind: kind.syncKind,
@@ -422,6 +436,7 @@ class ReferenceEditRepository {
           revive: losers.toSet(),
           joinsBefore: joinsBefore,
           survivorDancesBefore: survivorDancesBefore,
+          citationFills: citationFills,
           survivorId: survivorId,
           aliasesBefore: aliasesBefore,
           aliasesAfter: await _aliases(kind),
@@ -556,6 +571,11 @@ class ReferenceEditRepository {
         );
       }
 
+      // Newest first: a later loser can fill what an earlier one left empty.
+      for (final fill in state.citationFills.reversed) {
+        await _restoreCitationFill(fill.before, fill.after);
+      }
+
       await _restoreAliases(kind, state.aliasesBefore, state.aliasesAfter);
       if (survivorId != null) {
         await _restoreRetained(kind, state, survivorId);
@@ -575,6 +595,128 @@ class ReferenceEditRepository {
       await _reindex(kind, dances);
     });
   }
+
+  /// Deletes the author or source [id], which no live dance may cite
+  /// (D-N2-4 = (a): an entry in use is merged, never deleted, so no dance
+  /// loses its credit). Tags use [deleteTag], which takes the tag off its
+  /// dances instead.
+  ///
+  /// The row is tombstoned, as the repositories' guarded deletes tombstone it,
+  /// and stamped past its own `updated_at` (§6.5 I1). Dances in Recently
+  /// deleted that still cite it keep their join rows, as those deletes keep
+  /// them, but each is bumped: its serialised authors or citations no longer
+  /// list the entry, because hydration skips a tombstoned one.
+  ///
+  /// Throws [StateError], writing nothing, when the entry is not live or a
+  /// live dance cites it. Undo revives it with its fields as they were.
+  Future<ReferenceEditUndo> deleteUnused(
+    ReferenceKind kind,
+    String id, {
+    DateTime? at,
+  }) {
+    if (kind == ReferenceKind.tag) {
+      throw ArgumentError.value(kind, 'kind', 'a tag is deleted by deleteTag');
+    }
+    final now = resolveStamp(at);
+    return _db.transaction(() async {
+      final before = await _readRow(kind, id);
+      if (before == null || _deletedAt(before) != null) {
+        throw StateError('cannot delete ${kind.name} "$id": not live');
+      }
+      final inUse = await liveDanceCount(kind, id);
+      if (inUse > 0) {
+        throw StateError(
+          'cannot delete ${kind.name} "$id": cited by $inUse live dance(s)',
+        );
+      }
+      final coexisting = await _liveNameHolders(kind, [before], {id});
+      await _stampExistence(kind, id, now: now, deleted: true);
+      await _bumpDances(await _citingDances(kind, {id}), now: now);
+      return ReferenceEditUndo._(
+        kind,
+        0,
+        _UndoState(
+          rowsBefore: {id: before},
+          touchedIds: {id},
+          revive: {id},
+          coexisting: coexisting,
+        ),
+      );
+    });
+  }
+
+  /// Where a dance cites both [loser] and [survivorId], gives the survivor's
+  /// citation the loser's page and number wherever its own is empty, before
+  /// [rewriteLocalReferences] drops the loser's citation. A value both hold
+  /// stays the survivor's. Returns each citation changed, before and after.
+  ///
+  /// Only the user merge does this. Sync's reconciliation keeps the
+  /// survivor's citation as it stands, and so does the shared helper.
+  Future<List<({DanceSourceRow before, DanceSourceRow after})>> _fillCitations(
+    String loser,
+    String survivorId,
+  ) async {
+    final fills = <({DanceSourceRow before, DanceSourceRow after})>[];
+    final loserRows = await (_db.select(
+      _db.danceSources,
+    )..where((t) => t.sourceId.equals(loser))).get();
+    for (final from in loserRows) {
+      final kept = await _citation(from.danceId, survivorId);
+      if (kept == null) continue;
+      final page = _isBlank(kept.page) ? from.page : kept.page;
+      final number = _isBlank(kept.number) ? from.number : kept.number;
+      if (page == kept.page && number == kept.number) continue;
+      await _writeCitationLocator(kept, page: page, number: number);
+      fills.add((
+        before: kept,
+        after: (await _citation(kept.danceId, survivorId))!,
+      ));
+    }
+    return fills;
+  }
+
+  /// Puts a filled citation's page and number back, only while the citation
+  /// still reads as the merge left it: an edit since is newer, and stays.
+  Future<void> _restoreCitationFill(
+    DanceSourceRow before,
+    DanceSourceRow after,
+  ) async {
+    final current = await _citation(after.danceId, after.sourceId);
+    if (current == null ||
+        current.page != after.page ||
+        current.number != after.number) {
+      return;
+    }
+    await _writeCitationLocator(
+      current,
+      page: before.page,
+      number: before.number,
+    );
+  }
+
+  Future<DanceSourceRow?> _citation(String danceId, String sourceId) =>
+      (_db.select(_db.danceSources)..where(
+            (t) => t.danceId.equals(danceId) & t.sourceId.equals(sourceId),
+          ))
+          .getSingleOrNull();
+
+  Future<void> _writeCitationLocator(
+    DanceSourceRow row, {
+    required String? page,
+    required String? number,
+  }) =>
+      (_db.update(_db.danceSources)..where(
+            (t) =>
+                t.danceId.equals(row.danceId) & t.sourceId.equals(row.sourceId),
+          ))
+          .write(
+            DanceSourcesCompanion(
+              page: Value(page == null ? null : normalizeShareableText(page)),
+              number: Value(
+                number == null ? null : normalizeShareableText(number),
+              ),
+            ),
+          );
 
   /// Puts back the retained sync fields the merge's `remapIdentity` moved:
   /// each loser's own, and nothing on the survivor unless it held its own
@@ -1096,3 +1238,126 @@ class ReferenceEditRepository {
     }
   }
 }
+
+/// A detail of an author or a source that a merge keeps from one entry and
+/// fills from the others (D-N2-2 = (b)).
+enum ReferenceDetailField {
+  /// An author's website.
+  website,
+
+  /// An author's email: deviceLocal, never synced.
+  email,
+
+  /// An author's location: deviceLocal, never synced.
+  location,
+
+  /// A source's author or editor.
+  sourceAuthor,
+
+  /// A source's year.
+  year,
+
+  /// A source's URL.
+  url,
+
+  /// An author's or a source's notes. Never concatenated.
+  notes,
+}
+
+/// A value a merge will discard: [dropped] is held by an entry merged away,
+/// and the result keeps [kept] for the same [field] (D-N2-2 = (b): "the
+/// dialog lists conflicting values it will drop").
+@immutable
+final class ReferenceMergeConflict {
+  const ReferenceMergeConflict(this.field, this.kept, this.dropped);
+
+  final ReferenceDetailField field;
+  final String kept;
+  final String dropped;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReferenceMergeConflict &&
+      other.field == field &&
+      other.kept == kept &&
+      other.dropped == dropped;
+
+  @override
+  int get hashCode => Object.hash(field, kept, dropped);
+
+  @override
+  String toString() =>
+      'ReferenceMergeConflict(${field.name}: keeps "$kept", '
+      'drops "$dropped")';
+}
+
+/// What [ReferenceEditRepository.merge] will discard when [others] are merged
+/// into [into], for the dialog to list before it runs.
+///
+/// Mirrors the merge's rule: each field keeps [into]'s value, or else the
+/// first non-empty one among [others] in ascending id order, and any other
+/// non-empty value that differs is dropped. `deceased` is never dropped: the
+/// result is deceased if any entry is. Empty when nothing conflicts.
+List<ReferenceMergeConflict> authorMergeConflicts(
+  Choreographer into,
+  Iterable<Choreographer> others,
+) => _mergeConflicts(
+  into.id,
+  [into, ...others],
+  (c) => {
+    ReferenceDetailField.website: c.website,
+    ReferenceDetailField.email: c.email,
+    ReferenceDetailField.location: c.location,
+    ReferenceDetailField.notes: c.notes,
+  },
+  (c) => c.id,
+);
+
+/// [authorMergeConflicts] for sources: author, year, URL and notes.
+List<ReferenceMergeConflict> sourceMergeConflicts(
+  PublishedSource into,
+  Iterable<PublishedSource> others,
+) => _mergeConflicts(
+  into.id,
+  [into, ...others],
+  (s) => {
+    ReferenceDetailField.sourceAuthor: s.author,
+    ReferenceDetailField.year: s.year?.toString(),
+    ReferenceDetailField.url: s.url,
+    ReferenceDetailField.notes: s.notes,
+  },
+  (s) => s.id,
+);
+
+List<ReferenceMergeConflict> _mergeConflicts<T>(
+  String intoId,
+  List<T> entries,
+  Map<ReferenceDetailField, String?> Function(T entry) details,
+  String Function(T entry) idOf,
+) {
+  final into = entries.firstWhere((e) => idOf(e) == intoId);
+  final others = [
+    for (final e in entries)
+      if (idOf(e) != intoId) e,
+  ]..sort((a, b) => idOf(a).compareTo(idOf(b)));
+  final ordered = [details(into), ...others.map(details)];
+  final conflicts = <ReferenceMergeConflict>[];
+  for (final field in ReferenceDetailField.values) {
+    final values = [
+      for (final entry in ordered)
+        if (entry.containsKey(field) && !_blank(entry[field]))
+          entry[field]!.trim(),
+    ];
+    if (values.isEmpty) continue;
+    final kept = values.first;
+    final dropped = <String>{};
+    for (final value in values.skip(1)) {
+      if (value != kept && dropped.add(value)) {
+        conflicts.add(ReferenceMergeConflict(field, kept, value));
+      }
+    }
+  }
+  return conflicts;
+}
+
+bool _blank(String? value) => value == null || value.trim().isEmpty;
