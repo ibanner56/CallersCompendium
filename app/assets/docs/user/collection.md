@@ -495,7 +495,8 @@ To organize in bulk, enter selection mode: choose **Select dances** from the **M
 or long-press
 a row on a touchscreen. Tick as many dances as you like, then apply one change
 across all of them. Tags and level are on the toolbar; the rest are under
-**More batch actions**.
+**More batch actions**, grouped as details (rating, status) and other (tunes,
+custom field).
 
 **Select all** picks every dance in the list you are looking at — the current
 search, filters and By phrase included — and becomes **Deselect all** once they
@@ -516,6 +517,8 @@ The changes:
 - **Add tags** or **Remove tags**.
 - **Set level**, or clear it with **Unspecified (clear)**.
 - **Set rating**, or clear it with **Unrated (clear)**.
+- **Set status** — Active, Deprecated, Broken, Draft or Variation. Dances that
+  already have the status you pick are left alone and not counted.
 - **Add tunes** — build a short list and add it to every selected dance — or
   **Clear tunes**, which asks you to confirm first.
 - **Edit custom field** — set one of your fields to a value, or choose **Clear

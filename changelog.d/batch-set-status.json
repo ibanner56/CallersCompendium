@@ -1,0 +1,17 @@
+{
+  "id": "batch-set-status",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Collection selection mode can set the status (Active, Deprecated, Broken, Draft or Variation) on every selected dance at once, from More batch actions. Dances that already have it are left alone, and Undo puts each dance's own status back."
+    ],
+    "changed": [
+      "The More batch actions menu is now grouped: rating and status, then tunes and custom field, with a divider between."
+    ]
+  },
+  "core": {
+    "added": [
+      "DanceRepository.setStatusForMany sets a status on many dances in one transaction, stamping only those that change."
+    ]
+  }
+}

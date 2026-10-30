@@ -192,4 +192,38 @@ void main() {
       expect(find.textContaining('ixed level'), findsNothing);
     },
   );
+
+  testWidgets('the grouped menu stays usable at 320 x 568 and 2x text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await pumpBatchScreen(tester, repos);
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+    await _openMenu(tester);
+
+    // The menu scrolls rather than overflowing: bring Status into view and use
+    // it.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('batch-set-status')),
+      50,
+      scrollable: find
+          .ancestor(
+            of: find.byKey(const ValueKey('batch-set-status')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const ValueKey('batch-set-status')));
+    await tester.pumpAndSettle();
+    final thrown = tester.takeException();
+    expect(find.byKey(const ValueKey('batch-status-dialog')), findsOneWidget);
+    expect(thrown, isNull);
+  });
 }

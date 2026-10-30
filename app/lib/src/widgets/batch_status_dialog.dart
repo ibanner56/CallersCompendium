@@ -37,25 +37,29 @@ class _BatchStatusDialogState extends State<_BatchStatusDialog> {
     return AlertDialog(
       key: const ValueKey('batch-status-dialog'),
       title: Text(l10n.collectionSetStatus),
-      content: SizedBox(
-        width: 360,
-        child: RadioGroup<DanceStatus>(
-          groupValue: _selected,
-          onChanged: (value) => setState(() => _selected = value),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final status in DanceStatus.values)
-                RadioListTile<DanceStatus>(
-                  key: ValueKey('batch-status-option-${status.name}'),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  value: status,
-                  title: Text(danceStatusLabel(l10n, status)),
-                ),
-            ],
+      // Scrolls: five options overflow a 320 x 568 screen at the largest text
+      // scale.
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: 360,
+          child: RadioGroup<DanceStatus>(
+            groupValue: _selected,
+            onChanged: (value) => setState(() => _selected = value),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final status in DanceStatus.values)
+                  RadioListTile<DanceStatus>(
+                    key: ValueKey('batch-status-option-${status.name}'),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: status,
+                    title: Text(danceStatusLabel(l10n, status)),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

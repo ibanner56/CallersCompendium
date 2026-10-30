@@ -1,7 +1,7 @@
 # Design: Bulk selection
 
 *Design note N4 for audit finding FIND-8 · v0.2 (2026-10-30) · **Status: decided;
-S1 (Select all, the not-shown count) built, the rest not.** The maintainer chose "design note now" for `design-bulk-select` in
+S1 (Select all, the not-shown count) and S4 (Set status, the grouped ⋮ menu) built, the rest not.** The maintainer chose "design note now" for `design-bulk-select` in
 `maintainer-decisions-2026-10-29.md`, and answered this note's six questions on
 2026-10-29/30 (N4-1 … N4-6 in `maintainer-decisions-2026-10-30.md`). Those are
 quoted under [Decisions](#decisions). One answer differs from the
@@ -348,7 +348,10 @@ the "find, then fix" loop the audit describes.
   exactly as `_batchSetLevel` does (`:1582-1585`).
 - It sits in the menu's *Details* group beside Set rating (see "Selection bar
   layout"). With one field left, the combined *Edit details…* dialog this note
-  weighed is moot.
+  weighed is moot. *Built in S4* (`setStatusForMany`, `widgets/batch_status_dialog.dart`;
+  the menu's Details and Other groups are in; Programs and Delete are added by S5 and S3).
+  The handler captures priors with one `getByIds` read instead of a `getById` per
+  dance (see "Large selections").
 
 ### Source
 
@@ -581,4 +584,4 @@ list; for S3, a failure mid-batch must leave every dance live.
   *Select all* then Add tags and Delete on the lowest-end target, and quote the
   figures in the PR body after the final rebase.
 - **Sync after a mass delete.** 5,000 tombstones in the next pass is untested.
-- **Menu length** at 320 × 568 with the grouped menu (up to 9 entries and three dividers) is unchecked.
+- **Menu length** at 320 × 568 with the grouped menu (up to 9 entries and three dividers): S4 checks the menu as built (five entries and one divider after Select all) at 320 × 568 and 2× text in `test/screens/batch_status_test.dart`; it scrolls rather than overflowing. Re-check as S3, S5 and the Add source branch add entries.
