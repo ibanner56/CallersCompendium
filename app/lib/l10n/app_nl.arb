@@ -2300,17 +2300,17 @@
   "@settingsAppearanceSetListColorTitle": {
     "x-sourceSha256": "7e01df33d94b5e6e118e6fea4b925e84f23ab5cc48edcce8d4ae3975a1c940f6"
   },
-  "settingsAppearanceSetListColorSubtitle": "Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …) — dansen die als mixer zijn gemarkeerd krijgen altijd de mixerkleur, ongeacht de formatie. De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.",
+  "settingsAppearanceSetListColorSubtitle": "Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …) — tenzij je die formatie een eigen kleur hebt gegeven; die gaat voor. Dansen die als mixer zijn gemarkeerd krijgen altijd de mixerkleur, ongeacht de formatie. De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.",
   "@settingsAppearanceSetListColorSubtitle": {
-    "x-sourceSha256": "c20369b0d136fc3f39266e67024966f1e20c80b5f5b716ce98a1531c87faef5d"
+    "x-sourceSha256": "232f4627ed9e2f518689fc74c581702696c4699041bd904500c86630a2da1ca3"
   },
   "settingsAppearanceFormationColoursTitle": "Formatielabelkleuren",
   "@settingsAppearanceFormationColoursTitle": {
     "x-sourceSha256": "79f6f85c15a24218dbe046fac396504b123ad5b6a7779091924f0b884a142676"
   },
-  "settingsAppearanceFormationColoursSubtitle": "Markeer individuele formaties in je eigen kleuren — bijv. Becket (CW) in geel, Becket (CCW) in roze — op danskaarten, dansdetails en de uitvoerheader.",
+  "settingsAppearanceFormationColoursSubtitle": "Markeer individuele formaties in je eigen kleuren — bijv. Becket (CW) in geel, Becket (CCW) in roze — op danskaarten, dansdetails, de uitvoerheader en rijen in de dansvolgorde.",
   "@settingsAppearanceFormationColoursSubtitle": {
-    "x-sourceSha256": "9c2468624ba508b9206d3fe38bf4e701a3c050e3093473eabba1c9d77adce030"
+    "x-sourceSha256": "eec836f8e8c66b85321f7b6e69a83ede9c3e3cda62b45529773a1d8a77635619"
   },
   "settingsAppearanceSelectedBadge": "Geselecteerd",
   "@settingsAppearanceSelectedBadge": {
@@ -2688,9 +2688,9 @@
   "@settingsFormationColoursTitle": {
     "x-sourceSha256": "a104f2d03f3e233ef1d22dc19c2c5a24cbf68ff9293b471fdcefe9020f953d33"
   },
-  "settingsFormationColoursIntro": "Geef een formatie een eigen kleur om het label te markeren op danskaarten, dansdetails en de uitvoerheader. Alleen de formaties die je aanpast worden gemarkeerd; de overige tonen hun label zoals gewoonlijk. De formatie wordt ook altijd als tekst weergegeven, zodat labels leesbaar blijven zonder kleur.",
+  "settingsFormationColoursIntro": "Geef een formatie een eigen kleur om het label te markeren op danskaarten, dansdetails en de uitvoerheader, en om de rijen in de dansvolgorde te kleuren (mixers houden de mixerkleur). Alleen de formaties die je aanpast worden gemarkeerd; de overige tonen hun label zoals gewoonlijk. De formatie wordt ook altijd als tekst weergegeven, zodat labels leesbaar blijven zonder kleur.",
   "@settingsFormationColoursIntro": {
-    "x-sourceSha256": "b2526e3c480c39a881769a827fd2a82d81bdc6bf5d0b200c3553c4e857283592"
+    "x-sourceSha256": "908f4e23f32c266ded3e6fdccea065468f9a4daaeccacfea004031804037595b"
   },
   "settingsFormationColoursListHeader": "Formaties",
   "@settingsFormationColoursListHeader": {

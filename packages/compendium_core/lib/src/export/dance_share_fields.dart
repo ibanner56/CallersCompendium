@@ -42,9 +42,9 @@ enum DanceShareField {
   /// The dance's walkthrough text.
   walkthrough,
 
-  /// The dance's suggested tune list. Unlike every other value here, no
-  /// current renderer emits this field at all — enabling it is what actually
-  /// turns tune rendering on for the first time (issue #1434).
+  /// The dance's suggested tune list. Like [hook] and [sources], no renderer
+  /// emitted this field before the picker existed — enabling it is what
+  /// actually turns tune rendering on for the first time (issue #1434).
   tunes,
 
   /// The dance's hook. Like [tunes], no renderer emitted it before this value

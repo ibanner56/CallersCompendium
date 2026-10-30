@@ -2944,7 +2944,7 @@
   "@settingsAppearanceSetListColorTitle": {
     "description": "Toggle title: tint set-list rows by formation family."
   },
-  "settingsAppearanceSetListColorSubtitle": "Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.",
+  "settingsAppearanceSetListColorSubtitle": "Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own colour, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.",
   "@settingsAppearanceSetListColorSubtitle": {
     "description": "Explanation for the set-list colour-coding toggle."
   },
@@ -2952,7 +2952,7 @@
   "@settingsAppearanceFormationColoursTitle": {
     "description": "List-tile title opening the formation-colour customisation screen."
   },
-  "settingsAppearanceFormationColoursSubtitle": "Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.",
+  "settingsAppearanceFormationColoursSubtitle": "Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.",
   "@settingsAppearanceFormationColoursSubtitle": {
     "description": "Explanation for the formation-colour customisation entry."
   },
@@ -3225,7 +3225,7 @@
   },
   "settingsDefaultsShareFieldsTunes": "Tunes",
   "@settingsDefaultsShareFieldsTunes": {
-    "description": "Label for the Tunes share-field toggle (#1434). Unlike every other field here this defaults off, since no renderer emitted tunes before this preference existed."
+    "description": "Label for the Tunes share-field toggle (#1434). Defaults off, like Hook and Sources: no renderer emitted tunes before this preference existed."
   },
   "settingsDefaultsShareFieldsHook": "Hook",
   "@settingsDefaultsShareFieldsHook": {
@@ -3372,7 +3372,7 @@
   "@settingsFormationColoursTitle": {
     "description": "App-bar title of the per-formation label-colour settings screen."
   },
-  "settingsFormationColoursIntro": "Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.",
+  "settingsFormationColoursIntro": "Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header, and to colour its set-list rows (mixers keep the mixer colour). Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.",
   "@settingsFormationColoursIntro": {
     "description": "Intro paragraph explaining per-formation label colours."
   },

@@ -2300,17 +2300,17 @@
   "@settingsAppearanceSetListColorTitle": {
     "x-sourceSha256": "7e01df33d94b5e6e118e6fea4b925e84f23ab5cc48edcce8d4ae3975a1c940f6"
   },
-  "settingsAppearanceSetListColorSubtitle": "各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。",
+  "settingsAppearanceSetListColorSubtitle": "各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ただし、そのフォーメーションに独自の色を設定している場合は、その色が優先されます。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。",
   "@settingsAppearanceSetListColorSubtitle": {
-    "x-sourceSha256": "c20369b0d136fc3f39266e67024966f1e20c80b5f5b716ce98a1531c87faef5d"
+    "x-sourceSha256": "232f4627ed9e2f518689fc74c581702696c4699041bd904500c86630a2da1ca3"
   },
   "settingsAppearanceFormationColoursTitle": "フォーメーションラベルの色",
   "@settingsAppearanceFormationColoursTitle": {
     "x-sourceSha256": "79f6f85c15a24218dbe046fac396504b123ad5b6a7779091924f0b884a142676"
   },
-  "settingsAppearanceFormationColoursSubtitle": "個々のフォーメーションを独自の色でハイライト表示（例：Becket（CW）を黄色、Becket（CCW）をピンク）します。ダンスカード、ダンス詳細、パフォームヘッダーに反映されます。",
+  "settingsAppearanceFormationColoursSubtitle": "個々のフォーメーションを独自の色でハイライト表示（例：Becket（CW）を黄色、Becket（CCW）をピンク）します。ダンスカード、ダンス詳細、パフォームヘッダー、セットリストの行に反映されます。",
   "@settingsAppearanceFormationColoursSubtitle": {
-    "x-sourceSha256": "9c2468624ba508b9206d3fe38bf4e701a3c050e3093473eabba1c9d77adce030"
+    "x-sourceSha256": "eec836f8e8c66b85321f7b6e69a83ede9c3e3cda62b45529773a1d8a77635619"
   },
   "settingsAppearanceSelectedBadge": "選択済み",
   "@settingsAppearanceSelectedBadge": {
@@ -2688,9 +2688,9 @@
   "@settingsFormationColoursTitle": {
     "x-sourceSha256": "a104f2d03f3e233ef1d22dc19c2c5a24cbf68ff9293b471fdcefe9020f953d33"
   },
-  "settingsFormationColoursIntro": "フォーメーションに独自の色を設定すると、ダンスカード、ダンス詳細、パフォームヘッダーのラベルをハイライト表示できます。カスタマイズしたフォーメーションのみハイライトされ、他のフォーメーションは通常どおりラベルが表示されます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。",
+  "settingsFormationColoursIntro": "フォーメーションに独自の色を設定すると、ダンスカード、ダンス詳細、パフォームヘッダーのラベルをハイライト表示し、セットリストの行にも色が付きます（ミキサーはミキサーの色のままです）。カスタマイズしたフォーメーションのみハイライトされ、他のフォーメーションは通常どおりラベルが表示されます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。",
   "@settingsFormationColoursIntro": {
-    "x-sourceSha256": "b2526e3c480c39a881769a827fd2a82d81bdc6bf5d0b200c3553c4e857283592"
+    "x-sourceSha256": "908f4e23f32c266ded3e6fdccea065468f9a4daaeccacfea004031804037595b"
   },
   "settingsFormationColoursListHeader": "フォーメーション",
   "@settingsFormationColoursListHeader": {

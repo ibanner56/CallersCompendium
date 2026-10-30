@@ -2390,7 +2390,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Jede Tanzzeile nach Formationsfamilie (Contra, Mixer, Square, …) einfärben — Tänze, die als Mixer markiert sind, erhalten stets die Mixer-Farbe, unabhängig von der Formation. Die Formation wird immer als Text angezeigt, sodass Zeilen auch ohne Farbe lesbar bleiben.';
+      'Jede Tanzzeile nach Formationsfamilie (Contra, Mixer, Square, …) einfärben – es sei denn, du hast dieser Formation eine eigene Farbe gegeben; sie hat Vorrang. Tänze, die als Mixer markiert sind, erhalten stets die Mixer-Farbe, unabhängig von der Formation. Die Formation wird immer als Text angezeigt, sodass Zeilen auch ohne Farbe lesbar bleiben.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -2398,7 +2398,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Einzelne Formationen in eigenen Farben hervorheben – z. B. Becket (CW) in Gelb, Becket (CCW) in Pink – auf Tanzkarten, in den Tanzdetails und im Perform-Header.';
+      'Einzelne Formationen in eigenen Farben hervorheben – z. B. Becket (CW) in Gelb, Becket (CCW) in Pink – auf Tanzkarten, in den Tanzdetails, im Perform-Header und in den Zeilen der Tanzfolge.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Ausgewählt';
@@ -2744,7 +2744,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Einer Formation eine eigene Farbe geben, um ihre Bezeichnung auf Tanzkarten, in Tanzdetails und im Perform-Header hervorzuheben. Nur die angepassten Formationen werden hervorgehoben; die übrigen zeigen ihre Bezeichnung wie gewöhnlich. Die Formation wird immer als Text angezeigt, sodass Bezeichnungen auch ohne Farbe lesbar bleiben.';
+      'Einer Formation eine eigene Farbe geben, um ihre Bezeichnung auf Tanzkarten, in Tanzdetails und im Perform-Header hervorzuheben und ihre Zeilen in der Tanzfolge einzufärben (Mixer behalten die Mixer-Farbe). Nur die angepassten Formationen werden hervorgehoben; die übrigen zeigen ihre Bezeichnung wie gewöhnlich. Die Formation wird immer als Text angezeigt, sodass Bezeichnungen auch ohne Farbe lesbar bleiben.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formationen';

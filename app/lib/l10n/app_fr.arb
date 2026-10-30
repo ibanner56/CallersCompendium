@@ -2300,17 +2300,17 @@
   "@settingsAppearanceSetListColorTitle": {
     "x-sourceSha256": "7e01df33d94b5e6e118e6fea4b925e84f23ab5cc48edcce8d4ae3975a1c940f6"
   },
-  "settingsAppearanceSetListColorSubtitle": "Teinter chaque ligne de danse selon sa famille de formation (contra, mixer, square…) — les danses marquées comme mixers reçoivent toujours la teinte mixer quelle que soit la formation. La formation est toujours affichée en texte également, donc les lignes restent lisibles sans couleur.",
+  "settingsAppearanceSetListColorSubtitle": "Teinter chaque ligne de danse selon sa famille de formation (contra, mixer, square…) — sauf si vous avez donné à cette formation sa propre couleur, qui l’emporte. Les danses marquées comme mixers reçoivent toujours la teinte mixer quelle que soit la formation. La formation est toujours affichée en texte également, donc les lignes restent lisibles sans couleur.",
   "@settingsAppearanceSetListColorSubtitle": {
-    "x-sourceSha256": "c20369b0d136fc3f39266e67024966f1e20c80b5f5b716ce98a1531c87faef5d"
+    "x-sourceSha256": "232f4627ed9e2f518689fc74c581702696c4699041bd904500c86630a2da1ca3"
   },
   "settingsAppearanceFormationColoursTitle": "Couleurs des étiquettes de formation",
   "@settingsAppearanceFormationColoursTitle": {
     "x-sourceSha256": "79f6f85c15a24218dbe046fac396504b123ad5b6a7779091924f0b884a142676"
   },
-  "settingsAppearanceFormationColoursSubtitle": "Surlignez les formations individuelles dans vos propres couleurs — ex. Becket (CW) en jaune, Becket (CCW) en rose — sur les fiches de danse, le détail de la danse et l’en-tête Perform.",
+  "settingsAppearanceFormationColoursSubtitle": "Surlignez les formations individuelles dans vos propres couleurs — ex. Becket (CW) en jaune, Becket (CCW) en rose — sur les fiches de danse, le détail de la danse, l’en-tête Perform et les lignes de la liste de danses.",
   "@settingsAppearanceFormationColoursSubtitle": {
-    "x-sourceSha256": "9c2468624ba508b9206d3fe38bf4e701a3c050e3093473eabba1c9d77adce030"
+    "x-sourceSha256": "eec836f8e8c66b85321f7b6e69a83ede9c3e3cda62b45529773a1d8a77635619"
   },
   "settingsAppearanceSelectedBadge": "Sélectionné",
   "@settingsAppearanceSelectedBadge": {
@@ -2688,9 +2688,9 @@
   "@settingsFormationColoursTitle": {
     "x-sourceSha256": "a104f2d03f3e233ef1d22dc19c2c5a24cbf68ff9293b471fdcefe9020f953d33"
   },
-  "settingsFormationColoursIntro": "Attribuez une couleur propre à une formation pour mettre en évidence son étiquette sur les fiches de danse, le détail de la danse et l’en-tête Perform. Seules les formations que vous personnalisez sont surlignées ; les autres affichent leur étiquette normalement. La formation est toujours affichée en texte également, donc les étiquettes restent lisibles sans couleur.",
+  "settingsFormationColoursIntro": "Attribuez une couleur propre à une formation pour mettre en évidence son étiquette sur les fiches de danse, le détail de la danse et l’en-tête Perform, et pour colorer ses lignes dans la liste de danses (les mixers gardent la couleur mixer). Seules les formations que vous personnalisez sont surlignées ; les autres affichent leur étiquette normalement. La formation est toujours affichée en texte également, donc les étiquettes restent lisibles sans couleur.",
   "@settingsFormationColoursIntro": {
-    "x-sourceSha256": "b2526e3c480c39a881769a827fd2a82d81bdc6bf5d0b200c3553c4e857283592"
+    "x-sourceSha256": "908f4e23f32c266ded3e6fdccea065468f9a4daaeccacfea004031804037595b"
   },
   "settingsFormationColoursListHeader": "Formations",
   "@settingsFormationColoursListHeader": {

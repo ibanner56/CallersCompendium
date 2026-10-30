@@ -16,8 +16,10 @@ import 'wcag.dart';
 /// Note: when [Dance.mixer] is `true`, the row accent is [FormationFamily.mixer]
 /// **regardless of the dance's shape** — see [setListAccentForShapeAndMixer].
 /// This means the family here describes the shape-to-family mapping only; the
-/// resolved accent for a specific dance must go through [setListAccentForDance]
-/// or [setListAccentForShapeAndMixer], not [setListAccentForShape].
+/// accent of a set-list row must go through [setListAccentForRow] (which also
+/// applies the user's own formation colour), not [setListAccentForShape].
+/// [setListAccentForShapeAndMixer] and [setListAccentForDance] are the
+/// shape-and-mixer-only resolutions, without the user's colour.
 enum FormationFamily {
   /// The bulk of contra dances: duple (improper/proper/indecent), becket, and
   /// generic longways sets.
