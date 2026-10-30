@@ -162,9 +162,12 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       final edit = await renameTag(_repos, entry.id, name);
       _offerUndo(edit, l10n.tagManagerRenamedSnack(entry.name, name));
     } on ReferenceNameTakenException catch (taken) {
+      // diagnostics: silent — not a failure: the name is taken, and the
+      // merge offer is the answer to it.
       await _offerMerge(entry, name, taken.liveIds);
     } catch (e, stackTrace) {
-      _reportFailure(e, stackTrace, 'tag_manager_screen._rename');
+      logCaughtError(e, stackTrace, source: 'tag_manager_screen._rename');
+      _showEditFailed();
     }
   }
 
@@ -210,7 +213,8 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
             : l10n.tagManagerMergedSeveralSnack(matches.length + 1, typedName),
       );
     } catch (e, stackTrace) {
-      _reportFailure(e, stackTrace, 'tag_manager_screen._offerMerge');
+      logCaughtError(e, stackTrace, source: 'tag_manager_screen._offerMerge');
+      _showEditFailed();
     }
   }
 
@@ -231,7 +235,8 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       );
       _offerUndo(edit, l10n.tagManagerMergedSnack(entry.name, into.name));
     } catch (e, stackTrace) {
-      _reportFailure(e, stackTrace, 'tag_manager_screen._mergeInto');
+      logCaughtError(e, stackTrace, source: 'tag_manager_screen._mergeInto');
+      _showEditFailed();
     }
   }
 
@@ -244,7 +249,8 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         l10n.tagManagerDeletedSnack(entry.name, edit.liveDanceCount),
       );
     } catch (e, stackTrace) {
-      _reportFailure(e, stackTrace, 'tag_manager_screen._delete');
+      logCaughtError(e, stackTrace, source: 'tag_manager_screen._delete');
+      _showEditFailed();
     }
   }
 
@@ -286,8 +292,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     );
   }
 
-  void _reportFailure(Object e, StackTrace stackTrace, String source) {
-    logCaughtError(e, stackTrace, source: source);
+  void _showEditFailed() {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
