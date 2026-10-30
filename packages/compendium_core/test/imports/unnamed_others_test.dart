@@ -39,18 +39,23 @@ void main() {
     });
 
     test('leaves other credits alone', () {
-      final peeled = peelUnnamedOthers([
+      final names = [
         'Bob Others',
         'Alice and Bob',
         'Sandra Othersen',
+        'Sandothers',
+        'Sand others',
+        'Janet al',
+        'Smith-Others',
+        '',
+        '.',
+        '(',
+        ')',
+        ',',
         null,
-      ]);
-      expect(peeled.fields, [
-        'Bob Others',
-        'Alice and Bob',
-        'Sandra Othersen',
-        null,
-      ]);
+      ];
+      final peeled = peelUnnamedOthers(names);
+      expect(peeled.fields, names);
       expect(peeled.hadOthers, isFalse);
     });
   });

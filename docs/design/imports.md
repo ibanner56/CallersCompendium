@@ -113,9 +113,10 @@ pasted "by" line) takes an unnamed-others credit off its author fields with
 one ending a field (`Rick Mohr and others.`, `Rick Mohr (and others)`). The
 named authors are credited and the dance gets a `Choreography: Rick Mohr and
 others` calling-notes line (`Choreography: others, not named` when nobody is
-named), so no choreographer called "Others" is made. This is CC-only: the
-maintainer's decision covers the CC import, and ContraDB and The Caller's Box
-still split "X and others" into `X` and `others`. The author set for dedupe
+named), so no choreographer called "Others" is made. Scoping it to CC was the
+implementer's choice, not the maintainer's: the decision was made on a CC
+issue, and `splitAuthorNames` is shared, so ContraDB and The Caller's Box still
+split "X and others" into `X` and `others`. The author set for dedupe
 still overlaps across sources on the named authors.
 
 - **Matching policy — exact, normalized, conservative.** A name matches an existing
