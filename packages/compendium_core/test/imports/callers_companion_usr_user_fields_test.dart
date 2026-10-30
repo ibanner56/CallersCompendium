@@ -683,9 +683,7 @@ void main() {
       );
       // Custom fields are the person's own, so a re-import replaces only the
       // choreography; a definition no committed dance uses is dropped.
-      expect(await valuesByKey(await danceNamed('A')), {
-        'card_colour': 'blue',
-      });
+      expect(await valuesByKey(await danceNamed('A')), {'card_colour': 'blue'});
       expect([for (final f in await defs.listAll()) f.key], ['card_colour']);
     });
   });

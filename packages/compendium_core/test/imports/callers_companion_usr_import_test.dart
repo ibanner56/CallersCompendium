@@ -1599,9 +1599,7 @@ void main() {
         kind: LinkKind.video,
         url: 'https://example.com/video',
       );
-      await dances.update(
-        (await dances.getById(id4))!.copyWith(links: [mine]),
-      );
+      await dances.update((await dances.getById(id4))!.copyWith(links: [mine]));
 
       final again = await importer.import(
         _ccUsrBytesWithRelated([('4', '7')]),
@@ -1614,9 +1612,10 @@ void main() {
         CommitAction.reimport,
         CommitAction.reimport,
       ]);
-      expect([for (final l in (await dances.getById(id4))!.links) l.id], [
-        'mine',
-      ]);
+      expect(
+        [for (final l in (await dances.getById(id4))!.links) l.id],
+        ['mine'],
+      );
     });
 
     test('a mirrored pair of rows in the archive yields two independent '

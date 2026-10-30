@@ -676,10 +676,9 @@ void main() {
       expect(after.links, before.links);
       // The incoming author is neither credited nor created.
       expect(session.createdChoreographerIds, isEmpty);
-      expect(
-        [for (final c in await choreographers.listAll()) c.name],
-        isNot(contains('Someone Else')),
-      );
+      expect([
+        for (final c in await choreographers.listAll()) c.name,
+      ], isNot(contains('Someone Else')));
     });
   });
 
@@ -1486,10 +1485,9 @@ void main() {
         expect(await authorNamesOf(id), ['First Author']);
         expect(s2.records.single.authorResolutions, isEmpty);
         expect(s2.createdChoreographerIds, isEmpty);
-        expect(
-          [for (final c in await choreographers.listAll()) c.name],
-          isNot(contains('Second Author')),
-        );
+        expect([
+          for (final c in await choreographers.listAll()) c.name,
+        ], isNot(contains('Second Author')));
       });
 
       test('undo removes a choreographer created by the batch', () async {

@@ -224,16 +224,13 @@ void main() {
     const unreadable = UnreadableFigures('{"saved": "bytes"}');
     const incomingUnreadable = UnreadableFigures('{"other": "bytes"}');
 
-    for (final (name, existingFigures, incomingFigures) in <(
-      String,
-      FigureSource,
-      FigureSource,
-    )>[
-      ('unreadable over decoded', decoded, incomingUnreadable),
-      ('unreadable over unreadable', unreadable, incomingUnreadable),
-      ('empty over decoded', decoded, DecodedFigures(const [])),
-      ('empty over unreadable', unreadable, DecodedFigures(const [])),
-    ]) {
+    for (final (name, existingFigures, incomingFigures)
+        in <(String, FigureSource, FigureSource)>[
+          ('unreadable over decoded', decoded, incomingUnreadable),
+          ('unreadable over unreadable', unreadable, incomingUnreadable),
+          ('empty over decoded', decoded, DecodedFigures(const [])),
+          ('empty over unreadable', unreadable, DecodedFigures(const [])),
+        ]) {
       test(name, () {
         final existing = saved(existingFigures);
         final result = withReimportedChoreography(
