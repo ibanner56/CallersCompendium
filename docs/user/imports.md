@@ -388,7 +388,9 @@ Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app
 brought your dances over with their titles, authors and notes but an empty body.
 The import now reads that choreography, so a migrated dance arrives with real
-A1/A2/B1/B2 figures you can search and edit. Anything the app cannot represent
+A1/A2/B1/B2 figures you can search and edit. A line that names several figures
+separated by commas, such as "Slide Left, Circle Left 3/4", comes across as
+those figures, sharing the line's beats. Anything the app cannot represent
 faithfully is kept word-for-word as text rather than guessed at.
 
 The up to three **custom columns** you defined in Caller's Companion come

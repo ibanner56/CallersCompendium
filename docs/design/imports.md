@@ -1094,7 +1094,9 @@ as for TCB heys.
 Caller's Companion writes the same list with commas, `Square through 3 without
 hands (NR, PL, NR) to new Neighbor`; that list decodes the same way and the words
 after it become the note (#1971), unless they open another clause (`, then
-balance`, `and swing`), which leaves the line custom. A comma list on a square
+balance`, `and swing`), which leaves the line custom for this reader (the
+Caller's Companion mapper may then split it at its commas, see *Caller's
+Companion comma lines* below). A comma list on a square
 through *with* hands is read the same way (maintainer decision on #1975), and its
 cells may be spaced (`P R, N1 L`) or spell the relationship (`Neighbor R,
 Partner L`). Before #1975 such a list was dropped when the line had only
@@ -1679,7 +1681,9 @@ has to be judged in its own context.
   `who2` when it agrees with that pair and hand, and is otherwise the note
   (maintainer decision); any other bracket is the note (the author's call), as
   is a trailing `, to <whom>` that names one dancer set; anything else keeps
-  the line custom. The Caller's Box front end reads this wording
+  the line custom for this reader (the Caller's Companion mapper may then
+  split it at its commas, see *Caller's Companion comma lines* below). The
+  Caller's Box front end reads this wording
   (`_handBalanceSquareThrough`), next to the pass-list decoder it shares. A
   decoded comma list says nothing about the balance, so unlike a Caller's Box
   `;` list it does not write `balance: false`. Square throughs already
@@ -1856,6 +1860,62 @@ has to be judged in its own context.
   R&L` stays text: the line reads as `grand` followed by a right and left
   through, and the leftover word keeps it custom. `pass by L` is not read
   either, as before this change.
+
+  **Caller's Companion comma lines (#1975):** a body line that names several
+  figures separated by commas is split into them
+  (`splitCallersCompanionCommaLine`), in the Caller's Companion mapper only. It
+  is tried when the line did not read whole, or read with a note holding the
+  line's last piece (`noteSwallowsPieces`): `Larks pull by Left, Partner pull
+  by Right, Robins allemande Left 1.0` read as a pull by noting the rest. The
+  maintainer's decisions on #1975 (decision 9 and the comment of 2026-10-30):
+  - **Beats:** every figure but the last keeps its default beats and the last
+    takes the rest, so `(8) Slide Left, Circle Left 3/4` is 2 + 6. When
+    nothing is left for the last, the line stays text rather than becoming
+    figures danced at the same time: `(8) Larks allemande Left 1.5, Robins
+    Orbit CW 0.5`. The rule can leave the last figure an odd count: `(16)
+    Square through 3 without hands (NR, PL, NR), Partner balance and swing`
+    gives the circular hey its 8 and the balance and swing 8, where the
+    taxonomy's balanced swing is 16.
+  - **A roll away or give and take** after another figure modifies it: the two
+    become a `modifier` container sharing their beats (`Circle Left 3/4,
+    Partner Roll Away with half sashay`). No other move does.
+  - **A balance before a move that carries one** folds into it: `Partner
+    R-hand balance, box the gnat` is one box the gnat with its balance, `who`
+    the pair that balances and `hand` its hand.
+  - **A last piece that says where the dancers end up** fills the figure's end
+    facing when it has one and the value fits (`Partner swing, face down` is a
+    swing ending facing down; `face N2` after a courtesy turn), and is
+    otherwise the figure's note (`Circle Left 1.0, face New Neighbors`).
+
+  The rest is the author's:
+  - The pieces are grouped from the left, longest run first, so `Ring balance,
+    spin to the right` stays one petronella. A run of several pieces must read
+    with no note, and a single piece is read as free-text entry reads it, so a
+    note holding another move's name or an unread amount (`Balance and
+    California Twirl`, `Right-hand star 7/8`) does not count as a figure.
+  - The balance fold uses The Caller's Box's move list (`balanceFoldMoves`) but
+    not its subject rule, which needs the balance and the move to name the
+    same dancers: here the move takes the pair the balance names when it names
+    none itself, a balance that names no pair (a bare `Balance` reads as
+    everyone) leaves the move's own, and a move that names other dancers keeps
+    the balance as its own figure. A ring balance folds into a petronella, as
+    Fold 1 does. A hand the move has no slot for (a swing) is dropped, as Fold
+    1 drops it.
+  - A figure's default is its taxonomy beats for the params it has, so a
+    balanced swing counts 16; a folded balance counts at least the balance's
+    and the move's defaults added up, as Fold 1 adds its two lines' beats
+    (the taxonomy gives a balanced box the gnat only its own 4). A compound
+    prefix with one group per figure (`(4,4)`) gives each its group, as #560
+    does for a clean split, and a line with no beats leaves them unset.
+  - A place to end is a last piece opening with `face`, `facing`, `end` or `to`,
+    scrubbed like the rest of the line, so `make short waves` or `form ring`
+    after a figure still keeps the line text. Any other piece that reads as
+    nothing keeps the whole line text, and a line of more than six pieces is
+    not tried.
+  - Free-text entry and **Re-check custom figures** do not split at commas.
+
+  The shared balance reader also reads the hand Caller's Companion writes
+  before it (`R-hand balance`, `Right hand balance`, `RH-balance`).
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on

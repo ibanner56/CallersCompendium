@@ -1,0 +1,19 @@
+{
+  "id": "1975-comma-lines",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A Caller's Companion line that names several figures separated by commas, such as \"Slide Left, Circle Left 3/4\" or \"N1 pull by R, N2 pull by L\", now comes in as those figures, instead of text or one figure noting the rest. Each keeps its usual beats and the last takes what is left; a line where nothing is left for the last stays as text.",
+      "From Caller's Companion, \"Partner R-hand balance, box the gnat\" comes in as one box the gnat with its balance, \"Circle Left 3/4, Partner Roll Away with half sashay\" as a circle with the roll away during it, and \"Partner swing, face down\" as a swing ending facing down. A closing \"face new Neighbors\" is kept as the figure's note.",
+      "\"Partner R-hand balance\" and \"Neighbor RH-balance\" now come in as a balance with its hand, in imports and in figures you type."
+    ]
+  },
+  "core": {
+    "added": [
+      "splitCallersCompanionCommaLine splits a Caller's Companion body line at its top-level commas when it did not read whole, or read with a note holding its last piece (noteSwallowsPieces); the Caller's Companion mapper calls it. balanceFoldMoves exposes the Caller's Box Fold 1 move set, splitTopLevel the Caller's Box top-level splitter, and whileModifierMoves the moves that modify the figure before them."
+    ],
+    "changed": [
+      "The shared balance recognizer reads a hand before \"balance\": \"R-hand\", \"Right hand\", \"RH-balance\"."
+    ]
+  }
+}
