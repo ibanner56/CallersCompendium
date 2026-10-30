@@ -3634,6 +3634,20 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンス',
+    );
+    return '$label、$_temp0、$selected件選択中';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => '選択を終了';
 
   @override

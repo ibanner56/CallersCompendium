@@ -1,7 +1,7 @@
 # Design: Bulk selection
 
 *Design note N4 for audit finding FIND-8 · v0.2 (2026-10-30) · **Status: decided;
-S1 (Select all, the not-shown count) built, the rest not.** The maintainer chose "design note now" for `design-bulk-select` in
+S1 (Select all, the not-shown count) and S2 (grouping kept while selecting, section checkboxes) built, the rest not.** The maintainer chose "design note now" for `design-bulk-select` in
 `maintainer-decisions-2026-10-29.md`, and answered this note's six questions on
 2026-10-29/30 (N4-1 … N4-6 in `maintainer-decisions-2026-10-30.md`). Those are
 quoted under [Decisions](#decisions). One answer differs from the
@@ -223,6 +223,8 @@ no extra bar control.
 - The checkbox applies to the section's rows in `_results`, not to hidden
   selections, matching Q1.
 - The header count (`count`) is the section's total, not the selected number.
+
+*Built in S2:* grouping stays on; the checkbox is one semantics node with checked/mixed state and a tap action, acts on the shown rows only, and waits for a pending search like Select all (implementer's calls, not maintainer decisions: a tap on a mixed header selects the rest; the whole header row is tappable).
 
 **Rejected:** keeping the flat list and adding a "select by tag" action. It
 re-creates grouping inside the bar and leaves the reflow bug standing.

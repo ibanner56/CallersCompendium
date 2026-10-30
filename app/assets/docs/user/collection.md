@@ -103,6 +103,12 @@ section, and picking a dance behaves exactly as it does anywhere else in
 **Collection** (open it to read or perform; press and hold to select several).
 Choose **No grouping** to return to the flat list.
 
+Grouping stays on while you [select several dances](#change-many-dances-at-once),
+so the list does not change shape under your finger. Each section's header gains
+a checkbox that selects the section's dances shown in the list, or clears them
+when they are all selected; it shows a dash when only some are. It never touches
+a selected dance that a search is hiding.
+
 Grouping is for the current session only: it keeps out of your way next time you
 open the app, so you always start from your usual order and pick a category when
 you want one.
@@ -510,6 +516,10 @@ for example "14 selected (9 not shown)" — with **Deselect those not shown** to
 drop them. Every change applies to all selected dances, shown or not. A
 selected dance that is deleted, or removed by another device, leaves the
 selection by itself. Turning on **Online search** ends selection mode.
+
+With **Group by category** on, the sections stay while you select, and each
+section header has a checkbox for the dances it shows (see
+[Group by category](#group-by-category-a-dances-vibe)).
 
 The changes:
 

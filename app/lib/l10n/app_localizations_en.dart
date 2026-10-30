@@ -3780,6 +3780,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances',
+      one: '1 dance',
+    );
+    return '$label, $_temp0, $selected selected';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => 'Exit selection';
 
   @override

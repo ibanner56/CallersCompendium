@@ -5971,6 +5971,16 @@ abstract class AppLocalizations {
   /// **'{label}, {count, plural, =1{1 dance} other{{count} dances}}'**
   String collectionGroupSectionSemantics(String label, int count);
 
+  /// Accessibility label announced for a category section header while selecting dances; it names the checkbox that selects the section's rows. {label} is the section name, {count} the number of dances in it and {selected} how many of them are selected.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {count, plural, =1{1 dance} other{{count} dances}}, {selected} selected'**
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  );
+
   /// Tooltip for the button that leaves multi-select (batch) mode.
   ///
   /// In en, this message translates to:

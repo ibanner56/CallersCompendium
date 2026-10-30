@@ -3904,6 +3904,10 @@
   "@collectionGroupSectionSemantics": {
     "x-sourceSha256": "93af04a8f9319ec6cd414c9b5059eee420b4f991ee2c13c6ac74a455c63cdf06"
   },
+  "collectionGroupSectionSelectedSemantics": "{label}, {count, plural, =1{1 Tanz} other{{count} Tänze}}, {selected} ausgewählt",
+  "@collectionGroupSectionSelectedSemantics": {
+    "x-sourceSha256": "a7b4ef10339716e07567ba3b5c66bc77e65bff16373e886fac11540ba76f45f3"
+  },
   "collectionExitSelectionTooltip": "Auswahl beenden",
   "@collectionExitSelectionTooltip": {
     "x-sourceSha256": "22206bc678060c0d32cf2b53b314202f3803e2acb21ed6b123343f16889bf0c4"
