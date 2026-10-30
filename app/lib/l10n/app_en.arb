@@ -12555,6 +12555,15 @@
       }
     }
   },
+  "recentlyDeletedDeletedSyncedSnack": "\"{title}\" permanently deleted. A small deletion record is kept so your other devices delete it too.",
+  "@recentlyDeletedDeletedSyncedSnack": {
+    "description": "Snackbar after a permanent delete of an item Device Sync has already shared: its content is erased, but a small deletion record stays so other devices delete it too. {title} is the item title, plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "recentlyDeletedRestore": "Restore",
   "@recentlyDeletedRestore": {
     "description": "Label for the button that restores a recently-deleted item."

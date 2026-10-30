@@ -244,6 +244,49 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Permanently delete on a synced dance hides it and says a deletion record '
+    'stays (LIFE-2)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Synced Dance'));
+      await repos.syncLocal.markPublished(
+        kind: SyncRecordKind.dance,
+        recordId: 'd1',
+      );
+      await repos.dances.softDelete('d1', at: _now);
+
+      await _pumpScreen(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('permanent-delete-d1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('confirm-permanent-delete')));
+      await tester.pumpAndSettle();
+
+      // Gone from the list, though its blank deletion record stays on disk.
+      expect(find.byKey(const ValueKey('restore-d1')), findsNothing);
+      expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
+      final kept = await repos.dances.getById('d1', includeDeleted: true);
+      expect(kept!.title, blankedRecordTitle);
+      expect(find.textContaining('deletion record is kept'), findsOneWidget);
+    },
+  );
+
+  testWidgets('a dance already permanently deleted is not listed', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Removed Dance'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Trashed Dance'));
+    // The mark a build that predates blanking left on a published dance.
+    await repos.dances.softDelete('d1', at: DateTime.utc(1970));
+    await repos.dances.softDelete('d2', at: _now);
+
+    await _pumpScreen(tester, repos);
+
+    expect(find.text('Removed Dance'), findsNothing);
+    expect(find.text('Trashed Dance'), findsOneWidget);
+  });
+
   testWidgets('Permanently delete dialog cancel leaves the dance in place', (
     tester,
   ) async {

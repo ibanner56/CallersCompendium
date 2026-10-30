@@ -9609,6 +9609,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String recentlyDeletedDeletedSyncedSnack(String title) {
+    return '\"$title\" permanently deleted. A small deletion record is kept so your other devices delete it too.';
+  }
+
+  @override
   String get recentlyDeletedRestore => 'Restore';
 
   @override

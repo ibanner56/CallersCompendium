@@ -17,6 +17,7 @@ import '../../model/partial_date.dart';
 import '../../model/phrase_structure.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/source_citation.dart';
+import '../../model/stored_timestamp.dart';
 import '../../search/search_sort.dart';
 import '../../search/title_sort_key.dart';
 import '../../search/filter.dart';
@@ -31,6 +32,7 @@ import '../../taxonomy/taxonomy.dart';
 import '../calling_history_scope.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../permanent_deletion.dart';
 import '../shareable_text.dart';
 import '../tables.dart';
 import '../utc_datetime.dart';
@@ -2420,6 +2422,241 @@ class DanceRepository {
         await _garbageCollectOrphanedRefs(orphanCandidates);
       }
     });
+  }
+
+  /// "Permanently delete" for one dance in Recently deleted (LIFE-2).
+  ///
+  /// Erases the dance when no device has published it, exactly as before. A
+  /// published dance cannot be erased (sync-spec.md §3.1 forfeiture), so it is
+  /// blanked instead and hidden from Recently deleted; see
+  /// `permanent_deletion.dart` for the design and the maintainer's decision.
+  ///
+  /// The deletion is a user's decision, so it stamps `existence_at` causally,
+  /// as [softDelete] does; it then marks the row with [permanentlyDeletedAt]
+  /// and hands it to [removePermanentlyDeleted]. A dance that is missing or
+  /// live is left alone and reported as [PermanentDeletion.none].
+  Future<PermanentDeletion> permanentlyDelete(
+    String id, {
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    return _db.transaction(() async {
+      final trashed =
+          await (_db.select(_db.dances)
+                ..where((t) => t.id.equals(id) & t.deletedAt.isNotNull()))
+              .getSingleOrNull();
+      if (trashed == null) return PermanentDeletion.none;
+      await _stampExistence(id, at: now, deleted: true);
+      // The stamp above also moved `updated_at` to [now]. Put the content stamp
+      // back: the blank body must outrank the content it replaces, which may
+      // carry a stamp ahead of this clock.
+      await (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(
+        DancesCompanion(
+          updatedAt: Value(trashed.updatedAt),
+          deletedAt: Value(permanentlyDeletedAt),
+        ),
+      );
+      final published = await isPublishedSyncRecord(
+        _db,
+        kind: SyncRecordKind.dance,
+        recordId: id,
+      );
+      await removePermanentlyDeleted(now: now, onlyIds: [id]);
+      return published ? PermanentDeletion.blanked : PermanentDeletion.erased;
+    });
+  }
+
+  /// Finishes every permanently deleted dance ([isPermanentlyDeleted]): erases
+  /// the unpublished ones through [purgeDeleted] and blanks the published ones
+  /// that still hold content. Returns how many it erased or blanked.
+  ///
+  /// The startup sweep runs this whatever the retention setting, because the
+  /// mark records the user's own decision, not an expiry. It is how a dance
+  /// marked by a build that predates blanking, or by such a build on a peer,
+  /// gets blanked. A dance already blank is skipped, so the sweep does not
+  /// restamp it and republish it on every launch.
+  ///
+  /// When [onlyIds] is non-null only those dances are considered.
+  Future<int> removePermanentlyDeleted({
+    required DateTime now,
+    Iterable<String>? onlyIds,
+  }) {
+    assertUtc(now, 'now');
+    final restrictTo = onlyIds?.toSet();
+    return _db.transaction(() async {
+      final marked = <DanceRow>[];
+      if (restrictTo == null) {
+        marked.addAll(
+          await (_db.select(
+            _db.dances,
+          )..where((t) => t.deletedAt.equals(permanentlyDeletedAt))).get(),
+        );
+      } else {
+        for (final chunk in _chunkIds(restrictTo.toList())) {
+          marked.addAll(
+            await (_db.select(_db.dances)..where(
+                  (t) =>
+                      t.deletedAt.equals(permanentlyDeletedAt) &
+                      t.id.isIn(chunk),
+                ))
+                .get(),
+          );
+        }
+      }
+      if (marked.isEmpty) return 0;
+      final publishedIds = await publishedSyncRecordIds(
+        _db,
+        kind: SyncRecordKind.dance,
+        recordIds: marked.map((row) => row.id),
+      );
+      var removed = await purgeDeleted(
+        now: now,
+        onlyIds: [
+          for (final row in marked)
+            if (!publishedIds.contains(row.id)) row.id,
+        ],
+      );
+      for (final row in marked) {
+        if (!publishedIds.contains(row.id) || _isBlank(row)) continue;
+        await _blank(row, now: now);
+        removed++;
+      }
+      return removed;
+    });
+  }
+
+  /// A content stamp strictly after [current]: [now], or one stored tick past
+  /// [current] when the clock is behind it. A blank body that did not outrank
+  /// the content it replaces would lose last-writer-wins on every peer.
+  static DateTime _stampAfter(DateTime current, DateTime now) =>
+      nextStoredTimestamp(
+        now: now.isAfter(current) ? now : current.add(storedTimestampTick),
+        current: [current],
+      );
+
+  /// Whether [row] already holds nothing but a deletion record.
+  static bool _isBlank(DanceRow row) =>
+      row.title == blankedRecordTitle &&
+      row.form == DanceForm.contra &&
+      row.formationShape == FormationShape.dupleImproper &&
+      row.formationDetail == null &&
+      row.progression == Progression.single &&
+      row.phraseStructure.isEmpty &&
+      row.figuresJson == '[]' &&
+      row.hook.isEmpty &&
+      row.callingNotes.isEmpty &&
+      row.walkthrough.isEmpty &&
+      row.status == DanceStatus.active &&
+      row.levelId == null &&
+      !row.mixedLevel &&
+      !row.mixer &&
+      row.rating == null &&
+      row.tunesJson == '[]' &&
+      row.composedOn == null &&
+      row.revisedOn == null;
+
+  /// Removes everything a trashed, published dance holds except its deletion
+  /// record, and stamps the blank body newer than every copy a peer holds.
+  ///
+  /// What cited the dance keeps what a purge would have left it:
+  ///
+  /// - A program slot that showed only the dance becomes a caption with the
+  ///   dance's title, as [_cleanupDanglingReferences] writes for a purge, and
+  ///   every slot stops pointing at the dance, as `ON DELETE SET NULL` does.
+  /// - A related-dance link to it is deleted.
+  ///
+  /// Both change another record's body without touching its row, so each
+  /// citing program and linking dance is restamped first, while the joins still
+  /// identify it (sync-spec §6.5 I1); otherwise two devices would hold one
+  /// `updatedAt` over different bodies. Live and trashed citers alike: a
+  /// trashed program can be restored.
+  ///
+  /// Kept parts a newer peer's build sent (`retained_sync_fields`) are content
+  /// too, and would otherwise be republished with the blank body, so they go.
+  /// References the dance alone held are collected as a purge collects them.
+  Future<void> _blank(DanceRow row, {required DateTime now}) async {
+    final id = row.id;
+    final at = unixSeconds(now);
+    // normalization-structure-exempt: writes `updated_at` only, no shareable
+    // text.
+    await _db.customUpdate(
+      // sync-invariant-exclusion: join-hydrated-body the program's slots stop citing the blanked dance.
+      'UPDATE ${_db.programs.actualTableName} '
+      'SET updated_at = MAX(updated_at + 1, ?) '
+      'WHERE id IN (SELECT program_id FROM ${_db.programSlots.actualTableName} '
+      'WHERE dance_id = ?)',
+      variables: [Variable<int>(at), Variable<String>(id)],
+      updates: {_db.programs},
+      updateKind: UpdateKind.update,
+    );
+    // normalization-structure-exempt: writes `updated_at` only, no shareable
+    // text.
+    await _db.customUpdate(
+      // sync-invariant-exclusion: join-hydrated-body the dance's link to the blanked dance is deleted.
+      'UPDATE ${_db.dances.actualTableName} '
+      'SET updated_at = MAX(updated_at + 1, ?) '
+      'WHERE id <> ? AND id IN (SELECT dance_id FROM '
+      '${_db.danceLinks.actualTableName} '
+      'WHERE kind = ? AND target_dance_id = ?)',
+      variables: [
+        Variable<int>(at),
+        Variable<String>(id),
+        Variable<String>(LinkKind.relatedDance.name),
+        Variable<String>(id),
+      ],
+      updates: {_db.dances},
+      updateKind: UpdateKind.update,
+    );
+    final orphanCandidates = await _referencedRefIds([id]);
+    await _cleanupDanglingReferences([(id: id, title: row.title)]);
+    await (_db.update(_db.programSlots)..where((t) => t.danceId.equals(id)))
+        .write(const ProgramSlotsCompanion(danceId: Value(null)));
+    await (_db.delete(
+      _db.danceAuthors,
+    )..where((t) => t.danceId.equals(id))).go();
+    await (_db.delete(_db.danceTags)..where((t) => t.danceId.equals(id))).go();
+    await (_db.delete(_db.danceLinks)..where((t) => t.danceId.equals(id))).go();
+    await (_db.delete(
+      _db.danceSources,
+    )..where((t) => t.danceId.equals(id))).go();
+    await (_db.delete(
+      _db.customFieldValues,
+    )..where((t) => t.danceId.equals(id))).go();
+    await (_db.delete(_db.provenance)..where((t) => t.danceId.equals(id))).go();
+    await (_db.delete(
+      _db.danceFigures,
+    )..where((t) => t.danceId.equals(id))).go();
+    await _deleteFtsRows(id);
+    await (_db.delete(_db.retainedSyncFields)..where(
+          (t) =>
+              t.kind.equals(SyncRecordKind.dance.name) & t.recordId.equals(id),
+        ))
+        .go();
+    await (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(
+      DancesCompanion(
+        title: const Value(blankedRecordTitle),
+        form: const Value(DanceForm.contra),
+        formationShape: const Value(FormationShape.dupleImproper),
+        formationDetail: const Value(null),
+        progression: const Value(Progression.single),
+        phraseStructure: const Value(''),
+        figuresJson: const Value('[]'),
+        hook: const Value(''),
+        callingNotes: const Value(''),
+        walkthrough: const Value(''),
+        status: const Value(DanceStatus.active),
+        levelId: const Value(null),
+        mixedLevel: const Value(false),
+        mixer: const Value(false),
+        rating: const Value(null),
+        tunesJson: const Value('[]'),
+        composedOn: const Value(null),
+        revisedOn: const Value(null),
+        updatedAt: Value(_stampAfter(asUtc(row.updatedAt), now)),
+        deletedAt: Value(permanentlyDeletedAt),
+      ),
+    );
+    await _garbageCollectOrphanedRefs(orphanCandidates);
   }
 
   /// Applies [edit] to each live dance in [ids] inside one transaction and

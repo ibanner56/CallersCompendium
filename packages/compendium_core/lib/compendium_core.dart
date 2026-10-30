@@ -187,6 +187,7 @@ export 'src/storage/database_setup.dart'
 // through the repository that also maintains the row's other invariants, so
 // keep these internal to `lib/src/storage/`.
 export 'src/storage/existence.dart' show existenceStampTick, nextExistenceStamp;
+export 'src/storage/permanent_deletion.dart';
 export 'src/model/stored_timestamp.dart'
     show nextStoredTimestamp, storedTimestampTick, unixSeconds;
 export 'src/storage/repositories/choreographer_repository.dart';

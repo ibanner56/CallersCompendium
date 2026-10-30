@@ -9712,6 +9712,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String recentlyDeletedDeletedSyncedSnack(String title) {
+    return '“$title” permanent verwijderd. Er blijft een kleine verwijderingsnotitie bewaard zodat je andere apparaten het ook verwijderen.';
+  }
+
+  @override
   String get recentlyDeletedRestore => 'Herstellen';
 
   @override
