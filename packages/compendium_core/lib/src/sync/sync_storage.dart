@@ -3064,6 +3064,23 @@ final class CompendiumSyncStorage
     return body;
   }
 
+  /// The losing ids in `id_aliases` that this device still holds a row for.
+  ///
+  /// Reconciliation erases or migrates its loser, so it never leaves one. Only
+  /// a user merge does (sync-spec §6.6, "The remap", amended 2026-10-30): it
+  /// tombstones the loser and keeps the row, because that tombstone is how its
+  /// peers learn of the merge. A tombstone at one of these addresses is
+  /// therefore that record's own, and is neither published nor applied under
+  /// the survivor's id. Live copies still resolve through the alias.
+  Future<Set<SyncRecordAddress>> heldAliasLosers() async {
+    final losers = {
+      for (final row in await repositories.syncLocal.listAliases())
+        (kind: row.kind, recordId: row.losingId),
+    };
+    if (losers.isEmpty) return const {};
+    return existingRecords(losers);
+  }
+
   /// Which of [addresses] still have a row, live or tombstoned, read by id
   /// alone: nothing is hydrated or hashed, so the cost follows the size of
   /// the set, in batched `IN (…)` queries over each kind's key.
@@ -3479,6 +3496,7 @@ final class CompendiumSyncStorage
     Map<SyncRecordAddress, String?>? expectedWireHashes,
   }) async {
     final aliases = await _aliasMap();
+    final heldLosers = await heldAliasLosers();
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final prepared = <SyncMergeCandidate>[];
     final reports = <SyncReport>[];
@@ -3504,7 +3522,11 @@ final class CompendiumSyncStorage
       final kind = candidate.blob.kind;
       if (syncNaturalKeyKinds.contains(kind)) {
         final originalAddress = candidate.address;
-        candidate = _rewriteCandidate(candidate, aliases);
+        candidate = _rewriteCandidate(
+          candidate,
+          aliases,
+          keepId: _isHeldLoserTombstone(candidate, heldLosers),
+        );
         if (candidate.address != originalAddress &&
             !await _guardReconciliationTarget(
               kind: candidate.blob.kind,
@@ -3642,6 +3664,18 @@ final class CompendiumSyncStorage
           } else if (byId != null &&
               incumbent != null &&
               incumbent.id != candidate.blob.id) {
+            // Not a collision to ask about if the holder is already leaving
+            // the name. The update waits, unwritten, and lands on the first
+            // pass after the holder has gone (§6.6 step 1, amended
+            // 2026-10-30).
+            if (await _holderLeavesNaturalKey(
+              kind: kind,
+              holderId: incumbent.id,
+              naturalKey: naturalKey,
+              inbound: candidates,
+            )) {
+              continue;
+            }
             await _enqueueCollisionReview(
               candidate,
               incumbent.id,
@@ -3756,7 +3790,11 @@ final class CompendiumSyncStorage
           }
         }
       } else {
-        candidate = _rewriteCandidate(candidate, aliases);
+        candidate = _rewriteCandidate(
+          candidate,
+          aliases,
+          keepId: _isHeldLoserTombstone(candidate, heldLosers),
+        );
       }
       final naturalKey = syncNaturalKeyKinds.contains(kind)
           ? syncNaturalKeyForBody(kind, candidate.blob.body)
@@ -4009,12 +4047,77 @@ final class CompendiumSyncStorage
     return result;
   }
 
+  /// Whether the local row [holderId], which holds [naturalKey], is already
+  /// on its way to another name, so that a §6.6 step-1 collision with it is
+  /// transient and not a question for the user.
+  ///
+  /// A user merge frees the loser's name with a suffix and tombstones it in
+  /// the same transaction; its Undo and a rename freeing a tombstone's name do
+  /// the same in reverse. A peer applies those as separate records, so the
+  /// survivor's rename can arrive while the loser still holds the name here:
+  ///
+  /// * the loser's tombstone is in this batch, or held pending under §6.8
+  ///   until this device's own citations of it go — and a held row keeps its
+  ///   old name until then;
+  /// * or an edit of the holder in this batch renames it.
+  ///
+  /// Either way the holder's next name is the one its tombstone or edit
+  /// carries. When no other row holds that name, the holder will leave, so the
+  /// colliding update is deferred rather than queued. Where that name is held
+  /// too — two rows swapping names, say — nothing guarantees the holder ever
+  /// moves, and the collision is queued as before.
+  Future<bool> _holderLeavesNaturalKey({
+    required SyncRecordKind kind,
+    required String holderId,
+    required String naturalKey,
+    required List<SyncMergeCandidate> inbound,
+  }) async {
+    String? nextKey;
+    for (final other in inbound) {
+      if (other.blob.kind != kind || other.blob.id != holderId) continue;
+      nextKey = syncNaturalKeyForBody(kind, other.blob.body);
+    }
+    if (nextKey == null) {
+      final pending = await repositories.syncLocal.getPendingDeletion(
+        kind: kind,
+        recordId: holderId,
+      );
+      if (pending != null) {
+        try {
+          nextKey = syncNaturalKeyForBody(
+            kind,
+            decodeSyncRecordBlob(pending.tombstoneBlob).body,
+          );
+        } on Object {
+          // `_revalidatePendingDeletions` owns a blob that will not decode.
+          return false;
+        }
+      }
+    }
+    if (nextKey == null || nextKey == naturalKey) return false;
+    final nextHolder = await _naturalKeyRow(kind, nextKey);
+    return nextHolder == null || nextHolder.id == holderId;
+  }
+
+  /// Whether [candidate] is a tombstone of a user merge's loser, which keeps
+  /// its own id: see [heldAliasLosers]. Rewritten onto the survivor, a peer's
+  /// tombstone of the loser would tombstone the survivor.
+  static bool _isHeldLoserTombstone(
+    SyncMergeCandidate candidate,
+    Set<SyncRecordAddress> heldLosers,
+  ) =>
+      candidate.blob.deletedAt != null &&
+      heldLosers.contains(candidate.address);
+
   SyncMergeCandidate _rewriteCandidate(
     SyncMergeCandidate candidate,
-    Map<SyncRecordKind, Map<String, String>> aliases,
-  ) {
+    Map<SyncRecordKind, Map<String, String>> aliases, {
+    bool keepId = false,
+  }) {
     final byKind = aliases[candidate.blob.kind];
-    final resolvedId = _resolveInMap(candidate.blob.id, byKind);
+    final resolvedId = keepId
+        ? candidate.blob.id
+        : _resolveInMap(candidate.blob.id, byKind);
     final body = rewriteSyncInboundReferences(candidate.blob.body, aliases);
     if (candidate.blob.kind != SyncRecordKind.setting) {
       body['id'] = resolvedId;
