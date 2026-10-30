@@ -239,11 +239,11 @@ class VenueRepository {
   ///
   /// The reference count filters `programs.deleted_at`, so it counts **live
   /// programs only**. A tombstoned program does not block an ordinary delete:
-  /// this delete writes a tombstone of its own. Nothing restores a venue
-  /// together with a program that names it: [restore] is called only by an
-  /// exact-provenance archive re-import, and restoring a program leaves its
-  /// tombstoned venue as it is (every venue read filters tombstones, so the
-  /// reference is orphaned; see [hardDelete]). Erasure is the case that
+  /// this delete writes a tombstone of its own, and restoring the program
+  /// from Recently deleted revives it with [restore]
+  /// (`ProgramRepository.restore`; the maintainer's trash-policy decision,
+  /// 2026-10-29, option b). The only other caller of [restore] is an
+  /// exact-provenance archive re-import. Erasure is the case that
   /// cannot be undone, and the retention rule for it lives in [hardDelete],
   /// which counts *every* surviving program row. Import rollback therefore
   /// calls [hardDelete] rather than passing [permanent] here (issue #1357); an

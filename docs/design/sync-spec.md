@@ -3827,6 +3827,20 @@ holds nothing back, exactly as the local delete guards do not count it.
 > applies. That is the ordinary pending state above: it advertises the
 > tombstone, and it converges once that peer's trashed dance is purged or
 > stops citing the level.
+>
+> *Further amended 2026-10-30 (B9), by the same two decisions ("restore must
+> then cope with missing venues and fields").* Restoring a dance from Recently
+> Deleted revives, in the same transaction, the tombstoned difficulty level and
+> custom-field definitions it names; restoring a program revives the
+> tombstoned venue it links to. Each revival is that record's own existence
+> transition under §6.4, so it outranks the tombstone and every peer revives
+> the record too, whichever device deleted it. It is not one of the
+> cancellations below: a held record stays live, so a tombstoned one carries no
+> hold, and the revival passes `clearPending: false` all the same, because it
+> is derived from another record's restore. A permanently deleted record (the
+> epoch `deletedAt` of §3.2) is not in Recently Deleted, and restoring it
+> neither revives it nor anything it names. Archive merges and imports, which
+> overwrite the restored row straight away, revive nothing.
 
 A pending tombstone is cancelled by exactly two things, and by nothing else.
 

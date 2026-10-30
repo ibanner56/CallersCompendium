@@ -1766,7 +1766,11 @@ class ProgramRepository {
                     ))
                   .getSingleOrNull() !=
               null) {
-        await VenueRepository(_db).restore(venueId, at: at);
+        // No hold to clear, and none to cancel; see
+        // `DanceRepository._reviveReferences`.
+        await VenueRepository(
+          _db,
+        ).restore(venueId, at: at, clearPending: false);
       }
     }
     await _stampExistence(id, at: at, deleted: false);

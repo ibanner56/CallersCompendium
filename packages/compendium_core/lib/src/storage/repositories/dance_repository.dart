@@ -1986,7 +1986,9 @@ class DanceRepository {
   });
 
   /// Revives the tombstoned level and custom-field definitions [row] names;
-  /// see [restore].
+  /// see [restore]. A held record stays live, so a tombstoned one has no hold
+  /// to clear, and a revival derived from another record's restore must not
+  /// cancel one anyway (sync-spec §6.8): hence `clearPending: false`.
   Future<void> _reviveReferences(DanceRow row, {required DateTime at}) async {
     final levelId = row.levelId;
     if (levelId != null &&
@@ -1998,7 +2000,9 @@ class DanceRepository {
                   ))
                 .getSingleOrNull() !=
             null) {
-      await DifficultyLevelRepository(_db).restore(levelId, at: at);
+      await DifficultyLevelRepository(
+        _db,
+      ).restore(levelId, at: at, clearPending: false);
     }
     final values = _db.customFieldValues;
     final defs = _db.customFieldDefs;
@@ -2019,7 +2023,7 @@ class DanceRepository {
             .get();
     final fields = CustomFieldDefRepository(_db);
     for (final fieldId in tombstonedFieldIds) {
-      await fields.restore(fieldId, at: at);
+      await fields.restore(fieldId, at: at, clearPending: false);
     }
   }
 
