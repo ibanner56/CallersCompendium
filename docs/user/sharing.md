@@ -84,7 +84,8 @@ sources it cites, its [custom fields](./glossary.md#custom-field), and any of
 notes on them. The only
 difference is the name — `.ccshare` or `.json`. Choreographers' private details
 are removed (see [What stays private](#what-stays-private)), and custom fields
-with **Include in sharing** turned off are left out.
+with **Include in sharing** turned off are left out. Your star rating of the
+dance is left out too; it stays on your devices and in your backup.
 
 On Linux the system has no file share sheet, so **Share dance file** is
 labelled **Save dance file…** and saves the file through the system dialog
@@ -184,8 +185,10 @@ evening to another caller. It builds a single self-contained file — a
   notes on it; and
 - the program's linked [venue](./glossary.md#venue), if it has one.
 
-The program's **Pay** travels in this file too, though it is never part of the
-shared set-list text or PDF.
+The file leaves out what is private to you: the program's **Pay**, its
+**Perform dialect**, and the star **rating** on each dance. Those stay on your
+own devices and in your [backup](./backup-portability.md), and still move with
+Device Sync. Pay is never part of the shared set-list text or PDF either.
 
 On Linux the system has no file share sheet, so this action is labelled **Save
 program file…** and saves the file through the system dialog instead.
@@ -301,6 +304,11 @@ leave, and one thing asks you first.
   [Write & edit dances](./authoring.md#author-and-source-details-are-shared). The
   choreographer's name, website, and notes do travel.
 
+- **Your pay, Perform dialect and star ratings.** A program file leaves out the
+  program's **Pay** and its **Perform dialect**, and every share file leaves
+  out your star rating of a dance. They stay on your devices, still move with
+  Device Sync, and are kept in a [backup](./backup-portability.md).
+
 - **Your notes on your own figures.** A shared file carries each of
   [your own new figures](./authoring.md#your-own-figures) its dances use, but
   not the notes you keep on it. They stay in your Glossary and in a
@@ -367,7 +375,7 @@ They are different tools for different jobs:
 |---|---|---|
 | **Covers** | One dance, or one program | Everything: dances, programs, venues, choreographers, dialects, themes, custom fields, and settings |
 | **Meant for** | Handing to another person | Keeping safe, or moving to your own new device |
-| **Privacy** | Private contact details stripped or opt-in | Complete — it is your own data, unredacted |
+| **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out | Complete — it is your own data, unredacted |
 | **Where** | The **Export** menu on a dance or program | **Settings › General › Export a backup** |
 
 The **Include in sharing** setting on a custom field applies to share/export
