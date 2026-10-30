@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations_en.dart';
+import 'package:compendium_app/src/search/called_venue_choices.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/facet_panel.dart';
 import '../support/l10n_harness.dart';
 import '../support/screen_size.dart';
+import '../support/test_repositories.dart';
 
 Future<void> _pump(
   WidgetTester tester,
@@ -25,6 +27,7 @@ Future<void> _pump(
   bool hasMixer = false,
   bool hasRating = false,
   bool hasCallingHistory = false,
+  VenueChoiceSource? venueChoices,
   // Only set when a test needs to exercise ResponsiveAutocomplete's narrow
   // layout; existing (unset) tests keep relying on the default test window
   // (800x600), which is already comfortably above the compact width/height
@@ -54,6 +57,7 @@ Future<void> _pump(
               hasMixer: hasMixer,
               hasRating: hasRating,
               hasCallingHistory: hasCallingHistory,
+              venueChoices: venueChoices,
               authors: authors,
               tags: tags,
               citedSources: citedSources,
@@ -203,6 +207,219 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('call-status-called')));
     await tester.pump();
     expect(facets.callStatuses, {false});
+  });
+
+  group('calling-history scopes (N1-H2)', () {
+    Finder within(String months) =>
+        find.byKey(ValueKey('facet-history-within-$months'));
+    final hint = find.byKey(const ValueKey('facet-history-inert-hint'));
+    // The section's own count badge, not the panel-wide one.
+    Finder badge() => find.descendant(
+      of: find.byKey(const ValueKey('facet-row-call-status')),
+      matching: find.byType(Badge),
+    );
+
+    testWidgets('Within offers 1, 3 and 6 months and a date, never a year', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        FacetSelections(),
+        hasCallingHistory: true,
+        onChanged: () {},
+      );
+      expect(find.text('1 month'), findsOneWidget);
+      expect(find.text('3 months'), findsOneWidget);
+      expect(find.text('6 months'), findsOneWidget);
+      expect(find.text('Since a date…'), findsOneWidget);
+      expect(find.text('Any time'), findsOneWidget);
+      // The chips are exactly these five: no 4 weeks, no 12 months.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('facet-row-call-status')),
+          matching: find.byType(ChoiceChip),
+        ),
+        findsNWidgets(5),
+      );
+      expect(find.textContaining('year'), findsNothing);
+      expect(find.textContaining('week'), findsNothing);
+    });
+
+    testWidgets('the no-window choice reads Never called with Not called', (
+      tester,
+    ) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, hasCallingHistory: true, onChanged: () {});
+      expect(find.text('Never called'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('call-status-not-called')));
+      await tester.pump();
+      expect(find.text('Never called'), findsOneWidget);
+      expect(find.text('Any time'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('call-status-called')));
+      await tester.pump();
+      // Both chosen: the scopes are inert and the label is the neutral one.
+      expect(find.text('Any time'), findsOneWidget);
+    });
+
+    testWidgets('a preset sets the window and Any time clears it', (
+      tester,
+    ) async {
+      final facets = FacetSelections()..callStatuses.add(false);
+      var changes = 0;
+      await _pump(
+        tester,
+        facets,
+        hasCallingHistory: true,
+        onChanged: () => changes++,
+      );
+      await tester.tap(within('3'));
+      await tester.pump();
+      expect(facets.historyMonths, 3);
+      await tester.tap(within('1'));
+      await tester.pump();
+      expect(facets.historyMonths, 1);
+      await tester.tap(find.byKey(const ValueKey('facet-history-within-none')));
+      await tester.pump();
+      expect(facets.historyMonths, isNull);
+      expect(facets.historySince, isNull);
+      expect(changes, 3);
+    });
+
+    testWidgets('Since a date opens the date picker and keeps the day', (
+      tester,
+    ) async {
+      final facets = FacetSelections()..callStatuses.add(true);
+      await _pump(tester, facets, hasCallingHistory: true, onChanged: () {});
+      await tester.tap(within('since'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      final now = DateTime.now();
+      expect(facets.historySince, DateTime.utc(now.year, now.month, now.day));
+      expect(facets.historyMonths, isNull);
+      expect(find.textContaining('Since '), findsOneWidget);
+      expect(find.text('Since a date…'), findsNothing);
+    });
+
+    testWidgets('without a polarity the scopes are inert and say so', (
+      tester,
+    ) async {
+      final facets = FacetSelections()..setHistoryMonths(3);
+      await _pump(tester, facets, hasCallingHistory: true, onChanged: () {});
+      expect(hint, findsOneWidget);
+      expect(find.text('Applies with Called or Not called'), findsOneWidget);
+      expect(badge(), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('call-status-called')));
+      await tester.pump();
+      expect(hint, findsNothing);
+      // The window came back with the polarity: 1 polarity + 1 scope.
+      expect(facets.historyMonths, 3);
+      expect(
+        find.descendant(of: badge(), matching: find.text('2')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('call-status-called')));
+      await tester.pump();
+      expect(hint, findsOneWidget);
+      expect(facets.historyMonths, 3, reason: 'the scope stays set');
+      expect(badge(), findsNothing);
+    });
+
+    testWidgets('the section badge counts each applying scope', (tester) async {
+      final facets = FacetSelections()
+        ..callStatuses.add(false)
+        ..setHistoryVenue(VenueKey.typed('Grange'), label: 'Grange')
+        ..setHistoryMonths(6);
+      await _pump(tester, facets, hasCallingHistory: true, onChanged: () {});
+      expect(
+        find.descendant(of: badge(), matching: find.text('3')),
+        findsOneWidget,
+      );
+      expect(find.text('Grange'), findsOneWidget);
+    });
+
+    testWidgets(
+      'the venue chooser lists counted venues with program counts and marks '
+      'a typed one',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance('d1'));
+        await repos.venues.upsert(Venue(id: 'v1', name: 'Town Hall'));
+        Program program(String id, DateTime date, {String? venueId, String? venue}) =>
+            Program(
+              id: id,
+              title: id,
+              eventDate: date,
+              venueId: venueId,
+              venue: venue,
+              slots: [ProgramSlot(id: '$id-s', position: 0, danceId: 'd1')],
+              createdAt: DateTime.utc(2026),
+              updatedAt: DateTime.utc(2026),
+            );
+        await repos.programs.create(
+          program('p1', DateTime.utc(2026, 3, 1), venueId: 'v1'),
+        );
+        await repos.programs.create(
+          program('p2', DateTime.utc(2026, 4, 1), venueId: 'v1'),
+        );
+        await repos.programs.create(
+          program('p3', DateTime.utc(2026, 5, 1), venue: 'The  Grange'),
+        );
+        final facets = FacetSelections()..callStatuses.add(false);
+        var changes = 0;
+        await _pump(
+          tester,
+          facets,
+          hasCallingHistory: true,
+          venueChoices: VenueChoiceSource(repos: repos),
+          onChanged: () => changes++,
+        );
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+        await tester.pump();
+
+        expect(find.text('Any venue'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('facet-history-venue')));
+        await tester.pumpAndSettle();
+        expect(find.text('Town Hall'), findsOneWidget);
+        expect(find.text('2 programs'), findsOneWidget);
+        expect(find.text('The Grange'), findsOneWidget);
+        expect(find.text('1 program · typed'), findsOneWidget);
+
+        await tester.tap(find.text('The Grange'));
+        await tester.pumpAndSettle();
+        expect(facets.historyVenue, VenueKey.typed('the grange'));
+        expect(facets.historyVenueLabel, 'The Grange');
+        expect(changes, 1);
+
+        // The chip now names the venue, and its x clears the scope.
+        expect(find.text('The Grange'), findsOneWidget);
+        await tester.tap(find.byTooltip('Clear venue'));
+        await tester.pump();
+        expect(facets.historyVenue, isNull);
+        expect(facets.historyVenueLabel, isNull);
+      },
+    );
+
+    testWidgets('no venue row while no venue has a counted call', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        FacetSelections(),
+        hasCallingHistory: true,
+        venueChoices: VenueChoiceSource(repos: repos),
+        onChanged: () {},
+      );
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('facet-history-venue')), findsNothing);
+      expect(within('3'), findsOneWidget);
+    });
   });
 
   testWidgets('calling-history section is hidden without qualifying calls', (
@@ -1244,3 +1461,13 @@ void main() {
     });
   });
 }
+
+Dance _dance(String id) => Dance(
+  id: id,
+  title: id,
+  form: DanceForm.contra,
+  formation: const Formation(FormationShape.dupleImproper),
+  progression: Progression.single,
+  createdAt: DateTime.utc(2026),
+  updatedAt: DateTime.utc(2026),
+);

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3910,6 +3911,64 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionFacetNotCalled => '未コール';
+
+  @override
+  String get collectionFacetHistoryInert => '「コール済み」または「未コール」を選ぶと有効になります';
+
+  @override
+  String get collectionFacetVenue => '会場';
+
+  @override
+  String get collectionFacetVenueAny => 'すべての会場';
+
+  @override
+  String get collectionFacetVenueUnnamed => '名称なしの会場';
+
+  @override
+  String get collectionFacetVenueClear => '会場をクリア';
+
+  @override
+  String get collectionFacetVenueSheetTitle => '会場';
+
+  @override
+  String collectionFacetVenuePrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のプログラム',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetVenueTyped => '入力';
+
+  @override
+  String get collectionFacetWithin => '期間';
+
+  @override
+  String get collectionFacetWithinAnyTime => 'いつでも';
+
+  @override
+  String get collectionFacetWithinNever => '一度もコールされていない';
+
+  @override
+  String collectionFacetWithinMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countか月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionFacetWithinSince => '日付以降…';
+
+  @override
+  String collectionFacetWithinSinceDate(String date) {
+    return '$date以降';
+  }
 
   @override
   String get collectionFacetLevel => 'レベル';

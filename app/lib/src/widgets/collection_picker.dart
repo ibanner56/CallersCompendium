@@ -18,6 +18,7 @@ import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
+import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
 import '../search/collection_query.dart';
@@ -987,6 +988,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       hasMixedLevel: data.hasMixedLevel,
       hasMixer: data.hasMixer,
       hasRating: data.hasRating,
+      venueChoices: VenueChoiceSource(
+        repos: _repos,
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
+      ),
       hasCallingHistory: data.callCounts.values.any(
         (counts) =>
             counts.countFor(

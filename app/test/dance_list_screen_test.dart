@@ -1019,6 +1019,140 @@ void main() {
     });
   });
 
+  group('Calling history scopes narrow the list (N1-H2)', () {
+    // Recent at the Grange, old at the Grange, recent at the Hall, never.
+    Future<CompendiumRepositories> seed() async {
+      final repos = openTestRepositories();
+      for (final (id, title) in [
+        ('grange-new', 'Alpha'),
+        ('grange-old', 'Bravo'),
+        ('hall-new', 'Charlie'),
+        ('never', 'Delta'),
+      ]) {
+        await repos.dances.create(_dance(id: id, title: title));
+      }
+      final now = DateTime.now();
+      DateTime ago(int days) => DateTime.utc(now.year, now.month, now.day - days);
+      Program program(String id, String danceId, DateTime date, String venue) =>
+          Program(
+            id: id,
+            title: id,
+            eventDate: date,
+            venue: venue,
+            slots: [ProgramSlot(id: '$id-s', position: 0, danceId: danceId)],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          );
+      await repos.programs.create(
+        program('p1', 'grange-new', ago(10), 'The Grange'),
+      );
+      await repos.programs.create(
+        program('p2', 'grange-old', ago(200), 'The Grange'),
+      );
+      await repos.programs.create(program('p3', 'hall-new', ago(10), 'Hall'));
+      return repos;
+    }
+
+    Future<void> openCalledSection(WidgetTester tester) async {
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+    }
+
+    Future<void> tapKey(WidgetTester tester, String key) =>
+        _tapVisible(tester, find.byKey(ValueKey(key)));
+
+    testWidgets('Not called with no window is exactly today\'s Not called', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'call-status-not-called');
+      final plain = _titles(tester);
+      expect(plain, ['Delta']);
+
+      await tapKey(tester, 'facet-history-within-6');
+      await tapKey(tester, 'facet-history-within-none');
+      expect(_titles(tester), plain);
+    });
+
+    testWidgets('Not called within 1 month hides only the recently called', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'call-status-not-called');
+      await tapKey(tester, 'facet-history-within-1');
+      expect(_titles(tester), ['Bravo', 'Delta']);
+      await tapKey(tester, 'facet-history-within-6');
+      // 200 days back is outside six months too.
+      expect(_titles(tester), ['Bravo', 'Delta']);
+    });
+
+    testWidgets('Called at a venue is "called there", not "called elsewhere"', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'call-status-called');
+      await tapKey(tester, 'facet-history-venue');
+      await tester.tap(find.byKey(const ValueKey('facet-history-venue-text:the grange')));
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha', 'Bravo']);
+
+      await tapKey(tester, 'call-status-called');
+      await tapKey(tester, 'call-status-not-called');
+      // Not called at the Grange: everything else, including a dance called
+      // at the Hall.
+      expect(_titles(tester), ['Charlie', 'Delta']);
+    });
+
+    testWidgets('a venue edit re-runs a scoped search though no count moves', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'call-status-called');
+      await tapKey(tester, 'facet-history-venue');
+      await tester.tap(
+        find.byKey(const ValueKey('facet-history-venue-text:the grange')),
+      );
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Alpha', 'Bravo']);
+
+      // Alpha's program moves to the Hall: its call count is still 1.
+      final moved = (await repos.programs.getById('p1'))!;
+      await repos.programs.update(moved.copyWith(venue: 'Hall'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 400)),
+      );
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Bravo']);
+    });
+
+    testWidgets('a scope set without a polarity changes nothing', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await openCalledSection(tester);
+
+      await tapKey(tester, 'facet-history-within-1');
+      expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie', 'Delta']);
+    });
+  });
+
   group('Require an event date follows live (F6)', () {
     // 'Alpha Undated' was called later, but only in an undated program (a
     // fresh duplicate or a received program); 'Zed Dated' in a dated one.

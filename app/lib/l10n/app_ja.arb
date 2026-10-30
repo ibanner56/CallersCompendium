@@ -4136,6 +4136,62 @@
   "@collectionFacetNotCalled": {
     "x-sourceSha256": "606124ade426a3e8c2a0da3680ae9b518934979c772e0e7564630fd46e96e592"
   },
+  "collectionFacetHistoryInert": "「コール済み」または「未コール」を選ぶと有効になります",
+  "@collectionFacetHistoryInert": {
+    "x-sourceSha256": "4f5b3dbbeda62c4bdc66382e9d23713565237140a21ed4bbb6bf72e3765e0842"
+  },
+  "collectionFacetVenue": "会場",
+  "@collectionFacetVenue": {
+    "x-sourceSha256": "15eb58b66f23bfdd0886b1836f7d53ee09b9f83eed1c48965678024d957b0ea6"
+  },
+  "collectionFacetVenueAny": "すべての会場",
+  "@collectionFacetVenueAny": {
+    "x-sourceSha256": "458db77c1c503d46bd543c8ebbdc892c139c2b2903bbf1af707b3263b5a89545"
+  },
+  "collectionFacetVenueUnnamed": "名称なしの会場",
+  "@collectionFacetVenueUnnamed": {
+    "x-sourceSha256": "d05aef5da8914bd969562f34dd344d7251dd248c6e2cf2674efd76ee9f84704b"
+  },
+  "collectionFacetVenueClear": "会場をクリア",
+  "@collectionFacetVenueClear": {
+    "x-sourceSha256": "f07d0528a8fb25d5f9ed27af5d3f7512d1afa86dfdc5f576fb7d51a856a7f1d9"
+  },
+  "collectionFacetVenueSheetTitle": "会場",
+  "@collectionFacetVenueSheetTitle": {
+    "x-sourceSha256": "aea1b15df626f337de5eb359dd6f7651b9f25a39ddb515b6ab765e1167456d87"
+  },
+  "collectionFacetVenuePrograms": "{count, plural, other{{count}件のプログラム}}",
+  "@collectionFacetVenuePrograms": {
+    "x-sourceSha256": "a7b7d768632c302855b92c62c230f4bec8af1fd58ced4388e2407d9ecfd42e06"
+  },
+  "collectionFacetVenueTyped": "入力",
+  "@collectionFacetVenueTyped": {
+    "x-sourceSha256": "2259e961582c9ae17235db655c751ddb198605c3bea788a4170a8baa3511c614"
+  },
+  "collectionFacetWithin": "期間",
+  "@collectionFacetWithin": {
+    "x-sourceSha256": "2c46a91dc5c6930274259f8bfd4af2e357b609cfc6e07736972d34a8e3302c9a"
+  },
+  "collectionFacetWithinAnyTime": "いつでも",
+  "@collectionFacetWithinAnyTime": {
+    "x-sourceSha256": "5e7de49a40c3d7546e1c0e7a514ca92bd4c524553f6f3eadb8b9de6b35909dfe"
+  },
+  "collectionFacetWithinNever": "一度もコールされていない",
+  "@collectionFacetWithinNever": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "collectionFacetWithinMonths": "{count, plural, other{{count}か月}}",
+  "@collectionFacetWithinMonths": {
+    "x-sourceSha256": "66be719ed3455ce0c8690aabb3c822e941f268edc163a37a050194e1f6d12926"
+  },
+  "collectionFacetWithinSince": "日付以降…",
+  "@collectionFacetWithinSince": {
+    "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
+  },
+  "collectionFacetWithinSinceDate": "{date}以降",
+  "@collectionFacetWithinSinceDate": {
+    "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
+  },
   "collectionFacetLevel": "レベル",
   "@collectionFacetLevel": {
     "x-sourceSha256": "1709305c9fa966d14f56f0da3c3614bbc10adcf53d72f90341bb96d24afcfca3"

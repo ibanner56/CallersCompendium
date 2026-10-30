@@ -29,6 +29,7 @@ import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
+import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
 import '../search/collection_query.dart';
@@ -645,6 +646,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
         (_facets.callStatuses.isNotEmpty &&
             (!mapEquals(previous.callCounts, data.callCounts) ||
                 previous.callerFilter != data.callerFilter)) ||
+        // A venue or window decides by each program's venue and date, which
+        // the tallies above do not carry: a program moved to another venue
+        // changes the result and no count.
+        (_facets.scopesApply && _facets.hasHistoryScope) ||
         // Both author sorting and author-scoped FTS depend on the display-name
         // map rather than the ids stored on each dance. A rename therefore
         // changes either the order or the result set while every dance row is
@@ -2703,6 +2708,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
       hasMixedLevel: data.hasMixedLevel,
       hasMixer: data.hasMixer,
       hasRating: data.hasRating,
+      venueChoices: VenueChoiceSource(
+        repos: _repos,
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
+        requireEventDate: _requireEventDateForHistory,
+      ),
       hasCallingHistory: data.callCounts.values.any(
         (counts) =>
             counts.countFor(

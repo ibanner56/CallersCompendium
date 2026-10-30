@@ -1,0 +1,9 @@
+{
+  "id": "n1-h2-history-filter-controls",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "The Calling history filter in Collection and in the dance picker now has At venue and Within. Pick a venue to see only dances called there, or not called there, and set a window of 1, 3 or 6 months back from today, or since a date you choose, to find dances you have not called lately. Choose Not called with no window to list dances you have never called. Both choices apply once you choose Called or Not called."
+    ]
+  }
+}
