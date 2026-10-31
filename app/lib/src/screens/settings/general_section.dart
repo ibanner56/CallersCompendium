@@ -40,6 +40,7 @@ import '../../widgets/settings_dropdown_row.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
+import '../reference_manager_screen.dart';
 import '../tag_manager_screen.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
@@ -713,6 +714,30 @@ class _GeneralView extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const TagManagerScreen()),
+          ),
+        ),
+        ListTile(
+          key: const ValueKey('general-library-authors'),
+          leading: const Icon(Icons.person_outline),
+          title: Text(l10n.settingsGeneralLibraryAuthorsTitle),
+          subtitle: Text(l10n.settingsGeneralLibraryAuthorsSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const ReferenceManagerScreen.authors(),
+            ),
+          ),
+        ),
+        ListTile(
+          key: const ValueKey('general-library-sources'),
+          leading: const Icon(Icons.menu_book_outlined),
+          title: Text(l10n.settingsGeneralLibrarySourcesTitle),
+          subtitle: Text(l10n.settingsGeneralLibrarySourcesSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const ReferenceManagerScreen.sources(),
+            ),
           ),
         ),
         SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),

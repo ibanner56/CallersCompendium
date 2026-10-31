@@ -180,6 +180,7 @@ void main() {
         'batch-add-tunes',
         'batch-clear-tunes',
         'batch-edit-custom-field',
+        'batch-delete',
       ]);
       final details = menuKeys.indexOf('batch-set-status');
       final other = menuKeys.indexOf('batch-add-tunes');

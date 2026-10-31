@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show mapEquals;
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/widgets.dart';
 
 import '../../data/editor_draft_shutdown_scope.dart';
@@ -1488,6 +1488,63 @@ class DanceEditorController extends ChangeNotifier {
     _notify();
   }
 
+  /// Credits [to] wherever the draft, or any step of its undo history,
+  /// credits one of [from]: the authors a merge combined into [to]. The first
+  /// credit keeps its position and later duplicates go, as the merge does to
+  /// the stored dances.
+  ///
+  /// Not an edit of the draft, so it pushes no undo step: the merge has its
+  /// own Undo, and undoing the draft must not bring back a merged-away id.
+  /// Returns what [restoreAuthors] needs to put it all back when that Undo
+  /// runs.
+  AuthorReplacement replaceAuthors(Set<String> from, String to) {
+    List<String> replaced(List<String> ids) {
+      final out = <String>[];
+      for (final id in ids) {
+        final mapped = from.contains(id) ? to : id;
+        if (!out.contains(mapped)) out.add(mapped);
+      }
+      return out;
+    }
+
+    final history = Map<EditorSnapshot, EditorSnapshot>.identity();
+    _undoStack.mapAll((snapshot) {
+      final mapped = snapshot.copyWith(authorIds: replaced(snapshot.authorIds));
+      history[mapped] = snapshot;
+      return mapped;
+    });
+    final before = List<String>.of(authorIds);
+    final next = replaced(authorIds);
+    final replacement = AuthorReplacement._(before, next, history);
+    if (listEquals(next, authorIds)) return replacement;
+    authorIds
+      ..clear()
+      ..addAll(next);
+    // The merge rewrote the stored dance the same way, so this alone is no
+    // unsaved edit. A draft already holding one is re-saved, so a restored
+    // draft does not bring the merged-away id back.
+    if (_dirty) scheduleAutosave();
+    _notify();
+    return replacement;
+  }
+
+  /// Undoes [replacement], for the Undo of the merge that made it: the draft's
+  /// authors come back while they still read as the merge left them, and so
+  /// does each undo step [replaceAuthors] rewrote. An edit made since is
+  /// newer, and stays.
+  void restoreAuthors(AuthorReplacement replacement) {
+    _undoStack.mapAll((snapshot) => replacement._history[snapshot] ?? snapshot);
+    if (!listEquals(authorIds, replacement._after) ||
+        listEquals(authorIds, replacement._before)) {
+      return;
+    }
+    authorIds
+      ..clear()
+      ..addAll(replacement._before);
+    if (_dirty) scheduleAutosave();
+    _notify();
+  }
+
   void addTag(String id) {
     tagIds.add(id);
     pushUndoNow();
@@ -2092,4 +2149,16 @@ class DanceEditorController extends ChangeNotifier {
     pendingMoveText.dispose();
     super.dispose();
   }
+}
+
+/// What [DanceEditorController.replaceAuthors] changed, for
+/// [DanceEditorController.restoreAuthors]. Opaque.
+final class AuthorReplacement {
+  AuthorReplacement._(this._before, this._after, this._history);
+
+  final List<String> _before;
+  final List<String> _after;
+
+  /// Each rewritten undo step, by identity, to the step it replaced.
+  final Map<EditorSnapshot, EditorSnapshot> _history;
 }

@@ -242,6 +242,30 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen worden verwijderd. Je kunt dit ongedaan maken.',
+      one: '1 dans wordt verwijderd. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen worden verwijderd, waarvan $notShown verborgen door je zoekopdracht. Je kunt dit ongedaan maken.',
+      one:
+          '1 dans wordt verwijderd. Je zoekopdracht verbergt hem. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -2810,6 +2834,43 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get authorManagerTitle => 'Auteurs';
+
+  @override
+  String get authorManagerSearchHint => 'Auteurs zoeken';
+
+  @override
+  String get authorManagerNameLabel => 'Naam van de auteur';
+
+  @override
+  String get authorManagerEmpty =>
+      'Nog geen auteurs. Auteurs die je bij een dans vermeldt, verschijnen hier.';
+
+  @override
+  String get authorManagerLoadError => 'Kon je auteurs niet laden.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count auteurs samengevoegd tot “$into”';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Bronnen';
+
+  @override
+  String get sourceManagerSearchHint => 'Bronnen zoeken';
+
+  @override
+  String get sourceManagerTitleLabel => 'Titel van de bron';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Nog geen bronnen. Boeken en websites die je bij een dans vermeldt, verschijnen hier.';
+
+  @override
+  String get sourceManagerLoadError => 'Kon je bronnen niet laden.';
+
+  @override
   String get libraryManagerClearSearch => 'Zoekopdracht wissen';
 
   @override
@@ -2894,6 +2955,38 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get libraryManagerEditFailed =>
       'Die wijziging kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get libraryManagerEditDetails => 'Details bewerken…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '“$from” hernoemd naar “$to”';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '“$from” samengevoegd met “$into”';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '“$name” verwijderd';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return '“$from” samenvoegen met “$into”?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Deze details verschillen. Het samengevoegde item houdt zijn eigen details, en deze vervallen:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotheek';
@@ -3190,6 +3283,20 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsGeneralLibraryTagsSubtitle =>
       'Je tags hernoemen, samenvoegen, kleuren en verwijderen.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Auteurs';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Auteurs hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Bronnen';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Bronnen hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';
@@ -4231,6 +4338,28 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: 'Veld gewist van $count dansen',
       one: 'Veld gewist van 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd',
+      one: '1 dans verwijderd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd. Herstel ze via Onlangs verwijderd.',
+      one: '1 dans verwijderd. Herstel hem via Onlangs verwijderd.',
     );
     return '$_temp0';
   }

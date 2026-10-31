@@ -242,6 +242,30 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze werden gelöscht. Sie können dies rückgängig machen.',
+      one: '1 Tanz wird gelöscht. Sie können dies rückgängig machen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Tänze werden gelöscht, davon $notShown durch Ihre Suche ausgeblendet. Sie können dies rückgängig machen.',
+      one:
+          '1 Tanz wird gelöscht. Ihre Suche blendet ihn aus. Sie können dies rückgängig machen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -2819,6 +2843,45 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get authorManagerTitle => 'Autoren';
+
+  @override
+  String get authorManagerSearchHint => 'Autoren durchsuchen';
+
+  @override
+  String get authorManagerNameLabel => 'Name des Autors';
+
+  @override
+  String get authorManagerEmpty =>
+      'Noch keine Autoren. Autoren, die Sie bei einem Tanz angeben, erscheinen hier.';
+
+  @override
+  String get authorManagerLoadError =>
+      'Ihre Autoren konnten nicht geladen werden.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count Autoren zu „$into“ zusammengeführt';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Quellen';
+
+  @override
+  String get sourceManagerSearchHint => 'Quellen durchsuchen';
+
+  @override
+  String get sourceManagerTitleLabel => 'Titel der Quelle';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Noch keine Quellen. Bücher und Websites, die Sie bei einem Tanz angeben, erscheinen hier.';
+
+  @override
+  String get sourceManagerLoadError =>
+      'Ihre Quellen konnten nicht geladen werden.';
+
+  @override
   String get libraryManagerClearSearch => 'Suche löschen';
 
   @override
@@ -2902,6 +2965,38 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get libraryManagerEditFailed =>
       'Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.';
+
+  @override
+  String get libraryManagerEditDetails => 'Details bearbeiten…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '„$from“ in „$to“ umbenannt';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '„$from“ mit „$into“ zusammengeführt';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '„$name“ gelöscht';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return '„$from“ mit „$into“ zusammenführen?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Diese Details unterscheiden sich. Der zusammengeführte Eintrag behält seine eigenen, diese werden verworfen:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliothek';
@@ -3198,6 +3293,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsGeneralLibraryTagsSubtitle =>
       'Tags umbenennen, zusammenführen, einfärben und löschen.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Autoren';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Autoren umbenennen, zusammenführen und löschen und ihre Details bearbeiten.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Quellen';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Quellen umbenennen, zusammenführen und löschen und ihre Details bearbeiten.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Barrierefreiheit';
@@ -4244,6 +4353,29 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: 'Feld bei $count Tänzen geleert',
       one: 'Feld bei 1 Tanz geleert',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze gelöscht',
+      one: '1 Tanz gelöscht',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Tänze gelöscht. Unter „Zuletzt gelöscht“ wiederherstellen.',
+      one: '1 Tanz gelöscht. Unter „Zuletzt gelöscht“ wiederherstellen.',
     );
     return '$_temp0';
   }
