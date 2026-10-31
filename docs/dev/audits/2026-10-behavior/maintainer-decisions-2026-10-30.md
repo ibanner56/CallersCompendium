@@ -507,6 +507,22 @@ The orchestrating session reads this as follows:
 - B29, already building, counts toward this: no wave-4 session after U4 starts while B29 is still building.
 - Still open: U5b-1 is blocked on conflict 10 in `decided-work-plan.md` (curly or straight quotes, and whether apostrophes count). Ask the maintainer before starting U5b-1.
 
+### Follow-ups (2026-10-31 ~16:20 UTC)
+**Instruction (maintainer's words):** "Tackle your follow ups now". A triage was written to `followups-triage.md` (49e3d00).
+
+**Bundles (maintainer's choice):** "One at a time, PRs standing (Recommended)". Its description: "Start bundle 1 now. Each later bundle starts once the previous one's PR has green CI and an approving Claude review, the same rule as wave 4. Each opens its PR without asking you. Bundle 1 adds ARB keys, so it opens its PR only after U5a merges."
+
+**Q-6, a slot whose dance was blanked elsewhere (maintainer's choice):** "\"Deleted dance\" (Recommended)". Show a localized "Deleted dance" placeholder in the slot.
+
+**Q-8, the fix sessions' own calls (maintainer's choice):** "Ratify all (Recommended)". These are now maintainer decisions:
+- B22: a user-chosen colour is honoured under high contrast, and with colour-coding off there is no accent.
+- B4: Mark all sets the status even when nothing is left to mark, and un-marking never changes the status.
+- B29: Esc goes back even from a text field, and app commands leave a page through its own back guard.
+
+**Q-9, the B5 Undo snackbar (maintainer's choice):** "No (Recommended)". The snackbar stays short.
+
+Q-1 to Q-5 and Q-7 in `followups-triage.md` are still open.
+
 ## Still open
 
 - Nothing on the decision page.
