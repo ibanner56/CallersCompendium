@@ -207,6 +207,7 @@ export 'src/storage/repositories/difficulty_level_repository.dart';
 export 'src/storage/repositories/user_glossary_repository.dart';
 export 'src/storage/repositories/program_repository.dart';
 export 'src/storage/repositories/published_source_repository.dart';
+export 'src/storage/repositories/reference_edit_repository.dart';
 export 'src/storage/repositories/repositories.dart';
 export 'src/storage/repositories/settings_repository.dart';
 export 'src/storage/repositories/sync_local_repository.dart';

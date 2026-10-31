@@ -79,6 +79,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
     _circulate,
+    _waveBalanceCirculate,
     _handBalanceSquareThrough,
     _squareThroughPassList,
     _balanceHandAnnotation,
@@ -1007,6 +1008,10 @@ List<String> _splitTopLevel(String t, String sep) {
   out.add(t.substring(start));
   return out.map((s) => s.trim()).toList();
 }
+
+/// [_splitTopLevel] for other readers: Caller's Companion's comma split
+/// (#1975).
+List<String> splitTopLevel(String t, String sep) => _splitTopLevel(t, sep);
 
 // --- Recognition-only annotation strip --------------------------------------
 
@@ -3149,6 +3154,63 @@ FigureMatch? _circulate(String scrubbed) {
     note: def,
   );
 }
+
+/// Caller's Companion's `Wave balance, circulate` is one box circulate with
+/// its balance (maintainer decision 2 on #1975), and so is `Wave balance, box
+/// circulate`. Reading `Balance the wave, circulate` the same way is the
+/// author's call. The whole line must be the balance then the circulate, so
+/// `Box circulate, balance the wave` is not read.
+///
+/// A bracket after it must say who crosses, as [_circulate] reads The Caller's
+/// Box's definition: `(Larks cross)` or `(Larks cross, Robins loop R)`. The
+/// crossers are `who`, a stated loop side is `hand`, and the bracket is kept as
+/// the note. Any other bracket keeps the line text, so `Wave balance,
+/// Circulate 8 (… around the set)`, which the maintainer decided is no box
+/// circulate, stays text however the count is written.
+FigureMatch? _waveBalanceCirculate(String scrubbed) {
+  final m = _waveBalanceThenCirculate.firstMatch(scrubbed);
+  if (m == null) return null;
+  final body = m[1]?.trim();
+  if (body == null) {
+    return const FigureMatch('box_circulate', params: {'balance': true});
+  }
+  final clauses = body.split(',').map((c) => c.trim()).toList();
+  if (clauses.length > 2) return null;
+  final cross = _crossRe.firstMatch(clauses.first);
+  if (cross == null) return null;
+  final who = resolveDancerSetPhrase(cross[1]!);
+  // The crossers are one of a pair, the others looping (`neighbors` names no
+  // such pair).
+  if (who == null || invertPairDancerSet(who) == null) return null;
+  String? hand;
+  if (clauses.length == 2) {
+    final loop = _ccLoopRe.firstMatch(clauses[1]);
+    if (loop == null) return null;
+    final loopWho = resolveDancerSetPhrase(loop[1]!);
+    if (loopWho == null || loopWho != invertPairDancerSet(who)) return null;
+    final side = loop[2]?.toLowerCase();
+    hand = side == null ? null : (side.startsWith('r') ? 'right' : 'left');
+  }
+  return FigureMatch(
+    'box_circulate',
+    params: {'balance': true, 'who': who, 'hand': ?hand},
+    note: body,
+  );
+}
+
+/// The balance, then `,` or `and`, then the (box) circulate, then at most one
+/// bracket, and nothing else.
+final RegExp _waveBalanceThenCirculate = RegExp(
+  r'^\s*(?:wave\s+balance|balance\s+(?:the\s+)?wave)\s*(?:,\s*(?:and\s+)?|and\s+)'
+  r'(?:box\s+)?circulate\s*(?:\(([^()\[\]]{1,120})\))?\s*$',
+  caseSensitive: false,
+);
+
+/// [_loopRe] with Caller's Companion's bare `R`/`L` side too.
+final RegExp _ccLoopRe = RegExp(
+  r'^(.+?)\s+loop(?:\s+(left|right|l|r))?$',
+  caseSensitive: false,
+);
 
 /// Caller's Companion's square through with its balance stated:
 /// `Partner R-hand balance, square through 2`, `Neighbor Right-hand balance

@@ -233,6 +233,26 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを削除します。元に戻せます。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを削除します（うち$notShown件は検索で非表示）。元に戻せます。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'HEX';
 
   @override
@@ -2251,14 +2271,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      '各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
+      '各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ただし、そのフォーメーションに独自の色を設定している場合は、その色が優先されます。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
 
   @override
   String get settingsAppearanceFormationColoursTitle => 'フォーメーションラベルの色';
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      '個々のフォーメーションを独自の色でハイライト表示（例：Becket（CW）を黄色、Becket（CCW）をピンク）します。ダンスカード、ダンス詳細、パフォームヘッダーに反映されます。';
+      '個々のフォーメーションを独自の色でハイライト表示（例：Becket（CW）を黄色、Becket（CCW）をピンク）します。ダンスカード、ダンス詳細、パフォームヘッダー、セットリストの行に反映されます。';
 
   @override
   String get settingsAppearanceSelectedBadge => '選択済み';
@@ -2464,6 +2484,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'チューン';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'フック';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'ソース';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'コレクションのフィルター';
 
   @override
@@ -2584,7 +2610,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'フォーメーションに独自の色を設定すると、ダンスカード、ダンス詳細、パフォームヘッダーのラベルをハイライト表示できます。カスタマイズしたフォーメーションのみハイライトされ、他のフォーメーションは通常どおりラベルが表示されます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
+      'フォーメーションに独自の色を設定すると、ダンスカード、ダンス詳細、パフォームヘッダーのラベルをハイライト表示し、セットリストの行にも色が付きます（ミキサーはミキサーの色のままです）。カスタマイズしたフォーメーションのみハイライトされ、他のフォーメーションは通常どおりラベルが表示されます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
 
   @override
   String get settingsFormationColoursListHeader => 'フォーメーション';
@@ -2611,34 +2637,204 @@ class AppLocalizationsJa extends AppLocalizations {
       'タグに独自の色を設定すると、ダンスカードやダンスの詳細で目立つようになります。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
 
   @override
-  String get settingsTagColoursTitle => 'タグの色';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'タグに独自の色を設定すると、表示されるあらゆる場所で目立つようになります。変わるのは色を設定したタグだけで、それ以外は今までどおりです。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
-
-  @override
-  String get settingsTagColoursListHeader => 'タグ';
-
-  @override
   String get settingsTagColoursEmpty => 'まだタグを作成していません。ダンスにタグを追加すると、ここに表示されます。';
-
-  @override
-  String get settingsTagColoursCustom => 'カスタムカラー';
-
-  @override
-  String get settingsTagColoursNoColour => '色なし';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return '$labelの色を削除';
-  }
 
   @override
   String get settingsTagColoursSaveError => 'その色を保存できませんでした。もう一度お試しください。';
 
   @override
   String get settingsTagColoursLoadError => 'タグを読み込めませんでした。';
+
+  @override
+  String get tagManagerTitle => 'タグ';
+
+  @override
+  String get tagManagerSearchHint => 'タグを検索';
+
+  @override
+  String get tagManagerNameLabel => 'タグ名';
+
+  @override
+  String get tagManagerColour => '色…';
+
+  @override
+  String get tagManagerRemoveColour => '色を削除';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '「$name」を$count件のダンスから削除しました',
+      zero: '「$name」を削除しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return '「$from」を「$to」に名前変更しました';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return '「$from」を「$into」に統合しました';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return '$count件のタグを「$into」にまとめました';
+  }
+
+  @override
+  String get authorManagerTitle => '作者';
+
+  @override
+  String get authorManagerSearchHint => '作者を検索';
+
+  @override
+  String get authorManagerNameLabel => '作者名';
+
+  @override
+  String get authorManagerEmpty => 'まだ作者がいません。ダンスにクレジットした作者がここに表示されます。';
+
+  @override
+  String get authorManagerLoadError => '作者を読み込めませんでした。';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count件の作者を「$into」にまとめました';
+  }
+
+  @override
+  String get sourceManagerTitle => 'ソース';
+
+  @override
+  String get sourceManagerSearchHint => 'ソースを検索';
+
+  @override
+  String get sourceManagerTitleLabel => 'ソースのタイトル';
+
+  @override
+  String get sourceManagerEmpty => 'まだソースがありません。ダンスで引用した本やウェブサイトがここに表示されます。';
+
+  @override
+  String get sourceManagerLoadError => 'ソースを読み込めませんでした。';
+
+  @override
+  String get libraryManagerClearSearch => '検索をクリア';
+
+  @override
+  String get libraryManagerNotUsed => '未使用';
+
+  @override
+  String get libraryManagerSortTooltip => '並べ替え';
+
+  @override
+  String get libraryManagerSortByName => '名前';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'ダンス数';
+
+  @override
+  String get libraryManagerNoMatches => '検索に一致するものはありません。';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンス',
+      zero: '未使用',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return '$nameの操作';
+  }
+
+  @override
+  String get libraryManagerRename => '名前を変更';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return '「$name」の名前を変更';
+  }
+
+  @override
+  String get libraryManagerMergeInto => '統合先を選ぶ…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return '「$name」の統合先…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'その名前は使用中です';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '「$existing」はすでにあります。「$from」をそこに統合しますか？';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '「$existing」はすでにあります。「$from」をそこに統合し、名前を「$name」にしますか？';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return '「$name」という名前の項目が複数あります。「$from」の統合先を選んでください。ほかの項目もそこに統合されます。';
+  }
+
+  @override
+  String get libraryManagerMerge => '統合';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return '元に戻せません：「$name」は現在ほかの項目が使っています。';
+  }
+
+  @override
+  String get libraryManagerEditFailed => '変更を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get libraryManagerEditDetails => '詳細を編集…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '「$from」を「$to」に名前変更しました';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '「$from」を「$into」に統合しました';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '「$name」を削除しました';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return '「$from」を「$into」に統合しますか？';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      '次の詳細が異なります。統合後の項目は自身の値を保持し、以下は破棄されます：';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field：$value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'ライブラリ';
@@ -2861,6 +3057,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、プログラム表示の各ダンスに、エディターを開かずに実施済みかどうかをマークする切り替えが表示されます。オフにすると、行にはダンスが実施済みかどうかだけが表示されます。';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle => '「すべて実施済みにする」でステータスも設定';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'オンにすると、「すべて実施済みにする」でプログラムのステータスも「実施済み」になり、「元に戻す」で両方が元に戻ります。オフにすると、ステータスは変わりません。';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'コーリング履歴にはイベント日が必要';
 
@@ -2901,6 +3104,26 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
       'オンにすると、ダンス表示、Perform モード、フィギュアエディターの各フィギュアが大文字で始まります（「Neighbors allemande left」）。オフの場合は、フィギュアは書かれたとおりに表示され、組み込みのフィギュアは ContraDB と同様に小文字で始まります。変更されるのはこれらの場所での表示のみで、エクスポート、検索、同期の比較、スクリーンリーダーの読み上げ文言は変わりません。';
+
+  @override
+  String get settingsGeneralLibraryTagsTitle => 'タグ';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle => 'タグの名前変更、統合、色付け、削除を行います。';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => '作者';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      '作者の名前変更、統合、削除と、詳細の編集を行います。';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'ソース';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'ソースの名前変更、統合、削除と、詳細の編集を行います。';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';
@@ -3634,6 +3857,20 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンス',
+    );
+    return '$label、$_temp0、$selected件選択中';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => '選択を終了';
 
   @override
@@ -3807,6 +4044,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionSetRating => '評価を設定';
 
   @override
+  String get collectionSetStatus => 'ステータスを設定';
+
+  @override
   String get collectionAddTunes => 'チューンを追加';
 
   @override
@@ -3831,6 +4071,16 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count件のダンスの評価をクリアしました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスのステータスを設定しました',
     );
     return '$_temp0';
   }
@@ -3871,6 +4121,26 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count件のダンスのフィールドをクリアしました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを削除しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを削除しました。「最近削除したアイテム」から復元できます。',
     );
     return '$_temp0';
   }
@@ -4273,6 +4543,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionBatchRatingConfirm => '設定';
 
   @override
+  String get collectionBatchStatusConfirm => '設定';
+
+  @override
   String get collectionBatchTunesFieldLabel => 'チューンを追加';
 
   @override
@@ -4584,6 +4857,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsAddAgain => 'もう一度追加';
 
   @override
+  String get programsAddToProgramSearchHint => 'プログラムを検索';
+
+  @override
+  String get programsAddToProgramSearchClear => '検索をクリア';
+
+  @override
+  String get programsAddToProgramNoMatches => '検索に一致するプログラムはありません。';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return '実施済み（$count）';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return '「$danceTitle」を$programTitleに追加しました。';
   }
@@ -4642,6 +4929,14 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get programsMarkedAllPerformedExceptAlternates =>
       '代替を除くすべてのダンスを実施済みにしました。代替をコールした場合は、ご自身で実施済みにしてください。';
+
+  @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'すべてのダンスを実施済みにし、ステータスを「実施済み」にしました。';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      '代替を除くすべてのダンスを実施済みにし、ステータスを「実施済み」にしました。代替をコールした場合は、ご自身で実施済みにしてください。';
 
   @override
   String programsSavedSnack(String title) {
@@ -4829,6 +5124,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'ステータス';
+
+  @override
+  String get programsStatusHelper =>
+      '「実施済み」への変更を保存すると、代替を除く未マークのダンスがすべて実施済みになります。ステータスを戻してもマークは残ります。';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      '「実施済み」への変更を保存すると、代替を除く未マークのダンスがすべて実施済みになります。「すべて実施済みにする」でもこのステータスになります。ステータスを戻してもマークは残ります。';
 
   @override
   String get programsHideAlternatesTitle => 'セットリストで代替を非表示';
@@ -5643,6 +5946,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get performShowWalkthrough => 'ウォークスルーを表示';
 
   @override
+  String get performFullScreen => '全画面表示';
+
+  @override
   String get performWalkthroughEmpty => 'このダンスのウォークスルーはありません。';
 
   @override
@@ -5872,6 +6178,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportLabelTunes => 'チューン';
 
   @override
+  String get exportLabelHook => 'フック';
+
+  @override
+  String get exportLabelSources => 'ソース';
+
+  @override
   String exportSlotAuthorSuffix(String names) {
     return '作: $names';
   }
@@ -6095,7 +6407,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグ、評価も含まれます。カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
+    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグも含まれます。評価、カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
   }
 
   @override
@@ -6120,7 +6432,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      '選択したダンスは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグ、評価も含まれます。カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
+      '選択したダンスは、オンラインの記録に置き換えられます。タイトル、フィギュア、コーリングノート、タグも含まれます。評価、カスタムフィールド、プログラム内の位置、コーリング履歴は保持されます。';
 
   @override
   String get importFigurelessCannotReplace =>
@@ -7931,6 +8243,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorRedoLabel => 'やり直し';
 
   @override
+  String get editorDraftNotSaved => '下書きを保存できていません。直近の変更はまだ保持されていません';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': '元に戻す (⌘Z)',
@@ -9576,6 +9891,39 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get venueManagerNoMatches => '検索に一致する会場がありません。';
+
+  @override
+  String get venueLinkOfferTitle => '以前のプログラムをリンクしますか？';
+
+  @override
+  String get venueLinkOfferBody =>
+      '会場がテキストで入力されたプログラムの中に、会場レコードと一致するものがあります。リンクすると、コール履歴で同じ会場として数えられます。入力したテキストは残ります。';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のプログラム',
+    );
+    return '「$name」：$_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'リンクする';
+
+  @override
+  String get venueLinkOfferDecline => '今はしない';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のプログラムをリンクしました。',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get venueManagerDeleteTitle => '会場を削除しますか？';

@@ -832,10 +832,15 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         }
       }
 
-      final balanceSpec = contraTaxonomy.resolve(moveId)?.params['balance'];
+      final def = contraTaxonomy.resolve(moveId);
+      final balanceSpec = def?.params['balance'];
+      // The beats go with the balance on a move that seeds one, and on a move
+      // whose beats follow it (form short waves, #1975; Rory O'More;
+      // petronella).
       if (paramKey == 'balance' &&
           value is bool &&
-          balanceSpec?.entryDefault != null) {
+          (balanceSpec?.entryDefault != null ||
+              def?.paramBeats?.param == 'balance')) {
         final params = {...entry, ...inner};
         applyParamChange(
           contraTaxonomy,
@@ -2073,6 +2078,20 @@ class _DefaultsView extends StatelessWidget {
                   onChanged: (v) =>
                       toggleShareField(DanceShareField.tunes, v ?? false),
                   title: Text(l10n.settingsDefaultsShareFieldsTunes),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-hook'),
+                  value: shareFields.contains(DanceShareField.hook),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.hook, v ?? false),
+                  title: Text(l10n.settingsDefaultsShareFieldsHook),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-sources'),
+                  value: shareFields.contains(DanceShareField.sources),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.sources, v ?? false),
+                  title: Text(l10n.settingsDefaultsShareFieldsSources),
                 ),
               ],
             );

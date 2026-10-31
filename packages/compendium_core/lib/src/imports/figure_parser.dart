@@ -1238,6 +1238,7 @@ final List<_Recognizer> _recognizers = [
   _swing,
   _petronella,
   _balanceTheRing,
+  _balanceAndSlide,
   _balance,
   _shoulderRound,
   _allemande,
@@ -1270,7 +1271,8 @@ final List<_Recognizer> _recognizers = [
   // its own copy of the word list, and "pass the ocean" contains no "through" so
   // _passThrough never matches (or partially consumes) it. They are placed
   // together here purely for locality. _formShortWaves sits between the two
-  // "pass …" recognizers and is independent of both (its lead word is "form").
+  // "pass …" recognizers and is independent of both (its lead word is "form",
+  // or Caller's Companion's "make", #1975).
   _passTheOcean,
   _formShortWaves,
   // Long-wave forms lead with "form … long wave(s)"; the "long" token keeps
@@ -1437,12 +1439,50 @@ _Match? _balanceTheRing(List<String> w) {
 
 _Match? _balance(List<String> w) {
   final who = _takeDancer(w);
+  final hand = _takeBalanceHand(w);
   if (!_consumePhrase(w, ['balance'])) return null;
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('balance', {'who': who2 ?? 'neighbors'}, null, who2 == null);
+  return _Match(
+    'balance',
+    {'who': who2 ?? 'neighbors', 'hand': ?hand},
+    null,
+    who2 == null,
+  );
 }
+
+/// Takes the hand Caller's Companion names before a balance (#1975):
+/// `R-hand balance`, `Right-hand balance`, `Right hand balance`, `RH-balance`.
+/// A `RH-balance` token is split so the `balance` after it is still consumed.
+String? _takeBalanceHand(List<String> w) {
+  if (w.isEmpty) return null;
+  final hyphenated = _balanceHandToken.firstMatch(w[0]);
+  if (hyphenated != null) {
+    w.removeAt(0);
+    if (hyphenated[2] != null) w.insert(0, 'balance');
+    return hyphenated[1]!.startsWith('r') ? 'right' : 'left';
+  }
+  if (w.length >= 2 && w[1] == 'hand' && _balanceSides.containsKey(w[0])) {
+    final side = _balanceSides[w[0]]!;
+    w.removeRange(0, 2);
+    return side;
+  }
+  return null;
+}
+
+/// `r-hand`, `right-hand`, `rh`, and each followed by `-balance`.
+final RegExp _balanceHandToken = RegExp(
+  r'^(r|l|right|left)(?:-hand|h)(-balance)?$',
+);
+
+/// The sides [_takeBalanceHand] reads before `hand`.
+const Map<String, String> _balanceSides = {
+  'r': 'right',
+  'right': 'right',
+  'l': 'left',
+  'left': 'left',
+};
 
 _Match? _shoulderRound(List<String> w) {
   final who = _takeDancer(w);
@@ -2091,8 +2131,21 @@ _Match? _passTheOcean(List<String> w) {
 // unexplained token behind, so they still fall to custom (prefer-custom): the
 // leading qualifier is never consumed and "of two/three/…" never matches.
 _Match? _formShortWaves(List<String> w) {
+  // Caller's Companion's `make short waves`, `make short wave` and `make wave
+  // of 4` are form short waves (maintainer decision, #1975); the same with an
+  // article or `four` (`make a short wave`, `make a wave of four`) is the
+  // author's call. A bare `make a wave` names no kind of wave and is not read.
+  if (w.isNotEmpty && w.first == 'make') {
+    final made = [...w]..[0] = 'form';
+    if (!_madeShortWave.any((phrase) => _startsWith(made, phrase))) {
+      return null;
+    }
+    w[0] = 'form';
+  }
   if (!_consumePhrase(w, ['form', 'a', 'wave', 'of', 'four']) &&
       !_consumePhrase(w, ['form', 'wave', 'of', 'four']) &&
+      !_consumePhrase(w, ['form', 'a', 'wave', 'of', '4']) &&
+      !_consumePhrase(w, ['form', 'wave', 'of', '4']) &&
       !_consumePhrase(w, ['form', 'a', 'wave']) &&
       !_consumePhrase(w, ['form', 'wave']) &&
       !_consumePhrase(w, ['form', 'a', 'short', 'wave']) &&
@@ -2116,6 +2169,55 @@ _Match? _formShortWaves(List<String> w) {
   return w.isEmpty
       ? _Match('form_short_waves', {'axis': ?dir, 'sides': ?sides})
       : null;
+}
+
+/// The `make …` phrasings read as form short waves (see [_formShortWaves]),
+/// each with `make` already read as `form`.
+const List<List<String>> _madeShortWave = [
+  ['form', 'short', 'waves'],
+  ['form', 'short', 'wave'],
+  ['form', 'a', 'short', 'wave'],
+  ['form', 'wave', 'of', '4'],
+  ['form', 'wave', 'of', 'four'],
+  ['form', 'a', 'wave', 'of', '4'],
+  ['form', 'a', 'wave', 'of', 'four'],
+];
+
+bool _startsWith(List<String> w, List<String> phrase) {
+  if (w.length < phrase.length) return false;
+  for (var i = 0; i < phrase.length; i++) {
+    if (w[i] != phrase[i]) return false;
+  }
+  return true;
+}
+
+/// Caller's Companion's `Balance wave and slide to the right` is one Rory
+/// O'More with its balance, and so is `Balance and slide` (maintainer decision
+/// 11 on #1975); `Balance long wave and slide` is the same with the long wave
+/// as the note, and a line that names who slides (`… and Larks slide to the
+/// right`) is not read (maintainer decisions). Reading `Balance wave of 4 and
+/// slide` the same way, and not reading anything after the side, is the
+/// author's call.
+_Match? _balanceAndSlide(List<String> w) {
+  if (!_consumePhrase(w, ['balance'])) return null;
+  _consumePhrase(w, ['the']);
+  final long = _consumePhrase(w, ['long']);
+  if (_consumePhrase(w, ['waves']) || _consumePhrase(w, ['wave'])) {
+    if (!_consumePhrase(w, ['of', '4'])) _consumePhrase(w, ['of', 'four']);
+  } else if (long) {
+    return null;
+  }
+  if (!_consumePhrase(w, ['and', 'slide'])) return null;
+  _consumePhrase(w, ['to']);
+  _consumePhrase(w, ['the']);
+  final slide = _takeSide(w);
+  if (slide == null) return null;
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('rory_o_more', {
+    'balance': true,
+    'slide': slide,
+  }, long ? 'long wave' : null);
 }
 
 _Match? _promenade(List<String> w) {

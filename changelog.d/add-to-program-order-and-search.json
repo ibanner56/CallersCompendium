@@ -1,0 +1,9 @@
+{
+  "id": "add-to-program-order-and-search",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The Add to program sheet now lists the programs you can still plan first, soonest event at the top, with each program's status on its row. Programs already marked Performed are collapsed under a Performed row, which opens by itself when a search matches only them. With more than eight programs a search field appears; it finds a program by title or venue, ignoring case and accents. The sheet also resizes to stay usable while the on-screen keyboard is up."
+    ]
+  }
+}

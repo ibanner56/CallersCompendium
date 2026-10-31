@@ -55,6 +55,40 @@ The **General** section gathers everyday behavior into small groups.
   (built-in figures start in lower case, as in ContraDB). Only the look in those
   places changes; exports, search, sync comparisons and screen-reader wording are
   unaffected.
+- **Tags** — opens the Tags manager, where you rename, merge, colour and delete
+  your tags. See [Group by category](./collection.md#group-by-category-a-dances-vibe)
+  for what each action does.
+- **Authors** and **Sources** — open the Authors and Sources managers. They
+  work like the Tags manager: search, a **Not used** filter, sort by name or by
+  number of dances, and a ⋮ on each row (or tap the row) for its actions.
+  Each row shows how many dances use it; a dance in
+  [Recently deleted](#deleted-items) doesn't count. A source's row also shows
+  its author and year, so two sources with the same title can be told apart.
+  - **Rename** changes the name everywhere it is credited. Renaming an author
+    to a name another author already has offers to **merge** the two instead.
+  - **Merge into…** combines two entries into the one you pick: every dance that
+    credited either now credits that one. Any detail the kept entry leaves
+    empty is filled from the other — an email, say, typed only on a misspelled
+    copy. Where both hold different values, the kept entry's value stays and the
+    other is dropped; the app lists what it will drop and asks before it merges.
+    An author marked deceased on either copy stays marked. For a source, a dance
+    that cited both keeps one citation, with the page and number it had for the
+    source you merged into; an empty one is filled from the other citation. A
+    page or number the two citations disagree on isn't listed: the one for the
+    source you merged into is kept.
+  - **Edit details…** opens the same details you edit from the dance editor.
+  - **Delete** appears only for an entry no dance uses. One still in use can
+    only be merged, so no dance loses its author or source.
+
+  Rename, merge and delete happen at once and show an **Undo** in the message at
+  the bottom of the screen; once that message goes, the change stays. A merge's
+  dropped details come back with Undo, and are gone after it.
+
+  Merging two authors loses something on your other devices, as merging two
+  choreographers in [Sync decisions](#sync-decisions) does: an email address,
+  location, and deceased marker are kept only on your own device and are never
+  sent to your other devices, so the ones another device holds for the author
+  that is not kept cannot be recovered there.
 
 ### Accessibility
 
@@ -70,7 +104,9 @@ The **General** section gathers everyday behavior into small groups.
   screen readers. Turn it off for the terse notation. This affects the dance view;
   [Perform mode](./perform.md) has its own text-size controls.
 - **Show turns as decimals** — shows turn and rotation amounts as decimals (0.75)
-  instead of fractions (¾). Screen-reader wording is unaffected.
+  instead of fractions (¾). Screen-reader wording is unaffected, and so are
+  printed and exported cards: PDFs, shared text and set-list cards always write
+  turns as fractions.
 - **Confirm before delete** — adds a prompt before you delete a dance or program.
   Deletes are still undoable either way.
 
@@ -130,14 +166,23 @@ Perform mode, and calling history.
   schedule that many programs can share and you edit in one place. When off, a
   program's venue is a simple free-text field. Switching is **lossless and
   reversible**: your typed venue text and any linked record are both kept, so
-  flipping the toggle never discards either.
+  flipping the toggle never discards either. When you turn it on, and whenever
+  you add a venue record, the app also offers to **link earlier programs**: any
+  program whose typed venue matches a record's name (ignoring capitals and extra
+  spaces) can be linked to it in one step. Until a program is linked, calling
+  history counts a typed "Grange" and a saved "Grange" as two venues. Linking
+  keeps the typed text, only programs in your list are linked (a program in
+  **Recently deleted** keeps its typed venue), and choosing **Not now** just
+  skips it; the offer comes back the next time you turn the setting on or add
+  a matching venue.
 - **Manage venues** — browse, edit, and delete your saved venue records. You can
   also add a venue on the fly while editing a program (when reusable venue records
-  are on). Deleting a venue is permanent — unlike a deleted dance, it isn't held
-  for later restore. To keep you from stranding a program, a venue can't be
+  are on). A deleted venue doesn't go to Recently deleted, so you can't restore
+  it on its own. To keep you from stranding a program, a venue can't be
   deleted while any program is still linked to it; change or remove the venue on
   those programs first, then delete it. A program in **Recently deleted**
-  doesn't count, so it won't stop you deleting the venue.
+  doesn't count, so it won't stop you deleting the venue, and restoring that
+  program brings the venue back.
 
 Whether the toggle is on or off, a program that's linked to a saved venue always
 shows and exports that venue's full details (the linked record wins over free
@@ -212,6 +257,13 @@ details are handled when you export.
   dance performed (or clear the mark) without opening the editor. Marking or
   clearing offers an **Undo**. Turn it off and rows only show a check on dances
   already marked performed. The change applies straight away.
+- **Mark all performed sets the status** (on) — **Mark all performed**, in the
+  program editor or on a program's summary, also sets the program's status to
+  **Performed**, and its **Undo** puts the marks and the status back together.
+  Turn it off to keep the status separate: Mark all performed then only marks
+  the dances. Either way, saving a change to **Performed** yourself marks every
+  unmarked dance except alternates, and changing the status back keeps the
+  marks.
 - **Require an event date for calling history** (off) — when on, a program with
   no event date counts nowhere calling history is read (the "called ×N" count,
   the **Called** filter, a dance's history list, the **Last called** sort, and
@@ -266,17 +318,24 @@ There's a **High contrast** theme for maximum legibility — see the
   circles, and squares each get their own accent, so you can read the *shape* of a program at a
   glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
   accent regardless of their formation, so a mixer-flagged Improper reads as
-  a mixer rather than a contra. The formation (and "Mixer" when applicable) is
+  a mixer rather than a contra, even if you have given that formation its own
+  colour (see [Formation colours](#formation-colours) below). The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
-  on colour, and the accents adapt to the High contrast theme. On by default; turn
-  it off to hide the tints.
+  on colour, and the family tints adapt to the High contrast theme. On by default;
+  turn it off to hide the tints (your own formation colours are hidden with them).
 
 ### Formation colours
 
 - **Formation label colours** — highlight individual formations in your own
   colours (for example Becket clockwise in yellow and Becket counter-clockwise in
-  pink). Your choices show on dance cards, in dance detail, and in the Perform
-  header.
+  pink). Your choices show on dance cards, in dance detail, in the Perform
+  header, and on set-list rows in a program's summary and builder. On a set-list
+  row your colour replaces the built-in tint for that formation's family; a
+  formation you haven't coloured keeps its family tint, and a dance marked as a
+  mixer keeps the mixer accent. Your colour is used as you chose it in every
+  theme, High contrast included, because on a row it only paints the edge of the
+  row, never text. With **Colour-code set-list rows** off, set-list rows show no
+  colour at all.
 
 ### Tag colours
 
@@ -285,7 +344,8 @@ There's a **High contrast** theme for maximum legibility — see the
   every other tag looks exactly as it does now. The tag's name is always shown
   beside the colour, so tags stay readable without relying on colour, and the
   app picks a black or white label automatically so your colour stays legible in
-  every theme.
+  every theme. This opens the Tags manager (also under **General → Library →
+  Tags**): choose **Colour…** in a tag's menu to pick one, or **Remove colour**.
 
 ## Dialect
 
@@ -409,8 +469,9 @@ default.
 
 Choose which details appear when you share, copy, or export a program or dance:
 **Authors**, **Formation**, **Level**, **Mixer**, **Status**, **Phrase**,
-**Calling notes**, **Walkthrough**, and **Tunes**. Authors are shown by default
-and tunes are hidden until you turn them on. See
+**Calling notes**, **Walkthrough**, **Tunes**, **Hook**, and **Sources**.
+Authors are shown by default; tunes, the hook and sources are hidden until you
+turn them on. See
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 
 ### Collection filters
@@ -452,8 +513,11 @@ Select **Import defaults** to open this group.
   a file, from a title list, or from ContraDB), keep whatever tags they already
   have. A program in a Caller's Companion file, a shared file, or a published
   collection is still imported, but only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
-  survives a sync or a merge restore. If you later delete one of the tags,
-  imports simply skip it. Dances you create in the editor are not tagged either.
+  survives a sync or a merge restore. Renaming or merging a tag in the
+  [Tags manager](#library) updates the choice to the new name, and deleting one
+  there removes it from the choice, on every device you sync. A tag deleted
+  some other way, such as on a device running an older version of the app,
+  stays in the choice until you change it, and imports simply skip it. Dances you create in the editor are not tagged either.
   Choosing tags here does not change dances already in your collection, and
   **Undo** on an import removes the dances it created along with their tags
   (the tags themselves stay).
@@ -468,9 +532,10 @@ open this group. You can override any of them per dance, and
   collection filters, and batch actions. Add a level, rename it, or drag it into
   a different position; renaming keeps existing dances attached to that level.
   A level can't be removed while any dance uses it. A dance in **Recently
-  deleted** doesn't count, so it won't stop you removing a level; that dance is
-  then backed up without a level, and shared without one unless the level was
-  one that ships with the app. Once no dance
+  deleted** doesn't count, so it won't stop you removing a level, and restoring
+  that dance brings the level back. Until then, that dance is backed up without
+  a level, and shared without one unless the level was one that ships with the
+  app. Once no dance
   uses it, you can remove any level, including the ones that ship with the app. Removing a level asks nothing first and shows
   **Undo** for a few seconds, which puts the level back in its place.
 - **Type**, **Formation**, and **Progression** — the starting choices for a new
@@ -1279,6 +1344,11 @@ are.
     **Keep both** asks you for a new name for the record that currently holds
     the name, and then applies the other device's rename. Until you choose, the
     other device's change is not applied.
+
+    You aren't asked when the tag or choreographer holding the name has been
+    deleted: a deleted one gives the name up, and the rename goes ahead. Nor
+    are you asked while the record holding the name is already on its way to
+    another name; the rename waits until it has moved, then applies.
 
     Merging two choreographers is the one case that loses something: an email
     address, location, and deceased marker are kept only on your own device and

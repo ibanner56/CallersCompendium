@@ -47,6 +47,7 @@ import '../widgets/advanced_query_builder.dart';
 import '../widgets/batch_custom_field_dialog.dart';
 import '../widgets/batch_level_dialog.dart';
 import '../widgets/batch_rating_dialog.dart';
+import '../widgets/batch_status_dialog.dart';
 import '../widgets/batch_tag_dialog.dart';
 import '../widgets/batch_tunes_dialog.dart';
 import '../widgets/brand_mark.dart';
@@ -166,9 +167,11 @@ class DanceListScreen extends StatefulWidget {
 enum _BatchMoreAction {
   selectAll,
   setRating,
+  setStatus,
   addTunes,
   clearTunes,
   editCustomField,
+  delete,
 }
 
 enum _CollectionCompactAction {
@@ -1623,7 +1626,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
       });
 
-  /// Shared tail of the batch handlers: announces [message] to AT, exits
+  /// Shared tail of the batch handlers: announces [message] (or the longer
+  /// [announcement], when given) to AT, exits
   /// selection mode, then shows either a plain "no changes" snackbar (when
   /// [count] is 0) or an Undo prompt wired to [onUndo].
   Future<void> _finishBatch({
@@ -1631,11 +1635,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
     required String message,
     required ValueKey<String> snackKey,
     required FutureOr<void> Function() onUndo,
+    String? announcement,
   }) async {
     if (!mounted) return;
     SemanticsService.sendAnnouncement(
       View.of(context),
-      message,
+      announcement ?? message,
       Directionality.of(context),
     );
     final l10n = AppLocalizations.of(context);
@@ -1658,6 +1663,59 @@ class _DanceListScreenState extends State<DanceListScreen> {
       undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: accessibleNavigation,
       onUndo: onUndo,
+    );
+  }
+
+  /// Moves the selected dances to Recently Deleted in one transaction
+  /// ([DanceRepository.softDeleteMany]), behind the same *Confirm before
+  /// delete* gate as the row menu (N4-4 = a). Undo restores exactly the dances
+  /// this call deleted, through [DanceRepository.restoreMany], so it revives
+  /// what each restore revives.
+  Future<void> _batchDelete() async {
+    if (_data == null || _selection.isEmpty) return;
+
+    final selectedIds = _selection.snapshot();
+    if (!await confirmDeleteDancesIfEnabled(
+          context,
+          count: selectedIds.length,
+          notShown: _selection.notShown(_shownIds),
+        ) ||
+        !mounted) {
+      return;
+    }
+
+    final List<String> deleted;
+    try {
+      deleted = await _repos.dances.softDeleteMany(
+        selectedIds,
+        at: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchDelete',
+      );
+      _reportBatchFailure();
+      return;
+    }
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final count = deleted.length;
+    // No reload, here or in Undo: both writes go to `dances`, which this list
+    // watches, so the rows leave and come back on their own.
+    await _finishBatch(
+      count: count,
+      message: count == 0
+          ? l10n.collectionBatchNoChanges
+          : l10n.collectionBatchDeleted(count),
+      announcement: count == 0
+          ? null
+          : l10n.collectionBatchDeletedAnnouncement(count),
+      snackKey: const ValueKey('batch-delete-snackbar'),
+      onUndo: () =>
+          _repos.dances.restoreMany(deleted, at: DateTime.now().toUtc()),
     );
   }
 
@@ -1726,6 +1784,74 @@ class _DanceListScreenState extends State<DanceListScreen> {
             dance.copyWith(
               rating: entry.value,
               clearRating: entry.value == null,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+            localUserEdit: true,
+          );
+        }
+      });
+
+  /// Sets the lifecycle status on the selected dances via the batched,
+  /// single-transaction [DanceRepository.setStatusForMany] (parallel to
+  /// [_batchSetLevel]). Captures prior per-dance statuses for Undo.
+  Future<void> _batchSetStatus() async {
+    final data = _data;
+    if (data == null || _selection.isEmpty) return;
+
+    final selectedIds = _selection.snapshot();
+    final target = await showBatchStatusDialog(context);
+    if (target == null || !mounted) return;
+
+    final priorStatuses = <String, DanceStatus>{};
+    final int count;
+    try {
+      // One batched read, not a `getById` per dance: on a very large selection
+      // the per-dance reads were most of the time this handler spent.
+      for (final dance in await _repos.dances.getByIds(selectedIds)) {
+        priorStatuses[dance.id] = dance.status;
+      }
+
+      count = await _repos.dances.setStatusForMany(
+        priorStatuses.keys,
+        status: target,
+        now: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._batchSetStatus',
+      );
+      _reportBatchFailure();
+      return;
+    }
+
+    // Narrow the captured priors to only the dances that actually changed, so
+    // Undo doesn't rewrite (and re-stamp) untouched dances.
+    priorStatuses.removeWhere((_, prior) => prior == target);
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final message = count == 0
+        ? l10n.collectionBatchNoChanges
+        : l10n.collectionBatchStatusSet(count);
+    await _finishBatch(
+      count: count,
+      message: message,
+      snackKey: const ValueKey('batch-status-snackbar'),
+      onUndo: () => _undoBatchStatus(priorStatuses),
+    );
+  }
+
+  /// Restores the captured [priorStatuses] for each affected dance.
+  Future<void> _undoBatchStatus(Map<String, DanceStatus> priorStatuses) =>
+      _repos.transaction(() async {
+        for (final entry in priorStatuses.entries) {
+          final dance = await _repos.dances.getById(entry.key);
+          if (dance == null) continue;
+          await _repos.dances.update(
+            dance.copyWith(
+              status: entry.value,
               updatedAt: DateTime.now().toUtc(),
             ),
             localUserEdit: true,
@@ -2396,12 +2522,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 _toggleSelectAll();
               case _BatchMoreAction.setRating:
                 _batchSetRating();
+              case _BatchMoreAction.setStatus:
+                _batchSetStatus();
               case _BatchMoreAction.addTunes:
                 _batchAddTunes();
               case _BatchMoreAction.clearTunes:
                 _batchClearTunes();
               case _BatchMoreAction.editCustomField:
                 _batchCustomField();
+              case _BatchMoreAction.delete:
+                _batchDelete();
             }
           },
           itemBuilder: (_) => [
@@ -2421,6 +2551,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
               child: Text(l10n.collectionSetRating),
             ),
             PopupMenuItem(
+              key: const ValueKey('batch-set-status'),
+              value: _BatchMoreAction.setStatus,
+              enabled: canAct,
+              child: Text(l10n.collectionSetStatus),
+            ),
+            // Groups follow `bulk-selection.md` "Selection bar layout": Details,
+            // Other, then (added by their own branches) Programs and Delete.
+            const PopupMenuDivider(),
+            PopupMenuItem(
               key: const ValueKey('batch-add-tunes'),
               value: _BatchMoreAction.addTunes,
               enabled: canAct,
@@ -2437,6 +2576,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
               value: _BatchMoreAction.editCustomField,
               enabled: canAct,
               child: Text(l10n.collectionEditCustomField),
+            ),
+            // Delete is last, in its own group and the error colour, so it
+            // never sits beside an edit (`bulk-selection.md`, Q4 "Delete").
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              key: const ValueKey('batch-delete'),
+              value: _BatchMoreAction.delete,
+              enabled: canAct,
+              child: _BatchDeleteLabel(
+                label: l10n.commonDelete,
+                enabled: canAct,
+              ),
             ),
           ],
         ),
@@ -3056,17 +3207,23 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // two labeled sections — the selected tag's dances, then everyone else —
     // instead of a flat list. Grouping is a pure app-layer partition over the
     // already-sorted [_results], so the active sort still orders rows *within*
-    // each section. Selection mode suppresses grouping so the batch flow stays
-    // a single flat, uninterrupted list.
-    final groupItems = _selectionMode ? null : _buildGroupedItems();
+    // each section. Grouping stays on while selecting (N4-3): selecting changes
+    // no tag, so no row moves between sections, and each header gains a
+    // checkbox for its rows.
+    final groupItems = _buildGroupedItems();
     if (groupItems != null) {
       return SliverList.builder(
         itemCount: groupItems.length,
         itemBuilder: (context, index) {
           final item = groupItems[index];
           return switch (item) {
-            _SectionHeaderItem(:final keySuffix, :final label, :final count) =>
-              _buildSectionHeader(keySuffix, label, count, l10n),
+            _SectionHeaderItem(
+              :final keySuffix,
+              :final label,
+              :final count,
+              :final ids,
+            ) =>
+              _buildSectionHeader(keySuffix, label, count, ids, l10n),
             _DanceRowItem(:final entry) => _buildDanceRow(entry, l10n),
           };
         },
@@ -3103,62 +3260,111 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final l10n = AppLocalizations.of(context);
     final items = <_CollectionListItem>[];
     if (withTag.isNotEmpty) {
-      items.add(_SectionHeaderItem('tag', tag.name, withTag.length));
+      items.add(
+        _SectionHeaderItem('tag', tag.name, [
+          for (final e in withTag) e.dance.id,
+        ]),
+      );
       items.addAll(withTag.map(_DanceRowItem.new));
     }
     if (other.isNotEmpty) {
       items.add(
-        _SectionHeaderItem('other', l10n.collectionGroupOther, other.length),
+        _SectionHeaderItem('other', l10n.collectionGroupOther, [
+          for (final e in other) e.dance.id,
+        ]),
       );
       items.addAll(other.map(_DanceRowItem.new));
     }
     return items;
   }
 
+  /// Selects the section's rows, or deselects them when they are all selected.
+  /// Selections outside [ids] are kept, hidden ones included (N4-3, N4-1).
+  /// Like Select all it waits for a pending search, whose results would replace
+  /// the rows [ids] came from.
+  void _toggleSection(List<String> ids) {
+    if (!_canSelectAll) return;
+    setState(() {
+      if (_selection.coversAll(ids)) {
+        _selection.deselectAll(ids);
+      } else {
+        _selection.selectAll(ids);
+      }
+    });
+  }
+
   /// A sticky-styled section header for the grouped view. Announces its label
   /// and dance count as a single AT node (a11y) and is marked as a heading.
+  /// While selecting it also carries a tri-state checkbox for the section's
+  /// rows; that node keeps its own checked/mixed state and tap action, so a
+  /// screen reader can toggle the section without leaving the heading.
   /// [keySuffix] gives each header a stable, collision-free widget key even if a
   /// user's tag happens to be named the same as the "Other" section label.
   Widget _buildSectionHeader(
     String keySuffix,
     String label,
     int count,
+    List<String> ids,
     AppLocalizations l10n,
   ) {
     final theme = Theme.of(context);
+    final selected = _selectionMode ? ids.where(_selection.contains).length : 0;
+    final all = count > 0 && selected == count;
+    final canToggle = _canSelectAll;
+    final some = selected > 0 && !all;
+    Widget header = Container(
+      key: ValueKey('group-header-$keySuffix'),
+      width: double.infinity,
+      color: theme.colorScheme.surfaceContainerHighest,
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: _selectionMode ? 0 : AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          if (_selectionMode)
+            Checkbox(
+              key: ValueKey('group-checkbox-$keySuffix'),
+              tristate: true,
+              value: all ? true : (some ? null : false),
+              onChanged: canToggle ? (_) => _toggleSection(ids) : null,
+            ),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            '$count',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (_selectionMode) {
+      header = InkWell(
+        onTap: canToggle ? () => _toggleSection(ids) : null,
+        child: header,
+      );
+    }
+    // The visuals are hidden from AT; the Semantics node below carries the
+    // label, state and tap action, so the checkbox is reached exactly once.
+    header = ExcludeSemantics(child: header);
     return Semantics(
       header: true,
       container: true,
-      label: l10n.collectionGroupSectionSemantics(label, count),
-      child: ExcludeSemantics(
-        child: Container(
-          key: ValueKey('group-header-$keySuffix'),
-          width: double.infinity,
-          color: theme.colorScheme.surfaceContainerHighest,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '$count',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      label: _selectionMode
+          ? l10n.collectionGroupSectionSelectedSemantics(label, count, selected)
+          : l10n.collectionGroupSectionSemantics(label, count),
+      checked: _selectionMode ? all : null,
+      mixed: _selectionMode ? some : null,
+      onTap: _selectionMode && canToggle ? () => _toggleSection(ids) : null,
+      child: header,
     );
   }
 
@@ -3266,16 +3472,46 @@ sealed class _CollectionListItem {
 }
 
 class _SectionHeaderItem extends _CollectionListItem {
-  const _SectionHeaderItem(this.keySuffix, this.label, this.count);
+  const _SectionHeaderItem(this.keySuffix, this.label, this.ids);
 
   /// Stable, collision-free key part ('tag' or 'other'), independent of the
   /// display [label] (which could clash — e.g. a tag literally named "Other").
   final String keySuffix;
   final String label;
-  final int count;
+
+  /// The ids of the section's rows in `_results`, in display order. Never the
+  /// selection's hidden ids: a header acts on what the list shows (N4-1).
+  final List<String> ids;
+
+  int get count => ids.length;
 }
 
 class _DanceRowItem extends _CollectionListItem {
   const _DanceRowItem(this.entry);
   final DanceListEntry entry;
+}
+
+/// The batch menu's Delete entry: the bin (decision D-10 reserves it for
+/// "delete") and the label, both in the error colour while the entry is
+/// enabled, so a disabled entry still greys out like its neighbours.
+class _BatchDeleteLabel extends StatelessWidget {
+  const _BatchDeleteLabel({required this.label, required this.enabled});
+
+  final String label;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled ? Theme.of(context).colorScheme.error : null;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.delete_outline, color: color),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(label, style: TextStyle(color: color)),
+        ),
+      ],
+    );
+  }
 }

@@ -10094,8 +10094,9 @@ class VenueRow extends DataClass implements Insertable<VenueRow> {
   /// published venue is tombstoned instead (sync-spec.md §3.1 forfeiture),
   /// **unless** a surviving program row still names it, in which case it is
   /// left live: retention outranks forfeiture, because a tombstoned venue is
-  /// invisible to every venue read and orphans that program's `venue_id`
-  /// exactly as an erasure would (issue #1357).
+  /// invisible to every venue read and orphans a live program's `venue_id`
+  /// exactly as an erasure would (issue #1357). Only a program restored from
+  /// Recently deleted brings a tombstoned venue back.
   final DateTime? updatedAt;
   final DateTime? deletedAt;
   final DateTime? existenceAt;

@@ -32,7 +32,7 @@ void markSyncAppliedTablesUpdated(
         });
       // Applying one of these kinds can also rewrite the rows that reference
       // it: natural-key reconciliation migrates an identity through
-      // `_rewriteLocalReferences`, which rewrites the join rows and bumps the
+      // `rewriteLocalReferences`, which rewrites the join rows and bumps the
       // citing dance's `updated_at` for I1. Naming only the kind's own table
       // left a screen whose stream reads `dances` (or the join) showing
       // pre-rewrite data until an unrelated write happened to invalidate it.

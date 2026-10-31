@@ -242,6 +242,30 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze werden gelöscht. Sie können dies rückgängig machen.',
+      one: '1 Tanz wird gelöscht. Sie können dies rückgängig machen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Tänze werden gelöscht, davon $notShown durch Ihre Suche ausgeblendet. Sie können dies rückgängig machen.',
+      one:
+          '1 Tanz wird gelöscht. Ihre Suche blendet ihn aus. Sie können dies rückgängig machen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -2390,7 +2414,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Jede Tanzzeile nach Formationsfamilie (Contra, Mixer, Square, …) einfärben — Tänze, die als Mixer markiert sind, erhalten stets die Mixer-Farbe, unabhängig von der Formation. Die Formation wird immer als Text angezeigt, sodass Zeilen auch ohne Farbe lesbar bleiben.';
+      'Jede Tanzzeile nach Formationsfamilie (Contra, Mixer, Square, …) einfärben – es sei denn, du hast dieser Formation eine eigene Farbe gegeben; sie hat Vorrang. Tänze, die als Mixer markiert sind, erhalten stets die Mixer-Farbe, unabhängig von der Formation. Die Formation wird immer als Text angezeigt, sodass Zeilen auch ohne Farbe lesbar bleiben.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -2398,7 +2422,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Einzelne Formationen in eigenen Farben hervorheben – z. B. Becket (CW) in Gelb, Becket (CCW) in Pink – auf Tanzkarten, in den Tanzdetails und im Perform-Header.';
+      'Einzelne Formationen in eigenen Farben hervorheben – z. B. Becket (CW) in Gelb, Becket (CCW) in Pink – auf Tanzkarten, in den Tanzdetails, im Perform-Header und in den Zeilen der Tanzfolge.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Ausgewählt';
@@ -2613,6 +2637,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'Melodien';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'Hook';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Quellen';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Sammlungsfilter';
 
   @override
@@ -2738,7 +2768,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Einer Formation eine eigene Farbe geben, um ihre Bezeichnung auf Tanzkarten, in Tanzdetails und im Perform-Header hervorzuheben. Nur die angepassten Formationen werden hervorgehoben; die übrigen zeigen ihre Bezeichnung wie gewöhnlich. Die Formation wird immer als Text angezeigt, sodass Bezeichnungen auch ohne Farbe lesbar bleiben.';
+      'Einer Formation eine eigene Farbe geben, um ihre Bezeichnung auf Tanzkarten, in Tanzdetails und im Perform-Header hervorzuheben und ihre Zeilen in der Tanzfolge einzufärben (Mixer behalten die Mixer-Farbe). Nur die angepassten Formationen werden hervorgehoben; die übrigen zeigen ihre Bezeichnung wie gewöhnlich. Die Formation wird immer als Text angezeigt, sodass Bezeichnungen auch ohne Farbe lesbar bleiben.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formationen';
@@ -2765,29 +2795,8 @@ class AppLocalizationsDe extends AppLocalizations {
       'Geben Sie einem Tag eine eigene Farbe, damit es auf Tanzkarten und in den Tanzdetails hervorsticht. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.';
 
   @override
-  String get settingsTagColoursTitle => 'Tag-Farben';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'Geben Sie einem Tag eine eigene Farbe, damit es überall hervorsticht, wo es erscheint. Nur die Tags, die Sie einfärben, ändern sich; alle anderen sehen genau so aus wie bisher. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
   String get settingsTagColoursEmpty =>
       'Sie haben noch keine Tags erstellt. Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.';
-
-  @override
-  String get settingsTagColoursCustom => 'Benutzerdefinierte Farbe';
-
-  @override
-  String get settingsTagColoursNoColour => 'Keine Farbe';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Farbe von $label entfernen';
-  }
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2796,6 +2805,204 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsTagColoursLoadError =>
       'Ihre Tags konnten nicht geladen werden.';
+
+  @override
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Tags durchsuchen';
+
+  @override
+  String get tagManagerNameLabel => 'Tag-Name';
+
+  @override
+  String get tagManagerColour => 'Farbe…';
+
+  @override
+  String get tagManagerRemoveColour => 'Farbe entfernen';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '„$name“ aus $count Tänzen gelöscht',
+      one: '„$name“ aus 1 Tanz gelöscht',
+      zero: '„$name“ gelöscht',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return '„$from“ in „$to“ umbenannt';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return '„$from“ mit „$into“ zusammengeführt';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return '$count Tags zu „$into“ zusammengeführt';
+  }
+
+  @override
+  String get authorManagerTitle => 'Autoren';
+
+  @override
+  String get authorManagerSearchHint => 'Autoren durchsuchen';
+
+  @override
+  String get authorManagerNameLabel => 'Name des Autors';
+
+  @override
+  String get authorManagerEmpty =>
+      'Noch keine Autoren. Autoren, die Sie bei einem Tanz angeben, erscheinen hier.';
+
+  @override
+  String get authorManagerLoadError =>
+      'Ihre Autoren konnten nicht geladen werden.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count Autoren zu „$into“ zusammengeführt';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Quellen';
+
+  @override
+  String get sourceManagerSearchHint => 'Quellen durchsuchen';
+
+  @override
+  String get sourceManagerTitleLabel => 'Titel der Quelle';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Noch keine Quellen. Bücher und Websites, die Sie bei einem Tanz angeben, erscheinen hier.';
+
+  @override
+  String get sourceManagerLoadError =>
+      'Ihre Quellen konnten nicht geladen werden.';
+
+  @override
+  String get libraryManagerClearSearch => 'Suche löschen';
+
+  @override
+  String get libraryManagerNotUsed => 'Nicht verwendet';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sortieren';
+
+  @override
+  String get libraryManagerSortByName => 'Name';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Anzahl der Tänze';
+
+  @override
+  String get libraryManagerNoMatches => 'Nichts passt zu Ihrer Suche.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze',
+      one: '1 Tanz',
+      zero: 'Nicht verwendet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Aktionen für $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Umbenennen';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return '„$name“ umbenennen';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Zusammenführen mit…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return '„$name“ zusammenführen mit…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Name bereits vergeben';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '„$existing“ gibt es bereits. „$from“ damit zusammenführen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '„$existing“ gibt es bereits. „$from“ damit zusammenführen und „$name“ nennen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'Mehrere Einträge heißen bereits „$name“. Wählen Sie den, mit dem „$from“ zusammengeführt wird; die anderen werden ebenfalls damit zusammengeführt.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Zusammenführen';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Rückgängig nicht möglich: „$name“ wird jetzt von einem anderen Eintrag verwendet.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.';
+
+  @override
+  String get libraryManagerEditDetails => 'Details bearbeiten…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '„$from“ in „$to“ umbenannt';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '„$from“ mit „$into“ zusammengeführt';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '„$name“ gelöscht';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return '„$from“ mit „$into“ zusammenführen?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Diese Details unterscheiden sich. Der zusammengeführte Eintrag behält seine eigenen, diese werden verworfen:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliothek';
@@ -3044,6 +3251,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn aktiviert, hat jeder Tanz in der Programmansicht einen Schalter, um ihn als aufgeführt zu markieren oder nicht – ohne den Editor zu öffnen. Wenn deaktiviert, zeigen die Zeilen nur an, ob ein Tanz aufgeführt wurde.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Alle als aufgeführt markieren setzt den Status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'Wenn aktiviert, setzt „Alle als aufgeführt markieren“ auch den Programmstatus auf Aufgeführt, und Rückgängig stellt beides wieder her. Wenn deaktiviert, bleibt der Status unverändert.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Veranstaltungsdatum für Calling-Verlauf erfordern';
 
@@ -3085,6 +3300,27 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
       'Wenn aktiviert, beginnt jede Figur in der Tanzansicht, im Perform-Modus und im Figureneditor mit einem Großbuchstaben („Neighbors allemande left“). Wenn deaktiviert, werden Figuren so angezeigt, wie sie geschrieben sind; eingebaute Figuren beginnen wie in ContraDB mit einem Kleinbuchstaben. Nur die Darstellung der Figuren an diesen Stellen ändert sich; Exporte, Suche, Sync-Vergleiche und Screenreader-Wortlaut bleiben unverändert.';
+
+  @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Tags umbenennen, zusammenführen, einfärben und löschen.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Autoren';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Autoren umbenennen, zusammenführen und löschen und ihre Details bearbeiten.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Quellen';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Quellen umbenennen, zusammenführen und löschen und ihre Details bearbeiten.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Barrierefreiheit';
@@ -3853,6 +4089,21 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze',
+      one: '1 Tanz',
+    );
+    return '$label, $_temp0, $selected ausgewählt';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => 'Auswahl beenden';
 
   @override
@@ -4032,6 +4283,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionSetRating => 'Bewertung festlegen';
 
   @override
+  String get collectionSetStatus => 'Status festlegen';
+
+  @override
   String get collectionAddTunes => 'Melodien hinzufügen';
 
   @override
@@ -4058,6 +4312,17 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: 'Bewertung bei $count Tänzen geleert',
       one: 'Bewertung bei 1 Tanz geleert',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Status bei $count Tänzen gesetzt',
+      one: 'Status bei 1 Tanz gesetzt',
     );
     return '$_temp0';
   }
@@ -4102,6 +4367,29 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: 'Feld bei $count Tänzen geleert',
       one: 'Feld bei 1 Tanz geleert',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze gelöscht',
+      one: '1 Tanz gelöscht',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Tänze gelöscht. Unter „Zuletzt gelöscht“ wiederherstellen.',
+      one: '1 Tanz gelöscht. Unter „Zuletzt gelöscht“ wiederherstellen.',
     );
     return '$_temp0';
   }
@@ -4519,6 +4807,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionBatchRatingConfirm => 'Festlegen';
 
   @override
+  String get collectionBatchStatusConfirm => 'Festlegen';
+
+  @override
   String get collectionBatchTunesFieldLabel => 'Melodie hinzufügen';
 
   @override
@@ -4845,6 +5136,21 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsAddAgain => 'Erneut hinzufügen';
 
   @override
+  String get programsAddToProgramSearchHint => 'Programme durchsuchen';
+
+  @override
+  String get programsAddToProgramSearchClear => 'Suche löschen';
+
+  @override
+  String get programsAddToProgramNoMatches =>
+      'Kein Programm passt zu deiner Suche.';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return 'Aufgeführt ($count)';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return '„$danceTitle“ zu $programTitle hinzugefügt.';
   }
@@ -4904,6 +5210,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get programsMarkedAllPerformedExceptAlternates =>
       'Alle Tänze außer Alternativen als aufgeführt markiert. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.';
+
+  @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Alle Tänze als aufgeführt markiert und den Status auf Aufgeführt gesetzt.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Alle Tänze außer Alternativen als aufgeführt markiert und den Status auf Aufgeführt gesetzt. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.';
 
   @override
   String programsSavedSnack(String title) {
@@ -5097,6 +5411,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert, und „Alle als aufgeführt markieren“ setzt diesen Status. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.';
 
   @override
   String get programsHideAlternatesTitle =>
@@ -5939,6 +6261,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get performShowWalkthrough => 'Ablauf anzeigen';
 
   @override
+  String get performFullScreen => 'Vollbild';
+
+  @override
   String get performWalkthroughEmpty => 'Kein Ablauf für diesen Tanz.';
 
   @override
@@ -6182,6 +6507,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportLabelTunes => 'Melodien';
 
   @override
+  String get exportLabelHook => 'Hook';
+
+  @override
+  String get exportLabelSources => 'Quellen';
+
+  @override
   String exportSlotAuthorSuffix(String names) {
     return 'von $names';
   }
@@ -6412,7 +6743,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Ihre Version von „$existingTitle“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen, Tags und Bewertung. Sie behält Ihre benutzerdefinierten Felder, ihren Platz in Ihren Programmen und ihren Calling-Verlauf.';
+    return 'Ihre Version von „$existingTitle“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen und Tags. Sie behält Ihre Bewertung, Ihre benutzerdefinierten Felder, ihren Platz in Ihren Programmen und ihren Calling-Verlauf.';
   }
 
   @override
@@ -6439,7 +6770,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen, Tags und Bewertung. Er behält Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.';
+      'Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen und Tags. Er behält Ihre Bewertung, Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.';
 
   @override
   String get importFigurelessCannotReplace =>
@@ -8355,6 +8686,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorRedoLabel => 'Wiederholen';
 
   @override
+  String get editorDraftNotSaved =>
+      'Entwurf nicht gespeichert – deine letzten Änderungen werden noch nicht gesichert';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Rückgängig (⌘Z)',
@@ -10082,6 +10417,41 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get venueManagerNoMatches =>
       'Keine Veranstaltungsorte entsprechen Ihrer Suche.';
+
+  @override
+  String get venueLinkOfferTitle => 'Frühere Programme verknüpfen?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Bei einigen Programmen ist ein Veranstaltungsort als Text eingetragen, der zu einem Veranstaltungsort-Eintrag passt. Wenn Sie sie verknüpfen, zählt die Ansageliste sie als einen Ort. Der eingetragene Text bleibt erhalten.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Programme',
+      one: '1 Programm',
+    );
+    return '„$name“: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Verknüpfen';
+
+  @override
+  String get venueLinkOfferDecline => 'Nicht jetzt';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Programme verknüpft.',
+      one: '1 Programm verknüpft.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get venueManagerDeleteTitle => 'Veranstaltungsort löschen?';

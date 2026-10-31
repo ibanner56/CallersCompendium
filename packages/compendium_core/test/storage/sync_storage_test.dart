@@ -5675,26 +5675,34 @@ void main() {
     );
 
     final renameStamp = stamp.add(const Duration(minutes: 1));
-    final result = await const SyncApplyEngine().apply(
-      candidates: [
-        SyncMergeCandidate(
-          blob: SyncRecordBlob(
-            kind: SyncRecordKind.choreographer,
-            id: 'aaa-author',
-            updatedAt: renameStamp,
-            deletedAt: null,
-            existenceAt: renameStamp,
-            body: syncBodyForEntity(
-              SyncRecordKind.choreographer,
-              Choreographer(id: 'aaa-author', name: 'Sam Jones'),
-            ),
-          ),
-        ),
-      ],
-      storage: storage,
+    final blob = SyncRecordBlob(
+      kind: SyncRecordKind.choreographer,
+      id: 'aaa-author',
+      updatedAt: renameStamp,
+      deletedAt: null,
+      existenceAt: renameStamp,
+      body: syncBodyForEntity(
+        SyncRecordKind.choreographer,
+        Choreographer(id: 'aaa-author', name: 'Sam Jones'),
+      ),
+    );
+    // Since §6.6 rule 7 (amended 2026-10-30) an apply no longer queues this
+    // pair: the tombstone gives the name up (see the next test). A row an
+    // older build queued must still be resolvable, so it is queued here as
+    // that build queued it.
+    await repositories.syncLocal.enqueueReview(
+      kind: SyncRecordKind.choreographer,
+      recordId: 'aaa-author',
+      counterpartId: 'zzz-author',
+      reason: syncNaturalKeyRenameCollisionReason,
+      candidateBlob: encodeSyncRecordBlob(blob),
+      candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+      localHash: (await storage.snapshot())
+          .local[(kind: SyncRecordKind.choreographer, recordId: 'aaa-author')]!
+          .wireHash,
+      queuedAt: renameStamp,
     );
 
-    expect(result.applied, isEmpty);
     final item = SyncReviewQueueItem.fromRow(
       (await repositories.syncLocal.listReviewQueue()).single,
     );
@@ -5740,6 +5748,60 @@ void main() {
       db.choreographers,
     )..where((row) => row.id.equals('zzz-author'))).getSingle();
     expect(tombstone.name, 'Sam Jones (deleted)');
+    expect(tombstone.deletedAt, isNotNull, reason: 'still deleted');
+  });
+
+  test('a step-1 rename onto a name only a tombstone holds applies, and the '
+      'tombstone gives the name up (§6.6 rule 7)', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'aaa-author', name: 'Alice Smith'),
+      at: stamp,
+    );
+    // ignore: unused_result
+    await repositories.choreographers.upsert(
+      Choreographer(id: 'zzz-author', name: 'Sam Jones'),
+      at: stamp,
+    );
+    await repositories.choreographers.delete(
+      'zzz-author',
+      at: stamp.add(const Duration(seconds: 30)),
+    );
+
+    final renameStamp = stamp.add(const Duration(minutes: 1));
+    final result = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.choreographer,
+            id: 'aaa-author',
+            updatedAt: renameStamp,
+            deletedAt: null,
+            existenceAt: renameStamp,
+            body: syncBodyForEntity(
+              SyncRecordKind.choreographer,
+              Choreographer(id: 'aaa-author', name: 'Sam Jones'),
+            ),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
+    expect(result.applied, [
+      (kind: SyncRecordKind.choreographer, recordId: 'aaa-author'),
+    ]);
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+    expect(
+      (await repositories.choreographers.getById('aaa-author'))!.name,
+      'Sam Jones',
+    );
+    final tombstone = await (db.select(
+      db.choreographers,
+    )..where((row) => row.id.equals('zzz-author'))).getSingle();
+    // The suffix is the first eight characters of the id without hyphens.
+    expect(tombstone.name, 'Sam Jones_zzzautho');
     expect(tombstone.deletedAt, isNotNull, reason: 'still deleted');
   });
 

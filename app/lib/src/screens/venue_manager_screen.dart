@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/link_typed_venues_offer.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
 import 'venue_editor_sheet.dart';
@@ -132,6 +133,8 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
     if (created == null || !mounted) return;
     await _repos.venues.upsert(created, localUserEdit: true);
     // No reload: the upsert writes `venues`, which this screen watches.
+    if (!mounted) return;
+    await offerToLinkTypedVenues(context, venues: [created]);
   }
 
   Future<void> _edit(Venue venue) async {

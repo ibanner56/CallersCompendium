@@ -16,7 +16,9 @@ import '../data/callersbox_online.dart';
 import '../data/contradb_online.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
+import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
+import '../data/mark_all_sets_status_scope.dart';
 import '../data/show_performed_toggles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
@@ -1011,9 +1013,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// immediately because the summary shows a saved program — there is no draft
   /// to fold into a later save. Only reachable when at least one slot has a
   /// dance, matching the builder's guard; with only alternates it marks nothing.
+  ///
+  /// While "Mark all performed sets the status" is on (the default, GIG-12), it
+  /// also sets the status to Performed — even when every primary was already
+  /// marked — and Undo puts the status back with the marks.
   Future<void> _markAllPerformed() async {
     final program = _program;
     if (program == null) return;
+    final setsStatus =
+        MarkAllSetsStatusScope.read(context) &&
+        program.status != ProgramStatus.performed;
     final now = nextStoredTimestamp(
       now: DateTime.now().toUtc(),
       current: program.slots.map((s) => s.performedAt),
@@ -1030,7 +1039,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         updatedSlots.add(s);
       }
     }
-    if (markedSlotIds.isEmpty) {
+    if (markedSlotIds.isEmpty && !setsStatus) {
       // Every primary was already marked: say why the alternates still are not,
       // rather than doing nothing visible. There is nothing to undo.
       if (program.slots.any(_isUnmarkedAlternate)) {
@@ -1046,16 +1055,27 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       }
       return;
     }
-    final updated = program.copyWith(slots: updatedSlots, updatedAt: now);
+    final updated = program.copyWith(
+      slots: updatedSlots,
+      updatedAt: now,
+      status: setsStatus ? ProgramStatus.performed : null,
+    );
+    // Every stamp target is already marked, so the repository's stamp on the
+    // move to Performed (#356) finds nothing left to stamp.
     await _repos.programs.update(updated);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final exceptAlternates = updatedSlots.any(_isUnmarkedAlternate);
     _bulkUndoSnackBar = showUndoSnackBar(
       messenger,
-      message: updatedSlots.any(_isUnmarkedAlternate)
-          ? l10n.programsMarkedAllPerformedExceptAlternates
-          : l10n.programsMarkedAllPerformed,
+      message: switch ((exceptAlternates, setsStatus)) {
+        (true, true) =>
+          l10n.programsMarkedAllPerformedExceptAlternatesSetStatus,
+        (true, false) => l10n.programsMarkedAllPerformedExceptAlternates,
+        (false, true) => l10n.programsMarkedAllPerformedSetStatus,
+        (false, false) => l10n.programsMarkedAllPerformed,
+      },
       undoLabel: l10n.commonUndo,
       undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
@@ -1064,6 +1084,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           programId: program.id,
           markedSlotIds: markedSlotIds,
           actionTimestamp: now,
+          restoreStatus: setsStatus ? program.status : null,
           messenger: messenger,
           errorMessage: l10n.programsUndoPerformedError,
         ),
@@ -1258,6 +1279,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     required String programId,
     required Set<String> markedSlotIds,
     required DateTime actionTimestamp,
+    required ProgramStatus? restoreStatus,
     required ScaffoldMessengerState messenger,
     required String errorMessage,
   }) async {
@@ -1267,6 +1289,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         slotIds: markedSlotIds,
         performedAt: actionTimestamp,
         updatedAt: DateTime.now().toUtc(),
+        restoreStatus: restoreStatus,
       );
     } catch (error, stackTrace) {
       logCaughtError(
@@ -1464,9 +1487,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // Resolve the redundant formation accent (issue #270, extended for mixer
       // flag in issue #732). Only when a dance resolves, color-coding is on, and
       // the family has a themed accent. Mixer-flagged dances get the mixer accent
-      // regardless of shape — see setListAccentForDance.
+      // regardless of shape; otherwise the user's own formation colour wins
+      // over the family tint (PRES-12) — see setListAccentForRow.
       final accent = (dance != null && colorCodingEnabled)
-          ? setListAccentForDance(dance, highContrast: highContrast)
+          ? setListAccentForRow(
+              dance.formation.shape,
+              dance.mixer,
+              userColor: FormationColorsScope.of(
+                context,
+              )?.overrideFor(dance.formation.shape),
+              highContrast: highContrast,
+            )
           : null;
       // Expose the formation and, for mixer-flagged dances, the mixer term to AT
       // so the row is fully readable without colour (ux.md §4): the accent is

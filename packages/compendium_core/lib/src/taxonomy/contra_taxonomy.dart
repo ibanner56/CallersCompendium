@@ -1647,8 +1647,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // with "pass the ocean" (the pass-through-to-a-wave figure). Both new moves
     // inherit `form_an_ocean_wave`'s sourced param set MINUS `passThru`: the
     // pass-through is intrinsic to `pass_the_ocean` and intrinsically absent
-    // from the short wave. Neither invents a beat count — they mirror the
-    // legacy move's flat, param-dependent (unencoded) beats exactly.
+    // from the short wave. `pass_the_ocean` invents no beat count, mirroring
+    // the legacy move's flat, param-dependent (unencoded) beats; since v38
+    // `form_short_waves` encodes its own (4 with a balance, 0 without, #1975).
     // `form_an_ocean_wave` itself was REMOVED at taxonomy v14 (CompendiumDatabase
     // schema v12 migrates stored figures onto these two moves by `passThru`).
     // v21 RENAMED this move from `form_a_short_wave` to `form_short_waves`
@@ -1666,7 +1667,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
         'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+        // Without a balance it is a formation, 0 beats; with one, the
+        // balance's 4 (maintainer decision on #1975, v38). The default stays
+        // no balance, so a figure that states neither is 0 beats.
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 0),
       },
       renderTemplate: '{move}',
       searchKeywords: [
@@ -1678,7 +1682,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // this move under the name it used to render with.
         'form a wave',
       ],
-      // Beats mirror form_an_ocean_wave: param-dependent (balance), not encoded.
+      // Beats follow the balance (v38, #1975): 4 with it, 0 without. 8 stays
+      // typical for The Caller's Box's folded `(4) Form a wave` + `(4) Balance
+      // the wave`.
+      goodBeats: [0, 4, 8],
+      paramBeats: ParamBeats(param: 'balance', byValue: {true: 4, false: 0}),
     ),
     const MoveDef(
       id: 'pass_the_ocean',

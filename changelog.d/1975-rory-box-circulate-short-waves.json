@@ -1,0 +1,20 @@
+{
+  "id": "1975-rory-box-circulate-short-waves",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "\"Balance wave and slide to the right\", as Caller's Companion writes it, now comes in as one Rory O'More with its balance, instead of a balance noting the slide. \"Wave balance, circulate\" comes in as one box circulate with its balance instead of text, and \"(Larks cross, Robins loop R)\" after it says who crosses. This applies to imports and to figures you type.", "In Settings, turning the balance on or off in a default for form short waves, a Rory O'More or a petronella now saves the beats that go with it.",
+      "\"make short waves\", \"make short wave\" and \"make wave of 4\" now read as form short waves, so \"Circle Left 3/4, make short waves\" from Caller's Companion comes in as the circle followed by the wave."
+    ],
+    "changed": [
+      "Form short waves without a balance now takes no beats; with a balance it takes 4. A form short waves in your collection that never stated its beats now counts 0 rather than 4."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Taxonomy v38: form_short_waves' beats default becomes 0, with paramBeats balance true 4 / false 0 and goodBeats [0, 4, 8].",
+      "The shared recognizer reads \"balance (long) wave (of 4) and slide <side>\" as a balanced rory_o_more and \"make short wave(s)\" / \"make (a) wave of 4\" as form_short_waves; the CallersBox front end reads \"wave balance, (box) circulate\" as a balanced box_circulate, taking who and hand from a \"(<who> cross, <who> loop <side>)\" bracket.",
+      "splitCallersCompanionCommaLine gives a figure whose default is 0 beats none, and the last figure that takes beats the rest."
+    ]
+  }
+}

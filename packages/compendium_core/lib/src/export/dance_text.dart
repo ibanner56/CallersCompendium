@@ -41,6 +41,10 @@ import 'export_labels.dart';
 /// [renderer] supplies the dialect rendering engine; when omitted a default
 /// `FigureRenderer(contraTaxonomy)` is used (the same taxonomy the app wires).
 ///
+/// [sourceLines] are the already-resolved published-source citation lines (one
+/// per citation, built by the app from its localized strings); they appear
+/// only when [DanceShareField.sources] is in [fields].
+///
 /// [fields] selects which non-figures fields appear (issue #1434); figures
 /// are controlled separately (unaffected by this parameter). Defaults to
 /// [DanceShareField.allExceptTunes], matching every block this renderer
@@ -57,6 +61,7 @@ import 'export_labels.dart';
 /// Mixer
 /// Status: <statusLabel>
 /// Phrase: <phraseStructure notation>
+/// Hook: <hook>
 ///
 /// Figures:
 /// A1  <rendered figure> (16 beats) ¶
@@ -71,6 +76,9 @@ import 'export_labels.dart';
 ///
 /// Tunes:
 /// <tune, tune, ...>
+///
+/// Sources:
+/// <one resolved citation per line>
 /// ```
 /// Absent parts are omitted. A dance with no figures renders the header (and
 /// notes, if any) only.
@@ -85,6 +93,7 @@ String danceToPlainText(
   DanceExportLabels labels = const DanceExportLabels(),
   bool canonicalizeDiscouragedTerms = false,
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+  List<String> sourceLines = const [],
 }) {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
   final content = DanceCardContent.build(
@@ -98,6 +107,7 @@ String danceToPlainText(
     labels: labels,
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
     fields: fields,
+    sourceLines: sourceLines,
   );
   String renderText(String text) => canonicalizeDiscouragedTerms
       ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
@@ -111,6 +121,10 @@ String danceToPlainText(
   }
 
   lines.addAll(content.metaLines);
+
+  if (content.hook case final hook?) {
+    lines.add('${labels.hook}: $hook');
+  }
 
   if (content.figures.isNotEmpty) {
     lines.add('');
@@ -147,6 +161,12 @@ String danceToPlainText(
     lines.add('');
     lines.add('${labels.tunes}:');
     lines.add(content.tuneNames.join(', '));
+  }
+
+  if (content.sourceLines.isNotEmpty) {
+    lines.add('');
+    lines.add('${labels.sources}:');
+    lines.addAll(content.sourceLines);
   }
 
   return lines.join('\n');
