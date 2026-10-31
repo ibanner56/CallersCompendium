@@ -830,6 +830,45 @@ void main() {
       );
       expect(resolutions[0]?.kind, DedupeResolutionKind.duplicate);
     });
+
+    for (final (existingTitle, incomingTitle) in [
+      ('Bastringue, La', 'La Bastringue'),
+      ('La Bastringue', 'Bastringue, La'),
+      ('Thanks Les', 'Thanks, Les'),
+    ]) {
+      test('links "$incomingTitle" to "$existingTitle" (#1976)', () async {
+        final seeded = await pipeline.commit(
+          await pipeline.plan(
+            FakeSourceAdapter([record('fake-1', existingTitle)]),
+            const ImportRequest(),
+          ),
+          now: now,
+          newId: nextId,
+        );
+        final existingId = seeded.insertedDanceIds.single;
+
+        final adapter = FakeSourceAdapter([record('fake-2', incomingTitle)]);
+        final discovered = await adapter.discover(const ImportRequest());
+        final draft = adapter.parse(await adapter.fetch(discovered.single));
+        final batch = ImportBatchResult(
+          records: [
+            ImportRecordPlan(
+              draft: draft,
+              verdict: DedupeVerdict.ambiguous([
+                DedupeCandidate(danceId: existingId, score: 1.0),
+              ]),
+            ),
+          ],
+        );
+
+        final resolutions = await pipeline.autoResolveAmbiguous(
+          batch,
+          authorNamesOf: (_) => const [],
+        );
+        expect(resolutions[0]?.kind, DedupeResolutionKind.link);
+        expect(resolutions[0]?.targetDanceId, existingId);
+      });
+    }
   });
 
   group('variation resolution (issue #686)', () {

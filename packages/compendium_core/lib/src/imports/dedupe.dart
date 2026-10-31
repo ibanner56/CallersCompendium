@@ -4,6 +4,7 @@ import 'package:unorm_dart/unorm_dart.dart';
 import '../model/dance.dart';
 import '../model/enums.dart';
 import '../serialization/archive_entity_codec.dart';
+import 'title_article.dart';
 
 const _choreographyFields = [
   'form',
@@ -107,8 +108,9 @@ class DedupeCandidate {
   final String danceId;
   final double score;
 
-  /// Whether this candidate is a **confident match**: normalized titles are
-  /// exactly equal AND the tokenized author sets intersect (issue #685's
+  /// Whether this candidate is a **confident match**: the titles share a
+  /// [dedupeTitleKeys] key (normalized titles exactly equal, as written or
+  /// with a trailing article fronted, #1976) AND the tokenized author sets intersect (issue #685's
   /// dedupe sanity check). A confident candidate is always included in
   /// [DedupeIndex.fuzzyMatches] regardless of [DedupeIndex.defaultThreshold]
   /// — inconsistent author-string tokenization across sources must never be
@@ -324,16 +326,16 @@ class DedupeIndex {
         _byExternalKey['${e.source!.name}\u0000$ext'] = e.danceId;
       }
       final nTitle = normalizeTitle(e.title);
-      // Never `''`: an empty normalized title is never scored, so it must not
-      // be reachable through the exact-title map either.
-      if (nTitle.isNotEmpty) {
-        (_byNormalizedTitle[nTitle] ??= []).add(_normalized.length);
+      // Keyed as written and with a trailing article fronted (#1976), so both
+      // are reachable; `''` never is (see [dedupeTitleKeys]).
+      final fronted = _frontedKey(e.title, nTitle);
+      for (final key in [if (nTitle.isNotEmpty) nTitle, ?fronted]) {
+        (_byNormalizedTitle[key] ??= []).add(_normalized.length);
       }
-      // Same rule for the core-title key: `''` carries no identity signal.
-      final coreTitle = dedupeCoreTitleKey(e.title);
-      if (coreTitle.isNotEmpty) {
+      for (final coreTitle in _coreTitleKeys(e.title)) {
         (_byCoreTitle[coreTitle] ??= []).add(_normalized.length);
       }
+      _frontedTitles.add(fronted);
       _normalized.add((
         danceId: e.danceId,
         normalizedTitle: nTitle,
@@ -350,12 +352,19 @@ class DedupeIndex {
   final List<_NormalizedEntry> _normalized = [];
   final Map<String, String> _byExternalKey = {};
 
-  /// Normalized (non-empty) title → ascending indices into [_normalized] of
+  /// Each entry's [normalizeTitle] with a trailing article fronted, when that
+  /// differs from its `normalizedTitle` (#1976); parallel to [_normalized].
+  /// Usually `null`. Read by [possibleTitleMatches]; [fuzzyMatches] reaches it
+  /// only through [_byNormalizedTitle].
+  final List<String?> _frontedTitles = [];
+
+  /// Each [dedupeTitleKeys] key → ascending indices into [_normalized] of
   /// the entries carrying it. Every [DedupeCandidate.confident] match comes
   /// from here, since confidence requires an exact normalized-title match.
   final Map<String, List<int>> _byNormalizedTitle = {};
 
-  /// [dedupeCoreTitleKey] (non-empty) → ascending indices into [_normalized].
+  /// [dedupeCoreTitleKey] (non-empty) of a title as written and with a
+  /// trailing article fronted → ascending indices into [_normalized].
   /// The only source of [possibleTitleMatches].
   final Map<String, List<int>> _byCoreTitle = {};
 
@@ -404,14 +413,20 @@ class DedupeIndex {
     double threshold = defaultThreshold,
   }) {
     final nTitle = normalizeTitle(title);
+    final nFronted = _frontedKey(title, nTitle);
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
     if (nTitle.isEmpty) return const [];
     final out = <DedupeCandidate>[];
-    // Entries sharing the query's normalized title are always scored: they are
+    // Entries sharing a title key with the query are always scored: they are
     // the only possible confident matches. They are visited in entry order,
     // merged into the scan below, so the candidate order (and thus the order of
     // equal scores after the sort) is exactly that of a plain scan.
-    final exact = _byNormalizedTitle[nTitle] ?? const <int>[];
+    final exact = nFronted == null
+        ? _byNormalizedTitle[nTitle] ?? const <int>[]
+        : ({
+            ...?_byNormalizedTitle[nTitle],
+            ...?_byNormalizedTitle[nFronted],
+          }.toList()..sort());
     var nextExact = 0;
     // Length bound for every other entry. Levenshtein distance is at least the
     // length difference, so with la = |nTitle|, lb = |eTitle| and
@@ -422,13 +437,21 @@ class DedupeIndex {
     // most 1) and exactly `titleSim` otherwise. A pair whose bound is under
     // [threshold] could never have reached it, and is not confident (its
     // titles differ), so skipping it cannot change the result.
+    //
+    // A fronted key (#1976) only decides which entries are exact: an exact
+    // entry scores as the same title, and every other entry is scored on the
+    // titles as written, as before, so a query costs what it did.
     final queryHasAuthors = nAuthors.isNotEmpty;
     for (var i = 0; i < _normalized.length; i++) {
       final e = _normalized[i];
       final eTitle = e.normalizedTitle;
+      // Safe before the exact cursor moves: an entry with no plain key has no
+      // fronted one either, as every article is Latin letters that
+      // `normalizeTitle` keeps, so it is never in [exact].
       if (eTitle.isEmpty) continue;
       final eAuthors = e.normalizedAuthors;
-      if (nextExact < exact.length && exact[nextExact] == i) {
+      final isExact = nextExact < exact.length && exact[nextExact] == i;
+      if (isExact) {
         nextExact++;
       } else {
         final la = nTitle.length;
@@ -441,10 +464,14 @@ class DedupeIndex {
             : titleBound;
         if (bound < threshold) continue;
       }
-      final score = _combinedScore(nTitle, nAuthors, eTitle, eAuthors);
+      final score = _combinedScore(
+        nTitle,
+        nAuthors,
+        isExact ? nTitle : eTitle,
+        eAuthors,
+      );
       final confident =
-          nTitle.isNotEmpty &&
-          nTitle == eTitle &&
+          isExact &&
           nAuthors.isNotEmpty &&
           eAuthors.isNotEmpty &&
           nAuthors.intersection(eAuthors).isNotEmpty;
@@ -490,10 +517,12 @@ class DedupeIndex {
   }
 
   /// Existing dances that may be this record under a differently written title
-  /// (issue #1907): same [dedupeCoreTitleKey], at least one shared normalized
-  /// author, and a **different** [normalizeTitle]. Collection order.
+  /// (issue #1907): a shared [dedupeCoreTitleKey] (of either title as written
+  /// or with its trailing article fronted, #1976), at least one shared
+  /// normalized author, and **no** shared [dedupeTitleKeys] key. Collection
+  /// order.
   ///
-  /// The different-[normalizeTitle] clause is what keeps this tier disjoint
+  /// The no-shared-key clause is what keeps this tier disjoint
   /// from [DedupeCandidate.confident]: an exact normalized title with a shared
   /// author is already a confident candidate. Both sides must declare authors,
   /// because a core title alone (`a1reel`) is too weak to put in front of the
@@ -505,16 +534,18 @@ class DedupeIndex {
     String title,
     Iterable<String> authorNames,
   ) {
-    final coreTitle = dedupeCoreTitleKey(title);
-    if (coreTitle.isEmpty) return const [];
-    final indices = _byCoreTitle[coreTitle];
-    if (indices == null) return const [];
+    final indices = {
+      for (final coreTitle in _coreTitleKeys(title))
+        ...?_byCoreTitle[coreTitle],
+    }.toList()..sort();
+    if (indices.isEmpty) return const [];
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
     if (nAuthors.isEmpty) return const [];
-    final nTitle = normalizeTitle(title);
+    final queryKeys = dedupeTitleKeys(title);
     return [
       for (final i in indices)
-        if (_normalized[i].normalizedTitle != nTitle &&
+        if (!queryKeys.contains(_normalized[i].normalizedTitle) &&
+            !queryKeys.contains(_frontedTitles[i]) &&
             _normalized[i].normalizedAuthors.any(nAuthors.contains))
           _normalized[i].danceId,
     ];
@@ -544,6 +575,38 @@ typedef _NormalizedEntry = ({
 final RegExp _nonAlphanumericRe = RegExp(r'[^a-z0-9\s]');
 final RegExp _whitespaceRe = RegExp(r'\s+');
 final RegExp _leadingArticleRe = RegExp(r'^(the|a|an)\s+');
+
+/// The keys import dedupe matches [title] on: its [normalizeTitle], and that
+/// of the title with a trailing article fronted ([frontTrailingArticle],
+/// #1976) when it differs, without `''`. Two titles match exactly when their
+/// keys overlap, so "Bastringue, La" matches "La Bastringue" while "Thanks,
+/// Les" still matches "Thanks Les".
+///
+/// Import-only: it composes [normalizeTitle] rather than replacing it, and
+/// sync's keys stay plain [normalizeTitle].
+Set<String> dedupeTitleKeys(String title) {
+  final plain = normalizeTitle(title);
+  return {if (plain.isNotEmpty) plain, ?_frontedKey(title, plain)};
+}
+
+/// [normalizeTitle] of [title] with a trailing article fronted, when that is
+/// not [plain] (its [normalizeTitle]) and not `''`.
+String? _frontedKey(String title, String plain) {
+  final fronted = frontTrailingArticle(title);
+  if (identical(fronted, title)) return null;
+  final key = normalizeTitle(fronted);
+  return key == plain || key.isEmpty ? null : key;
+}
+
+/// [dedupeCoreTitleKey] of [title] as written and with a trailing article
+/// fronted, without `''`.
+Set<String> _coreTitleKeys(String title) {
+  final fronted = frontTrailingArticle(title);
+  return {
+    dedupeCoreTitleKey(title),
+    if (!identical(fronted, title)) dedupeCoreTitleKey(fronted),
+  }..remove('');
+}
 
 /// Normalizes a dance title for comparison: NFC-composed, lowercased, diacritics
 /// folded, punctuation dropped, whitespace collapsed, and a single leading

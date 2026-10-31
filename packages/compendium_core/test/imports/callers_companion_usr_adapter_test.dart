@@ -271,6 +271,23 @@ void main() {
       },
     );
 
+    test('a library-style title is fronted in the label too (#1976)', () async {
+      final bytes = buildFmp12Fixture([
+        FmpFixtureTable(
+          index: 1,
+          name: 'Dance',
+          columnNames: ['zk_Dance_ID', 'Name'],
+          rows: [
+            MapEntry(1, {1: '1', 2: 'Baby Rose, The'}),
+          ],
+        ),
+      ]);
+      final records = await CallersCompanionUsrAdapter().discover(
+        ImportRequest(options: {'bytes': bytes}),
+      );
+      expect(records.single.label, 'The Baby Rose');
+    });
+
     test('a reader that throws the reader errors still yields the friendly '
         'ImportErrors', () async {
       Future<void> discoverWith(Object error) => CallersCompanionUsrAdapter(
