@@ -91,7 +91,8 @@ CcProgramsResult buildCcPrograms(
       breakDue = false;
       // Nothing to break between at the start, and a break right after
       // another (a deleted dance's, #1976) adds nothing.
-      if (slots.isEmpty || slots.last.isBreak) return;
+      // An alternate break does not count: hiding alternates would hide it.
+      if (slots.isEmpty || (slots.last.isBreak && !slots.last.isAlt)) return;
       slots.add(
         ProgramSlot(
           id: mintSlotId(),
@@ -183,9 +184,10 @@ CcProgramsResult buildCcPrograms(
       }
 
       if (breakDue) {
-        // Unless the set already has its own break slot here.
+        // Unless this slot is a break already: the set's own, or a left-out
+        // dance titled "Break", which would otherwise read as a second one.
         final isOwnBreak =
-            item.danceRecordId == null &&
+            !isAlt &&
             text?.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
         if (isOwnBreak) {
           breakDue = false;

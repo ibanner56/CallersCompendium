@@ -725,7 +725,9 @@ could not write the dance, the slot shows its title and a *Dance not imported*
 line, and the import says so; if it could not read the dance from the file at
 all, just the *Dance not imported* line. A slot for a dance you deleted in Caller's
 Companion is left out of the program, as Caller's Companion has nothing left to
-show for it; the import result notes it.
+show for it; the import result notes it. Its first alternate, if it had one,
+moves up to take its place, as when you remove a dance in the program editor,
+and the same happens to an empty slot's alternate.
 
 Re-importing replaces that dance's figures, formation, and progression with the
 incoming version's (and its title and credit, if you ticked the box), so if you

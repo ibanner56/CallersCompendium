@@ -621,6 +621,49 @@ void main() {
       ]);
     });
 
+    test('an alternate break does not stand in for a flagged break', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+            CcSetItem(order: 1, breakText: 'Break', isAlt: true),
+            CcSetItem(order: 2, danceRecordId: '9'),
+          ],
+          known: {'4', '9'},
+        ),
+        danceIds: {'4': 'd4', '9': 'd9'},
+      );
+      expect(
+        result.programs.single.slots.map((s) => (s.danceId ?? s.text, s.isAlt)),
+        [
+          ('d4', false),
+          ('Break', true),
+          (Program.breakSlotText, false),
+          ('d9', false),
+        ],
+      );
+    });
+
+    test('a left-out dance titled "Break" is not a second break', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '7'),
+            CcSetItem(order: 2, danceRecordId: '9'),
+          ],
+          known: {'4', '7', '9'},
+        ),
+        danceIds: {'4': 'd4', '9': 'd9'},
+        titles: {'7': 'Break'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd4',
+        'Break',
+        'd9',
+      ]);
+    });
+
     test('a deleted alternate is just left out', () {
       final result = build(
         setOf(
