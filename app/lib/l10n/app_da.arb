@@ -242,17 +242,7 @@
   },
   "confirmDeleteProgramHistoryBody": "„{itemLabel}“ slettes. {count, plural, =1{1 dans mister dette program fra sin kaldshistorik.} other{{count} danse mister dette program fra deres kaldshistorik.}} Du kan fortryde dette.",
   "@confirmDeleteProgramHistoryBody": {
-    "description": "Body of the confirm-before-delete dialog for a program when deleting it would remove it from the calling history of {count} dances (shown only when the 'Confirm before delete' setting is on and {count} is at least 1). {itemLabel} is the untrusted user-entered program title, rendered as plain text between typographic quotes. {count} is how many distinct dances list this program in their calling history under the current history settings.",
-    "placeholders": {
-      "itemLabel": {
-        "type": "String",
-        "example": "Friday Contra"
-      },
-      "count": {
-        "type": "int",
-        "example": "14"
-      }
-    }
+    "x-sourceSha256": "3404332d40bf15d666ea55151effb5ae43dc842d8d065950f6e4b19b371976f5"
   },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
