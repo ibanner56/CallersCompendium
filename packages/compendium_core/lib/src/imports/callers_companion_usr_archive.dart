@@ -74,7 +74,8 @@ class CcUsrArchive {
   final List<String> warnings;
 
   /// Every `zk_Dance_ID` in the file's `Dance` table, or `null` when that is
-  /// not known: the file is cut short, or has no `Dance` table. A `SetItem`
+  /// not known: the file is cut short, has no `Dance` table, or has a `Dance`
+  /// row without a `zk_Dance_ID` (the column is missing or a value blank). A `SetItem`
   /// naming an id outside a known set names a dance deleted in Caller's
   /// Companion (#1976), which `buildCcPrograms` leaves out.
   final Set<String>? danceRecordIds;
@@ -246,6 +247,7 @@ class CcDanceEntry {
     required this.recordId,
     required this.record,
     required this.rawColumns,
+    this.idIsFallback = false,
   });
 
   /// The CC dance identity used as the dedupe key **and** the join key that
@@ -255,6 +257,10 @@ class CcDanceEntry {
   final String recordId;
   final CcDanceRecord record;
   final Map<String, String> rawColumns;
+
+  /// Whether [recordId] is the FileMaker record id because the row had no
+  /// `zk_Dance_ID`, so `SetItem` rows cannot name this dance by it.
+  final bool idIsFallback;
 }
 
 /// A CC `Set` row reshaped toward the `Program` model.
@@ -394,8 +400,12 @@ CcUsrArchive extractCcUsrArchive(
     relatedDancePairs: relatedDancePairs,
     warnings: warnings.messages,
     warningCodes: warnings.codes,
-    // A cut-short file is missing its later dances, which are not deleted.
-    danceRecordIds: db.truncated || _findTable(db, _danceTableNames) == null
+    // A cut-short file is missing its later dances, which are not deleted;
+    // and a row with no `zk_Dance_ID` is a dance no `SetItem` id can match.
+    danceRecordIds:
+        db.truncated ||
+            _findTable(db, _danceTableNames) == null ||
+            dances.any((d) => d.idIsFallback)
         ? null
         : Set.unmodifiable(danceIds),
   );
@@ -475,6 +485,7 @@ List<CcDanceEntry> _extractDances(
           warnings: rowNotes,
         ),
         rawColumns: columns,
+        idIsFallback: ccId == null || ccId.isEmpty,
       ),
     );
   }

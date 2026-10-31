@@ -1723,6 +1723,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           onProgress: _onCommitProgress,
           earlierDanceIds: Map.of(_editCommittedCcDanceIds),
           earlierReimportedCcIds: Set.of(_editReimportedCcDanceIds),
+          // The commit batch holds only the rows acted on; a Skip row's slot
+          // still shows its title, and a row that failed to plan says so
+          // (#1976).
+          danceTitleByCcRowId: {
+            for (final plan in _batch!.records)
+              ?plan.draft.raw.externalId: plan.draft.dance.title,
+          },
+          failedCcRowIds: {
+            for (final error in _batch!.errors) ?error.externalId,
+          },
         );
         if (!mounted) return;
         setState(() => _phase = _Phase.review);

@@ -2638,6 +2638,36 @@ void main() {
       expect(program.slots.first.danceId, edited.id);
     });
 
+    // The commit batch holds only the rows acted on, so a dance left at Skip
+    // reached the programs with no title and became a bare "Dance not
+    // imported" note (#1976).
+    testWidgets('a dance left at Skip keeps its title in its set, and a '
+        'deleted dance is left out', (tester) async {
+      final repos = openTestRepositories();
+      final bytes = ccUsrBytes();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => bytes),
+        bytePicker: () async => bytes,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-row-1-skip')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final swing = (await repos.dances.listAll()).single;
+      final program = (await repos.programs.listAll()).single;
+      expect(program.slots.map((s) => s.danceId ?? s.text), [
+        swing.id,
+        'Petronella',
+        'Waltz break',
+      ]);
+    });
+
     // A dance re-imported through Import and edit reached the batch Import
     // only as an earlier dance, which did not say how it was written, so it
     // still got the file's related-dance links (INTAKE-7).

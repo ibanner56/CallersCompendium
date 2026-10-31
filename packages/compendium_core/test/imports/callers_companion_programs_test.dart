@@ -417,6 +417,48 @@ void main() {
       expect(issue.severity, ImportIssueSeverity.info);
     });
 
+    test("a deleted dance's first alternate takes its place", () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, danceRecordId: '99', breakAfter: true),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '8', isAlt: true),
+            CcSetItem(order: 4, danceRecordId: '9'),
+          ],
+          known: {'4', '7', '8', '9'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7', '8': 'd8', '9': 'd9'},
+      );
+      final slots = result.programs.single.slots;
+      expect(slots.map((s) => (s.danceId ?? s.text, s.isAlt)), [
+        ('d4', false),
+        ('d7', false),
+        ('d8', true),
+        (Program.breakSlotText, false),
+        ('d9', false),
+      ]);
+    });
+
+    test('a deleted alternate is just left out', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, danceRecordId: '99', isAlt: true),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+          ],
+          known: {'4', '7'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7'},
+      );
+      expect(result.programs.single.slots.map((s) => (s.danceId, s.isAlt)), [
+        ('d4', false),
+        ('d7', true),
+      ]);
+    });
+
     test('without the file\'s dance list, a missing dance is not deleted', () {
       final result = build(setOf([CcSetItem(order: 0, danceRecordId: '99')]));
       expect(

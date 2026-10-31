@@ -257,9 +257,9 @@ class CallersCompanionUsrImporter {
   /// Commits a planned dance [batch] and then the programs from [archive].
   ///
   /// The dances commit first (real pipeline path), yielding the CC-dance-id →
-  /// new-Compendium-dance-id map used to FK-resolve each program slot. Programs
-  /// whose slots reference a dance that was not committed degrade to text
-  /// placeholders + issues (never a throw — see [buildCcPrograms]).
+  /// new-Compendium-dance-id map used to FK-resolve each program slot. A slot
+  /// whose dance was not committed never throws: it becomes a text slot or is
+  /// left out (see *Dances that did not commit*, below).
   ///
   /// [venueEntityMode] gates issue #687's venue-entity linking. It is read by
   /// the app from `VenueEntityModeScope` — a Flutter `InheritedNotifier` the
@@ -340,6 +340,15 @@ class CallersCompanionUsrImporter {
   /// whose dance no longer exists is ignored, and [batch]'s own dance and an
   /// [earlierDanceIds] entry both win over it for the same CC id.
   ///
+  /// **Dances that did not commit (#1976):** a slot whose dance resolves to
+  /// none shows the dance's title when the import left it out, its title and
+  /// a `Dance not imported (…)` line when it failed, and is left out when the
+  /// file no longer has the dance (see [buildCcPrograms]). The titles come
+  /// from [batch]'s drafts and [danceTitleByCcRowId], and the failures from
+  /// this commit, [batch]'s errors and [failedCcRowIds]; a caller that commits
+  /// only some of its planned rows (the review screen leaves Skip rows out of
+  /// [batch]) passes the rest's titles and plan errors through these two.
+  ///
   /// Everything is recorded on the returned [CcUsrImportResult] so [undo]
   /// reverts dances, programs **and** venues.
   Future<CcUsrImportResult> commit(
@@ -355,6 +364,8 @@ class CallersCompanionUsrImporter {
     void Function(int done, int total)? onProgress,
     Map<String, String> earlierDanceIds = const {},
     Set<String> earlierReimportedCcIds = const {},
+    Map<String, String> danceTitleByCcRowId = const {},
+    Set<String> failedCcRowIds = const {},
   }) async {
     final mintId = newId ?? uuidV4;
     final (
@@ -412,10 +423,12 @@ class CallersCompanionUsrImporter {
       archive,
       danceIdByCcRowId: slotDanceIdByCcRowId,
       danceTitleByCcRowId: {
+        ...danceTitleByCcRowId,
         for (final plan in batch.records)
           ?plan.draft.raw.externalId: plan.draft.dance.title,
       },
       failedCcRowIds: {
+        ...failedCcRowIds,
         for (final record in danceSession.records)
           if (!record.succeeded) ?record.externalId,
         for (final error in batch.errors) ?error.externalId,

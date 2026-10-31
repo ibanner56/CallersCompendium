@@ -527,6 +527,48 @@ void main() {
       expect(program.slots[2].danceId, byExternal['13']);
     });
 
+    test('a row left out of the commit batch takes its title and failure '
+        'from the caller (#1976)', () async {
+      // The review screen commits only the rows it acts on; the titles and
+      // plan errors of the rest arrive beside the batch.
+      final adapter = FakeSourceAdapter([
+        {'id': '4', 'title': 'Simplicity Swing'},
+      ]);
+      final planned = await pipeline.plan(adapter, const ImportRequest());
+      final archive = CcUsrArchive(
+        dances: const [],
+        sets: [
+          CcSet(
+            recordId: '1',
+            location: 'Grange Hall',
+            items: [
+              CcSetItem(order: 1, danceRecordId: '4'),
+              CcSetItem(order: 2, danceRecordId: '7'),
+              CcSetItem(order: 3, danceRecordId: '13'),
+            ],
+          ),
+        ],
+        warnings: const [],
+      );
+
+      final result = await importer.commit(
+        planned,
+        archive,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        danceTitleByCcRowId: {'7': 'Petronella', '13': 'Chorus Jig'},
+        failedCcRowIds: {'13'},
+      );
+
+      final slots = result.programs.single.slots;
+      expect(slots[1].text, 'Petronella');
+      expect(
+        slots[2].text,
+        "Chorus Jig\n\nDance not imported (Caller's Companion dance #13)",
+      );
+    });
+
     test('a dance skipped at commit is excluded from the map', () async {
       // Plan two dances through the real pipeline, then commit only the first —
       // the second is left ambiguous with no resolution, so it is skipped.

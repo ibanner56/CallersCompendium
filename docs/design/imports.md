@@ -690,16 +690,21 @@ declines the collapse.
   row's target) is built by `buildCcPrograms` from what the importer passes it,
   per the maintainer's decisions on #1976 (2026-10-30): a dance the import left
   out (Skip, or an ambiguous row an unattended import skipped) becomes a text
-  slot holding its title (`danceTitleByCcRowId`, from the batch's drafts), with
-  no marker or issue; one whose commit or plan failed (`failedCcRowIds`, from
-  the session's failed records and the batch's errors) becomes its title, a
-  blank line, then the `Dance not imported (Caller's Companion dance #N)` marker,
-  with a `cc_program_unresolved_dance` warning; and one whose `zk_Dance_ID` is
-  not in the file's `Dance` table (`CcUsrArchive.danceRecordIds`: deleted in
-  CC) is left out with a `cc_program_deleted_dance` info issue, its `Break`
-  flag still placing the break. `danceRecordIds` is `null` for a cut-short file
-  or one with no `Dance` table, whose missing dances are not deleted; their
-  slots keep the marker.
+  slot holding its title, with no marker or issue; one whose commit failed
+  becomes its title, a blank line, then the `Dance not imported (Caller's
+  Companion dance #N)` marker, with a `cc_program_unresolved_dance` warning
+  (a plan-time fetch or parse error has no draft, so no title: the marker
+  alone); and one whose `zk_Dance_ID` is not in the file's `Dance` table
+  (`CcUsrArchive.danceRecordIds`: deleted in CC) is left out with a
+  `cc_program_deleted_dance` info issue, its `Break` flag still placing the
+  break and its first alternate taking its place. `CallersCompanionUsrImporter.
+  commit` takes the titles from the batch's drafts and the failures from the
+  session's failed records and the batch's errors; the review screen commits
+  only the rows it acts on, so it also passes every planned row's title
+  (`danceTitleByCcRowId`) and plan error (`failedCcRowIds`). `danceRecordIds`
+  is `null` for a cut-short file, one with no `Dance` table, or one with a
+  `Dance` row lacking a `zk_Dance_ID`, whose slots keep the marker instead of
+  being dropped.
 - **Per-row Edit.** The review's **Import and edit** commits one `.USR` dance
   before the rest through `CallersCompanionUsrImporter.commitDances`, which runs
   the same definition, published-source and difficulty-level steps as `commit`
@@ -708,7 +713,7 @@ declines the collapse.
   each such dance's `zk_Dance_ID` → dance id and passes it to the batch `commit`
   as `earlierDanceIds`, so set slots and `Dance_Related` pairs naming it resolve
   to it rather than becoming "not imported" placeholders (see *Dances that did
-  not commit*, below); an entry whose dance no longer exists is ignored, and the batch's own dance wins for a CC id it
+  not commit*, above); an entry whose dance no longer exists is ignored, and the batch's own dance wins for a CC id it
   also commits. The CC ids among them that the Edit re-imported go as
   `earlierReimportedCcIds`, and those dances get no `Dance_Related` link, as a
   dance the batch re-imports gets none — unless another row of the batch

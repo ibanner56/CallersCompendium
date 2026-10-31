@@ -307,6 +307,19 @@ void main() {
       expect(readCcUsrArchive(half).danceRecordIds, isNull);
     });
 
+    test('a Dance row with no zk_Dance_ID leaves the dances unknown', () {
+      final archive = extractCcUsrArchive(
+        _db([
+          _dance([
+            FmpRecord(1, {1: '4'}),
+            FmpRecord(2, const {}),
+          ]),
+        ]),
+      );
+      expect(archive.dances, hasLength(2));
+      expect(archive.danceRecordIds, isNull);
+    });
+
     test('a file with no Dance table does not claim to know its dances', () {
       final archive = extractCcUsrArchive(_db(const []));
       expect(archive.danceRecordIds, isNull);

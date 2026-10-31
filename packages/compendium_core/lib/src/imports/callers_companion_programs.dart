@@ -40,9 +40,9 @@ class CcProgramsResult {
 /// this PR (see the PR notes).
 ///
 /// **Parse-never-fails:** an unresolved dance reference, an unparseable event
-/// date, or an empty slot degrades to an [ImportIssue] + a graceful fallback
-/// (a text slot noting the missing dance, a null date, a skipped empty slot) —
-/// never a throw.
+/// date, or an empty slot degrades to a graceful fallback (a text slot or a
+/// left-out slot, below; a null date; a skipped empty slot), with an
+/// [ImportIssue] where the person should hear of it — never a throw.
 ///
 /// **A dance that did not commit** (maintainer decisions on #1976,
 /// 2026-10-30): a slot naming a CC dance [danceIdByCcRowId] does not resolve
@@ -93,9 +93,14 @@ CcProgramsResult buildCcPrograms(
       breakPending = false;
     }
 
+    // A deleted dance's first alternate takes its place (#1976), as removing a
+    // slot in the program editor promotes one.
+    var promoteAlt = false;
     for (final item in set.items) {
       String? danceId;
       String? text;
+      final isAlt = item.isAlt && !promoteAlt;
+      promoteAlt = false;
       final cleanBreakText = _cleanNote(item.breakText);
       if (breakPending && !item.isAlt) {
         // Unless the set already has its own break slot here.
@@ -114,7 +119,7 @@ CcProgramsResult buildCcPrograms(
         final known = archive.danceRecordIds;
         if (danceId == null && known != null && !known.contains(ccId)) {
           // Deleted in Caller's Companion: nothing to show (#1976, 5c). Its
-          // break still follows it.
+          // break still follows it and its alternates.
           issues.add(
             ImportIssue(
               severity: ImportIssueSeverity.info,
@@ -125,6 +130,7 @@ CcProgramsResult buildCcPrograms(
             ),
           );
           if (item.breakAfter) breakPending = true;
+          promoteAlt = !item.isAlt;
           continue;
         }
         if (danceId == null) {
@@ -177,7 +183,7 @@ CcProgramsResult buildCcPrograms(
           position: position++,
           danceId: danceId,
           text: text,
-          isAlt: item.isAlt,
+          isAlt: isAlt,
           guestCaller: _cleanLine(item.guestCaller),
           danceMinutes: item.minutes,
         ),

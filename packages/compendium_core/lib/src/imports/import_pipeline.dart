@@ -306,8 +306,9 @@ class ImportPipeline {
   /// them a program slot for such a dance would become a "not imported"
   /// placeholder, although the dance is in the collection. An entry in [committed] wins over
   /// one in [existing] for the same key. An [existing] dance deleted since it
-  /// was planned is dropped, so the slot keeps its placeholder rather than
-  /// naming a dance that is gone.
+  /// was planned is dropped, so the slot falls back to whatever a dance that
+  /// did not commit becomes for that importer (a "not imported" placeholder,
+  /// or for a `.USR` set its title) rather than naming a dance that is gone.
   Future<Map<String, String>> withLiveExistingDances(
     Map<String, String> committed,
     Map<String, String> existing,
