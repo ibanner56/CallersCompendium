@@ -145,6 +145,11 @@ void main() {
         // No stale "guessed column" warnings — the schema is confirmed.
         expect(archive.warnings.any((w) => w.contains('guessed')), isFalse);
 
+        // A healthy file knows its dances, so a set slot naming a dance
+        // deleted in CC can be left out (#1976); any reader warning would
+        // switch that off.
+        expect(archive.danceRecordIds, hasLength(40));
+
         // #559: every dance now carries its figure body, joined from the
         // separate `Phrase` table (the empty Dance-row A1..C2 columns yielded
         // zero figures before). No dance should come across bodyless.

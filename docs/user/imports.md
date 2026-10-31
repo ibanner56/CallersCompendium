@@ -722,7 +722,8 @@ was not recognised — including a **Possible match** you skip — still becomes
 place in the program shows its title instead, so the program still reads as
 you planned it, and you can make the dance from that slot later. If the app
 could not write the dance, the slot shows its title and a *Dance not imported*
-line, and the import says so. A slot for a dance you deleted in Caller's
+line, and the import says so; if it could not read the dance from the file at
+all, just the *Dance not imported* line. A slot for a dance you deleted in Caller's
 Companion is left out of the program, as Caller's Companion has nothing left to
 show for it; the import result notes it.
 

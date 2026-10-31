@@ -500,6 +500,82 @@ void main() {
       ]);
     });
 
+    test("the set's own break after a deleted dance is not doubled", () {
+      for (final own in ['Break', 'break']) {
+        final result = build(
+          setOf(
+            [
+              CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+              CcSetItem(order: 1, danceRecordId: '98'),
+              CcSetItem(order: 2, breakText: own),
+              CcSetItem(order: 3, danceRecordId: '9'),
+            ],
+            known: {'4', '9'},
+          ),
+          danceIds: {'4': 'd4', '9': 'd9'},
+        );
+        expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+          'd4',
+          own,
+          'd9',
+        ], reason: own);
+      }
+    });
+
+    test("a lower-case own break is not followed by a deleted dance's", () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1, breakText: 'break'),
+            CcSetItem(order: 2, danceRecordId: '98', breakAfter: true),
+            CcSetItem(order: 3, danceRecordId: '9'),
+          ],
+          known: {'4', '9'},
+        ),
+        danceIds: {'4': 'd4', '9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd4',
+        'break',
+        'd9',
+      ]);
+    });
+
+    test('a deleted first dance does not open the program with a break', () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '98', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '9'),
+          ],
+          known: {'9'},
+        ),
+        danceIds: {'9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd9',
+      ]);
+    });
+
+    test("an empty dance's first alternate takes its place", () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '4'),
+            CcSetItem(order: 1),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+          ],
+          known: {'4', '7'},
+        ),
+        danceIds: {'4': 'd4', '7': 'd7'},
+      );
+      expect(result.programs.single.slots.map((s) => (s.danceId, s.isAlt)), [
+        ('d4', false),
+        ('d7', false),
+      ]);
+    });
+
     test('a deleted alternate is just left out', () {
       final result = build(
         setOf(

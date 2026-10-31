@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "When you leave a dance out of a Caller's Companion import, its place in your programs shows the dance's title instead of a \"Dance not imported\" note. If the dance could not be written, the slot shows its title as well as the note.",
+      "When you leave a dance out of a Caller's Companion import, its place in your programs shows the dance's title instead of a \"Dance not imported\" note. If the dance could not be written, the slot shows its title as well as the note; if it could not be read from the file, just the note.",
       "A program slot for a dance you deleted in Caller's Companion is left out when you import the set, and the import result notes it."
     ]
   },

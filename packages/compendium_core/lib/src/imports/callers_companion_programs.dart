@@ -80,16 +80,14 @@ CcProgramsResult buildCcPrograms(
     final slots = <ProgramSlot>[];
     var position = 0;
     // A dance flagged `Break` puts the break after it and its alternates
-    // (#1974), so the slot waits for the next item that is not an alternate.
+    // (#1974), so the slot waits for the next slot kept that is not an
+    // alternate: an item left out (deleted, #1976, or empty) cannot take it.
     var breakPending = false;
     void addBreak() {
-      // A deleted dance's break right after another break adds nothing.
-      if (slots.isNotEmpty &&
-          slots.last.danceId == null &&
-          slots.last.text == Program.breakSlotText) {
-        breakPending = false;
-        return;
-      }
+      breakPending = false;
+      // Nothing to break between at the start, and a break right after
+      // another (a deleted dance's, #1976) adds nothing.
+      if (slots.isEmpty || slots.last.isBreak) return;
       slots.add(
         ProgramSlot(
           id: mintSlotId(),
@@ -97,11 +95,10 @@ CcProgramsResult buildCcPrograms(
           text: Program.breakSlotText,
         ),
       );
-      breakPending = false;
     }
 
-    // A deleted dance's first alternate takes its place (#1976), as removing a
-    // slot in the program editor promotes one.
+    // A left-out dance's first alternate takes its place (#1976), as removing
+    // a slot in the program editor promotes one.
     var promoteAlt = false;
     for (final item in set.items) {
       String? danceId;
@@ -110,18 +107,6 @@ CcProgramsResult buildCcPrograms(
       final isAlt = item.isAlt && !promoting;
       promoteAlt = false;
       final cleanBreakText = _cleanNote(item.breakText);
-      if (breakPending && !item.isAlt) {
-        // Unless the set already has its own break slot here.
-        final isOwnBreak =
-            item.danceRecordId == null &&
-            cleanBreakText?.trim().toLowerCase() ==
-                Program.breakSlotText.toLowerCase();
-        if (isOwnBreak) {
-          breakPending = false;
-        } else {
-          addBreak();
-        }
-      }
       if (item.danceRecordId case final ccId?) {
         danceId = danceIdByCcRowId[ccId];
         final known = archive.danceRecordIds;
@@ -183,11 +168,25 @@ CcProgramsResult buildCcPrograms(
             message: 'Skipped an empty slot in set "$title".',
           ),
         );
-        // An empty alternate cannot take a deleted dance's place.
-        if (promoting && item.isAlt) promoteAlt = true;
+        // An empty alternate cannot take a left-out dance's place, and an
+        // empty dance's alternate takes its place.
+        promoteAlt = (promoting && item.isAlt) || !isAlt;
         continue;
       }
 
+      // A promoted alternate still belongs to its group, so the break waits
+      // for the next item that was not an alternate in the file.
+      if (breakPending && !item.isAlt) {
+        // Unless the set already has its own break slot here.
+        final isOwnBreak =
+            danceId == null &&
+            text?.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
+        if (isOwnBreak) {
+          breakPending = false;
+        } else {
+          addBreak();
+        }
+      }
       slots.add(
         ProgramSlot(
           id: mintSlotId(),
