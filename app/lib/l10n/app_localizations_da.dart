@@ -3213,6 +3213,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret har hver dans i programvisningen en knap til at markere den som fremført eller ej, uden at åbne editoren. Når deaktiveret viser rækkerne kun, om en dans er fremført.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Markér alle som fremført sætter status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'Når aktiveret sætter Markér alle som fremført også programmets status til Fremført, og Fortryd sætter begge tilbage. Når deaktiveret forbliver status uændret.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Kræv en begivenhedsdato til kaldshistorik';
 
@@ -5150,6 +5158,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Markerede alle danse som fremført undtagen alternativer. Markér selv et alternativ, hvis du kaldte det.';
 
   @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Markerede alle danse som fremført og satte status til Fremført.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Markerede alle danse som fremført undtagen alternativer og satte status til Fremført. Markér selv et alternativ, hvis du kaldte det.';
+
+  @override
   String programsSavedSnack(String title) {
     return '„$title“ gemt.';
   }
@@ -5339,6 +5355,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Når du gemmer en ændring til Fremført, markeres alle umarkerede danse som fremført, undtagen alternativer. Ændrer du status tilbage, beholdes markeringerne.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Når du gemmer en ændring til Fremført, markeres alle umarkerede danse som fremført, undtagen alternativer, og Markér alle som fremført sætter denne status. Ændrer du status tilbage, beholdes markeringerne.';
 
   @override
   String get programsHideAlternatesTitle => 'Skjul alternativer i sætliste';

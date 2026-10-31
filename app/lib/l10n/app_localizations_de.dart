@@ -3251,6 +3251,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn aktiviert, hat jeder Tanz in der Programmansicht einen Schalter, um ihn als aufgeführt zu markieren oder nicht – ohne den Editor zu öffnen. Wenn deaktiviert, zeigen die Zeilen nur an, ob ein Tanz aufgeführt wurde.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Alle als aufgeführt markieren setzt den Status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'Wenn aktiviert, setzt „Alle als aufgeführt markieren“ auch den Programmstatus auf Aufgeführt, und Rückgängig stellt beides wieder her. Wenn deaktiviert, bleibt der Status unverändert.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Veranstaltungsdatum für Calling-Verlauf erfordern';
 
@@ -5204,6 +5212,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Alle Tänze außer Alternativen als aufgeführt markiert. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.';
 
   @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Alle Tänze als aufgeführt markiert und den Status auf Aufgeführt gesetzt.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Alle Tänze außer Alternativen als aufgeführt markiert und den Status auf Aufgeführt gesetzt. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.';
+
+  @override
   String programsSavedSnack(String title) {
     return '„$title“ gespeichert.';
   }
@@ -5395,6 +5411,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert, und „Alle als aufgeführt markieren“ setzt diesen Status. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.';
 
   @override
   String get programsHideAlternatesTitle =>

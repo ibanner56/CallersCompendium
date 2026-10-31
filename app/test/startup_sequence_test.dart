@@ -57,6 +57,7 @@ import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
+import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
@@ -2443,6 +2444,11 @@ void main() {
           (
             key: kShowPerformedTogglesKey,
             read: ShowPerformedTogglesScope.of,
+            defaultValue: true,
+          ),
+          (
+            key: kMarkAllSetsStatusKey,
+            read: MarkAllSetsStatusScope.of,
             defaultValue: true,
           ),
           (

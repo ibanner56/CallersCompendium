@@ -4064,6 +4064,14 @@
   "@settingsGeneralShowPerformedTogglesSubtitle": {
     "description": "Subtitle explaining the show mark-performed toggles setting."
   },
+  "settingsGeneralMarkAllSetsStatusTitle": "Mark all performed sets the status",
+  "@settingsGeneralMarkAllSetsStatusTitle": {
+    "description": "Title of the setting that makes Mark all performed also set the program status to Performed."
+  },
+  "settingsGeneralMarkAllSetsStatusSubtitle": "When on, Mark all performed also sets the program status to Performed, and Undo puts both back. When off, the status stays as it was.",
+  "@settingsGeneralMarkAllSetsStatusSubtitle": {
+    "description": "Subtitle explaining the Mark all performed sets the status setting."
+  },
   "settingsGeneralRequireEventDateForHistoryTitle": "Require an event date for calling history",
   "@settingsGeneralRequireEventDateForHistoryTitle": {
     "description": "Title of the calling-history settings toggle that leaves programs with no event date out of calling history."
@@ -6646,6 +6654,14 @@
   "@programsMarkedAllPerformedExceptAlternates": {
     "description": "Confirmation (snackbar and screen-reader announcement) after Mark all performed, shown instead of programsMarkedAllPerformed when the program has an alternate dance that was left unmarked. Mark all performed never marks alternates, because an alternate counts as called only once the caller marks it."
   },
+  "programsMarkedAllPerformedSetStatus": "Marked all dances performed and set the status to Performed.",
+  "@programsMarkedAllPerformedSetStatus": {
+    "description": "Confirmation (snackbar and screen-reader announcement) after Mark all performed marked every dance and also set the program status to Performed."
+  },
+  "programsMarkedAllPerformedExceptAlternatesSetStatus": "Marked all dances performed except alternates, and set the status to Performed. Mark an alternate yourself if you called it.",
+  "@programsMarkedAllPerformedExceptAlternatesSetStatus": {
+    "description": "Confirmation after Mark all performed marked every dance except alternates and also set the program status to Performed."
+  },
   "programsSavedSnack": "\"{title}\" saved.",
   "@programsSavedSnack": {
     "description": "Snackbar confirming the program was saved, quoting its title.",
@@ -6908,6 +6924,14 @@
   "programsStatusFieldLabel": "Status",
   "@programsStatusFieldLabel": {
     "description": "Field label for the program status dropdown in the editor."
+  },
+  "programsStatusHelper": "Saving a change to Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.",
+  "@programsStatusHelper": {
+    "description": "Helper text under the program status dropdown when Mark all performed does not set the status."
+  },
+  "programsStatusHelperMarkAllSetsStatus": "Saving a change to Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.",
+  "@programsStatusHelperMarkAllSetsStatus": {
+    "description": "Helper text under the program status dropdown when the Mark all performed sets the status setting is on."
   },
   "programsHideAlternatesTitle": "Hide alternates in set list",
   "@programsHideAlternatesTitle": {

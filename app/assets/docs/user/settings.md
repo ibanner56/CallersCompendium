@@ -257,6 +257,13 @@ details are handled when you export.
   dance performed (or clear the mark) without opening the editor. Marking or
   clearing offers an **Undo**. Turn it off and rows only show a check on dances
   already marked performed. The change applies straight away.
+- **Mark all performed sets the status** (on) — **Mark all performed**, in the
+  program editor or on a program's summary, also sets the program's status to
+  **Performed**, and its **Undo** puts the marks and the status back together.
+  Turn it off to keep the status separate: Mark all performed then only marks
+  the dances. Either way, saving a change to **Performed** yourself marks every
+  unmarked dance except alternates, and changing the status back keeps the
+  marks.
 - **Require an event date for calling history** (off) — when on, a program with
   no event date counts nowhere calling history is read (the "called ×N" count,
   the **Called** filter, a dance's history list, the **Last called** sort, and

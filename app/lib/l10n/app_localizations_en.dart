@@ -3189,6 +3189,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Mark all performed sets the status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'When on, Mark all performed also sets the program status to Performed, and Undo puts both back. When off, the status stays as it was.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Require an event date for calling history';
 
@@ -5115,6 +5123,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Marked all dances performed except alternates. Mark an alternate yourself if you called it.';
 
   @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Marked all dances performed and set the status to Performed.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Marked all dances performed except alternates, and set the status to Performed. Mark an alternate yourself if you called it.';
+
+  @override
   String programsSavedSnack(String title) {
     return '\"$title\" saved.';
   }
@@ -5304,6 +5320,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Saving a change to Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Saving a change to Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.';
 
   @override
   String get programsHideAlternatesTitle => 'Hide alternates in set list';

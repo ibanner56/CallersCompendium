@@ -3270,6 +3270,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Activé : chaque danse de la vue d’un programme a un commutateur pour la marquer comme jouée ou non, sans ouvrir l’éditeur. Désactivé : les lignes indiquent seulement si une danse a été jouée.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Tout marquer comme joué change le statut';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'Activé : Tout marquer comme joué passe aussi le statut du programme à Joué, et Annuler rétablit les deux. Désactivé : le statut ne change pas.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Exiger une date d’événement pour l’historique d’appel';
 
@@ -5221,6 +5229,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Toutes les danses marquées comme jouées, sauf les alternatives. Marquez vous-même une alternative si vous l’avez appelée.';
 
   @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Toutes les danses marquées comme jouées, et statut passé à Joué.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Toutes les danses marquées comme jouées, sauf les alternatives, et statut passé à Joué. Marquez vous-même une alternative si vous l’avez appelée.';
+
+  @override
   String programsSavedSnack(String title) {
     return '« $title » enregistré.';
   }
@@ -5411,6 +5427,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Statut';
+
+  @override
+  String get programsStatusHelper =>
+      'Enregistrer le passage à Joué marque comme jouée chaque danse non marquée, sauf les alternatives. Revenir à un autre statut conserve les marques.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Enregistrer le passage à Joué marque comme jouée chaque danse non marquée, sauf les alternatives, et Tout marquer comme joué choisit ce statut. Revenir à un autre statut conserve les marques.';
 
   @override
   String get programsHideAlternatesTitle =>

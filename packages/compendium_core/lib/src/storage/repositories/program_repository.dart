@@ -533,16 +533,24 @@ class ProgramRepository {
   /// operation: a later edit to one of the slots, or an edit to another part of
   /// the program, is preserved instead of being overwritten by a stale
   /// [Program] snapshot.
+  ///
+  /// When the action also set the program's status to Performed (GIG-12), pass
+  /// the status it replaced as [restoreStatus]. In the same transaction, the
+  /// status goes back to it only while it is still Performed: a status someone
+  /// changed since is theirs, and stays. Writing the status directly never
+  /// stamps, like any move away from Performed. Returns how many slots were
+  /// cleared; a status put back with no slot to clear still returns 0.
   Future<int> clearPerformedAtIfMatches({
     required String programId,
     required Iterable<String> slotIds,
     required DateTime performedAt,
     required DateTime updatedAt,
+    ProgramStatus? restoreStatus,
   }) async {
     assertUtc(performedAt, 'performedAt');
     assertUtc(updatedAt, 'updatedAt');
     final ids = slotIds.toSet();
-    if (ids.isEmpty) return 0;
+    if (ids.isEmpty && restoreStatus == null) return 0;
 
     return _db.transaction(() async {
       var cleared = 0;
@@ -561,12 +569,16 @@ class ProgramRepository {
                 ))
                 .write(const ProgramSlotsCompanion(performedAt: Value(null)));
       }
-      if (cleared == 0) return 0;
       final liveProgram =
           await (_db.select(_db.programs)
                 ..where((t) => t.id.equals(programId) & t.deletedAt.isNull()))
               .getSingleOrNull();
       if (liveProgram == null) return 0;
+      final revertStatus =
+          restoreStatus != null &&
+          restoreStatus != ProgramStatus.performed &&
+          liveProgram.status == ProgramStatus.performed;
+      if (cleared == 0 && !revertStatus) return 0;
       final rollbackUpdatedAt = nextStoredTimestamp(
         now: updatedAt.isAfter(liveProgram.updatedAt)
             ? updatedAt
@@ -578,6 +590,7 @@ class ProgramRepository {
       )..where((t) => t.id.equals(programId) & t.deletedAt.isNull())).write(
         ProgramsCompanion(
           title: Value(normalizeShareableText(liveProgram.title)),
+          status: revertStatus ? Value(restoreStatus) : const Value.absent(),
           updatedAt: Value(rollbackUpdatedAt),
         ),
       );

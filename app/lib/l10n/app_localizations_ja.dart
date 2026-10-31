@@ -3057,6 +3057,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、プログラム表示の各ダンスに、エディターを開かずに実施済みかどうかをマークする切り替えが表示されます。オフにすると、行にはダンスが実施済みかどうかだけが表示されます。';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle => '「すべて実施済みにする」でステータスも設定';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'オンにすると、「すべて実施済みにする」でプログラムのステータスも「実施済み」になり、「元に戻す」で両方が元に戻ります。オフにすると、ステータスは変わりません。';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'コーリング履歴にはイベント日が必要';
 
@@ -4924,6 +4931,14 @@ class AppLocalizationsJa extends AppLocalizations {
       '代替を除くすべてのダンスを実施済みにしました。代替をコールした場合は、ご自身で実施済みにしてください。';
 
   @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'すべてのダンスを実施済みにし、ステータスを「実施済み」にしました。';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      '代替を除くすべてのダンスを実施済みにし、ステータスを「実施済み」にしました。代替をコールした場合は、ご自身で実施済みにしてください。';
+
+  @override
   String programsSavedSnack(String title) {
     return '「$title」を保存しました。';
   }
@@ -5109,6 +5124,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'ステータス';
+
+  @override
+  String get programsStatusHelper =>
+      '「実施済み」への変更を保存すると、代替を除く未マークのダンスがすべて実施済みになります。ステータスを戻してもマークは残ります。';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      '「実施済み」への変更を保存すると、代替を除く未マークのダンスがすべて実施済みになります。「すべて実施済みにする」でもこのステータスになります。ステータスを戻してもマークは残ります。';
 
   @override
   String get programsHideAlternatesTitle => 'セットリストで代替を非表示';
