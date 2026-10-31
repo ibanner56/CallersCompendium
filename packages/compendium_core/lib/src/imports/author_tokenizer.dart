@@ -218,8 +218,9 @@ const List<String> _unnamedOthers = [
 /// before it. Trailing `.`, `…`, `)` and `,` are ignored.
 ///
 /// Also the author's choice (not the maintainer's), on the same reading: a
-/// bare `Others` field, or `others` after a separator [splitAuthorNames]
-/// splits on (`,` `(` `;` `/` `+` `&` or the word "with"), is the same credit,
+/// bare `Others` field, or `others` after `(` or a separator
+/// [splitAuthorNames] splits on (`,` `;` `/` `+` `&` or the word "with"), is
+/// the same credit,
 /// since nobody is credited as "Others"; `Bob Others` is left alone.
 ///
 /// Matching is case-insensitive and fixed-string, so it cannot backtrack.
@@ -245,8 +246,8 @@ const List<String> _unnamedOthers = [
       if (!lower.endsWith(credit)) continue;
       final before = lower.substring(0, lower.length - credit.length);
       // "And others" follows a name after a space; a bare "others" only after
-      // a separator [splitAuthorNames] splits on (`,` `(` `;` `/` `+` `&` or
-      // the word "with"), so `Bob Others` stays a name.
+      // `(` or a separator [splitAuthorNames] splits on (`,` `;` `/` `+` `&`
+      // or the word "with"), so `Bob Others` stays a name.
       final trimmed = before.trimRight();
       final follows = credit == 'others'
           ? RegExp(r'[,(;/+&]$').hasMatch(trimmed) ||
