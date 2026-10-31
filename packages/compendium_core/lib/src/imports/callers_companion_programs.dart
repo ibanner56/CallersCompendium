@@ -182,7 +182,7 @@ CcProgramsResult buildCcPrograms(
 /// The program title for [set], dated [eventDate] (its parsed `Date`).
 ///
 /// A [CcSet.title] wins, though the `.USR` reader never sets one: CC Sets have
-/// no title field. CC itself names a set by its `zi_DateLocation_c`
+/// no title field. CC itself names a set by its zi_DateLocation_c
 /// calculation, `YYYY/MM/DD - Location`, so the program takes that
 /// ("2024/04/20 - NEFFA Contra Party", maintainer decision on #1976), or just
 /// the date when there is no Location. Without a parsed date it is the
