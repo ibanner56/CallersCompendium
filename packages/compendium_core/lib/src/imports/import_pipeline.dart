@@ -1146,8 +1146,10 @@ class ImportPipeline {
   ///   slot always resolves to the received copy.
   ///
   /// It **never** skips and **never** links on a weak match. A match is
-  /// *confident* only when the candidate's normalized title equals the incoming
-  /// title (an exact gate — not merely a fuzzy near-match) **and** one of:
+  /// *confident* only when the candidate's title shares a [dedupeTitleKeys]
+  /// key with the incoming title (its [normalizeTitle] as written or with a
+  /// trailing article fronted, #1976: an exact gate — not merely a fuzzy
+  /// near-match) **and** one of:
   ///   - the choreography body is equal (form, formation, progression, phrase
   ///     structure, figures, hook, calling notes, level, mixed-level, tunes),
   ///     compared author-independently; or
@@ -1195,8 +1197,9 @@ class ImportPipeline {
       for (final candidate in plan.verdict.candidates) {
         final existing = await _dances.getById(candidate.danceId);
         if (existing == null) continue;
-        // Exact normalized-title gate: a fuzzy-but-inexact title is never
-        // confident (that is the "two different dances share a title" trap).
+        // Exact-title gate on shared [dedupeTitleKeys] keys: a fuzzy-but-inexact
+        // title is never confident (that is the "two different dances share a
+        // title" trap).
         if (!dedupeTitleKeys(existing.title).any(incomingKeys.contains)) {
           continue;
         }
