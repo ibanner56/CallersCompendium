@@ -1080,7 +1080,7 @@ void main() {
           AppThemeSelection.inGroup(
             AppThemeGroup.defaultHearth,
           ).map((s) => s.label),
-          equals(['Dark', 'Soft Dark', 'High contrast', 'Light']),
+          equals(['Dark', 'Soft dark', 'High contrast', 'Light']),
         );
       },
     );
@@ -3326,7 +3326,7 @@ void main() {
         });
       });
 
-      group('Developer Options (reset database)', () {
+      group('Developer options (reset database)', () {
         late List<String> events;
         late SyncResponseKind removeKind;
         late bool pairedAtReset;
@@ -3420,7 +3420,7 @@ void main() {
         ) async {
           await pump(tester);
 
-          expect(find.text('Developer Options'), findsOneWidget);
+          expect(find.text('Developer options'), findsOneWidget);
           expect(find.byKey(resetTile), findsNothing);
 
           await tester.ensureVisible(

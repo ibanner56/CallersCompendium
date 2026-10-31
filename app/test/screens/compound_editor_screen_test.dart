@@ -562,7 +562,7 @@ void main() {
     tester,
   ) async {
     final repos = await pump(tester, initial: twoPullBys());
-    expect(find.text('More Details'), findsOneWidget);
+    expect(find.text('More details'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('compound-name')),
       'zoomies',
