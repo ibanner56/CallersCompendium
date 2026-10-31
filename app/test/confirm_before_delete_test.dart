@@ -458,6 +458,37 @@ void main() {
       );
     });
 
+    testWidgets('choosing ⋮ → Delete again while the count loads opens one '
+        'dialog', (tester) async {
+      final db = openWidgetTestDatabase();
+      final settings = _GatedReadSettings(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2']);
+      await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
+
+      settings.gate = Completer<void>();
+      for (var i = 0; i < 2; i++) {
+        await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+        await tester.pump();
+      }
+      settings.gate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('confirm-delete-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-confirm')));
+      await tester.pumpAndSettle();
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+
     testWidgets('a second tap while the count loads opens one dialog', (
       tester,
     ) async {
