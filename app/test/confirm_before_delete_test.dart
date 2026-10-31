@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +17,19 @@ import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+
+/// A [SettingsRepository] whose reads wait on [gate] while it is set.
+class _GatedReadSettings extends SettingsRepository {
+  _GatedReadSettings(super.db);
+
+  Completer<void>? gate;
+
+  @override
+  Future<Object?> get(String key) async {
+    await gate?.future;
+    return super.get(key);
+  }
+}
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -446,16 +461,26 @@ void main() {
     testWidgets('a second tap while the count loads opens one dialog', (
       tester,
     ) async {
-      final repos = openTestRepositories();
+      final db = openWidgetTestDatabase();
+      final settings = _GatedReadSettings(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
       await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2']);
       await _pumpProgramsShell(tester, repos, confirmBeforeDelete: true);
-
       await tester.tap(find.text('Barn Dance'));
       await tester.pumpAndSettle();
-      // No pump between the taps: the second lands while the first is still
-      // awaiting the settings read and the count query.
+
+      // Hold the settings read the confirm makes before its dialog opens, so
+      // the first tap is still in flight when the second lands.
+      settings.gate = Completer<void>();
       await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pump();
+      settings.gate!.complete();
       await tester.pumpAndSettle();
 
       expect(
