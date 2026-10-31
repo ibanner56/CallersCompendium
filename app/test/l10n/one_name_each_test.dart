@@ -32,9 +32,9 @@ void main() {
   const allowedKeys = {'customFiguresEmptyTitle'};
 
   test('app_en.arb uses one name for each thing (D-3)', () {
-    final arb = jsonDecode(
-      File('lib/l10n/app_en.arb').readAsStringSync(),
-    ) as Map<String, dynamic>;
+    final arb =
+        jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
+            as Map<String, dynamic>;
     final offenders = <String>[];
     arb.forEach((key, value) {
       if (key.startsWith('@') || value is! String) return;

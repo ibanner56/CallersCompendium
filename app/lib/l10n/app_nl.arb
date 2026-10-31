@@ -692,9 +692,9 @@
   "@settingsSyncNoticeCountProgram": {
     "x-sourceSha256": "a7b7d768632c302855b92c62c230f4bec8af1fd58ced4388e2407d9ecfd42e06"
   },
-  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 choreograaf} other{{count} choreografen}}",
+  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 auteur} other{{count} auteurs}}",
   "@settingsSyncNoticeCountChoreographer": {
-    "x-sourceSha256": "d4018182e6a23e51891a0f4bb6a3265cb8a3c9119923e6f7cb62c47efb4f3e42"
+    "x-sourceSha256": "171a003eb2a4565b2c1265095bd307f25b7ef6ca9988db00a03c988d994f8c5e"
   },
   "settingsSyncNoticeCountTag": "{count, plural, =1{1 tag} other{{count} tags}}",
   "@settingsSyncNoticeCountTag": {
@@ -2596,9 +2596,9 @@
   "@settingsDefaultsFreeTextEntryTitle": {
     "x-sourceSha256": "bbb4d246761e2b71f24e54ea73f6b4ce05eba3a244080456a1546573b669b9d1"
   },
-  "settingsDefaultsFreeTextEntrySubtitle": "Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld, en een regel die je in de beweging van een bestaande figuur typt vervangt die figuur wanneer je op Enter drukt. De regel wordt omgezet in figuren; niet-herkende delen worden bewaard als een aangepaste figuur die je later kunt corrigeren. Nieuwe dansen beginnen zonder figuren, tenzij je startfiguren hebt opgeslagen.",
+  "settingsDefaultsFreeTextEntrySubtitle": "Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld, en een regel die je in de beweging van een bestaande figuur typt vervangt die figuur wanneer je op Enter drukt. De regel wordt omgezet in figuren; tekst die de app niet kan lezen wordt bewaard als niet-herkende figuur die je later kunt corrigeren. Nieuwe dansen beginnen zonder figuren, tenzij je startfiguren hebt opgeslagen.",
   "@settingsDefaultsFreeTextEntrySubtitle": {
-    "x-sourceSha256": "7ce45913e600a61a763026ceb578ca9bae732dd38cf98eb5085d0255fe6eb049"
+    "x-sourceSha256": "285d6cd7a37828cef8b40ff921653f50e8979ac8e10e6224b0bd3927f2a7277d"
   },
   "settingsDefaultsAggressiveBeatsUpdateTitle": "Figuurtellen agressief herberekenen",
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
@@ -3296,13 +3296,13 @@
   "@settingsGeneralConfirmBeforeDeleteSubtitle": {
     "x-sourceSha256": "419e365a3cf53bc03a9f35dc1356ceef19d6904929d93ec0de5321c44bde3b6b"
   },
-  "settingsGeneralDeletedItemsHeader": "Verwijderde items",
+  "settingsGeneralDeletedItemsHeader": "Onlangs verwijderd",
   "@settingsGeneralDeletedItemsHeader": {
-    "x-sourceSha256": "fbd1d68504a288998473058bd2ce29416791756fd8ced5e9b784cfc8ad31151b"
+    "x-sourceSha256": "90a0c00f7933cf773642af6df3532772ec03f3cda84545f9fd9e1e34a4ab5c1a"
   },
-  "settingsGeneralSoftDeleteRetentionTitle": "Verwijderde items bewaren voor",
+  "settingsGeneralSoftDeleteRetentionTitle": "Onlangs verwijderde items bewaren voor",
   "@settingsGeneralSoftDeleteRetentionTitle": {
-    "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
+    "x-sourceSha256": "aaab206bb2bd76b9b2eda37429503ddfb39529ad8b6c8f145391ffb39865246b"
   },
   "settingsGeneralSoftDeleteRetentionSubtitle": "Verwijderde dansen en programma’s worden zo lang bewaard voordat ze bij het opstarten van de app permanent worden verwijderd. Met apparaatsynchronisatie geldt dit op al je apparaten: een gedeeld item wordt overal leeggemaakt en alleen een kleine verwijderingsnotitie blijft over. Nooit bewaart ze totdat je ze handmatig opschoont.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
@@ -3352,9 +3352,9 @@
   "@syncReviewActionFailed": {
     "x-sourceSha256": "3269895158663634cd088a78965e620e9c739924805f54f19d846b70da1e5159"
   },
-  "syncReviewKindChoreographer": "Choreograaf",
+  "syncReviewKindChoreographer": "Auteur",
   "@syncReviewKindChoreographer": {
-    "x-sourceSha256": "2e0a2bf36a174c77b69ee695c205417a09b55d006b0bbc7d65eeae6d27d6fbb2"
+    "x-sourceSha256": "d95082a2ee57f3e40e3050662a346e26a872fd4d0baf57d293ac5a883f0f4ff5"
   },
   "syncReviewKindTag": "Tag",
   "@syncReviewKindTag": {
@@ -3420,9 +3420,9 @@
   "@syncReviewRenameCollisionReason": {
     "x-sourceSha256": "e5a9e0b5844f13cb9c4f4a65f511c19a1636659ace7f4ef950335bee2ca54e53"
   },
-  "syncReviewMergeDiscardsContactsTitle": "Deze choreografen samenvoegen?",
+  "syncReviewMergeDiscardsContactsTitle": "Deze auteurs samenvoegen?",
   "@syncReviewMergeDiscardsContactsTitle": {
-    "x-sourceSha256": "9dabfcdc02184c750782b3580760f87dae3ccc1209bb7e47c2a720b58f06a539"
+    "x-sourceSha256": "75a9575dc13a9c9d3d4a73dac90fa4c522c5f7a66538d7a931f7714b4aba179b"
   },
   "syncReviewMergeDiscardsContactsBody": "Er wordt maar één record bewaard. Het e-mailadres, de locatie en de markering voor overleden van het andere staan alleen op dit apparaat en kunnen daarna niet meer worden hersteld.",
   "@syncReviewMergeDiscardsContactsBody": {
@@ -3492,13 +3492,13 @@
   "@settingsGeneralImportEllipsisAction": {
     "x-sourceSha256": "ea94509e38cf6d6427db3a1b5a3b5816cba1e8f89b08f9739f6077ade188163c"
   },
-  "settingsGeneralReparseCustomFiguresTitle": "Aangepaste figuren opnieuw controleren",
+  "settingsGeneralReparseCustomFiguresTitle": "Niet-herkende figuren opnieuw controleren",
   "@settingsGeneralReparseCustomFiguresTitle": {
-    "x-sourceSha256": "052ae8077a73f730509348bee8e4afc3e09ecb9e0e8beb3ece772196f84ecd32"
+    "x-sourceSha256": "09986bfa1a3b540109bfbffa20fb6b90fe81a71981346b4804a92291624bb393"
   },
-  "settingsGeneralReparseCustomFiguresSubtitle": "Controleer geïmporteerde dansen opnieuw waarvan de figuren als aangepast zijn bewaard omdat ze niet herkend konden worden bij het importeren. Kan de app ze nu herkennen, dan worden ze ter plekke bijgewerkt — je tags, beoordelingen en notities blijven bewaard. Je bekijkt een voorbeeld en bevestigt voordat er iets wijzigt.",
+  "settingsGeneralReparseCustomFiguresSubtitle": "Controleer geïmporteerde dansen opnieuw waarvan de figuren als niet-herkende figuren zijn bewaard omdat ze niet herkend konden worden bij het importeren. Kan de app ze nu herkennen, dan worden ze ter plekke bijgewerkt — je tags, beoordelingen en notities blijven bewaard. Je bekijkt een voorbeeld en bevestigt voordat er iets wijzigt.",
   "@settingsGeneralReparseCustomFiguresSubtitle": {
-    "x-sourceSha256": "8ff47617c05225d7e59c29f793dc40ca7b7329619f4c689b8e2d0dc263a94f85"
+    "x-sourceSha256": "ac8b66febb797501a70a1cef04479b16d0b06f7bd642cb55dbc7fa52c770f721"
   },
   "settingsGeneralReparseCustomFiguresAction": "Opnieuw controleren…",
   "@settingsGeneralReparseCustomFiguresAction": {
@@ -4020,17 +4020,17 @@
   "@commonDeletedSnack": {
     "x-sourceSha256": "5f38a45b4a00f67a9d235d7065a8b3d2ecda59f0802d76dccfd504692fc36adb"
   },
-  "importGapMessage": "Deze aanroep is niet herkend — precies zoals geschreven bewaard als aangepaste figuur.",
+  "importGapMessage": "Deze aanroep is niet herkend — precies zoals geschreven bewaard als niet-herkende figuur.",
   "@importGapMessage": {
-    "x-sourceSha256": "9ac30a70ce39e36e7d06a5f6c2e0458069641059481bb1dcf1af2bbc524397bc"
+    "x-sourceSha256": "4c1caea011cd1716425d8dce711b383f61113702f996d342c1289f0ad12ef82b"
   },
   "importGapDialogTitle": "Niet-herkende figuur",
   "@importGapDialogTitle": {
     "x-sourceSha256": "40c9fa51157047c4c812c3343c465ecf0e0d770b363875750dcf9f3af3b18f5e"
   },
-  "importGapSemanticLabel": "Niet-herkende figuur. Precies zoals geschreven bewaard als aangepaste figuur.",
+  "importGapSemanticLabel": "Niet-herkende figuur. Precies zoals geschreven bewaard.",
   "@importGapSemanticLabel": {
-    "x-sourceSha256": "b1ae4592423c0f129194da94e9f1239db9b9fc98d0c576dee3b7bc574dc8df78"
+    "x-sourceSha256": "ac61d9c878d6becba3e6e8952221b0cac5a905f530f5a9172e0468086fb5286a"
   },
   "collectionScreenTitle": "Collectie",
   "@collectionScreenTitle": {
@@ -4326,7 +4326,7 @@
   },
   "collectionBatchDeletedAnnouncement": "{count, plural, =1{1 dans verwijderd. Herstel hem via Onlangs verwijderd.} other{{count} dansen verwijderd. Herstel ze via Onlangs verwijderd.}}",
   "@collectionBatchDeletedAnnouncement": {
-    "x-sourceSha256": "2e8f5004a5ed7f87b40bfe951987617b35a3d584eb828b0dba0a9150a6e25b87"
+    "x-sourceSha256": "98143735b6d6afee2ff432c7e58e6599f9b858c2bb1a85405aa6071bbe59d47a"
   },
   "collectionSelectDanceLabel": "{title} selecteren",
   "@collectionSelectDanceLabel": {
@@ -5280,9 +5280,9 @@
   "@programsAddDanceButton": {
     "x-sourceSha256": "285e08017a7bc3224020ed6f9cb6597913092f8028f2573691fd50543e51d08d"
   },
-  "programsAddNoteBreakButton": "Notitie / wals toevoegen",
+  "programsAddNoteBreakButton": "Notitie of pauze toevoegen",
   "@programsAddNoteBreakButton": {
-    "x-sourceSha256": "49da911a72e2ae7022df2ba58ec7d6e17094845e3726e5f3dd224613835cc467"
+    "x-sourceSha256": "38dcd86d40719d360404e7a5788aa1d9754cb2054f0515f9e3147a0c7ab24738"
   },
   "programsInsertBreakButton": "Pauze invoegen",
   "@programsInsertBreakButton": {
@@ -5880,7 +5880,7 @@
   },
   "performExitTooltip": "Uitvoerweergave verlaten",
   "@performExitTooltip": {
-    "x-sourceSha256": "d3031219f6d55d352ec2e1faf58069639e394d1086015cfc65ae5983333d2cd1"
+    "x-sourceSha256": "f32f8eabfc151cc0fc5bf23346dbf4fae98e4651180e24e9bc2db782acf161fb"
   },
   "performExitTitle": "Uitvoeren verlaten?",
   "@performExitTitle": {
@@ -5888,11 +5888,11 @@
   },
   "performExitBody": "De uitvoerweergave verlaten? Je plek en de lopende klok worden bewaard, zodat je kunt hervatten waar je gebleven was.",
   "@performExitBody": {
-    "x-sourceSha256": "973f65aa6bf4115cdbcce3c7b82658c8b7a9323c4d22d78034cca7eaee2ae6cd"
+    "x-sourceSha256": "432007a3c48d257c1346100918b110e8c22e660455d2a3f58c466cea7f8162c4"
   },
   "performDanceExitBody": "De uitvoerweergave verlaten? Bij het uitvoeren van één dans wordt je plek niet bewaard, dus de volgende keer begin je opnieuw.",
   "@performDanceExitBody": {
-    "x-sourceSha256": "a8f188b774ac34941809bf0b06620d34a9739d2b8717dabbd8c2e63d33ec4104"
+    "x-sourceSha256": "b6ff050aa1203d57274da113489f60011a83823c770fecebb5acf6c6413ff667"
   },
   "performExitCancel": "Doorgaan met uitvoeren",
   "@performExitCancel": {
@@ -7438,13 +7438,13 @@
   "@importIssueNoFiguresTable": {
     "x-sourceSha256": "a7815aeb7d7e1a5b6f259d9eba54183440572ba343a6a37c28c340b4cd044181"
   },
-  "importIssueMoveFallback": "Een figuur kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.",
+  "importIssueMoveFallback": "Een figuur kon niet aan een bekende move worden gekoppeld; geïmporteerd als niet-herkende figuur.",
   "@importIssueMoveFallback": {
-    "x-sourceSha256": "e9af296e2a3ad3d11bc779f39ebcc5297f5ef589e5d7c29e4720ebe958d4092e"
+    "x-sourceSha256": "12d4d47c59e5f8a16942e305bb88c9354f5f1d4d631f9ce8e6c1c42dc820fd3e"
   },
-  "importIssueMoveFallbackAt": "Figuur {position} kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.",
+  "importIssueMoveFallbackAt": "Figuur {position} kon niet aan een bekende move worden gekoppeld; geïmporteerd als niet-herkende figuur.",
   "@importIssueMoveFallbackAt": {
-    "x-sourceSha256": "7e6391496a76c69c17c4c1576bad0976795e4811f9daa374451fea369ccada1a"
+    "x-sourceSha256": "db631f080a1003c84fca928e2801827b30e458ef197a62d987cf0de28283fb48"
   },
   "importIssueParamUnmapped": "Een instelling van een figuur kon niet worden gekoppeld, dus de standaardwaarde is gebruikt.",
   "@importIssueParamUnmapped": {
@@ -7486,9 +7486,9 @@
   "@importRecordErrorNotJson": {
     "x-sourceSha256": "9b1a830696880db88b8a5bcb4cb3cbeaa9215b51fce0a0946cc8d1281a5a213d"
   },
-  "importRecordErrorNotCompendiumArchive": "Dit is geen Caller's Compendium-bestand. Kies een .json-bestand dat uit deze app is geëxporteerd.",
+  "importRecordErrorNotCompendiumArchive": "Dit is geen deelbestand. Kies een .json- of .ccshare-bestand dat uit deze app is geëxporteerd.",
   "@importRecordErrorNotCompendiumArchive": {
-    "x-sourceSha256": "fde17c6a25893b79eb3c400e684ba4ee44623ce32f0fb9409311b9e054ba9f30"
+    "x-sourceSha256": "da48e9070156caba02e801f30867a281875824d05fd5e6cb0460b80916a128fd"
   },
   "importRecordErrorNotCallersBoxDance": "Dit is geen Caller's Box-dans. Controleer of je een dans van The Caller's Box hebt gekopieerd en probeer het opnieuw.",
   "@importRecordErrorNotCallersBoxDance": {
@@ -7614,9 +7614,9 @@
   "@importReviewStructured": {
     "x-sourceSha256": "06028336a07bcfcb3f584ae2cd7df8354e4c8c198d6daa981cdbfc6f996e4be6"
   },
-  "importReviewCustom": "Aangepast",
+  "importReviewCustom": "Niet herkend",
   "@importReviewCustom": {
-    "x-sourceSha256": "494ca78f7374e46fb2de9ad9f2dbd4aaae89b50b2ca044177a1566a59e06627e"
+    "x-sourceSha256": "a07c0183642d219c661daa959b24dbe05bf74e532164fb878b61f4a5137a460e"
   },
   "importReviewOptionNewDance": "Nieuwe dans",
   "@importReviewOptionNewDance": {
@@ -7874,13 +7874,13 @@
   "@danceEditorFiguresSection": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
   },
-  "danceEditorFiguresHelp": "Typ een move (bijv. “sw” → swing) en druk op Enter om het toe te voegen met standaardwaarden; niet-herkende tekst wordt een aangepaste figuur.",
+  "danceEditorFiguresHelp": "Typ een move (bijv. “sw” → swing) en druk op Enter om het toe te voegen met standaardwaarden; tekst die de app niet kan lezen wordt een niet-herkende figuur.",
   "@danceEditorFiguresHelp": {
-    "x-sourceSha256": "a4ceded2bbfa7d94335041140b892ba5e6417810570d1eaa458ff753fd0b0670"
+    "x-sourceSha256": "0c0a8a2d3fd6e6bfb1ac1e798e43e4e101138f5711ca5a3584cbc21948dd93fc"
   },
-  "danceEditorFiguresHelpFreeText": "Voeg een figuur toe door een hele regel te typen (bijv. “neighbor balance & swing”) en op Enter te drukken. Een regel die je in de beweging van een bestaande figuur typt, vervangt die figuur. Niet-herkende tekst wordt een aangepaste figuur.",
+  "danceEditorFiguresHelpFreeText": "Voeg een figuur toe door een hele regel te typen (bijv. “neighbor balance & swing”) en op Enter te drukken. Een regel die je in de beweging van een bestaande figuur typt, vervangt die figuur. Tekst die de app niet kan lezen wordt een niet-herkende figuur.",
   "@danceEditorFiguresHelpFreeText": {
-    "x-sourceSha256": "06495665fdbffa47f2aa405e4e31e84b8998dc73e30d906a874305eb5d100ef4"
+    "x-sourceSha256": "016d5e6b127b54bb6731d7c3e9487ecd260334d5a531a5a4b656ffa081b650fe"
   },
   "danceEditorNotesSection": "Notities",
   "@danceEditorNotesSection": {
@@ -8358,13 +8358,13 @@
   "@danceEditorSaveError": {
     "x-sourceSha256": "0c06409f17b9d47e1b55340c2d49986fadd3909dbd75d02584af750ab88b46af"
   },
-  "danceEditorChoreographerDuplicate": "Een choreograaf met de naam “{name}” bestaat al. De naam is niet gewijzigd.",
+  "danceEditorChoreographerDuplicate": "Een auteur met de naam “{name}” bestaat al. De naam is niet gewijzigd.",
   "@danceEditorChoreographerDuplicate": {
-    "x-sourceSha256": "52b0da7b4633d14785af52f52de164654e1b40d0ddd832631020e4838879bea3"
+    "x-sourceSha256": "fdaed74b83034f2a0be3ed81a41932cf5610fbaed70a2bde9e846ccb9a5d9fc1"
   },
-  "danceEditorChoreographerCreateDuplicate": "Er bestaat al een choreograaf met de naam “{name}”. De nieuwe auteur is niet aangemaakt — kies de bestaande.",
+  "danceEditorChoreographerCreateDuplicate": "Er bestaat al een auteur met de naam “{name}”. De nieuwe auteur is niet aangemaakt — kies de bestaande.",
   "@danceEditorChoreographerCreateDuplicate": {
-    "x-sourceSha256": "930415b6b09a88eeb257b9cf16ad08a9f56e1f2f274200d996bc1a620a4cb5ea"
+    "x-sourceSha256": "e28de3c6d201456d70a68bbcf37cbcf6d9681b07cb92f936a9aa799d70a15120"
   },
   "danceEditorFallbackDanceTitle": "Dans",
   "@danceEditorFallbackDanceTitle": {
@@ -8446,9 +8446,9 @@
   "@danceEditorLoadError": {
     "x-sourceSha256": "509fe3661d05c24d66b935dcab410804443c03952d32273ea7dc217e1512a02d"
   },
-  "danceEditorChoreographerDetailsTitle": "Choreografendetails",
+  "danceEditorChoreographerDetailsTitle": "Auteurdetails",
   "@danceEditorChoreographerDetailsTitle": {
-    "x-sourceSha256": "bb906d790d274120a78975f5f9ffe20350d35f33d56fd55c7bd7c579bedb6df1"
+    "x-sourceSha256": "37df1019715359df173fa9d26d75e501c4a6f3c840f28a9320cc171621656ed8"
   },
   "danceEditorChoreographerDetailsIntro": "Deze details zijn gedeeld over elke dans op naam van deze auteur. E-mail, locatie en de markering “overleden” zijn privé — alleen opgeslagen op dit apparaat en nooit gedeeld of geëxporteerd.",
   "@danceEditorChoreographerDetailsIntro": {
@@ -8594,9 +8594,9 @@
   "@danceEditorTypeFigureLabel": {
     "x-sourceSha256": "7ccf7680382ede2417ef49debfe983593dc35d1ebb3f297c718970c626358692"
   },
-  "danceEditorTypeFigureHelper": "bijv. “neighbor balance & swing” of “16 circle left 3/4”. Enter voegt het toe; niet-herkende tekst wordt bewaard als aangepaste figuur.",
+  "danceEditorTypeFigureHelper": "bijv. “neighbor balance & swing” of “16 circle left 3/4”. Enter voegt het toe; tekst die de app niet kan lezen wordt bewaard als niet-herkende figuur.",
   "@danceEditorTypeFigureHelper": {
-    "x-sourceSha256": "52f9c3d9266a78f28131d49abcab0d9484810964e1cee4ee2d372c347d1a6282"
+    "x-sourceSha256": "5e1e62ec4422021ce2e21bca6575f1cacafab29d0c98d39a43f2921afd87c8fb"
   },
   "danceEditorPasteHere": "Hier plakken",
   "@danceEditorPasteHere": {
@@ -8606,9 +8606,9 @@
   "@danceEditorEmptyFigureName": {
     "x-sourceSha256": "02bb0f197edc344152597949d89ee9cb497317d563bba002375efedbfbc23204"
   },
-  "danceEditorCustomFigureName": "Aangepaste figuur",
+  "danceEditorCustomFigureName": "Niet-herkende figuur",
   "@danceEditorCustomFigureName": {
-    "x-sourceSha256": "fa9dcd7243f8fa5ac26027e080b261741ffc1056609ffc70f1c74530cf3eb1fe"
+    "x-sourceSha256": "40c9fa51157047c4c812c3343c465ecf0e0d770b363875750dcf9f3af3b18f5e"
   },
   "danceEditorEmptyFigureSummary": "(leeg — kies een move)",
   "@danceEditorEmptyFigureSummary": {
@@ -8846,9 +8846,9 @@
   "@danceEditorUnderlineTooltip": {
     "x-sourceSha256": "31d5594661149f8dc27fd2340e0dbee56e3248332de727f44dbd17523816d87e"
   },
-  "danceEditorCustomFigureTextLabel": "Aangepaste figuurtekst",
+  "danceEditorCustomFigureTextLabel": "Tekst van niet-herkende figuur",
   "@danceEditorCustomFigureTextLabel": {
-    "x-sourceSha256": "5016aedf1a0dd0bda23360d885df4bd1c46e9991b7c3cb6dfb7e7de07f96f41c"
+    "x-sourceSha256": "e9aee7d9b5da315ad742929e9a11de30ed13cddd2b170b6c6552edacc8d55baa"
   },
   "danceEditorLingoStylingHelper": "Bewegingsnamen krijgen een gestippelde onderstreping, roltermen een onderstreping en ontmoedigde termen een doorhaling",
   "@danceEditorLingoStylingHelper": {
@@ -9474,9 +9474,9 @@
   "@themeEditorSwatchError": {
     "x-sourceSha256": "54a0e8c17ebb21a11f8a25b8042786ef7efe52441e6cc87e92c67e0c4c0c6e78"
   },
-  "reparseConfirmTitle": "Aangepaste figuren upgraden?",
+  "reparseConfirmTitle": "Niet-herkende figuren upgraden?",
   "@reparseConfirmTitle": {
-    "x-sourceSha256": "a9887110e4858088272c6c9cd7f49161e93beb6d06aae97b4532e1e0637bd082"
+    "x-sourceSha256": "916df060629bfa63cab06226e6bba78c949e70efb4185b11cf48c355f3983643"
   },
   "reparseConfirmBody": "Dit controleert {figureCount, plural, =1{1 figuur} other{{figureCount} figuren}} in {danceCount, plural, =1{1 dans} other{{danceCount} dansen}} opnieuw. Je tags, beoordelingen, notities en alles anders van elke dans blijven exact zoals ze zijn. Alleen figuren die nu een bekende move herkennen worden vervangen.",
   "@reparseConfirmBody": {
@@ -9494,13 +9494,13 @@
   "@reparseNothingUpgradedSnack": {
     "x-sourceSha256": "f8055ff64d4ee5d6480f683481f4b9150c9bc21f71b39e1c2b1eea0f0d2a448d"
   },
-  "reparseUpgradedSnack": "Aangepaste figuren geüpgraded in {danceCount, plural, =1{1 dans} other{{danceCount} dansen}}.",
+  "reparseUpgradedSnack": "Niet-herkende figuren geüpgraded in {danceCount, plural, =1{1 dans} other{{danceCount} dansen}}.",
   "@reparseUpgradedSnack": {
-    "x-sourceSha256": "f765667064a2a0a472b5bd810c1252a97b788d58983ac0a4720a8a3602bc2716"
+    "x-sourceSha256": "6aaf67601c9e985f33be404cdd03e33972ca12ca7a26c04aedc584eb1c132723"
   },
-  "reparseScreenTitle": "Aangepaste figuren opnieuw controleren",
+  "reparseScreenTitle": "Niet-herkende figuren opnieuw controleren",
   "@reparseScreenTitle": {
-    "x-sourceSha256": "052ae8077a73f730509348bee8e4afc3e09ecb9e0e8beb3ece772196f84ecd32"
+    "x-sourceSha256": "09986bfa1a3b540109bfbffa20fb6b90fe81a71981346b4804a92291624bb393"
   },
   "reparseIntro": "Verbeterde figuurherkenning kan {figureCount, plural, =1{1 figuur} other{{figureCount} figuren}} in {danceCount, plural, =1{1 dans} other{{danceCount} dansen}} upgraden. Bekijk hieronder, bevestig dan — er wijzigt niets voordat je dat doet, en al je tags, beoordelingen en notities blijven bewaard.",
   "@reparseIntro": {
@@ -9518,9 +9518,9 @@
   "@reparseEmptyTitle": {
     "x-sourceSha256": "9910cf9819c9274188fb2439654fd7e87eaa19ad256978bbd5f0fbf76af06ea8"
   },
-  "reparseEmptyBody": "Geen van je aangepaste figuren uit imports kan momenteel worden herkend als bekende move. Kijk later terug nadat een toekomstige update de figuurherkenning verbetert.",
+  "reparseEmptyBody": "Geen van je niet-herkende figuren uit imports kan momenteel worden herkend als bekende move. Kijk later terug nadat een toekomstige update de figuurherkenning verbetert.",
   "@reparseEmptyBody": {
-    "x-sourceSha256": "258f50bc489a3eee2aeb30d628bc5162a3bf9e81030a64ef8ea498ab20449ce7"
+    "x-sourceSha256": "ac79301a3f84a7c5d7dff6c4b987efdb5503d6c7019a26d5b72b6a11b835640d"
   },
   "reparseErrorTitle": "Je figuren konden niet worden gecontroleerd",
   "@reparseErrorTitle": {
@@ -9824,11 +9824,11 @@
   },
   "recentlyDeletedTitle": "Onlangs verwijderd",
   "@recentlyDeletedTitle": {
-    "x-sourceSha256": "856154bb0f1be3786bfa47e56a2b5ec62f423265d8383cbb03e9743a72e44bbc"
+    "x-sourceSha256": "90a0c00f7933cf773642af6df3532772ec03f3cda84545f9fd9e1e34a4ab5c1a"
   },
-  "recentlyDeletedLoadError": "Je verwijderde items konden niet worden geladen. Er is niets verwijderd.",
+  "recentlyDeletedLoadError": "Je onlangs verwijderde items konden niet worden geladen. Er is niets verwijderd.",
   "@recentlyDeletedLoadError": {
-    "x-sourceSha256": "43498db5ebede2c18f0150fa0eb1f228ab8f1287b1355e61c0f536673ca01ed3"
+    "x-sourceSha256": "9a90acfdcb6612410e77d650e8717ff4079ff3fdb1eeb1491d3a6ea96b6fa92d"
   },
   "recentlyDeletedDeleteTitle": "Permanent verwijderen?",
   "@recentlyDeletedDeleteTitle": {
@@ -9874,25 +9874,25 @@
   "@recentlyDeletedLoadingPrograms": {
     "x-sourceSha256": "5e35d16593be736bddd9635655f6897d77d2696d387b38b6b4158a02780f1a65"
   },
-  "recentlyDeletedEmptyDancesKept": "Niets in de prullenbak. Verwijderde dansen worden hier bewaard totdat je ze verwijdert.",
+  "recentlyDeletedEmptyDancesKept": "Geen onlangs verwijderde dansen. Verwijderde dansen worden hier bewaard totdat je ze verwijdert.",
   "@recentlyDeletedEmptyDancesKept": {
-    "x-sourceSha256": "142d1ca585d677d385a5576c0eb61d09eb1bcba41d100ef3697e79b2a179271f"
+    "x-sourceSha256": "a3f3faea21c3f1c2176008ceae5166442771b15046aa305cba1dab9469e4c7a2"
   },
   "recentlyDeletedEmptyTitle": "Niets verwijderd",
   "@recentlyDeletedEmptyTitle": {
     "x-sourceSha256": "fa589cb6139b3fa74547d0a2238ab91bbe378689dd6417603341cf19b7ad23a3"
   },
-  "recentlyDeletedEmptyDancesRetention": "Niets in de prullenbak. Verwijderde dansen verschijnen hier voor {days} dagen voordat ze worden verwijderd.",
+  "recentlyDeletedEmptyDancesRetention": "Geen onlangs verwijderde dansen. Verwijderde dansen verschijnen hier voor {days} dagen voordat ze worden verwijderd.",
   "@recentlyDeletedEmptyDancesRetention": {
-    "x-sourceSha256": "c9d92a66a393f687c97281fca98943aeb84880a3567f05db7a68e3288e3b4454"
+    "x-sourceSha256": "ed259a1e507ab7aafe8b31e0154bbc6629056bd7e20d128ad9bb9d224e65e625"
   },
-  "recentlyDeletedEmptyProgramsKept": "Niets in de prullenbak. Verwijderde programma’s worden hier bewaard totdat je ze verwijdert.",
+  "recentlyDeletedEmptyProgramsKept": "Geen onlangs verwijderde programma’s. Verwijderde programma’s worden hier bewaard totdat je ze verwijdert.",
   "@recentlyDeletedEmptyProgramsKept": {
-    "x-sourceSha256": "40782a3a929823e198a707b72464757047db592e1cc6560bc2e9d2002ae6590d"
+    "x-sourceSha256": "70d6ca549c9508826d8399dce037d8e1334cbbbb33d896cdeeabc656b63a36cc"
   },
-  "recentlyDeletedEmptyProgramsRetention": "Niets in de prullenbak. Verwijderde programma’s verschijnen hier voor {days} dagen voordat ze worden verwijderd.",
+  "recentlyDeletedEmptyProgramsRetention": "Geen onlangs verwijderde programma’s. Verwijderde programma’s verschijnen hier voor {days} dagen voordat ze worden verwijderd.",
   "@recentlyDeletedEmptyProgramsRetention": {
-    "x-sourceSha256": "83326b6c0a1d50400c6f6471a1e62c73897514a9eb0cf10cc921d57a7cad3a20"
+    "x-sourceSha256": "d8d9e042cb37149061af9d04b38e8b6e285c14757a1a174797a6b03d7542dced"
   },
   "recentlyDeletedRestoredDance": "“{title}” hersteld naar je collectie.",
   "@recentlyDeletedRestoredDance": {
@@ -10774,9 +10774,9 @@
   "@glossaryCustomExample": {
     "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
   },
-  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dans in de prullenbak gebruikt hem en behoudt de regel die hij het laatst opsloeg.} other{{count} dansen in de prullenbak gebruiken hem en behouden de regels die ze het laatst opsloegen.}}",
+  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dans onder “Onlangs verwijderd” gebruikt hem en behoudt de regel die hij het laatst opsloeg.} other{{count} dansen onder “Onlangs verwijderd” gebruiken hem en behouden de regels die ze het laatst opsloegen.}}",
   "@glossaryCustomDeleteTrash": {
-    "x-sourceSha256": "4e9c8016ce24a743d4aef7a908d315920d577cf220737a4a863d495934620b9e"
+    "x-sourceSha256": "3210f31c3b2304778276b9f20fb3cc15971a2f344363a7a45e03ac2610db3b8e"
   },
   "glossaryCustomDeleteDefaults": "Je standaardfiguren in Instellingen gebruiken hem en behouden zijn huidige formulering als platte tekst.",
   "@glossaryCustomDeleteDefaults": {

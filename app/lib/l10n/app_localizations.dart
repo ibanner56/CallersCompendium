@@ -4012,7 +4012,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the free-text-entry setting, describing what turning it on does.
   ///
   /// In en, this message translates to:
-  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything unrecognized is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
+  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything the app can\'t read is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
   String get settingsDefaultsFreeTextEntrySubtitle;
 
   /// Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689).
@@ -11972,13 +11972,13 @@ abstract class AppLocalizations {
   /// Helper text above the figure list explaining type-ahead figure entry.
   ///
   /// In en, this message translates to:
-  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; unmatched text becomes an unrecognized figure.'**
+  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; text the app can\'t read becomes an unrecognized figure.'**
   String get danceEditorFiguresHelp;
 
   /// Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it.
   ///
   /// In en, this message translates to:
-  /// **'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Anything unrecognized becomes an unrecognized figure.'**
+  /// **'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Any text the app can\'t read becomes an unrecognized figure.'**
   String get danceEditorFiguresHelpFreeText;
 
   /// Section heading for the dance notes fields.
@@ -13056,7 +13056,7 @@ abstract class AppLocalizations {
   /// Helper text for free-text figure entry.
   ///
   /// In en, this message translates to:
-  /// **'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as an unrecognized figure.'**
+  /// **'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; text the app can\'t read is kept as an unrecognized figure.'**
   String get danceEditorTypeFigureHelper;
 
   /// Button label for a paste destination in the figure list.

@@ -2627,7 +2627,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything unrecognized is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.';
+      'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything the app can\'t read is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -8068,11 +8068,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; unmatched text becomes an unrecognized figure.';
+      'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; text the app can\'t read becomes an unrecognized figure.';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
-      'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Anything unrecognized becomes an unrecognized figure.';
+      'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Any text the app can\'t read becomes an unrecognized figure.';
 
   @override
   String get danceEditorNotesSection => 'Notes';
@@ -8746,7 +8746,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorTypeFigureHelper =>
-      'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as an unrecognized figure.';
+      'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; text the app can\'t read is kept as an unrecognized figure.';
 
   @override
   String get danceEditorPasteHere => 'Paste here';

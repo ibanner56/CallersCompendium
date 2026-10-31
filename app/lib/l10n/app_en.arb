@@ -3291,7 +3291,7 @@
   "@settingsDefaultsFreeTextEntryTitle": {
     "description": "Title of the opt-in setting that lets a new figure be typed as one line instead of built field by field (#419)."
   },
-  "settingsDefaultsFreeTextEntrySubtitle": "When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure's move and pressing Enter replaces that figure. The line is turned into figures; anything unrecognized is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.",
+  "settingsDefaultsFreeTextEntrySubtitle": "When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure's move and pressing Enter replaces that figure. The line is turned into figures; anything the app can't read is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.",
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "description": "Explanatory subtitle for the free-text-entry setting, describing what turning it on does."
   },
@@ -10526,11 +10526,11 @@
   "@danceEditorFiguresSection": {
     "description": "Section heading for the editable figure list in the dance editor."
   },
-  "danceEditorFiguresHelp": "Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; unmatched text becomes an unrecognized figure.",
+  "danceEditorFiguresHelp": "Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; text the app can't read becomes an unrecognized figure.",
   "@danceEditorFiguresHelp": {
     "description": "Helper text above the figure list explaining type-ahead figure entry."
   },
-  "danceEditorFiguresHelpFreeText": "Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure's move replaces that figure. Anything unrecognized becomes an unrecognized figure.",
+  "danceEditorFiguresHelpFreeText": "Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure's move replaces that figure. Any text the app can't read becomes an unrecognized figure.",
   "@danceEditorFiguresHelpFreeText": {
     "description": "Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it."
   },
@@ -11484,7 +11484,7 @@
   "@danceEditorTypeFigureLabel": {
     "description": "Text field label for free-text figure entry."
   },
-  "danceEditorTypeFigureHelper": "e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as an unrecognized figure.",
+  "danceEditorTypeFigureHelper": "e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; text the app can't read is kept as an unrecognized figure.",
   "@danceEditorTypeFigureHelper": {
     "description": "Helper text for free-text figure entry."
   },

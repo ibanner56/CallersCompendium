@@ -719,7 +719,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '振付師$count名',
+      other: '作者$count名',
     );
     return '$_temp0';
   }
@@ -2518,7 +2518,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。既存のフィギュアのムーブに1行を入力してEnterキーを押すと、そのフィギュアが置き換えられます。入力した行はフィギュアに変換されます。認識されなかった部分はカスタムフィギュアとして保存され、後で修正できます。開始フィギュアを保存していない場合、新しいダンスはフィギュアなしで始まります。';
+      'オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。既存のフィギュアのムーブに1行を入力してEnterキーを押すと、そのフィギュアが置き換えられます。入力した行はフィギュアに変換されます。アプリが読み取れなかった部分は認識できないフィギュアとして保存され、後で修正できます。開始フィギュアを保存していない場合、新しいダンスはフィギュアなしで始まります。';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle => 'フィギュアの拍数を積極的に再計算';
@@ -3157,10 +3157,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'ダンスやプログラムを削除する前に確認を求めます。削除は元に戻せます。これはその前に明示的な確認を追加するだけです。';
 
   @override
-  String get settingsGeneralDeletedItemsHeader => '削除済みアイテム';
+  String get settingsGeneralDeletedItemsHeader => '最近削除したアイテム';
 
   @override
-  String get settingsGeneralSoftDeleteRetentionTitle => '削除した項目を保持する期間';
+  String get settingsGeneralSoftDeleteRetentionTitle => '最近削除した項目を保持する期間';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
@@ -3203,7 +3203,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncReviewActionFailed => '同期の判断を適用できませんでした。再試行できるよう項目を保持しました。';
 
   @override
-  String get syncReviewKindChoreographer => '振付師';
+  String get syncReviewKindChoreographer => '作者';
 
   @override
   String get syncReviewKindTag => 'タグ';
@@ -3261,7 +3261,7 @@ class AppLocalizationsJa extends AppLocalizations {
       '別のデバイスがこのレコードの名前を、ここにある別のレコードがすでに使用している名前に変更しました。';
 
   @override
-  String get syncReviewMergeDiscardsContactsTitle => 'これらの振付師を統合しますか?';
+  String get syncReviewMergeDiscardsContactsTitle => 'これらの作者を統合しますか?';
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
@@ -3321,11 +3321,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralImportEllipsisAction => 'インポート…';
 
   @override
-  String get settingsGeneralReparseCustomFiguresTitle => 'カスタムフィギュアを再確認';
+  String get settingsGeneralReparseCustomFiguresTitle => '認識できないフィギュアを再確認';
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'インポート時に認識できなかったためカスタムとして保持されたフィギュアを持つ、インポート済みのダンスを再確認します。アプリが認識できるようになっていれば、その場でアップグレードされます — タグ、評価、ノートは保持されます。変更前にプレビューして確認できます。';
+      'インポート時に認識できず、そのまま保持されたフィギュアを持つインポート済みのダンスを再確認します。アプリが認識できるようになっていれば、その場でアップグレードされます — タグ、評価、ノートは保持されます。変更前にプレビューして確認できます。';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => '再確認…';
@@ -3770,14 +3770,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importGapMessage =>
-      'このコールを認識できませんでした — 書かれたとおりにカスタムフィギュアとして保持されました。';
+      'このコールを認識できませんでした — 書かれたとおりに認識できないフィギュアとして保持されました。';
 
   @override
   String get importGapDialogTitle => '認識できないフィギュア';
 
   @override
-  String get importGapSemanticLabel =>
-      '認識できないフィギュア。書かれたとおりにカスタムフィギュアとして保持されました。';
+  String get importGapSemanticLabel => '認識できないフィギュア。書かれたとおりに保持されました。';
 
   @override
   String get collectionScreenTitle => 'コレクション';
@@ -5032,7 +5031,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsAddDanceButton => 'ダンスを追加';
 
   @override
-  String get programsAddNoteBreakButton => 'ノート／ワルツを追加';
+  String get programsAddNoteBreakButton => 'ノートまたはブレイクを追加';
 
   @override
   String get programsInsertBreakButton => 'ブレイクを挿入';
@@ -7290,11 +7289,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importIssueMoveFallback =>
-      'フィギュアを既知のムーブに一致させられませんでした。カスタムとしてインポートしました。';
+      'フィギュアを既知のムーブに一致させられませんでした。認識できないフィギュアとしてインポートしました。';
 
   @override
   String importIssueMoveFallbackAt(int position) {
-    return 'フィギュア$positionを既知のムーブに一致させられませんでした。カスタムとしてインポートしました。';
+    return 'フィギュア$positionを既知のムーブに一致させられませんでした。認識できないフィギュアとしてインポートしました。';
   }
 
   @override
@@ -7337,7 +7336,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importRecordErrorNotCompendiumArchive =>
-      'Caller\'s Compendium のファイルではありません。このアプリからエクスポートした .json ファイルを選んでください。';
+      '共有ファイルではありません。このアプリからエクスポートした .json または .ccshare ファイルを選んでください。';
 
   @override
   String get importRecordErrorNotCallersBoxDance =>
@@ -7455,7 +7454,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get importReviewCustom => 'カスタム';
+  String get importReviewCustom => '認識できない';
 
   @override
   String get importReviewOptionNewDance => '新しいダンス';
@@ -7771,11 +7770,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'ムーブを入力して（例: \"sw\" → スイング）Enterキーを押すと既定値で追加されます。一致しないテキストはカスタムフィギュアになります。';
+      'ムーブを入力して（例: \"sw\" → スイング）Enterキーを押すと既定値で追加されます。アプリが読み取れないテキストは認識できないフィギュアになります。';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
-      '「neighbor balance & swing」のように1行全体を入力してEnterキーを押すとフィギュアを追加できます。既存のフィギュアのムーブに1行を入力すると、そのフィギュアが置き換えられます。認識されなかった部分はカスタムフィギュアになります。';
+      '「neighbor balance & swing」のように1行全体を入力してEnterキーを押すとフィギュアを追加できます。既存のフィギュアのムーブに1行を入力すると、そのフィギュアが置き換えられます。アプリが読み取れなかったテキストは認識できないフィギュアになります。';
 
   @override
   String get danceEditorNotesSection => 'ノート';
@@ -8183,12 +8182,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
-    return '「$name」という名前の振付師はすでに存在します。名前は変更されませんでした。';
+    return '「$name」という名前の作者はすでに存在します。名前は変更されませんでした。';
   }
 
   @override
   String danceEditorChoreographerCreateDuplicate(String name) {
-    return '「$name」という名前の振付者はすでに存在します。新しい作者は作成されませんでした。既存のものを選んでください。';
+    return '「$name」という名前の作者はすでに存在します。新しい作者は作成されませんでした。既存のものを選んでください。';
   }
 
   @override
@@ -8270,7 +8269,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorLoadError => 'ダンスを読み込めませんでした。';
 
   @override
-  String get danceEditorChoreographerDetailsTitle => '振付師の詳細';
+  String get danceEditorChoreographerDetailsTitle => '作者の詳細';
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
@@ -8431,7 +8430,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorTypeFigureHelper =>
-      '例: 「neighbor balance & swing」または「16 circle left 3/4」。Enterキーで追加します。認識されないテキストはカスタムフィギュアとして保持されます。';
+      '例: 「neighbor balance & swing」または「16 circle left 3/4」。Enterキーで追加します。アプリが読み取れないテキストは認識できないフィギュアとして保持されます。';
 
   @override
   String get danceEditorPasteHere => 'ここにペースト';
@@ -8440,7 +8439,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorEmptyFigureName => '空のフィギュア';
 
   @override
-  String get danceEditorCustomFigureName => 'カスタムフィギュア';
+  String get danceEditorCustomFigureName => '認識できないフィギュア';
 
   @override
   String get danceEditorEmptyFigureSummary => '（空 — ムーブを選択してください）';
@@ -8772,7 +8771,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorUnderlineTooltip => '下線 (_テキスト_)';
 
   @override
-  String get danceEditorCustomFigureTextLabel => 'カスタムフィギュアのテキスト';
+  String get danceEditorCustomFigureTextLabel => '認識できないフィギュアのテキスト';
 
   @override
   String get danceEditorLingoStylingHelper =>
@@ -9446,7 +9445,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get themeEditorSwatchError => 'エラー';
 
   @override
-  String get reparseConfirmTitle => 'カスタムフィギュアをアップグレードしますか？';
+  String get reparseConfirmTitle => '認識できないフィギュアをアップグレードしますか？';
 
   @override
   String reparseConfirmBody(int figureCount, int danceCount) {
@@ -9479,11 +9478,11 @@ class AppLocalizationsJa extends AppLocalizations {
       locale: localeName,
       other: '$danceCount件のダンス',
     );
-    return '$_temp0のカスタムフィギュアをアップグレードしました。';
+    return '$_temp0の認識できないフィギュアをアップグレードしました。';
   }
 
   @override
-  String get reparseScreenTitle => 'カスタムフィギュアを再確認';
+  String get reparseScreenTitle => '認識できないフィギュアを再確認';
 
   @override
   String reparseIntro(int figureCount, int danceCount) {
@@ -9525,7 +9524,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      '現時点では、インポートされたカスタムフィギュアの中に既知のムーブとして認識できるものはありません。将来のアップデートでフィギュアの認識が改善されたら再確認してください。';
+      '現時点では、インポートされた認識できないフィギュアの中に既知のムーブとして認識できるものはありません。将来のアップデートでフィギュアの認識が改善されたら再確認してください。';
 
   @override
   String get reparseErrorTitle => 'フィギュアを確認できませんでした';
@@ -9788,7 +9787,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get recentlyDeletedTitle => '最近削除したアイテム';
 
   @override
-  String get recentlyDeletedLoadError => '削除したアイテムを読み込めませんでした。何も削除されていません。';
+  String get recentlyDeletedLoadError => '最近削除したアイテムを読み込めませんでした。何も削除されていません。';
 
   @override
   String get recentlyDeletedDeleteTitle => '完全に削除しますか？';
@@ -9838,23 +9837,23 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get recentlyDeletedEmptyDancesKept =>
-      'ゴミ箱は空です。削除したダンスは手動で削除するまでここに保持されます。';
+      '最近削除したダンスはありません。削除したダンスは手動で削除するまでここに保持されます。';
 
   @override
   String get recentlyDeletedEmptyTitle => '削除されたものはありません';
 
   @override
   String recentlyDeletedEmptyDancesRetention(int days) {
-    return 'ゴミ箱は空です。削除したダンスは削除されるまで$days日間ここに表示されます。';
+    return '最近削除したダンスはありません。削除したダンスは削除されるまで$days日間ここに表示されます。';
   }
 
   @override
   String get recentlyDeletedEmptyProgramsKept =>
-      'ゴミ箱は空です。削除したプログラムは手動で削除するまでここに保持されます。';
+      '最近削除したプログラムはありません。削除したプログラムは手動で削除するまでここに保持されます。';
 
   @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
-    return 'ゴミ箱は空です。削除したプログラムは削除されるまで$days日間ここに表示されます。';
+    return '最近削除したプログラムはありません。削除したプログラムは削除されるまで$days日間ここに表示されます。';
   }
 
   @override
@@ -10647,7 +10646,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'ゴミ箱の$count件のダンスがこのフィギュアを使っており、最後に保存した行のまま残ります。',
+      other: '「最近削除したアイテム」の$count件のダンスがこのフィギュアを使っており、最後に保存した行のまま残ります。',
     );
     return '$_temp0';
   }
