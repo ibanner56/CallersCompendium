@@ -425,6 +425,8 @@ jobs:
       # The quote normaliser turns a curly apostrophe into ' on the premise that
       # l10n.yaml sets no use-escaping. Prove it against the real generator.
       - name: Prove normalised apostrophes render unchanged through gen-l10n
+        env:
+          ARB_QUOTE_REQUIRE_FLUTTER: "1"  # a missing SDK must fail here, not skip
         run: python3 tools/ci/test_arb_quote_style_gen_l10n.py
   core-tests:
     name: Test compendium_core

@@ -21,6 +21,7 @@ there is no ``flutter`` on PATH -- ``preflight`` only schedules it where one exi
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -100,6 +101,9 @@ def generate(arb: dict, work: Path, l10n_yaml: str) -> str:
 
 def main() -> int:
     if not shutil.which("flutter"):
+        if os.environ.get("ARB_QUOTE_REQUIRE_FLUTTER"):
+            print("FAIL: no flutter on PATH but ARB_QUOTE_REQUIRE_FLUTTER is set.")
+            return 1
         print("SKIP: no flutter on PATH; this test needs gen-l10n.")
         return 0
     l10n_yaml = (style.REPO_ROOT / style.L10N_YAML).read_text(encoding="utf-8")

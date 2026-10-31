@@ -213,7 +213,8 @@ alternative: straight marks are the easiest to type and to search for.
   `use-escaping` is ever enabled in `l10n.yaml`, because `'` would then stop
   being a plain character). `tools/ci/check_arb_quote_style.py` fails any new or
   edited string that has a curly mark. Today's strings sit on an allow-list
-  that the sweep (U5b-2) empties. The fix for a failure is the rewrite, not
+  that the sweep (U5b-2) empties. The fix for a failure is the rewrite (it also drops
+  the fixed strings from the allow-list; re-run `flutter gen-l10n` after it), not
   `--regenerate`.
 
 ## Markdown conventions

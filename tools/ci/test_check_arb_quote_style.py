@@ -90,6 +90,22 @@ def test_normaliser_rewrites_values_only() -> None:
         check("second run is a no-op (idempotent)", read_arb(root) == before and "normalised 0" in msg, msg)
 
 
+def test_normaliser_prunes_fixed_allowlist_entries() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        v = f"it{RSQ}s"
+        tree(root, base_arb(a=v, b=f"x{RSQ}"), {"violations": {"a": chk.digest(v), "b": chk.digest(f"x{RSQ}"), "zz": "0" * 16}, "literal": {}})
+        quiet(style.run, root, False)
+        doc = json.loads((root / "tools/ci/arb_quote_allowlist.json").read_text())
+        check("fixed entries dropped, unrelated entry untouched", list(doc["violations"]) == ["zz"], str(doc))
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        tree(root, base_arb(a=f"it{RSQ}s"), {"violations": {}, "literal": {}})
+        quiet(style.run, root, False)
+        doc = json.loads((root / "tools/ci/arb_quote_allowlist.json").read_text())
+        check("never adds entries", doc["violations"] == {}, str(doc))
+
+
 def test_normaliser_check_mode() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -193,11 +209,9 @@ def test_regenerate_round_trip() -> None:
         check("regenerate lists only violating keys", rc == 0 and list(doc["violations"]) == ["a"], str(doc))
         check("passes after regenerate", quiet(chk.run, root, False)[0] == 0)
         quiet(style.run, root, False)
-        rc, msg = quiet(chk.run, root, False)
-        check("normalising afterwards makes the entry stale, then regenerate empties it", rc == 1 and "already straight" in msg, msg)
-        quiet(chk.run, root, True)
+        check("normalising afterwards leaves the ratchet green", quiet(chk.run, root, False)[0] == 0)
         doc = json.loads((root / "tools/ci/arb_quote_allowlist.json").read_text())
-        check("allow-list shrinks to empty", doc["violations"] == {}, str(doc))
+        check("and the allow-list shrinks to empty", doc["violations"] == {}, str(doc))
 
 
 def test_allowlist_validation() -> None:

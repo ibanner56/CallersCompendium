@@ -14,6 +14,8 @@ violation is.
     python3 tools/ci/arb_quote_style.py            # rewrite app_en.arb in place
     python3 tools/ci/arb_quote_style.py --check    # report only; exit 1 if it would change
 
+After a rewrite it also drops the fixed strings' allow-list entries (shrink-only)
+and reminds you to re-run ``gen-l10n`` so the ``l10n-drift`` gate stays green.
 It is **idempotent** and meant to be re-run on a fresh ``main`` rather than
 resolving ARB merge hunks by hand (U5b-2's conflict plan).
 
@@ -22,7 +24,7 @@ resolving ARB merge hunks by hand (U5b-2's conflict plan).
 * **Values only.** Keys are never touched. ``@key`` metadata (descriptions,
   placeholder examples) is also left alone: it is developer-facing, never
   rendered, and rewriting it would add merge-conflict surface for no user
-  benefit. Four descriptions contain curly quotes today. Rejected: normalising
+  benefit. Four descriptions (and two placeholder examples) contain curly quotes today. Rejected: normalising
   descriptions too, for a uniform file; the ratchet does not read them either.
 * **English only, enforced structurally.** The file must declare
   ``"@@locale": "en"``; anything else is refused (exit 2). German, French,
@@ -111,7 +113,9 @@ def load_arb_text(raw: str, name: str = "app_en.arb") -> dict:
         raise StyleError(
             f"{name} does not round-trip byte-for-byte through json (indent=2, "
             "ensure_ascii=False). Refusing to reformat the file as a side effect of "
-            "a quote fix; make the file canonical first."
+            "a quote fix; re-save it canonically first (e.g. `python3 -c \"import json,pathlib;"
+            "p=pathlib.Path('app/lib/l10n/app_en.arb');"
+            "p.write_text(json.dumps(json.loads(p.read_text()),ensure_ascii=False,indent=2)+chr(10))\"`)."
         )
     return data
 
@@ -179,8 +183,30 @@ def run(root: Path, check_only: bool) -> int:
         return 0
     if changed:
         arb.write_text(dump_arb(new), encoding="utf-8")
-    print(f"normalised {len(changed)} string(s) in {arb.name}.")
+        pruned = prune_allowlist(root / ALLOWLIST_PATH, set(changed))
+        print(f"normalised {len(changed)} string(s) in {arb.name}; dropped {pruned} fixed allow-list entr(ies).")
+        print("Next: `fvm flutter gen-l10n` in app/ and commit lib/l10n (the l10n-drift gate).")
+    else:
+        print(f"normalised 0 string(s) in {arb.name}.")
     return 0
+
+
+def prune_allowlist(path: Path, fixed: set[str]) -> int:
+    """Drop ``violations`` entries for strings just fixed; never adds anything.
+
+    Keeps the ratchet green after a normalise (a fixed string's entry would
+    otherwise be stale). Shrink-only, so it cannot hide a violation.
+    """
+    if not path.exists():
+        return 0
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    listed = doc.get("violations", {})
+    drop = [k for k in listed if k in fixed]
+    for k in drop:
+        del listed[k]
+    if drop:
+        path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    return len(drop)
 
 
 def main(argv: list[str] | None = None) -> int:
