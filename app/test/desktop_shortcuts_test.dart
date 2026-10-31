@@ -11,6 +11,7 @@ import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/widgets/app_shortcuts.dart';
+import 'package:compendium_app/src/widgets/search_panel_bar.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/gestures.dart';
@@ -568,6 +569,26 @@ void main() {
         field.controller?.selection,
         const TextSelection(baseOffset: 0, extentOffset: 3),
       );
+    });
+
+    testWidgets('not when focus is on a search-panel control', (tester) async {
+      await _pump(tester);
+      final control = find
+          .descendant(
+            of: find.byType(SearchPanelBar),
+            matching: find.byType(Icon),
+          )
+          .first;
+      Focus.of(tester.element(control)).requestFocus();
+      await tester.pump();
+
+      await _press(
+        tester,
+        LogicalKeyboardKey.keyA,
+        modifier: LogicalKeyboardKey.controlLeft,
+      );
+
+      expect(find.byKey(const ValueKey('batch-exit')), findsNothing);
     });
 
     testWidgets('not when focus is outside the list', (tester) async {

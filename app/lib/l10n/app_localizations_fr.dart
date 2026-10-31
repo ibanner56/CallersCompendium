@@ -7148,7 +7148,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importReviewDiscardBody =>
-      'Rien n’a encore été ajouté à votre collection. Si vous quittez maintenant, la liste en cours de vérification sera abandonnée.';
+      'Si vous quittez maintenant, la liste en cours de vérification et vos choix sont abandonnés.';
 
   @override
   String get importReviewKeepReviewing => 'Continuer la vérification';

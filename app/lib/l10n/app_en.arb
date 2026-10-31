@@ -9198,7 +9198,7 @@
   "@importReviewDiscardTitle": {
     "description": "Title of the dialog shown when the user leaves the import review screen before importing."
   },
-  "importReviewDiscardBody": "Nothing has been added to your collection yet. If you leave now, the list you are reviewing is discarded.",
+  "importReviewDiscardBody": "If you leave now, the list you are reviewing and the choices you made on it are discarded.",
   "@importReviewDiscardBody": {
     "description": "Body of the dialog shown when the user leaves the import review screen before importing; the list is the planned import, with the choices made on it."
   },

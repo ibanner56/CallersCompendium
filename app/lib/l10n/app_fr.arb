@@ -6954,9 +6954,9 @@
   "@importReviewDiscardTitle": {
     "x-sourceSha256": "f3ecc8986e997b4fbfc389fb2dad1d5dbae5efdbef5e4e5128a745930eb70414"
   },
-  "importReviewDiscardBody": "Rien n’a encore été ajouté à votre collection. Si vous quittez maintenant, la liste en cours de vérification sera abandonnée.",
+  "importReviewDiscardBody": "Si vous quittez maintenant, la liste en cours de vérification et vos choix sont abandonnés.",
   "@importReviewDiscardBody": {
-    "x-sourceSha256": "cd0fbdc7e66d51843e5e2b5e20814e247eaf7814b03fc1caf8bd39c3549cb6ed"
+    "x-sourceSha256": "f4968c3ef36dafa2266c4f32f30b7f49b88aa6538effeaf7b7275afccbc84336"
   },
   "importReviewKeepReviewing": "Continuer la vérification",
   "@importReviewKeepReviewing": {

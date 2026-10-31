@@ -4896,6 +4896,44 @@ void main() {
       expect(await repos.dances.listAll(), isEmpty);
     });
 
+    testWidgets('embedded system back during review asks, then closes the '
+        'pane and not the route', (tester) async {
+      final repos = openTestRepositories();
+      var closed = 0;
+      await tester.binding.setSurfaceSize(const Size(1000, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: RepositoriesScope(
+            repositories: repos,
+            child: ImportReviewScreen(
+              sources: [
+                ImportSource(
+                  kind: ImportSourceKind.genericJson,
+                  adapterFactory: GenericJsonAdapter.new,
+                ),
+              ],
+              sharedBundle: bundleFor(danceProgramVenueArchive()),
+              onClose: () => closed++,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      unawaited(navigator.maybePop());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('import-leave-dialog')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(closed, 1);
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+    });
+
     testWidgets('embedded Close during review asks first', (tester) async {
       final repos = openTestRepositories();
       var closed = 0;

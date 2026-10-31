@@ -164,8 +164,17 @@ class DanceListScreen extends StatefulWidget {
   State<DanceListScreen> createState() => _DanceListScreenState();
 }
 
-/// Actions in the Collection multi-select "more" overflow menu (#423), holding
-/// the batch-edit affordances that don't fit as top-level action-bar icons.
+/// Wraps the search panels, so [_SelectAllDancesAction] can tell focus there
+/// from focus in the results.
+class _NotTheResultList extends StatelessWidget {
+  const _NotTheResultList({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
+}
+
 /// Handles [SelectAllDancesIntent] for the result list, and reports itself
 /// disabled whenever Select all could not act (a pending or failed search,
 /// online mode, no results), so the key then falls through to whatever else
@@ -176,8 +185,15 @@ class _SelectAllDancesAction extends Action<SelectAllDancesIntent> {
   final bool Function() canAct;
   final VoidCallback onInvoke;
 
+  /// Not while focus is on a control in the search panels (a chip, a button,
+  /// a dropdown): those sit in the same scroll view as the results but are not
+  /// the list.
   @override
-  bool isEnabled(SelectAllDancesIntent intent) => canAct();
+  bool isEnabled(SelectAllDancesIntent intent) =>
+      canAct() &&
+      FocusManager.instance.primaryFocus?.context
+              ?.findAncestorWidgetOfExactType<_NotTheResultList>() ==
+          null;
 
   @override
   Object? invoke(SelectAllDancesIntent intent) {
@@ -186,6 +202,8 @@ class _SelectAllDancesAction extends Action<SelectAllDancesIntent> {
   }
 }
 
+/// Actions in the Collection multi-select "more" overflow menu (#423), holding
+/// the batch-edit affordances that don't fit as top-level action-bar icons.
 enum _BatchMoreAction {
   selectAll,
   setRating,
@@ -2839,7 +2857,9 @@ class _DanceListScreenState extends State<DanceListScreen>
                     // source even with an empty local collection; for sources
                     // without by-phrase support (ContraDB) it is greyed out, or
                     // absent when the collection is empty.
-                    _buildSearchPanels(data, collectionEmpty),
+                    _NotTheResultList(
+                      child: _buildSearchPanels(data, collectionEmpty),
+                    ),
                     if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
                     const Divider(height: 1),
                   ]),

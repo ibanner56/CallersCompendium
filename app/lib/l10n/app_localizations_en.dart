@@ -7017,7 +7017,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewDiscardBody =>
-      'Nothing has been added to your collection yet. If you leave now, the list you are reviewing is discarded.';
+      'If you leave now, the list you are reviewing and the choices you made on it are discarded.';
 
   @override
   String get importReviewKeepReviewing => 'Keep reviewing';

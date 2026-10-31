@@ -16,6 +16,14 @@ String onlineSourceAttribution(AppLocalizations l10n, OnlineSource source) =>
       OnlineSource.contraDb => l10n.onlineAttributionContraDb,
     };
 
+bool _replacedExistingDance(OnlineImportResult result) {
+  final id = result.danceId;
+  final session = result.session;
+  return id != null &&
+      session != null &&
+      !session.insertedDanceIds.contains(id);
+}
+
 /// User-facing snackbar message for an online import [result]. Shared by every
 /// source so imports are reported identically. The dance [title] is an
 /// untrusted external value; it flows through a gen-l10n placeholder and is
@@ -29,14 +37,6 @@ String onlineSourceAttribution(AppLocalizations l10n, OnlineSource source) =>
 /// enforced by the [StateError]s below; a call site that forgets to intercept
 /// will fail loudly rather than silently showing "imported" when nothing was
 /// written.
-bool _replacedExistingDance(OnlineImportResult result) {
-  final id = result.danceId;
-  final session = result.session;
-  return id != null &&
-      session != null &&
-      !session.insertedDanceIds.contains(id);
-}
-
 String onlineImportMessage(AppLocalizations l10n, OnlineImportResult result) =>
     switch (result.kind) {
       OnlineImportKind.alreadyInCollection =>

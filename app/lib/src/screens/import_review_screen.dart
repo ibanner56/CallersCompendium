@@ -2550,10 +2550,24 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return choice == DiscardChangesChoice.discard;
   }
 
-  /// Pops this route once the user confirms discarding the review.
+  bool _askingToLeave = false;
+
+  /// Leaves once the user confirms discarding the review: through
+  /// [ImportReviewScreen.onClose] when embedded (there is no route of its own
+  /// to pop), otherwise by popping this route. A second back press while the
+  /// question is up is ignored, so it cannot stack a second dialog.
   Future<void> _leaveReview() async {
-    if (!await _confirmLeaveReview() || !mounted) return;
-    Navigator.of(context).pop();
+    if (_askingToLeave) return;
+    _askingToLeave = true;
+    final leave = await _confirmLeaveReview();
+    _askingToLeave = false;
+    if (!leave || !mounted) return;
+    final onClose = widget.onClose;
+    if (onClose != null) {
+      onClose();
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   /// The embedded Close button. It calls [ImportReviewScreen.onClose] directly,
@@ -2561,9 +2575,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Future<void> _closeEmbedded() async {
     final onClose = widget.onClose;
     if (onClose == null) return;
-    if (_phase == _Phase.review && !await _confirmLeaveReview()) return;
-    if (!mounted) return;
-    onClose();
+    if (_phase == _Phase.review) {
+      await _leaveReview();
+    } else {
+      onClose();
+    }
   }
 
   Widget _summaryLine(String keyLabel, String text) =>

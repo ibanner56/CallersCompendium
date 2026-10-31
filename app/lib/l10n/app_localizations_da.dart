@@ -7053,7 +7053,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewDiscardBody =>
-      'Intet er føjet til din samling endnu. Hvis du forlader siden nu, kasseres den liste, du gennemgår.';
+      'Hvis du forlader siden nu, kasseres den liste, du gennemgår, og de valg, du har truffet på den.';
 
   @override
   String get importReviewKeepReviewing => 'Fortsæt gennemgang';

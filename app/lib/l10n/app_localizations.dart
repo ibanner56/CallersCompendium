@@ -10592,7 +10592,7 @@ abstract class AppLocalizations {
   /// Body of the dialog shown when the user leaves the import review screen before importing; the list is the planned import, with the choices made on it.
   ///
   /// In en, this message translates to:
-  /// **'Nothing has been added to your collection yet. If you leave now, the list you are reviewing is discarded.'**
+  /// **'If you leave now, the list you are reviewing and the choices you made on it are discarded.'**
   String get importReviewDiscardBody;
 
   /// Button that stays on the import review screen instead of discarding the list.

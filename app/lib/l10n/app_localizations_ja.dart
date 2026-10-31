@@ -6762,8 +6762,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importReviewDiscardTitle => 'このインポートを破棄しますか？';
 
   @override
-  String get importReviewDiscardBody =>
-      'コレクションにはまだ何も追加されていません。今ここを離れると、確認中のリストは破棄されます。';
+  String get importReviewDiscardBody => '今ここを離れると、確認中のリストとその選択内容は破棄されます。';
 
   @override
   String get importReviewKeepReviewing => '確認を続ける';

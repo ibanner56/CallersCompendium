@@ -616,8 +616,8 @@ source you pick:
    so, and what to do about it.
    If you go back or close the screen while you are still deciding, the app asks
    whether to **Discard** the import or **Keep reviewing**, because leaving
-   throws away the list and your choices on it. Nothing has been added at that
-   point.
+   throws away the list and your choices on it. Dances you already brought in
+   with **Import and edit** stay in your collection.
 4. **Commit** — only now are the dances you accepted written to your collection.
 5. **Undo** — right after committing, the summary offers **Undo**, which removes
    everything the **Import** button added; dances brought in with **Import and

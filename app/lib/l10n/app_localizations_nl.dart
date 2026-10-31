@@ -7100,7 +7100,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewDiscardBody =>
-      'Er is nog niets aan je collectie toegevoegd. Als je nu weggaat, wordt de lijst die je aan het nakijken bent verworpen.';
+      'Als je nu weggaat, worden de lijst die je aan het nakijken bent en je keuzes erop verworpen.';
 
   @override
   String get importReviewKeepReviewing => 'Doorgaan met nakijken';

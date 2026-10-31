@@ -7130,7 +7130,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewDiscardBody =>
-      'Es wurde noch nichts zu deiner Sammlung hinzugefügt. Wenn du jetzt gehst, wird die Liste, die du gerade prüfst, verworfen.';
+      'Wenn du jetzt gehst, werden die Liste, die du gerade prüfst, und deine Auswahl darauf verworfen.';
 
   @override
   String get importReviewKeepReviewing => 'Weiter prüfen';
