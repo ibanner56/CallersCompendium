@@ -67,4 +67,15 @@ List<String> danceCardTuneNames(Dance dance, Set<DanceShareField> fields) {
   return tuneList.map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
 }
 
+/// Resolved, non-blank source-citation lines for the dance card, gated on
+/// [DanceShareField.sources]. The caller resolves each citation (title,
+/// author/year, page, number) to one display line, as it does for author names.
+List<String> danceCardSourceLines(
+  List<String> sourceLines,
+  Set<DanceShareField> fields,
+) {
+  if (!fields.contains(DanceShareField.sources)) return const [];
+  return sourceLines.map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+}
+
 bool _has(String? value) => value != null && value.trim().isNotEmpty;

@@ -104,7 +104,9 @@ The **General** section gathers everyday behavior into small groups.
   screen readers. Turn it off for the terse notation. This affects the dance view;
   [Perform mode](./perform.md) has its own text-size controls.
 - **Show turns as decimals** — shows turn and rotation amounts as decimals (0.75)
-  instead of fractions (¾). Screen-reader wording is unaffected.
+  instead of fractions (¾). Screen-reader wording is unaffected, and so are
+  printed and exported cards: PDFs, shared text and set-list cards always write
+  turns as fractions.
 - **Confirm before delete** — adds a prompt before you delete a dance or program.
   Deletes are still undoable either way.
 
@@ -316,17 +318,24 @@ There's a **High contrast** theme for maximum legibility — see the
   circles, and squares each get their own accent, so you can read the *shape* of a program at a
   glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
   accent regardless of their formation, so a mixer-flagged Improper reads as
-  a mixer rather than a contra. The formation (and "Mixer" when applicable) is
+  a mixer rather than a contra, even if you have given that formation its own
+  colour (see [Formation colours](#formation-colours) below). The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
-  on colour, and the accents adapt to the High contrast theme. On by default; turn
-  it off to hide the tints.
+  on colour, and the family tints adapt to the High contrast theme. On by default;
+  turn it off to hide the tints (your own formation colours are hidden with them).
 
 ### Formation colours
 
 - **Formation label colours** — highlight individual formations in your own
   colours (for example Becket clockwise in yellow and Becket counter-clockwise in
-  pink). Your choices show on dance cards, in dance detail, and in the Perform
-  header.
+  pink). Your choices show on dance cards, in dance detail, in the Perform
+  header, and on set-list rows in a program's summary and builder. On a set-list
+  row your colour replaces the built-in tint for that formation's family; a
+  formation you haven't coloured keeps its family tint, and a dance marked as a
+  mixer keeps the mixer accent. Your colour is used as you chose it in every
+  theme, High contrast included, because on a row it only paints the edge of the
+  row, never text. With **Colour-code set-list rows** off, set-list rows show no
+  colour at all.
 
 ### Tag colours
 
@@ -460,8 +469,9 @@ default.
 
 Choose which details appear when you share, copy, or export a program or dance:
 **Authors**, **Formation**, **Level**, **Mixer**, **Status**, **Phrase**,
-**Calling notes**, **Walkthrough**, and **Tunes**. Authors are shown by default
-and tunes are hidden until you turn them on. See
+**Calling notes**, **Walkthrough**, **Tunes**, **Hook**, and **Sources**.
+Authors are shown by default; tunes, the hook and sources are hidden until you
+turn them on. See
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 
 ### Collection filters

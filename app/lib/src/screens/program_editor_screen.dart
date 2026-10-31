@@ -31,6 +31,7 @@ import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
 
+import '../editor/draft_save_health.dart';
 import '../editor/pay_currency.dart';
 import '../editor/perform_adjustment_write.dart';
 import '../editor/program_editor_draft_codec.dart';
@@ -1192,6 +1193,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  final DraftSaveHealth _draftHealth = DraftSaveHealth();
+
   Future<void> _saveDraft({
     ProgramEditorDraft? preparedDraft,
     bool surfaceErrors = false,
@@ -1411,8 +1414,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // did) remove the draft itself, so skip the write rather than race it.
       if (generation != _draftGeneration) return;
       await _repos.settings.set(key, encodeProgramDraft(draft));
+      if (_draftHealth.recordSuccess() && mounted) setState(() {});
     } catch (error, stackTrace) {
-      // diagnostics: silent — draft write failed; must never stall editing or permanently block later autosaves.
+      // Logged once per session and shown as a marker, never thrown: it must
+      // not stall editing or permanently block later autosaves (FAIL-8).
+      if (_draftHealth.claimFirstLog()) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._writeDraft',
+        );
+      }
+      final changed = _draftHealth.recordFailure();
+      if (changed && mounted) setState(() {});
       if (surfaceErrors) Error.throwWithStackTrace(error, stackTrace);
     }
   }
@@ -1443,6 +1457,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     await _saveQueueTail;
     try {
       await _repos.settings.remove(_draftKey, permanent: true);
+      // Nothing is left unsaved, so a "Draft not saved" marker would be stale.
+      if (_draftHealth.recordSuccess() && mounted) setState(() {});
     } catch (_) {
       // diagnostics: silent — draft removal best-effort; non-fatal.
     }
@@ -3391,6 +3407,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ),
           ),
           actions: [
+            if (_draftHealth.failed) const DraftNotSavedMarker(),
             if (_loaded &&
                 _loadError == null &&
                 _data != null &&

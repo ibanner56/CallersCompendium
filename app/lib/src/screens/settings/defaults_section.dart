@@ -2074,6 +2074,20 @@ class _DefaultsView extends StatelessWidget {
                       toggleShareField(DanceShareField.tunes, v ?? false),
                   title: Text(l10n.settingsDefaultsShareFieldsTunes),
                 ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-hook'),
+                  value: shareFields.contains(DanceShareField.hook),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.hook, v ?? false),
+                  title: Text(l10n.settingsDefaultsShareFieldsHook),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-sources'),
+                  value: shareFields.contains(DanceShareField.sources),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.sources, v ?? false),
+                  title: Text(l10n.settingsDefaultsShareFieldsSources),
+                ),
               ],
             );
           },

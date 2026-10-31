@@ -2393,7 +2393,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.';
+      'Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — medmindre du har givet den formation sin egen farve, som så gælder. Danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -2401,7 +2401,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Fremhæv individuelle formationer i dine egne farver – f.eks. Becket (CW) i gult, Becket (CCW) i lyserødt – på danskort, dansdetaljer og Perform-overskriften.';
+      'Fremhæv individuelle formationer i dine egne farver – f.eks. Becket (CW) i gult, Becket (CCW) i lyserødt – på danskort, dansdetaljer, Perform-overskriften og sætlisterækker.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Valgt';
@@ -2614,6 +2614,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'Melodier';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'Hook';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Kilder';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Samlingsfiltre';
 
   @override
@@ -2738,7 +2744,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Giv en formation sin egen farve for at fremhæve dens etiket på danskort, dansdetaljer og Perform-overskriften. Kun de formationer, du tilpasser, fremhæves; de øvrige viser deres etiket som normalt. Formationen vises altid som tekst, så etiketter forbliver læsbare uden farver.';
+      'Giv en formation sin egen farve for at fremhæve dens etiket på danskort, dansdetaljer og Perform-overskriften og for at farve dens sætlisterækker (mixer-danse beholder mixer-farven). Kun de formationer, du tilpasser, fremhæves; de øvrige viser deres etiket som normalt. Formationen vises altid som tekst, så etiketter forbliver læsbare uden farver.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formationer';
@@ -6191,6 +6197,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performShowWalkthrough => 'Vis gennemgang';
 
   @override
+  String get performFullScreen => 'Fuld skærm';
+
+  @override
   String get performWalkthroughEmpty => 'Ingen gennemgang for denne dans.';
 
   @override
@@ -6425,6 +6434,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get exportLabelTunes => 'Melodier';
+
+  @override
+  String get exportLabelHook => 'Hook';
+
+  @override
+  String get exportLabelSources => 'Kilder';
 
   @override
   String exportSlotAuthorSuffix(String names) {
@@ -8570,6 +8585,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorRedoLabel => 'Annullér fortryd';
+
+  @override
+  String get editorDraftNotSaved =>
+      'Kladde ikke gemt – dine seneste ændringer bliver ikke bevaret endnu';
 
   @override
   String danceEditorUndoShortcutTooltip(String platform) {

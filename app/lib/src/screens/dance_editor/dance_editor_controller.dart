@@ -9,6 +9,7 @@ import '../../data/display_defaults.dart';
 import '../../data/validation_issue_labels.dart'
     show incompleteFigureValidationCode;
 import '../../diagnostics/error_log.dart';
+import '../../editor/draft_save_health.dart';
 import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
 import '../../editor/editor_undo_stack.dart';
@@ -1232,6 +1233,12 @@ class DanceEditorController extends ChangeNotifier {
     }
   }
 
+  final DraftSaveHealth _draftHealth = DraftSaveHealth();
+
+  /// Whether the last autosave write failed, so the editor shows its
+  /// "Draft not saved" marker.
+  bool get draftSaveFailed => _draftHealth.failed;
+
   Future<void> _saveDraft({
     EditorSnapshot? preparedSnapshot,
     bool surfaceErrors = false,
@@ -1270,8 +1277,19 @@ class DanceEditorController extends ChangeNotifier {
       // remove the draft itself, so skip the write rather than race it.
       if (generation != _draftGeneration) return;
       await _repos.settings.set(key, encodeDraft(snapshot));
+      if (_draftHealth.recordSuccess() && !_disposed) _notify();
     } catch (error, stackTrace) {
-      // diagnostics: silent — draft write failure; must never stall editing or permanently block later autosaves.
+      // Logged once per session and shown as a marker, never thrown: it must
+      // not stall editing or permanently block later autosaves (FAIL-8).
+      if (_draftHealth.claimFirstLog()) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'dance_editor_controller._writeDraft',
+        );
+      }
+      final changed = _draftHealth.recordFailure();
+      if (changed && !_disposed) _notify();
       if (surfaceErrors) Error.throwWithStackTrace(error, stackTrace);
     }
   }

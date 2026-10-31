@@ -2308,17 +2308,17 @@
   "@settingsAppearanceSetListColorTitle": {
     "x-sourceSha256": "7e01df33d94b5e6e118e6fea4b925e84f23ab5cc48edcce8d4ae3975a1c940f6"
   },
-  "settingsAppearanceSetListColorSubtitle": "Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.",
+  "settingsAppearanceSetListColorSubtitle": "Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — medmindre du har givet den formation sin egen farve, som så gælder. Danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.",
   "@settingsAppearanceSetListColorSubtitle": {
-    "x-sourceSha256": "c20369b0d136fc3f39266e67024966f1e20c80b5f5b716ce98a1531c87faef5d"
+    "x-sourceSha256": "232f4627ed9e2f518689fc74c581702696c4699041bd904500c86630a2da1ca3"
   },
   "settingsAppearanceFormationColoursTitle": "Formationsetiketfarver",
   "@settingsAppearanceFormationColoursTitle": {
     "x-sourceSha256": "79f6f85c15a24218dbe046fac396504b123ad5b6a7779091924f0b884a142676"
   },
-  "settingsAppearanceFormationColoursSubtitle": "Fremhæv individuelle formationer i dine egne farver – f.eks. Becket (CW) i gult, Becket (CCW) i lyserødt – på danskort, dansdetaljer og Perform-overskriften.",
+  "settingsAppearanceFormationColoursSubtitle": "Fremhæv individuelle formationer i dine egne farver – f.eks. Becket (CW) i gult, Becket (CCW) i lyserødt – på danskort, dansdetaljer, Perform-overskriften og sætlisterækker.",
   "@settingsAppearanceFormationColoursSubtitle": {
-    "x-sourceSha256": "9c2468624ba508b9206d3fe38bf4e701a3c050e3093473eabba1c9d77adce030"
+    "x-sourceSha256": "eec836f8e8c66b85321f7b6e69a83ede9c3e3cda62b45529773a1d8a77635619"
   },
   "settingsAppearanceSelectedBadge": "Valgt",
   "@settingsAppearanceSelectedBadge": {
@@ -2556,6 +2556,14 @@
   "@settingsDefaultsShareFieldsTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
   },
+  "settingsDefaultsShareFieldsHook": "Hook",
+  "@settingsDefaultsShareFieldsHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "settingsDefaultsShareFieldsSources": "Kilder",
+  "@settingsDefaultsShareFieldsSources": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
   "settingsDefaultsCollectionFiltersHeader": "Samlingsfiltre",
   "@settingsDefaultsCollectionFiltersHeader": {
     "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"
@@ -2688,9 +2696,9 @@
   "@settingsFormationColoursTitle": {
     "x-sourceSha256": "a104f2d03f3e233ef1d22dc19c2c5a24cbf68ff9293b471fdcefe9020f953d33"
   },
-  "settingsFormationColoursIntro": "Giv en formation sin egen farve for at fremhæve dens etiket på danskort, dansdetaljer og Perform-overskriften. Kun de formationer, du tilpasser, fremhæves; de øvrige viser deres etiket som normalt. Formationen vises altid som tekst, så etiketter forbliver læsbare uden farver.",
+  "settingsFormationColoursIntro": "Giv en formation sin egen farve for at fremhæve dens etiket på danskort, dansdetaljer og Perform-overskriften og for at farve dens sætlisterækker (mixer-danse beholder mixer-farven). Kun de formationer, du tilpasser, fremhæves; de øvrige viser deres etiket som normalt. Formationen vises altid som tekst, så etiketter forbliver læsbare uden farver.",
   "@settingsFormationColoursIntro": {
-    "x-sourceSha256": "b2526e3c480c39a881769a827fd2a82d81bdc6bf5d0b200c3553c4e857283592"
+    "x-sourceSha256": "908f4e23f32c266ded3e6fdccea065468f9a4daaeccacfea004031804037595b"
   },
   "settingsFormationColoursListHeader": "Formationer",
   "@settingsFormationColoursListHeader": {
@@ -6114,6 +6122,10 @@
   "@performShowWalkthrough": {
     "x-sourceSha256": "64f01c3e30adb389ccdd0650799fed8a51beeb4a3137e888f5f49cfd3970c1c0"
   },
+  "performFullScreen": "Fuld skærm",
+  "@performFullScreen": {
+    "x-sourceSha256": "674fe2acd0d5f47b46180dd66e26e349cd9c9db215046f5e86ea2f5728d18117"
+  },
   "performWalkthroughEmpty": "Ingen gennemgang for denne dans.",
   "@performWalkthroughEmpty": {
     "x-sourceSha256": "4a06a15c574a27546aefaab25f6251d757d4685f97a8b3da52f8ad67104848b1"
@@ -6377,6 +6389,14 @@
   "exportLabelTunes": "Melodier",
   "@exportLabelTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
+  },
+  "exportLabelHook": "Hook",
+  "@exportLabelHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "exportLabelSources": "Kilder",
+  "@exportLabelSources": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
   },
   "exportSlotAuthorSuffix": "af {names}",
   "@exportSlotAuthorSuffix": {
@@ -8405,6 +8425,10 @@
   "danceEditorRedoLabel": "Annullér fortryd",
   "@danceEditorRedoLabel": {
     "x-sourceSha256": "74273989b0966e2369b6d01aadb23af4ad6a9e724643fa88f2bde99202a36708"
+  },
+  "editorDraftNotSaved": "Kladde ikke gemt – dine seneste ændringer bliver ikke bevaret endnu",
+  "@editorDraftNotSaved": {
+    "x-sourceSha256": "e7b0e357b6454d0285f6a3b3a4c516654f94c0fbec49dd7555eab4278e523dbe"
   },
   "danceEditorUndoShortcutTooltip": "{platform, select, apple{Fortryd (⌘Z)} other{Fortryd (Ctrl+Z)}}",
   "@danceEditorUndoShortcutTooltip": {

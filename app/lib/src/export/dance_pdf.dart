@@ -50,6 +50,7 @@ Future<Uint8List> buildDancePdf(
   pw.ThemeData? theme,
   bool canonicalizeDiscouragedTerms = false,
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+  List<String> sourceLines = const [],
   PdfPageFormat pageFormat = PdfPageFormat.a4,
 }) async {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
@@ -67,6 +68,7 @@ Future<Uint8List> buildDancePdf(
     labels: labels,
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
     fields: fields,
+    sourceLines: sourceLines,
   );
 
   doc.addPage(
@@ -119,6 +121,8 @@ List<pw.Widget> danceCardWidgets(
       ),
     for (final line in content.metaLines)
       pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
+    if (content.hook case final hook?)
+      pw.Text('${labels.hook}: $hook', style: const pw.TextStyle(fontSize: 12)),
     if (content.figures.isNotEmpty) ...[
       pw.SizedBox(height: 12),
       heading(labels.figures),
@@ -159,6 +163,13 @@ List<pw.Widget> danceCardWidgets(
         content.tuneNames.join(', '),
         style: const pw.TextStyle(fontSize: 12),
       ),
+    ],
+    if (content.sourceLines.isNotEmpty) ...[
+      pw.SizedBox(height: 12),
+      heading(labels.sources),
+      pw.SizedBox(height: 4),
+      for (final line in content.sourceLines)
+        pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
     ],
   ];
 }

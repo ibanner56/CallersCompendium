@@ -57,6 +57,7 @@ DanceCardLabels _cardLabels(Dance _) => (
   formationLabel: '二列・デュープル',
   levelLabel: null,
   statusLabel: '現役',
+  sourceLines: const [],
 );
 
 Future<T> _capturePrints<T>(

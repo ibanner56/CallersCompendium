@@ -2,10 +2,13 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/formation_colors_controller.dart';
+import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/theme/set_list_accents.dart';
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 import 'support/l10n_harness.dart';
+import 'support/test_repositories.dart';
 
 final _slots = [
   ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
@@ -75,7 +78,11 @@ Color? _accent(WidgetTester tester, String slotId) {
   return border?.left.color;
 }
 
-Future<void> _pumpWithMixer(WidgetTester tester, {bool? colorCoding}) async {
+Future<void> _pumpWithMixer(
+  WidgetTester tester, {
+  bool? colorCoding,
+  FormationColorsController? formationColors,
+}) async {
   Widget editor = ProgramSlotListEditor(
     slots: _slotsWithMixer,
     danceTitles: (id) => _titlesWithMixer[id],
@@ -92,6 +99,9 @@ Future<void> _pumpWithMixer(WidgetTester tester, {bool? colorCoding}) async {
       notifier: ValueNotifier<bool>(colorCoding),
       child: editor,
     );
+  }
+  if (formationColors != null) {
+    editor = FormationColorsScope(controller: formationColors, child: editor);
   }
   await tester.pumpWidget(
     MaterialApp(
@@ -172,5 +182,48 @@ void main() {
     // The word 'Mixer' must appear alongside the formation text so colour is
     // not the sole cue (ux.md §4).
     expect(find.textContaining('Mixer'), findsWidgets);
+  });
+
+  group('user formation colours (PRES-12)', () {
+    const pink = Color(0xFFE91E63);
+
+    Future<FormationColorsController> controllerWith(
+      Map<FormationShape, Color> colors,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final controller = FormationColorsController(repos.settings);
+      await controller.load();
+      for (final e in colors.entries) {
+        await controller.setColor(e.key, e.value);
+      }
+      return controller;
+    }
+
+    testWidgets('a coloured shape wins; an uncoloured one keeps its tint; '
+        'the mixer keeps the mixer accent', (tester) async {
+      final c = await controllerWith({FormationShape.dupleImproper: pink});
+      await _pumpWithMixer(tester, colorCoding: true, formationColors: c);
+
+      // s0: coloured duple improper. s2: the same shape, mixer-flagged.
+      expect(_accent(tester, 's0'), pink);
+      expect(
+        _accent(tester, 's1'),
+        setListAccentForShape(
+          FormationShape.sicilianCircle,
+          highContrast: false,
+        ),
+      );
+      expect(
+        _accent(tester, 's2'),
+        setListAccent(FormationFamily.mixer, highContrast: false),
+      );
+    });
+
+    testWidgets('colour-coding off still shows no accent', (tester) async {
+      final c = await controllerWith({FormationShape.dupleImproper: pink});
+      await _pumpWithMixer(tester, colorCoding: false, formationColors: c);
+      expect(find.byKey(const ValueKey('slot-s0-accent')), findsNothing);
+    });
   });
 }
