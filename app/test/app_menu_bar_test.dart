@@ -21,6 +21,9 @@ import 'support/full_app_harness.dart';
 /// The menus the app last sent to the platform, as the channel carries them.
 List<Map<Object?, Object?>> _sentMenus = const [];
 
+/// How many times the app has sent its menus.
+int _sends = 0;
+
 Future<void> _pump(
   WidgetTester tester, {
   bool menuBar = true,
@@ -34,6 +37,7 @@ Future<void> _pump(
     SystemChannels.menu,
     (call) async {
       if (call.method == 'Menu.setMenus') {
+        _sends++;
         final windows = call.arguments as Map<Object?, Object?>;
         _sentMenus = [
           for (final menu in windows['0']! as List<Object?>)
@@ -106,6 +110,7 @@ void main() {
   setUp(() {
     rootBundle.clear();
     _sentMenus = const [];
+    _sends = 0;
   });
 
   testWidgets('lists the app, File, View, Window and Help menus, and no Edit', (
@@ -158,6 +163,23 @@ void main() {
     );
     expect(_item('Close')['shortcutTrigger'], LogicalKeyboardKey.keyW.keyId);
 
+    await _unmount(tester);
+  }, variant: _macOS);
+
+  testWidgets('is not sent again when the window resizes', (tester) async {
+    await _pump(tester);
+    final sends = _sends;
+    expect(sends, greaterThan(0));
+
+    for (final width in [520.0, 540.0, 560.0]) {
+      await tester.binding.setSurfaceSize(Size(width, 900));
+      await tester.pump();
+    }
+
+    expect(_sends, sends);
+    // And a menu item still works after the resizes.
+    await _select(tester, 'Settings…');
+    expect(_showing(tester, SettingsScreen), isTrue);
     await _unmount(tester);
   }, variant: _macOS);
 

@@ -23,7 +23,7 @@ import 'app_shortcuts.dart';
 /// The root app wraps its tree in this only when told to
 /// (`CompendiumApp.installPlatformMenuBar`, set by `main` on macOS), so widget
 /// tests, which have no platform menu channel, never install it.
-class AppMenuBar extends StatelessWidget {
+class AppMenuBar extends StatefulWidget {
   const AppMenuBar({super.key, required this.child});
 
   final Widget child;
@@ -155,8 +155,25 @@ class AppMenuBar extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) => PlatformMenuBar(
-    menus: menusFor(AppLocalizations.of(context)),
-    child: child,
-  );
+  State<AppMenuBar> createState() => _AppMenuBarState();
+}
+
+class _AppMenuBarState extends State<AppMenuBar> {
+  AppLocalizations? _l10n;
+  List<PlatformMenuItem> _menus = const [];
+
+  @override
+  Widget build(BuildContext context) {
+    // Built again only when the language changes. The app's builder, and so
+    // this, rebuilds on every MediaQuery change (each frame of a window
+    // resize), and menu items have no `==`, so fresh ones would make
+    // [PlatformMenuBar] send the whole menu again. Each send renumbers the
+    // items, and a click the platform reports under an old number is dropped.
+    final l10n = AppLocalizations.of(context);
+    if (!identical(l10n, _l10n)) {
+      _l10n = l10n;
+      _menus = AppMenuBar.menusFor(l10n);
+    }
+    return PlatformMenuBar(menus: _menus, child: widget.child);
+  }
 }
