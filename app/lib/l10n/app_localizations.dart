@@ -202,6 +202,60 @@ abstract class AppLocalizations {
   /// **'Search ({hint})'**
   String navSearchTooltip(String hint);
 
+  /// Title of the File menu in the macOS menu bar. Shown only on macOS, in the app's menu bar (PlatformMenuBar). Follow the platform's usual name for this menu.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get menuFile;
+
+  /// File menu item that opens the new-dance editor in the Collection (Command-N). Shown only on macOS, in the app's menu bar (PlatformMenuBar). Title case, as macOS menu items are written in English.
+  ///
+  /// In en, this message translates to:
+  /// **'New Dance'**
+  String get menuNewDance;
+
+  /// File menu item that starts a dance import in the Collection. Shown only on macOS, in the app's menu bar (PlatformMenuBar). The trailing ellipsis means the item asks for more before it acts; keep it.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Dances…'**
+  String get menuImportDances;
+
+  /// File menu item that leaves the current page, like the back button (Command-W). Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get menuClose;
+
+  /// App menu item that opens Settings (Command-comma). Shown only on macOS, in the app's menu bar (PlatformMenuBar). Use the name macOS itself uses for this item; keep the trailing ellipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings…'**
+  String get menuSettings;
+
+  /// Title of the View menu in the macOS menu bar; it holds the system's Enter Full Screen item. Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get menuView;
+
+  /// Title of the Window menu in the macOS menu bar; it holds the system's Minimize and Zoom items. Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'Window'**
+  String get menuWindow;
+
+  /// Title of the Help menu in the macOS menu bar. Shown only on macOS, in the app's menu bar (PlatformMenuBar).
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get menuHelp;
+
+  /// Help menu item that opens the in-app User Guide. Shown only on macOS, in the app's menu bar (PlatformMenuBar). Title case, as macOS menu items are written in English.
+  ///
+  /// In en, this message translates to:
+  /// **'User Guide'**
+  String get menuUserGuide;
+
   /// Accessibility label on the startup loading spinner shown while the collection database is being prepared.
   ///
   /// In en, this message translates to:

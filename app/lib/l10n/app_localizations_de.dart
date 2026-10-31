@@ -64,6 +64,33 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'Ablage';
+
+  @override
+  String get menuNewDance => 'Neuer Tanz';
+
+  @override
+  String get menuImportDances => 'Tänze importieren …';
+
+  @override
+  String get menuClose => 'Schließen';
+
+  @override
+  String get menuSettings => 'Einstellungen …';
+
+  @override
+  String get menuView => 'Darstellung';
+
+  @override
+  String get menuWindow => 'Fenster';
+
+  @override
+  String get menuHelp => 'Hilfe';
+
+  @override
+  String get menuUserGuide => 'Benutzerhandbuch';
+
+  @override
   String get appBootstrapPreparing => 'Sammlung wird vorbereitet';
 
   @override
