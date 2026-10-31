@@ -1599,7 +1599,7 @@ void main() {
       ),
     );
     await repositories.dances.softDelete('deleted-dance', at: stamp);
-    // The local guard agrees: a dance in Recently Deleted does not hold it
+    // The local guard agrees: a dance in Recently deleted does not hold it
     // (trash-policy (b); sync-spec §6.8 as amended 2026-10-30).
     expect(await repositories.difficultyLevels.isInUse(level.id), isFalse);
 
@@ -8817,7 +8817,7 @@ void main() {
         existenceAt: tombstonedExistence,
       );
 
-      // The row is live while held, so reaching Recently Deleted at all takes
+      // The row is live while held, so reaching Recently deleted at all takes
       // a local delete first. That is the only route by which `restore()` can
       // ever see a held record.
       await repositories.tags.delete(

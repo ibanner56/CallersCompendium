@@ -1073,7 +1073,7 @@ void main() {
             reason: '${group.label} gallery section should be alphabetical',
           );
         }
-        // The Default group uses a curated order (Dark, Soft Dark, High
+        // The Default group uses a curated order (Dark, Soft dark, High
         // contrast, Light) rather than alphabetical, which reads more
         // intuitively in the Settings pane.
         expect(
@@ -5774,7 +5774,7 @@ void main() {
       expect(find.text('Glossary and Custom Figures'), findsOneWidget);
     });
 
-    testWidgets('Custom Figures is independent of Show Glossary: switchable '
+    testWidgets('Custom Figures is independent of Show glossary: switchable '
         'with the Glossary off, and the section opens for it', (tester) async {
       final show = ValueNotifier<bool>(false);
       addTearDown(show.dispose);
