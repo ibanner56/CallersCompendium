@@ -166,7 +166,17 @@ class _CollectionShellState extends State<CollectionShell> {
   }
 
   bool _importDances() {
-    if (_wide) {
+    // Already importing, or committing one: nothing new to open.
+    if (_importCommitInFlight || _detailMode == _DetailMode.importReview) {
+      return true;
+    }
+    // The narrow layout keeps an embedded view showing across a breakpoint
+    // change, in place of the list ([build]); swap it as the wide layout
+    // would, rather than pushing a page over it.
+    final embedded =
+        _detailMode != _DetailMode.none &&
+        _detailMode != _DetailMode.onlinePreview;
+    if (_wide || embedded) {
       _onImport();
     } else {
       _pushImportRoute();

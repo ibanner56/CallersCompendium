@@ -3,8 +3,10 @@
 // which invokes the same intents, is covered in `app_menu_bar_test.dart`.
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
+import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
@@ -512,6 +514,29 @@ void main() {
       expect(find.byKey(_palette), findsOneWidget);
     });
   });
+
+  testWidgets(
+    'Import over an import embedded across a breakpoint opens no second one',
+    (tester) async {
+      await _pump(tester, size: _wide);
+      final shell = tester.state<AppShellState>(find.byType(AppShell));
+      shell.importDances();
+      await tester.pumpAndSettle();
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+
+      // The window keeps the rail, but the Collection beside it drops below
+      // its own split breakpoint: the embedded import view stays in place of
+      // the list.
+      await tester.binding.setSurfaceSize(const Size(960, 1600));
+      await tester.pumpAndSettle();
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+
+      shell.importDances();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+    },
+  );
 
   group('right-click on a list row opens its ⋮ menu', () {
     testWidgets('a dance row', (tester) async {
