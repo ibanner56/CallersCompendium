@@ -3163,7 +3163,10 @@ void main() {
         'template', (tester) async {
       final repos = await freeTextRepos(on: false);
       await _pumpEditor(tester, repos);
-      expect(find.textContaining('unmatched text becomes'), findsOneWidget);
+      expect(
+        find.textContaining("text the app can't read becomes"),
+        findsOneWidget,
+      );
 
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),
