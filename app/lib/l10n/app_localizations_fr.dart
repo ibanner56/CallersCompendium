@@ -2430,7 +2430,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Teinter chaque ligne de danse selon sa famille de formation (contra, mixer, square…) — les danses marquées comme mixers reçoivent toujours la teinte mixer quelle que soit la formation. La formation est toujours affichée en texte également, donc les lignes restent lisibles sans couleur.';
+      'Teinter chaque ligne de danse selon sa famille de formation (contra, mixer, square…) — sauf si vous avez donné à cette formation sa propre couleur, qui l’emporte. Les danses marquées comme mixers reçoivent toujours la teinte mixer quelle que soit la formation. La formation est toujours affichée en texte également, donc les lignes restent lisibles sans couleur.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -2438,7 +2438,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Surlignez les formations individuelles dans vos propres couleurs — ex. Becket (CW) en jaune, Becket (CCW) en rose — sur les fiches de danse, le détail de la danse et l’en-tête Perform.';
+      'Surlignez les formations individuelles dans vos propres couleurs — ex. Becket (CW) en jaune, Becket (CCW) en rose — sur les fiches de danse, le détail de la danse, l’en-tête Perform et les lignes de la liste de danses.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Sélectionné';
@@ -2653,6 +2653,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'Airs';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'Accroche';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Sources';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader =>
       'Filtres de la collection';
 
@@ -2783,7 +2789,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Attribuez une couleur propre à une formation pour mettre en évidence son étiquette sur les fiches de danse, le détail de la danse et l’en-tête Perform. Seules les formations que vous personnalisez sont surlignées ; les autres affichent leur étiquette normalement. La formation est toujours affichée en texte également, donc les étiquettes restent lisibles sans couleur.';
+      'Attribuez une couleur propre à une formation pour mettre en évidence son étiquette sur les fiches de danse, le détail de la danse et l’en-tête Perform, et pour colorer ses lignes dans la liste de danses (les mixers gardent la couleur mixer). Seules les formations que vous personnalisez sont surlignées ; les autres affichent leur étiquette normalement. La formation est toujours affichée en texte également, donc les étiquettes restent lisibles sans couleur.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formations';
@@ -6488,6 +6494,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportLabelTunes => 'Airs';
+
+  @override
+  String get exportLabelHook => 'Accroche';
+
+  @override
+  String get exportLabelSources => 'Sources';
 
   @override
   String exportSlotAuthorSuffix(String names) {

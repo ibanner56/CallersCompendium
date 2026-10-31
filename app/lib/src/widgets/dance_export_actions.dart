@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../l10n/app_localizations.dart';
 import '../export/dance_pdf.dart';
 import '../export/dance_share_bundle.dart';
+import '../export/dance_source_lines.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/json_export.dart';
 import '../export/share_file.dart';
@@ -114,7 +115,11 @@ class DanceExportActions {
     labels: danceExportLabels(l10n),
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
     fields: fields,
+    sourceLines: _sourceLines(l10n),
   );
+
+  List<String> _sourceLines(AppLocalizations l10n) =>
+      danceSourceLines(l10n, dance, (id) => sourcesById[id]);
 
   ({String json, String fileName}) _buildBundle({required String extension}) {
     final json = buildDanceShareBundle(
@@ -237,6 +242,7 @@ class DanceExportActions {
         labels: labels,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         fields: fields,
+        sourceLines: _sourceLines(l10n),
         // The paper the print dialog chose, not the builder's A4 default.
         pageFormat: format,
       ),

@@ -254,4 +254,63 @@ void main() {
       expect(Wcag.meetsAA(fg, const Color(0xFF1A237E)), isTrue);
     });
   });
+
+  group('setListAccentForRow (PRES-12)', () {
+    const pink = Color(0xFFE91E63);
+
+    test('the user colour beats the family tint for a non-mixer', () {
+      expect(
+        setListAccentForRow(
+          FormationShape.becketCcw,
+          false,
+          userColor: pink,
+          highContrast: false,
+        ),
+        pink,
+      );
+    });
+
+    test('an uncoloured shape keeps the family tint, per theme', () {
+      for (final hc in [false, true]) {
+        expect(
+          setListAccentForRow(
+            FormationShape.becketCcw,
+            false,
+            userColor: null,
+            highContrast: hc,
+          ),
+          setListAccent(FormationFamily.contraLongways, highContrast: hc),
+        );
+      }
+    });
+
+    test('the mixer accent always wins over a user colour', () {
+      for (final hc in [false, true]) {
+        expect(
+          setListAccentForRow(
+            FormationShape.dupleImproper,
+            true,
+            userColor: pink,
+            highContrast: hc,
+          ),
+          setListAccent(FormationFamily.mixer, highContrast: hc),
+        );
+      }
+    });
+
+    test(
+      'the user colour is not swapped for a palette under high contrast',
+      () {
+        expect(
+          setListAccentForRow(
+            FormationShape.becketCcw,
+            false,
+            userColor: pink,
+            highContrast: true,
+          ),
+          pink,
+        );
+      },
+    );
+  });
 }

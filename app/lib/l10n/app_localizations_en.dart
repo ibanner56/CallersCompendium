@@ -2374,7 +2374,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.';
+      'Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own colour, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -2382,7 +2382,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.';
+      'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Selected';
@@ -2593,6 +2593,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'Tunes';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'Hook';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Sources';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collection filters';
 
   @override
@@ -2717,7 +2723,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.';
+      'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header, and to colour its set-list rows (mixers keep the mixer colour). Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formations';
@@ -6364,6 +6370,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportLabelTunes => 'Tunes';
+
+  @override
+  String get exportLabelHook => 'Hook';
+
+  @override
+  String get exportLabelSources => 'Sources';
 
   @override
   String exportSlotAuthorSuffix(String names) {

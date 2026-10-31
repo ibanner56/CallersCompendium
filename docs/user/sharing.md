@@ -134,14 +134,14 @@ list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
 
 - **Set list only** — titles, event details, slot notes, and the author
   (the default). None of your other selected dance fields appear here —
-  formation, level, mixer, status, phrase, calling notes, walkthrough, and
-  tunes only ever show up on the richer per-dance card described next.
+  formation, level, mixer, status, phrase, calling notes, walkthrough,
+  tunes, hook, and sources only ever show up on the richer per-dance card described next.
 - **Set list and figures** — appends a full card for each dance after the set
   list, showing every dance field you've selected alongside its figures. The
   cards use your app language for field labels; the figure text uses your
   active dialect. Alternate dances are marked "Alternate". A dance with no
-  structured figures still gets its card when it has calling notes or a
-  walkthrough and you've selected that field; a dance with nothing to show
+  structured figures still gets its card when it has calling notes, a
+  walkthrough, a hook or a published source and you've selected that field; a dance with nothing to show
   beneath its title gets no card.
 
 If none of the program's dances have anything to put on a card — no structured
@@ -158,9 +158,19 @@ If something goes wrong the app says so plainly — "Couldn't share this set lis
 
 Settings › Defaults has a checklist for every non-figures dance field a dance
 card can show: author, formation, level, mixer, status, phrase, calling
-notes, walkthrough, and suggested tunes. Author is on by default, matching
-every export before this setting existed; suggested tunes is off by default,
-since no export showed them before.
+notes, walkthrough, suggested tunes, hook, and published sources. Author is on
+by default, matching every export before this setting existed; suggested tunes,
+the hook and published sources are off by default, since no export showed them
+before.
+
+A published source prints as one line per citation, such as *Give-and-Take —
+A. Author, 1990 (p. 12, no. 3)*: its title, author and year, then the page and
+number you recorded. The source's web address is not printed. A citation whose
+source has since been removed from your library still prints its page and number
+under "(unknown source)". A dance's custom fields and its links (video, source,
+related dance) never appear on a card. Only a
+[shared dance file](#share-a-dance-file) carries them (a custom field only if
+you marked it **Include in sharing**).
 
 Turning a field off removes it everywhere it would otherwise appear — but
 **author is the only one of these fields the plain numbered set-list line

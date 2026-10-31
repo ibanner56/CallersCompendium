@@ -3580,7 +3580,7 @@ abstract class AppLocalizations {
   /// Explanation for the set-list colour-coding toggle.
   ///
   /// In en, this message translates to:
-  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.'**
+  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own colour, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.'**
   String get settingsAppearanceSetListColorSubtitle;
 
   /// List-tile title opening the formation-colour customisation screen.
@@ -3592,7 +3592,7 @@ abstract class AppLocalizations {
   /// Explanation for the formation-colour customisation entry.
   ///
   /// In en, this message translates to:
-  /// **'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.'**
+  /// **'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.'**
   String get settingsAppearanceFormationColoursSubtitle;
 
   /// Label shown on the currently-selected theme card in the gallery.
@@ -3943,11 +3943,23 @@ abstract class AppLocalizations {
   /// **'Walkthrough'**
   String get settingsDefaultsShareFieldsWalkthrough;
 
-  /// Label for the Tunes share-field toggle (#1434). Unlike every other field here this defaults off, since no renderer emitted tunes before this preference existed.
+  /// Label for the Tunes share-field toggle (#1434). Defaults off, like Hook and Sources: no renderer emitted tunes before this preference existed.
   ///
   /// In en, this message translates to:
   /// **'Tunes'**
   String get settingsDefaultsShareFieldsTunes;
+
+  /// Label for the Hook share-field toggle (OUT-6). Defaults off, like Tunes: no export carried the hook before this option existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get settingsDefaultsShareFieldsHook;
+
+  /// Label for the published-sources share-field toggle (OUT-6). Defaults off, like Tunes: no export carried source citations before this option existed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsDefaultsShareFieldsSources;
 
   /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
   ///
@@ -4150,7 +4162,7 @@ abstract class AppLocalizations {
   /// Intro paragraph explaining per-formation label colours.
   ///
   /// In en, this message translates to:
-  /// **'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.'**
+  /// **'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header, and to colour its set-list rows (mixers keep the mixer colour). Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.'**
   String get settingsFormationColoursIntro;
 
   /// Section header above the list of formation shapes.
@@ -9688,6 +9700,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tunes'**
   String get exportLabelTunes;
+
+  /// Label before the hook text on an exported dance card (plain text and PDF), shown only when the Hook share field is on (OUT-6).
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get exportLabelHook;
+
+  /// Section heading for the published-source citations on an exported dance card (plain text and PDF), shown only when the Sources share field is on (OUT-6).
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get exportLabelSources;
 
   /// Author-names suffix appended to a numbered set-list slot line, e.g. "1. Waltz Quadrille — by Jane Smith" (issue #1434).
   ///

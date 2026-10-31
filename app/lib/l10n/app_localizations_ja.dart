@@ -2271,14 +2271,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      '各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
+      '各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ただし、そのフォーメーションに独自の色を設定している場合は、その色が優先されます。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
 
   @override
   String get settingsAppearanceFormationColoursTitle => 'フォーメーションラベルの色';
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      '個々のフォーメーションを独自の色でハイライト表示（例：Becket（CW）を黄色、Becket（CCW）をピンク）します。ダンスカード、ダンス詳細、パフォームヘッダーに反映されます。';
+      '個々のフォーメーションを独自の色でハイライト表示（例：Becket（CW）を黄色、Becket（CCW）をピンク）します。ダンスカード、ダンス詳細、パフォームヘッダー、セットリストの行に反映されます。';
 
   @override
   String get settingsAppearanceSelectedBadge => '選択済み';
@@ -2484,6 +2484,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'チューン';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'フック';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'ソース';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'コレクションのフィルター';
 
   @override
@@ -2604,7 +2610,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'フォーメーションに独自の色を設定すると、ダンスカード、ダンス詳細、パフォームヘッダーのラベルをハイライト表示できます。カスタマイズしたフォーメーションのみハイライトされ、他のフォーメーションは通常どおりラベルが表示されます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
+      'フォーメーションに独自の色を設定すると、ダンスカード、ダンス詳細、パフォームヘッダーのラベルをハイライト表示し、セットリストの行にも色が付きます（ミキサーはミキサーの色のままです）。カスタマイズしたフォーメーションのみハイライトされ、他のフォーメーションは通常どおりラベルが表示されます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
 
   @override
   String get settingsFormationColoursListHeader => 'フォーメーション';
@@ -6144,6 +6150,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportLabelTunes => 'チューン';
+
+  @override
+  String get exportLabelHook => 'フック';
+
+  @override
+  String get exportLabelSources => 'ソース';
 
   @override
   String exportSlotAuthorSuffix(String names) {
