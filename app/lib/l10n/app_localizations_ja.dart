@@ -253,6 +253,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスのコーリング履歴からこのプログラムが消えます。',
+    );
+    return '「$itemLabel」を削除します。$_temp0元に戻せます。';
+  }
+
+  @override
   String get colorEditHexLabel => 'HEX';
 
   @override

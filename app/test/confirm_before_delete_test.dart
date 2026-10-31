@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +17,19 @@ import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+
+/// A [SettingsRepository] whose reads wait on [gate] while it is set.
+class _GatedReadSettings extends SettingsRepository {
+  _GatedReadSettings(super.db);
+
+  Completer<void>? gate;
+
+  @override
+  Future<Object?> get(String key) async {
+    await gate?.future;
+    return super.get(key);
+  }
+}
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -88,6 +103,32 @@ Future<void> _pumpDanceList(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+/// A draft holding [danceIds] as primary slots, so it sits in each dance's
+/// calling history under the default settings.
+Future<void> _programWithDances(
+  CompendiumRepositories repos,
+  String id,
+  String title,
+  List<String> danceIds,
+) async {
+  for (final danceId in danceIds) {
+    await repos.dances.create(_dance(danceId, 'Dance $danceId'));
+  }
+  await repos.programs.create(
+    Program(
+      id: id,
+      title: title,
+      status: ProgramStatus.draft,
+      slots: [
+        for (var i = 0; i < danceIds.length; i++)
+          ProgramSlot(id: '$id-$i', position: i, danceId: danceIds[i]),
+      ],
+      createdAt: _now,
+      updatedAt: _now,
+    ),
+  );
 }
 
 Future<void> _pumpProgramsList(
@@ -354,6 +395,148 @@ void main() {
 
       expect(find.text('Swipe Me'), findsNothing);
       expect(await repos.programs.listAll(), isEmpty);
+    });
+  });
+
+  group('program delete warns about calling history (LIFE-6)', () {
+    testWidgets('the list ⋮ menu names how many dances lose the program', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2', 'd3']);
+      await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          '\u201cBarn Dance\u201d will be deleted. 3 dances will lose this '
+          'program from their calling history. You can undo this.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('one dance reads in the singular', (tester) async {
+      final repos = openTestRepositories();
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1']);
+      await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+          '1 dance will lose this program from its calling history',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a program with no dances keeps the plain body', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program('p1', 'Empty Night'));
+      await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          '\u201cEmpty Night\u201d will be deleted. You can undo this.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('choosing ⋮ → Delete again while the count loads opens one '
+        'dialog', (tester) async {
+      final db = openWidgetTestDatabase();
+      final settings = _GatedReadSettings(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2']);
+      await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
+
+      settings.gate = Completer<void>();
+      for (var i = 0; i < 2; i++) {
+        await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+        await tester.pump();
+      }
+      settings.gate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('confirm-delete-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-confirm')));
+      await tester.pumpAndSettle();
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+
+    testWidgets('a second tap while the count loads opens one dialog', (
+      tester,
+    ) async {
+      final db = openWidgetTestDatabase();
+      final settings = _GatedReadSettings(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2']);
+      await _pumpProgramsShell(tester, repos, confirmBeforeDelete: true);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      // Hold the settings read the confirm makes before its dialog opens, so
+      // the first tap is still in flight when the second lands.
+      settings.gate = Completer<void>();
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pump();
+      settings.gate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('confirm-delete-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-confirm')));
+      await tester.pumpAndSettle();
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+
+    testWidgets('the summary pane names the count too', (tester) async {
+      final repos = openTestRepositories();
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2']);
+      await _pumpProgramsShell(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('2 dances will lose this program'),
+        findsOneWidget,
+      );
     });
   });
 

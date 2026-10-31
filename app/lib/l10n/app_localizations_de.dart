@@ -266,6 +266,18 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Tänze verlieren dieses Programm aus ihrem Calling-Verlauf.',
+      one: '1 Tanz verliert dieses Programm aus seinem Calling-Verlauf.',
+    );
+    return '„$itemLabel“ wird gelöscht. $_temp0 Sie können dies rückgängig machen.';
+  }
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override

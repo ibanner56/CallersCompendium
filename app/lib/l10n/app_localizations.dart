@@ -470,6 +470,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 dance will be deleted. Your search hides it. You can undo this.} other{{count} dances will be deleted, {notShown} of them hidden by your search. You can undo this.}}'**
   String confirmDeleteDancesNotShownBody(int count, int notShown);
 
+  /// Body of the confirm-before-delete dialog for a program when deleting it would remove it from the calling history of {count} dances (shown only when the 'Confirm before delete' setting is on and {count} is at least 1). {itemLabel} is the untrusted user-entered program title, rendered as plain text between typographic quotes. {count} is how many distinct dances list this program in their calling history under the current history settings.
+  ///
+  /// In en, this message translates to:
+  /// **'“{itemLabel}” will be deleted. {count, plural, =1{1 dance will lose this program from its calling history.} other{{count} dances will lose this program from their calling history.}} You can undo this.'**
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count);
+
   /// Field label for the hexadecimal colour input in the shared colour-picker dialog.
   ///
   /// In en, this message translates to:

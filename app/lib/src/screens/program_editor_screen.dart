@@ -3264,7 +3264,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     var deleted = false;
     try {
       // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-      if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+      if (!await confirmDeleteProgramIfEnabled(
+        context,
+        itemLabel: title,
+        programId: source.id,
+        repositories: _repos,
+      )) {
+        return;
+      }
       if (!mounted) return;
       // Finish any already-started auto-commit before soft-deleting. Otherwise
       // its update could land after the delete and clear the tombstone.

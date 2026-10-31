@@ -240,6 +240,10 @@
   "@confirmDeleteDancesNotShownBody": {
     "x-sourceSha256": "5eec5a5f7dd5f0845c6736bb763c8017983643cfaf238442db0a9c103f98044f"
   },
+  "confirmDeleteProgramHistoryBody": "“{itemLabel}” wordt verwijderd. {count, plural, =1{1 dans verliest dit programma uit zijn callerhistorie.} other{{count} dansen verliezen dit programma uit hun callerhistorie.}} Je kunt dit ongedaan maken.",
+  "@confirmDeleteProgramHistoryBody": {
+    "x-sourceSha256": "3404332d40bf15d666ea55151effb5ae43dc842d8d065950f6e4b19b371976f5"
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "x-sourceSha256": "69493e6f1a6957cad7e3ece5267a57e8a8ed035b5ea5fd7e360ce9eb2405c30b"
