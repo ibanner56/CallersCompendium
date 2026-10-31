@@ -8681,6 +8681,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorRedoLabel => 'Rétablir';
 
   @override
+  String get editorDraftNotSaved =>
+      'Brouillon non enregistré – vos dernières modifications ne sont pas encore conservées';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Annuler (⌘Z)',

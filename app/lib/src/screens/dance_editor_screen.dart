@@ -14,6 +14,7 @@ import '../data/repositories_scope.dart';
 import '../data/related_dance_links.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../editor/draft_save_health.dart';
 import '../editor/editor_snapshot.dart';
 import '../search/dance_editor_reference_data.dart';
 import '../utils/confirm_delete.dart';
@@ -982,6 +983,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                 ),
                 actions: [
                   if (_controller.loaded) ...[
+                    if (_controller.draftSaveFailed)
+                      const DraftNotSavedMarker(),
                     Semantics(
                       label: l10n.commonUndo,
                       child: IconButton(

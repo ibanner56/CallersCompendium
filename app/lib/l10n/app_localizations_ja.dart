@@ -8220,6 +8220,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorRedoLabel => 'やり直し';
 
   @override
+  String get editorDraftNotSaved => '下書きを保存できていません。直近の変更はまだ保持されていません';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': '元に戻す (⌘Z)',

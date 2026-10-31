@@ -8563,6 +8563,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorRedoLabel => 'Annullér fortryd';
 
   @override
+  String get editorDraftNotSaved =>
+      'Kladde ikke gemt – dine seneste ændringer bliver ikke bevaret endnu';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Fortryd (⌘Z)',

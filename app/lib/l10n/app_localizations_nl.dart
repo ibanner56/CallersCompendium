@@ -8624,6 +8624,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorRedoLabel => 'Opnieuw uitvoeren';
 
   @override
+  String get editorDraftNotSaved =>
+      'Concept niet opgeslagen – je laatste wijzigingen worden nog niet bewaard';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Ongedaan maken (⌘Z)',

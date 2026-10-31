@@ -11194,6 +11194,10 @@
   "@danceEditorRedoLabel": {
     "description": "Semantics label for the redo action."
   },
+  "editorDraftNotSaved": "Draft not saved — your latest changes are not being kept yet",
+  "@editorDraftNotSaved": {
+    "description": "Tooltip and screen-reader label for the marker in the dance and program editor bars when the editor cannot write its autosave draft (for example, the disk is full). Clears itself once a draft write succeeds."
+  },
   "danceEditorUndoShortcutTooltip": "{platform, select, apple{Undo (⌘Z)} other{Undo (Ctrl+Z)}}",
   "@danceEditorUndoShortcutTooltip": {
     "description": "Tooltip for the undo app-bar action including its keyboard shortcut.",
