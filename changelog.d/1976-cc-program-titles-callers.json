@@ -4,7 +4,7 @@
   "app": {
     "changed": [
       "A program you import from a Caller's Companion set is named the way Caller's Companion names it, by date and location, such as \"2024/04/20 - NEFFA Contra Party\".",
-      "When you import a Caller's Companion set you called throughout, your name is no longer repeated on every slot. You keep slot callers when the set's slots name more than one caller, when a slot names someone other than the set's own caller, or when the set is called by several people."
+      "When you import a Caller's Companion set you called throughout, with your name on the set first name first, your name is no longer repeated on every slot. You keep slot callers when the set's slots name more than one caller, when a slot names someone other than the set's own caller, or when the set is called by several people."
     ]
   },
   "core": {

@@ -3172,7 +3172,7 @@ void main() {
       );
       expect(find.text('Created: 2'), findsOneWidget);
       expect(find.text('Programs: 1'), findsOneWidget);
-      // Program name-level confirmation (the Set's Location).
+      // Program name-level confirmation (the Set's date and Location).
       expect(find.text('• 2020/03/14 - Grange Hall'), findsOneWidget);
       // The SetItem referencing an absent dance (99) produced a note.
       expect(

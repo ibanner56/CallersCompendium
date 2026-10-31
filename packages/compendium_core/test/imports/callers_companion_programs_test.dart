@@ -258,6 +258,7 @@ void main() {
 
     test('the set caller matches in other written forms', () {
       expect(slotCallers('Michael Smith, Jr', ['Michael']), [null]);
+      expect(slotCallers('Michael Smith,', ['Michael']), [null]);
       expect(slotCallers('Andy Smith', ['Andy', 'Andy']), [null, null]);
       expect(slotCallers('J. Michael Smith', ['Michael']), [null]);
       expect(slotCallers('Mary Kate Olsen', ['Mary Kate']), [null]);
@@ -295,6 +296,8 @@ void main() {
       ]);
       expect(slotCallers('J. R. Smith', ['Smith']), ['Smith']);
       expect(slotCallers('A Lisa', ['Lisa']), ['Lisa']);
+      expect(slotCallers('J. Smith, Jr.', ['Smith']), ['Smith']);
+      expect(slotCallers('J. Smith Jr.', ['Smith']), ['Smith']);
     });
 
     test('a slot name of only punctuation names nobody', () {
@@ -309,7 +312,9 @@ void main() {
         'Michael + Lisa',
         'Michael Smith, Lisa Greenleaf',
         'Michael, Lisa',
+        'Smith, Michael',
         'Michael, Lisa, Bob',
+        'Michael Smith, Jr., Lisa Greenleaf',
         'Michael with Lisa',
         'Michael Smith; Lisa Greenleaf',
       ]) {

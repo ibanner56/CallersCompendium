@@ -395,7 +395,7 @@ A slot keeps the name of the caller Caller's Companion recorded for it only
 when the set's slots name more than one caller, when a slot names someone other
 than the set's own caller, or when the set is called by several people
 ("Michael Smith & Lisa Greenleaf"). On a set you called yourself throughout,
-with your name on the set, the repeated name is left out.
+with your name on the set first name first, the repeated name is left out.
 
 Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app
