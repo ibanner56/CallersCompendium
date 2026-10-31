@@ -240,6 +240,20 @@
   "@confirmDeleteDancesNotShownBody": {
     "x-sourceSha256": "5eec5a5f7dd5f0845c6736bb763c8017983643cfaf238442db0a9c103f98044f"
   },
+  "confirmDeleteProgramHistoryBody": "„{itemLabel}“ wird gelöscht. {count, plural, =1{1 Tanz verliert dieses Programm aus seinem Calling-Verlauf.} other{{count} Tänze verlieren dieses Programm aus ihrem Calling-Verlauf.}} Sie können dies rückgängig machen.",
+  "@confirmDeleteProgramHistoryBody": {
+    "description": "Body of the confirm-before-delete dialog for a program when deleting it would remove it from the calling history of {count} dances (shown only when the 'Confirm before delete' setting is on and {count} is at least 1). {itemLabel} is the untrusted user-entered program title, rendered as plain text between typographic quotes. {count} is how many distinct dances list this program in their calling history under the current history settings.",
+    "placeholders": {
+      "itemLabel": {
+        "type": "String",
+        "example": "Friday Contra"
+      },
+      "count": {
+        "type": "int",
+        "example": "14"
+      }
+    }
+  },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
     "x-sourceSha256": "69493e6f1a6957cad7e3ece5267a57e8a8ed035b5ea5fd7e360ce9eb2405c30b"

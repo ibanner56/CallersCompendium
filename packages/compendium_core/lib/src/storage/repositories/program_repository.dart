@@ -1269,8 +1269,9 @@ class ProgramRepository {
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
     bool requireEventDate = false,
-  }) async =>
-      _programDerivedRows(_normalizedCallerFilter(callerFilter)).get().then(
+  }) async => _programDerivedRows(_normalizedCallerFilter(callerFilter))
+      .get()
+      .then(
         (rows) => _lastCalledFromRows(rows, requireEventDate: requireEventDate),
       );
 
@@ -1293,9 +1294,10 @@ class ProgramRepository {
   /// [callingHistoryForDance].
   Future<Map<String, DanceCallCounts>> countByDance({
     String? callerFilter,
-  }) async => _programDerivedRows(
-    _normalizedCallerFilter(callerFilter),
-  ).get().then(_countsFromRows);
+  }) async =>
+      _programDerivedRows(_normalizedCallerFilter(callerFilter))
+          .get()
+          .then(_countsFromRows);
 
   /// The ONE query behind [lastCalledByDance], [countByDance] and
   /// [watchProgramDerivedCounts]. [caller] is already normalized.
@@ -1447,6 +1449,53 @@ class ProgramRepository {
     caller: _normalizedCallerFilter(callerFilter),
   ).get().then(_callingHistoryFromRows);
 
+  /// The slot/program gates that decide whether a slot is a calling-history
+  /// entry, as a SQL fragment: performed-only, the alternate rule, "Require an
+  /// event date" and the host-caller filter. The ONE definition shared by
+  /// [_callingHistoryRows] and [danceCountLosingHistory], so the count a delete
+  /// confirm shows (LIFE-6) is the number of dances whose history actually
+  /// lists the program. [caller] is already normalized. The caller still adds
+  /// `programs.deleted_at IS NULL`.
+  String _historyScopeSql({
+    required bool performedOnly,
+    required bool requireEventDate,
+    required String? caller,
+  }) =>
+      '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
+      '$_alternateClause'
+      '${_eventDateClause(requireEventDate)}'
+      '${_callerClause(caller)}';
+
+  /// How many distinct dances would lose [programId] from their calling
+  /// history if it were deleted (LIFE-6): the dances for which
+  /// [callingHistoryForDance], called with the same arguments, lists a slot of
+  /// this program. Takes the same [performedOnly], [requireEventDate] and
+  /// [callerFilter] as that query, so the number matches what the user sees on
+  /// dance pages. A program that is already in the trash, or that the caller
+  /// filter excludes, is in no one's history and yields 0.
+  Future<int> danceCountLosingHistory(
+    String programId, {
+    bool performedOnly = false,
+    bool requireEventDate = false,
+    String? callerFilter,
+  }) async {
+    final caller = _normalizedCallerFilter(callerFilter);
+    final row = await _db
+        .customSelect(
+          'SELECT COUNT(DISTINCT program_slots.dance_id) AS n '
+          'FROM program_slots '
+          'JOIN programs ON programs.id = program_slots.program_id '
+          'WHERE program_slots.program_id = ? '
+          'AND program_slots.dance_id IS NOT NULL '
+          '${_historyScopeSql(performedOnly: performedOnly, requireEventDate: requireEventDate, caller: caller)}'
+          'AND programs.deleted_at IS NULL',
+          variables: [Variable<String>(programId), ..._callerVariables(caller)],
+          readsFrom: _programDerivedTables,
+        )
+        .getSingle();
+    return row.read<int>('n');
+  }
+
   /// The query behind [callingHistoryForDance]. Shared by the one-shot read and
   /// [watchCallingHistoryForDance] so the two can never diverge; [caller] is
   /// already normalized.
@@ -1469,10 +1518,7 @@ class ProgramRepository {
     'FROM program_slots '
     'JOIN programs ON programs.id = program_slots.program_id '
     'WHERE program_slots.dance_id = ? '
-    '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
-    '$_alternateClause'
-    '${_eventDateClause(requireEventDate)}'
-    '${_callerClause(caller)}'
+    '${_historyScopeSql(performedOnly: performedOnly, requireEventDate: requireEventDate, caller: caller)}'
     'AND programs.deleted_at IS NULL '
     'ORDER BY ${callingHistoryDateSql(slotTable: 'program_slots', programTable: 'programs')} '
     'DESC, programs.id',
@@ -1880,9 +1926,8 @@ class ProgramRepository {
               null) {
         // A derived revival must not cancel a hold; see
         // `DanceRepository._reviveReferences`.
-        await VenueRepository(
-          _db,
-        ).restore(venueId, at: at, clearPending: false);
+        await VenueRepository(_db)
+            .restore(venueId, at: at, clearPending: false);
       }
     }
     await _stampExistence(id, at: at, deleted: false);

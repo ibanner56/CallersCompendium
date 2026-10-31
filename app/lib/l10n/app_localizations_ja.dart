@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -250,6 +251,16 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$count件のダンスを削除します（うち$notShown件は検索で非表示）。元に戻せます。',
     );
     return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスのコーリング履歴からこのプログラムが消えます。',
+    );
+    return '「$itemLabel」を削除します。$_temp0元に戻せます。';
   }
 
   @override

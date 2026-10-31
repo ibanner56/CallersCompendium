@@ -740,12 +740,12 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                     SlidableAction(
                       key: ValueKey('slide-delete-${program.id}'),
                       onPressed: (_) => _softDelete(program),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.errorContainer,
-                      foregroundColor: Theme.of(
-                        context,
-                      ).colorScheme.onErrorContainer,
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .errorContainer,
+                      foregroundColor: Theme.of(context)
+                          .colorScheme
+                          .onErrorContainer,
                       icon: Icons.delete_outline,
                       label: l10n.commonDelete,
                     ),
@@ -762,9 +762,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   // users. Delete routes through the identical confirm +
                   // soft-delete + undo flow as the Dismissible swipe above.
                   onDelete: () async {
-                    if (await confirmDeleteIfEnabled(
+                    if (await confirmDeleteProgramIfEnabled(
                       context,
                       itemLabel: program.title,
+                      programId: program.id,
+                      repositories: _repos,
                     )) {
                       await _softDelete(program);
                     }

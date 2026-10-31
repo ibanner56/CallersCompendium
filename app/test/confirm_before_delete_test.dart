@@ -90,6 +90,32 @@ Future<void> _pumpDanceList(
   await tester.pumpAndSettle();
 }
 
+/// A draft holding [danceIds] as primary slots, so it sits in each dance's
+/// calling history under the default settings.
+Future<void> _programWithDances(
+  CompendiumRepositories repos,
+  String id,
+  String title,
+  List<String> danceIds,
+) async {
+  for (final danceId in danceIds) {
+    await repos.dances.create(_dance(danceId, 'Dance $danceId'));
+  }
+  await repos.programs.create(
+    Program(
+      id: id,
+      title: title,
+      status: ProgramStatus.draft,
+      slots: [
+        for (var i = 0; i < danceIds.length; i++)
+          ProgramSlot(id: '$id-$i', position: i, danceId: danceIds[i]),
+      ],
+      createdAt: _now,
+      updatedAt: _now,
+    ),
+  );
+}
+
 Future<void> _pumpProgramsList(
   WidgetTester tester,
   CompendiumRepositories repos, {
@@ -354,6 +380,83 @@ void main() {
 
       expect(find.text('Swipe Me'), findsNothing);
       expect(await repos.programs.listAll(), isEmpty);
+    });
+  });
+
+  group('program delete warns about calling history (LIFE-6)', () {
+    testWidgets('the list ⋮ menu names how many dances lose the program', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2', 'd3']);
+      await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          '\u201cBarn Dance\u201d will be deleted. 3 dances will lose this '
+          'program from their calling history. You can undo this.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('one dance reads in the singular', (tester) async {
+      final repos = openTestRepositories();
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1']);
+      await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+          '1 dance will lose this program from its calling history',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a program with no dances keeps the plain body', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program('p1', 'Empty Night'));
+      await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          '\u201cEmpty Night\u201d will be deleted. You can undo this.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the summary pane names the count too', (tester) async {
+      final repos = openTestRepositories();
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2']);
+      await _pumpProgramsShell(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('2 dances will lose this program'),
+        findsOneWidget,
+      );
     });
   });
 
