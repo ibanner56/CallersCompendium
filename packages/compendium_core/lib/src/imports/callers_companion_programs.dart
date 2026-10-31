@@ -186,6 +186,8 @@ CcProgramsResult buildCcPrograms(
       if (breakDue) {
         // Unless this slot is a break already: the set's own, or a left-out
         // dance titled "Break", which would otherwise read as a second one.
+        // (`!isAlt` is defensive: the first slot kept after a break falls due
+        // is never an alternate, as promotion passes through left-out items.)
         final isOwnBreak =
             !isAlt &&
             text?.trim().toLowerCase() == Program.breakSlotText.toLowerCase();

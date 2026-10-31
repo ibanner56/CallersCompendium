@@ -682,7 +682,8 @@ declines the collapse.
 - **Set flags (#1974).** `SetItem.Break` is a checkbox that CC's own set-list
   layout describes as "a break occurs after this dance", so the program gets a
   `Break` text slot after that dance and its alternates, unless the set already
-  has its own break slot there. A slot with no dance that carries the flag is
+  has its own break slot there (refined by *Dances that did not commit*,
+  below). A slot with no dance that carries the flag is
   the break itself. `Set.SetList_HideALT` is `Program.hideAlternates`,
   re-applied from the file on re-import like the program's other fields.
 - **Dances that did not commit (#1976).** A set slot whose CC dance resolves to
