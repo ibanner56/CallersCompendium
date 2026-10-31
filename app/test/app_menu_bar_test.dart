@@ -166,20 +166,44 @@ void main() {
     await _unmount(tester);
   }, variant: _macOS);
 
-  testWidgets('is not sent again when the window resizes', (tester) async {
-    await _pump(tester);
+  testWidgets('is not sent again when its parent rebuilds', (tester) async {
+    // The app's builder rebuilds the menu bar on a theme or Reduce motion
+    // change. Fresh menu items would be sent, and renumbered, every time.
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.menu,
+      (call) async {
+        if (call.method == 'Menu.setMenus') _sends++;
+        return null;
+      },
+    );
+    final rebuild = ValueNotifier(0);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ValueListenableBuilder<int>(
+          valueListenable: rebuild,
+          builder: (_, value, _) => AppMenuBar(
+            child: Text('$value', textDirection: TextDirection.ltr),
+          ),
+        ),
+      ),
+    );
+    // PlatformMenuBar records its items only on its first update, so that
+    // update sends once more whatever the items are (flutter
+    // `platform_menu_bar.dart`, `didUpdateWidget`). Count from after it.
+    rebuild.value = -1;
+    await tester.pumpAndSettle();
     final sends = _sends;
     expect(sends, greaterThan(0));
 
-    for (final width in [520.0, 540.0, 560.0]) {
-      await tester.binding.setSurfaceSize(Size(width, 900));
+    for (var i = 1; i <= 3; i++) {
+      rebuild.value = i;
       await tester.pump();
     }
 
+    expect(find.text('3'), findsOneWidget);
     expect(_sends, sends);
-    // And a menu item still works after the resizes.
-    await _select(tester, 'Settings…');
-    expect(_showing(tester, SettingsScreen), isTrue);
     await _unmount(tester);
   }, variant: _macOS);
 

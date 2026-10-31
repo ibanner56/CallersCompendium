@@ -293,12 +293,14 @@ class AppShellState extends State<AppShell> {
   /// Leaves every page pushed over the shell, then runs [then], for a command
   /// that names a place in the shell (New dance, Import, Settings, Guide).
   ///
-  /// It never discards work, and never closes something mid-task:
+  /// It never skips a page's own guard, and never closes something mid-task:
   /// - With a dialog, sheet or menu open, it does nothing. The dialog may be
   ///   asking a question or showing progress, and closing it would answer for
   ///   the caller.
   /// - It stops at a page that would ask before it closes (an editor with
-  ///   unsaved changes, or Perform), and asks it, as the back button does.
+  ///   unsaved changes, or Perform), and asks it, as the back button does. A
+  ///   page that closes without asking on back closes here too: an import
+  ///   being reviewed, before it is committed, is left as back leaves it.
   ///   [then] does not run, so the caller repeats the command once they have
   ///   answered.
   ///

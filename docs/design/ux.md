@@ -22,8 +22,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   turned on, Settings, Guide);
   Perform is a mode, not a tab — entered explicitly, exits back to context.
 - **Desktop**: left nav rail; list/detail split panes; global search shortcut
-  (Ctrl/Cmd-K); and a desktop keyboard map (PLAT-7), whose keys take Control
-  or Command alike: Ctrl/Cmd-S saves the open dance or program editor,
+  (Ctrl/Cmd-K); and a desktop keyboard map (PLAT-7), bound to Control and
+  Command alike (in a macOS text field Ctrl-F and Ctrl-N keep moving the
+  cursor): Ctrl/Cmd-S saves the open dance or program editor,
   Ctrl/Cmd-N opens a new dance, Ctrl/Cmd-F focuses the Collection's search box
   (global search anywhere else), Ctrl/Cmd-, opens Settings, and Esc or
   Ctrl/Cmd-W goes back. A mouse's Back button goes back too, and a right-click
@@ -31,9 +32,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   whatever a tap outside would close first (a menu, a sheet, a text field's
   toolbar or an autocomplete's options), then leaves the page as system back
   does, so an editor with unsaved changes asks first. New dance, Settings and
-  the macOS menu bar's Import and Guide leave pushed pages first, stop at one
-  that would ask (and ask it), and do nothing while a dialog is open or while
-  performing. On macOS a small menu bar (PLAT-8) runs the same commands:
+  the macOS menu bar's Import and Guide leave pushed pages first through each
+  page's own back guard, stop at one that would ask (and ask it), and do
+  nothing while a dialog is open or while performing. On macOS a small menu bar (PLAT-8) runs the same commands:
   Settings…, File (New Dance, Import Dances…, Close), View (the system's full
   screen item), Window and Help (User Guide). It replaces the template menu
   whole, so there is no Edit menu; text editing keys and the selection

@@ -4,7 +4,7 @@ import 'dart:io' show Directory, File, Platform, exit;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show TableUpdate;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart' show kBackMouseButton;
+import 'package:flutter/gestures.dart' show PointerDeviceKind, kBackMouseButton;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show MethodCall, MethodChannel, PlatformException;
@@ -862,6 +862,15 @@ class _CompendiumAppState extends State<CompendiumApp>
       return null;
     },
   );
+
+  static bool get _isDesktop => switch (defaultTargetPlatform) {
+    TargetPlatform.windows ||
+    TargetPlatform.macOS ||
+    TargetPlatform.linux => true,
+    TargetPlatform.android ||
+    TargetPlatform.iOS ||
+    TargetPlatform.fuchsia => false,
+  };
 
   /// Goes back one step for Esc, Ctrl/Cmd-W, the menu bar's Close and a
   /// mouse's Back button ([GoBackIntent]).
@@ -2978,8 +2987,14 @@ class _CompendiumAppState extends State<CompendiumApp>
                 closing: _closingNotifier,
                 child: Listener(
                   // A mouse's Back button goes back, as Esc does (PLAT-7).
+                  // Desktop only: Android also turns that button into its
+                  // system back, which would go back a second time.
                   onPointerDown: (event) {
-                    if (event.buttons & kBackMouseButton != 0) _goBack();
+                    if (_isDesktop &&
+                        event.kind == PointerDeviceKind.mouse &&
+                        event.buttons & kBackMouseButton != 0) {
+                      _goBack();
+                    }
                   },
                   child: scoped,
                 ),

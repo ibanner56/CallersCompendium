@@ -165,10 +165,10 @@ class _AppMenuBarState extends State<AppMenuBar> {
   @override
   Widget build(BuildContext context) {
     // Built again only when the language changes. The app's builder, and so
-    // this, rebuilds on every MediaQuery change (each frame of a window
-    // resize), and menu items have no `==`, so fresh ones would make
-    // [PlatformMenuBar] send the whole menu again. Each send renumbers the
-    // items, and a click the platform reports under an old number is dropped.
+    // this, also rebuilds when the theme or the Reduce motion switch changes,
+    // and menu items have no `==`, so fresh ones would make [PlatformMenuBar]
+    // send the whole menu again. Each send renumbers the items, and a click
+    // the platform reports under an old number is dropped.
     final l10n = AppLocalizations.of(context);
     if (!identical(l10n, _l10n)) {
       _l10n = l10n;

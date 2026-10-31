@@ -57,8 +57,10 @@ class GoBackIntent extends Intent {
 }
 
 /// The keys of the desktop keyboard map. Each command is bound to both Control
-/// and Command, as `searchShortcuts` binds Ctrl-K and Cmd-K, so the map holds
-/// on any keyboard.
+/// and Command, as `searchShortcuts` binds Ctrl-K and Cmd-K. In a macOS text
+/// field, Ctrl-F and Ctrl-N keep their system meaning (move the cursor),
+/// because Flutter's text-editing keys sit nearer the field; Cmd-F and Cmd-N
+/// work there.
 ///
 /// Esc replaces Flutter's default `DismissIntent` binding, and the root
 /// [GoBackIntent] action passes a dismiss on to whatever is open; see

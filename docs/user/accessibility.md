@@ -126,8 +126,8 @@ search box over whatever you're doing. Start typing to filter your dances and
 programs, use the **up** and **down arrow keys** to move through results, press
 **Enter** to open the highlighted item, and press **Esc** to close.
 
-**Shortcuts on a computer (Windows, macOS and Linux).** Each works with either
-**Ctrl** or **Cmd**:
+**Shortcuts on a computer (Windows, macOS and Linux).** Use **Ctrl** on Windows
+and Linux and **Cmd** on a Mac:
 
 - **Ctrl-S** (**Cmd-S**) saves the dance or program you're editing, as its
   **Save** button does. In the program builder that's on the **Build** tab,
@@ -137,13 +137,14 @@ programs, use the **up** and **down arrow keys** to move through results, press
   selects what's already there. Anywhere else it opens Quick search.
 - **Ctrl-,** (**Cmd-,**) opens **Settings**.
 - **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
-  suggestions or a dialog is open, it closes that first. Otherwise it leaves
+  suggestions, or a dialog you could close by clicking outside it is open, it
+  closes that first. Otherwise it leaves
   the page you're on, as the back button does, so an editor with unsaved
   changes asks you first. A mouse's **Back** button does the same.
 
 Ctrl-N and Ctrl-, take you out of whatever page you're on. If that page is an
 editor with unsaved changes, it asks about them first; answer, then press the
-keys again. They wait while a dialog is open. While performing, Ctrl-N, Ctrl-F
+keys again. They do nothing while a dialog is open. While performing, Ctrl-N, Ctrl-F
 and Ctrl-, do nothing and Esc only leaves full screen (see below); Ctrl-W and a
 mouse's Back button ask whether to stop performing, as the back button does.
 

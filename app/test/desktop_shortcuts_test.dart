@@ -157,7 +157,26 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DanceDetailScreen), findsNothing);
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+    testWidgets('on Android the mouse Back button is left to the system back', (
+      tester,
+    ) async {
+      await _pump(tester);
+      await _openDanceDetail(tester);
+
+      final gesture = await tester.createGesture(
+        kind: PointerDeviceKind.mouse,
+        buttons: kBackMouseButton,
+      );
+      await gesture.down(tester.getCenter(find.byType(DanceDetailScreen)));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      // Android turns the button into its own system back as well, so the
+      // app does not go back a second time.
+      expect(find.byType(DanceDetailScreen), findsOneWidget);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
     testWidgets('Esc in an editor with unsaved changes asks first', (
       tester,
