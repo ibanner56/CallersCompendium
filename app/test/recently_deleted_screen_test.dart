@@ -48,7 +48,7 @@ void main() {
     await _pumpScreen(tester, repos);
 
     expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
-    expect(find.textContaining('Nothing in the trash'), findsOneWidget);
+    expect(find.textContaining('No recently deleted'), findsOneWidget);
   });
 
   testWidgets('shows soft-deleted dances and not active dances', (
@@ -350,7 +350,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('load-error')), findsOneWidget);
     expect(find.byKey(const ValueKey('empty-state')), findsNothing);
-    expect(find.textContaining('Nothing in the trash'), findsNothing);
+    expect(find.textContaining('No recently deleted'), findsNothing);
 
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();

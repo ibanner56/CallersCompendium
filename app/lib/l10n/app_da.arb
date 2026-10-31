@@ -692,9 +692,9 @@
   "@settingsSyncNoticeCountProgram": {
     "x-sourceSha256": "a7b7d768632c302855b92c62c230f4bec8af1fd58ced4388e2407d9ecfd42e06"
   },
-  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 koreograf} other{{count} koreografer}}",
+  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 forfatter} other{{count} forfattere}}",
   "@settingsSyncNoticeCountChoreographer": {
-    "x-sourceSha256": "d4018182e6a23e51891a0f4bb6a3265cb8a3c9119923e6f7cb62c47efb4f3e42"
+    "x-sourceSha256": "171a003eb2a4565b2c1265095bd307f25b7ef6ca9988db00a03c988d994f8c5e"
   },
   "settingsSyncNoticeCountTag": "{count, plural, =1{1 mærke} other{{count} mærker}}",
   "@settingsSyncNoticeCountTag": {
@@ -2596,9 +2596,9 @@
   "@settingsDefaultsFreeTextEntryTitle": {
     "x-sourceSha256": "bbb4d246761e2b71f24e54ea73f6b4ce05eba3a244080456a1546573b669b9d1"
   },
-  "settingsDefaultsFreeTextEntrySubtitle": "Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt, og en linje skrevet i en eksisterende figurs bevægelse erstatter figuren, når du trykker Enter. Linjen omdannes til figurer; alt der ikke genkendes gemmes som en brugerdefineret figur, du kan rette senere. Nye danse starter uden figurer, medmindre du har gemt startfigurer.",
+  "settingsDefaultsFreeTextEntrySubtitle": "Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt, og en linje skrevet i en eksisterende figurs bevægelse erstatter figuren, når du trykker Enter. Linjen omdannes til figurer; alt, som appen ikke kan læse, gemmes som en ukendt figur, du kan rette senere. Nye danse starter uden figurer, medmindre du har gemt startfigurer.",
   "@settingsDefaultsFreeTextEntrySubtitle": {
-    "x-sourceSha256": "7ce45913e600a61a763026ceb578ca9bae732dd38cf98eb5085d0255fe6eb049"
+    "x-sourceSha256": "285d6cd7a37828cef8b40ff921653f50e8979ac8e10e6224b0bd3927f2a7277d"
   },
   "settingsDefaultsAggressiveBeatsUpdateTitle": "Genberegn figurtakter aggressivt",
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
@@ -3296,13 +3296,13 @@
   "@settingsGeneralConfirmBeforeDeleteSubtitle": {
     "x-sourceSha256": "419e365a3cf53bc03a9f35dc1356ceef19d6904929d93ec0de5321c44bde3b6b"
   },
-  "settingsGeneralDeletedItemsHeader": "Slettede elementer",
+  "settingsGeneralDeletedItemsHeader": "For nylig slettet",
   "@settingsGeneralDeletedItemsHeader": {
-    "x-sourceSha256": "fbd1d68504a288998473058bd2ce29416791756fd8ced5e9b784cfc8ad31151b"
+    "x-sourceSha256": "90a0c00f7933cf773642af6df3532772ec03f3cda84545f9fd9e1e34a4ab5c1a"
   },
-  "settingsGeneralSoftDeleteRetentionTitle": "Behold slettede elementer i",
+  "settingsGeneralSoftDeleteRetentionTitle": "Behold for nylig slettede elementer i",
   "@settingsGeneralSoftDeleteRetentionTitle": {
-    "x-sourceSha256": "e9aa6d341a22a4cbe010dcdc3c20e230e56df47359259e33cda75deb66cf6240"
+    "x-sourceSha256": "aaab206bb2bd76b9b2eda37429503ddfb39529ad8b6c8f145391ffb39865246b"
   },
   "settingsGeneralSoftDeleteRetentionSubtitle": "Slettede danse og programmer bevares i denne periode, inden de fjernes permanent ved appopstart. Med enhedssynkronisering gælder det på alle dine enheder: et delt element ryddes overalt, og kun en lille sletningspost bliver tilbage. Aldrig bevarer dem, indtil du renser manuelt.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
@@ -3352,9 +3352,9 @@
   "@syncReviewActionFailed": {
     "x-sourceSha256": "3269895158663634cd088a78965e620e9c739924805f54f19d846b70da1e5159"
   },
-  "syncReviewKindChoreographer": "Koreograf",
+  "syncReviewKindChoreographer": "Forfatter",
   "@syncReviewKindChoreographer": {
-    "x-sourceSha256": "2e0a2bf36a174c77b69ee695c205417a09b55d006b0bbc7d65eeae6d27d6fbb2"
+    "x-sourceSha256": "d95082a2ee57f3e40e3050662a346e26a872fd4d0baf57d293ac5a883f0f4ff5"
   },
   "syncReviewKindTag": "Mærke",
   "@syncReviewKindTag": {
@@ -3420,9 +3420,9 @@
   "@syncReviewRenameCollisionReason": {
     "x-sourceSha256": "e5a9e0b5844f13cb9c4f4a65f511c19a1636659ace7f4ef950335bee2ca54e53"
   },
-  "syncReviewMergeDiscardsContactsTitle": "Vil du flette disse koreografer sammen?",
+  "syncReviewMergeDiscardsContactsTitle": "Vil du flette disse forfattere sammen?",
   "@syncReviewMergeDiscardsContactsTitle": {
-    "x-sourceSha256": "9dabfcdc02184c750782b3580760f87dae3ccc1209bb7e47c2a720b58f06a539"
+    "x-sourceSha256": "75a9575dc13a9c9d3d4a73dac90fa4c522c5f7a66538d7a931f7714b4aba179b"
   },
   "syncReviewMergeDiscardsContactsBody": "Kun én post bevares. E-mailadressen, stedet og markeringen for afdød på den anden er kun gemt på denne enhed og kan ikke gendannes bagefter.",
   "@syncReviewMergeDiscardsContactsBody": {
@@ -3492,13 +3492,13 @@
   "@settingsGeneralImportEllipsisAction": {
     "x-sourceSha256": "ea94509e38cf6d6427db3a1b5a3b5816cba1e8f89b08f9739f6077ade188163c"
   },
-  "settingsGeneralReparseCustomFiguresTitle": "Genkontrollér brugerdefinerede figurer",
+  "settingsGeneralReparseCustomFiguresTitle": "Genkontrollér ukendte figurer",
   "@settingsGeneralReparseCustomFiguresTitle": {
-    "x-sourceSha256": "052ae8077a73f730509348bee8e4afc3e09ecb9e0e8beb3ece772196f84ecd32"
+    "x-sourceSha256": "09986bfa1a3b540109bfbffa20fb6b90fe81a71981346b4804a92291624bb393"
   },
-  "settingsGeneralReparseCustomFiguresSubtitle": "Tjek importerede danse igen, hvis figurer kun er gemt som brugerdefinerede, fordi de ikke kunne genkendes ved importtidspunktet. Hvis appen nu kan genkende dem, opgraderes de på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.",
+  "settingsGeneralReparseCustomFiguresSubtitle": "Tjek importerede danse igen, hvis figurer kun er gemt som ukendte figurer, fordi de ikke kunne genkendes ved importtidspunktet. Hvis appen nu kan genkende dem, opgraderes de på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.",
   "@settingsGeneralReparseCustomFiguresSubtitle": {
-    "x-sourceSha256": "8ff47617c05225d7e59c29f793dc40ca7b7329619f4c689b8e2d0dc263a94f85"
+    "x-sourceSha256": "ac8b66febb797501a70a1cef04479b16d0b06f7bd642cb55dbc7fa52c770f721"
   },
   "settingsGeneralReparseCustomFiguresAction": "Genkontrollér…",
   "@settingsGeneralReparseCustomFiguresAction": {
@@ -4020,17 +4020,17 @@
   "@commonDeletedSnack": {
     "x-sourceSha256": "5f38a45b4a00f67a9d235d7065a8b3d2ecda59f0802d76dccfd504692fc36adb"
   },
-  "importGapMessage": "Kunne ikke genkende dette kald – beholdt præcis som skrevet som en brugerdefineret figur.",
+  "importGapMessage": "Kunne ikke genkende dette kald – beholdt præcis som skrevet som en ukendt figur.",
   "@importGapMessage": {
-    "x-sourceSha256": "9ac30a70ce39e36e7d06a5f6c2e0458069641059481bb1dcf1af2bbc524397bc"
+    "x-sourceSha256": "4c1caea011cd1716425d8dce711b383f61113702f996d342c1289f0ad12ef82b"
   },
   "importGapDialogTitle": "Ukendt figur",
   "@importGapDialogTitle": {
     "x-sourceSha256": "40c9fa51157047c4c812c3343c465ecf0e0d770b363875750dcf9f3af3b18f5e"
   },
-  "importGapSemanticLabel": "Ukendt figur. Beholdt præcis som skrevet som en brugerdefineret figur.",
+  "importGapSemanticLabel": "Ukendt figur. Beholdt præcis som skrevet.",
   "@importGapSemanticLabel": {
-    "x-sourceSha256": "b1ae4592423c0f129194da94e9f1239db9b9fc98d0c576dee3b7bc574dc8df78"
+    "x-sourceSha256": "ac61d9c878d6becba3e6e8952221b0cac5a905f530f5a9172e0468086fb5286a"
   },
   "collectionScreenTitle": "Samling",
   "@collectionScreenTitle": {
@@ -4326,7 +4326,7 @@
   },
   "collectionBatchDeletedAnnouncement": "{count, plural, =1{Slettede 1 dans. Gendan den fra For nylig slettet.} other{Slettede {count} danse. Gendan dem fra For nylig slettet.}}",
   "@collectionBatchDeletedAnnouncement": {
-    "x-sourceSha256": "2e8f5004a5ed7f87b40bfe951987617b35a3d584eb828b0dba0a9150a6e25b87"
+    "x-sourceSha256": "98143735b6d6afee2ff432c7e58e6599f9b858c2bb1a85405aa6071bbe59d47a"
   },
   "collectionSelectDanceLabel": "Vælg {title}",
   "@collectionSelectDanceLabel": {
@@ -5280,9 +5280,9 @@
   "@programsAddDanceButton": {
     "x-sourceSha256": "285e08017a7bc3224020ed6f9cb6597913092f8028f2573691fd50543e51d08d"
   },
-  "programsAddNoteBreakButton": "Tilføj note / vals",
+  "programsAddNoteBreakButton": "Tilføj note eller pause",
   "@programsAddNoteBreakButton": {
-    "x-sourceSha256": "49da911a72e2ae7022df2ba58ec7d6e17094845e3726e5f3dd224613835cc467"
+    "x-sourceSha256": "38dcd86d40719d360404e7a5788aa1d9754cb2054f0515f9e3147a0c7ab24738"
   },
   "programsInsertBreakButton": "Indsæt pause",
   "@programsInsertBreakButton": {
@@ -5878,21 +5878,21 @@
   "@performTitle": {
     "x-sourceSha256": "6adb770a21ae7200bfac6d1e694fc76b3e8b8166c788022362ed1e66055ab88a"
   },
-  "performExitTooltip": "Afslut fremførelsesvisning",
+  "performExitTooltip": "Afslut Fremfør",
   "@performExitTooltip": {
-    "x-sourceSha256": "d3031219f6d55d352ec2e1faf58069639e394d1086015cfc65ae5983333d2cd1"
+    "x-sourceSha256": "f32f8eabfc151cc0fc5bf23346dbf4fae98e4651180e24e9bc2db782acf161fb"
   },
   "performExitTitle": "Afslut Fremfør?",
   "@performExitTitle": {
     "x-sourceSha256": "05f34c2fcc32861d8d4f88635e026ddb3e728884f72be8249bb370eadf3338dd"
   },
-  "performExitBody": "Forlad fremførelsesvisningen? Din placering og det kørende ur bevares, så du kan genoptage når som helst.",
+  "performExitBody": "Forlad Fremfør? Din placering og det kørende ur bevares, så du kan genoptage når som helst.",
   "@performExitBody": {
-    "x-sourceSha256": "973f65aa6bf4115cdbcce3c7b82658c8b7a9323c4d22d78034cca7eaee2ae6cd"
+    "x-sourceSha256": "432007a3c48d257c1346100918b110e8c22e660455d2a3f58c466cea7f8162c4"
   },
-  "performDanceExitBody": "Forlad fremførelsesvisningen? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.",
+  "performDanceExitBody": "Forlad Fremfør? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.",
   "@performDanceExitBody": {
-    "x-sourceSha256": "a8f188b774ac34941809bf0b06620d34a9739d2b8717dabbd8c2e63d33ec4104"
+    "x-sourceSha256": "b6ff050aa1203d57274da113489f60011a83823c770fecebb5acf6c6413ff667"
   },
   "performExitCancel": "Fortsæt fremførelse",
   "@performExitCancel": {
@@ -7438,13 +7438,13 @@
   "@importIssueNoFiguresTable": {
     "x-sourceSha256": "a7815aeb7d7e1a5b6f259d9eba54183440572ba343a6a37c28c340b4cd044181"
   },
-  "importIssueMoveFallback": "En figur kunne ikke matches til en kendt bevægelse; importeret som brugerdefineret.",
+  "importIssueMoveFallback": "En figur kunne ikke matches til en kendt bevægelse; importeret som ukendt figur.",
   "@importIssueMoveFallback": {
-    "x-sourceSha256": "e9af296e2a3ad3d11bc779f39ebcc5297f5ef589e5d7c29e4720ebe958d4092e"
+    "x-sourceSha256": "12d4d47c59e5f8a16942e305bb88c9354f5f1d4d631f9ce8e6c1c42dc820fd3e"
   },
-  "importIssueMoveFallbackAt": "Figur {position} kunne ikke matches til en kendt bevægelse; importeret som brugerdefineret.",
+  "importIssueMoveFallbackAt": "Figur {position} kunne ikke matches til en kendt bevægelse; importeret som ukendt figur.",
   "@importIssueMoveFallbackAt": {
-    "x-sourceSha256": "7e6391496a76c69c17c4c1576bad0976795e4811f9daa374451fea369ccada1a"
+    "x-sourceSha256": "db631f080a1003c84fca928e2801827b30e458ef197a62d987cf0de28283fb48"
   },
   "importIssueParamUnmapped": "En af en figurs indstillinger kunne ikke tilknyttes, så standardværdien blev brugt.",
   "@importIssueParamUnmapped": {
@@ -7486,9 +7486,9 @@
   "@importRecordErrorNotJson": {
     "x-sourceSha256": "9b1a830696880db88b8a5bcb4cb3cbeaa9215b51fce0a0946cc8d1281a5a213d"
   },
-  "importRecordErrorNotCompendiumArchive": "Det er ikke en Caller's Compendium-fil. Vælg en .json-fil, der er eksporteret fra denne app.",
+  "importRecordErrorNotCompendiumArchive": "Det er ikke en delefil. Vælg en .json- eller .ccshare-fil, der er eksporteret fra denne app.",
   "@importRecordErrorNotCompendiumArchive": {
-    "x-sourceSha256": "fde17c6a25893b79eb3c400e684ba4ee44623ce32f0fb9409311b9e054ba9f30"
+    "x-sourceSha256": "da48e9070156caba02e801f30867a281875824d05fd5e6cb0460b80916a128fd"
   },
   "importRecordErrorNotCallersBoxDance": "Det er ikke en Caller's Box-dans. Kontrollér, at du har kopieret en dans fra The Caller's Box, og prøv igen.",
   "@importRecordErrorNotCallersBoxDance": {
@@ -7614,9 +7614,9 @@
   "@importReviewStructured": {
     "x-sourceSha256": "06028336a07bcfcb3f584ae2cd7df8354e4c8c198d6daa981cdbfc6f996e4be6"
   },
-  "importReviewCustom": "Brugerdefineret",
+  "importReviewCustom": "Ukendt",
   "@importReviewCustom": {
-    "x-sourceSha256": "494ca78f7374e46fb2de9ad9f2dbd4aaae89b50b2ca044177a1566a59e06627e"
+    "x-sourceSha256": "a07c0183642d219c661daa959b24dbe05bf74e532164fb878b61f4a5137a460e"
   },
   "importReviewOptionNewDance": "Ny dans",
   "@importReviewOptionNewDance": {
@@ -7874,13 +7874,13 @@
   "@danceEditorFiguresSection": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
   },
-  "danceEditorFiguresHelp": "Skriv en bevægelse (f.eks. \"sw\" → swing) og tryk Enter for at tilføje den med standardværdier; tekst, der ikke genkendes, bliver til en brugerdefineret figur.",
+  "danceEditorFiguresHelp": "Skriv en bevægelse (f.eks. \"sw\" → swing) og tryk Enter for at tilføje den med standardværdier; tekst, som appen ikke kan læse, bliver til en ukendt figur.",
   "@danceEditorFiguresHelp": {
-    "x-sourceSha256": "a4ceded2bbfa7d94335041140b892ba5e6417810570d1eaa458ff753fd0b0670"
+    "x-sourceSha256": "0c0a8a2d3fd6e6bfb1ac1e798e43e4e101138f5711ca5a3584cbc21948dd93fc"
   },
-  "danceEditorFiguresHelpFreeText": "Tilføj en figur ved at skrive en hel linje (f.eks. \"nabo balance & swing\") og trykke Enter. En linje skrevet i en eksisterende figurs bevægelse erstatter figuren. Alt der ikke genkendes, bliver en brugerdefineret figur.",
+  "danceEditorFiguresHelpFreeText": "Tilføj en figur ved at skrive en hel linje (f.eks. \"nabo balance & swing\") og trykke Enter. En linje skrevet i en eksisterende figurs bevægelse erstatter figuren. Tekst, som appen ikke kan læse, bliver en ukendt figur.",
   "@danceEditorFiguresHelpFreeText": {
-    "x-sourceSha256": "06495665fdbffa47f2aa405e4e31e84b8998dc73e30d906a874305eb5d100ef4"
+    "x-sourceSha256": "016d5e6b127b54bb6731d7c3e9487ecd260334d5a531a5a4b656ffa081b650fe"
   },
   "danceEditorNotesSection": "Noter",
   "@danceEditorNotesSection": {
@@ -8358,13 +8358,13 @@
   "@danceEditorSaveError": {
     "x-sourceSha256": "0c06409f17b9d47e1b55340c2d49986fadd3909dbd75d02584af750ab88b46af"
   },
-  "danceEditorChoreographerDuplicate": "En koreograf ved navn „{name}“ findes allerede. Navnet blev ikke ændret.",
+  "danceEditorChoreographerDuplicate": "En forfatter ved navn „{name}“ findes allerede. Navnet blev ikke ændret.",
   "@danceEditorChoreographerDuplicate": {
-    "x-sourceSha256": "52b0da7b4633d14785af52f52de164654e1b40d0ddd832631020e4838879bea3"
+    "x-sourceSha256": "fdaed74b83034f2a0be3ed81a41932cf5610fbaed70a2bde9e846ccb9a5d9fc1"
   },
-  "danceEditorChoreographerCreateDuplicate": "En koreograf ved navn „{name}“ findes allerede. Den nye forfatter blev ikke oprettet — vælg den eksisterende i stedet.",
+  "danceEditorChoreographerCreateDuplicate": "En forfatter ved navn „{name}“ findes allerede. Den nye forfatter blev ikke oprettet — vælg den eksisterende i stedet.",
   "@danceEditorChoreographerCreateDuplicate": {
-    "x-sourceSha256": "930415b6b09a88eeb257b9cf16ad08a9f56e1f2f274200d996bc1a620a4cb5ea"
+    "x-sourceSha256": "e28de3c6d201456d70a68bbcf37cbcf6d9681b07cb92f936a9aa799d70a15120"
   },
   "danceEditorFallbackDanceTitle": "Dans",
   "@danceEditorFallbackDanceTitle": {
@@ -8446,9 +8446,9 @@
   "@danceEditorLoadError": {
     "x-sourceSha256": "509fe3661d05c24d66b935dcab410804443c03952d32273ea7dc217e1512a02d"
   },
-  "danceEditorChoreographerDetailsTitle": "Koreografdetaljer",
+  "danceEditorChoreographerDetailsTitle": "Forfatterdetaljer",
   "@danceEditorChoreographerDetailsTitle": {
-    "x-sourceSha256": "bb906d790d274120a78975f5f9ffe20350d35f33d56fd55c7bd7c579bedb6df1"
+    "x-sourceSha256": "37df1019715359df173fa9d26d75e501c4a6f3c840f28a9320cc171621656ed8"
   },
   "danceEditorChoreographerDetailsIntro": "Disse detaljer deles på tværs af alle danse krediteret til denne forfatter. E-mail, placering og markeringen som afdød er private – gemmes kun på denne enhed og deles eller eksporteres aldrig.",
   "@danceEditorChoreographerDetailsIntro": {
@@ -8594,9 +8594,9 @@
   "@danceEditorTypeFigureLabel": {
     "x-sourceSha256": "7ccf7680382ede2417ef49debfe983593dc35d1ebb3f297c718970c626358692"
   },
-  "danceEditorTypeFigureHelper": "f.eks. „nabo balance & swing“ eller „16 circle left 3/4“. Enter tilføjer den; uigenkendt tekst gemmes som en brugerdefineret figur.",
+  "danceEditorTypeFigureHelper": "f.eks. „nabo balance & swing“ eller „16 circle left 3/4“. Enter tilføjer den; tekst, som appen ikke kan læse, gemmes som en ukendt figur.",
   "@danceEditorTypeFigureHelper": {
-    "x-sourceSha256": "52f9c3d9266a78f28131d49abcab0d9484810964e1cee4ee2d372c347d1a6282"
+    "x-sourceSha256": "5e1e62ec4422021ce2e21bca6575f1cacafab29d0c98d39a43f2921afd87c8fb"
   },
   "danceEditorPasteHere": "Indsæt her",
   "@danceEditorPasteHere": {
@@ -8606,9 +8606,9 @@
   "@danceEditorEmptyFigureName": {
     "x-sourceSha256": "02bb0f197edc344152597949d89ee9cb497317d563bba002375efedbfbc23204"
   },
-  "danceEditorCustomFigureName": "Brugerdefineret figur",
+  "danceEditorCustomFigureName": "Ukendt figur",
   "@danceEditorCustomFigureName": {
-    "x-sourceSha256": "fa9dcd7243f8fa5ac26027e080b261741ffc1056609ffc70f1c74530cf3eb1fe"
+    "x-sourceSha256": "40c9fa51157047c4c812c3343c465ecf0e0d770b363875750dcf9f3af3b18f5e"
   },
   "danceEditorEmptyFigureSummary": "(tom – vælg en bevægelse)",
   "@danceEditorEmptyFigureSummary": {
@@ -8846,9 +8846,9 @@
   "@danceEditorUnderlineTooltip": {
     "x-sourceSha256": "31d5594661149f8dc27fd2340e0dbee56e3248332de727f44dbd17523816d87e"
   },
-  "danceEditorCustomFigureTextLabel": "Brugerdefineret figurtekst",
+  "danceEditorCustomFigureTextLabel": "Tekst til ukendt figur",
   "@danceEditorCustomFigureTextLabel": {
-    "x-sourceSha256": "5016aedf1a0dd0bda23360d885df4bd1c46e9991b7c3cb6dfb7e7de07f96f41c"
+    "x-sourceSha256": "e9aee7d9b5da315ad742929e9a11de30ed13cddd2b170b6c6552edacc8d55baa"
   },
   "danceEditorLingoStylingHelper": "Bevægelsesnavne får en prikket understregning, rolleudtryk en understregning, og frarådte termer en gennemstregning",
   "@danceEditorLingoStylingHelper": {
@@ -9474,9 +9474,9 @@
   "@themeEditorSwatchError": {
     "x-sourceSha256": "54a0e8c17ebb21a11f8a25b8042786ef7efe52441e6cc87e92c67e0c4c0c6e78"
   },
-  "reparseConfirmTitle": "Opgradér brugerdefinerede figurer?",
+  "reparseConfirmTitle": "Opgradér ukendte figurer?",
   "@reparseConfirmTitle": {
-    "x-sourceSha256": "a9887110e4858088272c6c9cd7f49161e93beb6d06aae97b4532e1e0637bd082"
+    "x-sourceSha256": "916df060629bfa63cab06226e6bba78c949e70efb4185b11cf48c355f3983643"
   },
   "reparseConfirmBody": "Dette tjekker {figureCount, plural, =1{1 figur} other{{figureCount} figurer}} i {danceCount, plural, =1{1 dans} other{{danceCount} danse}} igen. Dine tags, vurderinger, noter og alt andet på hver dans bevares nøjagtigt som de er. Dette erstatter kun figurer, der nu genkender en kendt bevægelse.",
   "@reparseConfirmBody": {
@@ -9494,13 +9494,13 @@
   "@reparseNothingUpgradedSnack": {
     "x-sourceSha256": "f8055ff64d4ee5d6480f683481f4b9150c9bc21f71b39e1c2b1eea0f0d2a448d"
   },
-  "reparseUpgradedSnack": "Opgraderede brugerdefinerede figurer i {danceCount, plural, =1{1 dans} other{{danceCount} danse}}.",
+  "reparseUpgradedSnack": "Opgraderede ukendte figurer i {danceCount, plural, =1{1 dans} other{{danceCount} danse}}.",
   "@reparseUpgradedSnack": {
-    "x-sourceSha256": "f765667064a2a0a472b5bd810c1252a97b788d58983ac0a4720a8a3602bc2716"
+    "x-sourceSha256": "6aaf67601c9e985f33be404cdd03e33972ca12ca7a26c04aedc584eb1c132723"
   },
-  "reparseScreenTitle": "Genkontrollér brugerdefinerede figurer",
+  "reparseScreenTitle": "Genkontrollér ukendte figurer",
   "@reparseScreenTitle": {
-    "x-sourceSha256": "052ae8077a73f730509348bee8e4afc3e09ecb9e0e8beb3ece772196f84ecd32"
+    "x-sourceSha256": "09986bfa1a3b540109bfbffa20fb6b90fe81a71981346b4804a92291624bb393"
   },
   "reparseIntro": "Forbedret figurgenkendelse kan opgradere {figureCount, plural, =1{1 figur} other{{figureCount} figurer}} i {danceCount, plural, =1{1 dans} other{{danceCount} danse}}. Gennemse nedenfor, og bekræft derefter – intet ændres før du gør det, og alle dine tags, vurderinger og noter bevares.",
   "@reparseIntro": {
@@ -9518,9 +9518,9 @@
   "@reparseEmptyTitle": {
     "x-sourceSha256": "9910cf9819c9274188fb2439654fd7e87eaa19ad256978bbd5f0fbf76af06ea8"
   },
-  "reparseEmptyBody": "Ingen af dine brugerdefinerede figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter en kommende opdatering, der forbedrer genkendelsen af figurer.",
+  "reparseEmptyBody": "Ingen af dine ukendte figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter en kommende opdatering, der forbedrer genkendelsen af figurer.",
   "@reparseEmptyBody": {
-    "x-sourceSha256": "258f50bc489a3eee2aeb30d628bc5162a3bf9e81030a64ef8ea498ab20449ce7"
+    "x-sourceSha256": "ac79301a3f84a7c5d7dff6c4b987efdb5503d6c7019a26d5b72b6a11b835640d"
   },
   "reparseErrorTitle": "Kunne ikke kontrollere dine figurer",
   "@reparseErrorTitle": {
@@ -9824,11 +9824,11 @@
   },
   "recentlyDeletedTitle": "For nylig slettet",
   "@recentlyDeletedTitle": {
-    "x-sourceSha256": "856154bb0f1be3786bfa47e56a2b5ec62f423265d8383cbb03e9743a72e44bbc"
+    "x-sourceSha256": "90a0c00f7933cf773642af6df3532772ec03f3cda84545f9fd9e1e34a4ab5c1a"
   },
-  "recentlyDeletedLoadError": "Dine slettede elementer kunne ikke indlæses. Intet er blevet fjernet.",
+  "recentlyDeletedLoadError": "Dine for nylig slettede elementer kunne ikke indlæses. Intet er blevet fjernet.",
   "@recentlyDeletedLoadError": {
-    "x-sourceSha256": "43498db5ebede2c18f0150fa0eb1f228ab8f1287b1355e61c0f536673ca01ed3"
+    "x-sourceSha256": "9a90acfdcb6612410e77d650e8717ff4079ff3fdb1eeb1491d3a6ea96b6fa92d"
   },
   "recentlyDeletedDeleteTitle": "Slet permanent?",
   "@recentlyDeletedDeleteTitle": {
@@ -9874,25 +9874,25 @@
   "@recentlyDeletedLoadingPrograms": {
     "x-sourceSha256": "5e35d16593be736bddd9635655f6897d77d2696d387b38b6b4158a02780f1a65"
   },
-  "recentlyDeletedEmptyDancesKept": "Intet i papirkurven. Slettede danse bevares her, indtil du fjerner dem.",
+  "recentlyDeletedEmptyDancesKept": "Ingen danse er slettet for nylig. Slettede danse bevares her, indtil du fjerner dem.",
   "@recentlyDeletedEmptyDancesKept": {
-    "x-sourceSha256": "142d1ca585d677d385a5576c0eb61d09eb1bcba41d100ef3697e79b2a179271f"
+    "x-sourceSha256": "a3f3faea21c3f1c2176008ceae5166442771b15046aa305cba1dab9469e4c7a2"
   },
   "recentlyDeletedEmptyTitle": "Intet slettet",
   "@recentlyDeletedEmptyTitle": {
     "x-sourceSha256": "fa589cb6139b3fa74547d0a2238ab91bbe378689dd6417603341cf19b7ad23a3"
   },
-  "recentlyDeletedEmptyDancesRetention": "Intet i papirkurven. Slettede danse vises her i {days} dage, inden de fjernes.",
+  "recentlyDeletedEmptyDancesRetention": "Ingen danse er slettet for nylig. Slettede danse vises her i {days} dage, inden de fjernes.",
   "@recentlyDeletedEmptyDancesRetention": {
-    "x-sourceSha256": "c9d92a66a393f687c97281fca98943aeb84880a3567f05db7a68e3288e3b4454"
+    "x-sourceSha256": "ed259a1e507ab7aafe8b31e0154bbc6629056bd7e20d128ad9bb9d224e65e625"
   },
-  "recentlyDeletedEmptyProgramsKept": "Intet i papirkurven. Slettede programmer bevares her, indtil du fjerner dem.",
+  "recentlyDeletedEmptyProgramsKept": "Ingen programmer er slettet for nylig. Slettede programmer bevares her, indtil du fjerner dem.",
   "@recentlyDeletedEmptyProgramsKept": {
-    "x-sourceSha256": "40782a3a929823e198a707b72464757047db592e1cc6560bc2e9d2002ae6590d"
+    "x-sourceSha256": "70d6ca549c9508826d8399dce037d8e1334cbbbb33d896cdeeabc656b63a36cc"
   },
-  "recentlyDeletedEmptyProgramsRetention": "Intet i papirkurven. Slettede programmer vises her i {days} dage, inden de fjernes.",
+  "recentlyDeletedEmptyProgramsRetention": "Ingen programmer er slettet for nylig. Slettede programmer vises her i {days} dage, inden de fjernes.",
   "@recentlyDeletedEmptyProgramsRetention": {
-    "x-sourceSha256": "83326b6c0a1d50400c6f6471a1e62c73897514a9eb0cf10cc921d57a7cad3a20"
+    "x-sourceSha256": "d8d9e042cb37149061af9d04b38e8b6e285c14757a1a174797a6b03d7542dced"
   },
   "recentlyDeletedRestoredDance": "„{title}“ gendannet til din samling.",
   "@recentlyDeletedRestoredDance": {
@@ -10774,9 +10774,9 @@
   "@glossaryCustomExample": {
     "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
   },
-  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dans i papirkurven bruger den og beholder den linje, den sidst gemte.} other{{count} danse i papirkurven bruger den og beholder de linjer, de sidst gemte.}}",
+  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dans under „For nylig slettet“ bruger den og beholder den linje, den sidst gemte.} other{{count} danse under „For nylig slettet“ bruger den og beholder de linjer, de sidst gemte.}}",
   "@glossaryCustomDeleteTrash": {
-    "x-sourceSha256": "4e9c8016ce24a743d4aef7a908d315920d577cf220737a4a863d495934620b9e"
+    "x-sourceSha256": "3210f31c3b2304778276b9f20fb3cc15971a2f344363a7a45e03ac2610db3b8e"
   },
   "glossaryCustomDeleteDefaults": "Dine standardfigurer i Indstillinger bruger den og beholder dens nuværende ordlyd som almindelig tekst.",
   "@glossaryCustomDeleteDefaults": {

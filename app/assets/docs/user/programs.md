@@ -174,7 +174,7 @@ picker.*
   [Collection card fields](./settings.md#collection-card-fields). Find a dance
   and add it to the program.
 
-**Add note / waltz** adds a free-text slot, and **Insert break** adds a break.
+**Add note or break** adds a free-text slot (a note, a waltz, an announcement), and **Insert break** adds a break.
 On a narrow screen, **Add dance** opens the collection picker.
 
 To bring in a dance you don't have yet, tap the **Online search** icon at the end of the

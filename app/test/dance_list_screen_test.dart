@@ -2453,7 +2453,7 @@ void main() {
     expect(find.byKey(const ValueKey('add-to-program-close')), findsNothing);
   });
 
-  // ── Recently Deleted navigation ────────────────────────────────────────────
+  // ── Recently deleted navigation ────────────────────────────────────────────
 
   testWidgets(
     'recently-deleted button navigates to the RecentlyDeletedScreen',
@@ -2469,7 +2469,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Recently Deleted'), findsOneWidget);
+      expect(find.text('Recently deleted'), findsOneWidget);
     },
   );
 

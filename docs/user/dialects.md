@@ -426,7 +426,7 @@ both recognise, then flip back to your own.
   written in your **active** dialect, so what you hand someone matches how you
   speak. The on-screen **Canonical** switch changes only what you are looking at
   — it doesn't change what an export contains. To export in different words,
-  switch your active dialect first. A dance file you send to another Caller's
+  switch your active dialect first. A share file you send to another Caller's
   Compendium user carries the dance itself, so it opens in *their* dialect. See
   [Share, print & export](./sharing.md#which-words-a-dance-export-uses).
 - **Screen readers.** The app reads dances aloud in your dialect too — your own

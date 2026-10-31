@@ -1151,7 +1151,7 @@ abstract class AppLocalizations {
   /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many choreographers are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 choreographer} other{{count} choreographers}}'**
+  /// **'{count, plural, =1{1 author} other{{count} authors}}'**
   String settingsSyncNoticeCountChoreographer(int count);
 
   /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many tags are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
@@ -4012,7 +4012,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the free-text-entry setting, describing what turning it on does.
   ///
   /// In en, this message translates to:
-  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
+  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything the app can\'t read is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
   String get settingsDefaultsFreeTextEntrySubtitle;
 
   /// Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689).
@@ -5066,13 +5066,13 @@ abstract class AppLocalizations {
   /// General settings section header for deleted-item retention preferences.
   ///
   /// In en, this message translates to:
-  /// **'Deleted items'**
+  /// **'Recently deleted'**
   String get settingsGeneralDeletedItemsHeader;
 
   /// Title of the General settings row that controls how long deleted dances and programs are retained.
   ///
   /// In en, this message translates to:
-  /// **'Keep deleted items for'**
+  /// **'Keep recently deleted items for'**
   String get settingsGeneralSoftDeleteRetentionTitle;
 
   /// Subtitle explaining the deleted-dance retention duration setting.
@@ -5150,7 +5150,7 @@ abstract class AppLocalizations {
   /// Kind label for a choreographer sync decision.
   ///
   /// In en, this message translates to:
-  /// **'Choreographer'**
+  /// **'Author'**
   String get syncReviewKindChoreographer;
 
   /// Kind label for a tag sync decision.
@@ -5252,7 +5252,7 @@ abstract class AppLocalizations {
   /// Confirmation dialog title shown before merging two choreographer records held only on this device.
   ///
   /// In en, this message translates to:
-  /// **'Merge these choreographers?'**
+  /// **'Merge these authors?'**
   String get syncReviewMergeDiscardsContactsTitle;
 
   /// Confirmation dialog body warning that merging two choreographers discards the losing record's device-local contact details.
@@ -5360,13 +5360,13 @@ abstract class AppLocalizations {
   /// Title of the General settings row that re-parses imported custom-only figures.
   ///
   /// In en, this message translates to:
-  /// **'Re-check custom figures'**
+  /// **'Re-check unrecognized figures'**
   String get settingsGeneralReparseCustomFiguresTitle;
 
   /// Subtitle explaining the re-check custom figures action.
   ///
   /// In en, this message translates to:
-  /// **'Re-check imported dances whose figures were kept as custom only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
+  /// **'Re-check imported dances whose figures were kept as unrecognized figures only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
   String get settingsGeneralReparseCustomFiguresSubtitle;
 
   /// Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows.
@@ -6152,7 +6152,7 @@ abstract class AppLocalizations {
   /// Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t recognize this call — kept exactly as written as a custom figure.'**
+  /// **'Couldn\'t recognize this call — kept exactly as written as an unrecognized figure.'**
   String get importGapMessage;
 
   /// Title of the dialog explaining an unrecognized (import-gap or free-text) custom figure (shown when the badge is tapped).
@@ -6164,7 +6164,7 @@ abstract class AppLocalizations {
   /// Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments.
   ///
   /// In en, this message translates to:
-  /// **'Unrecognized figure. Kept exactly as written as a custom figure.'**
+  /// **'Unrecognized figure. Kept exactly as written.'**
   String get importGapSemanticLabel;
 
   /// App-bar title of the Collection screen (phone layout).
@@ -6612,7 +6612,7 @@ abstract class AppLocalizations {
   /// Screen-reader announcement after Collection's batch Delete. Names Recently Deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Deleted 1 dance. Restore it from Recently Deleted.} other{Deleted {count} dances. Restore them from Recently Deleted.}}'**
+  /// **'{count, plural, =1{Deleted 1 dance. Restore it from Recently deleted.} other{Deleted {count} dances. Restore them from Recently deleted.}}'**
   String collectionBatchDeletedAnnouncement(int count);
 
   /// Accessible label for the per-row selection checkbox in batch mode.
@@ -8054,7 +8054,7 @@ abstract class AppLocalizations {
   /// Button that adds a free-text note or break slot to the program.
   ///
   /// In en, this message translates to:
-  /// **'Add note / waltz'**
+  /// **'Add note or break'**
   String get programsAddNoteBreakButton;
 
   /// Button that inserts a break slot into the program.
@@ -8952,7 +8952,7 @@ abstract class AppLocalizations {
   /// Tooltip on the button that closes the Perform view and returns to the previous screen.
   ///
   /// In en, this message translates to:
-  /// **'Exit performance view'**
+  /// **'Exit Perform mode'**
   String get performExitTooltip;
 
   /// Title of the confirmation dialog shown before leaving the Perform view, so a stray tap or system back does not drop the caller out mid-program.
@@ -8964,13 +8964,13 @@ abstract class AppLocalizations {
   /// Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry.
   ///
   /// In en, this message translates to:
-  /// **'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.'**
+  /// **'Leave Perform mode? Your place and the running clock are kept, so you can resume where you left off.'**
   String get performExitBody;
 
   /// Body text of the exit-confirmation dialog for single-dance Perform, which keeps no resume state (unlike program Perform, performExitBody).
   ///
   /// In en, this message translates to:
-  /// **'Leave the performance view? Performing a single dance doesn\'t keep your place, so the next time starts fresh.'**
+  /// **'Leave Perform mode? Performing a single dance doesn\'t keep your place, so the next time starts fresh.'**
   String get performDanceExitBody;
 
   /// Button that dismisses the exit-confirmation dialog and stays in the Perform view.
@@ -11318,13 +11318,13 @@ abstract class AppLocalizations {
   /// Import note (no position available): a figure couldn't be mapped to the taxonomy and was imported as a custom figure.
   ///
   /// In en, this message translates to:
-  /// **'A figure couldn\'t be matched to a known move; imported as custom.'**
+  /// **'A figure couldn\'t be matched to a known move; imported as an unrecognized figure.'**
   String get importIssueMoveFallback;
 
   /// Import note: the figure at the given 1-based position couldn't be mapped to the taxonomy and was imported as a custom figure. {position} is the app's own figure index.
   ///
   /// In en, this message translates to:
-  /// **'Figure {position} couldn\'t be matched to a known move; imported as custom.'**
+  /// **'Figure {position} couldn\'t be matched to a known move; imported as an unrecognized figure.'**
   String importIssueMoveFallbackAt(int position);
 
   /// Import note (generic fallback): a figure parameter couldn't be mapped and a taxonomy default was used.
@@ -11390,7 +11390,7 @@ abstract class AppLocalizations {
   /// Import review: the content is not a Caller's Compendium archive (ImportErrorCode.notCompendiumArchive). Typed; raw error detail is not shown (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'This isn\'t a Caller\'s Compendium file. Choose a .json exported from this app.'**
+  /// **'This isn\'t a share file. Choose a .json or .ccshare file exported from this app.'**
   String get importRecordErrorNotCompendiumArchive;
 
   /// Import review: the content is not a Caller's Box dance export (ImportErrorCode.notCallersBoxDance). Typed; raw error detail is not shown (CWE-209).
@@ -11582,7 +11582,7 @@ abstract class AppLocalizations {
   /// Quality chip label when a dance's figures are fully custom (unstructured).
   ///
   /// In en, this message translates to:
-  /// **'Custom'**
+  /// **'Unrecognized'**
   String get importReviewCustom;
 
   /// Per-record option: import this record as a brand-new dance.
@@ -11972,13 +11972,13 @@ abstract class AppLocalizations {
   /// Helper text above the figure list explaining type-ahead figure entry.
   ///
   /// In en, this message translates to:
-  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; unmatched text becomes a custom figure.'**
+  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; text the app can\'t read becomes an unrecognized figure.'**
   String get danceEditorFiguresHelp;
 
   /// Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it.
   ///
   /// In en, this message translates to:
-  /// **'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Anything unrecognized becomes a custom figure.'**
+  /// **'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Any text the app can\'t read becomes an unrecognized figure.'**
   String get danceEditorFiguresHelpFreeText;
 
   /// Section heading for the dance notes fields.
@@ -12702,13 +12702,13 @@ abstract class AppLocalizations {
   /// Snackbar shown when renaming a choreographer to a name another choreographer already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'A choreographer named \"{name}\" already exists. The name wasn\'t changed.'**
+  /// **'An author named \"{name}\" already exists. The name wasn\'t changed.'**
   String danceEditorChoreographerDuplicate(String name);
 
   /// Snackbar shown when CREATING a choreographer whose name a live choreographer already holds. Distinct from danceEditorChoreographerDuplicate, which is the rename case and says the name was not changed: here nothing was created and the existing author is untouched, so the user should select it instead. A safety net -- the author picker normally suppresses the create option for a name that already exists (issue #1348). The raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'A choreographer named \"{name}\" already exists. The new author wasn\'t created — pick the existing one instead.'**
+  /// **'An author named \"{name}\" already exists. The new author wasn\'t created — pick the existing one instead.'**
   String danceEditorChoreographerCreateDuplicate(String name);
 
   /// Fallback dance title used when deleting a dance whose original title is unavailable.
@@ -12834,7 +12834,7 @@ abstract class AppLocalizations {
   /// Dialog title for editing shared choreographer/contact details.
   ///
   /// In en, this message translates to:
-  /// **'Choreographer details'**
+  /// **'Author details'**
   String get danceEditorChoreographerDetailsTitle;
 
   /// Introductory copy explaining shared and private choreographer details.
@@ -13056,7 +13056,7 @@ abstract class AppLocalizations {
   /// Helper text for free-text figure entry.
   ///
   /// In en, this message translates to:
-  /// **'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as a custom figure.'**
+  /// **'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; text the app can\'t read is kept as an unrecognized figure.'**
   String get danceEditorTypeFigureHelper;
 
   /// Button label for a paste destination in the figure list.
@@ -13074,7 +13074,7 @@ abstract class AppLocalizations {
   /// Fallback display name for a custom figure with no text.
   ///
   /// In en, this message translates to:
-  /// **'Custom figure'**
+  /// **'Unrecognized figure'**
   String get danceEditorCustomFigureName;
 
   /// Collapsed-row text for an empty figure draft.
@@ -13445,7 +13445,7 @@ abstract class AppLocalizations {
   /// Text field label for editing a custom figure description.
   ///
   /// In en, this message translates to:
-  /// **'Custom figure text'**
+  /// **'Unrecognized figure text'**
   String get danceEditorCustomFigureTextLabel;
 
   /// Helper text explaining lingo-aware styling in a custom figure text field.
@@ -14387,7 +14387,7 @@ abstract class AppLocalizations {
   /// Title of the confirm dialog before re-parsing custom figures.
   ///
   /// In en, this message translates to:
-  /// **'Upgrade custom figures?'**
+  /// **'Upgrade unrecognized figures?'**
   String get reparseConfirmTitle;
 
   /// Body of the confirm dialog before upgrading custom figures.
@@ -14417,13 +14417,13 @@ abstract class AppLocalizations {
   /// Snackbar confirming how many dances had custom figures upgraded.
   ///
   /// In en, this message translates to:
-  /// **'Upgraded custom figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.'**
+  /// **'Upgraded unrecognized figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.'**
   String reparseUpgradedSnack(int danceCount);
 
   /// App-bar title for the re-check custom figures screen.
   ///
   /// In en, this message translates to:
-  /// **'Re-check custom figures'**
+  /// **'Re-check unrecognized figures'**
   String get reparseScreenTitle;
 
   /// Intro paragraph on the re-check custom figures screen.
@@ -14453,7 +14453,7 @@ abstract class AppLocalizations {
   /// Body of the empty state when no custom figures can be upgraded.
   ///
   /// In en, this message translates to:
-  /// **'None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.'**
+  /// **'None of your unrecognized figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.'**
   String get reparseEmptyBody;
 
   /// Title of the error state when scanning for upgradable figures fails.
@@ -14909,13 +14909,13 @@ abstract class AppLocalizations {
   /// App-bar title for the recently-deleted (trash) screen.
   ///
   /// In en, this message translates to:
-  /// **'Recently Deleted'**
+  /// **'Recently deleted'**
   String get recentlyDeletedTitle;
 
   /// Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t load your deleted items. Nothing has been removed.'**
+  /// **'Couldn’t load your recently deleted items. Nothing has been removed.'**
   String get recentlyDeletedLoadError;
 
   /// Title of the confirm permanent-delete dialog.
@@ -14987,7 +14987,7 @@ abstract class AppLocalizations {
   /// Empty state for recently-deleted dances when there is no retention window.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted dances are kept here until you remove them.'**
+  /// **'No recently deleted dances. Deleted dances are kept here until you remove them.'**
   String get recentlyDeletedEmptyDancesKept;
 
   /// Title of the empty Recently deleted lists (dances and programs).
@@ -14999,19 +14999,19 @@ abstract class AppLocalizations {
   /// Empty state for recently-deleted dances with a retention window of {days} days.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted dances appear here for {days} days before being removed.'**
+  /// **'No recently deleted dances. Deleted dances appear here for {days} days before being removed.'**
   String recentlyDeletedEmptyDancesRetention(int days);
 
   /// Empty state for recently-deleted programs when there is no retention window.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted programs are kept here until you remove them.'**
+  /// **'No recently deleted programs. Deleted programs are kept here until you remove them.'**
   String get recentlyDeletedEmptyProgramsKept;
 
   /// Empty state for recently-deleted programs with a retention window of {days} days.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in the trash. Deleted programs appear here for {days} days before being removed.'**
+  /// **'No recently deleted programs. Deleted programs appear here for {days} days before being removed.'**
   String recentlyDeletedEmptyProgramsRetention(int days);
 
   /// Snackbar confirming a dance was restored; {title} is plain text.
@@ -16337,7 +16337,7 @@ abstract class AppLocalizations {
   /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when dances in the Trash use it: they are not changed, and keep the line each last stored.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 dance in the Trash uses it, and keeps the line it last stored.} other{{count} dances in the Trash use it, and keep the lines they last stored.}}'**
+  /// **'{count, plural, =1{1 dance in Recently deleted uses it, and keeps the line it last stored.} other{{count} dances in Recently deleted use it, and keep the lines they last stored.}}'**
   String glossaryCustomDeleteTrash(int count);
 
   /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when the default figures for new dances, meanwhile sides or modifiers (Settings, Defaults) use it.

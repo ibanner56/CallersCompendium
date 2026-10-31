@@ -944,7 +944,7 @@
       }
     }
   },
-  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 choreographer} other{{count} choreographers}}",
+  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 author} other{{count} authors}}",
   "@settingsSyncNoticeCountChoreographer": {
     "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many choreographers are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
     "placeholders": {
@@ -3291,7 +3291,7 @@
   "@settingsDefaultsFreeTextEntryTitle": {
     "description": "Title of the opt-in setting that lets a new figure be typed as one line instead of built field by field (#419)."
   },
-  "settingsDefaultsFreeTextEntrySubtitle": "When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure's move and pressing Enter replaces that figure. The line is turned into figures; anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.",
+  "settingsDefaultsFreeTextEntrySubtitle": "When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure's move and pressing Enter replaces that figure. The line is turned into figures; anything the app can't read is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.",
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "description": "Explanatory subtitle for the free-text-entry setting, describing what turning it on does."
   },
@@ -4168,11 +4168,11 @@
   "@settingsGeneralConfirmBeforeDeleteSubtitle": {
     "description": "Subtitle explaining the confirm-before-delete toggle."
   },
-  "settingsGeneralDeletedItemsHeader": "Deleted items",
+  "settingsGeneralDeletedItemsHeader": "Recently deleted",
   "@settingsGeneralDeletedItemsHeader": {
     "description": "General settings section header for deleted-item retention preferences."
   },
-  "settingsGeneralSoftDeleteRetentionTitle": "Keep deleted items for",
+  "settingsGeneralSoftDeleteRetentionTitle": "Keep recently deleted items for",
   "@settingsGeneralSoftDeleteRetentionTitle": {
     "description": "Title of the General settings row that controls how long deleted dances and programs are retained."
   },
@@ -4230,7 +4230,7 @@
   "@syncReviewActionFailed": {
     "description": "Generic snackbar shown when a sync decision fails for an unexpected reason."
   },
-  "syncReviewKindChoreographer": "Choreographer",
+  "syncReviewKindChoreographer": "Author",
   "@syncReviewKindChoreographer": {
     "description": "Kind label for a choreographer sync decision."
   },
@@ -4316,7 +4316,7 @@
   "@syncReviewRenameCollisionReason": {
     "description": "Reason shown for a sync-spec 6.6 step-1 natural-key rename collision between two records that both already exist on this device."
   },
-  "syncReviewMergeDiscardsContactsTitle": "Merge these choreographers?",
+  "syncReviewMergeDiscardsContactsTitle": "Merge these authors?",
   "@syncReviewMergeDiscardsContactsTitle": {
     "description": "Confirmation dialog title shown before merging two choreographer records held only on this device."
   },
@@ -4388,11 +4388,11 @@
   "@settingsGeneralImportEllipsisAction": {
     "description": "Button label that opens the import-dances flow from General settings; the ellipsis indicates more choices follow."
   },
-  "settingsGeneralReparseCustomFiguresTitle": "Re-check custom figures",
+  "settingsGeneralReparseCustomFiguresTitle": "Re-check unrecognized figures",
   "@settingsGeneralReparseCustomFiguresTitle": {
     "description": "Title of the General settings row that re-parses imported custom-only figures."
   },
-  "settingsGeneralReparseCustomFiguresSubtitle": "Re-check imported dances whose figures were kept as custom only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.",
+  "settingsGeneralReparseCustomFiguresSubtitle": "Re-check imported dances whose figures were kept as unrecognized figures only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.",
   "@settingsGeneralReparseCustomFiguresSubtitle": {
     "description": "Subtitle explaining the re-check custom figures action."
   },
@@ -5018,7 +5018,7 @@
       }
     }
   },
-  "importGapMessage": "Couldn't recognize this call — kept exactly as written as a custom figure.",
+  "importGapMessage": "Couldn't recognize this call — kept exactly as written as an unrecognized figure.",
   "@importGapMessage": {
     "description": "Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label."
   },
@@ -5026,7 +5026,7 @@
   "@importGapDialogTitle": {
     "description": "Title of the dialog explaining an unrecognized (import-gap or free-text) custom figure (shown when the badge is tapped)."
   },
-  "importGapSemanticLabel": "Unrecognized figure. Kept exactly as written as a custom figure.",
+  "importGapSemanticLabel": "Unrecognized figure. Kept exactly as written.",
   "@importGapSemanticLabel": {
     "description": "Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments."
   },
@@ -5498,7 +5498,7 @@
       }
     }
   },
-  "collectionBatchDeletedAnnouncement": "{count, plural, =1{Deleted 1 dance. Restore it from Recently Deleted.} other{Deleted {count} dances. Restore them from Recently Deleted.}}",
+  "collectionBatchDeletedAnnouncement": "{count, plural, =1{Deleted 1 dance. Restore it from Recently deleted.} other{Deleted {count} dances. Restore them from Recently deleted.}}",
   "@collectionBatchDeletedAnnouncement": {
     "description": "Screen-reader announcement after Collection's batch Delete. Names Recently Deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.",
     "placeholders": {
@@ -6798,7 +6798,7 @@
   "@programsAddDanceButton": {
     "description": "Button that opens the dance picker to add a dance slot to the program."
   },
-  "programsAddNoteBreakButton": "Add note / waltz",
+  "programsAddNoteBreakButton": "Add note or break",
   "@programsAddNoteBreakButton": {
     "description": "Button that adds a free-text note or break slot to the program."
   },
@@ -7697,7 +7697,7 @@
   "@performTitle": {
     "description": "App bar title for the single-dance Perform (large-print performance) view."
   },
-  "performExitTooltip": "Exit performance view",
+  "performExitTooltip": "Exit Perform mode",
   "@performExitTooltip": {
     "description": "Tooltip on the button that closes the Perform view and returns to the previous screen."
   },
@@ -7705,11 +7705,11 @@
   "@performExitTitle": {
     "description": "Title of the confirmation dialog shown before leaving the Perform view, so a stray tap or system back does not drop the caller out mid-program."
   },
-  "performExitBody": "Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.",
+  "performExitBody": "Leave Perform mode? Your place and the running clock are kept, so you can resume where you left off.",
   "@performExitBody": {
     "description": "Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry."
   },
-  "performDanceExitBody": "Leave the performance view? Performing a single dance doesn't keep your place, so the next time starts fresh.",
+  "performDanceExitBody": "Leave Perform mode? Performing a single dance doesn't keep your place, so the next time starts fresh.",
   "@performDanceExitBody": {
     "description": "Body text of the exit-confirmation dialog for single-dance Perform, which keeps no resume state (unlike program Perform, performExitBody)."
   },
@@ -9866,11 +9866,11 @@
   "@importIssueNoFiguresTable": {
     "description": "Import note: an imported page had no figures table, so a metadata-only stub was created."
   },
-  "importIssueMoveFallback": "A figure couldn't be matched to a known move; imported as custom.",
+  "importIssueMoveFallback": "A figure couldn't be matched to a known move; imported as an unrecognized figure.",
   "@importIssueMoveFallback": {
     "description": "Import note (no position available): a figure couldn't be mapped to the taxonomy and was imported as a custom figure."
   },
-  "importIssueMoveFallbackAt": "Figure {position} couldn't be matched to a known move; imported as custom.",
+  "importIssueMoveFallbackAt": "Figure {position} couldn't be matched to a known move; imported as an unrecognized figure.",
   "@importIssueMoveFallbackAt": {
     "description": "Import note: the figure at the given 1-based position couldn't be mapped to the taxonomy and was imported as a custom figure. {position} is the app's own figure index.",
     "placeholders": {
@@ -9936,7 +9936,7 @@
   "@importRecordErrorNotJson": {
     "description": "Import review: the content was not valid JSON (ImportErrorCode.notJson). Typed; raw error detail is not shown (CWE-209)."
   },
-  "importRecordErrorNotCompendiumArchive": "This isn't a Caller's Compendium file. Choose a .json exported from this app.",
+  "importRecordErrorNotCompendiumArchive": "This isn't a share file. Choose a .json or .ccshare file exported from this app.",
   "@importRecordErrorNotCompendiumArchive": {
     "description": "Import review: the content is not a Caller's Compendium archive (ImportErrorCode.notCompendiumArchive). Typed; raw error detail is not shown (CWE-209)."
   },
@@ -10090,7 +10090,7 @@
       }
     }
   },
-  "importReviewCustom": "Custom",
+  "importReviewCustom": "Unrecognized",
   "@importReviewCustom": {
     "description": "Quality chip label when a dance's figures are fully custom (unstructured)."
   },
@@ -10526,11 +10526,11 @@
   "@danceEditorFiguresSection": {
     "description": "Section heading for the editable figure list in the dance editor."
   },
-  "danceEditorFiguresHelp": "Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; unmatched text becomes a custom figure.",
+  "danceEditorFiguresHelp": "Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; text the app can't read becomes an unrecognized figure.",
   "@danceEditorFiguresHelp": {
     "description": "Helper text above the figure list explaining type-ahead figure entry."
   },
-  "danceEditorFiguresHelpFreeText": "Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure's move replaces that figure. Anything unrecognized becomes a custom figure.",
+  "danceEditorFiguresHelpFreeText": "Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure's move replaces that figure. Any text the app can't read becomes an unrecognized figure.",
   "@danceEditorFiguresHelpFreeText": {
     "description": "Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it."
   },
@@ -11128,7 +11128,7 @@
   "@danceEditorSaveError": {
     "description": "Clean snackbar shown when saving a dance fails; the raw exception is logged instead of shown (CWE-209)."
   },
-  "danceEditorChoreographerDuplicate": "A choreographer named \"{name}\" already exists. The name wasn't changed.",
+  "danceEditorChoreographerDuplicate": "An author named \"{name}\" already exists. The name wasn't changed.",
   "@danceEditorChoreographerDuplicate": {
     "description": "Snackbar shown when renaming a choreographer to a name another choreographer already holds. The edit is refused rather than silently dropped (sync-spec 4.1, issue #1348); the raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.",
     "placeholders": {
@@ -11137,7 +11137,7 @@
       }
     }
   },
-  "danceEditorChoreographerCreateDuplicate": "A choreographer named \"{name}\" already exists. The new author wasn't created — pick the existing one instead.",
+  "danceEditorChoreographerCreateDuplicate": "An author named \"{name}\" already exists. The new author wasn't created — pick the existing one instead.",
   "@danceEditorChoreographerCreateDuplicate": {
     "description": "Snackbar shown when CREATING a choreographer whose name a live choreographer already holds. Distinct from danceEditorChoreographerDuplicate, which is the rename case and says the name was not changed: here nothing was created and the existing author is untouched, so the user should select it instead. A safety net -- the author picker normally suppresses the create option for a name that already exists (issue #1348). The raw exception is logged, never shown (CWE-209). {name} is untrusted user-entered text, rendered as plain text.",
     "placeholders": {
@@ -11250,7 +11250,7 @@
   "@danceEditorLoadError": {
     "description": "Message shown when the dance editor fails to load a dance."
   },
-  "danceEditorChoreographerDetailsTitle": "Choreographer details",
+  "danceEditorChoreographerDetailsTitle": "Author details",
   "@danceEditorChoreographerDetailsTitle": {
     "description": "Dialog title for editing shared choreographer/contact details."
   },
@@ -11484,7 +11484,7 @@
   "@danceEditorTypeFigureLabel": {
     "description": "Text field label for free-text figure entry."
   },
-  "danceEditorTypeFigureHelper": "e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as a custom figure.",
+  "danceEditorTypeFigureHelper": "e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; text the app can't read is kept as an unrecognized figure.",
   "@danceEditorTypeFigureHelper": {
     "description": "Helper text for free-text figure entry."
   },
@@ -11496,7 +11496,7 @@
   "@danceEditorEmptyFigureName": {
     "description": "Fallback display name for a figure row with no move selected."
   },
-  "danceEditorCustomFigureName": "Custom figure",
+  "danceEditorCustomFigureName": "Unrecognized figure",
   "@danceEditorCustomFigureName": {
     "description": "Fallback display name for a custom figure with no text."
   },
@@ -11946,7 +11946,7 @@
   "@danceEditorUnderlineTooltip": {
     "description": "Tooltip for applying underline markup to selected note/custom text."
   },
-  "danceEditorCustomFigureTextLabel": "Custom figure text",
+  "danceEditorCustomFigureTextLabel": "Unrecognized figure text",
   "@danceEditorCustomFigureTextLabel": {
     "description": "Text field label for editing a custom figure description."
   },
@@ -12894,7 +12894,7 @@
   "@themeEditorSwatchError": {
     "description": "Label for the error colour swatch."
   },
-  "reparseConfirmTitle": "Upgrade custom figures?",
+  "reparseConfirmTitle": "Upgrade unrecognized figures?",
   "@reparseConfirmTitle": {
     "description": "Title of the confirm dialog before re-parsing custom figures."
   },
@@ -12922,7 +12922,7 @@
   "@reparseNothingUpgradedSnack": {
     "description": "Snackbar shown when an upgrade run changed nothing."
   },
-  "reparseUpgradedSnack": "Upgraded custom figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.",
+  "reparseUpgradedSnack": "Upgraded unrecognized figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.",
   "@reparseUpgradedSnack": {
     "description": "Snackbar confirming how many dances had custom figures upgraded.",
     "placeholders": {
@@ -12931,7 +12931,7 @@
       }
     }
   },
-  "reparseScreenTitle": "Re-check custom figures",
+  "reparseScreenTitle": "Re-check unrecognized figures",
   "@reparseScreenTitle": {
     "description": "App-bar title for the re-check custom figures screen."
   },
@@ -12969,7 +12969,7 @@
   "@reparseEmptyTitle": {
     "description": "Title of the empty state when no custom figures can be upgraded."
   },
-  "reparseEmptyBody": "None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.",
+  "reparseEmptyBody": "None of your unrecognized figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.",
   "@reparseEmptyBody": {
     "description": "Body of the empty state when no custom figures can be upgraded."
   },
@@ -13323,11 +13323,11 @@
   "@dialectEditorPreviewHelp": {
     "description": "Helper text for the dialect live-preview section."
   },
-  "recentlyDeletedTitle": "Recently Deleted",
+  "recentlyDeletedTitle": "Recently deleted",
   "@recentlyDeletedTitle": {
     "description": "App-bar title for the recently-deleted (trash) screen."
   },
-  "recentlyDeletedLoadError": "Couldn’t load your deleted items. Nothing has been removed.",
+  "recentlyDeletedLoadError": "Couldn’t load your recently deleted items. Nothing has been removed.",
   "@recentlyDeletedLoadError": {
     "description": "Shown on the recently-deleted screen when loading the deleted dances or programs fails, above a Retry button. Reassures the user that a failed load does not mean their deleted items are gone."
   },
@@ -13395,7 +13395,7 @@
   "@recentlyDeletedLoadingPrograms": {
     "description": "Loading label for the recently-deleted programs screen."
   },
-  "recentlyDeletedEmptyDancesKept": "Nothing in the trash. Deleted dances are kept here until you remove them.",
+  "recentlyDeletedEmptyDancesKept": "No recently deleted dances. Deleted dances are kept here until you remove them.",
   "@recentlyDeletedEmptyDancesKept": {
     "description": "Empty state for recently-deleted dances when there is no retention window."
   },
@@ -13403,7 +13403,7 @@
   "@recentlyDeletedEmptyTitle": {
     "description": "Title of the empty Recently deleted lists (dances and programs)."
   },
-  "recentlyDeletedEmptyDancesRetention": "Nothing in the trash. Deleted dances appear here for {days} days before being removed.",
+  "recentlyDeletedEmptyDancesRetention": "No recently deleted dances. Deleted dances appear here for {days} days before being removed.",
   "@recentlyDeletedEmptyDancesRetention": {
     "description": "Empty state for recently-deleted dances with a retention window of {days} days.",
     "placeholders": {
@@ -13412,11 +13412,11 @@
       }
     }
   },
-  "recentlyDeletedEmptyProgramsKept": "Nothing in the trash. Deleted programs are kept here until you remove them.",
+  "recentlyDeletedEmptyProgramsKept": "No recently deleted programs. Deleted programs are kept here until you remove them.",
   "@recentlyDeletedEmptyProgramsKept": {
     "description": "Empty state for recently-deleted programs when there is no retention window."
   },
-  "recentlyDeletedEmptyProgramsRetention": "Nothing in the trash. Deleted programs appear here for {days} days before being removed.",
+  "recentlyDeletedEmptyProgramsRetention": "No recently deleted programs. Deleted programs appear here for {days} days before being removed.",
   "@recentlyDeletedEmptyProgramsRetention": {
     "description": "Empty state for recently-deleted programs with a retention window of {days} days.",
     "placeholders": {
@@ -14594,7 +14594,7 @@
   "@glossaryCustomExample": {
     "description": "Heading of how a new figure reads with its default values, on its Glossary page."
   },
-  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dance in the Trash uses it, and keeps the line it last stored.} other{{count} dances in the Trash use it, and keep the lines they last stored.}}",
+  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dance in Recently deleted uses it, and keeps the line it last stored.} other{{count} dances in Recently deleted use it, and keep the lines they last stored.}}",
   "@glossaryCustomDeleteTrash": {
     "description": "Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when dances in the Trash use it: they are not changed, and keep the line each last stored.",
     "placeholders": {

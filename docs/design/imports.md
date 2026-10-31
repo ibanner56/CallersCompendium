@@ -1641,7 +1641,7 @@ has to be judged in its own context.
   bracket never overrules the roller a note names. Structured figures already
   stored keep their old `who`: the #1192 repair is unchanged and nothing
   re-reads them, so re-importing the same dance can differ from the stored
-  copy. An import-gap custom that **Re-check custom figures** re-reads gets
+  copy. An import-gap custom that **Re-check unrecognized figures** re-reads gets
   the new reading. `rollaway` and `w/ half sashay` read too.
   **Box circulate balance from beats (#1975, maintainer decision):** a box
   circulate that is a whole line gets `balance: true` in 8 beats and `balance:
@@ -1695,7 +1695,7 @@ has to be judged in its own context.
   decoded comma list says nothing about the balance, so unlike a Caller's Box
   `;` list it does not write `balance: false`. Square throughs already
   structured in a collection keep their balance; an import-gap custom that
-  **Re-check custom figures** reads again gets the new reading.
+  **Re-check unrecognized figures** reads again gets the new reading.
   ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
   is likewise promoted from the existing figure note to `turn`, using the
   maintainer mapping `on the left` → `clockwise` and `on the right` →
@@ -1926,7 +1926,7 @@ has to be judged in its own context.
     scrubbed like the rest of the line, so `form ring` after a figure still
     keeps the line text. Any other piece that reads as nothing keeps the whole
     line text, and a line of more than six pieces is not tried.
-  - Free-text entry and **Re-check custom figures** do not split at commas.
+  - Free-text entry and **Re-check unrecognized figures** do not split at commas.
 
   The shared balance reader also reads the hand Caller's Companion writes
   before it (`R-hand balance`, `Right hand balance`, `RH-balance`).

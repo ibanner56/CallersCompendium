@@ -32,7 +32,7 @@ import 'settings_screen.dart'
         kAutoSizePerformKey,
         kShowProgramSlotCallerNotesKey;
 
-/// Full-screen, large-print performance view for a whole [Program]
+/// Full-screen, large-print Perform mode for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
 ///
 /// Walks the program's ordered *groups* ([Program.grouped]) — a primary slot
