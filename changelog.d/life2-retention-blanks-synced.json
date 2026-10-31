@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A dance or program that Device Sync has shared is now cleared when it has been in Recently deleted longer than your \"Keep deleted items for\" setting, instead of staying there for good. As with Permanently delete, its content is erased on all your devices and only a small deletion record is kept; a dance that a program or another dance still includes keeps its title until nothing does. The setting syncs, so it applies on all your devices. If one of your devices still runs an older version, Device Sync may show a notice about the item on each sync until that device is updated; nothing is lost."
+      "A dance or program that Device Sync has shared is now cleared when it has been in Recently deleted longer than your \"Keep recently deleted items for\" setting, instead of staying there for good. As with Permanently delete, its content is erased on all your devices and only a small deletion record is kept; a dance that a program or another dance still includes keeps its title until nothing does. The setting syncs, so it applies on all your devices. If one of your devices still runs an older version, Device Sync may show a notice about the item on each sync until that device is updated; nothing is lost."
     ]
   },
   "core": {

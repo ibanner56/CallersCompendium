@@ -12,7 +12,7 @@ import '../theme/destructive_button_style.dart';
 /// Per-entity configuration for [RecentlyDeletedScreen].
 ///
 /// Captures everything that differs between the dances and programs
-/// "Recently Deleted" screens — the entity accessors, the repository calls,
+/// "Recently deleted" screens — the entity accessors, the repository calls,
 /// the retention window, and the copy — so the screen itself stays generic and
 /// the two entry points ([RecentlyDeletedScreen.dances] /
 /// [RecentlyDeletedScreen.programs]) are thin wrappers over the shared shape.
@@ -106,7 +106,7 @@ class RecentlyDeletedScreen<T> extends StatefulWidget {
   final RecentlyDeletedConfig<T> config;
   final VoidCallback? onClose;
 
-  /// The dances "Recently Deleted" screen.
+  /// The dances "Recently deleted" screen.
   static RecentlyDeletedScreen<Dance> dances({
     Key? key,
     VoidCallback? onClose,
@@ -116,7 +116,7 @@ class RecentlyDeletedScreen<T> extends StatefulWidget {
     onClose: onClose,
   );
 
-  /// The programs "Recently Deleted" screen.
+  /// The programs "Recently deleted" screen.
   static RecentlyDeletedScreen<Program> programs({
     Key? key,
     VoidCallback? onClose,
@@ -333,7 +333,7 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
   }
 }
 
-/// Config for the dances "Recently Deleted" screen. Dances honor the
+/// Config for the dances "Recently deleted" screen. Dances honor the
 /// user-configurable retention window (ROADMAP G.4), so [loadRetention] reads
 /// the persisted setting.
 final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
@@ -371,11 +371,11 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
           l10n.recentlyDeletedEmptyDancesRetention(days),
     );
 
-/// Config for the programs "Recently Deleted" screen. Programs are purged by
+/// Config for the programs "Recently deleted" screen. Programs are purged by
 /// the same user-configurable window as dances (the startup sweep in
 /// `main.dart` passes one `retention` to both), so [loadRetention] reads the
-/// same setting (`kSoftDeleteRetentionKey`, labelled "Keep deleted items for" in
-/// Settings).
+/// same setting (`kSoftDeleteRetentionKey`, labelled "Keep recently deleted
+/// items for" in Settings).
 final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
     RecentlyDeletedConfig<Program>(
       pluralNoun: 'programs',

@@ -153,7 +153,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Choreographer details'), findsOneWidget);
+    expect(find.text('Author details'), findsOneWidget);
     expect(find.text('Name *'), findsOneWidget);
     expect(find.text('Email (private)'), findsOneWidget);
     expect(find.text('Location (private)'), findsOneWidget);
@@ -248,7 +248,7 @@ void main() {
 
     expect(find.text('Name is required'), findsOneWidget);
     // Dialog stays open (still findable), so no result yet.
-    expect(find.text('Choreographer details'), findsOneWidget);
+    expect(find.text('Author details'), findsOneWidget);
   });
 
   testWidgets('cancel returns null', (tester) async {

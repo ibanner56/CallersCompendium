@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "\"Neighbor Roll Away\" and \"Partners roll away\" now come in as a roll away with your neighbor or partner, instead of one where the neighbors roll each other away. \"Neighbor rollaway w/ half sashay\", as Caller's Companion writes it, now comes in as a roll away too, and a note like \"(Robins roll R, Larks step L)\" sets who rolls the others away. This applies to imports, to figures you type, and to figures Re-check custom figures reads again; roll aways already structured in your collection are unchanged.",
+      "\"Neighbor Roll Away\" and \"Partners roll away\" now come in as a roll away with your neighbor or partner, instead of one where the neighbors roll each other away. \"Neighbor rollaway w/ half sashay\", as Caller's Companion writes it, now comes in as a roll away too, and a note like \"(Robins roll R, Larks step L)\" sets who rolls the others away. This applies to imports, to figures you type, and to figures Re-check unrecognized figures reads again; roll aways already structured in your collection are unchanged.",
       "A box circulate on a line of its own, imported or typed, now includes its balance in 8 beats and leaves it out in 4. Before, a box circulate that did not say either way always showed a balance.",
       "A Caller's Box line that names its subject in a leading bracket, such as \"[Ones] Box circulate\", no longer shows that subject as assumed."
     ]

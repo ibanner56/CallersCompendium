@@ -799,8 +799,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count Choreografen',
-      one: '1 Choreografen',
+      other: '$count Autoren',
+      one: '1 Autor',
     );
     return '$_temp0';
   }
@@ -2711,7 +2711,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen, und eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur, wenn Sie die Eingabetaste drücken. Die Zeile wird in Figuren umgewandelt; Nichterkanntes wird als benutzerdefinierte Figur gespeichert, die Sie später korrigieren können. Neue Tänze beginnen ohne Figuren, sofern Sie keine Startfiguren gespeichert haben.';
+      'Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen, und eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur, wenn Sie die Eingabetaste drücken. Die Zeile wird in Figuren umgewandelt; Text, den die App nicht lesen kann, wird als nicht erkannte Figur gespeichert, die Sie später korrigieren können. Neue Tänze beginnen ohne Figuren, sofern Sie keine Startfiguren gespeichert haben.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -3396,11 +3396,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Vor dem Löschen eines Tanzes oder Programms um Bestätigung bitten. Löschvorgänge können noch rückgängig gemacht werden; dies fügt nur eine explizite Abfrage vorweg hinzu.';
 
   @override
-  String get settingsGeneralDeletedItemsHeader => 'Gelöschte Elemente';
+  String get settingsGeneralDeletedItemsHeader => 'Zuletzt gelöscht';
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Gelöschte Elemente behalten für';
+      'Zuletzt gelöschte Elemente behalten für';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
@@ -3448,7 +3448,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Synchronisierungsentscheidung konnte nicht angewendet werden. Der Eintrag wurde für einen weiteren Versuch behalten.';
 
   @override
-  String get syncReviewKindChoreographer => 'Choreograf';
+  String get syncReviewKindChoreographer => 'Autor';
 
   @override
   String get syncReviewKindTag => 'Tag';
@@ -3509,7 +3509,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get syncReviewMergeDiscardsContactsTitle =>
-      'Diese Choreografen zusammenführen?';
+      'Diese Autoren zusammenführen?';
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
@@ -3573,11 +3573,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresTitle =>
-      'Benutzerdefinierte Figuren erneut prüfen';
+      'Nicht erkannte Figuren erneut prüfen';
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Importierte Tänze erneut prüfen, deren Figuren nur deshalb als benutzerdefiniert gespeichert wurden, weil sie beim Import nicht erkannt werden konnten. Erkennt die App sie jetzt, werden sie an Ort und Stelle aktualisiert – Ihre Tags, Bewertungen und Notizen bleiben erhalten. Sie können eine Vorschau sehen und bestätigen, bevor etwas geändert wird.';
+      'Importierte Tänze erneut prüfen, deren Figuren nur deshalb als nicht erkannte Figuren gespeichert wurden, weil sie beim Import nicht erkannt werden konnten. Erkennt die App sie jetzt, werden sie an Ort und Stelle aktualisiert – Ihre Tags, Bewertungen und Notizen bleiben erhalten. Sie können eine Vorschau sehen und bestätigen, bevor etwas geändert wird.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Erneut prüfen…';
@@ -4037,14 +4037,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importGapMessage =>
-      'Dieser Aufruf wurde nicht erkannt – genau wie geschrieben als benutzerdefinierte Figur gespeichert.';
+      'Dieser Aufruf wurde nicht erkannt – genau wie geschrieben als nicht erkannte Figur gespeichert.';
 
   @override
   String get importGapDialogTitle => 'Nicht erkannte Figur';
 
   @override
   String get importGapSemanticLabel =>
-      'Nicht erkannte Figur. Genau wie geschrieben als benutzerdefinierte Figur gespeichert.';
+      'Nicht erkannte Figur. Genau wie geschrieben gespeichert.';
 
   @override
   String get collectionScreenTitle => 'Sammlung';
@@ -5356,7 +5356,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsAddDanceButton => 'Tanz hinzufügen';
 
   @override
-  String get programsAddNoteBreakButton => 'Notiz / Walzer hinzufügen';
+  String get programsAddNoteBreakButton => 'Notiz oder Pause hinzufügen';
 
   @override
   String get programsInsertBreakButton => 'Pause einfügen';
@@ -6015,18 +6015,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get performTitle => 'Perform';
 
   @override
-  String get performExitTooltip => 'Perform-Ansicht verlassen';
+  String get performExitTooltip => 'Perform verlassen';
 
   @override
   String get performExitTitle => 'Perform verlassen?';
 
   @override
   String get performExitBody =>
-      'Perform-Ansicht verlassen? Ihr Platz und die laufende Uhr werden gespeichert, sodass Sie dort weitermachen können, wo Sie aufgehört haben.';
+      'Perform verlassen? Ihr Platz und die laufende Uhr werden gespeichert, sodass Sie dort weitermachen können, wo Sie aufgehört haben.';
 
   @override
   String get performDanceExitBody =>
-      'Perform-Ansicht verlassen? Beim Perform eines einzelnen Tanzes wird Ihr Platz nicht gespeichert, daher beginnt es beim nächsten Mal von vorn.';
+      'Perform verlassen? Beim Perform eines einzelnen Tanzes wird Ihr Platz nicht gespeichert, daher beginnt es beim nächsten Mal von vorn.';
 
   @override
   String get performExitCancel => 'Weitermachen';
@@ -7719,11 +7719,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importIssueMoveFallback =>
-      'Eine Figur konnte keiner bekannten Bewegung zugeordnet werden; als benutzerdefiniert importiert.';
+      'Eine Figur konnte keiner bekannten Bewegung zugeordnet werden; als nicht erkannte Figur importiert.';
 
   @override
   String importIssueMoveFallbackAt(int position) {
-    return 'Figur $position konnte keiner bekannten Bewegung zugeordnet werden; als benutzerdefiniert importiert.';
+    return 'Figur $position konnte keiner bekannten Bewegung zugeordnet werden; als nicht erkannte Figur importiert.';
   }
 
   @override
@@ -7768,7 +7768,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importRecordErrorNotCompendiumArchive =>
-      'Das ist keine Caller\'s-Compendium-Datei. Wähle eine .json-Datei, die aus dieser App exportiert wurde.';
+      'Das ist keine Freigabedatei. Wähle eine .json- oder .ccshare-Datei, die aus dieser App exportiert wurde.';
 
   @override
   String get importRecordErrorNotCallersBoxDance =>
@@ -7892,7 +7892,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get importReviewCustom => 'Benutzerdefiniert';
+  String get importReviewCustom => 'Nicht erkannt';
 
   @override
   String get importReviewOptionNewDance => 'Neuer Tanz';
@@ -8234,11 +8234,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'Geben Sie eine Bewegung ein (z. B. „sw“ → swing) und drücken Sie Eingabe, um sie mit Standardwerten hinzuzufügen; nicht erkannter Text wird eine benutzerdefinierte Figur.';
+      'Geben Sie eine Bewegung ein (z. B. „sw“ → swing) und drücken Sie Eingabe, um sie mit Standardwerten hinzuzufügen; Text, den die App nicht lesen kann, wird eine nicht erkannte Figur.';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
-      'Fügen Sie eine Figur hinzu, indem Sie eine ganze Zeile eingeben (z. B. „neighbor balance & swing“) und die Eingabetaste drücken. Eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur. Nicht Erkanntes wird eine benutzerdefinierte Figur.';
+      'Fügen Sie eine Figur hinzu, indem Sie eine ganze Zeile eingeben (z. B. „neighbor balance & swing“) und die Eingabetaste drücken. Eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur. Text, den die App nicht lesen kann, wird eine nicht erkannte Figur.';
 
   @override
   String get danceEditorNotesSection => 'Notizen';
@@ -8663,12 +8663,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
-    return 'Ein Choreograf namens „$name“ existiert bereits. Der Name wurde nicht geändert.';
+    return 'Ein Autor namens „$name“ existiert bereits. Der Name wurde nicht geändert.';
   }
 
   @override
   String danceEditorChoreographerCreateDuplicate(String name) {
-    return 'Eine Choreografin oder ein Choreograf namens „$name“ existiert bereits. Der neue Eintrag wurde nicht erstellt — wähle stattdessen den vorhandenen aus.';
+    return 'Ein Autor namens „$name“ existiert bereits. Der neue Autor wurde nicht erstellt — wähle stattdessen den vorhandenen aus.';
   }
 
   @override
@@ -8753,7 +8753,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorLoadError => 'Tanz konnte nicht geladen werden.';
 
   @override
-  String get danceEditorChoreographerDetailsTitle => 'Choreografen-Details';
+  String get danceEditorChoreographerDetailsTitle => 'Details zum Autor';
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
@@ -8924,7 +8924,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorTypeFigureHelper =>
-      'z. B. „neighbor balance & swing“ oder „16 circle left 3/4“. Eingabe fügt sie hinzu; nicht erkannter Text wird als benutzerdefinierte Figur gespeichert.';
+      'z. B. „neighbor balance & swing“ oder „16 circle left 3/4“. Eingabe fügt sie hinzu; Text, den die App nicht lesen kann, wird als nicht erkannte Figur gespeichert.';
 
   @override
   String get danceEditorPasteHere => 'Hier einfügen';
@@ -8933,7 +8933,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorEmptyFigureName => 'Leere Figur';
 
   @override
-  String get danceEditorCustomFigureName => 'Benutzerdefinierte Figur';
+  String get danceEditorCustomFigureName => 'Nicht erkannte Figur';
 
   @override
   String get danceEditorEmptyFigureSummary => '(leer — Bewegung auswählen)';
@@ -9277,7 +9277,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorCustomFigureTextLabel =>
-      'Benutzerdefinierter Figurentext';
+      'Text der nicht erkannten Figur';
 
   @override
   String get danceEditorLingoStylingHelper =>
@@ -9982,7 +9982,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get themeEditorSwatchError => 'Fehler';
 
   @override
-  String get reparseConfirmTitle => 'Benutzerdefinierte Figuren aktualisieren?';
+  String get reparseConfirmTitle => 'Nicht erkannte Figuren aktualisieren?';
 
   @override
   String reparseConfirmBody(int figureCount, int danceCount) {
@@ -10019,11 +10019,11 @@ class AppLocalizationsDe extends AppLocalizations {
       other: '$danceCount Tänzen',
       one: '1 Tanz',
     );
-    return 'Benutzerdefinierte Figuren in $_temp0 aktualisiert.';
+    return 'Nicht erkannte Figuren in $_temp0 aktualisiert.';
   }
 
   @override
-  String get reparseScreenTitle => 'Benutzerdefinierte Figuren erneut prüfen';
+  String get reparseScreenTitle => 'Nicht erkannte Figuren erneut prüfen';
 
   @override
   String reparseIntro(int figureCount, int danceCount) {
@@ -10069,7 +10069,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'Keine Ihrer benutzerdefinierten Figuren aus Importen kann derzeit als bekannte Bewegung erkannt werden. Schauen Sie nach einem zukünftigen Update wieder nach, das die Figurenerkennung verbessert.';
+      'Keine Ihrer nicht erkannten Figuren aus Importen kann derzeit als bekannte Bewegung erkannt werden. Schauen Sie nach einem zukünftigen Update wieder nach, das die Figurenerkennung verbessert.';
 
   @override
   String get reparseErrorTitle => 'Ihre Figuren konnten nicht geprüft werden';
@@ -10348,7 +10348,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Gelöschte Elemente konnten nicht geladen werden. Es wurde nichts entfernt.';
+      'Zuletzt gelöschte Elemente konnten nicht geladen werden. Es wurde nichts entfernt.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Dauerhaft löschen?';
@@ -10401,23 +10401,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get recentlyDeletedEmptyDancesKept =>
-      'Nichts im Papierkorb. Gelöschte Tänze werden hier aufbewahrt, bis Sie sie entfernen.';
+      'Keine zuletzt gelöschten Tänze. Gelöschte Tänze werden hier aufbewahrt, bis Sie sie entfernen.';
 
   @override
   String get recentlyDeletedEmptyTitle => 'Nichts gelöscht';
 
   @override
   String recentlyDeletedEmptyDancesRetention(int days) {
-    return 'Nichts im Papierkorb. Gelöschte Tänze erscheinen hier für $days Tage, bevor sie entfernt werden.';
+    return 'Keine zuletzt gelöschten Tänze. Gelöschte Tänze erscheinen hier für $days Tage, bevor sie entfernt werden.';
   }
 
   @override
   String get recentlyDeletedEmptyProgramsKept =>
-      'Nichts im Papierkorb. Gelöschte Programme werden hier aufbewahrt, bis Sie sie entfernen.';
+      'Keine zuletzt gelöschten Programme. Gelöschte Programme werden hier aufbewahrt, bis Sie sie entfernen.';
 
   @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
-    return 'Nichts im Papierkorb. Gelöschte Programme erscheinen hier für $days Tage, bevor sie entfernt werden.';
+    return 'Keine zuletzt gelöschten Programme. Gelöschte Programme erscheinen hier für $days Tage, bevor sie entfernt werden.';
   }
 
   @override
@@ -11249,9 +11249,9 @@ class AppLocalizationsDe extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count Tänze im Papierkorb verwenden sie und behalten die zuletzt gespeicherten Zeilen.',
+          '$count Tänze unter „Zuletzt gelöscht“ verwenden sie und behalten die zuletzt gespeicherten Zeilen.',
       one:
-          '1 Tanz im Papierkorb verwendet sie und behält die zuletzt gespeicherte Zeile.',
+          '1 Tanz unter „Zuletzt gelöscht“ verwendet sie und behält die zuletzt gespeicherte Zeile.',
     );
     return '$_temp0';
   }
