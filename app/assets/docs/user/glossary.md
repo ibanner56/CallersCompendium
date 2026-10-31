@@ -211,7 +211,8 @@ How dancers move on to the next couple as a dance repeats. Like
 Where a [dance](#dance) or [program](#program) goes when you delete it. Nothing
 is gone right away: open **Recently deleted** to restore an item, or remove it
 for good. Items are cleared automatically after the time you choose under
-**Settings ▸ General ▸ Recently deleted**.
+**Settings ▸ General ▸ Recently deleted**, or kept until you remove them if you
+choose **Never**.
 
 ## Sequence
 

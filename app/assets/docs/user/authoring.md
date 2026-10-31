@@ -368,7 +368,7 @@ yours, and changing or deleting your combination later does not change it.
 
 If your combination has been deleted, has changed so that it can no longer be
 expanded, or no longer accepts the values on the row, the row says so, and
-saving keeps it as a [unrecognized figure](#unrecognized-figure) with its name, its beats,
+saving keeps it as an [unrecognized figure](#unrecognized-figure) with its name, its beats,
 and the row's note and progression mark. The values you chose for its
 parameters are not kept. A row that is one of your combinations cannot be
 grouped as a meanwhile, modifier or sequence. Turning Custom Figures off stops
@@ -524,8 +524,8 @@ nothing in it to lose.
 ### Details
 
 - **Title** — required.
-- **Authors** — the [author](./glossary.md#author) or
-  authors. Type to find an existing author or create a new one.
+- **Authors** — the [author](./glossary.md#author) or authors of the dance.
+  Type to find an existing author or create a new one.
 - **Type** — **Contra**, **English (ECD)**, or **Square**. It sets the icon on
   the dance's row in your collection and what the **Type** filter finds. A new
   dance starts with your default type (see
