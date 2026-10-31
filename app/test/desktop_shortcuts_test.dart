@@ -518,23 +518,34 @@ void main() {
   testWidgets(
     'Import over an import embedded across a breakpoint opens no second one',
     (tester) async {
+      // A page pushed over the embedded view would leave it offstage, so
+      // these count offstage views too.
       await _pump(tester, size: _wide);
       final shell = tester.state<AppShellState>(find.byType(AppShell));
       shell.importDances();
       await tester.pumpAndSettle();
-      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(
+        find.byType(ImportReviewScreen, skipOffstage: false),
+        findsOneWidget,
+      );
 
       // The window keeps the rail, but the Collection beside it drops below
       // its own split breakpoint: the embedded import view stays in place of
       // the list.
       await tester.binding.setSurfaceSize(const Size(960, 1600));
       await tester.pumpAndSettle();
-      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(
+        find.byType(ImportReviewScreen, skipOffstage: false),
+        findsOneWidget,
+      );
 
       shell.importDances();
       await tester.pumpAndSettle();
 
-      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(
+        find.byType(ImportReviewScreen, skipOffstage: false),
+        findsOneWidget,
+      );
     },
   );
 
