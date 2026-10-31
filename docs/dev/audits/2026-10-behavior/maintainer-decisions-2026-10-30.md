@@ -487,6 +487,15 @@ This covers those six branches only. It does not cover wave 3, wave 4 or D2.
 
 Wave 3 itself started at about 20:33 UTC, when the revised gate above was met: N4-S3 (#2083) and N2-T3 (#2084) were green and ready to merge, and every other gate branch had merged.
 
+### D2, its scope, and B29 (2026-10-31 ~06:50 UTC)
+**Decision (maintainer's words):** "D2 is approved".
+
+**Scope (maintainer's choice):** "Trimmed scope (Recommended)". Its description: "D2 does PRES-5, PRES-6, GIG-20 and INTAKE-11. It checks the moved bullets are already covered by B11 and B21 on main, and lists anything still wrong as a follow-up." This confirms "Decisions that conflict" item 4 in `decided-work-plan.md`: FIND-4 and FIND-5 go to B11, PLAT-3 to B21, and PLAT-7 to B29.
+
+**PR approval (maintainer's choice):** "Both, standing (Recommended)". Its description: "D2 opens its PR when ready. After D2 merges, B29 starts on Opus and opens its PR when ready, without asking you each time."
+
+**Wave 4 (maintainer's choice):** "Not yet". Its description: "Hold wave 4; ask me again after D2 merges."
+
 ## Still open
 
 - Nothing on the decision page.
