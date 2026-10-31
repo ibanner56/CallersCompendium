@@ -759,8 +759,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                       widget.selectedProgramId == program.id,
                   onTap: () => _openProgram(program.id),
                   // Row action menu (⋮): non-swipe access for mouse/keyboard/AT
-                  // users. Delete routes through the identical confirm +
-                  // soft-delete + undo flow as the Dismissible swipe above.
+                  // users. Unlike the Slidable swipe above, which deletes
+                  // without a prompt, this path honours "Confirm before
+                  // delete" (confirmDeleteIfEnabled) before the shared
+                  // soft-delete + undo flow.
                   onDelete: () async {
                     if (await confirmDeleteProgramIfEnabled(
                       context,

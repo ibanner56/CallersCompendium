@@ -420,6 +420,19 @@ description of the starting position ("Long Waves, R-hand to Neighbor") is kept
 as the formation's detail.
 Alternates in your sets come across as alternates.
 
+A **title** that Caller's Companion filed with its article at the end, such as
+"Baby Rose, The", comes across with the article back in front: "The Baby Rose".
+The articles moved are The, A, An, La, Le, Les and L' ("Amour, L'" becomes
+"L'Amour"), and a note in brackets stays at the end ("Baby Rose, The (var)"
+becomes "The Baby Rose (var)"). A title that only looks library-style moves
+too ("Thanks, Les" becomes "Les Thanks"), so check a dedication title and fix
+it in the editor if it moved. A dance you imported before keeps the title it
+has, unless you tick **Also update title and credit** on its row when you
+import again (see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
+When the app looks for a dance you already have, "Bastringue, La" and "La
+Bastringue" count as the same title, whichever source either came from.
+
 Your **notes and sources** come across with each dance. Your calling notes
 come first, then the music, any progression detail, your other notes (under
 "Other notes:"), and where the dance came from (under "Source:"). Source and

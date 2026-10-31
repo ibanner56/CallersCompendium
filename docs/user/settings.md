@@ -107,10 +107,13 @@ The **General** section gathers everyday behavior into small groups.
   instead of fractions (¾). Screen-reader wording is unaffected, and so are
   printed and exported cards: PDFs, shared text and set-list cards always write
   turns as fractions.
-- **Confirm before delete** — adds a prompt before you delete a dance or program.
-  Deletes are still undoable either way. When you delete a program, the prompt
-  also says how many dances lose it from their calling history. Swiping a row
-  in the programs list skips the prompt.
+- **Confirm before delete** — adds a prompt before you delete a dance or program
+  from its **⋮** menu, from the dance or program screen, or from Collection's
+  selection mode. The one exception is swiping a row in the Collection or
+  Programs list: that reveals a **Delete** button, and tapping it deletes with
+  no prompt, because the swipe plus the tap is already a deliberate two-step
+  action. Deletes are still undoable either way. When you delete a program, the
+  prompt also says how many dances lose it from their calling history.
 
 These are the highlights; the [Accessibility guide](./accessibility.md) gives you
 the full picture.

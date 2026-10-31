@@ -50,8 +50,8 @@ large type.
 
 Your [dialect](./dialects.md) is applied — or the program's own dialect, if you
 gave it one (see [Programs](./programs.md)) — so the card speaks in your words.
-For a quick look at the shared wording, choose **Canonical** under **Switch
-dialect** below. Figure
+To see the shared wording, choose **Canonical** under **Switch dialect** below
+(that section says how long the change lasts). Figure
 detail you recorded shows here too: when a swing ends facing somewhere other
 than the usual "in"/across — up or down the hall, or out of the set — the card
 notes that ending so you can cue it.
@@ -66,9 +66,11 @@ same thing, and every toggle says which state it is in rather than relying on
 how it looks.
 
 **Switch dialect.** Changes your active dialect for the whole app — handy when
-tonight's hall uses different role names. **Canonical** is one of the choices,
-for when a dancer or another caller asks what a figure is in the shared wording;
-switch back the same way. If the program has its own dialect, the switch changes
+tonight's hall uses different role names. The change stays after you leave
+Perform: later screens, PDFs and shared text use that dialect too, and it syncs to
+your other devices. **Canonical** is one of the choices, for when a dancer or
+another caller asks what a figure is in the shared wording; switch back the same
+way when you are done. If the program has its own dialect, the switch changes
 the wording for this time in Perform only: your active dialect stays as it was,
 and the program's dialect is back the next time you open Perform. See
 [Dialect](./dialects.md#switch-dialect-on-the-fly).

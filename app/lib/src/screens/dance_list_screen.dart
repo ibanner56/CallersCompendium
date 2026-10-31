@@ -3376,8 +3376,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       entry: entry,
       visibleFields: CollectionTileFieldsScope.of(context),
       // Row action menu (⋮): non-swipe access to the row actions for
-      // mouse/keyboard/AT users. Delete routes through the identical
-      // confirm + soft-delete + undo flow as the Dismissible swipe below.
+      // mouse/keyboard/AT users. Unlike the Slidable swipe below, which
+      // deletes without a prompt, this path honours "Confirm before delete"
+      // (confirmDeleteIfEnabled) before the shared soft-delete + undo flow.
       onDelete: () async {
         if (await confirmDeleteIfEnabled(
           context,
