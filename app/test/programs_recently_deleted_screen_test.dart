@@ -35,7 +35,7 @@ void main() {
     await _pump(tester, repos);
 
     expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
-    expect(find.textContaining('Nothing in the trash'), findsOneWidget);
+    expect(find.textContaining('No recently deleted'), findsOneWidget);
   });
 
   testWidgets('lists only soft-deleted programs', (tester) async {

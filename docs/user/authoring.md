@@ -53,11 +53,11 @@ Typing `sw` and pressing Enter, for example, gives you a swing.
 
 With **Free-text entry** on, **Add figure** opens **Type a figure** instead: one
 box that takes a whole line and offers no move suggestions. Press Enter and the
-line is added; `sw` typed there on its own is a custom figure, not a swing. See
+line is added; `sw` typed there on its own is an unrecognized figure, not a swing. See
 [Free-text entry](#free-text-entry) below.
 
 Anything you add that the app cannot recognise is still kept — it becomes a
-**custom figure**, holding your text. Nothing you add is ever thrown away because
+**unrecognized figure**, holding your text. Nothing you add is ever thrown away because
 the app did not understand it; the only change is that role words are saved as role terms and
 shown in your own dialect (see below).
 
@@ -100,7 +100,7 @@ progression mark are kept, as they are when you pick a new move: the note and
 the step go on the first of the new figures (after any note you typed with the
 line) and the progression mark on the last. Typing a move's name and choosing
 it still works as before. With **Free-text entry** off, a line typed there is
-kept as a custom figure holding your text.
+kept as an unrecognized figure holding your text.
 
 Pressing Enter in a figure's **Move** box chooses, in this order: the move (or
 your own figure) whose name is exactly what you typed, so `star` is a star and
@@ -113,7 +113,7 @@ another box, saving the dance, or closing the figure or opening another one,
 what you typed is used only when it is exactly a move's name (or one of your
 own figures' names) or, with **Free-text entry** on, one of your shorthands.
 Anything else, such as part of a name, goes back to the move the figure had:
-leaving the box never picks a suggestion for you or makes a custom figure. On a
+leaving the box never picks a suggestion for you or makes an unrecognized figure. On a
 phone the same goes for closing the list of moves without choosing one. Going
 back with such a name or shorthand still in the box asks before discarding it.
 
@@ -131,7 +131,7 @@ number (`neighbors swing 16`), a turn amount, in figures or in words
 (`petronella twice`, `petronella two times`, `circle left 3/4 and pass through`,
 `allemande left three quarters`), or another move after a comma, `and` or
 `then` (`partners balance and swing, end facing down`), the whole line is kept
-as a custom figure, marked unparsed. Otherwise you would get a figure with the
+as an unrecognized figure, marked unparsed. Otherwise you would get a figure with the
 wrong beats or turn, with the rest hidden in its note. Use the leading
 `16 neighbors swing` form to set the beats.
 
@@ -144,7 +144,7 @@ Put `ones`, `twos`, `partners`, `neighbors`, `everyone`, `role1s`, `role2s` (or
 the singular `partner` or `neighbor`) in front of the name of a move that takes
 dancers and they are the dancers: `neighbor pass by`, `ones arch and dive`. A
 move that does not take dancers that way (`hey`, `slice`), a word the app does
-not know in the dancer's place, or anything else on the line stays a custom
+not know in the dancer's place, or anything else on the line stays an unrecognized
 figure unless the line is read as above. The app also reads `hey for four`,
 `half hey`, `full hey`, `turn as a couple`, turn amounts in words
 (`allemande right once and a half`), and older role words such as `ravens` by
@@ -161,20 +161,20 @@ Any of these can say `beats`: `neighbor swing (16 beats)`,
 a note on the figure ("4 bars") and the rest of the line is read as usual,
 because how many beats a bar holds depends on the dance's music. The figure
 keeps the beats it has when you pick it from the list. If the rest of the line
-is not read as a figure, the whole line is kept as a custom figure, as you
+is not read as a figure, the whole line is kept as an unrecognized figure, as you
 typed it.
 A count is never dropped: if the line states one the app cannot use (a second
-count on the same figure), the line is kept whole as a custom figure. A line
-kept as a custom figure keeps your words as you typed them, count included, and
+count on the same figure), the line is kept whole as an unrecognized figure. A line
+kept as an unrecognized figure keeps your words as you typed them, count included, and
 the count you gave is also its beats.
 
 A count too long to be beats, five digits or more (`circle left 10000 beats`,
 `(10000) circle left`), is not used as one. The figure is read as usual and takes
 the beats it has when you pick it from the list, and the number is kept in the
 figure's note (`10000 beats`) so you can see it was typed. If the rest of the
-line is not read as a figure, the whole line is kept as a custom figure, as you
+line is not read as a figure, the whole line is kept as an unrecognized figure, as you
 typed it. A count that is shorter but more than the 64 beats a figure can take
-(`circle left (100)`) keeps the whole line as a custom figure too.
+(`circle left (100)`) keeps the whole line as an unrecognized figure too.
 
 Pasting several lines into the box keeps them as one line, with a space where
 each line break was; type or paste one figure line at a time to get one figure
@@ -185,12 +185,12 @@ A `;` between figures makes a list, and each part is read as its own figure:
 the part it follows: `circle left (8); turn alone` gives the circle 8 beats, and
 `circle left; turn alone (4)` gives the turn 4. If any part cannot be read as a
 figure, or a count cannot be matched to a figure (a part that became a note on
-the one before it), the whole line is kept as one custom figure instead. A `||`
+the one before it), the whole line is kept as one unrecognized figure instead. A `||`
 makes its two sides a [meanwhile](./glossary.md#meanwhile):
 `circle left || neighbor swing` gives one meanwhile group whose sides are the
 circle and the swing.
 
-As always, anything it cannot parse is kept as a custom figure rather than
+As always, anything it cannot parse is kept as an unrecognized figure rather than
 dropped.
 
 ### Figure shorthands
@@ -217,19 +217,19 @@ A shorthand also works with a beat count and in a `;` list:
   to give it to. A token that includes a number, such as `3 swings`, is matched
   as typed, before any count is looked for. A count follows the same rules as
   on any figure line: more than the 64 beats a figure can take (`pbs (100)`)
-  keeps the whole line as a custom figure, as you typed it, and a count of five
+  keeps the whole line as an unrecognized figure, as you typed it, and a count of five
   digits or more (`pbs (10000)`) is kept in the figure's note, with the beats the
   shorthand was saved with.
 - `pbs; ladies chain` adds the shorthand's figures, then the next figure. Each
   part can have its own count. As with any `;` list, if one part is neither a
   shorthand nor a figure the app understands, the whole line is added as one
-  custom figure instead.
+  unrecognized figure instead.
 
 The same counts work on the shorthands for [your own figures](#your-own-figures)
 and for combinations, described below, whether typed into the free-text box or
 into the Move box of a row you are changing. `16 zm` and `zm (16)` add your
 figure with 16 beats, in place of the beats the shorthand was saved with, since
-it is one figure, and a count over 64 keeps the line as a custom figure, as
+it is one figure, and a count over 64 keeps the line as an unrecognized figure, as
 above. A count typed with a combination is ignored: it is added with the beats
 it was saved with. A shorthand for a
 plain figure with the same token as the one left after the count is taken off
@@ -243,7 +243,7 @@ part takes its own count as above. A combination is one row and counts as one
 part, however many figures it holds. A list can have at most 64 parts. As with
 the shorthands above, it is all or nothing: if one part is not a shorthand, a
 figure the app understands or a shorthand that can be used, the whole line is
-added as one custom figure instead.
+added as one unrecognized figure instead.
 
 Shorthands are your own; each one has to be unique, and the app tells you if you
 reuse a token that is already taken. Shorthands are matched before the app tries
@@ -295,14 +295,14 @@ version, for example — is shown read-only, with a plain explanation. Its data 
 kept untouched, it edits normally again once the app knows the move, and you can
 still reorder and delete it in the meantime.
 
-### Custom figure
+### Unrecognized figure
 
-A custom figure has two fields: **Custom figure text** and **Beats**.
+An unrecognized figure has two fields: **Unrecognized figure text** and **Beats**.
 
-The **Beats** field sets how many beats the custom figure occupies — use it the
+The **Beats** field sets how many beats the unrecognized figure occupies — use it the
 same way you would for any other figure.
 
-The **Custom figure text** field also accepts two formatting marks, with buttons
+The **Unrecognized figure text** field also accepts two formatting marks, with buttons
 for both:
 
 - `*text*` for **bold**
@@ -320,10 +320,10 @@ They come back in lower case: "Larks chain wide" shows as "larks chain wide",
 and "LADIES chain" shows as "robins chain" under Larks and Robins.
 (If you turn on **Capitalize figures** in [Settings](./settings.md), the first
 letter is shown capitalized.)
-Custom text saved before this change updates the next time you save the dance
+Unrecognized figure text saved before this change updates the next time you save the dance
 while the same dialect is active; text typed in a different dialect may need a
 manual edit. The same rewriting applies to the everyday and older role words
-"man", "men", "woman", "women", "lady", "ladies", "gent" and "gents" inside custom
+"man", "men", "woman", "women", "lady", "ladies", "gent" and "gents" inside unrecognized
 figure text (for example, "the man and lady swing"), and to the role names of
 the built-in dialects ("lark", "robin", "gentlespoon", "ladle" and their
 plurals). They are saved as role terms and shown in your dialect's words.
@@ -368,7 +368,7 @@ yours, and changing or deleting your combination later does not change it.
 
 If your combination has been deleted, has changed so that it can no longer be
 expanded, or no longer accepts the values on the row, the row says so, and
-saving keeps it as a [custom figure](#custom-figure) with its name, its beats,
+saving keeps it as a [unrecognized figure](#unrecognized-figure) with its name, its beats,
 and the row's note and progression mark. The values you chose for its
 parameters are not kept. A row that is one of your combinations cannot be
 grouped as a meanwhile, modifier or sequence. Turning Custom Figures off stops
@@ -391,12 +391,12 @@ The dance keeps following your figure: when you change its wording in the
 Glossary, every dance that uses it reads the new way, on this device. Saving
 the dance also stores how it reads at that moment, which is what a device
 without your figure, or with an older version of the app, shows. If you change
-that line on such a device, it becomes an ordinary [custom
-figure](#custom-figure) there and stops following your figure.
+that line on such a device, it becomes an ordinary [unrecognized
+figure](#unrecognized-figure) there and stops following your figure.
 
 If your figure has been deleted, the row says so and keeps the line it had.
 Deleting a figure from the Glossary changes each dance that uses it to that
-line, as a custom figure. Turning Custom Figures off stops new figures being
+line, as an unrecognized figure. Turning Custom Figures off stops new figures being
 offered, but a dance that already uses one still reads with its wording.
 
 ### Reorder, cut, and duplicate
@@ -507,7 +507,7 @@ out from the wrong total. Perform and printing do not show it.
 
 The Total counts only rows that will be saved. A group that is not complete yet,
 such as a meanwhile group with one side filled in, is left out, and so is a row
-with no move. A row with no move but a note is saved as a custom figure holding
+with no move. A row with no move but a note is saved as an unrecognized figure holding
 the note, so the note is not lost.
 
 A row that Save would leave out says so, **Not complete, so Save leaves it
@@ -524,8 +524,8 @@ nothing in it to lose.
 ### Details
 
 - **Title** — required.
-- **Authors** — the [choreographer](./glossary.md#choreographer) or
-  choreographers. Type to find an existing author or create a new one.
+- **Authors** — the [author](./glossary.md#author) or
+  authors. Type to find an existing author or create a new one.
 - **Type** — **Contra**, **English (ECD)**, or **Square**. It sets the icon on
   the dance's row in your collection and what the **Type** filter finds. A new
   dance starts with your default type (see
@@ -599,7 +599,7 @@ decide.
 
 ### Author and source details are shared
 
-Choose to edit an author's details and you get **Choreographer details** — name,
+Choose to edit an author's details and you get **Author details** — name,
 website, email, location, notes, and whether they are deceased. The dialog is
 explicit about two things, and both matter:
 
@@ -654,7 +654,7 @@ that dance the app offers you the draft back:
 
 The prompt also says when the draft was saved. If the dance has changed since
 then — a tag or rating set on several dances at once, a change from Device
-Sync, or **Re-check custom figures** — it says so:
+Sync, or **Re-check unrecognized figures** — it says so:
 restoring the draft puts back the dance as the draft has it, so those later
 changes are replaced.
 
@@ -738,12 +738,12 @@ dance.
 
 ## Fix figures an import could not read
 
-Imported dances sometimes arrive with figures kept as plain custom text because
+Imported dances sometimes arrive with figures kept as plain text because
 the app could not recognise them at the time. As the app's figure
 recognition improves, those can often be upgraded.
 
 In [Settings](./settings.md#import) ▸ **General** ▸ **Import**, find **Re-check
-custom figures** and choose **Re-check…**. The app scans your collection and
+unrecognized figures** and choose **Re-check…**. The app scans your collection and
 shows you what it *could* upgrade before anything changes: how many figures, in
 how many dances, and which ones. You confirm, and only then does anything
 happen.

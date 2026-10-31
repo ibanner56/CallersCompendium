@@ -221,8 +221,8 @@ A few things to check:
 ### I deleted a dance by accident — can I get it back?
 
 Usually, yes. Deleted dances are kept for a while before they're removed
-— by default **30 days** (adjustable under **Settings › General › Keep deleted
-items for**). You can restore them within that window; see
+— by default **30 days** (adjustable under **Settings › General › Keep recently
+deleted items for**). You can restore them within that window; see
 [Collection & search](./collection.md). To avoid slips in the first place, turn on
 **Confirm before delete** under **Settings › General**.
 

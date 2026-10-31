@@ -15,6 +15,15 @@ Short for *alternate*. An **alt** is a backup dance attached to a [slot](#slot)
 in a [program](#program) — a second choice you can swap in on the night if the
 planned dance isn't the right fit for the crowd or the moment.
 
+## Author
+
+The person who wrote a [dance](#dance) — a choreographer, in the wider contra
+world. In the app an author is a shared record rather than a line of text, so
+the details you add — their website and notes — follow every dance credited to
+them. Their **email**, **location**, and deceased mark are private: they are
+never included in anything you share with someone else, though your own backups
+keep them.
+
 ## Backup and restore
 
 A **backup** saves everything in the app — your whole [collection](#collection),
@@ -76,14 +85,6 @@ never rewrites a dance, and search finds a dance whatever words you use. You can
 also pick **Canonical** as your dialect, or peek at a dance's canonical wording
 without switching — see
 [Dialect](./dialects.md#peek-at-the-canonical-wording).
-
-## Choreographer
-
-The person who wrote a [dance](#dance). In the app a choreographer is a shared
-record rather than a line of text, so the details you add — their website and
-notes — follow every dance credited to them. Their **email**, **location**, and
-deceased mark are private: they are never included in anything you share with
-someone else, though your own backups keep them.
 
 ## Collection
 
@@ -205,6 +206,13 @@ an [alt](#alt).
 How dancers move on to the next couple as a dance repeats. Like
 [formation](#formation), it's a plain contra term used here in the usual way.
 
+## Recently deleted
+
+Where a [dance](#dance) or [program](#program) goes when you delete it. Nothing
+is gone right away: open **Recently deleted** to restore an item, or remove it
+for good. Items are cleared automatically after the time you choose under
+**Settings ▸ General ▸ Recently deleted**.
+
 ## Sequence
 
 Two to four [figures](#figure) danced one after another and written as one line,
@@ -212,6 +220,14 @@ such as *ones balance and swing*. Its beats are the total of its figures', and
 must fit in one phrase. A sequence is most useful as one side of a
 [meanwhile](#meanwhile). See
 [Write & edit dances](./authoring.md#sequence-figures).
+
+## Share file
+
+A single `.ccshare` file made with one of the **Share** actions. It carries a
+[dance](#dance), or a [program](#program) with its dances, so another Caller's
+Compendium user can [import](#import) it. Opening one takes you to the import
+review screen, so nothing is added until you confirm. The same content can be
+saved as a [JSON file](#json-file). See [Share, print & export](./sharing.md).
 
 ## Shorthand
 
@@ -236,6 +252,15 @@ pre-fill a [walkthrough](#walkthrough) for any dance using that figure. Your sav
 snippets live under **Walkthrough snippets** in **Settings › Dialect › Dance
 details & shorthands**. See
 [Write & edit dances](./authoring.md#walkthrough).
+
+## Unrecognized figure
+
+A line the app could not read as a known [figure](#figure). It is kept exactly
+as you typed or imported it, with a badge, so nothing is thrown away. You can
+rewrite it by hand, or use **Re-check unrecognized figures** in Settings to see
+whether the app can now read it. Not to be confused with *your own figures*,
+which you make yourself under **Custom Figures**. See
+[Write & edit dances](./authoring.md#unrecognized-figure).
 
 ## Venue
 

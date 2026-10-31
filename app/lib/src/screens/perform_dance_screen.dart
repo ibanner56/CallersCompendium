@@ -22,7 +22,7 @@ import 'settings_screen.dart'
         kAutoSizePerformKey,
         kShowIndividualPerformTimerKey;
 
-/// Full-screen, large-print performance view for a single [Dance]
+/// Full-screen, large-print Perform mode for a single [Dance]
 /// (`docs/design/ux.md` §5; ROADMAP 5.1). Entered explicitly from the dance
 /// detail screen and exits back to it.
 ///

@@ -789,7 +789,7 @@ figure as the progression. This is non-serialized taxonomy metadata, so no
   (`FigureRenderer.renderVerbose`, roadmap 5.4): a dialect-aware, spoken-friendly
   string that spells out notation glyphs (e.g. `1½` → "one and a half times")
   and is surfaced via `Semantics` labels on the dance detail card and the
-  large-print performance view, while the visible text stays terse.
+  large-print Perform mode, while the visible text stays terse.
 - FTS indexing uses canonical rendered text + searchKeywords (incl. legacy
   terms like "gypsy" so searches by older users still find shoulder round).
 

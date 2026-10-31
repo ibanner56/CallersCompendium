@@ -2469,7 +2469,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Recently Deleted'), findsOneWidget);
+      expect(find.text('Recently deleted'), findsOneWidget);
     },
   );
 

@@ -239,7 +239,7 @@ void main() {
           )
           .data,
       "No dance in your collection uses it. It's removed from your Glossary. "
-      '1 dance in the Trash uses it, and keeps the line it last stored. Your '
+      '1 dance in Recently deleted uses it, and keeps the line it last stored. Your '
       'default figures in Settings use it, and keep its current wording as '
       'plain '
       'text.',

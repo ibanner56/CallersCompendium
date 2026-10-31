@@ -840,7 +840,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('author-chip-c1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Choreographer details'), findsOneWidget);
+    expect(find.text('Author details'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('choreographer-name-field')),
       'Gene H.',
@@ -881,7 +881,7 @@ void main() {
     expect(find.widgetWithText(InputChip, 'flowy'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('tag-chip-t1')));
     await tester.pumpAndSettle();
-    expect(find.text('Choreographer details'), findsNothing);
+    expect(find.text('Author details'), findsNothing);
   });
 
   testWidgets(

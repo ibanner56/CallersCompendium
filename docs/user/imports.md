@@ -47,7 +47,7 @@ There is nothing wrong with leaving them as they are. A verbatim figure calls
 perfectly well; the badge just tells you the app cannot search or count beats for
 that line the way it can for a recognised move.
 Once you rewrite such a figure's text yourself in the editor, it is your own
-custom figure: the badge goes away, and **Re-check custom figures** leaves it as
+wording: the badge goes away, and **Re-check unrecognized figures** leaves it as
 you wrote it.
 
 ## Bring in single dances from an online archive
