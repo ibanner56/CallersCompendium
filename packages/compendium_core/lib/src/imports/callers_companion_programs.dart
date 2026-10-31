@@ -80,11 +80,15 @@ CcProgramsResult buildCcPrograms(
     final slots = <ProgramSlot>[];
     var position = 0;
     // A dance flagged `Break` puts the break after it and its alternates
-    // (#1974), so the slot waits for the next slot kept that is not an
-    // alternate: an item left out (deleted, #1976, or empty) cannot take it.
+    // (#1974): the break is pending until the next item that is not an
+    // alternate in the file ends that group, and is then due before the next
+    // slot kept, which may be a left-out dance's promoted alternate (#1976).
     var breakPending = false;
+    var breakDue = false;
+    // Places the due break; a break a left-out dance has just made pending
+    // for its own group stays pending.
     void addBreak() {
-      breakPending = false;
+      breakDue = false;
       // Nothing to break between at the start, and a break right after
       // another (a deleted dance's, #1976) adds nothing.
       if (slots.isEmpty || slots.last.isBreak) return;
@@ -107,6 +111,10 @@ CcProgramsResult buildCcPrograms(
       final isAlt = item.isAlt && !promoting;
       promoteAlt = false;
       final cleanBreakText = _cleanNote(item.breakText);
+      if (breakPending && !item.isAlt) {
+        breakPending = false;
+        breakDue = true;
+      }
       if (item.danceRecordId case final ccId?) {
         danceId = danceIdByCcRowId[ccId];
         final known = archive.danceRecordIds;
@@ -174,15 +182,13 @@ CcProgramsResult buildCcPrograms(
         continue;
       }
 
-      // A promoted alternate still belongs to its group, so the break waits
-      // for the next item that was not an alternate in the file.
-      if (breakPending && !item.isAlt) {
+      if (breakDue) {
         // Unless the set already has its own break slot here.
         final isOwnBreak =
-            danceId == null &&
+            item.danceRecordId == null &&
             text?.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
         if (isOwnBreak) {
-          breakPending = false;
+          breakDue = false;
         } else {
           addBreak();
         }
@@ -200,7 +206,10 @@ CcProgramsResult buildCcPrograms(
       );
       if (item.breakAfter) breakPending = true;
     }
-    if (breakPending) addBreak();
+    if (breakPending || breakDue) {
+      breakPending = false;
+      addBreak();
+    }
 
     programs.add(
       Program(

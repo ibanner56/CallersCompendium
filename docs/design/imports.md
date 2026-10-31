@@ -698,10 +698,11 @@ declines the collapse.
   (`CcUsrArchive.danceRecordIds`: deleted in CC) is left out with a
   `cc_program_deleted_dance` info issue, its `Break` flag still placing the
   break and its first alternate taking its place (an empty dance item's does
-  too). A pending break waits for the next kept slot that was not an
-  alternate in the file, so a left-out dance cannot place one before the set's
-  own break, and the import never adds a break at the start of a program or
-  right after another break. `CallersCompanionUsrImporter.
+  too). A Break flag's break falls due when the next item that is not an
+  alternate in the file ends the flagged dance's group, kept or not, and goes
+  in before the next slot kept (a promoted alternate included) unless that slot
+  is the set's own break; the import never adds a break at the start of a
+  program or right after another break. `CallersCompanionUsrImporter.
   commit` takes the titles from the batch's drafts and the failures from the
   session's failed records; the review screen commits only the rows it acts
   on, so it also passes every planned row's title (`danceTitleByCcRowId`).

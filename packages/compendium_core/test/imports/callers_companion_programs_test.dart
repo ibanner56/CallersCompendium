@@ -576,6 +576,51 @@ void main() {
       ]);
     });
 
+    test("an earlier dance's break goes before a left-out dance's promoted "
+        'alternate', () {
+      for (final known in [
+        {'4', '7', '9'}, // 98 deleted in CC
+        null, // 98 unknown: becomes a marker slot, not left out
+      ]) {
+        final result = build(
+          setOf([
+            CcSetItem(order: 0, danceRecordId: '4', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '98'),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '9'),
+          ], known: known),
+          danceIds: {'4': 'd4', '7': 'd7', '9': 'd9'},
+        );
+        final slots = result.programs.single.slots;
+        expect(
+          slots.map((s) => s.danceId ?? (s.isBreak ? 'Break' : 'note')),
+          known == null
+              ? ['d4', 'Break', 'note', 'd7', 'd9']
+              : ['d4', 'Break', 'd7', 'd9'],
+        );
+      }
+    });
+
+    test("a left-out dance's break survives the earlier break's placement", () {
+      final result = build(
+        setOf(
+          [
+            CcSetItem(order: 0, danceRecordId: '97', breakAfter: true),
+            CcSetItem(order: 1, danceRecordId: '98', breakAfter: true),
+            CcSetItem(order: 2, danceRecordId: '7', isAlt: true),
+            CcSetItem(order: 3, danceRecordId: '9'),
+          ],
+          known: {'7', '9'},
+        ),
+        danceIds: {'7': 'd7', '9': 'd9'},
+      );
+      expect(result.programs.single.slots.map((s) => s.danceId ?? s.text), [
+        'd7',
+        Program.breakSlotText,
+        'd9',
+      ]);
+    });
+
     test('a deleted alternate is just left out', () {
       final result = build(
         setOf(
