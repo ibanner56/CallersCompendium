@@ -79,7 +79,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   container (#590/#594) renders its concurrent sides joined by "while" on one
   row with a single shared beat count — never split, never double-counted.
 - Side panel/tabs: calling notes, links (source/video/related), calling
-  history (from performed programs), custom fields.
+  history (from every program the dance is in by default; only from programs
+  with the slot marked performed when *Require "mark performed"* is on, and an
+  alternate counts only once marked performed either way), custom fields.
 - Actions: edit, duplicate, add-to-program (same sheet and marker as the
   Collection row menu), print/share, Perform this dance.
 - Text selection (desktop only, N5-S1; `docs/design/selectable-text.md`): on
@@ -210,8 +212,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   Desktop offers a toolbar toggle plus F11 (Ctrl-Cmd-F on macOS); Esc leaves
   full screen but never Perform. Exit restores the window's entry state, and no
   window frame is persisted while the window is full screen.
-- Navigation: giant next/prev hit zones at screen edges (44pt+), swipe,
-  arrow keys/page keys, jump-to-slot overview. ALT dances one tap to swap.
+- Navigation: giant next/prev hit zones at screen edges (44pt+), on-screen
+  prev/next buttons, arrow keys/page keys, jump-to-slot overview. There is no
+  swipe (horizontal drag) navigation: a swipe does not change slot. ALT dances
+  one tap to swap.
   ↓/Page Down scroll an overflowing card to its end before advancing, and
   ↑/Page Up scroll to its top before going back; ←/→ always change slot, and a
   new slot opens at its top (PLAT-10).

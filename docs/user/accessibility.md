@@ -177,8 +177,12 @@ A few smaller settings and behaviors round out the experience:
   animations, but cannot restore animations your device's setting has already
   shortened.
 - **Confirm before delete** (**Settings › General**) adds a prompt before you
-  delete a dance or a program. And regardless of this setting, deletes are
-  undoable — so a slip is recoverable either way.
+  delete a dance or a program from its **⋮** menu, from its own screen, or from
+  Collection's selection mode. It does not cover the swipe shortcut: swiping a
+  row in the Collection or Programs list reveals a **Delete** button, and
+  tapping that button deletes straight away. If you want every delete to ask
+  first, use the **⋮** menu rather than the swipe. And regardless of this
+  setting, deletes are undoable — so a slip is recoverable either way.
 - **Meaning is never carried by color alone.** Statuses and special slots — like
   an [alt](./glossary.md#alt) — always include an icon and a text label as well as
   color, so nothing depends on being able to distinguish hues. That holds for the
