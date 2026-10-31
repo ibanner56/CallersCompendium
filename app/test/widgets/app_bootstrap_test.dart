@@ -212,11 +212,11 @@ void main() {
       // No Retry: retrying cannot apply retired migration steps.
       expect(find.text('Retry'), findsNothing);
       // Both reset buttons are present.
-      expect(find.text('Back Up + Reset'), findsOneWidget);
-      expect(find.text('Reset Only'), findsOneWidget);
+      expect(find.text('Back up + reset'), findsOneWidget);
+      expect(find.text('Reset only'), findsOneWidget);
 
-      // Tapping Back Up + Reset fires the callback.
-      await tester.tap(find.text('Back Up + Reset'));
+      // Tapping Back up + reset fires the callback.
+      await tester.tap(find.text('Back up + reset'));
       expect(backUpAndResetCalled, isTrue);
       expect(resetOnlyCalled, isFalse);
     },
@@ -258,17 +258,17 @@ void main() {
       await tester.pumpAndSettle();
 
       // Both buttons start enabled.
-      final backUpButton = find.widgetWithText(FilledButton, 'Back Up + Reset');
-      final resetButton = find.widgetWithText(OutlinedButton, 'Reset Only');
+      final backUpButton = find.widgetWithText(FilledButton, 'Back up + reset');
+      final resetButton = find.widgetWithText(OutlinedButton, 'Reset only');
       expect(
         tester.widget<FilledButton>(backUpButton).onPressed,
         isNotNull,
-        reason: 'Back Up + Reset should be enabled before any tap',
+        reason: 'Back up + reset should be enabled before any tap',
       );
       expect(
         tester.widget<OutlinedButton>(resetButton).onPressed,
         isNotNull,
-        reason: 'Reset Only should be enabled before any tap',
+        reason: 'Reset only should be enabled before any tap',
       );
 
       // Tap — action is now in-flight (actionCompleter not yet resolved).
@@ -280,12 +280,12 @@ void main() {
       expect(
         tester.widget<FilledButton>(backUpButton).onPressed,
         isNull,
-        reason: 'Back Up + Reset should be disabled while in-flight',
+        reason: 'Back up + reset should be disabled while in-flight',
       );
       expect(
         tester.widget<OutlinedButton>(resetButton).onPressed,
         isNull,
-        reason: 'Reset Only should be disabled while in-flight',
+        reason: 'Reset only should be disabled while in-flight',
       );
 
       // A second tap while disabled must not fire the callback again.
@@ -299,7 +299,7 @@ void main() {
       expect(
         tester.widget<FilledButton>(backUpButton).onPressed,
         isNotNull,
-        reason: 'Back Up + Reset should be re-enabled after action completes',
+        reason: 'Back up + reset should be re-enabled after action completes',
       );
     },
   );
@@ -525,8 +525,8 @@ void main() {
       );
       completer.completeError(cases['below floor']!.error);
       await tester.pumpAndSettle();
-      expect(find.text('Back Up + Reset'), findsOneWidget);
-      expect(find.text('Reset Only'), findsOneWidget);
+      expect(find.text('Back up + reset'), findsOneWidget);
+      expect(find.text('Reset only'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('bootstrap-copy-details')),
         findsOneWidget,

@@ -11,9 +11,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// their spelling (`syncConflictFieldColour`), and each locale keeps its own
 /// conventions.
 Map<String, String> _enStrings() {
-  final arb = jsonDecode(
-    File('lib/l10n/app_en.arb').readAsStringSync(),
-  ) as Map<String, dynamic>;
+  final arb =
+      jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
+          as Map<String, dynamic>;
   return {
     for (final e in arb.entries)
       if (!e.key.startsWith('@') && e.value is String) e.key: e.value as String,
@@ -75,9 +75,9 @@ bool _looksTitleCase(String value) {
     text = text.replaceAll(name, 'x');
   }
   if (RegExp(r'[.!?:;\n]').hasMatch(text)) return false;
-  final words = RegExp(r"[A-Za-z][A-Za-z'’-]*")
-      .allMatches(text)
-      .map((m) => m.group(0)!);
+  final words = RegExp(
+    r"[A-Za-z][A-Za-z'’-]*",
+  ).allMatches(text).map((m) => m.group(0)!);
   final rest = words.skip(1).toList();
   // An acronym (JSON, USR, CW) is not a capitalized word.
   final capitalized = rest.where(
