@@ -66,6 +66,33 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'Fichier';
+
+  @override
+  String get menuNewDance => 'Nouvelle danse';
+
+  @override
+  String get menuImportDances => 'Importer des danses…';
+
+  @override
+  String get menuClose => 'Fermer';
+
+  @override
+  String get menuSettings => 'Réglages…';
+
+  @override
+  String get menuView => 'Présentation';
+
+  @override
+  String get menuWindow => 'Fenêtre';
+
+  @override
+  String get menuHelp => 'Aide';
+
+  @override
+  String get menuUserGuide => 'Guide d’utilisation';
+
+  @override
   String get appBootstrapPreparing => 'Préparation de votre collection';
 
   @override

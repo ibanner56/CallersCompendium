@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -203,6 +205,9 @@ class AppShellState extends State<AppShell> {
     );
   }
 
+  /// Reaches the Collection's own commands (New dance, Import, search).
+  final _collectionCommands = CollectionCommands();
+
   /// Guards against a second palette while one is open (a held Ctrl-K repeats).
   bool _paletteOpen = false;
 
@@ -249,6 +254,77 @@ class AppShellState extends State<AppShell> {
     await Navigator.of(context).push(route);
   }
 
+  /// Runs Ctrl/Cmd-N and the menu bar's New Dance: the new-dance editor opens
+  /// over the Collection (PLAT-7, PLAT-8).
+  void newDance() => _returnToShellThen(() {
+    setState(() => _current = _Destination.collection);
+    _collectionCommands.newDance();
+  });
+
+  /// Runs the menu bar's Import Dances…: the Collection's import view opens.
+  void importDances() => _returnToShellThen(() {
+    setState(() => _current = _Destination.collection);
+    _collectionCommands.importDances();
+  });
+
+  /// Runs Ctrl/Cmd-, and the menu bar's Settings…
+  void showSettings() => _returnToShellThen(
+    () => setState(() => _current = _Destination.settings),
+  );
+
+  /// Runs the menu bar's User Guide.
+  void showGuide() =>
+      _returnToShellThen(() => setState(() => _current = _Destination.guide));
+
+  /// Runs Ctrl/Cmd-F: focuses the Collection's search box when the Collection
+  /// is showing with nothing over it, and opens global search everywhere else
+  /// (the Programs list, Settings, a pushed page), which is the search those
+  /// places offer.
+  void focusSearch() {
+    final onTop = ModalRoute.of(context)?.isCurrent ?? false;
+    if (onTop &&
+        _current == _Destination.collection &&
+        _collectionCommands.focusSearch()) {
+      return;
+    }
+    openSearch();
+  }
+
+  /// Leaves every page pushed over the shell, then runs [then], for a command
+  /// that names a place in the shell (New dance, Import, Settings, Guide).
+  ///
+  /// It never discards work, and never closes something mid-task:
+  /// - With a dialog, sheet or menu open, it does nothing. The dialog may be
+  ///   asking a question or showing progress, and closing it would answer for
+  ///   the caller.
+  /// - It stops at a page that would ask before it closes (an editor with
+  ///   unsaved changes, or Perform), and asks it, as the back button does.
+  ///   [then] does not run, so the caller repeats the command once they have
+  ///   answered.
+  ///
+  /// [Navigator.popUntil] alone would skip that question: it closes a page
+  /// without consulting its `PopScope`.
+  void _returnToShellThen(VoidCallback then) {
+    final navigator = Navigator.of(context);
+    Route<dynamic>? top;
+    navigator.popUntil((route) {
+      top = route;
+      return true;
+    });
+    if (top is! PageRoute) return;
+    var guarded = false;
+    navigator.popUntil((route) {
+      if (route.isFirst) return true;
+      guarded = route.popDisposition == RoutePopDisposition.doNotPop;
+      return guarded;
+    });
+    if (guarded) {
+      unawaited(navigator.maybePop());
+      return;
+    }
+    then();
+  }
+
   /// Selects the offline in-app User Guide destination. Wired to the
   /// bottom-of-rail Help affordance on wide layouts, the last bottom-bar
   /// destination on narrow layouts, and Settings ▸ About ▸ User guide.
@@ -272,7 +348,9 @@ class AppShellState extends State<AppShell> {
   List<Widget> _buildPages() => [
     for (final d in _Destination.values)
       switch (d) {
-        _Destination.collection => const CollectionShell(),
+        _Destination.collection => CollectionShell(
+          commands: _collectionCommands,
+        ),
         _Destination.programs => ProgramsShell(key: _programsShellKey),
         // Built only while shown, so a hidden Glossary costs nothing.
         _Destination.glossary =>

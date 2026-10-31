@@ -65,6 +65,33 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'Arkiv';
+
+  @override
+  String get menuNewDance => 'Ny dans';
+
+  @override
+  String get menuImportDances => 'Importér danse …';
+
+  @override
+  String get menuClose => 'Luk';
+
+  @override
+  String get menuSettings => 'Indstillinger …';
+
+  @override
+  String get menuView => 'Oversigt';
+
+  @override
+  String get menuWindow => 'Vindue';
+
+  @override
+  String get menuHelp => 'Hjælp';
+
+  @override
+  String get menuUserGuide => 'Brugervejledning';
+
+  @override
   String get appBootstrapPreparing => 'Forbereder din samling';
 
   @override

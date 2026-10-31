@@ -61,6 +61,33 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'ファイル';
+
+  @override
+  String get menuNewDance => '新規ダンス';
+
+  @override
+  String get menuImportDances => 'ダンスをインポート…';
+
+  @override
+  String get menuClose => '閉じる';
+
+  @override
+  String get menuSettings => '設定…';
+
+  @override
+  String get menuView => '表示';
+
+  @override
+  String get menuWindow => 'ウインドウ';
+
+  @override
+  String get menuHelp => 'ヘルプ';
+
+  @override
+  String get menuUserGuide => 'ユーザーガイド';
+
+  @override
   String get appBootstrapPreparing => 'コレクションを準備しています';
 
   @override
