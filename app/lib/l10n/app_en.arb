@@ -46,7 +46,7 @@
   },
   "navGlossary": "Glossary",
   "@navGlossary": {
-    "description": "Bottom/rail navigation label for the Glossary destination (shown only when Settings > Experimental > Show Glossary is on)."
+    "description": "Bottom/rail navigation label for the Glossary destination (shown only when Settings > Experimental > Show glossary is on)."
   },
   "navGuide": "Guide",
   "@navGuide": {
@@ -233,11 +233,11 @@
       }
     }
   },
-  "migrationBelowFloorBackUpAndReset": "Back Up + Reset",
+  "migrationBelowFloorBackUpAndReset": "Back up + reset",
   "@migrationBelowFloorBackUpAndReset": {
     "description": "Button label on the below-floor recovery screen that first writes a backup of the current database, then resets it to a fresh state. The reset is only performed if the backup succeeds."
   },
-  "migrationBelowFloorResetOnly": "Reset Only",
+  "migrationBelowFloorResetOnly": "Reset only",
   "@migrationBelowFloorResetOnly": {
     "description": "Button label on the below-floor recovery screen that resets the database to a fresh state without making a backup first. Unrecoverable."
   },
@@ -251,19 +251,19 @@
   },
   "migrationBelowFloorResetConfirmTitle": "Reset app data?",
   "@migrationBelowFloorResetConfirmTitle": {
-    "description": "Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back Up + Reset and Reset Only). Used after a successful backup to ask the user to confirm the wipe."
+    "description": "Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back up + reset and Reset only). Used after a successful backup to ask the user to confirm the wipe."
   },
   "migrationBelowFloorResetConfirmBody": "A backup has been saved. Resetting will replace your current data with a fresh, empty database.",
   "@migrationBelowFloorResetConfirmBody": {
-    "description": "Body of the confirmation dialog shown before a Back Up + Reset action once the backup has been written successfully."
+    "description": "Body of the confirmation dialog shown before a Back up + reset action once the backup has been written successfully."
   },
   "migrationBelowFloorResetConfirmAction": "Reset",
   "@migrationBelowFloorResetConfirmAction": {
-    "description": "Confirm button of the reset dialog on the below-floor recovery screen, shown after a backup has been saved. Plain \"Reset\", not the \"Back Up + Reset\" button that opened the flow: the backup is already done."
+    "description": "Confirm button of the reset dialog on the below-floor recovery screen, shown after a backup has been saved. Plain \"Reset\", not the \"Back up + reset\" button that opened the flow: the backup is already done."
   },
   "migrationBelowFloorBackupSavedAt": "Backup saved to: {backupPath}",
   "@migrationBelowFloorBackupSavedAt": {
-    "description": "Line shown in the Back Up + Reset confirmation dialog to tell the user where the backup file was written.",
+    "description": "Line shown in the Back up + reset confirmation dialog to tell the user where the backup file was written.",
     "placeholders": {
       "backupPath": {
         "type": "String",
@@ -273,7 +273,7 @@
   },
   "migrationBelowFloorDiagnosticLogSavedAt": "Diagnostic log saved to: {logPath}",
   "@migrationBelowFloorDiagnosticLogSavedAt": {
-    "description": "Line shown in the Back Up + Reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).",
+    "description": "Line shown in the Back up + reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).",
     "placeholders": {
       "logPath": {
         "type": "String",
@@ -283,7 +283,7 @@
   },
   "migrationBelowFloorResetOnlyConfirmBody": "No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.",
   "@migrationBelowFloorResetOnlyConfirmBody": {
-    "description": "Body of the confirmation dialog shown before a Reset Only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit."
+    "description": "Body of the confirmation dialog shown before a Reset only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit."
   },
   "migrationBelowFloorWipeFailedTitle": "Reset failed",
   "@migrationBelowFloorWipeFailedTitle": {
@@ -333,19 +333,19 @@
   },
   "colorEditHexLabel": "Hex",
   "@colorEditHexLabel": {
-    "description": "Field label for the hexadecimal colour input in the shared colour-picker dialog."
+    "description": "Field label for the hexadecimal color input in the shared color-picker dialog."
   },
   "colorEditChannelRed": "Red",
   "@colorEditChannelRed": {
-    "description": "Screen-reader name of the red channel slider in the shared colour-picker dialog (the visual label is the single letter R)."
+    "description": "Screen-reader name of the red channel slider in the shared color-picker dialog (the visual label is the single letter R)."
   },
   "colorEditChannelGreen": "Green",
   "@colorEditChannelGreen": {
-    "description": "Screen-reader name of the green channel slider in the shared colour-picker dialog (the visual label is the single letter G)."
+    "description": "Screen-reader name of the green channel slider in the shared color-picker dialog (the visual label is the single letter G)."
   },
   "colorEditChannelBlue": "Blue",
   "@colorEditChannelBlue": {
-    "description": "Screen-reader name of the blue channel slider in the shared colour-picker dialog (the visual label is the single letter B)."
+    "description": "Screen-reader name of the blue channel slider in the shared color-picker dialog (the visual label is the single letter B)."
   },
   "settingsTitle": "Settings",
   "@settingsTitle": {
@@ -361,7 +361,7 @@
   },
   "settingsAppearanceTitle": "Appearance",
   "@settingsAppearanceTitle": {
-    "description": "Settings section navigation title (sidebar/app bar) for visual appearance: theme, colours, easter eggs."
+    "description": "Settings section navigation title (sidebar/app bar) for visual appearance: theme, colors, easter eggs."
   },
   "settingsDialectTitle": "Dialect",
   "@settingsDialectTitle": {
@@ -383,9 +383,9 @@
   "@settingsExperimentalTitle": {
     "description": "Settings section navigation title (sidebar/app bar) and content header for features still in development."
   },
-  "settingsDeveloperOptionsHeader": "Developer Options",
+  "settingsDeveloperOptionsHeader": "Developer options",
   "@settingsDeveloperOptionsHeader": {
-    "description": "Header of the expandable Developer Options section in Experimental settings."
+    "description": "Header of the expandable Developer options section in Experimental settings."
   },
   "settingsDeveloperResetTitle": "Reset database",
   "@settingsDeveloperResetTitle": {
@@ -710,13 +710,13 @@
   "@settingsExperimentalGlossaryHeader": {
     "description": "Header of the Glossary group in the Experimental settings section."
   },
-  "settingsExperimentalShowGlossaryTitle": "Show Glossary",
+  "settingsExperimentalShowGlossaryTitle": "Show glossary",
   "@settingsExperimentalShowGlossaryTitle": {
     "description": "Title of the switch that adds the Glossary destination to the app's navigation."
   },
   "settingsExperimentalShowGlossarySubtitle": "Adds a Glossary of the built-in figures to the navigation, between Programs and Settings.",
   "@settingsExperimentalShowGlossarySubtitle": {
-    "description": "Subtitle of the Show Glossary switch in the Experimental settings section."
+    "description": "Subtitle of the Show glossary switch in the Experimental settings section."
   },
   "settingsSyncHeader": "Device Sync",
   "@settingsSyncHeader": {
@@ -1494,9 +1494,9 @@
   "@syncConflictFieldProvenance": {
     "description": "Label in the sync conflict comparison for where a dance came from (its import source and licence), shown as the dance page's provenance line."
   },
-  "syncConflictFieldColour": "Colour",
+  "syncConflictFieldColour": "Color",
   "@syncConflictFieldColour": {
-    "description": "Label for a tag's colour in the conflict comparison."
+    "description": "Label for a tag's color in the conflict comparison."
   },
   "syncConflictThemeBrightness": "Light or dark",
   "@syncConflictThemeBrightness": {
@@ -1694,7 +1694,7 @@
   },
   "settingsSyncNoticeNeedsYou": "Needs you",
   "@settingsSyncNoticeNeedsYou": {
-    "description": "Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone."
+    "description": "Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by color alone."
   },
   "settingsSyncNoticeSeeDevices": "See other devices",
   "@settingsSyncNoticeSeeDevices": {
@@ -2592,9 +2592,9 @@
   "@appThemeLabelDark": {
     "description": "Name of the built-in \"Dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
-  "appThemeLabelSoftDark": "Soft Dark",
+  "appThemeLabelSoftDark": "Soft dark",
   "@appThemeLabelSoftDark": {
-    "description": "Name of the built-in \"Soft Dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Soft dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelHighContrast": "High contrast",
   "@appThemeLabelHighContrast": {
@@ -2720,7 +2720,7 @@
   "@appThemeDescriptionVitesseLight": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
-  "appThemeDescriptionZenburn": "The classic low-contrast warm grey",
+  "appThemeDescriptionZenburn": "The classic low-contrast warm gray",
   "@appThemeDescriptionZenburn": {
     "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
   },
@@ -2742,207 +2742,207 @@
   },
   "themeEditorGroupPrimary": "Primary",
   "@themeEditorGroupPrimary": {
-    "description": "Heading of the \"Primary\" group of colour roles in the custom-theme editor."
+    "description": "Heading of the \"Primary\" group of color roles in the custom-theme editor."
   },
   "themeEditorGroupSecondary": "Secondary",
   "@themeEditorGroupSecondary": {
-    "description": "Heading of the \"Secondary\" group of colour roles in the custom-theme editor."
+    "description": "Heading of the \"Secondary\" group of color roles in the custom-theme editor."
   },
   "themeEditorGroupTertiary": "Tertiary",
   "@themeEditorGroupTertiary": {
-    "description": "Heading of the \"Tertiary\" group of colour roles in the custom-theme editor."
+    "description": "Heading of the \"Tertiary\" group of color roles in the custom-theme editor."
   },
   "themeEditorGroupError": "Error",
   "@themeEditorGroupError": {
-    "description": "Heading of the \"Error\" group of colour roles in the custom-theme editor."
+    "description": "Heading of the \"Error\" group of color roles in the custom-theme editor."
   },
   "themeEditorGroupSurfaceText": "Surface & text",
   "@themeEditorGroupSurfaceText": {
-    "description": "Heading of the \"Surface & text\" group of colour roles in the custom-theme editor."
+    "description": "Heading of the \"Surface & text\" group of color roles in the custom-theme editor."
   },
   "themeEditorGroupSurfaceContainers": "Surface containers",
   "@themeEditorGroupSurfaceContainers": {
-    "description": "Heading of the \"Surface containers\" group of colour roles in the custom-theme editor."
+    "description": "Heading of the \"Surface containers\" group of color roles in the custom-theme editor."
   },
   "themeEditorGroupOutlineEffects": "Outline & effects",
   "@themeEditorGroupOutlineEffects": {
-    "description": "Heading of the \"Outline & effects\" group of colour roles in the custom-theme editor."
+    "description": "Heading of the \"Outline & effects\" group of color roles in the custom-theme editor."
   },
   "themeEditorRolePrimary": "Primary",
   "@themeEditorRolePrimary": {
-    "description": "Label of the \"Primary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Primary\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnPrimary": "On primary",
   "@themeEditorRoleOnPrimary": {
-    "description": "Label of the \"On primary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On primary\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRolePrimaryContainer": "Primary container",
   "@themeEditorRolePrimaryContainer": {
-    "description": "Label of the \"Primary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Primary container\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnPrimaryContainer": "On primary container",
   "@themeEditorRoleOnPrimaryContainer": {
-    "description": "Label of the \"On primary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On primary container\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleSecondary": "Secondary",
   "@themeEditorRoleSecondary": {
-    "description": "Label of the \"Secondary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Secondary\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnSecondary": "On secondary",
   "@themeEditorRoleOnSecondary": {
-    "description": "Label of the \"On secondary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On secondary\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleSecondaryContainer": "Secondary container",
   "@themeEditorRoleSecondaryContainer": {
-    "description": "Label of the \"Secondary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Secondary container\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnSecondaryContainer": "On secondary container",
   "@themeEditorRoleOnSecondaryContainer": {
-    "description": "Label of the \"On secondary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On secondary container\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleTertiary": "Tertiary",
   "@themeEditorRoleTertiary": {
-    "description": "Label of the \"Tertiary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Tertiary\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnTertiary": "On tertiary",
   "@themeEditorRoleOnTertiary": {
-    "description": "Label of the \"On tertiary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On tertiary\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleTertiaryContainer": "Tertiary container",
   "@themeEditorRoleTertiaryContainer": {
-    "description": "Label of the \"Tertiary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Tertiary container\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnTertiaryContainer": "On tertiary container",
   "@themeEditorRoleOnTertiaryContainer": {
-    "description": "Label of the \"On tertiary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On tertiary container\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleError": "Error",
   "@themeEditorRoleError": {
-    "description": "Label of the \"Error\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Error\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnError": "On error",
   "@themeEditorRoleOnError": {
-    "description": "Label of the \"On error\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On error\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleErrorContainer": "Error container",
   "@themeEditorRoleErrorContainer": {
-    "description": "Label of the \"Error container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Error container\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnErrorContainer": "On error container",
   "@themeEditorRoleOnErrorContainer": {
-    "description": "Label of the \"On error container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On error container\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleSurface": "Surface",
   "@themeEditorRoleSurface": {
-    "description": "Label of the \"Surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Surface\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnSurface": "On surface",
   "@themeEditorRoleOnSurface": {
-    "description": "Label of the \"On surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On surface\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnSurfaceVariant": "On surface variant",
   "@themeEditorRoleOnSurfaceVariant": {
-    "description": "Label of the \"On surface variant\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On surface variant\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleInverseSurface": "Inverse surface",
   "@themeEditorRoleInverseSurface": {
-    "description": "Label of the \"Inverse surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Inverse surface\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOnInverseSurface": "On inverse surface",
   "@themeEditorRoleOnInverseSurface": {
-    "description": "Label of the \"On inverse surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"On inverse surface\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleInversePrimary": "Inverse primary",
   "@themeEditorRoleInversePrimary": {
-    "description": "Label of the \"Inverse primary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Inverse primary\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleSurfaceContainerLowest": "Container lowest",
   "@themeEditorRoleSurfaceContainerLowest": {
-    "description": "Label of the \"Container lowest\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Container lowest\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleSurfaceContainerLow": "Container low",
   "@themeEditorRoleSurfaceContainerLow": {
-    "description": "Label of the \"Container low\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Container low\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleSurfaceContainer": "Container",
   "@themeEditorRoleSurfaceContainer": {
-    "description": "Label of the \"Container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Container\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleSurfaceContainerHigh": "Container high",
   "@themeEditorRoleSurfaceContainerHigh": {
-    "description": "Label of the \"Container high\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Container high\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleSurfaceContainerHighest": "Container highest",
   "@themeEditorRoleSurfaceContainerHighest": {
-    "description": "Label of the \"Container highest\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Container highest\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOutline": "Outline",
   "@themeEditorRoleOutline": {
-    "description": "Label of the \"Outline\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Outline\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleOutlineVariant": "Outline variant",
   "@themeEditorRoleOutlineVariant": {
-    "description": "Label of the \"Outline variant\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Outline variant\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleSurfaceTint": "Surface tint",
   "@themeEditorRoleSurfaceTint": {
-    "description": "Label of the \"Surface tint\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Surface tint\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleShadow": "Shadow",
   "@themeEditorRoleShadow": {
-    "description": "Label of the \"Shadow\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Shadow\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorRoleScrim": "Scrim",
   "@themeEditorRoleScrim": {
-    "description": "Label of the \"Scrim\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+    "description": "Label of the \"Scrim\" color role in the custom-theme editor (a Material color-scheme role, e.g. \"On primary\" is the text/icon color drawn on top of \"Primary\")."
   },
   "themeEditorPairOnPrimary": "Text on primary",
   "@themeEditorPairOnPrimary": {
-    "description": "Label of the live WCAG contrast badge for the \"Text on primary\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Text on primary\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnPrimaryContainer": "Text on primary container",
   "@themeEditorPairOnPrimaryContainer": {
-    "description": "Label of the live WCAG contrast badge for the \"Text on primary container\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Text on primary container\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnSecondary": "Text on secondary",
   "@themeEditorPairOnSecondary": {
-    "description": "Label of the live WCAG contrast badge for the \"Text on secondary\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Text on secondary\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnSecondaryContainer": "Text on secondary container",
   "@themeEditorPairOnSecondaryContainer": {
-    "description": "Label of the live WCAG contrast badge for the \"Text on secondary container\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Text on secondary container\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnTertiary": "Text on tertiary",
   "@themeEditorPairOnTertiary": {
-    "description": "Label of the live WCAG contrast badge for the \"Text on tertiary\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Text on tertiary\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnTertiaryContainer": "Text on tertiary container",
   "@themeEditorPairOnTertiaryContainer": {
-    "description": "Label of the live WCAG contrast badge for the \"Text on tertiary container\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Text on tertiary container\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnError": "Text on error",
   "@themeEditorPairOnError": {
-    "description": "Label of the live WCAG contrast badge for the \"Text on error\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Text on error\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnErrorContainer": "Text on error container",
   "@themeEditorPairOnErrorContainer": {
-    "description": "Label of the live WCAG contrast badge for the \"Text on error container\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Text on error container\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnSurface": "Body text on surface",
   "@themeEditorPairOnSurface": {
-    "description": "Label of the live WCAG contrast badge for the \"Body text on surface\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Body text on surface\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnSurfaceVariant": "Secondary text on surface",
   "@themeEditorPairOnSurfaceVariant": {
-    "description": "Label of the live WCAG contrast badge for the \"Secondary text on surface\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Secondary text on surface\" color pair in the custom-theme editor."
   },
   "themeEditorPairOnInverseSurface": "Text on inverse surface",
   "@themeEditorPairOnInverseSurface": {
-    "description": "Label of the live WCAG contrast badge for the \"Text on inverse surface\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Text on inverse surface\" color pair in the custom-theme editor."
   },
   "themeEditorPairOutline": "Outline on surface",
   "@themeEditorPairOutline": {
-    "description": "Label of the live WCAG contrast badge for the \"Outline on surface\" colour pair in the custom-theme editor."
+    "description": "Label of the live WCAG contrast badge for the \"Outline on surface\" color pair in the custom-theme editor."
   },
   "settingsAppearanceEasterEggsHeader": "Easter eggs",
   "@settingsAppearanceEasterEggsHeader": {
@@ -2952,39 +2952,39 @@
   "@settingsAppearanceSetListsHeader": {
     "description": "Section header for set-list appearance options in Appearance settings."
   },
-  "settingsAppearanceFormationColoursHeader": "Formation colours",
+  "settingsAppearanceFormationColoursHeader": "Formation colors",
   "@settingsAppearanceFormationColoursHeader": {
-    "description": "Section header for the formation-colour customisation entry in Appearance settings."
+    "description": "Section header for the formation-color customisation entry in Appearance settings."
   },
-  "settingsAppearanceColourDanceTitle": "Colour-named dances tint the theme",
+  "settingsAppearanceColourDanceTitle": "Color-named dances tint the theme",
   "@settingsAppearanceColourDanceTitle": {
-    "description": "Toggle title: tint a dance's view when its title names a colour."
+    "description": "Toggle title: tint a dance's view when its title names a color."
   },
-  "settingsAppearanceColourDanceSubtitle": "A playful surprise: when you open a dance whose title names a colour — like Baby Rose or Blue Boy — its view is tinted that colour. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.",
+  "settingsAppearanceColourDanceSubtitle": "A playful surprise: when you open a dance whose title names a color — like Baby Rose or Blue Boy — its view is tinted that color. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.",
   "@settingsAppearanceColourDanceSubtitle": {
-    "description": "Explanation for the colour-named-dances tinting toggle."
+    "description": "Explanation for the color-named-dances tinting toggle."
   },
-  "settingsAppearanceSetListColorTitle": "Colour-code set-list rows",
+  "settingsAppearanceSetListColorTitle": "Color-code set-list rows",
   "@settingsAppearanceSetListColorTitle": {
     "description": "Toggle title: tint set-list rows by formation family."
   },
-  "settingsAppearanceSetListColorSubtitle": "Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own colour, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.",
+  "settingsAppearanceSetListColorSubtitle": "Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own color, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without color.",
   "@settingsAppearanceSetListColorSubtitle": {
-    "description": "Explanation for the set-list colour-coding toggle."
+    "description": "Explanation for the set-list color-coding toggle."
   },
-  "settingsAppearanceFormationColoursTitle": "Formation label colours",
+  "settingsAppearanceFormationColoursTitle": "Formation label colors",
   "@settingsAppearanceFormationColoursTitle": {
-    "description": "List-tile title opening the formation-colour customisation screen."
+    "description": "List-tile title opening the formation-color customisation screen."
   },
-  "settingsAppearanceFormationColoursSubtitle": "Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.",
+  "settingsAppearanceFormationColoursSubtitle": "Highlight individual formations in your own colors — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.",
   "@settingsAppearanceFormationColoursSubtitle": {
-    "description": "Explanation for the formation-colour customisation entry."
+    "description": "Explanation for the formation-color customisation entry."
   },
   "settingsAppearanceSelectedBadge": "Selected",
   "@settingsAppearanceSelectedBadge": {
     "description": "Label shown on the currently-selected theme card in the gallery."
   },
-  "settingsAppearancePreviewHeading": "Aa Preview",
+  "settingsAppearancePreviewHeading": "Aa preview",
   "@settingsAppearancePreviewHeading": {
     "description": "Sample heading text shown in a theme preview swatch."
   },
@@ -3392,29 +3392,29 @@
   "@settingsDefaultsMoveNoParams": {
     "description": "Shown on a move-default card when the move has no parameters to override."
   },
-  "settingsFormationColoursTitle": "Formation colours",
+  "settingsFormationColoursTitle": "Formation colors",
   "@settingsFormationColoursTitle": {
-    "description": "App-bar title of the per-formation label-colour settings screen."
+    "description": "App-bar title of the per-formation label-color settings screen."
   },
-  "settingsFormationColoursIntro": "Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header, and to colour its set-list rows (mixers keep the mixer colour). Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.",
+  "settingsFormationColoursIntro": "Give a formation its own color to highlight its label on dance cards, dance detail, and the Perform header, and to color its set-list rows (mixers keep the mixer color). Only the formations you customize are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without color.",
   "@settingsFormationColoursIntro": {
-    "description": "Intro paragraph explaining per-formation label colours."
+    "description": "Intro paragraph explaining per-formation label colors."
   },
   "settingsFormationColoursListHeader": "Formations",
   "@settingsFormationColoursListHeader": {
     "description": "Section header above the list of formation shapes."
   },
-  "settingsFormationColoursCustom": "Custom colour",
+  "settingsFormationColoursCustom": "Custom color",
   "@settingsFormationColoursCustom": {
-    "description": "Subtitle shown when a formation has a custom label colour set."
+    "description": "Subtitle shown when a formation has a custom label color set."
   },
   "settingsFormationColoursFamilyDefault": "Family default",
   "@settingsFormationColoursFamilyDefault": {
-    "description": "Subtitle shown when a formation uses its family-default label colour."
+    "description": "Subtitle shown when a formation uses its family-default label color."
   },
   "settingsFormationColoursResetTooltip": "Reset {label} to the family default",
   "@settingsFormationColoursResetTooltip": {
-    "description": "Tooltip on the button that resets one formation's custom colour.",
+    "description": "Tooltip on the button that resets one formation's custom color.",
     "placeholders": {
       "label": {
         "type": "String",
@@ -3422,33 +3422,33 @@
       }
     }
   },
-  "settingsAppearanceTagColoursHeader": "Tag colours",
+  "settingsAppearanceTagColoursHeader": "Tag colors",
   "@settingsAppearanceTagColoursHeader": {
-    "description": "Section header for the tag-colour customisation entry in Appearance settings."
+    "description": "Section header for the tag-color customisation entry in Appearance settings."
   },
-  "settingsAppearanceTagColoursTitle": "Tag colours",
+  "settingsAppearanceTagColoursTitle": "Tag colors",
   "@settingsAppearanceTagColoursTitle": {
-    "description": "List-tile title opening the tag-colour customisation screen."
+    "description": "List-tile title opening the tag-color customisation screen."
   },
-  "settingsAppearanceTagColoursSubtitle": "Give a tag its own colour to make it stand out on dance cards and dance detail. The tag's name is always shown too, so tags stay readable without colour.",
+  "settingsAppearanceTagColoursSubtitle": "Give a tag its own color to make it stand out on dance cards and dance detail. The tag's name is always shown too, so tags stay readable without color.",
   "@settingsAppearanceTagColoursSubtitle": {
-    "description": "Explanation for the tag-colour customisation entry."
+    "description": "Explanation for the tag-color customisation entry."
   },
   "settingsTagColoursEmpty": "You haven't created any tags yet. Add a tag to a dance and it will appear here.",
   "@settingsTagColoursEmpty": {
-    "description": "Shown on the tag-colour screen when the collection has no tags."
+    "description": "Shown on the tag-color screen when the collection has no tags."
   },
-  "settingsTagColoursSaveError": "Couldn't save that colour. Please try again.",
+  "settingsTagColoursSaveError": "Couldn't save that color. Please try again.",
   "@settingsTagColoursSaveError": {
-    "description": "Snack-bar message shown when saving or clearing a tag colour fails."
+    "description": "Snack-bar message shown when saving or clearing a tag color fails."
   },
   "settingsTagColoursLoadError": "Couldn't load your tags.",
   "@settingsTagColoursLoadError": {
-    "description": "Shown on the tag-colour screen when the tag list fails to load."
+    "description": "Shown on the tag-color screen when the tag list fails to load."
   },
   "tagManagerTitle": "Tags",
   "@tagManagerTitle": {
-    "description": "App-bar title of the Tags manager, where tags are renamed, merged, coloured and deleted."
+    "description": "App-bar title of the Tags manager, where tags are renamed, merged, colored and deleted."
   },
   "tagManagerSearchHint": "Search tags",
   "@tagManagerSearchHint": {
@@ -3458,13 +3458,13 @@
   "@tagManagerNameLabel": {
     "description": "Label of the name field in the Tags manager's rename dialog."
   },
-  "tagManagerColour": "Colour…",
+  "tagManagerColour": "Color…",
   "@tagManagerColour": {
-    "description": "Tags manager action: opens the colour picker for a tag."
+    "description": "Tags manager action: opens the color picker for a tag."
   },
-  "tagManagerRemoveColour": "Remove colour",
+  "tagManagerRemoveColour": "Remove color",
   "@tagManagerRemoveColour": {
-    "description": "Tags manager action, offered only for a tag with a colour: removes the colour."
+    "description": "Tags manager action, offered only for a tag with a color: removes the color."
   },
   "tagManagerDeletedSnack": "{count, plural, =0{Deleted “{name}”} =1{Deleted “{name}” from 1 dance} other{Deleted “{name}” from {count} dances}}",
   "@tagManagerDeletedSnack": {
@@ -4112,7 +4112,7 @@
   "@settingsGeneralLibraryTagsTitle": {
     "description": "Settings › General › Library entry that opens the Tags manager."
   },
-  "settingsGeneralLibraryTagsSubtitle": "Rename, merge, colour and delete your tags.",
+  "settingsGeneralLibraryTagsSubtitle": "Rename, merge, color and delete your tags.",
   "@settingsGeneralLibraryTagsSubtitle": {
     "description": "Subtitle of the Settings › General › Library entry that opens the Tags manager."
   },
@@ -4392,7 +4392,7 @@
   "@settingsGeneralReparseCustomFiguresTitle": {
     "description": "Title of the General settings row that re-parses imported custom-only figures."
   },
-  "settingsGeneralReparseCustomFiguresSubtitle": "Re-check imported dances whose figures were kept as custom only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.",
+  "settingsGeneralReparseCustomFiguresSubtitle": "Re-check imported dances whose figures were kept as custom only because they could not be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.",
   "@settingsGeneralReparseCustomFiguresSubtitle": {
     "description": "Subtitle explaining the re-check custom figures action."
   },
@@ -4412,15 +4412,15 @@
   "@backupExportFailed": {
     "description": "Snackbar shown when backup export fails. The raw exception is logged separately, not shown in the UI."
   },
-  "backupRestoreIntegrityFailed": "This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was cancelled and your data is unchanged.",
+  "backupRestoreIntegrityFailed": "This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was canceled and your data is unchanged.",
   "@backupRestoreIntegrityFailed": {
     "description": "Snackbar shown when a backup is refused because its SHA-256 integrity checksum did not verify (issue #536): the file is corrupt or was altered after export, so the restore does not run and data is unchanged."
   },
-  "backupRestoreIncompatibleVersion": "This backup contains items this version of the app can't read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.",
+  "backupRestoreIncompatibleVersion": "This backup contains items this version of the app can't read (it may be from a newer version), so the restore was canceled. Your data is unchanged.",
   "@backupRestoreIncompatibleVersion": {
     "description": "Snackbar shown when a valid backup contains data too new for this app version, so restore is refused without changing local data."
   },
-  "backupRestoreMissingAppSection": "This backup doesn't include your app settings, themes or dialects, so it can't replace your current data. The restore was cancelled and your data is unchanged.",
+  "backupRestoreMissingAppSection": "This backup doesn't include your app settings, themes or dialects, so it can't replace your current data. The restore was canceled and your data is unchanged.",
   "@backupRestoreMissingAppSection": {
     "description": "Snackbar shown when a replace restore is refused because the backup file has no app section (an older, hand-edited or incomplete file), so restoring it would clear preferences, themes and dialects it never described. Existing data is unchanged."
   },
@@ -4660,9 +4660,9 @@
   "@diagnosticsLogExported": {
     "description": "Snackbar confirming the diagnostics log was exported."
   },
-  "diagnosticsExportCancelled": "Export cancelled.",
+  "diagnosticsExportCancelled": "Export canceled.",
   "@diagnosticsExportCancelled": {
-    "description": "Snackbar shown when the diagnostics export/share flow is cancelled."
+    "description": "Snackbar shown when the diagnostics export/share flow is canceled."
   },
   "diagnosticsExportFailed": "Couldn't export the diagnostics log.",
   "@diagnosticsExportFailed": {
@@ -4832,7 +4832,7 @@
   },
   "commonApply": "Apply",
   "@commonApply": {
-    "description": "Confirm button in the shared colour-picker dialog that applies the chosen colour."
+    "description": "Confirm button in the shared color-picker dialog that applies the chosen color."
   },
   "commonCouldntOpenLink": "Couldn't open link",
   "@commonCouldntOpenLink": {
@@ -8921,7 +8921,7 @@
   },
   "importContraDbMarkerImported": "Imported",
   "@importContraDbMarkerImported": {
-    "description": "Firm badge on a ContraDB program search/preview row that was already imported into the local collection (matched by its ContraDB program id). Accompanied by an icon so colour is never the only signal (WCAG 1.4.1)."
+    "description": "Firm badge on a ContraDB program search/preview row that was already imported into the local collection (matched by its ContraDB program id). Accompanied by an icon so color is never the only signal (WCAG 1.4.1)."
   },
   "importContraDbMarkerImportedTooltip": "Imported on {date}",
   "@importContraDbMarkerImportedTooltip": {
@@ -8939,7 +8939,7 @@
   },
   "importContraDbMarkerPossible": "Possibly imported",
   "@importContraDbMarkerPossible": {
-    "description": "Softer badge on a ContraDB program search/preview row whose title matches an existing local program, but with no ContraDB id linking them (a weaker, title-only 'maybe you imported this' hint). Accompanied by an icon so colour is never the only signal (WCAG 1.4.1)."
+    "description": "Softer badge on a ContraDB program search/preview row whose title matches an existing local program, but with no ContraDB id linking them (a weaker, title-only 'maybe you imported this' hint). Accompanied by an icon so color is never the only signal (WCAG 1.4.1)."
   },
   "importContraDbMarkerPossibleTooltip": "A program with this title already exists",
   "@importContraDbMarkerPossibleTooltip": {
@@ -8987,7 +8987,7 @@
   "@importContraDbProgramConnectionFailed": {
     "description": "Snackbar shown when importing a ContraDB program stops because ContraDB or The Caller's Box could not be reached. No program is created and any dances already imported are removed again."
   },
-  "importContraDbProgramCancelled": "Import cancelled — nothing was added.",
+  "importContraDbProgramCancelled": "Import canceled — nothing was added.",
   "@importContraDbProgramCancelled": {
     "description": "Snackbar shown when the user cancels a ContraDB program import part-way through. No program is created and any dances already imported are removed again."
   },
@@ -12227,7 +12227,7 @@
   },
   "updateBannerAvailable": "A newer version of {appName} ({version}) is available.",
   "@updateBannerAvailable": {
-    "description": "Update banner message when a newer version is available (idle/cancelled state).",
+    "description": "Update banner message when a newer version is available (idle/canceled state).",
     "placeholders": {
       "appName": {
         "type": "String"
@@ -12841,11 +12841,11 @@
   },
   "themeEditorContrastAllPass": "All checked pairs pass WCAG AA contrast.",
   "@themeEditorContrastAllPass": {
-    "description": "Status shown when every checked colour pair meets WCAG AA contrast."
+    "description": "Status shown when every checked color pair meets WCAG AA contrast."
   },
   "themeEditorContrastFailing": "{count, plural, =1{1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.} other{{count} contrast pairs below WCAG AA. You can still save, but some text may be hard to read.}}",
   "@themeEditorContrastFailing": {
-    "description": "Warning shown when one or more colour pairs fall below WCAG AA contrast.",
+    "description": "Warning shown when one or more color pairs fall below WCAG AA contrast.",
     "placeholders": {
       "count": {
         "type": "int"
@@ -12870,7 +12870,7 @@
       }
     }
   },
-  "themeEditorPreviewHeading": "Aa Preview",
+  "themeEditorPreviewHeading": "Aa preview",
   "@themeEditorPreviewHeading": {
     "description": "Heading of the live theme-preview card ('Aa' is a font specimen)."
   },
@@ -12880,25 +12880,25 @@
   },
   "themeEditorSwatchPrimary": "Primary",
   "@themeEditorSwatchPrimary": {
-    "description": "Label for the primary colour swatch."
+    "description": "Label for the primary color swatch."
   },
   "themeEditorSwatchSecondary": "Secondary",
   "@themeEditorSwatchSecondary": {
-    "description": "Label for the secondary colour swatch."
+    "description": "Label for the secondary color swatch."
   },
   "themeEditorSwatchTertiary": "Tertiary",
   "@themeEditorSwatchTertiary": {
-    "description": "Label for the tertiary colour swatch."
+    "description": "Label for the tertiary color swatch."
   },
   "themeEditorSwatchError": "Error",
   "@themeEditorSwatchError": {
-    "description": "Label for the error colour swatch."
+    "description": "Label for the error color swatch."
   },
   "reparseConfirmTitle": "Upgrade custom figures?",
   "@reparseConfirmTitle": {
     "description": "Title of the confirm dialog before re-parsing custom figures."
   },
-  "reparseConfirmBody": "This will re-check {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.",
+  "reparseConfirmBody": "This will re-check {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognize a known move.",
   "@reparseConfirmBody": {
     "description": "Body of the confirm dialog before upgrading custom figures.",
     "placeholders": {
@@ -12969,7 +12969,7 @@
   "@reparseEmptyTitle": {
     "description": "Title of the empty state when no custom figures can be upgraded."
   },
-  "reparseEmptyBody": "None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.",
+  "reparseEmptyBody": "None of your custom figures from imports can be recognized as a known move right now. Check back after a future update improves figure recognition.",
   "@reparseEmptyBody": {
     "description": "Body of the empty state when no custom figures can be upgraded."
   },
@@ -14190,9 +14190,9 @@
   "@compoundEditorDefinitionHelper": {
     "description": "Helper text of a custom figure's definition field."
   },
-  "compoundEditorDescription": "More Details",
+  "compoundEditorDescription": "More details",
   "@compoundEditorDescription": {
-    "description": "Label of a custom figure's optional \"More Details\" field, which holds its longer description."
+    "description": "Label of a custom figure's optional \"More details\" field, which holds its longer description."
   },
   "compoundEditorKeywords": "Other names",
   "@compoundEditorKeywords": {
@@ -14350,9 +14350,9 @@
       }
     }
   },
-  "compoundEditorNameTakenHiddenTerm": "“{name}” is already the name of one of your own terms. Those are listed in the Glossary while Show Glossary is on. Choose another name.",
+  "compoundEditorNameTakenHiddenTerm": "“{name}” is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.",
   "@compoundEditorNameTakenHiddenTerm": {
-    "description": "Error shown when saving a figure under a name one of the user's own terms already has, while Show Glossary is off and that term is not shown.",
+    "description": "Error shown when saving a figure under a name one of the user's own terms already has, while Show glossary is off and that term is not shown.",
     "placeholders": {
       "name": {
         "type": "String",

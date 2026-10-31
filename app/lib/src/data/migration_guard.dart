@@ -323,7 +323,7 @@ Future<void> runMigrationPreflight({
 /// fallback. Never trusts message text for anything but a coarse hint.
 ///
 /// Exposed so the below-floor backup-before-reset flow (AppBootstrap's
-/// Back Up + Reset action) can classify its own snapshot failures with the same
+/// Back up + reset action) can classify its own snapshot failures with the same
 /// logic, rather than duplicating the OS-code table.
 SnapshotFailureCause classifySnapshotFailure(Object error) {
   if (error is FileSystemException) {

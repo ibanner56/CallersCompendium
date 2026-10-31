@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -188,10 +189,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get migrationBelowFloorBackUpAndReset => 'Back Up + Reset';
+  String get migrationBelowFloorBackUpAndReset => 'Back up + reset';
 
   @override
-  String get migrationBelowFloorResetOnly => 'Reset Only';
+  String get migrationBelowFloorResetOnly => 'Reset only';
 
   @override
   String get migrationBelowFloorBackupFailedTitle => 'Backup failed';
@@ -302,7 +303,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsExperimentalTitle => 'Experimental';
 
   @override
-  String get settingsDeveloperOptionsHeader => 'Developer Options';
+  String get settingsDeveloperOptionsHeader => 'Developer options';
 
   @override
   String get settingsDeveloperResetTitle => 'Reset database';
@@ -427,8 +428,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count terms couldn\'t be added: they\'re too long, or your Glossary is full.',
-      one:
-          '1 term couldn\'t be added: it\'s too long, or your Glossary is full.',
+      one: '1 term couldn\'t be added: it\'s too long, or your Glossary is full.',
     );
     return '$_temp0';
   }
@@ -496,8 +496,7 @@ class AppLocalizationsEn extends AppLocalizations {
           '$count dances use your figure, and will use $name instead. Yours is removed from your Glossary.',
       one:
           '1 dance uses your figure, and will use $name instead. Yours is removed from your Glossary.',
-      zero:
-          'No dance in your collection uses your figure. It\'s removed from your Glossary.',
+      zero: 'No dance in your collection uses your figure. It\'s removed from your Glossary.',
     );
     return '$_temp0';
   }
@@ -548,7 +547,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Glossary and Custom Figures';
 
   @override
-  String get settingsExperimentalShowGlossaryTitle => 'Show Glossary';
+  String get settingsExperimentalShowGlossaryTitle => 'Show glossary';
 
   @override
   String get settingsExperimentalShowGlossarySubtitle =>
@@ -1182,7 +1181,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncConflictFieldProvenance => 'Origin';
 
   @override
-  String get syncConflictFieldColour => 'Colour';
+  String get syncConflictFieldColour => 'Color';
 
   @override
   String get syncConflictThemeBrightness => 'Light or dark';
@@ -2070,7 +2069,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appThemeLabelDark => 'Dark';
 
   @override
-  String get appThemeLabelSoftDark => 'Soft Dark';
+  String get appThemeLabelSoftDark => 'Soft dark';
 
   @override
   String get appThemeLabelHighContrast => 'High contrast';
@@ -2183,7 +2182,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Modern muted sage, teal and rose';
 
   @override
-  String get appThemeDescriptionZenburn => 'The classic low-contrast warm grey';
+  String get appThemeDescriptionZenburn => 'The classic low-contrast warm gray';
 
   @override
   String get appThemeDescriptionShadesOfPurple => 'Bold gold on deep indigo';
@@ -2359,36 +2358,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppearanceSetListsHeader => 'Set lists';
 
   @override
-  String get settingsAppearanceFormationColoursHeader => 'Formation colours';
+  String get settingsAppearanceFormationColoursHeader => 'Formation colors';
 
   @override
   String get settingsAppearanceColourDanceTitle =>
-      'Colour-named dances tint the theme';
+      'Color-named dances tint the theme';
 
   @override
   String get settingsAppearanceColourDanceSubtitle =>
-      'A playful surprise: when you open a dance whose title names a colour — like Baby Rose or Blue Boy — its view is tinted that colour. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.';
+      'A playful surprise: when you open a dance whose title names a color — like Baby Rose or Blue Boy — its view is tinted that color. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.';
 
   @override
-  String get settingsAppearanceSetListColorTitle => 'Colour-code set-list rows';
+  String get settingsAppearanceSetListColorTitle => 'Color-code set-list rows';
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own colour, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.';
+      'Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own color, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without color.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
-      'Formation label colours';
+      'Formation label colors';
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.';
+      'Highlight individual formations in your own colors — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Selected';
 
   @override
-  String get settingsAppearancePreviewHeading => 'Aa Preview';
+  String get settingsAppearancePreviewHeading => 'Aa preview';
 
   @override
   String get settingsAppearancePreviewBody => 'Body text sample';
@@ -2719,17 +2718,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'This move has no parameters to default.';
 
   @override
-  String get settingsFormationColoursTitle => 'Formation colours';
+  String get settingsFormationColoursTitle => 'Formation colors';
 
   @override
   String get settingsFormationColoursIntro =>
-      'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header, and to colour its set-list rows (mixers keep the mixer colour). Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.';
+      'Give a formation its own color to highlight its label on dance cards, dance detail, and the Perform header, and to color its set-list rows (mixers keep the mixer color). Only the formations you customize are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without color.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formations';
 
   @override
-  String get settingsFormationColoursCustom => 'Custom colour';
+  String get settingsFormationColoursCustom => 'Custom color';
 
   @override
   String get settingsFormationColoursFamilyDefault => 'Family default';
@@ -2740,14 +2739,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settingsAppearanceTagColoursHeader => 'Tag colours';
+  String get settingsAppearanceTagColoursHeader => 'Tag colors';
 
   @override
-  String get settingsAppearanceTagColoursTitle => 'Tag colours';
+  String get settingsAppearanceTagColoursTitle => 'Tag colors';
 
   @override
   String get settingsAppearanceTagColoursSubtitle =>
-      'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.';
+      'Give a tag its own color to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without color.';
 
   @override
   String get settingsTagColoursEmpty =>
@@ -2755,7 +2754,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsTagColoursSaveError =>
-      'Couldn\'t save that colour. Please try again.';
+      'Couldn\'t save that color. Please try again.';
 
   @override
   String get settingsTagColoursLoadError => 'Couldn\'t load your tags.';
@@ -2770,10 +2769,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tagManagerNameLabel => 'Tag name';
 
   @override
-  String get tagManagerColour => 'Colour…';
+  String get tagManagerColour => 'Color…';
 
   @override
-  String get tagManagerRemoveColour => 'Remove colour';
+  String get tagManagerRemoveColour => 'Remove color';
 
   @override
   String tagManagerDeletedSnack(String name, int count) {
@@ -3244,7 +3243,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralLibraryTagsSubtitle =>
-      'Rename, merge, colour and delete your tags.';
+      'Rename, merge, color and delete your tags.';
 
   @override
   String get settingsGeneralLibraryAuthorsTitle => 'Authors';
@@ -3471,7 +3470,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Re-check imported dances whose figures were kept as custom only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.';
+      'Re-check imported dances whose figures were kept as custom only because they could not be recognized at import time. If the app can now recognize them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Re-check…';
@@ -3487,15 +3486,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupRestoreIntegrityFailed =>
-      'This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was cancelled and your data is unchanged.';
+      'This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was canceled and your data is unchanged.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
-      'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.';
+      'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was canceled. Your data is unchanged.';
 
   @override
   String get backupRestoreMissingAppSection =>
-      'This backup doesn\'t include your app settings, themes or dialects, so it can\'t replace your current data. The restore was cancelled and your data is unchanged.';
+      'This backup doesn\'t include your app settings, themes or dialects, so it can\'t replace your current data. The restore was canceled and your data is unchanged.';
 
   @override
   String get backupRestoreInvalidFile =>
@@ -3654,7 +3653,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get diagnosticsLogExported => 'Diagnostics log exported.';
 
   @override
-  String get diagnosticsExportCancelled => 'Export cancelled.';
+  String get diagnosticsExportCancelled => 'Export canceled.';
 
   @override
   String get diagnosticsExportFailed => 'Couldn\'t export the diagnostics log.';
@@ -6510,8 +6509,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count free-text slots (breaks, notes) omitted — the matrix shows dances only.',
-      one:
-          '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
+      one: '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
     );
     return '$_temp0';
   }
@@ -6817,7 +6815,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importContraDbProgramCancelled =>
-      'Import cancelled — nothing was added.';
+      'Import canceled — nothing was added.';
 
   @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
@@ -7808,8 +7806,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'Re-import replaces the figures, formation and progression of $count existing dances. Their ratings, tags and notes stay.',
-      one:
-          'Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.',
+      one: 'Re-import replaces the figures, formation and progression of 1 existing dance. Its rating, tags and notes stay.',
     );
     return '$_temp0';
   }
@@ -7840,8 +7837,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'This import contains $count items — more than expected for a normal share.',
-      one:
-          'This import contains 1 item — more than expected for a normal share.',
+      one: 'This import contains 1 item — more than expected for a normal share.',
     );
     return '$_temp0';
   }
@@ -8670,8 +8666,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'Added $count figures. Type another, or choose Finish adding when you\'re done.',
-      one:
-          'Added 1 figure. Type another, or choose Finish adding when you\'re done.',
+      one: 'Added 1 figure. Type another, or choose Finish adding when you\'re done.',
     );
     return '$_temp0';
   }
@@ -9281,8 +9276,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: 'Changed $count dances back.',
       one: 'Changed 1 dance back.',
-      zero:
-          'No dances were changed back: each one\'s type or tags have changed since.',
+      zero: 'No dances were changed back: each one\'s type or tags have changed since.',
     );
     return '$_temp0';
   }
@@ -9709,8 +9703,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count call buttons were left out because their text does not read as figures.',
-      one:
-          '1 call button was left out because its text does not read as figures.',
+      one: '1 call button was left out because its text does not read as figures.',
     );
     return '$_temp0';
   }
@@ -9760,8 +9753,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrast pairs below WCAG AA. You can still save, but some text may be hard to read.',
-      one:
-          '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
+      one: '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
     );
     return '$_temp0';
   }
@@ -9777,7 +9769,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get themeEditorPreviewHeading => 'Aa Preview';
+  String get themeEditorPreviewHeading => 'Aa preview';
 
   @override
   String get themeEditorBodySample => 'Body text sample';
@@ -9811,7 +9803,7 @@ class AppLocalizationsEn extends AppLocalizations {
       other: '$danceCount dances',
       one: '1 dance',
     );
-    return 'This will re-check $_temp0 in $_temp1. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.';
+    return 'This will re-check $_temp0 in $_temp1. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognize a known move.';
   }
 
   @override
@@ -9881,7 +9873,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.';
+      'None of your custom figures from imports can be recognized as a known move right now. Check back after a future update improves figure recognition.';
 
   @override
   String get reparseErrorTitle => 'Could not check your figures';
@@ -10766,7 +10758,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'One sentence, shown in the Glossary list.';
 
   @override
-  String get compoundEditorDescription => 'More Details';
+  String get compoundEditorDescription => 'More details';
 
   @override
   String get compoundEditorKeywords => 'Other names';
@@ -10870,7 +10862,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String compoundEditorNameTakenHiddenTerm(String name) {
-    return '“$name” is already the name of one of your own terms. Those are listed in the Glossary while Show Glossary is on. Choose another name.';
+    return '“$name” is already the name of one of your own terms. Those are listed in the Glossary while Show glossary is on. Choose another name.';
   }
 
   @override
@@ -11059,8 +11051,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'Your $count shorthands for it stay, and typing them will be read as ordinary lines.',
-      one:
-          'Your shorthand for it stays, and typing it will be read as an ordinary line.',
+      one: 'Your shorthand for it stays, and typing it will be read as an ordinary line.',
     );
     return '$_temp0';
   }
@@ -11072,10 +11063,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.',
-      one:
-          '1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.',
-      zero:
-          'No dance in your collection uses it. It\'s removed from your Glossary.',
+      one: '1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.',
+      zero: 'No dance in your collection uses it. It\'s removed from your Glossary.',
     );
     return '$_temp0';
   }

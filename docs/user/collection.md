@@ -96,7 +96,7 @@ colour, so nothing depends on being able to tell the colours apart.
 
 Colours, and everything else about your tags, are in the **Tags** manager:
 **Settings → General → Library → Tags** (**Settings → Appearance → Tag
-colours** opens it too). It lists every tag with the number of dances that use
+colors** opens it too). It lists every tag with the number of dances that use
 it, and you can search, show only the tags no dance uses (**Not used**), and
 sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
 
@@ -107,7 +107,7 @@ sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
 - **Merge into…** another tag, picked from a searchable list. Every dance with
   either tag ends up with the one you picked, which keeps its own colour (or
   takes this tag's, if it had none).
-- Pick a **Colour…**, or **Remove colour**.
+- Pick a **Color…**, or **Remove color**.
 - **Delete** it. The tag comes off every dance that has it, and the message
   says how many dances that was (dances in
   [Recently deleted](./settings.md#deleted-items) lose it too, but aren't
@@ -115,7 +115,7 @@ sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
 
 Each of these happens at once, without asking first. A rename, merge or delete
 offers **Undo** in the message that follows (a colour change has none: pick
-another colour, or **Remove colour**, to change it back). That message is the
+another colour, or **Remove color**, to change it back). That message is the
 only Undo: a deleted tag doesn't go to Recently deleted. If you create a tag with the same name later, it starts
 with no dances. A rename, merge or delete also updates the
 [tags given to imported dances](./settings.md#import-defaults), and Undo puts

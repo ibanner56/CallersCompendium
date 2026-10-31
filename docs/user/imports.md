@@ -531,8 +531,8 @@ comes with it as it was written, and shows on the term's page. Its notes become
 the term's notes.
 
 Every Glossary entry needs a name and a definition. Caller's Companion has no
-**More Details**, so each term's starts as its definition. Choose **Edit** to
-change either one, or the name, before you add it. More Details left blank
+**More details**, so each term's starts as its definition. Choose **Edit** to
+change either one, or the name, before you add it. More details left blank
 there becomes the definition.
 
 - A term with no definition starts unticked and says so. Give it one with
