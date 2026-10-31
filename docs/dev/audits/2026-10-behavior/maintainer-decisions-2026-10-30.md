@@ -496,6 +496,17 @@ Wave 3 itself started at about 20:33 UTC, when the revised gate above was met: N
 
 **Wave 4 (maintainer's choice):** "Not yet". Its description: "Hold wave 4; ask me again after D2 merges."
 
+### Wave 4 (2026-10-31 ~08:15 UTC)
+**Question:** D2 (#2092) has merged. Should wave 4 start now? It runs U4 → U5a → U5b-1 → U5b-2 in that order, and UX6-2 follows.
+
+**Decision (maintainer's words):** "Start, PR approval standing, but work one PR at a time to be cautious of my weekly session limit. Release the next session only once CI and Claude review are green for a branch."
+
+The orchestrating session reads this as follows:
+- Only one wave-4 session builds at a time.
+- The next session starts only when the previous branch's PR has green CI and an approving Claude review.
+- B29, already building, counts toward this: no wave-4 session after U4 starts while B29 is still building.
+- Still open: U5b-1 is blocked on conflict 10 in `decided-work-plan.md` (curly or straight quotes, and whether apostrophes count). Ask the maintainer before starting U5b-1.
+
 ## Still open
 
 - Nothing on the decision page.
