@@ -605,6 +605,13 @@ explicit about two things, and both matter:
 
 - These details are **shared across every dance credited to that author**, so
   correcting a spelling here corrects it everywhere.
+- If you rename an author to a name another author already has, the app offers
+  to **merge** them into one, listing any details it would drop because the two
+  disagree. **Keep editing** takes you back to what you typed. After a merge,
+  every dance that credited either author credits the one that's left, this
+  dance included, and **Undo** in the message at the bottom of the screen puts
+  both back. The same merge is in **Settings → General → Library → Authors**;
+  see [Settings](./settings.md#library).
 - **Email and location are private, and so is the deceased mark.** They are
   stored only on this device and are never shared or exported. See
   [Share, print & export](./sharing.md#what-stays-private) for exactly what

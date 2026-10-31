@@ -58,6 +58,37 @@ The **General** section gathers everyday behavior into small groups.
 - **Tags** — opens the Tags manager, where you rename, merge, colour and delete
   your tags. See [Group by category](./collection.md#group-by-category-a-dances-vibe)
   for what each action does.
+- **Authors** and **Sources** — open the Authors and Sources managers. They
+  work like the Tags manager: search, a **Not used** filter, sort by name or by
+  number of dances, and a ⋮ on each row (or tap the row) for its actions.
+  Each row shows how many dances use it; a dance in
+  [Recently deleted](#deleted-items) doesn't count. A source's row also shows
+  its author and year, so two sources with the same title can be told apart.
+  - **Rename** changes the name everywhere it is credited. Renaming an author
+    to a name another author already has offers to **merge** the two instead.
+  - **Merge into…** combines two entries into the one you pick: every dance that
+    credited either now credits that one. Any detail the kept entry leaves
+    empty is filled from the other — an email, say, typed only on a misspelled
+    copy. Where both hold different values, the kept entry's value stays and the
+    other is dropped; the app lists what it will drop and asks before it merges.
+    An author marked deceased on either copy stays marked. For a source, a dance
+    that cited both keeps one citation, with the page and number it had for the
+    source you merged into; an empty one is filled from the other citation. A
+    page or number the two citations disagree on isn't listed: the one for the
+    source you merged into is kept.
+  - **Edit details…** opens the same details you edit from the dance editor.
+  - **Delete** appears only for an entry no dance uses. One still in use can
+    only be merged, so no dance loses its author or source.
+
+  Rename, merge and delete happen at once and show an **Undo** in the message at
+  the bottom of the screen; once that message goes, the change stays. A merge's
+  dropped details come back with Undo, and are gone after it.
+
+  Merging two authors loses something on your other devices, as merging two
+  choreographers in [Sync decisions](#sync-decisions) does: an email address,
+  location, and deceased marker are kept only on your own device and are never
+  sent to your other devices, so the ones another device holds for the author
+  that is not kept cannot be recovered there.
 
 ### Accessibility
 

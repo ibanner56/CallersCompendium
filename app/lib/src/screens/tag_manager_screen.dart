@@ -10,7 +10,6 @@ import '../diagnostics/error_log.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/tag_chip.dart';
-import '../utils/undo_snack_bar.dart';
 import 'settings/library_manager_list.dart';
 
 /// The Tags manager (FIND-3, `docs/design/tags-and-people.md` T2): rename,
@@ -269,39 +268,12 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
 
   void _offerUndo(TagEdit edit, String message) {
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final repos = _repos;
-    showUndoSnackBar(
-      messenger,
-      key: const ValueKey('tag-manager-undo-snackbar'),
-      actionKey: const ValueKey('tag-manager-undo'),
+    showLibraryUndoSnackBar(
+      context,
+      keyPrefix: 'tag-manager',
       message: message,
-      undoLabel: l10n.commonUndo,
-      undoFailedMessage: l10n.commonUndoFailed,
-      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () async {
-        try {
-          await undoTagEdit(repos, edit);
-        } on ReferenceUndoConflictException catch (conflict, stackTrace) {
-          // Says more than the generic failure, so it reports itself and
-          // does not throw (see showUndoSnackBar).
-          logCaughtError(
-            conflict,
-            stackTrace,
-            source: 'tag_manager_screen.undo',
-          );
-          if (!messenger.mounted) return;
-          messenger
-            ..clearSnackBars()
-            ..showSnackBar(
-              SnackBar(
-                key: const ValueKey('tag-manager-undo-conflict'),
-                content: Text(l10n.libraryManagerUndoConflict(conflict.name)),
-              ),
-            );
-        }
-      },
+      onUndo: () => undoTagEdit(repos, edit),
     );
   }
 

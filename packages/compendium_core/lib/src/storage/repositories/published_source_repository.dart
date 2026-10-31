@@ -139,6 +139,18 @@ class PublishedSourceRepository {
     return row == null ? null : _toModel(row);
   }
 
+  /// [listAll] as a stream, re-emitted after every write to
+  /// `published_sources`, made here or by a sync pass. The Sources manager
+  /// lists through it.
+  Stream<List<PublishedSource>> watchAll() =>
+      (_db.select(_db.publishedSources)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([
+              (t) => OrderingTerm(expression: t.title.collate(Collate.noCase)),
+            ]))
+          .watch()
+          .map((rows) => rows.map(_toModel).toList());
+
   Future<List<PublishedSource>> listAll() async {
     final rows =
         await (_db.select(_db.publishedSources)
