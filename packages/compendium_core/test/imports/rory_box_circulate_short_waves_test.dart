@@ -67,13 +67,15 @@ void main() {
         final crossed = single('Wave balance, circulate (Larks cross)');
         expect(crossed.move, 'box_circulate');
         expect(crossed.params['who'], 'role1s');
-        expect(crossed.note, 'role1s cross');
+        // Maintainer decision on #2089: the bracket, read whole, is no note.
+        expect(crossed.note, isNull);
 
         final looped = single(
           'Wave balance, circulate (Robins cross, Larks loop R)',
         );
         expect(looped.params['who'], 'role2s');
         expect(looped.params['hand'], 'right');
+        expect(looped.note, isNull);
 
         // The loopers must be the other role, as in The Caller's Box, and the
         // crossers one of a pair.

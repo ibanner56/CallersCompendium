@@ -1964,13 +1964,46 @@ has to be judged in its own context.
     whole line must be the balance then the circulate, so `Box circulate,
     balance the wave` is not read, and `Balance the wave, circulate` reads the
     same as `Wave balance`. A bracket must say who crosses, as `_circulate`
-    reads The Caller's Box's definition: `(Larks cross)` gives `who`, `(Larks
-    cross, Robins loop R)` also `hand`, and the bracket stays the note. Any
-    other bracket keeps the line text, so the around-the-set line stays text
-    however its count is written.
+    reads The Caller's Box's definition: `(Larks cross)` gives `who` and
+    `(Larks cross, Robins loop R)` also `hand`. The bracket leaves no note
+    since #2089 (below). Any other bracket keeps the line text, so the
+    around-the-set line stays text however its count is written.
   - `goodBeats` is `[0, 4, 8]`: The Caller's Box folds `(4) Form a wave` and
     `(4) Balance the wave` into one balanced form short waves of 8, which keeps
     raising no `atypical_beats` warning.
+
+  **Box circulate brackets and a balance after it (#2089):** the maintainer's
+  decisions on #2089:
+  - `Box circulate (Larks cross)` and a bare `Circulate (Robins cross, Larks
+    loop L)` are a box circulate whose bracket gives `who` and `hand`, as after
+    `Wave balance,` (`_circulateCrossBracket`, through the same bracket reader).
+    No balance is stated, so the line's beats decide it, by the rule above
+    from #1975.
+  - A bracket read whole leaves no note, here and after `Wave balance,`: the box
+    circulate's display already says who crosses and who loops. A note would
+    also lose the line to ContraDB's reader, which keeps the bracket as its
+    note and leaves `who` at its default; the two readings would tie on
+    unexplained text, and precedence gives a tie to ContraDB.
+  - Any other bracket reads as before: a box circulate noting it, or, after a
+    bare `Circulate`, text.
+  - `Box circulate, balance the wave` stays text. A box circulate's balance
+    can only come first, and a line's 8 beats would turn it on. The fan-out
+    has no reading for a box circulate whose note holds a balance, at its
+    start or after a comma, `;`, dash, `and` or `then`
+    (`_balanceAfterCirculate`), for imports and typed figures alike.
+
+  The author's calls:
+  - The rule covers any balance written after it (`balance the ring`,
+    `Neighbor balance`), one after a bracket, and one later in the note (`Box
+    circulate to a wave, balance the wave`), but not `no balance`.
+  - Without the fan-out's reading, a Caller's Companion import splits the line
+    at the comma when the balance reads alone, as any comma line: `(8) Box
+    circulate, balance the ring` is a box circulate in 4 then a ring balance in
+    4, in the order written. `balance the wave` does not read alone, so that
+    line stays text.
+  - The rule covers only the box circulate. A square through, the other move
+    whose balance its beats give, already keeps `Square through 2, balance the
+    wave` text.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on

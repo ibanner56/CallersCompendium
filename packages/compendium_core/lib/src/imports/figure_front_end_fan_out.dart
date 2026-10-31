@@ -79,6 +79,8 @@ enum _AttemptTier {
   /// to the TCB splitter / custom fallback. OR, for every caller, a figure whose
   /// note opens with an amount while it took none ([_leavesAmountUnread]): the
   /// line stated an amount and the figure would carry its default (#1971).
+  /// OR, for every caller, a box circulate noting a balance written after it
+  /// ([_balanceAfterCirculate], #2089).
   ///
   /// [tcbFigureFrontEnd] is exempt from the swallow check because it already
   /// handles top-level `;`/`||` splitting before producing any note. A `||`
@@ -142,6 +144,7 @@ _AttemptTier _classify(
   if (_leavesAmountUnread(result, taxonomy ?? contraTaxonomy)) {
     return _AttemptTier.none;
   }
+  if (_balanceAfterCirculate(result)) return _AttemptTier.none;
   if (demoteNoteTails) {
     // Descendants count too: a ContraDB `while` builds a noteless container
     // whose first child carries the tail (`neighbors swing 16 while partners
@@ -199,6 +202,32 @@ bool _leavesAmountUnread(Iterable<Figure> figures, Taxonomy taxonomy) {
   }
   return false;
 }
+
+/// Whether a box circulate in [figures] (sub-figures included) notes a balance
+/// written after it: `Box circulate, balance the wave`, `Box circulate to a
+/// wave, balance the wave`. Its balance flag can only put the balance first,
+/// and a line's 8 beats turn that flag on, so the fan-out has no reading for the
+/// line (maintainer decision on #2089, for the wave balance; any other balance
+/// is the author's call). A front-end that keeps any trailing text as a note
+/// (ContraDB) is the one that reads such a line. The line then stays text,
+/// unless a Caller's Companion import splits it at the comma into the box
+/// circulate and a balance that reads alone (`balance the ring`).
+bool _balanceAfterCirculate(Iterable<Figure> figures) => figures.any(
+  (f) =>
+      (f.move == 'box_circulate' &&
+          f.note != null &&
+          _balanceInNote.hasMatch(f.note!)) ||
+      (f.isContainer && _balanceAfterCirculate(f.subFigures)),
+);
+
+/// A balance, or one word and a balance (`wave balance`, `Neighbor balance`),
+/// opening a note or following a comma, `;`, dash, `and` or `then` in it.
+/// `no balance` and `without balance` say there is none.
+final RegExp _balanceInNote = RegExp(
+  r'(?:^|[,;\-\u2013]|\band\b|\bthen\b)\s*(?:and\s+)?(?:then\s+)?'
+  r'(?!(?:no|without)\s)(?:\w+\s+)?balance\b',
+  caseSensitive: false,
+);
 
 /// The param kinds that state how far a figure goes.
 const Set<ParamKind> _amountKinds = {
