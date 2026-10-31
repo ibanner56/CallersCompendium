@@ -6052,14 +6052,14 @@
 {"in":"Ring balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance_the_ring\"}]"}
 {"in":"Robins allemande Right 1.5","scrub":"role2s allemande Right 1.5","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\",\"travel\":1.5}}]"}
 {"in":"Long lines, forward and back","fanOut":"[{\"schemaVersion\":1,\"move\":\"long_lines\"}]"}
-{"in":"Wave balance, circulate","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Wave balance, circulate\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Wave balance, circulate","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\",\"params\":{\"balance\":true}}]"}
 {"in":"Right and left through","fanOut":"[{\"schemaVersion\":1,\"move\":\"right_left_through\"}]"}
 {"in":"Neighbor Do-si-do","scrub":"Neighbor do si do","fanOut":"[{\"schemaVersion\":1,\"move\":\"do_si_do\",\"params\":{\"who\":\"neighbors\"}}]"}
 {"in":"Balance and California Twirl","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"and California Twirl\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Balance and California Twirl\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Up the hall, bend the line","fanOut":"[{\"schemaVersion\":1,\"move\":\"up_the_hall\",\"params\":{\"moving\":\"all\",\"ender\":\"none\"},\"note\":\"bend the line\"}]"}
 {"in":"Half Hey, Robins start right shoulder","scrub":"Half Hey, role2s start right shoulder","fanOut":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"pass1\":\"role2s\",\"length\":\"half\",\"shoulder\":\"right\"}}]"}
-{"in":"Balance wave and slide to the right","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"wave and slide to the right\"}]"}
-{"in":"Balance wave and slide to the left","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"wave and slide to the left\"}]"}
+{"in":"Balance wave and slide to the right","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"balance\":true,\"slide\":\"right\"}}]"}
+{"in":"Balance wave and slide to the left","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"balance\":true,\"slide\":\"left\"}}]"}
 {"in":"Circle Left 1.0","fanOut":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":4}}]"}
 {"in":"Neighbor Right Shoulder Round","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"neighbors\",\"shoulder\":\"right\"}}]"}
 {"in":"Half Hey, Partner start right shoulder","fanOut":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"pass1\":\"partners\",\"length\":\"half\",\"shoulder\":\"right\"}}]"}
@@ -6122,9 +6122,9 @@
 {"in":"Partner allemande Left 1.5","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"partners\",\"hand\":\"left\",\"travel\":1.5}}]"}
 {"in":"Larks allemande Left 1.0","scrub":"role1s allemande Left 1.0","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role1s\",\"hand\":\"left\",\"travel\":1.0}}]"}
 {"in":"Robins chain (to P)","scrub":"role2s chain (to P)","fanOut":"[{\"schemaVersion\":1,\"move\":\"chain\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\"},\"note\":\"(to P)\"}]"}
-{"in":"Partner R-hand balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Partner R-hand balance\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Partner R-hand balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"partners\",\"hand\":\"right\"}}]"}
 {"in":"Neighbor allemande Right 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"neighbors\",\"hand\":\"right\",\"travel\":0.5}}]"}
-{"in":"Balance wave and slide to the right (past Shadow)","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"wave and slide to the right (past Shadow)\"}]"}
+{"in":"Balance wave and slide to the right (past Shadow)","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"balance\":true,\"slide\":\"right\"},\"note\":\"past Shadow\"}]"}
 {"in":"Revolving Door","fanOut":"[{\"schemaVersion\":1,\"move\":\"revolving_door\"}]"}
 {"in":"Balance the wave","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Balance the wave\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor promenade across","fanOut":"[{\"schemaVersion\":1,\"move\":\"promenade\",\"params\":{\"who\":\"neighbors\",\"where\":\"across\"}}]"}
@@ -6155,9 +6155,9 @@
 {"in":"Pass Shadow 1 by R-Shoulder","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Pass Shadow 1 by R-Shoulder\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Mad Robin CW (Robins in front)","scrub":"mad robin CW (role2s in front)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"mad robin CW (role2s in front)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Ring balance, spin to the right (look for Partner)","fanOut":"[{\"schemaVersion\":1,\"move\":\"petronella\",\"params\":{\"balance\":true},\"note\":\"look for Partner\"}]"}
-{"in":"Neighbor RH-balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor RH-balance\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Neighbor RH-balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"neighbors\",\"hand\":\"right\"}}]"}
 {"in":"3/4 Hey, Neighbor start Right shoulder (NR, Robins L, PR, Larks L, NR, Robins L)","scrub":"3/4 Hey, Neighbor start Right shoulder (NR, role2s L, PR, role1s L, NR, role2s L)","fanOut":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"pass1\":\"neighbors\",\"length\":\"betweenHalfAndFull\",\"shoulder\":\"right\"},\"note\":\"NR, role2s L, PR, role1s L, NR, role2s L\"}]"}
-{"in":"Partner RH-balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Partner RH-balance\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Partner RH-balance","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"partners\",\"hand\":\"right\"}}]"}
 {"in":"1/4 Hey, Partner start Right shoulder (PR, Larks L)","scrub":"1/4 Hey, Partner start Right shoulder (PR, role1s L)","fanOut":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"pass1\":\"partners\",\"length\":\"lessThanHalf\",\"shoulder\":\"right\"},\"note\":\"PR, role1s L\"}]"}
 {"in":"Revolving Door (close with N, cross set, Robins catch R-hand, drop off Lark, Robins alle R 1.0)","scrub":"Revolving Door (close with N, cross set, role2s catch R-hand, drop off role1, role2s alle R 1.0)","fanOut":"[{\"schemaVersion\":1,\"move\":\"revolving_door\",\"note\":\"(close with N, cross set, role2s catch R-hand, drop off role1, role2s alle R 1.0)\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Revolving Door (close with N, cross set, role2s catch R-hand, drop off role1, role2s alle R 1.0)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Lines of four forward and back","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Lines of four forward and back\"},\"customOrigin\":\"importGap\"}]"}
@@ -6187,7 +6187,7 @@
 {"in":"Ring of 8 balance, spin to the right","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Ring of 8 balance, spin to the right\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor Roll Away with half sashay","fanOut":"[{\"schemaVersion\":1,\"move\":\"roll_away\",\"params\":{\"whom\":\"neighbors\",\"halfSashay\":true},\"assumedSubject\":true}]"}
 {"in":"Slide Left with Neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Slide Left with Neighbor\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Wave balance, box circulate","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Wave balance, box circulate\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Wave balance, box circulate","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\",\"params\":{\"balance\":true}}]"}
 {"in":"Neighbor hinge (alle R 1/4) to wave of 4","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor hinge (alle R 1/4) to wave of 4\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Balance the Wave, dance to new Neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Balance the Wave, dance to new Neighbor\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor hinge (alle R 1/4) to long wave (NR, Larks in)","scrub":"Neighbor hinge (alle R 1/4) to long wave (NR, role1s in)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor hinge (alle R 1/4) to long wave (NR, role1s in)\"},\"customOrigin\":\"importGap\"}]"}
@@ -6211,7 +6211,7 @@
 {"in":"All Partner Do-si-do","scrub":"All Partner do si do","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"All Partner do si do\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor Right-hand balance and square through two","fanOut":"[{\"schemaVersion\":1,\"move\":\"square_through\",\"params\":{\"places\":2,\"who\":\"neighbors\",\"hand\":\"right\",\"balance\":true}}]"}
 {"in":"Robins give-and-take Partner","scrub":"role2s give-and-take Partner","fanOut":"[{\"schemaVersion\":1,\"move\":\"give_and_take\",\"params\":{\"who\":\"role2s\",\"whom\":\"partners\"}}]"}
-{"in":"Balance long wave and slide to the right","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"long wave and slide to the right\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Balance long wave and slide to the right\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Balance long wave and slide to the right","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"balance\":true,\"slide\":\"right\"},\"note\":\"long wave\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Balance long wave and slide to the right\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Long lines Fwd & Back","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Long lines Fwd & Back\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Circle L","fanOut":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\"}}]"}
 {"in":"N2 allemande Left 1.0 then return to N1","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"N2 allemande Left 1.0 then return to N1\"},\"customOrigin\":\"importGap\"}]"}
@@ -6393,8 +6393,8 @@
 {"in":"Right diagonal Right and left through","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Right diagonal Right and left through\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Half Hey, Robins start right shoulder (across)","scrub":"Half Hey, role2s start right shoulder (across)","fanOut":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"pass1\":\"role2s\",\"length\":\"half\",\"shoulder\":\"right\"},\"note\":\"across\"}]"}
 {"in":"Partner Left Shoulder Round","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"partners\",\"shoulder\":\"left\"}}]"}
-{"in":"Balance wave of 4 and slide to the right","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"wave of 4 and slide to the right\"}]"}
-{"in":"Balance wave of 4 and slide to the left","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"wave of 4 and slide to the left\"}]"}
+{"in":"Balance wave of 4 and slide to the right","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"balance\":true,\"slide\":\"right\"}}]"}
+{"in":"Balance wave of 4 and slide to the left","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"balance\":true,\"slide\":\"left\"}}]"}
 {"in":"Pass through along the line and form wave of 4","fanOut":"[{\"schemaVersion\":1,\"move\":\"pass_through\",\"params\":{\"where\":\"along\"},\"note\":\"the line and form wave of 4\"}]"}
 {"in":"Left-hand star a bit more than 3/4 (Larks face new Lark, Robins behind P)","scrub":"Left-hand star a bit more than 3/4 (role1s face new role1, role2s behind P)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Left-hand star a bit more than 3/4 (role1s face new role1, role2s behind P)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Full Hey on diagonal, Larks start right shoulder","scrub":"Full Hey on diagonal, role1s start right shoulder","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Full Hey on diagonal, role1s start right shoulder\"},\"customOrigin\":\"importGap\"}]"}
@@ -6661,8 +6661,8 @@
 {"in":"Larks give and take Partner (to Larks side)","scrub":"role1s give and take Partner (to role1s side)","fanOut":"[{\"schemaVersion\":1,\"move\":\"give_and_take\",\"params\":{\"who\":\"role1s\",\"whom\":\"partners\"},\"note\":\"to role1s side\"}]"}
 {"in":"Balance and California Twirl (to new ring)","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"and California Twirl (to new ring)\"}]"}
 {"in":"Neighbor (1) Right hand balance, box the gnat to long waves (Larks in, Robins out, NR)","scrub":"Neighbor (1) Right hand balance, box the gnat to long waves (role1s in, role2s out, NR)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor (1) Right hand balance, box the gnat to long waves (role1s in, role2s out, NR)\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Wave balance, circulate (Larks cross, Robins loop R)","scrub":"Wave balance, circulate (role1s cross, role2s loop R)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Wave balance, circulate (role1s cross, role2s loop R)\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Wave balance, circulate (Robins cross, Larks loop R)","scrub":"Wave balance, circulate (role2s cross, role1s loop R)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Wave balance, circulate (role2s cross, role1s loop R)\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Wave balance, circulate (Larks cross, Robins loop R)","scrub":"Wave balance, circulate (role1s cross, role2s loop R)","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\",\"params\":{\"balance\":true,\"who\":\"role1s\",\"hand\":\"right\"}}]"}
+{"in":"Wave balance, circulate (Robins cross, Larks loop R)","scrub":"Wave balance, circulate (role2s cross, role1s loop R)","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\",\"params\":{\"balance\":true,\"who\":\"role2s\",\"hand\":\"right\"}}]"}
 {"in":"Neighbor (1) swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\"}}]"}
 {"in":"Circle Left 3/4, make short wave","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Circle Left 3/4, make short wave\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Advance to new wave","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Advance to new wave\"},\"customOrigin\":\"importGap\"}]"}
@@ -6706,7 +6706,7 @@
 {"in":"Balance the Wave F/B","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Balance the Wave F/B\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Dance to new waves","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Dance to new waves\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Shadow allemande Left 3/4 (to P)","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"shadows\",\"hand\":\"left\",\"travel\":0.75},\"note\":\"to P\"}]"}
-{"in":"Balance wave and slide to the left (past Shadow to Partner)","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"wave and slide to the left (past Shadow to Partner)\"}]"}
+{"in":"Balance wave and slide to the left (past Shadow to Partner)","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"balance\":true,\"slide\":\"left\"},\"note\":\"past Shadow to Partner\"}]"}
 {"in":"Catch Partner and swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Catch Partner and swing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Larks pull by Right hand","scrub":"role1s pull by Right hand","fanOut":"[{\"schemaVersion\":1,\"move\":\"pull_by\",\"params\":{\"who\":\"role1s\",\"hand\":\"right\"},\"note\":\"hand\"}]"}
 {"in":"Partner Right-hand balance, square through 2 (P R, N1 L)","fanOut":"[{\"schemaVersion\":1,\"move\":\"square_through\",\"params\":{\"places\":2,\"who\":\"partners\",\"who2\":\"neighbors\",\"hand\":\"right\",\"balance\":true}}]"}
@@ -6761,7 +6761,7 @@
 {"in":"Larks allemande Left 1.5 to short waves (NR, Larks L)","scrub":"role1s allemande Left 1.5 to short waves (NR, role1s L)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s allemande Left 1.5 to short waves (NR, role1s L)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor allemande Right 3/4 to long waves (Larks in, Robins out)","scrub":"Neighbor allemande Right 3/4 to long waves (role1s in, role2s out)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor allemande Right 3/4 to long waves (role1s in, role2s out)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"New Neighbor allemande Left 3/4","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"nextNeighbors\",\"hand\":\"left\",\"travel\":0.75}}]"}
-{"in":"Balance wave and slide to the left (past Shadow)","fanOut":"[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"everyone\"},\"note\":\"wave and slide to the left (past Shadow)\"}]"}
+{"in":"Balance wave and slide to the left (past Shadow)","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"balance\":true,\"slide\":\"left\"},\"note\":\"past Shadow\"}]"}
 {"in":"1s half Figure eight down, 2s hole-in-the-wall trade","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"1s half Figure eight down, 2s hole-in-the-wall trade\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Down the hall four in line (Lar 2, Rob 1, Lar 1, Rob 2), bend the line","fanOut":"[{\"schemaVersion\":1,\"move\":\"down_the_hall\",\"params\":{\"moving\":\"all\",\"ender\":\"none\"},\"note\":\"four in line (Lar 2, Rob 1, Lar 1, Rob 2), bend the line\"}]"}
 {"in":"2s half Figure eight up, 1s hole-in-the-wall trade","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"2s half Figure eight up, 1s hole-in-the-wall trade\"},\"customOrigin\":\"importGap\"}]"}
@@ -6907,8 +6907,8 @@
 {"in":"Opposite balance and swing (the one you courtesy turned)","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"opposites\",\"prefix\":\"balance\"},\"note\":\"the one you courtesy turned\"}]"}
 {"in":"Larks Left-hand star 0.5","scrub":"role1s Left-hand star 0.5","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s Left-hand star 0.5\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Partner allemande Right 1.25 (to long waves, Larks out, Robins in)","scrub":"Partner allemande Right 1.25 (to long waves, role1s out, role2s in)","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"partners\",\"hand\":\"right\",\"travel\":1.25},\"note\":\"to long waves, role1s out, role2s in\"}]"}
-{"in":"Wave balance, circulate (Robins cross)","scrub":"Wave balance, circulate (role2s cross)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Wave balance, circulate (role2s cross)\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Wave balance, circulate (Larks cross)","scrub":"Wave balance, circulate (role1s cross)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Wave balance, circulate (role1s cross)\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Wave balance, circulate (Robins cross)","scrub":"Wave balance, circulate (role2s cross)","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\",\"params\":{\"balance\":true,\"who\":\"role2s\"}}]"}
+{"in":"Wave balance, circulate (Larks cross)","scrub":"Wave balance, circulate (role1s cross)","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\",\"params\":{\"balance\":true,\"who\":\"role1s\"}}]"}
 {"in":"Neighbor Courtesy Turn","fanOut":"[{\"schemaVersion\":1,\"move\":\"courtesy_turn\",\"params\":{\"who\":\"neighbors\"}}]"}
 {"in":"Promenade across (while facing out, turn left as a couple)","fanOut":"[{\"schemaVersion\":1,\"move\":\"promenade\",\"params\":{\"where\":\"across\"},\"note\":\"while facing out, turn left as a couple\"}]"}
 {"in":"Promenade along the set (Counter-clockwise)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Promenade along the set (Counter-clockwise)\"},\"customOrigin\":\"importGap\"}]"}

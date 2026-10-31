@@ -1,0 +1,15 @@
+{
+  "id": "2089-box-circulate-lines",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "\"Box circulate (Larks cross)\" and \"Circulate (Robins cross, Larks loop L)\", as Caller's Companion writes them, now say who crosses and which way the others loop, instead of keeping the bracket only as a note. This applies to imports and to figures you type.",
+      "\"Box circulate, balance the wave\" now stays as text, instead of becoming a box circulate that shows its balance first. From Caller's Companion, \"Box circulate, balance the ring\" comes in as the box circulate followed by the balance."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The CallersBox front end reads \"(box) circulate (<who> cross[, <who> loop <side>])\" as a box_circulate with who and hand, leaving no note (nor after \"wave balance,\"). The fan-out has no reading for a box_circulate whose note holds a balance after it."
+    ]
+  }
+}

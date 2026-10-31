@@ -65,6 +65,33 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'Arkiv';
+
+  @override
+  String get menuNewDance => 'Ny dans';
+
+  @override
+  String get menuImportDances => 'Importér danse …';
+
+  @override
+  String get menuClose => 'Luk';
+
+  @override
+  String get menuSettings => 'Indstillinger …';
+
+  @override
+  String get menuView => 'Oversigt';
+
+  @override
+  String get menuWindow => 'Vindue';
+
+  @override
+  String get menuHelp => 'Hjælp';
+
+  @override
+  String get menuUserGuide => 'Brugervejledning';
+
+  @override
   String get appBootstrapPreparing => 'Forbereder din samling';
 
   @override
@@ -240,6 +267,40 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String confirmDeleteBody(String itemLabel) {
     return '„$itemLabel“ slettes. Du kan fortryde dette.';
+  }
+
+  @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse slettes. Du kan fortryde dette.',
+      one: '1 dans slettes. Du kan fortryde dette.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danse slettes, heraf $notShown skjult af din søgning. Du kan fortryde dette.',
+      one: '1 dans slettes. Din søgning skjuler den. Du kan fortryde dette.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse mister dette program fra deres kaldshistorik.',
+      one: '1 dans mister dette program fra sin kaldshistorik.',
+    );
+    return '„$itemLabel“ slettes. $_temp0 Du kan fortryde dette.';
   }
 
   @override
@@ -734,8 +795,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count koreografer',
-      one: '1 koreograf',
+      other: '$count forfattere',
+      one: '1 forfatter',
     );
     return '$_temp0';
   }
@@ -2370,7 +2431,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.';
+      'Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — medmindre du har givet den formation sin egen farve, som så gælder. Danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -2378,7 +2439,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Fremhæv individuelle formationer i dine egne farver – f.eks. Becket (CW) i gult, Becket (CCW) i lyserødt – på danskort, dansdetaljer og Perform-overskriften.';
+      'Fremhæv individuelle formationer i dine egne farver – f.eks. Becket (CW) i gult, Becket (CCW) i lyserødt – på danskort, dansdetaljer, Perform-overskriften og sætlisterækker.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Valgt';
@@ -2591,6 +2652,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'Melodier';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'Hook';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Kilder';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Samlingsfiltre';
 
   @override
@@ -2619,7 +2686,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt, og en linje skrevet i en eksisterende figurs bevægelse erstatter figuren, når du trykker Enter. Linjen omdannes til figurer; alt der ikke genkendes gemmes som en brugerdefineret figur, du kan rette senere. Nye danse starter uden figurer, medmindre du har gemt startfigurer.';
+      'Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt, og en linje skrevet i en eksisterende figurs bevægelse erstatter figuren, når du trykker Enter. Linjen omdannes til figurer; alt, som appen ikke kan læse, gemmes som en ukendt figur, du kan rette senere. Nye danse starter uden figurer, medmindre du har gemt startfigurer.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -2715,7 +2782,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Giv en formation sin egen farve for at fremhæve dens etiket på danskort, dansdetaljer og Perform-overskriften. Kun de formationer, du tilpasser, fremhæves; de øvrige viser deres etiket som normalt. Formationen vises altid som tekst, så etiketter forbliver læsbare uden farver.';
+      'Giv en formation sin egen farve for at fremhæve dens etiket på danskort, dansdetaljer og Perform-overskriften og for at farve dens sætlisterækker (mixer-danse beholder mixer-farven). Kun de formationer, du tilpasser, fremhæves; de øvrige viser deres etiket som normalt. Formationen vises altid som tekst, så etiketter forbliver læsbare uden farver.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formationer';
@@ -2742,29 +2809,8 @@ class AppLocalizationsDa extends AppLocalizations {
       'Giv et tag sin egen farve, så det skiller sig ud på danskort og i dansdetaljer. Taggets navn vises altid også, så tags forbliver læsbare uden farve.';
 
   @override
-  String get settingsTagColoursTitle => 'Tagfarver';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'Giv et tag sin egen farve, så det skiller sig ud, hvor det end vises. Kun de tags, du farvelægger, ændrer sig; resten ser præcis ud, som de gør nu. Taggets navn vises altid også, så tags forbliver læsbare uden farve.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
   String get settingsTagColoursEmpty =>
       'Du har ikke oprettet nogen tags endnu. Tilføj et tag til en dans, så vises det her.';
-
-  @override
-  String get settingsTagColoursCustom => 'Brugerdefineret farve';
-
-  @override
-  String get settingsTagColoursNoColour => 'Ingen farve';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Fjern farven for $label';
-  }
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2772,6 +2818,202 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsTagColoursLoadError => 'Dine tags kunne ikke indlæses.';
+
+  @override
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Søg i tags';
+
+  @override
+  String get tagManagerNameLabel => 'Tagnavn';
+
+  @override
+  String get tagManagerColour => 'Farve…';
+
+  @override
+  String get tagManagerRemoveColour => 'Fjern farve';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Slettede „$name“ fra $count danse',
+      one: 'Slettede „$name“ fra 1 dans',
+      zero: 'Slettede „$name“',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return 'Omdøbte „$from“ til „$to“';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return 'Flettede „$from“ ind i „$into“';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return 'Samlede $count tags i „$into“';
+  }
+
+  @override
+  String get authorManagerTitle => 'Forfattere';
+
+  @override
+  String get authorManagerSearchHint => 'Søg i forfattere';
+
+  @override
+  String get authorManagerNameLabel => 'Forfatternavn';
+
+  @override
+  String get authorManagerEmpty =>
+      'Ingen forfattere endnu. Forfattere, du krediterer på en dans, vises her.';
+
+  @override
+  String get authorManagerLoadError => 'Dine forfattere kunne ikke indlæses.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return 'Samlede $count forfattere i „$into“';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Kilder';
+
+  @override
+  String get sourceManagerSearchHint => 'Søg i kilder';
+
+  @override
+  String get sourceManagerTitleLabel => 'Kildens titel';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Ingen kilder endnu. Bøger og websteder, du citerer på en dans, vises her.';
+
+  @override
+  String get sourceManagerLoadError => 'Dine kilder kunne ikke indlæses.';
+
+  @override
+  String get libraryManagerClearSearch => 'Ryd søgning';
+
+  @override
+  String get libraryManagerNotUsed => 'Ikke brugt';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sortér';
+
+  @override
+  String get libraryManagerSortByName => 'Navn';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Antal danse';
+
+  @override
+  String get libraryManagerNoMatches => 'Intet matcher din søgning.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse',
+      one: '1 dans',
+      zero: 'Ikke brugt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Handlinger for $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Omdøb';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return 'Omdøb „$name“';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Flet ind i…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return 'Flet „$name“ ind i…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Navnet er allerede i brug';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '„$existing“ findes allerede. Flet „$from“ ind i den?';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '„$existing“ findes allerede. Flet „$from“ ind i den og kald den „$name“?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'Flere poster hedder allerede „$name“. Vælg den, „$from“ skal flettes ind i; de andre flettes også ind i den.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Flet';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Kunne ikke fortryde: „$name“ bruges nu af en anden post.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Ændringen kunne ikke gemmes. Prøv igen.';
+
+  @override
+  String get libraryManagerEditDetails => 'Rediger detaljer…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return 'Omdøbte „$from“ til „$to“';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return 'Flettede „$from“ ind i „$into“';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return 'Slettede „$name“';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return 'Flet „$from“ ind i „$into“?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Disse detaljer er forskellige. Den flettede post beholder sine egne, og disse kasseres:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotek';
@@ -3009,6 +3251,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret har hver dans i programvisningen en knap til at markere den som fremført eller ej, uden at åbne editoren. Når deaktiveret viser rækkerne kun, om en dans er fremført.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Markér alle som fremført sætter status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'Når aktiveret sætter Markér alle som fremført også programmets status til Fremført, og Fortryd sætter begge tilbage. Når deaktiveret forbliver status uændret.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Kræv en begivenhedsdato til kaldshistorik';
 
@@ -3053,6 +3303,27 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret, begynder hver figur i dansevisningen, Perform-tilstand og figureditoren med et stort bogstav (“Neighbors allemande left”). Når deaktiveret, vises figurer som skrevet; indbyggede figurer begynder med lille bogstav, som i ContraDB. Kun figurernes udseende disse steder ændres; eksport, søgning, synkroniseringssammenligninger og skærmlæserens ordlyd er upåvirket.';
 
   @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Omdøb, flet, farvelæg og slet dine tags.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Forfattere';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Omdøb, flet og slet forfattere, og rediger deres detaljer.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Kilder';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Omdøb, flet og slet kilder, og rediger deres detaljer.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
 
   @override
@@ -3086,11 +3357,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Bed om bekræftelse inden sletning af en dans eller et program. Sletninger kan stadig fortrydes; dette tilføjer blot en eksplicit prompt først.';
 
   @override
-  String get settingsGeneralDeletedItemsHeader => 'Slettede elementer';
+  String get settingsGeneralDeletedItemsHeader => 'For nylig slettet';
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Behold slettede elementer i';
+      'Behold for nylig slettede elementer i';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
@@ -3137,7 +3408,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Synkroniseringsbeslutningen kunne ikke anvendes. Posten blev bevaret, så du kan prøve igen.';
 
   @override
-  String get syncReviewKindChoreographer => 'Koreograf';
+  String get syncReviewKindChoreographer => 'Forfatter';
 
   @override
   String get syncReviewKindTag => 'Mærke';
@@ -3198,7 +3469,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewMergeDiscardsContactsTitle =>
-      'Vil du flette disse koreografer sammen?';
+      'Vil du flette disse forfattere sammen?';
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
@@ -3262,11 +3533,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresTitle =>
-      'Genkontrollér brugerdefinerede figurer';
+      'Genkontrollér ukendte figurer';
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Tjek importerede danse igen, hvis figurer kun er gemt som brugerdefinerede, fordi de ikke kunne genkendes ved importtidspunktet. Hvis appen nu kan genkende dem, opgraderes de på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.';
+      'Tjek importerede danse igen, hvis figurer kun er gemt som ukendte figurer, fordi de ikke kunne genkendes ved importtidspunktet. Hvis appen nu kan genkende dem, opgraderes de på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Genkontrollér…';
@@ -3721,14 +3992,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importGapMessage =>
-      'Kunne ikke genkende dette kald – beholdt præcis som skrevet som en brugerdefineret figur.';
+      'Kunne ikke genkende dette kald – beholdt præcis som skrevet som en ukendt figur.';
 
   @override
   String get importGapDialogTitle => 'Ukendt figur';
 
   @override
   String get importGapSemanticLabel =>
-      'Ukendt figur. Beholdt præcis som skrevet som en brugerdefineret figur.';
+      'Ukendt figur. Beholdt præcis som skrevet.';
 
   @override
   String get collectionScreenTitle => 'Samling';
@@ -3807,6 +4078,21 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 dans',
     );
     return '$label, $_temp0';
+  }
+
+  @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse',
+      one: '1 dans',
+    );
+    return '$label, $_temp0, $selected valgt';
   }
 
   @override
@@ -3989,6 +4275,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionSetRating => 'Angiv vurdering';
 
   @override
+  String get collectionSetStatus => 'Angiv status';
+
+  @override
   String get collectionAddTunes => 'Tilføj melodier';
 
   @override
@@ -4015,6 +4304,17 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other: 'Ryddede vurdering på $count danse',
       one: 'Ryddede vurdering på 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Angav status på $count danse',
+      one: 'Angav status på 1 dans',
     );
     return '$_temp0';
   }
@@ -4059,6 +4359,28 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other: 'Ryddede felt på $count danse',
       one: 'Ryddede felt på 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Slettede $count danse',
+      one: 'Slettede 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Slettede $count danse. Gendan dem fra For nylig slettet.',
+      one: 'Slettede 1 dans. Gendan den fra For nylig slettet.',
     );
     return '$_temp0';
   }
@@ -4475,6 +4797,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionBatchRatingConfirm => 'Angiv';
 
   @override
+  String get collectionBatchStatusConfirm => 'Angiv';
+
+  @override
   String get collectionBatchTunesFieldLabel => 'Tilføj en melodi';
 
   @override
@@ -4796,6 +5121,21 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsAddAgain => 'Tilføj igen';
 
   @override
+  String get programsAddToProgramSearchHint => 'Søg i programmer';
+
+  @override
+  String get programsAddToProgramSearchClear => 'Ryd søgning';
+
+  @override
+  String get programsAddToProgramNoMatches =>
+      'Ingen programmer matcher din søgning.';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return 'Gennemført ($count)';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return 'Tilføjede „$danceTitle“ til $programTitle.';
   }
@@ -4854,6 +5194,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get programsMarkedAllPerformedExceptAlternates =>
       'Markerede alle danse som fremført undtagen alternativer. Markér selv et alternativ, hvis du kaldte det.';
+
+  @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Markerede alle danse som fremført og satte status til Fremført.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Markerede alle danse som fremført undtagen alternativer og satte status til Fremført. Markér selv et alternativ, hvis du kaldte det.';
 
   @override
   String programsSavedSnack(String title) {
@@ -4952,7 +5300,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsAddDanceButton => 'Tilføj dans';
 
   @override
-  String get programsAddNoteBreakButton => 'Tilføj note / vals';
+  String get programsAddNoteBreakButton => 'Tilføj note eller pause';
 
   @override
   String get programsInsertBreakButton => 'Indsæt pause';
@@ -5045,6 +5393,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Når du gemmer en ændring til Fremført, markeres alle umarkerede danse som fremført, undtagen alternativer. Ændrer du status tilbage, beholdes markeringerne.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Når du gemmer en ændring til Fremført, markeres alle umarkerede danse som fremført, undtagen alternativer, og Markér alle som fremført sætter denne status. Ændrer du status tilbage, beholdes markeringerne.';
 
   @override
   String get programsHideAlternatesTitle => 'Skjul alternativer i sætliste';
@@ -5597,18 +5953,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performTitle => 'Fremfør';
 
   @override
-  String get performExitTooltip => 'Afslut fremførelsesvisning';
+  String get performExitTooltip => 'Afslut Fremfør';
 
   @override
   String get performExitTitle => 'Afslut Fremfør?';
 
   @override
   String get performExitBody =>
-      'Forlad fremførelsesvisningen? Din placering og det kørende ur bevares, så du kan genoptage når som helst.';
+      'Forlad Fremfør? Din placering og det kørende ur bevares, så du kan genoptage når som helst.';
 
   @override
   String get performDanceExitBody =>
-      'Forlad fremførelsesvisningen? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.';
+      'Forlad Fremfør? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.';
 
   @override
   String get performExitCancel => 'Fortsæt fremførelse';
@@ -5879,6 +6235,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performShowWalkthrough => 'Vis gennemgang';
 
   @override
+  String get performFullScreen => 'Fuld skærm';
+
+  @override
   String get performWalkthroughEmpty => 'Ingen gennemgang for denne dans.';
 
   @override
@@ -6115,6 +6474,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportLabelTunes => 'Melodier';
 
   @override
+  String get exportLabelHook => 'Hook';
+
+  @override
+  String get exportLabelSources => 'Kilder';
+
+  @override
   String exportSlotAuthorSuffix(String names) {
     return 'af $names';
   }
@@ -6344,7 +6709,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Din version af „$existingTitle“ erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
+    return 'Din version af „$existingTitle“ erstattes af onlineposten — inklusive dens titel, figurer, noter og tags. Den beholder din vurdering, dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
   }
 
   @override
@@ -6371,7 +6736,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter, tags og vurdering. Den beholder dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
+      'Den dans, du vælger, erstattes af onlineposten — inklusive dens titel, figurer, noter og tags. Den beholder din vurdering, dine brugerdefinerede felter, sin plads i dine programmer og sin kaldshistorik.';
 
   @override
   String get importFigurelessCannotReplace =>
@@ -7278,11 +7643,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueMoveFallback =>
-      'En figur kunne ikke matches til en kendt bevægelse; importeret som brugerdefineret.';
+      'En figur kunne ikke matches til en kendt bevægelse; importeret som ukendt figur.';
 
   @override
   String importIssueMoveFallbackAt(int position) {
-    return 'Figur $position kunne ikke matches til en kendt bevægelse; importeret som brugerdefineret.';
+    return 'Figur $position kunne ikke matches til en kendt bevægelse; importeret som ukendt figur.';
   }
 
   @override
@@ -7326,7 +7691,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importRecordErrorNotCompendiumArchive =>
-      'Det er ikke en Caller\'s Compendium-fil. Vælg en .json-fil, der er eksporteret fra denne app.';
+      'Det er ikke en delefil. Vælg en .json- eller .ccshare-fil, der er eksporteret fra denne app.';
 
   @override
   String get importRecordErrorNotCallersBoxDance =>
@@ -7446,7 +7811,7 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get importReviewCustom => 'Brugerdefineret';
+  String get importReviewCustom => 'Ukendt';
 
   @override
   String get importReviewOptionNewDance => 'Ny dans';
@@ -7780,11 +8145,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'Skriv en bevægelse (f.eks. \"sw\" → swing) og tryk Enter for at tilføje den med standardværdier; tekst, der ikke genkendes, bliver til en brugerdefineret figur.';
+      'Skriv en bevægelse (f.eks. \"sw\" → swing) og tryk Enter for at tilføje den med standardværdier; tekst, som appen ikke kan læse, bliver til en ukendt figur.';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
-      'Tilføj en figur ved at skrive en hel linje (f.eks. \"nabo balance & swing\") og trykke Enter. En linje skrevet i en eksisterende figurs bevægelse erstatter figuren. Alt der ikke genkendes, bliver en brugerdefineret figur.';
+      'Tilføj en figur ved at skrive en hel linje (f.eks. \"nabo balance & swing\") og trykke Enter. En linje skrevet i en eksisterende figurs bevægelse erstatter figuren. Tekst, som appen ikke kan læse, bliver en ukendt figur.';
 
   @override
   String get danceEditorNotesSection => 'Noter';
@@ -8202,12 +8567,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
-    return 'En koreograf ved navn „$name“ findes allerede. Navnet blev ikke ændret.';
+    return 'En forfatter ved navn „$name“ findes allerede. Navnet blev ikke ændret.';
   }
 
   @override
   String danceEditorChoreographerCreateDuplicate(String name) {
-    return 'En koreograf ved navn „$name“ findes allerede. Den nye forfatter blev ikke oprettet — vælg den eksisterende i stedet.';
+    return 'En forfatter ved navn „$name“ findes allerede. Den nye forfatter blev ikke oprettet — vælg den eksisterende i stedet.';
   }
 
   @override
@@ -8264,6 +8629,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorRedoLabel => 'Annullér fortryd';
 
   @override
+  String get editorDraftNotSaved =>
+      'Kladde ikke gemt – dine seneste ændringer bliver ikke bevaret endnu';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Fortryd (⌘Z)',
@@ -8288,7 +8657,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorLoadError => 'Kunne ikke indlæse dansen.';
 
   @override
-  String get danceEditorChoreographerDetailsTitle => 'Koreografdetaljer';
+  String get danceEditorChoreographerDetailsTitle => 'Forfatterdetaljer';
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
@@ -8458,7 +8827,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorTypeFigureHelper =>
-      'f.eks. „nabo balance & swing“ eller „16 circle left 3/4“. Enter tilføjer den; uigenkendt tekst gemmes som en brugerdefineret figur.';
+      'f.eks. „nabo balance & swing“ eller „16 circle left 3/4“. Enter tilføjer den; tekst, som appen ikke kan læse, gemmes som en ukendt figur.';
 
   @override
   String get danceEditorPasteHere => 'Indsæt her';
@@ -8467,7 +8836,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorEmptyFigureName => 'Tom figur';
 
   @override
-  String get danceEditorCustomFigureName => 'Brugerdefineret figur';
+  String get danceEditorCustomFigureName => 'Ukendt figur';
 
   @override
   String get danceEditorEmptyFigureSummary => '(tom – vælg en bevægelse)';
@@ -8806,7 +9175,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorUnderlineTooltip => 'Understreget (_tekst_)';
 
   @override
-  String get danceEditorCustomFigureTextLabel => 'Brugerdefineret figurtekst';
+  String get danceEditorCustomFigureTextLabel => 'Tekst til ukendt figur';
 
   @override
   String get danceEditorLingoStylingHelper =>
@@ -9504,7 +9873,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get themeEditorSwatchError => 'Fejl';
 
   @override
-  String get reparseConfirmTitle => 'Opgradér brugerdefinerede figurer?';
+  String get reparseConfirmTitle => 'Opgradér ukendte figurer?';
 
   @override
   String reparseConfirmBody(int figureCount, int danceCount) {
@@ -9541,11 +9910,11 @@ class AppLocalizationsDa extends AppLocalizations {
       other: '$danceCount danse',
       one: '1 dans',
     );
-    return 'Opgraderede brugerdefinerede figurer i $_temp0.';
+    return 'Opgraderede ukendte figurer i $_temp0.';
   }
 
   @override
-  String get reparseScreenTitle => 'Genkontrollér brugerdefinerede figurer';
+  String get reparseScreenTitle => 'Genkontrollér ukendte figurer';
 
   @override
   String reparseIntro(int figureCount, int danceCount) {
@@ -9591,7 +9960,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'Ingen af dine brugerdefinerede figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter en kommende opdatering, der forbedrer genkendelsen af figurer.';
+      'Ingen af dine ukendte figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter en kommende opdatering, der forbedrer genkendelsen af figurer.';
 
   @override
   String get reparseErrorTitle => 'Kunne ikke kontrollere dine figurer';
@@ -9865,7 +10234,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Dine slettede elementer kunne ikke indlæses. Intet er blevet fjernet.';
+      'Dine for nylig slettede elementer kunne ikke indlæses. Intet er blevet fjernet.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Slet permanent?';
@@ -9918,23 +10287,23 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get recentlyDeletedEmptyDancesKept =>
-      'Intet i papirkurven. Slettede danse bevares her, indtil du fjerner dem.';
+      'Ingen danse er slettet for nylig. Slettede danse bevares her, indtil du fjerner dem.';
 
   @override
   String get recentlyDeletedEmptyTitle => 'Intet slettet';
 
   @override
   String recentlyDeletedEmptyDancesRetention(int days) {
-    return 'Intet i papirkurven. Slettede danse vises her i $days dage, inden de fjernes.';
+    return 'Ingen danse er slettet for nylig. Slettede danse vises her i $days dage, inden de fjernes.';
   }
 
   @override
   String get recentlyDeletedEmptyProgramsKept =>
-      'Intet i papirkurven. Slettede programmer bevares her, indtil du fjerner dem.';
+      'Ingen programmer er slettet for nylig. Slettede programmer bevares her, indtil du fjerner dem.';
 
   @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
-    return 'Intet i papirkurven. Slettede programmer vises her i $days dage, inden de fjernes.';
+    return 'Ingen programmer er slettet for nylig. Slettede programmer vises her i $days dage, inden de fjernes.';
   }
 
   @override
@@ -9971,6 +10340,41 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get venueManagerNoMatches => 'Ingen spillesteder matcher din søgning.';
+
+  @override
+  String get venueLinkOfferTitle => 'Vil du knytte tidligere programmer?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Nogle programmer har et spillested skrevet som tekst, der matcher en spillestedspost. Når du knytter dem, tæller opkaldshistorikken dem som ét spillested. Den skrevne tekst bevares.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer',
+      one: '1 program',
+    );
+    return '“$name”: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Knyt';
+
+  @override
+  String get venueLinkOfferDecline => 'Ikke nu';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer knyttet.',
+      one: '1 program knyttet.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get venueManagerDeleteTitle => 'Slet spillested?';
@@ -10723,9 +11127,9 @@ class AppLocalizationsDa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count danse i papirkurven bruger den og beholder de linjer, de sidst gemte.',
+          '$count danse under „For nylig slettet“ bruger den og beholder de linjer, de sidst gemte.',
       one:
-          '1 dans i papirkurven bruger den og beholder den linje, den sidst gemte.',
+          '1 dans under „For nylig slettet“ bruger den og beholder den linje, den sidst gemte.',
     );
     return '$_temp0';
   }

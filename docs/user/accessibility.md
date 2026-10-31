@@ -126,6 +126,40 @@ search box over whatever you're doing. Start typing to filter your dances and
 programs, use the **up** and **down arrow keys** to move through results, press
 **Enter** to open the highlighted item, and press **Esc** to close.
 
+**Shortcuts on a computer (Windows, macOS and Linux).** Use **Ctrl** on Windows
+and Linux and **Cmd** on a Mac:
+
+- **Ctrl-S** (**Cmd-S**) saves the dance or program you're editing, as its
+  **Save** button does. In the program builder that's on the **Build** tab,
+  where the button is.
+- **Ctrl-N** (**Cmd-N**) starts a new dance.
+- **Ctrl-F** (**Cmd-F**) puts the cursor in the **Collection**'s search box and
+  selects what's already there. Anywhere else it opens Quick search.
+- **Ctrl-,** (**Cmd-,**) opens **Settings**.
+- **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
+  suggestions, or a dialog you could close by clicking outside it is open, it
+  closes that first. Otherwise it leaves
+  the page you're on, as the back button does, so an editor with unsaved
+  changes asks you first. A mouse's **Back** button does the same.
+
+Ctrl-N and Ctrl-, take you out of whatever page you're on. If that page is an
+editor with unsaved changes, it asks about them first; answer, then press the
+keys again. They do nothing while a dialog is open. While performing, Ctrl-N, Ctrl-F
+and Ctrl-, do nothing and Esc only leaves full screen (see below); Ctrl-W and a
+mouse's Back button ask whether to stop performing, as the back button does.
+
+**Right-click.** On a computer, right-click a dance in the **Collection**, or a
+program in **Programs**, to open its **⋮** menu.
+
+**The menu bar on a Mac.** The **Caller's Compendium** menu has **Settings…**.
+**File** has **New Dance**, **Import Dances…** and **Close** (which goes back,
+like Cmd-W). **View** has the system's full-screen item, **Window** has
+Minimize and Zoom, and **Help** has **User Guide**. There is no **Edit** menu.
+Cmd-C, Cmd-X, Cmd-V, Cmd-Z and Cmd-A still work in text, and right-clicking
+text offers **Copy**. The system's own items (About, Hide, Quit, full screen,
+Minimize and the like) are named by macOS, so the app's language setting
+doesn't change them.
+
 **Selecting and copying text (Windows, macOS and Linux).** On a dance's page,
 drag across any text to select it, then press **Ctrl-C** (**Cmd-C** on macOS) to
 copy it. **Ctrl-A** (**Cmd-A**) selects everything on the page, and a right-click
@@ -135,10 +169,14 @@ they can't select part of a figure; use **Copy dance** for a figure's full text.
 Phones and Perform mode don't offer text selection.
 
 **Moving through Perform mode.** In [Perform mode](./glossary.md#perform-mode),
-move between [slots](./glossary.md#slot) with the **left** and **right arrow
-keys**, or with **Page Up** and **Page Down**. These work alongside the on-screen
-next and previous controls and the large edge zones, so you can use whichever
-suits you. While a dance's walkthrough overlay is open, those keys pause — the
+move between [slots](./glossary.md#slot) with the arrow keys, or with **Page Up**
+and **Page Down**. When a card is too long to fit, **down** and **Page Down**
+scroll it to the end before moving on, and **up** and **Page Up** scroll back to
+the top before going back. The **left** and **right** keys always change slot.
+These work alongside the on-screen next and previous controls and the large edge
+zones, so you can use whichever suits you. On a computer, **F11** (**Ctrl-Cmd-F**
+on macOS) takes Perform full screen and back, and **Esc** leaves full screen
+without leaving Perform. While a dance's walkthrough overlay is open, those keys pause — the
 **up** and **down** keys scroll the walkthrough instead — and **Esc** closes it,
 so reading ahead never changes your slot.
 
@@ -173,8 +211,12 @@ A few smaller settings and behaviors round out the experience:
   animations, but cannot restore animations your device's setting has already
   shortened.
 - **Confirm before delete** (**Settings › General**) adds a prompt before you
-  delete a dance or a program. And regardless of this setting, deletes are
-  undoable — so a slip is recoverable either way.
+  delete a dance or a program from its **⋮** menu, from its own screen, or from
+  Collection's selection mode. It does not cover the swipe shortcut: swiping a
+  row in the Collection or Programs list reveals a **Delete** button, and
+  tapping that button deletes straight away. If you want every delete to ask
+  first, use the **⋮** menu rather than the swipe. And regardless of this
+  setting, deletes are undoable — so a slip is recoverable either way.
 - **Meaning is never carried by color alone.** Statuses and special slots — like
   an [alt](./glossary.md#alt) — always include an icon and a text label as well as
   color, so nothing depends on being able to distinguish hues. That holds for the

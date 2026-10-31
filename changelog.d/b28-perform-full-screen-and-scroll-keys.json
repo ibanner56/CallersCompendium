@@ -1,0 +1,15 @@
+{
+  "id": "b28-perform-full-screen-and-scroll-keys",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Perform mode fills the whole screen on phones and tablets, hiding the status and navigation bars until you exit. On a computer, the Full screen button, or F11 (Ctrl-Cmd-F on macOS), takes Perform over the whole display, and Esc or exiting Perform puts the window back."
+    ],
+    "changed": [
+      "In Perform mode, the down and Page Down keys scroll a card that is too long to fit before moving to the next slot, so a keyboard or page-turner pedal can read to the end of a long dance. Up and Page Up scroll back to the top before going back."
+    ],
+    "fixed": [
+      "Closing the app while its window is full screen no longer makes it reopen at full-screen size."
+    ]
+  }
+}

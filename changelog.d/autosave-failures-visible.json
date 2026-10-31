@@ -1,0 +1,9 @@
+{
+  "id": "autosave-failures-visible",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The dance and program editors now show a \"Draft not saved\" icon in the top bar when they cannot write your autosave draft (for example, when the disk is full), and the first such failure each session is noted in Diagnostics by error type only. Before, a failed draft write was silent."
+    ]
+  }
+}

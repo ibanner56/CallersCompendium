@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
@@ -37,6 +38,7 @@ Future<ValueNotifier<bool>> _pumpEditor(
   required bool enriched,
   String? programId,
   void Function(String)? onSaved,
+  bool autoCommit = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -44,6 +46,8 @@ Future<ValueNotifier<bool>> _pumpEditor(
   addTearDown(dialect.dispose);
   final mode = ValueNotifier<bool>(enriched);
   addTearDown(mode.dispose);
+  final autoCommitNotifier = ValueNotifier<bool>(autoCommit);
+  addTearDown(autoCommitNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -52,7 +56,10 @@ Future<ValueNotifier<bool>> _pumpEditor(
         repositories: repos,
         child: ActiveDialectScope(
           notifier: dialect,
-          child: VenueEntityModeScope(notifier: mode, child: child!),
+          child: ProgramAutoCommitScope(
+            notifier: autoCommitNotifier,
+            child: VenueEntityModeScope(notifier: mode, child: child!),
+          ),
         ),
       ),
       home: ProgramEditorScreen(
@@ -350,4 +357,188 @@ void main() {
       );
     },
   );
+
+  group('a link made while the editor is open (GIG-7)', () {
+    for (final enriched in [true, false]) {
+      testWidgets('survives an unrelated save, enriched=$enriched', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+        await repos.programs.create(_program(venue: 'Grange Hall'));
+        await _pumpEditor(tester, repos, enriched: enriched, programId: 'p1');
+
+        // The offer to link typed venues runs while the editor stays open.
+        expect(
+          await repos.programs.linkTypedVenues(
+            venueId: 'v1',
+            name: 'Grange Hall',
+            updatedAt: DateTime.utc(2026, 10, 30),
+          ),
+          1,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Renamed night',
+        );
+        await tester.tap(find.byKey(const ValueKey('save-program')));
+        await tester.pumpAndSettle();
+
+        final saved = (await repos.programs.getById('p1'))!;
+        expect(saved.title, 'Renamed night');
+        expect(
+          saved.venueId,
+          'v1',
+          reason: 'the link was not the user\'s edit',
+        );
+        expect(saved.venue, 'Grange Hall');
+      });
+    }
+
+    testWidgets('an unlink made while the editor is open survives a save', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await repos.programs.create(
+        _program(venue: 'Grange Hall', venueId: 'v1'),
+      );
+      await _pumpEditor(tester, repos, enriched: true, programId: 'p1');
+
+      // Another device unlinks it; sync applies the row here.
+      final stored = (await repos.programs.getById('p1'))!;
+      await repos.programs.updateAndReadBack(
+        stored.copyWith(
+          clearVenueId: true,
+          updatedAt: DateTime.utc(2026, 10, 30),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed night',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.title, 'Renamed night');
+      expect(saved.venueId, isNull, reason: 'the unlink was not undone');
+    });
+
+    testWidgets('a venue picked before a bulk Undo is still saved', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await repos.venues.upsert(Venue(id: 'v2', name: 'Town Hall'));
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Newly Called',
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      await repos.programs.create(
+        _program(venueId: 'v1').copyWith(
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpEditor(
+        tester,
+        repos,
+        enriched: true,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await _expandMoreDetails(tester);
+
+      // Pick another venue, then Undo before auto-commit stores the pick.
+      await tester.tap(find.byKey(const ValueKey('venue-picker-clear')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('venue-picker-input')),
+        'town',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('venue-option-v2')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.slots.single.performedAt, isNull, reason: 'Undo applied');
+      expect(saved.venueId, 'v2', reason: 'the pick was not reverted');
+    });
+
+    testWidgets('a new program\'s first save sets the baseline too', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await _pumpEditor(tester, repos, enriched: true, autoCommit: true);
+      await _expandMoreDetails(tester);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'New night',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('venue-picker-input')),
+        'grange',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('venue-option-v1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final id = (await repos.programs.listAll()).single.id;
+
+      // Another device unlinks it while this editor stays open.
+      final stored = (await repos.programs.getById(id))!;
+      await repos.programs.updateAndReadBack(
+        stored.copyWith(
+          clearVenueId: true,
+          updatedAt: DateTime.utc(2026, 10, 30),
+        ),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed night',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      expect((await repos.programs.getById(id))!.venueId, isNull);
+    });
+
+    testWidgets('clearing the venue in the editor still unlinks it', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await repos.programs.create(
+        _program(venue: 'Grange Hall', venueId: 'v1'),
+      );
+      await _pumpEditor(tester, repos, enriched: true, programId: 'p1');
+      await _expandMoreDetails(tester);
+
+      await tester.tap(find.byKey(const ValueKey('venue-picker-clear')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      expect((await repos.programs.getById('p1'))!.venueId, isNull);
+    });
+  });
 }

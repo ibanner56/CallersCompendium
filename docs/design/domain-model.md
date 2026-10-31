@@ -221,6 +221,14 @@ city + stateProv + country), never persisted. A program's free-text
 modes coexist non-destructively: the display/export layer prefers a resolvable
 `venueId`, falling back to the free text. A settings toggle governs the editor's
 entry mode only (free-text field vs. picker); it never rewrites either column.
+Besides the editor's picker (and import and sync, through the ordinary program
+save), the only bulk writer of that link is `ProgramRepository.linkTypedVenues`
+(GIG-7): the user is offered it when records are turned on or a venue is
+created, and it sets `venueId` on live programs whose typed `venue` has the same `VenueKey`, leaving
+the typed text and every trashed program untouched.
+The program editor writes `venueId` only if the person changed it since the editor
+loaded or last saved; otherwise the stored value stands, so a link made while an
+editor was open (this offer, or sync) is not undone by that editor's next save.
 
 ### Program & ProgramSlot
 | Program | ProgramSlot |
@@ -235,7 +243,9 @@ entry mode only (free-text field vs. picker); it never rewrites either column.
 `band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
 event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
 a first-class dance-level enum is separate (ROADMAP 4b.1) and a different
-concept. Per-slot, `guestCaller` names a caller other than the host and
+concept. Per-slot, `guestCaller` names who called that slot, usually a caller
+other than the host (a Caller's Companion import keeps the host's name on
+their own slots too when a set has several callers, #1976), and
 `walkthroughMinutes` and `danceMinutes` are optional planned lengths, kept
 structured rather than buried in the free-text `text` note (each is `>= 0`).
 Callers' Companion's legacy `SetItem.Time` total maps to `danceMinutes`; the

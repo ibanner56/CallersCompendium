@@ -4,8 +4,9 @@ import '../model/figure.dart';
 /// dancing another group can change without becoming a separate group.
 const Set<String> _whileCoreMoves = {'long_lines', 'slice'};
 
-/// Moves that MODIFY a [_whileCoreMoves] core when written after `while`.
-const Set<String> _whileModifierMoves = {'roll_away', 'give_and_take'};
+/// Moves that MODIFY a [_whileCoreMoves] core when written after `while`, and
+/// the figure before them on a Caller's Companion comma line (#1975).
+const Set<String> whileModifierMoves = {'roll_away', 'give_and_take'};
 
 /// The regex both front-ends split a `while` line on. `whiles` is ContraDB's
 /// spelling; `while` alone would cut it mid-word without the word boundary.
@@ -39,7 +40,7 @@ Figure? whileModifierContainer(
   if (core.isCustom || core.isContainer) return null;
   if (modifier.isCustom || modifier.isContainer) return null;
   if (!_whileCoreMoves.contains(core.move)) return null;
-  if (!_whileModifierMoves.contains(modifier.move)) return null;
+  if (!whileModifierMoves.contains(modifier.move)) return null;
   return Figure.modifier(
     figures: sides,
     beats: beats < 0 ? 0 : beats,

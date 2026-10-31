@@ -571,7 +571,16 @@ class CallersCompanionUsrImporter {
             priorStates.add(prior);
           }
           if (prior.deletedAt != null) {
-            await _programs.restore(existingId, at: now);
+            // Not the trash restore: the import's undo would not re-tombstone
+            // a revived venue. [target] keeps the tombstone's venue link
+            // (`priorVenueId`) all the same, so a venue deleted meanwhile is
+            // left dangling, as before B9; the program shows its typed venue
+            // and Duplicate drops the link.
+            await _programs.restore(
+              existingId,
+              at: now,
+              reviveReferences: false,
+            );
             if (restoredProgramIdSet.add(existingId)) {
               restoredProgramIds.add(existingId);
             }

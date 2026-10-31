@@ -145,6 +145,61 @@ void main() {
       },
     );
 
+    test('drops a queued choice for a withdrawn setting, even one the merge '
+        'skipped, and keeps an ordinary setting\'s', () async {
+      await seedTie();
+      // As an older build left it: a tie queued for a key that build synced.
+      final withdrawn = syncWithdrawnSettingKeys.first;
+      await repositories.syncLocal.enqueueReview(
+        kind: SyncRecordKind.setting,
+        recordId: withdrawn,
+        counterpartId: 'peer-hash',
+        reason: syncConflictChoiceReason,
+        candidateBlob: '{}',
+        candidateHash: 'peer-hash',
+        localHash: 'local-hash',
+        queuedAt: tie,
+      );
+      await storage.refreshConflictReviews(
+        const [],
+        unevaluated: {
+          themeAddress,
+          (kind: SyncRecordKind.setting, recordId: withdrawn),
+        },
+      );
+
+      expect((await queued()).map((row) => row.recordId), ['theme_mode']);
+    });
+
+    test('queues nothing for a withdrawn setting, even if a merge raised '
+        'one', () async {
+      SyncMergeCandidate version(String key, String value, String peerId) =>
+          SyncMergeCandidate.fromBlob(
+            SyncRecordBlob(
+              kind: SyncRecordKind.setting,
+              id: key,
+              updatedAt: tie,
+              deletedAt: null,
+              existenceAt: tie,
+              body: {'value': value},
+            ),
+            peerId: peerId,
+          );
+      await storage.refreshConflictReviews([
+        for (final key in syncWithdrawnSettingKeys)
+          SyncMergeDecision(
+            address: (kind: SyncRecordKind.setting, recordId: key),
+            action: SyncMergeAction.review,
+            conflict: SyncMergeConflict(
+              local: version(key, 'a', 'local'),
+              candidates: [version(key, 'b', 'peer')],
+            ),
+          ),
+      ]);
+
+      expect(await queued(), isEmpty);
+    });
+
     test('leaves rows of every other reason alone', () async {
       await seedTie();
       await repositories.syncLocal.enqueueReview(

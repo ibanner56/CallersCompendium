@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/tag_manager_screen.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 
@@ -38,13 +39,13 @@ Future<ValueNotifier<bool>> _pumpAppearance(
   addTearDown(customThemes.dispose);
 
   await tester.pumpWidget(
-    MaterialApp(
-      locale: locale,
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
+    RepositoriesScope(
+      repositories: repos,
+      child: MaterialApp(
+        locale: locale,
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: AppThemeScope(
           notifier: theme,
           child: CustomThemesScope(
             controller: customThemes,
@@ -103,6 +104,21 @@ void main() {
     );
 
     handle.dispose();
+  });
+
+  testWidgets('Tag colours opens the Tags manager (D-N2-3)', (tester) async {
+    await _pumpAppearance(tester, openTestRepositories());
+
+    final entry = find.byKey(const ValueKey('appearance-tag-colours'));
+    await tester.scrollUntilVisible(
+      entry,
+      240,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TagManagerScreen), findsOneWidget);
   });
 
   testWidgets('toggling colour-coding off persists and flips the scope', (

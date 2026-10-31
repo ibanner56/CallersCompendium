@@ -23,6 +23,7 @@ import 'perform_a11y_prefs.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_elapsed_clock.dart';
+import 'perform_full_screen.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart'
@@ -31,7 +32,7 @@ import 'settings_screen.dart'
         kAutoSizePerformKey,
         kShowProgramSlotCallerNotesKey;
 
-/// Full-screen, large-print performance view for a whole [Program]
+/// Full-screen, large-print Perform mode for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
 ///
 /// Walks the program's ordered *groups* ([Program.grouped]) — a primary slot
@@ -244,7 +245,7 @@ class PerformProgramScreen extends StatefulWidget {
 }
 
 class _PerformProgramScreenState extends State<PerformProgramScreen>
-    with WidgetsBindingObserver, PerformWakelockMixin {
+    with WidgetsBindingObserver, PerformWakelockMixin, PerformFullScreenMixin {
   /// The live working copy of the program. In-event adjustments mutate this and
   /// persist through [PerformProgramScreen.onProgramChanged]; navigation and
   /// grouping recompute from it so the reading view reflects edits immediately.
@@ -301,6 +302,48 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   void _toggleWalkthrough() {
     setState(() => _showWalkthrough = !_showWalkthrough);
+  }
+
+  /// Scroll position of the card, when it overflows (auto-size off, or a
+  /// dance too long to fit even at the smallest auto-size). Each slot gets a
+  /// fresh scroll view, keyed on the slot in [build], so a slot always opens
+  /// at its top; nothing is kept in page storage either.
+  final ScrollController _cardScroll = ScrollController(
+    keepScrollOffset: false,
+  );
+
+  /// ↓ and Page Down (PLAT-10): scroll an overflowing card on, and move to the
+  /// next slot only once its end is showing. A page-turner pedal sends these
+  /// keys, so the pedal reads to the end of a long card before it turns the
+  /// page. → always moves straight on.
+  void _scrollCardOrGoNext() {
+    if (!_scrollCard(1)) _goNext();
+  }
+
+  /// ↑ and Page Up: the mirror of [_scrollCardOrGoNext], scrolling back to the
+  /// card's top before moving to the previous slot. ← always moves straight
+  /// back.
+  void _scrollCardOrGoPrev() {
+    if (!_scrollCard(-1)) _goPrev();
+  }
+
+  /// Scrolls the card most of a viewport in [direction], for the arrow and the
+  /// page keys alike: a pedal that sends arrows should not need ten presses
+  /// to reach the end. Returns false, scrolling nothing, when the card is
+  /// already at that end or does not scroll.
+  bool _scrollCard(int direction) {
+    if (!_cardScroll.hasClients) return false;
+    final position = _cardScroll.position;
+    final target =
+        (position.pixels + direction * position.viewportDimension * 0.8).clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        );
+    // Within a pixel of the end counts as there, so a rounding remainder
+    // cannot swallow a key press.
+    if ((target - position.pixels).abs() < 1) return false;
+    _cardScroll.jumpTo(target);
+    return true;
   }
 
   /// Keyboard scrolling for the open walkthrough overlay: [lines] of a fixed
@@ -464,6 +507,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     _elapsed.dispose();
     _focusNode.dispose();
     _walkthroughScroll.dispose();
+    _cardScroll.dispose();
     super.dispose();
   }
 
@@ -1068,14 +1112,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => _buildContent(
-        context,
-        // Collapse the AppBar's secondary actions into an overflow menu on
-        // narrow widths (issue #433). LayoutBuilder reflects the actual
-        // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
-        // in widget tests).
-        wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+    return buildPerformFullScreenShortcuts(
+      child: LayoutBuilder(
+        builder: (context, constraints) => _buildContent(
+          context,
+          // Collapse the AppBar's secondary actions into an overflow menu on
+          // narrow widths (issue #433). LayoutBuilder reflects the actual
+          // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
+          // in widget tests).
+          wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+        ),
       ),
     );
   }
@@ -1211,6 +1257,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       icon: const Icon(Icons.swap_horiz),
                       onPressed: _swapAlternate,
                     ),
+                  ...performFullScreenInlineActions,
                   PerformSizeControls(
                     canDecrease: canDecrease,
                     onDecrease: _decreaseTextSize,
@@ -1260,6 +1307,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       label: l10n.performShowAlternate,
                       onSelected: _swapAlternate,
                     ),
+                  ...performFullScreenMenuActions,
                   PerformMenuAction(
                     menuKey: const ValueKey('decrease-text-size-menu'),
                     icon: Icons.text_decrease,
@@ -1326,14 +1374,15 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       const SingleActivator(LogicalKeyboardKey.arrowRight):
                           _goNext,
                       const SingleActivator(LogicalKeyboardKey.arrowDown):
-                          _goNext,
+                          _scrollCardOrGoNext,
                       const SingleActivator(LogicalKeyboardKey.pageDown):
-                          _goNext,
+                          _scrollCardOrGoNext,
                       const SingleActivator(LogicalKeyboardKey.arrowLeft):
                           _goPrev,
                       const SingleActivator(LogicalKeyboardKey.arrowUp):
-                          _goPrev,
-                      const SingleActivator(LogicalKeyboardKey.pageUp): _goPrev,
+                          _scrollCardOrGoPrev,
+                      const SingleActivator(LogicalKeyboardKey.pageUp):
+                          _scrollCardOrGoPrev,
                     },
               child: Focus(
                 focusNode: _focusNode,
@@ -1341,7 +1390,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 child: SafeArea(
                   child: Stack(
                     children: [
-                      Positioned.fill(child: _buildCard(slot, dialect)),
+                      Positioned.fill(
+                        child: KeyedSubtree(
+                          key: ValueKey(('perform-card', slot.id)),
+                          child: _buildCard(slot, dialect),
+                        ),
+                      ),
                       // Giant edge hit zones (>=44pt) for touch/mouse. Accessibility
                       // and keyboard use go through the prev/next buttons, so these
                       // are excluded from semantics to avoid double-announcing.
@@ -1697,6 +1751,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           authorNames: _authorNamesFor(dance),
           difficultyLevel: _difficultyLevelFor(dance),
           fitScaleCache: _fitScaleCache,
+          scrollController: _cardScroll,
         );
       }
     }
@@ -1725,6 +1780,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           CanonicalDiscouragedTermsScope.of(context),
       autoSize: _autoSize,
       fitScaleCache: _fitScaleCache,
+      scrollController: _cardScroll,
     );
   }
 

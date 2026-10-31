@@ -1,0 +1,14 @@
+{
+  "id": "b19-replace-keeps-rating",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Choosing \"Same dance — replace\" for an imported dance no longer clears the star rating you gave it when the incoming file has no rating. A rating the file does carry still replaces yours."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`ImportPipeline.commit` keeps the linked-over dance's rating on `CommitAction.link` when the incoming record carries none (`_rebuildWithIdentity` takes `keepFrom` in place of `keepCustomFieldsFrom`)."
+    ]
+  }
+}

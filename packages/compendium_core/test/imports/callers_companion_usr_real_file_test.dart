@@ -171,8 +171,17 @@ void main() {
 
       expect(result.programs, hasLength(1));
       final program = result.programs.single;
-      // The single set's title derives from its Location.
-      expect(program.title, 'Example Set');
+      // The single set is titled as CC names it, `YYYY/MM/DD - Location`, or
+      // by its Location alone when it has no date (#1976).
+      final date = program.eventDate;
+      expect(
+        program.title,
+        date == null
+            ? 'Example Set'
+            : '${date.year.toString().padLeft(4, '0')}/'
+                  '${date.month.toString().padLeft(2, '0')}/'
+                  '${date.day.toString().padLeft(2, '0')} - Example Set',
+      );
 
       final resolved = program.slots.where((s) => s.danceId != null).length;
       // Every set item whose CC dance id exists among the 40 dances should

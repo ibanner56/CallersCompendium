@@ -789,7 +789,7 @@ figure as the progression. This is non-serialized taxonomy metadata, so no
   (`FigureRenderer.renderVerbose`, roadmap 5.4): a dialect-aware, spoken-friendly
   string that spells out notation glyphs (e.g. `1½` → "one and a half times")
   and is surfaced via `Semantics` labels on the dance detail card and the
-  large-print performance view, while the visible text stays terse.
+  large-print Perform mode, while the visible text stays terse.
 - FTS indexing uses canonical rendered text + searchKeywords (incl. legacy
   terms like "gypsy" so searches by older users still find shoulder round).
 
@@ -1731,6 +1731,19 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     "opposites"), but its figure editor replaces a value it does not know with
     the param's default when the figure is opened, so editing such a figure
     there loses it, as with v24's partner series.
+  v38 also makes `form_short_waves` a zero-count figure without its balance
+    (#1975, maintainer decision): its `beats` default becomes 0, a
+    `paramBeats` rule gives 4 with the balance and 0 without, and `goodBeats`
+    becomes `[0, 4, 8]` (8 for The Caller's Box's folded form-and-balance
+    lines, the author's call, so they raise no new `atypical_beats` warning).
+    Its `balance` default stays false and it seeds nothing in the editor; the
+    Settings per-move defaults record the matching `beats` when `balance`
+    changes, as they do for a move that seeds one; this now covers every move
+    whose `paramBeats` follows its balance, so Rory O'More and petronella too. A stored form short waves
+    that omits `beats` now counts 0 rather than 4; one that states its beats
+    keeps them. The derived `dance_figures.beats` and `deriveSections` read a
+    figure's own stored `beats`, not the taxonomy default, and `beats` is not in
+    its canonical text, so nothing is owed beyond v38's existing rebuild.
 
 ## Open questions (to resolve during implementation, with user input)
 

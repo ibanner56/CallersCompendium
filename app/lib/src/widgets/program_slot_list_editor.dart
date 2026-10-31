@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/app_theme_scope.dart';
+import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
@@ -492,16 +493,20 @@ class _SlotTile extends StatelessWidget {
     // Redundant formation-family accent (issue #270, extended for mixer flag in
     // issue #732): only for dance slots with a resolved formation, when the user
     // has colour-coding on. Mixer-flagged dances get the mixer accent regardless
-    // of shape — see setListAccentForShapeAndMixer. The mixer term is also
+    // of shape; otherwise the user's own formation colour wins over the family
+    // tint (PRES-12) — see setListAccentForRow. The mixer term is also
     // appended to the subtitle text so colour is never the sole cue (ux.md §4).
     final colorCodingEnabled = SetListColorCodingScope.of(context);
     final highContrast =
         (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
         MediaQuery.highContrastOf(context);
     final accent = (formation != null && colorCodingEnabled)
-        ? setListAccentForShapeAndMixer(
+        ? setListAccentForRow(
             formation!.shape,
             mixer,
+            userColor: FormationColorsScope.of(
+              context,
+            )?.overrideFor(formation!.shape),
             highContrast: highContrast,
           )
         : null;

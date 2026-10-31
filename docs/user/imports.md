@@ -39,15 +39,15 @@ what the app quietly threw away, because it throws nothing away.
 The app also *shows* you where that happened. A figure kept word-for-word carries
 a small warning glyph beside it — on a dance card, in the editor, and in Perform.
 Hover it on a desktop, or select it on a touchscreen, and it explains itself:
-**Couldn't recognize this call — kept exactly as written as a custom
-figure.** It is a shape, not just a colour, and it is announced to screen
+**Couldn't recognize this call — kept exactly as written as an
+unrecognized figure.** It is a shape, not just a colour, and it is announced to screen
 readers, so you can find the lines worth tidying up whichever way you read.
 
 There is nothing wrong with leaving them as they are. A verbatim figure calls
 perfectly well; the badge just tells you the app cannot search or count beats for
 that line the way it can for a recognised move.
 Once you rewrite such a figure's text yourself in the editor, it is your own
-custom figure: the badge goes away, and **Re-check custom figures** leaves it as
+wording: the badge goes away, and **Re-check unrecognized figures** leaves it as
 you wrote it.
 
 ## Bring in single dances from an online archive
@@ -384,11 +384,26 @@ says how many programs the file includes, and they are imported even when you
 leave every dance at **Skip** — so importing a fresher export just to pick up new
 sets works when you already have all its dances.
 
+Each program is named the way Caller's Companion names the set, by its date and
+location: "2024/04/20 - NEFFA Contra Party". A set with no location is named by
+its date alone, and one with no date, or a date the app cannot read, by its
+location. With no location and a date the app cannot read, it is named
+"Caller's Companion set" and the date as written; with neither, "Caller's
+Companion set" and its number. Importing a set again renames its program the same way.
+
+A slot keeps the name of the caller Caller's Companion recorded for it only
+when the set's slots name more than one caller, when a slot names someone other
+than the set's own caller, or when the set is called by several people
+("Michael Smith & Lisa Greenleaf"). On a set you called yourself throughout,
+with your name on the set first name first, the repeated name is left out.
+
 Your **figures come across too**. Caller's Companion keeps the actual
 choreography separately from the dance record, so earlier versions of the app
 brought your dances over with their titles, authors and notes but an empty body.
 The import now reads that choreography, so a migrated dance arrives with real
-A1/A2/B1/B2 figures you can search and edit. Anything the app cannot represent
+A1/A2/B1/B2 figures you can search and edit. A line that names several figures
+separated by commas, such as "Slide Left, Circle Left 3/4", comes across as
+those figures, sharing the line's beats. Anything the app cannot represent
 faithfully is kept word-for-word as text rather than guessed at.
 
 The up to three **custom columns** you defined in Caller's Companion come
@@ -418,9 +433,34 @@ description of the starting position ("Long Waves, R-hand to Neighbor") is kept
 as the formation's detail.
 Alternates in your sets come across as alternates.
 
+A **title** that Caller's Companion filed with its article at the end, such as
+"Baby Rose, The", comes across with the article back in front: "The Baby Rose".
+The articles moved are The, A, An, La, Le, Les and L' ("Amour, L'" becomes
+"L'Amour"), and a note in brackets stays at the end ("Baby Rose, The (var)"
+becomes "The Baby Rose (var)"). A title that only looks library-style moves
+too ("Thanks, Les" becomes "Les Thanks"), so check a dedication title and fix
+it in the editor if it moved. A dance you imported before keeps the title it
+has, unless you tick **Also update title and credit** on its row when you
+import again (see
+[Re-import an archive dance to pick up a correction](#re-import-an-archive-dance-to-pick-up-a-correction)).
+When the app looks for a dance you already have, "Bastringue, La" and "La
+Bastringue" count as the same title, whichever source either came from.
+
+A dance Caller's Companion credits to a choreographer **"and others"** (such
+as "Rick Mohr" and "And Others") is credited to the people it names, and the
+credit is kept as a line in its calling notes: "Choreography: Rick Mohr and
+others". No choreographer called "Others" is made. "& others", "et al." and a
+credit of just "Others" are read the same way, and a dance credited only to
+others reads "Choreography: others, not named". A dance you imported before
+keeps its credit; if you re-import it with **Also update title and credit**,
+it is credited to the named people only, without the note, and a choreographer
+called "Others" from the earlier import stays in your list until you remove
+it.
+
 Your **notes and sources** come across with each dance. Your calling notes
 come first, then the music, any progression detail, your other notes (under
-"Other notes:"), and where the dance came from (under "Source:"). Source and
+"Other notes:"), an "and others" credit (under "Choreography:"), and where the
+dance came from (under "Source:"). Source and
 video web addresses become links on the dance, a dance with a Caller's Box
 number gets a link to its page there, and a book reference becomes a published
 source cited with its page, reusing a source you already have with the same
@@ -613,7 +653,8 @@ watches for matches:
   than adding a second copy. You can choose **Same
   dance (update existing)** to link the import to your existing copy — this
   replaces your version of the dance with the online record's, including its
-  title, figures, notes, tags, and rating; your custom fields, its place in your
+  title, figures, notes, and tags; your rating (unless the online record carries
+  one), custom fields, its place in your
   programs and its calling history are kept — **Import a second copy** to add it alongside
   your existing dance and keep both source records, or **Cancel** to leave your
   collection unchanged. This applies to single-dance online imports only; the
@@ -624,10 +665,11 @@ watches for matches:
   to choose: **Same dance — replace**, keep both as a **duplicate**, or **skip** the new
   one. **Same dance — replace** keeps the existing dance's identity (its id,
   created date and history) but replaces its content with the imported version,
-  including its title, calling notes, rating, tags, hook, walkthrough, status,
-  links and source citations. Custom fields the import carries replace yours;
-  the rest of your custom fields are kept. Share files carry no star rating, so
-  replacing a dance from one clears the rating you gave it. The review warns
+  including its title, calling notes, tags, hook, walkthrough, status, links
+  and source citations. Custom fields the import carries replace yours; the rest
+  of your custom fields are kept. Your star rating is kept whenever the
+  incoming file carries none, as share files and The Caller's Box never do; a
+  rating the file does carry replaces yours. The review warns
   how many existing dances will be overwritten before you commit.
 - **Same dance, written another way.** Archives spell and annotate titles
   differently: The Caller's Box has `A-1 Reel {variant}` where your collection
@@ -641,9 +683,10 @@ watches for matches:
   possible match, the choices are added to that row, which defaults to **Skip**
   as before. A single-dance online import asks the same question in a dialog
   (**Is this a dance you already have?**), where you pick the dance to replace
-  or **Import as a new dance**; replacing it keeps your custom fields, its place
-  in your programs and its calling history, but takes the incoming title,
-  figures, notes, tags and rating. A title like `New Dance (Velvet)`, whose
+  or **Import as a new dance**; replacing it keeps your rating, custom fields, its
+  place in your programs and its calling history, but takes the incoming title,
+  figures, notes and tags. (A rating the incoming record carries would replace
+  yours.) A title like `New Dance (Velvet)`, whose
   bracket is the dance's real name, is not treated this way, and nor is a
   bracket holding only a part number, as in `Rickett's Hornpipe {#2}`.
 - **Same name, different choreography.** When the title and author match
@@ -658,8 +701,9 @@ watches for matches:
   this same confirmation appears as a dialog rather than a review-screen block.
   The choices are identical: **Import as a variation**, **Same dance (update
   existing)**, or **Cancel**. "Same dance" overwrites the existing dance with the
-  incoming version — your edits, tags, and rating for the existing dance will be
-  replaced — but your calling history is preserved.
+  incoming version — your edits and tags for the existing dance will be
+  replaced, and so will its rating if the incoming record carries one — but
+  your calling history is preserved.
 - **A record with no figures.** Some sources send a dance without its figures —
   The Caller's Box does when the choreographer has not allowed them to be
   shared. Replacing one of your dances with such a record would erase its

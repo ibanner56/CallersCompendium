@@ -17,6 +17,7 @@ void main() {
     mixer: mixer,
     status: status,
     tunes: const ['Tune One', 'Tune Two'],
+    hook: 'Open with a long swing',
     createdAt: now,
     updatedAt: now,
   );
@@ -32,6 +33,7 @@ void main() {
     danceWith(status: DanceStatus.broken, mixer: false),
   ];
   const authorNames = ['Alice Author', 'Bob Writer'];
+  const sourceLines = ['Give-and-Take — A. Author, 1990 (p. 12)'];
   const labels = DanceExportLabels();
 
   List<Set<DanceShareField>> allSubsets() {
@@ -46,10 +48,12 @@ void main() {
   }
 
   /// The lines the helpers say the card carries for [fields], in order:
-  /// authors, then the meta lines, then (with its header) the tunes.
+  /// authors, then the meta lines, the hook, the tunes and (each with its
+  /// header) the sources.
   List<String> helperLines(Dance dance, Set<DanceShareField> fields) {
     final authors = danceCardAuthorNames(authorNames, fields);
     final tunes = danceCardTuneNames(dance, fields);
+    final sources = danceCardSourceLines(sourceLines, fields);
     return [
       if (authors.isNotEmpty) authors.join(', '),
       ...danceCardMetaLines(
@@ -60,7 +64,10 @@ void main() {
         labels: labels,
         fields: fields,
       ),
+      if (fields.contains(DanceShareField.hook))
+        '${labels.hook}: ${dance.hook}',
       if (tunes.isNotEmpty) ...['${labels.tunes}:', tunes.join(', ')],
+      if (sources.isNotEmpty) ...['${labels.sources}:', ...sources],
     ];
   }
 
@@ -69,10 +76,10 @@ void main() {
       'for every DanceShareField subset', () {
     // Every line any subset can produce; each must appear iff gated in.
     final universe = helperLines(full, DanceShareField.all);
-    expect(universe, hasLength(8));
+    expect(universe, hasLength(11));
 
     final subsets = allSubsets();
-    expect(subsets, hasLength(512));
+    expect(subsets, hasLength(2048));
     for (final dance in variants) {
       for (final fields in subsets) {
         final text = danceToPlainText(
@@ -84,6 +91,7 @@ void main() {
           statusLabel: 'Broken',
           labels: labels,
           fields: fields,
+          sourceLines: sourceLines,
         );
         final textLines = text.split('\n');
         final expected = helperLines(dance, fields);

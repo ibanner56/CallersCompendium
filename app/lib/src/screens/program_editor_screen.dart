@@ -14,6 +14,7 @@ import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/editor_draft_shutdown_scope.dart';
+import '../data/mark_all_sets_status_scope.dart';
 import '../data/matrix_collision_mode_scope.dart';
 import '../data/program_matrix_column_config_scope.dart';
 import '../data/program_auto_commit_scope.dart';
@@ -30,6 +31,7 @@ import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
 
+import '../editor/draft_save_health.dart';
 import '../editor/pay_currency.dart';
 import '../editor/perform_adjustment_write.dart';
 import '../editor/program_editor_draft_codec.dart';
@@ -46,6 +48,7 @@ import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/notice_card.dart';
@@ -258,6 +261,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Set<String>? _pendingBulkUndoSlotIds;
   Program? _pendingBulkUndoBaseline;
   DateTime? _pendingBulkUndoTimestamp;
+
+  /// The status Mark all performed replaced when it also set Performed
+  /// (GIG-12), so Undo can put it back; `null` when it left the status alone.
+  ProgramStatus? _pendingBulkUndoPriorStatus;
   bool? _pendingBulkUndoWasDirty;
   int? _pendingBulkUndoEditGeneration;
   int _bulkUndoGeneration = 0;
@@ -576,6 +583,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// from [_venueController] (free-text simple mode) so flipping the venue
   /// entity mode is lossless — neither field clears the other.
   String? _venueId;
+
+  /// The `venueId` the editor last took from the stored program (on load, and
+  /// after each save). A save writes [_venueId] only if the person changed it
+  /// away from this; otherwise it keeps whatever is stored, so a link made
+  /// elsewhere while the editor was open (the offer to link typed venues, a
+  /// sync) is not erased by this editor's stale copy (GIG-7).
+  String? _venueIdBaseline;
 
   /// The resolved [Venue] for [_venueId], loaded so the simple-mode read-only
   /// fallback can show its name. `null` when no venue is linked.
@@ -933,6 +947,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _existing = program;
         _eventDate = program?.eventDate;
         _venueId = program?.venueId;
+        _venueIdBaseline = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
         _dialectName = program?.dialectName;
@@ -978,7 +993,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// that baseline, the raw pay text and currency are kept: [program] carries a
   /// stored fallback for an unparseable amount, which must not overwrite what
   /// was typed. Ordinary loads pass nothing and initialise the pay field.
-  void _applyProgramToEditor(Program program, {Program? payBaseline}) {
+  ///
+  /// The venue-link baseline ([_venueIdBaseline]) is [program]'s `venueId`
+  /// unless [venueIdBaseline] says otherwise. A rebase passes the *stored*
+  /// program's link: its [program] is a merge that can carry the person's own
+  /// unsaved pick, and a baseline that included the pick would make the next
+  /// save read the pick as untouched and write the stored link over it.
+  void _applyProgramToEditor(
+    Program program, {
+    Program? payBaseline,
+    ({String? value})? venueIdBaseline,
+  }) {
     _titleController.text = program.title;
     _venueController.text = program.venue ?? '';
     _bandController.text = program.band ?? '';
@@ -991,6 +1016,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _existing = program;
     _eventDate = program.eventDate;
     _venueId = program.venueId;
+    _venueIdBaseline = venueIdBaseline != null
+        ? venueIdBaseline.value
+        : program.venueId;
     _status = program.status;
     _hideAlternates = program.hideAlternates;
     _dialectName = program.dialectName;
@@ -1165,6 +1193,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
+
+  final DraftSaveHealth _draftHealth = DraftSaveHealth();
 
   Future<void> _saveDraft({
     ProgramEditorDraft? preparedDraft,
@@ -1385,8 +1415,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // did) remove the draft itself, so skip the write rather than race it.
       if (generation != _draftGeneration) return;
       await _repos.settings.set(key, encodeProgramDraft(draft));
+      if (_draftHealth.recordSuccess() && mounted) setState(() {});
     } catch (error, stackTrace) {
-      // diagnostics: silent — draft write failed; must never stall editing or permanently block later autosaves.
+      // Logged once per session and shown as a marker, never thrown: it must
+      // not stall editing or permanently block later autosaves (FAIL-8).
+      if (_draftHealth.claimFirstLog()) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._writeDraft',
+        );
+      }
+      final changed = _draftHealth.recordFailure();
+      if (changed && mounted) setState(() {});
       if (surfaceErrors) Error.throwWithStackTrace(error, stackTrace);
     }
   }
@@ -1417,6 +1458,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     await _saveQueueTail;
     try {
       await _repos.settings.remove(_draftKey, permanent: true);
+      // Nothing is left unsaved, so a "Draft not saved" marker would be stale.
+      if (_draftHealth.recordSuccess() && mounted) setState(() {});
     } catch (_) {
       // diagnostics: silent — draft removal best-effort; non-fatal.
     }
@@ -1752,7 +1795,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         live: live.slots,
       ),
     );
-    setState(() => _applyProgramToEditor(merged, payBaseline: storedBaseline));
+    setState(
+      () => _applyProgramToEditor(
+        merged,
+        payBaseline: storedBaseline,
+        venueIdBaseline: (value: live.venueId),
+      ),
+    );
     await _refreshLinkedVenueForId(merged.venueId);
     return true;
   }
@@ -1765,6 +1814,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _pendingBulkUndoSlotIds = null;
     _pendingBulkUndoBaseline = null;
     _pendingBulkUndoTimestamp = null;
+    _pendingBulkUndoPriorStatus = null;
     _pendingBulkUndoWasDirty = null;
     _pendingBulkUndoEditGeneration = null;
     _pendingBulkUndoActionToken = null;
@@ -1823,7 +1873,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
       );
       setState(() {
-        _applyProgramToEditor(merged, payBaseline: baseline);
+        _applyProgramToEditor(
+          merged,
+          payBaseline: baseline,
+          venueIdBaseline: (value: live.venueId),
+        );
         _dirty = true;
       });
       await _refreshLinkedVenueForId(merged.venueId);
@@ -2608,6 +2662,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final wasDirty = _dirty;
     final l10n = AppLocalizations.of(context);
     final markedSlotIds = <String>{};
+    // GIG-12: while "Mark all performed sets the status" is on (the default),
+    // the action also sets Performed — even with every primary already marked
+    // — and remembers the status it replaced for Undo.
+    final priorStatus =
+        MarkAllSetsStatusScope.read(context) &&
+            _status != ProgramStatus.performed
+        ? _status
+        : null;
     setState(() {
       final updatedSlots = <ProgramSlot>[];
       for (final s in _slots) {
@@ -2621,11 +2683,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         }
       }
       _slots = updatedSlots;
-      if (markedSlotIds.isNotEmpty) {
+      if (priorStatus != null) _status = ProgramStatus.performed;
+      if (markedSlotIds.isNotEmpty || priorStatus != null) {
         _pendingBulkUndoTimestamp = now;
       }
     });
-    if (markedSlotIds.isEmpty) {
+    if (markedSlotIds.isEmpty && priorStatus == null) {
       // Every primary was already marked: say why the alternates still are not,
       // rather than doing nothing visible. There is nothing to undo.
       if (_slots.any(_isUnmarkedAlternate)) {
@@ -2645,6 +2708,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _markDirty();
     final actionToken = ++_bulkUndoActionToken;
     _pendingBulkUndoSlotIds = {...markedSlotIds};
+    _pendingBulkUndoPriorStatus = priorStatus;
     _pendingBulkUndoWasDirty = wasDirty;
     _pendingBulkUndoEditGeneration = _editGeneration;
     _pendingBulkUndoActionToken = actionToken;
@@ -2661,15 +2725,22 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       s.danceId != null && s.isAlt && s.performedAt == null;
 
   /// What Mark all performed reports: it says so when it left an alternate
-  /// unmarked, so the caller knows to mark the one they used.
-  String _markedAllPerformedMessage(AppLocalizations l10n) =>
-      _slots.any(_isUnmarkedAlternate)
-      ? l10n.programsMarkedAllPerformedExceptAlternates
-      : l10n.programsMarkedAllPerformed;
+  /// unmarked, so the caller knows to mark the one they used, and when it also
+  /// set the status, so the caller knows Undo puts that back too.
+  String _markedAllPerformedMessage(AppLocalizations l10n) => switch ((
+    _slots.any(_isUnmarkedAlternate),
+    _pendingBulkUndoPriorStatus != null,
+  )) {
+    (true, true) => l10n.programsMarkedAllPerformedExceptAlternatesSetStatus,
+    (true, false) => l10n.programsMarkedAllPerformedExceptAlternates,
+    (false, true) => l10n.programsMarkedAllPerformedSetStatus,
+    (false, false) => l10n.programsMarkedAllPerformed,
+  };
 
   void _showBulkUndoSnackBar({String? message}) {
     final markedSlotIds = _pendingBulkUndoSlotIds;
     final actionTimestamp = _pendingBulkUndoTimestamp;
+    final priorStatus = _pendingBulkUndoPriorStatus;
     final wasDirty = _pendingBulkUndoWasDirty;
     final actionEditGeneration = _pendingBulkUndoEditGeneration;
     final actionToken = _pendingBulkUndoActionToken;
@@ -2696,12 +2767,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _bulkUndoSnackBar = null;
         _pendingBulkUndoSlotIds = null;
         _pendingBulkUndoTimestamp = null;
+        _pendingBulkUndoPriorStatus = null;
         _pendingBulkUndoWasDirty = null;
         _pendingBulkUndoEditGeneration = null;
         unawaited(
           _undoMarkAllPerformed(
             markedSlotIds,
             actionTimestamp,
+            priorStatus: priorStatus,
             actionToken: actionToken,
             wasDirty: wasDirty,
             actionEditGeneration: actionEditGeneration,
@@ -2716,6 +2789,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _bulkUndoSnackBar = null;
         _pendingBulkUndoSlotIds = null;
         _pendingBulkUndoTimestamp = null;
+        _pendingBulkUndoPriorStatus = null;
         _pendingBulkUndoWasDirty = null;
         _pendingBulkUndoEditGeneration = null;
         _pendingBulkUndoActionToken = null;
@@ -2730,6 +2804,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _bulkUndoSnackBar = null;
     _pendingBulkUndoSlotIds = null;
     _pendingBulkUndoTimestamp = null;
+    _pendingBulkUndoPriorStatus = null;
     _pendingBulkUndoWasDirty = null;
     _pendingBulkUndoEditGeneration = null;
     _pendingBulkUndoActionToken = null;
@@ -2739,6 +2814,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _undoMarkAllPerformed(
     Set<String> markedSlotIds,
     DateTime actionTimestamp, {
+    required ProgramStatus? priorStatus,
     required int actionToken,
     required bool wasDirty,
     required int actionEditGeneration,
@@ -2758,6 +2834,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ? slot.copyWith(clearPerformedAt: true)
               : slot,
       ];
+      // A status changed since the action is the caller's, and stays.
+      if (priorStatus != null && _status == ProgramStatus.performed) {
+        _status = priorStatus;
+      }
     });
     if (autoCommitHadPersisted || autoCommitWasInFlight) {
       _autosaveTimer?.cancel();
@@ -2783,6 +2863,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           slotIds: markedSlotIds,
           performedAt: actionTimestamp,
           updatedAt: DateTime.now().toUtc(),
+          restoreStatus: priorStatus,
         );
       } catch (error, stackTrace) {
         logCaughtError(
@@ -2828,6 +2909,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           _applyProgramToEditor(
             restored,
             payBaseline: _pendingBulkUndoBaseline ?? _existing!,
+            venueIdBaseline: (value: live.venueId),
           );
           await _refreshLinkedVenueForId(restored.venueId);
           if (!mounted) return;
@@ -2989,12 +3071,26 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<Program> _persistDraft(Program draft) async {
     final now = DateTime.now().toUtc();
     final existing = _existing;
+    // Three-way rule for the link: the draft's venueId differs from the one
+    // this editor loaded only if the person changed it (picked, or cleared),
+    // and only then is it written. Otherwise the stored value stands, which
+    // keeps a link made while the editor was open.
+    var venueId = draft.venueId;
+    if (existing != null && venueId == _venueIdBaseline) {
+      final stored = await _repos.programs.getById(
+        existing.id,
+        includeDeleted: true,
+      );
+      // A null stored link is a real value (an unlink); only a missing row
+      // leaves the draft's.
+      if (stored != null) venueId = stored.venueId;
+    }
     final persisted = Program(
       id: existing?.id ?? uuidV4(),
       title: draft.title,
       eventDate: draft.eventDate,
       venue: draft.venue,
-      venueId: draft.venueId,
+      venueId: venueId,
       band: draft.band,
       caller: draft.caller,
       dancerLevel: draft.dancerLevel,
@@ -3011,14 +3107,29 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       provenance: existing?.provenance,
     );
     if (existing != null) {
-      return _repos.programs.updateAndReadBack(persisted);
+      final stored = await _repos.programs.updateAndReadBack(persisted);
+      _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
+      return stored;
     }
     await _repos.programs.create(persisted);
     final stored = await _repos.programs.getById(persisted.id);
     if (stored == null) {
       throw StateError('program "${persisted.id}" vanished after its create');
     }
+    _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
     return stored;
+  }
+
+  /// Takes the saved `venueId` as the new baseline, and into [_venueId] unless
+  /// the person picked another venue while the save was in flight.
+  void _adoptStoredVenueId({required String? sent, required String? stored}) {
+    _venueIdBaseline = stored;
+    if (!mounted || _venueId != sent || sent == stored) return;
+    setState(() {
+      _venueId = stored;
+      _linkedVenue = null;
+    });
+    if (stored != null) unawaited(_refreshLinkedVenue(stored));
   }
 
   Future<void> _save() async {
@@ -3061,6 +3172,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _bulkUndoSnackBar = null;
       _pendingBulkUndoSlotIds = null;
       _pendingBulkUndoTimestamp = null;
+      _pendingBulkUndoPriorStatus = null;
       _pendingBulkUndoWasDirty = null;
       _pendingBulkUndoEditGeneration = null;
       _pendingBulkUndoActionToken = null;
@@ -3153,7 +3265,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     var deleted = false;
     try {
       // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
-      if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+      if (!await confirmDeleteProgramIfEnabled(
+        context,
+        itemLabel: title,
+        programId: source.id,
+        repositories: _repos,
+      )) {
+        return;
+      }
       if (!mounted) return;
       // Finish any already-started auto-commit before soft-deleting. Otherwise
       // its update could land after the delete and clear the tombstone.
@@ -3267,7 +3386,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
       ],
     );
-    return PopScope<Object?>(
+    final editor = PopScope<Object?>(
       canPop: !_pickerImporting && !_dirty && !isPersistedNewRoute,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop || _pickerImporting) return;
@@ -3296,6 +3415,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ),
           ),
           actions: [
+            if (_draftHealth.failed) const DraftNotSavedMarker(),
             if (_loaded &&
                 _loadError == null &&
                 _data != null &&
@@ -3383,6 +3503,32 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 label: Text(_dirty ? l10n.programsSaveDirty : l10n.commonSave),
               )
             : null,
+      ),
+    );
+    return Actions(
+      actions: {
+        // Ctrl/Cmd-S, bound app-wide ([appShortcuts]); the same rule as the
+        // Save button's, which shows on the Build tab only.
+        SaveIntent: CallbackAction<SaveIntent>(
+          onInvoke: (_) {
+            if (_loaded &&
+                _loadError == null &&
+                _tabController.index == 0 &&
+                !_saving &&
+                !_pickerImporting) {
+              unawaited(_save());
+            }
+            return null;
+          },
+        ),
+      },
+      // Holds the focus when nothing inside has it, so Ctrl/Cmd-S reaches the
+      // action above as soon as the editor opens. A new program's title field
+      // takes the focus itself: an autofocus here would win over it, because
+      // the outer one is queued first.
+      child: Focus(
+        autofocus: !(widget.isNew && !hasPersistedProgram),
+        child: editor,
       ),
     );
   }
@@ -4210,6 +4356,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         VenuePicker(
           key: const ValueKey('program-venue-picker'),
           selectedVenueId: _venueId,
+          programId: _existing?.id ?? widget.programId,
           onChanged: _onVenueLinkChanged,
         ),
       ],
@@ -4374,6 +4521,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           initialValue: _status,
           decoration: InputDecoration(
             labelText: l10n.programsStatusFieldLabel,
+            // GIG-12: say what Performed writes, and that Mark all performed
+            // sets it while that setting is on.
+            helperText: MarkAllSetsStatusScope.of(context)
+                ? l10n.programsStatusHelperMarkAllSetsStatus
+                : l10n.programsStatusHelper,
+            helperMaxLines: 4,
             border: const OutlineInputBorder(),
           ),
           items: [

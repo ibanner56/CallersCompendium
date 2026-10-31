@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**106 settings keys**: 65 shareable, 12 device-local, 27 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**107 settings keys**: 66 shareable, 12 device-local, 27 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -544,6 +544,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `last_used_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
+| `mark_all_sets_status` | `dpv:NonPersonalData` | app user | shareable | A behaviour preference: whether Mark all performed also sets the program's status (GIG-12). It names no person and holds no content, and it follows the caller rather than the screen, so it travels like the other calling-history rules beside it. |
 | `matrix_exact_beat_collision` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable | No longer read or written by this version (Perform lost its canonical toggle). Kept classified and travelling so older-version peers and backups, which still use it, round-trip it unchanged. |
 | `perform_stage_mode` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: the stage theme is chosen for the lighting a screen is read under, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |

@@ -92,4 +92,56 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('creating a venue offers to link typed programs of that name', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      Program(
+        id: 'typed',
+        title: 'Old night',
+        venue: 'Grange Hall',
+        slots: const [],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+    await _pump(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('venue-manager-empty-add')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('venue-name-field')),
+      'Grange Hall',
+    );
+    await tester.tap(find.byKey(const ValueKey('venue-editor-save')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Link earlier programs?'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('venue-link-offer-confirm')));
+    await tester.pumpAndSettle();
+
+    final venue = (await repos.venues.listAll()).single;
+    expect((await repos.programs.getById('typed'))!.venueId, venue.id);
+  });
+
+  testWidgets('creating a venue nothing is typed for shows no offer', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('venue-manager-empty-add')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('venue-name-field')),
+      'Grange Hall',
+    );
+    await tester.tap(find.byKey(const ValueKey('venue-editor-save')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Link earlier programs?'), findsNothing);
+    expect(await repos.venues.listAll(), hasLength(1));
+  });
 }

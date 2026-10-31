@@ -78,11 +78,11 @@ recipient's own dialect.
 ### Share a dance file
 
 **Share dance file** and **Export dance as JSON** build the same file: the dance,
-its credited choreographers, its tags and difficulty level, the published
+its credited authors, its tags and difficulty level, the published
 sources it cites, its [custom fields](./glossary.md#custom-field), and any of
 [your own new figures](./authoring.md#your-own-figures) it uses, without your
 notes on them. The only
-difference is the name — `.ccshare` or `.json`. Choreographers' private details
+difference is the name — `.ccshare` or `.json`. Authors' private details
 are removed (see [What stays private](#what-stays-private)), and custom fields
 with **Include in sharing** turned off are left out. Your star rating of the
 dance is left out too; it stays on your devices and in your backup.
@@ -134,14 +134,14 @@ list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
 
 - **Set list only** — titles, event details, slot notes, and the author
   (the default). None of your other selected dance fields appear here —
-  formation, level, mixer, status, phrase, calling notes, walkthrough, and
-  tunes only ever show up on the richer per-dance card described next.
+  formation, level, mixer, status, phrase, calling notes, walkthrough,
+  tunes, hook, and sources only ever show up on the richer per-dance card described next.
 - **Set list and figures** — appends a full card for each dance after the set
   list, showing every dance field you've selected alongside its figures. The
   cards use your app language for field labels; the figure text uses your
   active dialect. Alternate dances are marked "Alternate". A dance with no
-  structured figures still gets its card when it has calling notes or a
-  walkthrough and you've selected that field; a dance with nothing to show
+  structured figures still gets its card when it has calling notes, a
+  walkthrough, a hook or a published source and you've selected that field; a dance with nothing to show
   beneath its title gets no card.
 
 If none of the program's dances have anything to put on a card — no structured
@@ -158,9 +158,19 @@ If something goes wrong the app says so plainly — "Couldn't share this set lis
 
 Settings › Defaults has a checklist for every non-figures dance field a dance
 card can show: author, formation, level, mixer, status, phrase, calling
-notes, walkthrough, and suggested tunes. Author is on by default, matching
-every export before this setting existed; suggested tunes is off by default,
-since no export showed them before.
+notes, walkthrough, suggested tunes, hook, and published sources. Author is on
+by default, matching every export before this setting existed; suggested tunes,
+the hook and published sources are off by default, since no export showed them
+before.
+
+A published source prints as one line per citation, such as *Give-and-Take —
+A. Author, 1990 (p. 12, no. 3)*: its title, author and year, then the page and
+number you recorded. The source's web address is not printed. A citation whose
+source has since been removed from your library still prints its page and number
+under "(unknown source)". A dance's custom fields and its links (video, source,
+related dance) never appear on a card. Only a
+[shared dance file](#share-a-dance-file) carries them (a custom field only if
+you marked it **Include in sharing**).
 
 Turning a field off removes it everywhere it would otherwise appear — but
 **author is the only one of these fields the plain numbered set-list line
@@ -177,7 +187,7 @@ evening to another caller. It builds a single self-contained file — a
 
 - the program itself;
 - every dance the program's slots refer to;
-- the choreographers credited on those dances;
+- the authors credited on those dances;
 - the tags, published sources, and [custom fields](./glossary.md#custom-field)
   those dances use, so the recipient can import them completely;
 - any of [your own new figures](./authoring.md#your-own-figures) those dances
@@ -234,7 +244,7 @@ extras in [**Settings › Program › Venues › Manage venues**](./settings.md#
 
 **Export as JSON file** builds exactly the same content as **Share (program +
 dances)** — same program, same dances with their full figures, same
-choreographers, same venue, same privacy rules. You then choose **Save**,
+authors, same venue, same privacy rules. You then choose **Save**,
 **Copy raw JSON**, **Share**, or **Cancel**. The only difference in the file
 itself is the name: `.json` instead of `.ccshare`. A
 [JSON file](./glossary.md#json-file) is a plain-text format that almost any
@@ -299,10 +309,10 @@ leave, and one thing asks you first.
 
 ### Never included
 
-- **A choreographer's email, location, and deceased mark.** These are marked
+- **An author's email, location, and deceased mark.** These are marked
   private in the editor and are removed from anything you share — see
   [Write & edit dances](./authoring.md#author-and-source-details-are-shared). The
-  choreographer's name, website, and notes do travel.
+  author's name, website, and notes do travel.
 
 - **Your pay, Perform dialect and star ratings.** A program file leaves out the
   program's **Pay** and its **Perform dialect**, and every share file leaves
@@ -373,7 +383,7 @@ They are different tools for different jobs:
 
 | | Share / export | [Backup](./backup-portability.md) |
 |---|---|---|
-| **Covers** | One dance, or one program | Everything: dances, programs, venues, choreographers, dialects, themes, custom fields, and settings |
+| **Covers** | One dance, or one program | Everything: dances, programs, venues, authors, dialects, themes, custom fields, and settings |
 | **Meant for** | Handing to another person | Keeping safe, or moving to your own new device |
 | **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out | Complete — it is your own data, unredacted |
 | **Where** | The **Export** menu on a dance or program | **Settings › General › Export a backup** |

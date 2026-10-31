@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A figure line that states an amount the app cannot read, such as \"Circle Left 3/4, make short waves\", now stays as your text instead of becoming a figure with a different amount (it used to save circle left 4 places).",
+      "A figure line that states an amount the app cannot read, such as \"Circle Left 3/4, form ring\", now stays as your text instead of becoming a figure with a different amount (\"Circle Left 3/4, make short waves\" used to save circle left 4 places).",
       "\"Larks allemande Left 1.5 (face P)\" and similar lines with words after the amount now keep the amount you wrote instead of \"once\".",
       "\"Neighbor 2 Do-si-do\" now reads as a do-si-do with your next neighbor, not a do-si-do twice, and \"Neighbor 1 allemande Left 3/4\" turns ¾, not 1¾.",
       "\"Pass through along (NR) (optional)\" keeps the right shoulder alongside the note \"optional\"."

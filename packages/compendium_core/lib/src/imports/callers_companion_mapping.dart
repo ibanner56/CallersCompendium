@@ -14,11 +14,13 @@ import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
 import 'author_tokenizer.dart';
 import 'beat_implied_balance.dart';
+import 'callers_companion_comma_split.dart';
 import 'callers_companion_user_fields.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'structured_draft.dart';
+import 'title_article.dart';
 
 /// The reusable Caller's Companion (CC) → Compendium mapping layer.
 ///
@@ -344,7 +346,8 @@ CcDanceMapping mapCallersCompanionDance(
 
   // Title — placeholder + warning when absent (never throw). Sanitized
   // single-line so control/bidi/format spoofing chars never reach storage
-  // (issue #444).
+  // (issue #444). CC files titles library-style ("Baby Rose, The"); the
+  // article goes back to the front (#1976).
   final rawName = _sanitizeLine(record.name) ?? '';
   final String title;
   if (rawName.isEmpty) {
@@ -353,13 +356,14 @@ CcDanceMapping mapCallersCompanionDance(
       const ImportIssue(
         severity: ImportIssueSeverity.warning,
         code: 'cc_missing_title',
+        // Both the pasted text and a `.USR` row reach here (#1976).
         message:
-            'The pasted dance had no title; imported as '
+            'The dance had no title; imported as '
             '"$ccUntitledDanceTitle". Edit it before committing.',
       ),
     );
   } else {
-    title = rawName;
+    title = frontTrailingArticle(rawName);
   }
 
   // Authors — collected as display names for the pipeline to resolve to
@@ -369,7 +373,9 @@ CcDanceMapping mapCallersCompanionDance(
   // ONE shared canonical splitter (#685) so a combined "Alice and Bob" string
   // and a pre-split ["Alice", "Bob"] array both normalize identically. Never
   // fabricates ids; blank/duplicate names are dropped.
-  final authorNames = splitAuthorNames(record.authors, issues: issues);
+  // "And Others" credits nobody: it becomes a note, not an author (#1976).
+  final (:fields, :hadOthers) = peelUnnamedOthers(record.authors);
+  final authorNames = splitAuthorNames(fields, issues: issues);
 
   // Level → shipped difficulty-level id (+ mixedLevel), best-effort.
   final (
@@ -423,8 +429,9 @@ CcDanceMapping mapCallersCompanionDance(
   issues.addAll(userFieldPlan.issues);
 
   // Notes: the caller's own calling notes, Music, an unmapped-type note, any
-  // extra source notes, the other notes, and last the non-link source, as the
-  // Caller's Box and ContraDB importers end with "Imported from …" (#1974).
+  // extra source notes, the other notes, an "and others" credit (#1976), and
+  // last the non-link source, as the Caller's Box and ContraDB importers end
+  // with "Imported from …" (#1974).
   final notes = _joinNotes([
     if ((record.callingNotes ?? '').trim().isNotEmpty)
       record.callingNotes!.trim(),
@@ -436,6 +443,10 @@ CcDanceMapping mapCallersCompanionDance(
     if ((record.notes ?? '').trim().isNotEmpty) record.notes!.trim(),
     if ((record.otherNotes ?? '').trim().isNotEmpty)
       'Other notes: ${record.otherNotes!.trim()}',
+    if (hadOthers)
+      authorNames.isEmpty
+          ? 'Choreography: others, not named'
+          : 'Choreography: ${authorNames.join(', ')} and others',
     if ((record.from ?? '').trim().isNotEmpty) 'Source: ${record.from!.trim()}',
   ]);
 
@@ -484,8 +495,10 @@ CcDanceMapping mapCallersCompanionDance(
   // (nothing to store). The fan-out applies the core `scrubFigureText`
   // chokepoint internally, and the TCB attempt `;`-splits a compound line into
   // multiple figures. A line the fan-out misses gets one more attempt from
-  // [_retryHyphenatedHand]. Section labels are NOT embedded in the figure text
-  // (they derive from cumulative beats), so the section label is not prefixed.
+  // [_retryHyphenatedHand], and then may split at its commas
+  // ([splitCallersCompanionCommaLine]). Section labels are NOT embedded in the
+  // figure text (they derive from cumulative beats), so the section label is
+  // not prefixed.
   final figures = <Figure>[];
   for (final section in record.body) {
     for (final rawLine in section.lines) {
@@ -500,9 +513,21 @@ CcDanceMapping mapCallersCompanionDance(
       final first = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
       final produced =
           _retryHyphenatedHand(prefix.text, prefix.beats, first) ?? first;
+      // A line that names several figures separated by commas is split only
+      // when it did not read whole, or read with a note holding its last piece
+      // (#1975); the split shares out the beats itself.
+      final split =
+          produced.any((f) => f.isCustom) ||
+              noteSwallowsPieces(prefix.text, produced)
+          ? splitCallersCompanionCommaLine(
+              prefix.text,
+              beats: prefix.beats,
+              parts: prefix.parts,
+            )
+          : null;
       final allocated = withBeatImpliedBalance(
         prefix.text,
-        _allocateCompoundBeats(produced, prefix.parts),
+        split ?? _allocateCompoundBeats(produced, prefix.parts),
       );
       lineCache?.remember(line, allocated);
       figures.addAll(allocated);

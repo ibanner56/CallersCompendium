@@ -64,6 +64,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'File';
+
+  @override
+  String get menuNewDance => 'New Dance';
+
+  @override
+  String get menuImportDances => 'Import Dances…';
+
+  @override
+  String get menuClose => 'Close';
+
+  @override
+  String get menuSettings => 'Settings…';
+
+  @override
+  String get menuView => 'View';
+
+  @override
+  String get menuWindow => 'Window';
+
+  @override
+  String get menuHelp => 'Help';
+
+  @override
+  String get menuUserGuide => 'User Guide';
+
+  @override
   String get appBootstrapPreparing => 'Preparing your collection';
 
   @override
@@ -237,6 +264,40 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String confirmDeleteBody(String itemLabel) {
     return '“$itemLabel” will be deleted. You can undo this.';
+  }
+
+  @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances will be deleted. You can undo this.',
+      one: '1 dance will be deleted. You can undo this.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dances will be deleted, $notShown of them hidden by your search. You can undo this.',
+      one: '1 dance will be deleted. Your search hides it. You can undo this.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances will lose this program from their calling history.',
+      one: '1 dance will lose this program from its calling history.',
+    );
+    return '“$itemLabel” will be deleted. $_temp0 You can undo this.';
   }
 
   @override
@@ -729,8 +790,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count choreographers',
-      one: '1 choreographer',
+      other: '$count authors',
+      one: '1 author',
     );
     return '$_temp0';
   }
@@ -2351,7 +2412,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.';
+      'Tint each dance row by its formation family (contra, mixer, square, …) — unless you have given that formation its own colour, which wins. Dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -2359,7 +2420,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.';
+      'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, the Perform header, and set-list rows.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Selected';
@@ -2570,6 +2631,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'Tunes';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'Hook';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Sources';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collection filters';
 
   @override
@@ -2598,7 +2665,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.';
+      'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is turned into figures; anything the app can\'t read is kept as an unrecognized figure you can fix later. New dances start with no figures unless you have saved starting figures.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -2694,7 +2761,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.';
+      'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header, and to colour its set-list rows (mixers keep the mixer colour). Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formations';
@@ -2721,29 +2788,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.';
 
   @override
-  String get settingsTagColoursTitle => 'Tag colours';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
   String get settingsTagColoursEmpty =>
       'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.';
-
-  @override
-  String get settingsTagColoursCustom => 'Custom colour';
-
-  @override
-  String get settingsTagColoursNoColour => 'No colour';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Remove $label\'s colour';
-  }
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2751,6 +2797,202 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsTagColoursLoadError => 'Couldn\'t load your tags.';
+
+  @override
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Search tags';
+
+  @override
+  String get tagManagerNameLabel => 'Tag name';
+
+  @override
+  String get tagManagerColour => 'Colour…';
+
+  @override
+  String get tagManagerRemoveColour => 'Remove colour';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted “$name” from $count dances',
+      one: 'Deleted “$name” from 1 dance',
+      zero: 'Deleted “$name”',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return 'Renamed “$from” to “$to”';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return 'Merged “$from” into “$into”';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return 'Combined $count tags into “$into”';
+  }
+
+  @override
+  String get authorManagerTitle => 'Authors';
+
+  @override
+  String get authorManagerSearchHint => 'Search authors';
+
+  @override
+  String get authorManagerNameLabel => 'Author name';
+
+  @override
+  String get authorManagerEmpty =>
+      'No authors yet. Authors you credit on a dance appear here.';
+
+  @override
+  String get authorManagerLoadError => 'Couldn\'t load your authors.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return 'Combined $count authors into “$into”';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Sources';
+
+  @override
+  String get sourceManagerSearchHint => 'Search sources';
+
+  @override
+  String get sourceManagerTitleLabel => 'Source title';
+
+  @override
+  String get sourceManagerEmpty =>
+      'No sources yet. Books and websites you cite on a dance appear here.';
+
+  @override
+  String get sourceManagerLoadError => 'Couldn\'t load your sources.';
+
+  @override
+  String get libraryManagerClearSearch => 'Clear search';
+
+  @override
+  String get libraryManagerNotUsed => 'Not used';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sort';
+
+  @override
+  String get libraryManagerSortByName => 'Name';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Number of dances';
+
+  @override
+  String get libraryManagerNoMatches => 'Nothing matches your search.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances',
+      one: '1 dance',
+      zero: 'Not used',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Actions for $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Rename';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return 'Rename “$name”';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Merge into…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return 'Merge “$name” into…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Name already in use';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '“$existing” already exists. Merge “$from” into it?';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '“$existing” already exists. Merge “$from” into it and call it “$name”?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'More than one entry is already called “$name”. Choose the one to merge “$from” into; the others are merged into it too.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Merge';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Couldn’t undo: “$name” is now used by another entry.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Couldn’t save that change. Please try again.';
+
+  @override
+  String get libraryManagerEditDetails => 'Edit details…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return 'Renamed “$from” to “$to”';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return 'Merged “$from” into “$into”';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return 'Deleted “$name”';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return 'Merge “$from” into “$into”?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'These details differ. The merged entry keeps its own, and these are dropped:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Library';
@@ -2985,6 +3227,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, each dance in a program’s view has a toggle to mark it performed or not, without opening the editor. When off, rows only show whether a dance was performed.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Mark all performed sets the status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'When on, Mark all performed also sets the program status to Performed, and Undo puts both back. When off, the status stays as it was.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Require an event date for calling history';
 
@@ -3028,6 +3278,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.';
 
   @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Rename, merge, colour and delete your tags.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Authors';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Rename, merge and delete authors, and edit their details.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Sources';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Rename, merge and delete sources, and edit their details.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Accessibility';
 
   @override
@@ -3060,11 +3331,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.';
 
   @override
-  String get settingsGeneralDeletedItemsHeader => 'Deleted items';
+  String get settingsGeneralDeletedItemsHeader => 'Recently deleted';
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Keep deleted items for';
+      'Keep recently deleted items for';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
@@ -3109,7 +3380,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'That sync decision could not be applied. The item was kept for another attempt.';
 
   @override
-  String get syncReviewKindChoreographer => 'Choreographer';
+  String get syncReviewKindChoreographer => 'Author';
 
   @override
   String get syncReviewKindTag => 'Tag';
@@ -3169,8 +3440,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Another device renamed this record to a name a different record here already uses.';
 
   @override
-  String get syncReviewMergeDiscardsContactsTitle =>
-      'Merge these choreographers?';
+  String get syncReviewMergeDiscardsContactsTitle => 'Merge these authors?';
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
@@ -3234,11 +3504,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresTitle =>
-      'Re-check custom figures';
+      'Re-check unrecognized figures';
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Re-check imported dances whose figures were kept as custom only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.';
+      'Re-check imported dances whose figures were kept as unrecognized figures only because they could not be recognised at import time. If the app can now recognise them, they are upgraded in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Re-check…';
@@ -3691,14 +3961,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importGapMessage =>
-      'Couldn\'t recognize this call — kept exactly as written as a custom figure.';
+      'Couldn\'t recognize this call — kept exactly as written as an unrecognized figure.';
 
   @override
   String get importGapDialogTitle => 'Unrecognized figure';
 
   @override
   String get importGapSemanticLabel =>
-      'Unrecognized figure. Kept exactly as written as a custom figure.';
+      'Unrecognized figure. Kept exactly as written.';
 
   @override
   String get collectionScreenTitle => 'Collection';
@@ -3777,6 +4047,21 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 dance',
     );
     return '$label, $_temp0';
+  }
+
+  @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances',
+      one: '1 dance',
+    );
+    return '$label, $_temp0, $selected selected';
   }
 
   @override
@@ -3960,6 +4245,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionSetRating => 'Set rating';
 
   @override
+  String get collectionSetStatus => 'Set status';
+
+  @override
   String get collectionAddTunes => 'Add tunes';
 
   @override
@@ -3986,6 +4274,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: 'Cleared rating on $count dances',
       one: 'Cleared rating on 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Set status on $count dances',
+      one: 'Set status on 1 dance',
     );
     return '$_temp0';
   }
@@ -4030,6 +4329,28 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: 'Cleared field on $count dances',
       one: 'Cleared field on 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted $count dances',
+      one: 'Deleted 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted $count dances. Restore them from Recently deleted.',
+      one: 'Deleted 1 dance. Restore it from Recently deleted.',
     );
     return '$_temp0';
   }
@@ -4442,6 +4763,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionBatchRatingConfirm => 'Set';
 
   @override
+  String get collectionBatchStatusConfirm => 'Set';
+
+  @override
   String get collectionBatchTunesFieldLabel => 'Add a tune';
 
   @override
@@ -4762,6 +5086,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsAddAgain => 'Add again';
 
   @override
+  String get programsAddToProgramSearchHint => 'Search programs';
+
+  @override
+  String get programsAddToProgramSearchClear => 'Clear search';
+
+  @override
+  String get programsAddToProgramNoMatches => 'No programs match your search.';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return 'Performed ($count)';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return 'Added \"$danceTitle\" to $programTitle.';
   }
@@ -4820,6 +5158,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get programsMarkedAllPerformedExceptAlternates =>
       'Marked all dances performed except alternates. Mark an alternate yourself if you called it.';
+
+  @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Marked all dances performed and set the status to Performed.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Marked all dances performed except alternates, and set the status to Performed. Mark an alternate yourself if you called it.';
 
   @override
   String programsSavedSnack(String title) {
@@ -4918,7 +5264,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsAddDanceButton => 'Add dance';
 
   @override
-  String get programsAddNoteBreakButton => 'Add note / waltz';
+  String get programsAddNoteBreakButton => 'Add note or break';
 
   @override
   String get programsInsertBreakButton => 'Insert break';
@@ -5011,6 +5357,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Saving a change to Performed marks every unmarked dance performed, except alternates. Changing the status back keeps the marks.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Saving a change to Performed marks every unmarked dance performed, except alternates, and Mark all performed sets this status. Changing the status back keeps the marks.';
 
   @override
   String get programsHideAlternatesTitle => 'Hide alternates in set list';
@@ -5563,18 +5917,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get performTitle => 'Perform';
 
   @override
-  String get performExitTooltip => 'Exit performance view';
+  String get performExitTooltip => 'Exit Perform mode';
 
   @override
   String get performExitTitle => 'Exit Perform?';
 
   @override
   String get performExitBody =>
-      'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.';
+      'Leave Perform mode? Your place and the running clock are kept, so you can resume where you left off.';
 
   @override
   String get performDanceExitBody =>
-      'Leave the performance view? Performing a single dance doesn\'t keep your place, so the next time starts fresh.';
+      'Leave Perform mode? Performing a single dance doesn\'t keep your place, so the next time starts fresh.';
 
   @override
   String get performExitCancel => 'Keep performing';
@@ -5844,6 +6198,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get performShowWalkthrough => 'Show walkthrough';
 
   @override
+  String get performFullScreen => 'Full screen';
+
+  @override
   String get performWalkthroughEmpty => 'No walkthrough for this dance.';
 
   @override
@@ -6079,6 +6436,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportLabelTunes => 'Tunes';
 
   @override
+  String get exportLabelHook => 'Hook';
+
+  @override
+  String get exportLabelSources => 'Sources';
+
+  @override
   String exportSlotAuthorSuffix(String names) {
     return 'by $names';
   }
@@ -6311,7 +6674,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.';
+    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.';
   }
 
   @override
@@ -6338,7 +6701,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'The dance you choose will be replaced by the online record — including its title, figures, notes, tags, and rating. It keeps your custom fields, its place in your programs, and its calling history.';
+      'The dance you choose will be replaced by the online record — including its title, figures, notes, and tags. It keeps your rating, custom fields, its place in your programs, and its calling history.';
 
   @override
   String get importFigurelessCannotReplace =>
@@ -7245,11 +7608,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importIssueMoveFallback =>
-      'A figure couldn\'t be matched to a known move; imported as custom.';
+      'A figure couldn\'t be matched to a known move; imported as an unrecognized figure.';
 
   @override
   String importIssueMoveFallbackAt(int position) {
-    return 'Figure $position couldn\'t be matched to a known move; imported as custom.';
+    return 'Figure $position couldn\'t be matched to a known move; imported as an unrecognized figure.';
   }
 
   @override
@@ -7293,7 +7656,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importRecordErrorNotCompendiumArchive =>
-      'This isn\'t a Caller\'s Compendium file. Choose a .json exported from this app.';
+      'This isn\'t a share file. Choose a .json or .ccshare file exported from this app.';
 
   @override
   String get importRecordErrorNotCallersBoxDance =>
@@ -7413,7 +7776,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importReviewCustom => 'Custom';
+  String get importReviewCustom => 'Unrecognized';
 
   @override
   String get importReviewOptionNewDance => 'New dance';
@@ -7747,11 +8110,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; unmatched text becomes a custom figure.';
+      'Type a move (e.g. \"sw\" → swing) and press Enter to add it with its default values; text the app can\'t read becomes an unrecognized figure.';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
-      'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Anything unrecognized becomes a custom figure.';
+      'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Any text the app can\'t read becomes an unrecognized figure.';
 
   @override
   String get danceEditorNotesSection => 'Notes';
@@ -8168,12 +8531,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
-    return 'A choreographer named \"$name\" already exists. The name wasn\'t changed.';
+    return 'An author named \"$name\" already exists. The name wasn\'t changed.';
   }
 
   @override
   String danceEditorChoreographerCreateDuplicate(String name) {
-    return 'A choreographer named \"$name\" already exists. The new author wasn\'t created — pick the existing one instead.';
+    return 'An author named \"$name\" already exists. The new author wasn\'t created — pick the existing one instead.';
   }
 
   @override
@@ -8230,6 +8593,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorRedoLabel => 'Redo';
 
   @override
+  String get editorDraftNotSaved =>
+      'Draft not saved — your latest changes are not being kept yet';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Undo (⌘Z)',
@@ -8254,7 +8621,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorLoadError => 'Could not load the dance.';
 
   @override
-  String get danceEditorChoreographerDetailsTitle => 'Choreographer details';
+  String get danceEditorChoreographerDetailsTitle => 'Author details';
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
@@ -8421,7 +8788,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorTypeFigureHelper =>
-      'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as a custom figure.';
+      'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; text the app can\'t read is kept as an unrecognized figure.';
 
   @override
   String get danceEditorPasteHere => 'Paste here';
@@ -8430,7 +8797,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorEmptyFigureName => 'Empty figure';
 
   @override
-  String get danceEditorCustomFigureName => 'Custom figure';
+  String get danceEditorCustomFigureName => 'Unrecognized figure';
 
   @override
   String get danceEditorEmptyFigureSummary => '(empty — choose a move)';
@@ -8771,7 +9138,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorUnderlineTooltip => 'Underline (_text_)';
 
   @override
-  String get danceEditorCustomFigureTextLabel => 'Custom figure text';
+  String get danceEditorCustomFigureTextLabel => 'Unrecognized figure text';
 
   @override
   String get danceEditorLingoStylingHelper =>
@@ -9469,7 +9836,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeEditorSwatchError => 'Error';
 
   @override
-  String get reparseConfirmTitle => 'Upgrade custom figures?';
+  String get reparseConfirmTitle => 'Upgrade unrecognized figures?';
 
   @override
   String reparseConfirmBody(int figureCount, int danceCount) {
@@ -9505,11 +9872,11 @@ class AppLocalizationsEn extends AppLocalizations {
       other: '$danceCount dances',
       one: '1 dance',
     );
-    return 'Upgraded custom figures in $_temp0.';
+    return 'Upgraded unrecognized figures in $_temp0.';
   }
 
   @override
-  String get reparseScreenTitle => 'Re-check custom figures';
+  String get reparseScreenTitle => 'Re-check unrecognized figures';
 
   @override
   String reparseIntro(int figureCount, int danceCount) {
@@ -9555,7 +9922,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.';
+      'None of your unrecognized figures from imports can be recognised as a known move right now. Check back after a future update improves figure recognition.';
 
   @override
   String get reparseErrorTitle => 'Could not check your figures';
@@ -9824,11 +10191,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sample figures rendered with this dialect. Updates as you edit.';
 
   @override
-  String get recentlyDeletedTitle => 'Recently Deleted';
+  String get recentlyDeletedTitle => 'Recently deleted';
 
   @override
   String get recentlyDeletedLoadError =>
-      'Couldn’t load your deleted items. Nothing has been removed.';
+      'Couldn’t load your recently deleted items. Nothing has been removed.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Delete permanently?';
@@ -9880,23 +10247,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recentlyDeletedEmptyDancesKept =>
-      'Nothing in the trash. Deleted dances are kept here until you remove them.';
+      'No recently deleted dances. Deleted dances are kept here until you remove them.';
 
   @override
   String get recentlyDeletedEmptyTitle => 'Nothing deleted';
 
   @override
   String recentlyDeletedEmptyDancesRetention(int days) {
-    return 'Nothing in the trash. Deleted dances appear here for $days days before being removed.';
+    return 'No recently deleted dances. Deleted dances appear here for $days days before being removed.';
   }
 
   @override
   String get recentlyDeletedEmptyProgramsKept =>
-      'Nothing in the trash. Deleted programs are kept here until you remove them.';
+      'No recently deleted programs. Deleted programs are kept here until you remove them.';
 
   @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
-    return 'Nothing in the trash. Deleted programs appear here for $days days before being removed.';
+    return 'No recently deleted programs. Deleted programs appear here for $days days before being removed.';
   }
 
   @override
@@ -9933,6 +10300,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get venueManagerNoMatches => 'No venues match your search.';
+
+  @override
+  String get venueLinkOfferTitle => 'Link earlier programs?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Some programs have a venue typed in as text that matches a venue record. Linking them makes calling history count them as one venue. The typed text is kept.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs',
+      one: '1 program',
+    );
+    return '“$name”: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Link';
+
+  @override
+  String get venueLinkOfferDecline => 'Not now';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Linked $count programs.',
+      one: 'Linked 1 program.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get venueManagerDeleteTitle => 'Delete venue?';
@@ -10681,8 +11083,9 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count dances in the Trash use it, and keep the lines they last stored.',
-      one: '1 dance in the Trash uses it, and keeps the line it last stored.',
+          '$count dances in Recently deleted use it, and keep the lines they last stored.',
+      one:
+          '1 dance in Recently deleted uses it, and keeps the line it last stored.',
     );
     return '$_temp0';
   }

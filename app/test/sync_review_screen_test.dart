@@ -490,7 +490,7 @@ void main() {
     // §6.6 forbids coalescing at step 1, so the losing row's email, location
     // and deceased marker are lost and no peer can return them. Cancelling
     // must leave both rows exactly as they were.
-    expect(find.text('Merge these choreographers?'), findsOneWidget);
+    expect(find.text('Merge these authors?'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(await repos.choreographers.getById('zzz-author'), isNotNull);

@@ -1,0 +1,14 @@
+{
+  "id": "program-delete-warns-history",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "With Confirm before delete on, deleting a program now says how many dances lose it from their calling history, for example \"3 dances will lose this program from their calling history\". The count follows your calling-history settings. The prompt is still opt-in, and swiping a row in the programs list still deletes without it."
+    ]
+  },
+  "core": {
+    "added": [
+      "`ProgramRepository.danceCountLosingHistory` counts the distinct dances whose calling history lists a program, under the same performed-only, event-date and caller settings as `callingHistoryForDance`."
+    ]
+  }
+}

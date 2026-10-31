@@ -39,6 +39,7 @@ import 'display_defaults.dart'
         tryDecodeStartingProgramTemplate;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
+import 'mark_all_sets_status_scope.dart' show kMarkAllSetsStatusKey;
 import 'reduce_motion_scope.dart' show kReduceMotionKey;
 import 'perform_text_scale.dart' show kPerformMinScale;
 import 'regional_formats.dart'
@@ -107,6 +108,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,
+    kMarkAllSetsStatusKey,
     kUpdateAutoCheckKey,
     kUpdateBetaChannelKey,
     kMatrixExactBeatCollisionKey,

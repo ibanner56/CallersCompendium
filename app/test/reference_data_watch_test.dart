@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
-import 'package:compendium_app/src/screens/tag_colors_screen.dart';
+import 'package:compendium_app/src/screens/tag_manager_screen.dart';
 import 'package:compendium_app/src/screens/venue_manager_screen.dart';
 import 'package:compendium_app/src/widgets/tag_chip.dart';
 import 'package:compendium_app/src/widgets/venue_picker.dart';
@@ -92,7 +92,7 @@ void main() {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
-    await pump(tester, repos, const TagColorsScreen());
+    await pump(tester, repos, const TagManagerScreen());
     expect(find.text('smooth'), findsOneWidget);
 
     // ignore: unused_result
@@ -113,7 +113,7 @@ void main() {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
-    await pump(tester, repos, const TagColorsScreen());
+    await pump(tester, repos, const TagManagerScreen());
 
     // Read the colour off the rendered `TagChip` — the same widget the
     // Collection and dance detail draw — rather than off something private to

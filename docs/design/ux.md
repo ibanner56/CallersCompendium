@@ -21,8 +21,25 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - **Phones/tablets**: bottom navigation (Collection, Programs, Glossary when
   turned on, Settings, Guide);
   Perform is a mode, not a tab — entered explicitly, exits back to context.
-- **Desktop**: left nav rail; list/detail split panes; full keyboard map,
-  global search shortcut (Ctrl/Cmd-K).
+- **Desktop**: left nav rail; list/detail split panes; global search shortcut
+  (Ctrl/Cmd-K); and a desktop keyboard map (PLAT-7), bound to Control and
+  Command alike (in a macOS text field Ctrl-F and Ctrl-N keep moving the
+  cursor): Ctrl/Cmd-S saves the open dance or program editor,
+  Ctrl/Cmd-N opens a new dance, Ctrl/Cmd-F focuses the Collection's search box
+  (global search anywhere else), Ctrl/Cmd-, opens Settings, and Esc or
+  Ctrl/Cmd-W goes back. A mouse's Back button goes back too, and a right-click
+  on a Collection or Programs row opens that row's ⋮ menu. "Back" closes
+  whatever a tap outside would close first (a menu, a sheet, a text field's
+  toolbar or an autocomplete's options), then leaves the page as system back
+  does, so an editor with unsaved changes asks first. New dance, Settings and
+  the macOS menu bar's Import and Guide leave pushed pages first through each
+  page's own back guard, stop at one that would ask (and ask it), and do
+  nothing while a dialog is open or while performing. On macOS a small menu bar (PLAT-8) runs the same commands:
+  Settings…, File (New Dance, Import Dances…, Close), View (the system's full
+  screen item), Window and Help (User Guide). It replaces the template menu
+  whole, so there is no Edit menu; text editing keys and the selection
+  right-click menu still work. The binding table is
+  `app/lib/src/widgets/app_shortcuts.dart`.
 - Responsive breakpoints: single pane (phone) / list+detail (tablet landscape,
   desktop) — same screens, adaptive layout, no separate "mobile app".
 
@@ -57,12 +74,17 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   detail page's tag chip selects one) stays visible until it is cleared, so no
   control-less filter can narrow the list. When every available section is
   hidden the panel says so rather than reporting an empty collection.
-- Actions: new dance, import, duplicate, batch tag (with Select all over the
+- Actions: new dance, import, duplicate, batch tag, level, rating, status, tunes, custom field and delete (with Select all over the
   current results; picks a search hides stay selected and are counted as "not
-  shown", N4). Each row's ⋮ menu also
+  shown", N4). Group by category stays on while selecting; each section
+  header carries a tri-state checkbox for its shown rows, as one semantics node
+  with checked/mixed state and a tap action (N4-S2). Each row's ⋮ menu also
   offers Duplicate, Add to program, Add tags (one dance, same picker and Undo
   as batch tag) and Delete (#1416). Add to program opens a sheet whose pinned
-  first row creates a new program with the dance; a program already holding the
+  first row creates a new program with the dance. Its list shows open programs
+  first (soonest event, then last edit), a status on each row, Performed ones
+  collapsed under "Performed (N)", and a search over title and venue above eight
+  programs (N3-A2). A program already holding the
   dance, as a main slot or an alternate, is marked "In this program" and asks
   before adding it again (N3-A1; `docs/design/add-to-program-sheet.md`).
 
@@ -74,7 +96,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   container (#590/#594) renders its concurrent sides joined by "while" on one
   row with a single shared beat count — never split, never double-counted.
 - Side panel/tabs: calling notes, links (source/video/related), calling
-  history (from performed programs), custom fields.
+  history (from every program the dance is in by default; only from programs
+  with the slot marked performed when *Require "mark performed"* is on, and an
+  alternate counts only once marked performed either way), custom fields.
 - Actions: edit, duplicate, add-to-program (same sheet and marker as the
   Collection row menu), print/share, Perform this dance.
 - Text selection (desktop only, N5-S1; `docs/design/selectable-text.md`): on
@@ -201,8 +225,19 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   `meanwhile` container (#590/#594) shows both concurrent sides on one card
   row joined by "while", on their single shared beat span; the screen-reader
   announcement reads the pair as one continuous "A while B" phrase.
-- Navigation: giant next/prev hit zones at screen edges (44pt+), swipe,
-  arrow keys/page keys, jump-to-slot overview. ALT dances one tap to swap.
+- Full screen (PLAT-9): phones and tablets go immersive for the whole view.
+  Desktop offers a toolbar toggle plus F11 (Ctrl-Cmd-F on macOS); Esc leaves
+  full screen but never Perform. Ctrl/Cmd-W and mouse Back reach Perform's
+  exit confirmation, as system back does, and the app-wide shortcuts
+  (Ctrl/Cmd-K, -N, -F, -,) do nothing while performing. Exit restores the window's entry state, and no
+  window frame is persisted while the window is full screen.
+- Navigation: giant next/prev hit zones at screen edges (44pt+), on-screen
+  prev/next buttons, arrow keys/page keys, jump-to-slot overview. There is no
+  swipe (horizontal drag) navigation: a swipe does not change slot. ALT dances
+  one tap to swap.
+  ↓/Page Down scroll an overflowing card to its end before advancing, and
+  ↑/Page Up scroll to its top before going back; ←/→ always change slot, and a
+  new slot opens at its top (PLAT-10).
 - Zero destructive actions reachable; exit via deliberate gesture/button with
   confirm. Optional: per-slot timer/clock display.
 - On-the-fly: reorder remaining slots, insert from quick-search, add ad-hoc

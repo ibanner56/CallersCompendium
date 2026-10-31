@@ -577,6 +577,156 @@ void main() {
     expect(find.text('Second Dance'), findsOneWidget);
   });
 
+  group('vertical keys read a long card before changing slot (PLAT-10)', () {
+    Dance longDance(String id, String title) => Dance(
+      id: id,
+      title: title,
+      figures: [
+        for (var i = 0; i < 40; i++)
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 8}),
+      ],
+      status: DanceStatus.active,
+      createdAt: _now,
+      updatedAt: _now,
+    );
+
+    ScrollPosition cardScroll(WidgetTester tester) => tester
+        .state<ScrollableState>(
+          find.descendant(
+            of: find.byType(PerformCard),
+            matching: find.byType(Scrollable),
+          ),
+        )
+        .position;
+
+    String position(WidgetTester tester) => _textOf(tester, 'perform-position');
+
+    Future<void> pumpLong(WidgetTester tester) async {
+      final data = await _dataWith([
+        longDance('d1', 'First Dance'),
+        longDance('d2', 'Second Dance'),
+      ]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        surfaceSize: const Size(1000, 800),
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+          _slot(id: 's2', position: 1, danceId: 'd2'),
+        ]),
+      );
+    }
+
+    for (final key in [
+      LogicalKeyboardKey.arrowDown,
+      LogicalKeyboardKey.pageDown,
+    ]) {
+      testWidgets('${key.keyLabel} scrolls to the end, then moves on', (
+        tester,
+      ) async {
+        await pumpLong(tester);
+        final start = position(tester);
+        expect(cardScroll(tester).maxScrollExtent, greaterThan(0));
+
+        var presses = 0;
+        while (cardScroll(tester).pixels < cardScroll(tester).maxScrollExtent) {
+          final before = cardScroll(tester).pixels;
+          await tester.sendKeyEvent(key);
+          await tester.pumpAndSettle();
+          expect(position(tester), start, reason: 'still reading slot 1');
+          expect(cardScroll(tester).pixels, greaterThan(before));
+          expect(++presses, lessThan(50));
+        }
+
+        // The end is showing: the next press turns the page, and the new slot
+        // opens at its top.
+        await tester.sendKeyEvent(key);
+        await tester.pumpAndSettle();
+        expect(position(tester), isNot(start));
+        expect(find.text('Second Dance'), findsOneWidget);
+        expect(cardScroll(tester).pixels, 0);
+      });
+    }
+
+    testWidgets('auto-size: a card too long to fit still scrolls first', (
+      tester,
+    ) async {
+      final huge = Dance(
+        id: 'd1',
+        title: 'First Dance',
+        figures: [
+          for (var i = 0; i < 200; i++)
+            Figure(move: 'chain', params: {'who': 'role2s', 'beats': 8}),
+        ],
+        status: DanceStatus.active,
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final data = await _dataWith([huge, _dance(id: 'd2', title: 'Second')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        autoSize: true,
+        surfaceSize: const Size(1000, 800),
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+          _slot(id: 's2', position: 1, danceId: 'd2'),
+        ]),
+      );
+      final start = position(tester);
+      expect(cardScroll(tester).maxScrollExtent, greaterThan(0));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(position(tester), start);
+      expect(cardScroll(tester).pixels, greaterThan(0));
+    });
+
+    testWidgets('Up scrolls back to the top before going back', (tester) async {
+      await pumpLong(tester);
+      final first = position(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      final second = position(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+      await tester.pumpAndSettle();
+      expect(cardScroll(tester).pixels, greaterThan(0));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+      expect(position(tester), second);
+      expect(cardScroll(tester).pixels, 0);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+      await tester.pumpAndSettle();
+      expect(position(tester), first);
+      expect(cardScroll(tester).pixels, 0);
+    });
+
+    testWidgets('Left and Right change slot however far the card scrolled', (
+      tester,
+    ) async {
+      await pumpLong(tester);
+      final first = position(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(cardScroll(tester).pixels, greaterThan(0));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(position(tester), isNot(first));
+      expect(cardScroll(tester).pixels, 0);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+      expect(position(tester), first);
+      expect(cardScroll(tester).pixels, 0);
+    });
+  });
+
   testWidgets('jump-to-slot jumps to a chosen slot', (tester) async {
     final data = await _dataWith([
       _dance(id: 'd1', title: 'First Dance'),
@@ -1273,7 +1423,7 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final (key, label) in const [
-      ('perform-program-exit', 'Exit performance view'),
+      ('perform-program-exit', 'Exit Perform mode'),
       ('perform-jump', 'Jump to slot'),
       ('perform-alt-swap', 'Show alternate'),
       ('perform-next', 'Next slot'),

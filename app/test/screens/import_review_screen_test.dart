@@ -1367,7 +1367,7 @@ void main() {
       find.text(l10n.importRecordErrorNotCompendiumArchive),
       findsOneWidget,
     );
-    expect(find.textContaining("Caller's Compendium file"), findsOneWidget);
+    expect(find.textContaining("share file"), findsOneWidget);
     // A file source still offers to pick another file.
     expect(find.text(l10n.importReviewTryAnother), findsOneWidget);
   });
@@ -2492,8 +2492,9 @@ void main() {
   group("Caller's Companion .USR import", () {
     // A minimal but structurally real CC `.USR` byte image: two dances
     // (external ids 4/7 → "Simplicity Swing", "Petronella"), one set whose
-    // Location becomes the program title ("Grange Hall"), and a SetItem
-    // referencing an absent dance (99) so a program note is produced.
+    // date and Location become the program title ("2020/03/14 - Grange Hall",
+    // #1976), and a SetItem referencing an absent dance (99) so a program note
+    // is produced.
     // [secondSet] adds a later set ("Second Hall", using dance 4), as a fresher
     // export of the same library would.
     Uint8List ccUsrBytes({
@@ -3201,8 +3202,8 @@ void main() {
       );
       expect(find.text('Created: 2'), findsOneWidget);
       expect(find.text('Programs: 1'), findsOneWidget);
-      // Program name-level confirmation (the Set's Location).
-      expect(find.text('• Grange Hall'), findsOneWidget);
+      // Program name-level confirmation (the Set's date and Location).
+      expect(find.text('• 2020/03/14 - Grange Hall'), findsOneWidget);
       // The SetItem referencing an absent dance (99) produced a note.
       expect(
         find.byKey(const ValueKey('import-program-notes')),
@@ -3217,7 +3218,7 @@ void main() {
       );
       final programs = await repos.programs.listAll();
       expect(programs, hasLength(1));
-      expect(programs.single.title, 'Grange Hall');
+      expect(programs.single.title, '2020/03/14 - Grange Hall');
     });
 
     // INTAKE-1: a re-import row defaults to Skip (#446) and is left out of the
@@ -3311,7 +3312,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final second = (await repos.programs.listAll()).singleWhere(
-        (p) => p.title == 'Second Hall',
+        (p) => p.title == '2020/03/21 - Second Hall',
       );
       expect(second.slots.single.danceId, swing.id);
       expect(await repos.dances.listAll(), hasLength(2));
@@ -3390,7 +3391,7 @@ void main() {
       final programs = await repos.programs.listAll();
       expect(programs, hasLength(1));
       expect(programs.single.id, 'existing-prog');
-      expect(programs.single.title, 'Grange Hall');
+      expect(programs.single.title, '2020/03/14 - Grange Hall');
     });
 
     testWidgets('Undo reverts the imported dances AND programs', (

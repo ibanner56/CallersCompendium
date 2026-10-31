@@ -61,6 +61,14 @@ direction the list opens with, see
   restore, or bring back with **Undo**, is the one you were editing. If you
   cleared the title, it keeps its saved title.
 
+  Deleting a program also takes it out of the
+  [calling history](#track-what-you-have-called) of every dance in it, and
+  restoring it puts it back. With **Confirm before delete** on in
+  [Settings](./settings.md), the prompt says how many dances lose the program
+  from their history, counted under your current calling-history settings. The
+  warning appears only if you turned that setting on, and swiping a row to
+  delete skips the prompt. The Undo message does not repeat the number.
+
 ### Build from a list of titles
 
 Already have your set list written out somewhere — a text file, an email, a note
@@ -174,7 +182,7 @@ picker.*
   [Collection card fields](./settings.md#collection-card-fields). Find a dance
   and add it to the program.
 
-**Add note / waltz** adds a free-text slot, and **Insert break** adds a break.
+**Add note or break** adds a free-text slot (a note, a waltz, an announcement), and **Insert break** adds a break.
 On a narrow screen, **Add dance** opens the collection picker.
 
 To bring in a dance you don't have yet, tap the **Online search** icon at the end of the
@@ -286,7 +294,12 @@ A program carries the details of its event:
 - **Pay**, an amount and currency under **More details**, shown on the
   program's summary but never in the shared program text or PDF;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
-  Programs list;
+  Programs list. Saving a change to **Performed** marks every unmarked dance
+  in the program performed, except alternates, and that writes calling
+  history. Changing the status back later keeps the marks: clear them one by
+  one if you saved Performed by mistake. **Mark all performed** also sets the status
+  to Performed, unless you turn that off (see
+  [Track what you have called](#track-what-you-have-called));
 - **Hide alternates in set list**, which leaves alternates out of the summary,
   the PDF, and exported set lists while the builder still shows every slot; and
 - **Perform dialect**, the [dialect](./dialects.md#give-a-program-its-own-dialect)
@@ -299,7 +312,10 @@ reusable venue records** in [Settings › Program › Venues](./settings.md#venu
 a saved [venue](./glossary.md#venue) record you can reuse across programs, with
 its own address, contacts, and schedule that you edit in one place. A program
 linked to a saved venue shows and exports that record's details; otherwise the
-free-text label is used. Switching modes never loses what you typed.
+free-text label is used. Switching modes never loses what you typed. Older
+programs with a typed venue can be linked to a matching record when you turn
+the setting on or add the venue; see
+[Settings › Program › Venues](./settings.md#venues).
 
 If you often play the same role, set a default caller or band in
 [Settings › Defaults](./settings.md#program-defaults) and new programs will
@@ -525,6 +541,11 @@ calling it: if Hull's Victory is the alternate to Chorus Jig and you call Chorus
 Jig, only Chorus Jig's count goes up. Mark Hull's Victory performed too if you
 called it instead, or as well.
 
+Adding a dance to a program that is already **Performed** does not mark the
+new slot performed, because only the change to Performed stamps the slots. By
+default it still counts as a call; with **Require "mark performed" for calling
+history** on, it counts once you mark that slot.
+
 To mark one slot, tap the circle at the end of its row on a saved program's
 summary (alternates included; tap it again to clear the mark), choose **Mark
 performed** from its **…** menu in the editor, or mark it from
@@ -540,6 +561,14 @@ phone, or wherever the summary pane is narrow, it is in the **More actions** (�
 menu, with **Duplicate** and **Delete**. Mark all performed skips alternates,
 and so does setting a program's status to **Performed**: mark the alternates you
 used yourself.
+
+Mark all performed also sets the program's status to **Performed**, even when
+every dance was already marked, so a finished gig doesn't stay a Draft on the
+Programs list. Its **Undo** puts the marks and the status back together, unless
+you changed the status yourself in the meantime. Clearing a mark later doesn't
+change the status. To keep the status separate, turn off **Mark all performed
+sets the status** in
+[Settings › Program › Calling history](./settings.md#calling-history).
 
 Calling history dates each call by the program's **event date**, however late
 you mark it. Mark Saturday's dances on Monday morning and the history still says
@@ -557,6 +586,11 @@ sort, and the repeated-venues and half summaries.
 
 The same settings section can also limit calling history to programs you called
 yourself, and control the repeated-venues summary.
+
+A program in **Recently deleted** is in no one's history, so deleting a program
+removes it from the history of each dance it holds, and restoring it brings
+those entries back. After the retention window the program is gone for good and
+so is that history.
 
 ## Where to go next
 

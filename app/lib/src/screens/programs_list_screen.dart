@@ -74,6 +74,12 @@ class ProgramsListScreen extends StatefulWidget {
 class _ProgramsListScreenState extends State<ProgramsListScreen> {
   late CompendiumRepositories _repos;
 
+  /// Programs whose ⋮ → Delete is between the tap and the end of the delete.
+  /// The confirm reads the calling-history count before its dialog opens
+  /// (LIFE-6), so reopening the menu and choosing Delete again in that gap
+  /// would stack a second confirmation for the same program.
+  final Set<String> _deletingIds = {};
+
   /// Whether one-time setup has run. **This is a contract between two changes
   /// that arrived from opposite directions, and neither states it alone.**
   ///
@@ -759,14 +765,23 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                       widget.selectedProgramId == program.id,
                   onTap: () => _openProgram(program.id),
                   // Row action menu (⋮): non-swipe access for mouse/keyboard/AT
-                  // users. Delete routes through the identical confirm +
-                  // soft-delete + undo flow as the Dismissible swipe above.
+                  // users. Unlike the Slidable swipe above, which deletes
+                  // without a prompt, this path honours "Confirm before
+                  // delete" (confirmDeleteProgramIfEnabled) before the shared
+                  // soft-delete + undo flow.
                   onDelete: () async {
-                    if (await confirmDeleteIfEnabled(
-                      context,
-                      itemLabel: program.title,
-                    )) {
-                      await _softDelete(program);
+                    if (!_deletingIds.add(program.id)) return;
+                    try {
+                      if (await confirmDeleteProgramIfEnabled(
+                        context,
+                        itemLabel: program.title,
+                        programId: program.id,
+                        repositories: _repos,
+                      )) {
+                        await _softDelete(program);
+                      }
+                    } finally {
+                      _deletingIds.remove(program.id);
                     }
                   },
                   onDuplicate: () => _duplicateFromList(program),

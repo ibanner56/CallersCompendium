@@ -1,0 +1,15 @@
+{
+  "id": "restore-revives-references",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Restoring a dance from Recently deleted brings back its level and any custom field it uses, if you deleted them while the dance was there. Before, the dance came back with its field values hidden, and saving it could fail. Restoring a program brings back its saved venue the same way, instead of leaving it without one.",
+      "Duplicating a program whose saved venue has been deleted works again; before, nothing happened. The copy keeps the program's typed venue, if it has one."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`DanceRepository.restore` revives, in its transaction, the tombstoned difficulty level and custom-field definitions the dance names, and `ProgramRepository.restore` revives the tombstoned venue the program links to. Neither restores, or revives anything for, a permanently deleted record. A new `reviveReferences` parameter (default `true`) turns this off; the archive merge passes `false`, since it overwrites the row straight away, and so does the Caller's Companion import, whose undo would not re-tombstone a revived venue. `ProgramRepository.duplicate` no longer copies a `venueId` that names no live venue (LIFE-4)."
+    ]
+  }
+}

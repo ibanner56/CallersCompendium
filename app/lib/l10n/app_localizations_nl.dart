@@ -66,6 +66,33 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'Archief';
+
+  @override
+  String get menuNewDance => 'Nieuwe dans';
+
+  @override
+  String get menuImportDances => 'Importeer dansen…';
+
+  @override
+  String get menuClose => 'Sluit';
+
+  @override
+  String get menuSettings => 'Instellingen…';
+
+  @override
+  String get menuView => 'Weergave';
+
+  @override
+  String get menuWindow => 'Venster';
+
+  @override
+  String get menuHelp => 'Help';
+
+  @override
+  String get menuUserGuide => 'Gebruikersgids';
+
+  @override
   String get appBootstrapPreparing => 'Je collectie voorbereiden';
 
   @override
@@ -239,6 +266,41 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String confirmDeleteBody(String itemLabel) {
     return '“$itemLabel” wordt verwijderd. Je kunt dit ongedaan maken.';
+  }
+
+  @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen worden verwijderd. Je kunt dit ongedaan maken.',
+      one: '1 dans wordt verwijderd. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen worden verwijderd, waarvan $notShown verborgen door je zoekopdracht. Je kunt dit ongedaan maken.',
+      one:
+          '1 dans wordt verwijderd. Je zoekopdracht verbergt hem. Je kunt dit ongedaan maken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verliezen dit programma uit hun callerhistorie.',
+      one: '1 dans verliest dit programma uit zijn callerhistorie.',
+    );
+    return '“$itemLabel” wordt verwijderd. $_temp0 Je kunt dit ongedaan maken.';
   }
 
   @override
@@ -738,8 +800,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count choreografen',
-      one: '1 choreograaf',
+      other: '$count auteurs',
+      one: '1 auteur',
     );
     return '$_temp0';
   }
@@ -2384,14 +2446,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …) — dansen die als mixer zijn gemarkeerd krijgen altijd de mixerkleur, ongeacht de formatie. De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.';
+      'Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …) — tenzij je die formatie een eigen kleur hebt gegeven; die gaat voor. Dansen die als mixer zijn gemarkeerd krijgen altijd de mixerkleur, ongeacht de formatie. De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.';
 
   @override
   String get settingsAppearanceFormationColoursTitle => 'Formatielabelkleuren';
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Markeer individuele formaties in je eigen kleuren — bijv. Becket (CW) in geel, Becket (CCW) in roze — op danskaarten, dansdetails en de uitvoerheader.';
+      'Markeer individuele formaties in je eigen kleuren — bijv. Becket (CW) in geel, Becket (CCW) in roze — op danskaarten, dansdetails, de uitvoerheader en rijen in de dansvolgorde.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Geselecteerd';
@@ -2604,6 +2666,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'Deuntjes';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'Hook';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Bronnen';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collectiefilters';
 
   @override
@@ -2634,7 +2702,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld, en een regel die je in de beweging van een bestaande figuur typt vervangt die figuur wanneer je op Enter drukt. De regel wordt omgezet in figuren; niet-herkende delen worden bewaard als een aangepaste figuur die je later kunt corrigeren. Nieuwe dansen beginnen zonder figuren, tenzij je startfiguren hebt opgeslagen.';
+      'Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld, en een regel die je in de beweging van een bestaande figuur typt vervangt die figuur wanneer je op Enter drukt. De regel wordt omgezet in figuren; tekst die de app niet kan lezen wordt bewaard als niet-herkende figuur die je later kunt corrigeren. Nieuwe dansen beginnen zonder figuren, tenzij je startfiguren hebt opgeslagen.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -2730,7 +2798,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Geef een formatie een eigen kleur om het label te markeren op danskaarten, dansdetails en de uitvoerheader. Alleen de formaties die je aanpast worden gemarkeerd; de overige tonen hun label zoals gewoonlijk. De formatie wordt ook altijd als tekst weergegeven, zodat labels leesbaar blijven zonder kleur.';
+      'Geef een formatie een eigen kleur om het label te markeren op danskaarten, dansdetails en de uitvoerheader, en om de rijen in de dansvolgorde te kleuren (mixers houden de mixerkleur). Alleen de formaties die je aanpast worden gemarkeerd; de overige tonen hun label zoals gewoonlijk. De formatie wordt ook altijd als tekst weergegeven, zodat labels leesbaar blijven zonder kleur.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formaties';
@@ -2757,29 +2825,8 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geef een tag een eigen kleur zodat die opvalt op danskaarten en in de dansdetails. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
 
   @override
-  String get settingsTagColoursTitle => 'Tagkleuren';
-
-  @override
-  String get settingsTagColoursIntro =>
-      'Geef een tag een eigen kleur zodat die overal opvalt waar hij verschijnt. Alleen de tags die je kleurt veranderen; de rest ziet er precies zo uit als nu. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
-
-  @override
-  String get settingsTagColoursListHeader => 'Tags';
-
-  @override
   String get settingsTagColoursEmpty =>
       'Je hebt nog geen tags aangemaakt. Voeg een tag toe aan een dans en die verschijnt hier.';
-
-  @override
-  String get settingsTagColoursCustom => 'Aangepaste kleur';
-
-  @override
-  String get settingsTagColoursNoColour => 'Geen kleur';
-
-  @override
-  String settingsTagColoursResetTooltip(String label) {
-    return 'Kleur van $label verwijderen';
-  }
 
   @override
   String get settingsTagColoursSaveError =>
@@ -2787,6 +2834,203 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsTagColoursLoadError => 'Kon je tags niet laden.';
+
+  @override
+  String get tagManagerTitle => 'Tags';
+
+  @override
+  String get tagManagerSearchHint => 'Tags zoeken';
+
+  @override
+  String get tagManagerNameLabel => 'Tagnaam';
+
+  @override
+  String get tagManagerColour => 'Kleur…';
+
+  @override
+  String get tagManagerRemoveColour => 'Kleur verwijderen';
+
+  @override
+  String tagManagerDeletedSnack(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '“$name” verwijderd uit $count dansen',
+      one: '“$name” verwijderd uit 1 dans',
+      zero: '“$name” verwijderd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tagManagerRenamedSnack(String from, String to) {
+    return '“$from” hernoemd naar “$to”';
+  }
+
+  @override
+  String tagManagerMergedSnack(String from, String into) {
+    return '“$from” samengevoegd met “$into”';
+  }
+
+  @override
+  String tagManagerMergedSeveralSnack(int count, String into) {
+    return '$count tags samengevoegd tot “$into”';
+  }
+
+  @override
+  String get authorManagerTitle => 'Auteurs';
+
+  @override
+  String get authorManagerSearchHint => 'Auteurs zoeken';
+
+  @override
+  String get authorManagerNameLabel => 'Naam van de auteur';
+
+  @override
+  String get authorManagerEmpty =>
+      'Nog geen auteurs. Auteurs die je bij een dans vermeldt, verschijnen hier.';
+
+  @override
+  String get authorManagerLoadError => 'Kon je auteurs niet laden.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return '$count auteurs samengevoegd tot “$into”';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Bronnen';
+
+  @override
+  String get sourceManagerSearchHint => 'Bronnen zoeken';
+
+  @override
+  String get sourceManagerTitleLabel => 'Titel van de bron';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Nog geen bronnen. Boeken en websites die je bij een dans vermeldt, verschijnen hier.';
+
+  @override
+  String get sourceManagerLoadError => 'Kon je bronnen niet laden.';
+
+  @override
+  String get libraryManagerClearSearch => 'Zoekopdracht wissen';
+
+  @override
+  String get libraryManagerNotUsed => 'Niet gebruikt';
+
+  @override
+  String get libraryManagerSortTooltip => 'Sorteren';
+
+  @override
+  String get libraryManagerSortByName => 'Naam';
+
+  @override
+  String get libraryManagerSortByDanceCount => 'Aantal dansen';
+
+  @override
+  String get libraryManagerNoMatches =>
+      'Niets komt overeen met je zoekopdracht.';
+
+  @override
+  String libraryManagerDanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+      zero: 'Niet gebruikt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String libraryManagerActionsTooltip(String name) {
+    return 'Acties voor $name';
+  }
+
+  @override
+  String get libraryManagerRename => 'Hernoemen';
+
+  @override
+  String libraryManagerRenameTitle(String name) {
+    return '“$name” hernoemen';
+  }
+
+  @override
+  String get libraryManagerMergeInto => 'Samenvoegen met…';
+
+  @override
+  String libraryManagerMergePickerTitle(String name) {
+    return '“$name” samenvoegen met…';
+  }
+
+  @override
+  String get libraryManagerMergeOfferTitle => 'Naam al in gebruik';
+
+  @override
+  String libraryManagerMergeOfferOne(String existing, String from) {
+    return '“$existing” bestaat al. “$from” ermee samenvoegen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferOneRenamed(
+    String existing,
+    String from,
+    String name,
+  ) {
+    return '“$existing” bestaat al. “$from” ermee samenvoegen en “$name” noemen?';
+  }
+
+  @override
+  String libraryManagerMergeOfferSeveral(String name, String from) {
+    return 'Meer dan één item heet al “$name”. Kies het item waarmee “$from” wordt samengevoegd; de andere worden er ook mee samengevoegd.';
+  }
+
+  @override
+  String get libraryManagerMerge => 'Samenvoegen';
+
+  @override
+  String libraryManagerUndoConflict(String name) {
+    return 'Ongedaan maken lukt niet: “$name” wordt nu door een ander item gebruikt.';
+  }
+
+  @override
+  String get libraryManagerEditFailed =>
+      'Die wijziging kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get libraryManagerEditDetails => 'Details bewerken…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return '“$from” hernoemd naar “$to”';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return '“$from” samengevoegd met “$into”';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return '“$name” verwijderd';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return '“$from” samenvoegen met “$into”?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Deze details verschillen. Het samengevoegde item houdt zijn eigen details, en deze vervallen:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotheek';
@@ -3034,6 +3278,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als ingeschakeld, heeft elke dans in de programmaweergave een schakelaar om die als uitgevoerd te markeren of niet, zonder de editor te openen. Als uitgeschakeld, tonen de rijen alleen of een dans is uitgevoerd.';
 
   @override
+  String get settingsGeneralMarkAllSetsStatusTitle =>
+      'Alles markeren als uitgevoerd zet de status';
+
+  @override
+  String get settingsGeneralMarkAllSetsStatusSubtitle =>
+      'Als ingeschakeld, zet Alles markeren als uitgevoerd ook de programmastatus op Uitgevoerd, en Ongedaan maken zet beide terug. Als uitgeschakeld, blijft de status zoals hij was.';
+
+  @override
   String get settingsGeneralRequireEventDateForHistoryTitle =>
       'Eventdatum vereisen voor callerhistorie';
 
@@ -3078,6 +3330,27 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als ingeschakeld, begint elke figuur in de dansweergave, de Perform-modus en de figuureditor met een hoofdletter (“Neighbors allemande left”). Als uitgeschakeld, worden figuren getoond zoals ze zijn geschreven; ingebouwde figuren beginnen met een kleine letter, zoals in ContraDB. Alleen het uiterlijk van figuren op die plekken verandert; exports, zoeken, synchronisatievergelijkingen en de tekst voor schermlezers blijven ongewijzigd.';
 
   @override
+  String get settingsGeneralLibraryTagsTitle => 'Tags';
+
+  @override
+  String get settingsGeneralLibraryTagsSubtitle =>
+      'Je tags hernoemen, samenvoegen, kleuren en verwijderen.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Auteurs';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Auteurs hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Bronnen';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Bronnen hernoemen, samenvoegen en verwijderen, en hun details bewerken.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';
 
   @override
@@ -3111,11 +3384,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Vraag om bevestiging voor het verwijderen van een dans of programma. Verwijderingen kunnen nog steeds ongedaan worden gemaakt; dit voegt slechts een expliciete bevestigingsstap toe.';
 
   @override
-  String get settingsGeneralDeletedItemsHeader => 'Verwijderde items';
+  String get settingsGeneralDeletedItemsHeader => 'Onlangs verwijderd';
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Verwijderde items bewaren voor';
+      'Onlangs verwijderde items bewaren voor';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
@@ -3162,7 +3435,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze synchronisatiebeslissing kon niet worden toegepast. Het item is bewaard voor een nieuwe poging.';
 
   @override
-  String get syncReviewKindChoreographer => 'Choreograaf';
+  String get syncReviewKindChoreographer => 'Auteur';
 
   @override
   String get syncReviewKindTag => 'Tag';
@@ -3223,7 +3496,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewMergeDiscardsContactsTitle =>
-      'Deze choreografen samenvoegen?';
+      'Deze auteurs samenvoegen?';
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
@@ -3287,11 +3560,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresTitle =>
-      'Aangepaste figuren opnieuw controleren';
+      'Niet-herkende figuren opnieuw controleren';
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Controleer geïmporteerde dansen opnieuw waarvan de figuren als aangepast zijn bewaard omdat ze niet herkend konden worden bij het importeren. Kan de app ze nu herkennen, dan worden ze ter plekke bijgewerkt — je tags, beoordelingen en notities blijven bewaard. Je bekijkt een voorbeeld en bevestigt voordat er iets wijzigt.';
+      'Controleer geïmporteerde dansen opnieuw waarvan de figuren als niet-herkende figuren zijn bewaard omdat ze niet herkend konden worden bij het importeren. Kan de app ze nu herkennen, dan worden ze ter plekke bijgewerkt — je tags, beoordelingen en notities blijven bewaard. Je bekijkt een voorbeeld en bevestigt voordat er iets wijzigt.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction =>
@@ -3749,14 +4022,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importGapMessage =>
-      'Deze aanroep is niet herkend — precies zoals geschreven bewaard als aangepaste figuur.';
+      'Deze aanroep is niet herkend — precies zoals geschreven bewaard als niet-herkende figuur.';
 
   @override
   String get importGapDialogTitle => 'Niet-herkende figuur';
 
   @override
   String get importGapSemanticLabel =>
-      'Niet-herkende figuur. Precies zoals geschreven bewaard als aangepaste figuur.';
+      'Niet-herkende figuur. Precies zoals geschreven bewaard.';
 
   @override
   String get collectionScreenTitle => 'Collectie';
@@ -3834,6 +4107,21 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 dans',
     );
     return '$label, $_temp0';
+  }
+
+  @override
+  String collectionGroupSectionSelectedSemantics(
+    String label,
+    int count,
+    int selected,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen',
+      one: '1 dans',
+    );
+    return '$label, $_temp0, $selected geselecteerd';
   }
 
   @override
@@ -4018,6 +4306,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionSetRating => 'Beoordeling instellen';
 
   @override
+  String get collectionSetStatus => 'Status instellen';
+
+  @override
   String get collectionAddTunes => 'Deuntjes toevoegen';
 
   @override
@@ -4044,6 +4335,17 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: 'Beoordeling gewist van $count dansen',
       one: 'Beoordeling gewist van 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchStatusSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Status ingesteld voor $count dansen',
+      one: 'Status ingesteld voor 1 dans',
     );
     return '$_temp0';
   }
@@ -4088,6 +4390,28 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: 'Veld gewist van $count dansen',
       one: 'Veld gewist van 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd',
+      one: '1 dans verwijderd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen verwijderd. Herstel ze via Onlangs verwijderd.',
+      one: '1 dans verwijderd. Herstel hem via Onlangs verwijderd.',
     );
     return '$_temp0';
   }
@@ -4502,6 +4826,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionBatchRatingConfirm => 'Instellen';
 
   @override
+  String get collectionBatchStatusConfirm => 'Instellen';
+
+  @override
   String get collectionBatchTunesFieldLabel => 'Een deuntje toevoegen';
 
   @override
@@ -4826,6 +5153,21 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsAddAgain => 'Opnieuw toevoegen';
 
   @override
+  String get programsAddToProgramSearchHint => 'Programma\'s zoeken';
+
+  @override
+  String get programsAddToProgramSearchClear => 'Zoekopdracht wissen';
+
+  @override
+  String get programsAddToProgramNoMatches =>
+      'Geen programma\'s komen overeen met je zoekopdracht.';
+
+  @override
+  String programsAddToProgramPerformedGroup(int count) {
+    return 'Uitgevoerd ($count)';
+  }
+
+  @override
   String programsAddedToProgramSnack(String danceTitle, String programTitle) {
     return '“$danceTitle” toegevoegd aan $programTitle.';
   }
@@ -4885,6 +5227,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsMarkedAllPerformedExceptAlternates =>
       'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd. Markeer een alternatief zelf als je het hebt gecalld.';
+
+  @override
+  String get programsMarkedAllPerformedSetStatus =>
+      'Alle dansen gemarkeerd als uitgevoerd en de status op Uitgevoerd gezet.';
+
+  @override
+  String get programsMarkedAllPerformedExceptAlternatesSetStatus =>
+      'Alle dansen behalve alternatieven gemarkeerd als uitgevoerd en de status op Uitgevoerd gezet. Markeer een alternatief zelf als je het hebt gecalld.';
 
   @override
   String programsSavedSnack(String title) {
@@ -4984,7 +5334,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsAddDanceButton => 'Dans toevoegen';
 
   @override
-  String get programsAddNoteBreakButton => 'Notitie / wals toevoegen';
+  String get programsAddNoteBreakButton => 'Notitie of pauze toevoegen';
 
   @override
   String get programsInsertBreakButton => 'Pauze invoegen';
@@ -5077,6 +5427,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsStatusHelper =>
+      'Sla je een wijziging naar Uitgevoerd op, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd. Zet je de status terug, dan blijven de markeringen staan.';
+
+  @override
+  String get programsStatusHelperMarkAllSetsStatus =>
+      'Sla je een wijziging naar Uitgevoerd op, dan wordt elke ongemarkeerde dans behalve alternatieven gemarkeerd als uitgevoerd, en Alles markeren als uitgevoerd zet deze status. Zet je de status terug, dan blijven de markeringen staan.';
 
   @override
   String get programsHideAlternatesTitle =>
@@ -5634,18 +5992,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performTitle => 'Uitvoeren';
 
   @override
-  String get performExitTooltip => 'Uitvoerweergave verlaten';
+  String get performExitTooltip => 'Uitvoeren verlaten';
 
   @override
   String get performExitTitle => 'Uitvoeren verlaten?';
 
   @override
   String get performExitBody =>
-      'De uitvoerweergave verlaten? Je plek en de lopende klok worden bewaard, zodat je kunt hervatten waar je gebleven was.';
+      'Uitvoeren verlaten? Je plek en de lopende klok worden bewaard, zodat je kunt hervatten waar je gebleven was.';
 
   @override
   String get performDanceExitBody =>
-      'De uitvoerweergave verlaten? Bij het uitvoeren van één dans wordt je plek niet bewaard, dus de volgende keer begin je opnieuw.';
+      'Uitvoeren verlaten? Bij het uitvoeren van één dans wordt je plek niet bewaard, dus de volgende keer begin je opnieuw.';
 
   @override
   String get performExitCancel => 'Doorgaan met uitvoeren';
@@ -5916,6 +6274,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performShowWalkthrough => 'Doorloop tonen';
 
   @override
+  String get performFullScreen => 'Volledig scherm';
+
+  @override
   String get performWalkthroughEmpty => 'Geen doorloop voor deze dans.';
 
   @override
@@ -6155,6 +6516,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportLabelTunes => 'Deuntjes';
 
   @override
+  String get exportLabelHook => 'Hook';
+
+  @override
+  String get exportLabelSources => 'Bronnen';
+
+  @override
   String exportSlotAuthorSuffix(String names) {
     return 'door $names';
   }
@@ -6386,7 +6753,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
+    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de titel, figuren, callnotities en tags. De dans behoudt je beoordeling, je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
   }
 
   @override
@@ -6412,7 +6779,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get onlineImportPossibleMatchDialogLinkWarning =>
-      'De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities, tags en beoordeling. De dans behoudt je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
+      'De dans die je kiest wordt vervangen door het online record — inclusief de titel, figuren, callnotities en tags. De dans behoudt je beoordeling, je aangepaste velden, zijn plaats in je programma’s en zijn callerhistorie.';
 
   @override
   String get importFigurelessCannotReplace =>
@@ -7324,11 +7691,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueMoveFallback =>
-      'Een figuur kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.';
+      'Een figuur kon niet aan een bekende move worden gekoppeld; geïmporteerd als niet-herkende figuur.';
 
   @override
   String importIssueMoveFallbackAt(int position) {
-    return 'Figuur $position kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.';
+    return 'Figuur $position kon niet aan een bekende move worden gekoppeld; geïmporteerd als niet-herkende figuur.';
   }
 
   @override
@@ -7373,7 +7740,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importRecordErrorNotCompendiumArchive =>
-      'Dit is geen Caller\'s Compendium-bestand. Kies een .json-bestand dat uit deze app is geëxporteerd.';
+      'Dit is geen deelbestand. Kies een .json- of .ccshare-bestand dat uit deze app is geëxporteerd.';
 
   @override
   String get importRecordErrorNotCallersBoxDance =>
@@ -7494,7 +7861,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get importReviewCustom => 'Aangepast';
+  String get importReviewCustom => 'Niet herkend';
 
   @override
   String get importReviewOptionNewDance => 'Nieuwe dans';
@@ -7834,11 +8201,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'Typ een move (bijv. “sw” → swing) en druk op Enter om het toe te voegen met standaardwaarden; niet-herkende tekst wordt een aangepaste figuur.';
+      'Typ een move (bijv. “sw” → swing) en druk op Enter om het toe te voegen met standaardwaarden; tekst die de app niet kan lezen wordt een niet-herkende figuur.';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
-      'Voeg een figuur toe door een hele regel te typen (bijv. “neighbor balance & swing”) en op Enter te drukken. Een regel die je in de beweging van een bestaande figuur typt, vervangt die figuur. Niet-herkende tekst wordt een aangepaste figuur.';
+      'Voeg een figuur toe door een hele regel te typen (bijv. “neighbor balance & swing”) en op Enter te drukken. Een regel die je in de beweging van een bestaande figuur typt, vervangt die figuur. Tekst die de app niet kan lezen wordt een niet-herkende figuur.';
 
   @override
   String get danceEditorNotesSection => 'Notities';
@@ -8261,12 +8628,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
-    return 'Een choreograaf met de naam “$name” bestaat al. De naam is niet gewijzigd.';
+    return 'Een auteur met de naam “$name” bestaat al. De naam is niet gewijzigd.';
   }
 
   @override
   String danceEditorChoreographerCreateDuplicate(String name) {
-    return 'Er bestaat al een choreograaf met de naam “$name”. De nieuwe auteur is niet aangemaakt — kies de bestaande.';
+    return 'Er bestaat al een auteur met de naam “$name”. De nieuwe auteur is niet aangemaakt — kies de bestaande.';
   }
 
   @override
@@ -8323,6 +8690,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorRedoLabel => 'Opnieuw uitvoeren';
 
   @override
+  String get editorDraftNotSaved =>
+      'Concept niet opgeslagen – je laatste wijzigingen worden nog niet bewaard';
+
+  @override
   String danceEditorUndoShortcutTooltip(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'apple': 'Ongedaan maken (⌘Z)',
@@ -8347,7 +8718,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorLoadError => 'De dans kon niet worden geladen.';
 
   @override
-  String get danceEditorChoreographerDetailsTitle => 'Choreografendetails';
+  String get danceEditorChoreographerDetailsTitle => 'Auteurdetails';
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
@@ -8518,7 +8889,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorTypeFigureHelper =>
-      'bijv. “neighbor balance & swing” of “16 circle left 3/4”. Enter voegt het toe; niet-herkende tekst wordt bewaard als aangepaste figuur.';
+      'bijv. “neighbor balance & swing” of “16 circle left 3/4”. Enter voegt het toe; tekst die de app niet kan lezen wordt bewaard als niet-herkende figuur.';
 
   @override
   String get danceEditorPasteHere => 'Hier plakken';
@@ -8527,7 +8898,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorEmptyFigureName => 'Lege figuur';
 
   @override
-  String get danceEditorCustomFigureName => 'Aangepaste figuur';
+  String get danceEditorCustomFigureName => 'Niet-herkende figuur';
 
   @override
   String get danceEditorEmptyFigureSummary => '(leeg — kies een move)';
@@ -8868,7 +9239,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorUnderlineTooltip => 'Onderstrepen (_tekst_)';
 
   @override
-  String get danceEditorCustomFigureTextLabel => 'Aangepaste figuurtekst';
+  String get danceEditorCustomFigureTextLabel =>
+      'Tekst van niet-herkende figuur';
 
   @override
   String get danceEditorLingoStylingHelper =>
@@ -9569,7 +9941,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get themeEditorSwatchError => 'Fout';
 
   @override
-  String get reparseConfirmTitle => 'Aangepaste figuren upgraden?';
+  String get reparseConfirmTitle => 'Niet-herkende figuren upgraden?';
 
   @override
   String reparseConfirmBody(int figureCount, int danceCount) {
@@ -9606,11 +9978,11 @@ class AppLocalizationsNl extends AppLocalizations {
       other: '$danceCount dansen',
       one: '1 dans',
     );
-    return 'Aangepaste figuren geüpgraded in $_temp0.';
+    return 'Niet-herkende figuren geüpgraded in $_temp0.';
   }
 
   @override
-  String get reparseScreenTitle => 'Aangepaste figuren opnieuw controleren';
+  String get reparseScreenTitle => 'Niet-herkende figuren opnieuw controleren';
 
   @override
   String reparseIntro(int figureCount, int danceCount) {
@@ -9656,7 +10028,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'Geen van je aangepaste figuren uit imports kan momenteel worden herkend als bekende move. Kijk later terug nadat een toekomstige update de figuurherkenning verbetert.';
+      'Geen van je niet-herkende figuren uit imports kan momenteel worden herkend als bekende move. Kijk later terug nadat een toekomstige update de figuurherkenning verbetert.';
 
   @override
   String get reparseErrorTitle => 'Je figuren konden niet worden gecontroleerd';
@@ -9933,7 +10305,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Je verwijderde items konden niet worden geladen. Er is niets verwijderd.';
+      'Je onlangs verwijderde items konden niet worden geladen. Er is niets verwijderd.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Permanent verwijderen?';
@@ -9985,23 +10357,23 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get recentlyDeletedEmptyDancesKept =>
-      'Niets in de prullenbak. Verwijderde dansen worden hier bewaard totdat je ze verwijdert.';
+      'Geen onlangs verwijderde dansen. Verwijderde dansen worden hier bewaard totdat je ze verwijdert.';
 
   @override
   String get recentlyDeletedEmptyTitle => 'Niets verwijderd';
 
   @override
   String recentlyDeletedEmptyDancesRetention(int days) {
-    return 'Niets in de prullenbak. Verwijderde dansen verschijnen hier voor $days dagen voordat ze worden verwijderd.';
+    return 'Geen onlangs verwijderde dansen. Verwijderde dansen verschijnen hier voor $days dagen voordat ze worden verwijderd.';
   }
 
   @override
   String get recentlyDeletedEmptyProgramsKept =>
-      'Niets in de prullenbak. Verwijderde programma’s worden hier bewaard totdat je ze verwijdert.';
+      'Geen onlangs verwijderde programma’s. Verwijderde programma’s worden hier bewaard totdat je ze verwijdert.';
 
   @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
-    return 'Niets in de prullenbak. Verwijderde programma’s verschijnen hier voor $days dagen voordat ze worden verwijderd.';
+    return 'Geen onlangs verwijderde programma’s. Verwijderde programma’s verschijnen hier voor $days dagen voordat ze worden verwijderd.';
   }
 
   @override
@@ -10039,6 +10411,41 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get venueManagerNoMatches =>
       'Geen locaties komen overeen met je zoekopdracht.';
+
+  @override
+  String get venueLinkOfferTitle => 'Eerdere programma\'s koppelen?';
+
+  @override
+  String get venueLinkOfferBody =>
+      'Bij sommige programma\'s is een locatie als tekst ingevoerd die overeenkomt met een locatiegegeven. Door ze te koppelen telt de oproephistorie ze als één locatie. De ingevoerde tekst blijft bewaard.';
+
+  @override
+  String venueLinkOfferRow(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s',
+      one: '1 programma',
+    );
+    return '“$name”: $_temp0';
+  }
+
+  @override
+  String get venueLinkOfferConfirm => 'Koppelen';
+
+  @override
+  String get venueLinkOfferDecline => 'Niet nu';
+
+  @override
+  String venueLinkOfferDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s gekoppeld.',
+      one: '1 programma gekoppeld.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get venueManagerDeleteTitle => 'Locatie verwijderen?';
@@ -10795,9 +11202,9 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count dansen in de prullenbak gebruiken hem en behouden de regels die ze het laatst opsloegen.',
+          '$count dansen onder “Onlangs verwijderd” gebruiken hem en behouden de regels die ze het laatst opsloegen.',
       one:
-          '1 dans in de prullenbak gebruikt hem en behoudt de regel die hij het laatst opsloeg.',
+          '1 dans onder “Onlangs verwijderd” gebruikt hem en behoudt de regel die hij het laatst opsloeg.',
     );
     return '$_temp0';
   }

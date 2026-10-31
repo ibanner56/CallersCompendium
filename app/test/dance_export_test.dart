@@ -4,6 +4,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/dance_pdf.dart';
@@ -88,6 +90,7 @@ Future<void> _pumpMenu(
   List<String> authorNames = const [],
   String statusLabel = 'Active',
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+  Map<String, PublishedSource> sourcesById = const {},
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -104,6 +107,7 @@ Future<void> _pumpMenu(
               levelLabel: 'Intermediate',
               statusLabel: statusLabel,
               fields: fields,
+              sourcesById: sourcesById,
             ),
           ],
         ),
@@ -448,6 +452,133 @@ void main() {
       expect(clipboardText, isNotNull);
       expect(clipboardText, contains('Rory O\'More'));
       expect(clipboardText, isNot(contains('Carol Ormand')));
+    });
+
+    group('hook and sources on the dance card (OUT-6)', () {
+      final cited = Dance(
+        id: 'd1',
+        title: 'Cited Reel',
+        hook: 'Opens with a pass-through.',
+        sourceCitations: [SourceCitation(sourceId: 'src1', page: '12')],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final book = PublishedSource(
+        id: 'src1',
+        title: 'Give-and-Take',
+        author: 'A. Author',
+        year: 1990,
+      );
+
+      Future<String?> copy(
+        WidgetTester tester,
+        Set<DanceShareField> fields,
+      ) async {
+        String? clipboardText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+        await _pumpMenu(
+          tester,
+          cited,
+          fields: fields,
+          sourcesById: {'src1': book},
+        );
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Copy dance'));
+        await tester.pumpAndSettle();
+        return clipboardText;
+      }
+
+      testWidgets('are absent by default', (tester) async {
+        final text = await copy(tester, DanceShareField.allExceptTunes);
+        expect(text, contains('Cited Reel'));
+        expect(text, isNot(contains('Opens with a pass-through.')));
+        expect(text, isNot(contains('Give-and-Take')));
+      });
+
+      testWidgets('appear once selected, with the source resolved', (
+        tester,
+      ) async {
+        final text = await copy(tester, DanceShareField.all);
+        expect(text, contains('Hook: Opens with a pass-through.'));
+        expect(text, contains('Sources:'));
+        expect(text, contains('Give-and-Take — A. Author, 1990 (p. 12)'));
+      });
+    });
+
+    testWidgets('Export / print PDF carries a selected source (OUT-6)', (
+      tester,
+    ) async {
+      // Byte-size differential, as elsewhere in this suite: the two pumps
+      // differ only in whether `sources` is selected. Mutation this catches:
+      // dropping `sourceLines` from the buildDancePdf call in exportPdf.
+      final cited = Dance(
+        id: 'd1',
+        title: 'Cited Reel',
+        sourceCitations: [SourceCitation(sourceId: 'src1', page: '12')],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final book = PublishedSource(
+        id: 'src1',
+        title: 'Give-and-Take, the long-titled collection of contra dances',
+        author: 'A. Author',
+        year: 1990,
+      );
+
+      Future<int> pdfBytes(Set<DanceShareField> fields) async {
+        LayoutCallback? layout;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  DanceExportMenu(
+                    dance: cited,
+                    dialect: Dialect.canonical,
+                    authorNames: const [],
+                    formationLabel: 'Duple improper',
+                    statusLabel: 'Active',
+                    fields: fields,
+                    sourcesById: {'src1': book},
+                    pdfLayouter: ({required name, required onLayout}) async =>
+                        layout = onLayout,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+        return (await layout!(PdfPageFormat.a4)).length;
+      }
+
+      final without = await pdfBytes({DanceShareField.formation});
+      final withSources = await pdfBytes({
+        DanceShareField.formation,
+        DanceShareField.sources,
+      });
+      expect(withSources, greaterThan(without));
     });
 
     testWidgets('an active dance omits the Status line from the export', (

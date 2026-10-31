@@ -2870,4 +2870,58 @@ void main() {
       expect(incompletePositions(controller), [1]);
     });
   });
+
+  group('replaceAuthors (an author merge, T3)', () {
+    test('credits the survivor in the draft and in every undo step, keeping '
+        'the first position and dropping the duplicate', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      controller.addAuthor('loser');
+      controller.addAuthor('other');
+      controller.addAuthor('survivor');
+
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
+      expect(controller.authorIds, ['survivor', 'other']);
+
+      // Undoing past the merge must not bring the merged-away id back.
+      controller.undo();
+      expect(controller.authorIds, ['survivor', 'other']);
+      controller.undo();
+      expect(controller.authorIds, ['survivor']);
+      controller.redo();
+      controller.redo();
+      expect(controller.authorIds, ['survivor', 'other']);
+
+      // The merge's Undo puts the draft and its history back.
+      controller.restoreAuthors(replacement);
+      expect(controller.authorIds, ['loser', 'other', 'survivor']);
+      controller.undo();
+      expect(controller.authorIds, ['loser', 'other']);
+    });
+
+    test('restoreAuthors leaves a draft edited since the merge', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      controller.addAuthor('loser');
+      final replacement = controller.replaceAuthors({'loser'}, 'survivor');
+      controller.addAuthor('new');
+
+      controller.restoreAuthors(replacement);
+      expect(controller.authorIds, ['survivor', 'new']);
+    });
+
+    test('leaves a draft that credits none of them', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      controller.addAuthor('other');
+      final _ = controller.replaceAuthors({'loser'}, 'survivor');
+      expect(controller.authorIds, ['other']);
+    });
+  });
 }

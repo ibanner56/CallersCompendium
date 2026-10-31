@@ -304,11 +304,14 @@ class WindowService with WindowListener {
   void onWindowMoved() => _schedulePersist();
 
   @override
-  void onWindowMaximize() {
+  void onWindowMaximize() => unawaited(_persistMaximized());
+
+  Future<void> _persistMaximized() async {
+    if (await _isFullScreen()) return;
     // Persist maximized immediately but keep the last restored size to fall
     // back to on un-maximize.
     final restored = _lastRestoredFrame ?? WindowFrame.defaultFrame;
-    unawaited(_persist(restored.copyWith(maximized: true)));
+    await _persist(restored.copyWith(maximized: true));
   }
 
   @override
@@ -316,6 +319,9 @@ class WindowService with WindowListener {
     _debounce?.cancel();
     unawaited(_captureAndPersist());
   }
+
+  @override
+  void onWindowLeaveFullScreen() => _schedulePersist();
 
   @override
   void onWindowClose() {
@@ -331,6 +337,7 @@ class WindowService with WindowListener {
 
   Future<void> _captureAndPersist() async {
     if (!isDesktopWindowPlatform || _restoring) return;
+    if (await _isFullScreen()) return;
     final maximized = await windowManager.isMaximized();
     // While maximized the reported bounds are the maximized ones; keep the
     // stored restored size instead so un-maximizing later is sensible.
@@ -349,6 +356,14 @@ class WindowService with WindowListener {
     _lastRestoredFrame = frame;
     await _persist(frame);
   }
+
+  /// Full-screen bounds are the display's, not a frame the caller chose, so
+  /// nothing is persisted while the window is full screen, whether Perform's
+  /// toggle or the OS's own control put it there, and a window closed full
+  /// screen reopens at its last ordinary frame (PLAT-9). The plugin is asked
+  /// each time rather than tracking its enter and leave events: on Windows,
+  /// window_manager 0.5.2 sends them only for a window that was maximized.
+  Future<bool> _isFullScreen() => windowManager.isFullScreen();
 
   Future<void> _persist(WindowFrame frame) =>
       _settings.set(frameKey, frame.toJson());

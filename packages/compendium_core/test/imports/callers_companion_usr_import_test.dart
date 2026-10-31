@@ -350,7 +350,7 @@ void main() {
       expect(result.programs, hasLength(1));
       final loaded = await programs.getById(result.programs.single.id);
       expect(loaded, isNotNull);
-      expect(loaded!.title, 'Grange Hall');
+      expect(loaded!.title, '2020/03/14 - Grange Hall');
       expect(loaded.eventDate, DateTime.utc(2020, 3, 14));
       // The slot naming dance #99, which the file does not have, is left out:
       // it was deleted in Caller's Companion (#1976).

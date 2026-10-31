@@ -72,10 +72,9 @@ CcProgramsResult buildCcPrograms(
   final programs = <Program>[];
 
   for (final set in archive.sets) {
-    final title = _titleFor(set);
-
     final (eventDate, dateIssue) = _parseEventDate(set.eventDate, set.recordId);
     if (dateIssue != null) issues.add(dateIssue);
+    final title = _titleFor(set, eventDate);
 
     final slots = <ProgramSlot>[];
     var position = 0;
@@ -214,6 +213,10 @@ CcProgramsResult buildCcPrograms(
       breakPending = false;
       addBreak();
     }
+    // Decided on the slots built, so a skipped item's caller does not count.
+    final keptSlots = _keepsSlotCallers(slots, set.caller)
+        ? slots
+        : [for (final slot in slots) slot.copyWith(clearGuestCaller: true)];
 
     programs.add(
       Program(
@@ -226,7 +229,7 @@ CcProgramsResult buildCcPrograms(
         dancerLevel: _cleanLine(set.dancerLevel),
         notes: _cleanNote(set.notes) ?? '',
         hideAlternates: set.hideAlternates,
-        slots: slots,
+        slots: keptSlots,
         createdAt: timestamp,
         updatedAt: timestamp,
         // Provenance keyed on the CC `zk_Set_ID` (carried as [CcSet.recordId]),
@@ -246,15 +249,127 @@ CcProgramsResult buildCcPrograms(
   return CcProgramsResult(programs: programs, issues: issues);
 }
 
-String _titleFor(CcSet set) {
+/// The program title for [set], dated [eventDate] (its parsed `Date`).
+///
+/// A [CcSet.title] wins, though the `.USR` reader never sets one: CC Sets have
+/// no title field. CC itself names a set by its zi_DateLocation_c
+/// calculation, `YYYY/MM/DD - Location`, so the program takes that
+/// ("2024/04/20 - NEFFA Contra Party", maintainer decision on #1976), or just
+/// the date when there is no Location. Without a parsed date it is the
+/// Location, else `Caller's Companion set — <raw date>`, else the set's id.
+String _titleFor(CcSet set, DateTime? eventDate) {
   final title = _cleanLine(set.title);
   if (title != null) return title;
-  // CC Sets have no title field; the Location is the de-facto event name.
   final location = _cleanLine(set.location);
+  if (eventDate != null) {
+    final y = eventDate.year.toString().padLeft(4, '0');
+    final m = eventDate.month.toString().padLeft(2, '0');
+    final d = eventDate.day.toString().padLeft(2, '0');
+    return location == null ? '$y/$m/$d' : '$y/$m/$d - $location';
+  }
   if (location != null) return location;
   final date = _cleanLine(set.eventDate);
   if (date != null) return "Caller's Companion set — $date";
   return "Caller's Companion set #${set.recordId}";
+}
+
+/// Whether [slots], built from a set whose `Caller` is [setCaller], keep their
+/// `SetItem.Caller` names (#1976).
+///
+/// CC fills a slot's caller with a first name ("Michael"), the set's own
+/// caller's included, so on a set one person called every slot just repeats
+/// them. The maintainer's rule (#1976, 2026-10-28, clarified 2026-10-30 and
+/// 2026-10-31): keep the slots' callers when they name more than one caller,
+/// when a name is not the set's own caller (matched by first name), or when
+/// the set's `Caller` names several people ("Michael Smith & Lisa Greenleaf").
+/// A set with no `Caller` keeps a lone name, as nothing else records who
+/// called (the implementer's reading).
+///
+/// A slot name is the set's caller when its words begin the set caller's, read
+/// from the given name on ([_setCallerWords]): "Michael" and "Michael Smith"
+/// for "Michael Smith". Never the reverse, so on a set
+/// called by "Mary" the slots "Mary Kate" and "Mary Lou" are two callers.
+bool _keepsSlotCallers(List<ProgramSlot> slots, String? setCaller) {
+  final caller = _cleanLine(setCaller);
+  if (caller != null && _namesSeveralPeople(caller)) return true;
+  final callerWords = caller == null ? null : _setCallerWords(caller);
+  const setCallerKey = '\u0000';
+  final names = <String>{
+    for (final slot in slots)
+      if (slot.guestCaller case final name?)
+        if (_words(name) case final words when words.isNotEmpty)
+          callerWords != null && _startsWith(callerWords, words)
+              ? setCallerKey
+              : words.join(' '),
+  };
+  if (names.length > 1) return true;
+  if (names.isEmpty) return false;
+  return names.single != setCallerKey;
+}
+
+/// Name suffixes, which may follow a name with or without a comma ("Michael
+/// Smith, Jr.") without being another name or a given name.
+const Set<String> _nameSuffixes = {'jr', 'sr', 'ii', 'iii', 'iv'};
+
+/// Whether a set's [caller] names more than one person: joined by `&`, `+`,
+/// `/`, `;`, or the word "and" or "with", or by a comma that sets off anything
+/// but a name suffix ("Michael Smith, Jr."). A comma between two single words
+/// is read as two people, not "Last, First": "Michael, Lisa" and "Smith,
+/// Michael" cannot be told apart, and keeping the slot callers loses nothing
+/// (the implementer's reading).
+bool _namesSeveralPeople(String caller) {
+  final lower = caller.toLowerCase();
+  if (RegExp(r'[&+/;]').hasMatch(lower)) return true;
+  final words = _words(lower);
+  if (words.contains('and') || words.contains('with')) return true;
+  final parts = [
+    for (final part in lower.split(','))
+      if (_words(part) case final words when words.isNotEmpty) words,
+  ];
+  return parts
+          .where((w) => !(w.length == 1 && _nameSuffixes.contains(w.single)))
+          .length >
+      1;
+}
+
+/// The set caller's words from the given name on: a leading dotted title or
+/// initial ("Dr. Michael Smith", "J. Michael Smith") is skipped provided two
+/// words other than trailing name suffixes still remain, so an initial never
+/// leaves just a surname ("J. Smith, Jr."). The suffix itself is kept, so a
+/// slot naming "Michael Smith Jr" still matches "Michael Smith, Jr.".
+List<String> _setCallerWords(String caller) {
+  final raw = caller
+      .replaceAll(',', ' ')
+      .split(RegExp(r'\s+'))
+      .where((w) => w.isNotEmpty)
+      .toList();
+  var named = raw.length;
+  while (named > 1 &&
+      _nameSuffixes.contains(
+        raw[named - 1].toLowerCase().replaceAll('.', ''),
+      )) {
+    named--;
+  }
+  var first = 0;
+  while (named - first > 2 && raw[first].endsWith('.')) {
+    first++;
+  }
+  return _words(raw.skip(first).join(' '));
+}
+
+/// [name] lower-cased and split on whitespace and commas, with `.` dropped.
+List<String> _words(String name) => [
+  for (final word in name.toLowerCase().split(RegExp(r'[\s,]+')))
+    if (word.replaceAll('.', '') case final w when w.isNotEmpty) w,
+];
+
+/// Whether [words] begins with [start].
+bool _startsWith(List<String> words, List<String> start) {
+  if (start.length > words.length) return false;
+  for (var i = 0; i < start.length; i++) {
+    if (words[i] != start[i]) return false;
+  }
+  return true;
 }
 
 (DateTime?, ImportIssue?) _parseEventDate(String? raw, String recordId) {

@@ -224,47 +224,172 @@ void main() {
     expect(saved.createdAt, _now);
   });
 
-  testWidgets('renaming an author onto a taken name is refused', (
-    tester,
-  ) async {
-    // Issue #1348, the live case: the repository used to write the OLD name
-    // back, raise nothing, and record a normalisation skip; this screen then
-    // patched its caches from the dialog's return value regardless, so the chip
-    // showed a rename the database never took until the next reload.
-    final repos = openTestRepositories();
-    // ignore: unused_result
-    await repos.choreographers.upsert(
-      Choreographer(id: 'c1', name: 'Pat Smith'),
-    );
-    // ignore: unused_result
-    await repos.choreographers.upsert(
-      Choreographer(id: 'c2', name: 'Sam Jones'),
-    );
-    await repos.dances.create(_dance(id: 'd1', authorIds: ['c2']));
-    await _pumpEditor(tester, repos, danceId: 'd1');
+  group('renaming an author onto a taken name (T3)', () {
+    // `c1` sorts first, so it is the id a merge keeps (sync-spec §6.6).
+    Future<CompendiumRepositories> seed() async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Pat Smith', website: 'pat.example'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c2', name: 'Sam Jones'),
+      );
+      await repos.dances.create(_dance(id: 'd1', authorIds: ['c2']));
+      return repos;
+    }
 
-    await tester.tap(find.byKey(const ValueKey('author-chip-c2')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('choreographer-name-field')),
-      'Pat Smith',
-    );
-    await tester.tap(find.byKey(const ValueKey('choreographer-save')));
-    await tester.pumpAndSettle();
+    Future<void> renameC2(
+      WidgetTester tester, {
+      required String name,
+      String? website,
+    }) async {
+      await tester.tap(find.byKey(const ValueKey('author-chip-c2')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('choreographer-name-field')),
+        name,
+      );
+      if (website != null) {
+        await tester.enterText(
+          find.byKey(const ValueKey('choreographer-website-field')),
+          website,
+        );
+      }
+      await tester.tap(find.byKey(const ValueKey('choreographer-save')));
+      await tester.pumpAndSettle();
+    }
 
-    expect(
-      find.byKey(const ValueKey('choreographer-duplicate-snackbar')),
-      findsOneWidget,
-    );
-    expect((await repos.choreographers.getById('c2'))!.name, 'Sam Jones');
-    // The chip still reads the stored name, not the one that was typed.
-    expect(find.byKey(const ValueKey('author-chip-c2')), findsOneWidget);
-    expect(
-      tester
-          .widget<InputChip>(find.byKey(const ValueKey('author-chip-c2')))
-          .label,
-      isA<Text>().having((text) => text.data, 'label', 'Sam Jones'),
-    );
+    String? chipLabel(WidgetTester tester, String id) =>
+        (tester.widget<InputChip>(find.byKey(ValueKey('author-chip-$id'))).label
+                as Text)
+            .data;
+
+    testWidgets('offers a merge, and Keep editing saves nothing and re-opens '
+        'the details with the typed name', (tester) async {
+      final repos = await seed();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith');
+
+      expect(find.byKey(const ValueKey('library-merge-offer')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('choreographer-duplicate-snackbar')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('library-merge-offer-keep-editing')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(const ValueKey('choreographer-name-field')),
+            )
+            .controller!
+            .text,
+        'Pat Smith',
+      );
+      await tester.tap(find.byKey(const ValueKey('choreographer-cancel')));
+      await tester.pumpAndSettle();
+
+      // Issue #1348: nothing was written, so the chip still reads the stored
+      // name, not the one that was typed.
+      expect((await repos.choreographers.getById('c2'))!.name, 'Sam Jones');
+      expect(chipLabel(tester, 'c2'), 'Sam Jones');
+    });
+
+    testWidgets('Merge lists the detail it drops, leaves one author, credits '
+        'it in the draft, and Undo puts both back', (tester) async {
+      final repos = await seed();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith', website: 'sam.example');
+
+      expect(find.textContaining('sam.example'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('library-merge-offer-merge')));
+      await tester.pumpAndSettle();
+
+      expect(await repos.choreographers.getById('c2'), isNull);
+      expect(
+        (await repos.choreographers.getById('c1'))!.website,
+        'pat.example',
+      );
+      expect((await repos.dances.getById('d1'))!.authorIds, ['c1']);
+      expect(find.byKey(const ValueKey('author-chip-c2')), findsNothing);
+      expect(chipLabel(tester, 'c1'), 'Pat Smith');
+
+      await tester.tap(
+        find.byKey(const ValueKey('dance-editor-author-merge-undo')),
+      );
+      await tester.pumpAndSettle();
+
+      expect((await repos.choreographers.getById('c2'))!.name, 'Sam Jones');
+      expect((await repos.dances.getById('d1'))!.authorIds, ['c2']);
+      expect(chipLabel(tester, 'c2'), 'Sam Jones');
+      expect(find.byKey(const ValueKey('author-chip-c1')), findsNothing);
+    });
+
+    testWidgets('Undo of a merge of two authors the dance both credits '
+        'puts both credits back in the draft', (tester) async {
+      final repos = await seed();
+      await repos.dances.update(_dance(id: 'd1', authorIds: ['c2', 'c1']));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith');
+      await tester.tap(find.byKey(const ValueKey('library-merge-offer-merge')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('author-chip-c2')), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey('dance-editor-author-merge-undo')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('author-chip-c2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('author-chip-c1')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect((await repos.dances.getById('d1'))!.authorIds, ['c2', 'c1']);
+    });
+
+    testWidgets('a name only a deleted author holds is taken, with the '
+        "dialog's other details, and no merge offer", (tester) async {
+      final repos = await seed();
+      // `c1` is credited nowhere, so it can be deleted.
+      final _ = await repos.references.deleteUnused(ReferenceKind.author, 'c1');
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith', website: 'sam.example');
+
+      expect(find.byKey(const ValueKey('library-merge-offer')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('choreographer-duplicate-snackbar')),
+        findsNothing,
+      );
+      final renamed = await repos.choreographers.getById('c2');
+      expect(renamed!.name, 'Pat Smith');
+      expect(renamed.website, 'sam.example');
+      expect(chipLabel(tester, 'c2'), 'Pat Smith');
+    });
+
+    testWidgets('after a merge, Save credits the merged author', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await renameC2(tester, name: 'Pat Smith');
+      await tester.tap(find.byKey(const ValueKey('library-merge-offer-merge')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.authorIds, ['c1']);
+    });
   });
 
   testWidgets('walkthrough round-trips on save', (tester) async {
@@ -715,7 +840,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('author-chip-c1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Choreographer details'), findsOneWidget);
+    expect(find.text('Author details'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('choreographer-name-field')),
       'Gene H.',
@@ -756,7 +881,7 @@ void main() {
     expect(find.widgetWithText(InputChip, 'flowy'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('tag-chip-t1')));
     await tester.pumpAndSettle();
-    expect(find.text('Choreographer details'), findsNothing);
+    expect(find.text('Author details'), findsNothing);
   });
 
   testWidgets(
@@ -3038,7 +3163,10 @@ void main() {
         'template', (tester) async {
       final repos = await freeTextRepos(on: false);
       await _pumpEditor(tester, repos);
-      expect(find.textContaining('unmatched text becomes'), findsOneWidget);
+      expect(
+        find.textContaining("text the app can't read becomes"),
+        findsOneWidget,
+      );
 
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),

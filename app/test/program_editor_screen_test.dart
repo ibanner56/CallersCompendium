@@ -13,6 +13,8 @@ import 'package:printing/printing.dart' show LayoutCallback;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
+import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
@@ -67,6 +69,7 @@ Future<void> _pumpBuilder(
   CompendiumRepositories repos, {
   String? programId,
   bool autoCommit = false,
+  bool markAllSetsStatus = true,
   void Function(String)? onSaved,
   VoidCallback? onDeleted,
   void Function(String)? onNavigateTo,
@@ -81,6 +84,8 @@ Future<void> _pumpBuilder(
   addTearDown(notifier.dispose);
   final autoCommitNotifier = ValueNotifier<bool>(autoCommit);
   addTearDown(autoCommitNotifier.dispose);
+  final markAllSetsStatusNotifier = ValueNotifier<bool>(markAllSetsStatus);
+  addTearDown(markAllSetsStatusNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -91,7 +96,10 @@ Future<void> _pumpBuilder(
           notifier: notifier,
           child: ProgramAutoCommitScope(
             notifier: autoCommitNotifier,
-            child: child!,
+            child: MarkAllSetsStatusScope(
+              notifier: markAllSetsStatusNotifier,
+              child: child!,
+            ),
           ),
         ),
       ),
@@ -317,18 +325,24 @@ Future<void> _pump(
   VoidCallback? onDeleted,
   void Function(String)? onNavigateTo,
   DialectLibraryController? dialectLibrary,
+  bool confirmBeforeDelete = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
+  final confirm = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(confirm.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: dialectLibrary == null
-            ? child!
-            : DialectLibraryScope(controller: dialectLibrary, child: child!),
+        child: ConfirmBeforeDeleteScope(
+          notifier: confirm,
+          child: dialectLibrary == null
+              ? child!
+              : DialectLibraryScope(controller: dialectLibrary, child: child!),
+        ),
       ),
       home: ProgramEditorScreen(
         programId: programId,
@@ -1123,6 +1137,38 @@ void main() {
     final all = await repos.programs.listAll();
     expect(all, hasLength(2));
     expect(all.map((p) => p.title), contains('Original (copy)'));
+  });
+
+  testWidgets('delete with confirm ON names the dances that lose their calling '
+      'history (LIFE-6)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chorus Jig'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Hulls Victory'));
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Doomed',
+        status: ProgramStatus.draft,
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+    await _pump(tester, repos, programId: 'p1', confirmBeforeDelete: true);
+
+    await tester.tap(find.byKey(const ValueKey('delete-program')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('2 dances will lose this program'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
+    await tester.pumpAndSettle();
+    expect(await repos.programs.listAll(), hasLength(1));
   });
 
   testWidgets('delete soft-deletes and calls onDeleted', (tester) async {
@@ -2508,6 +2554,242 @@ void main() {
     expect(saved.slots[1].performedAt, isNull);
   });
 
+  // GIG-12 (maintainer decision 2026-10-29, with the note): Mark all
+  // performed also sets the status, behind a setting that is on by default,
+  // and Undo puts the marks and the status back together.
+  group('mark all performed and the program status (GIG-12)', () {
+    final statusField = find.byKey(const ValueKey('program-status'));
+
+    ProgramStatus? shownStatus(WidgetTester tester) =>
+        tester.state<FormFieldState<ProgramStatus>>(statusField).value;
+
+    Future<CompendiumRepositories> seed({
+      ProgramStatus status = ProgramStatus.draft,
+      DateTime? performedAt,
+    }) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          status: status,
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              performedAt: performedAt,
+            ),
+          ],
+        ),
+      );
+      return repos;
+    }
+
+    testWidgets('sets Performed, and Undo puts it back', (tester) async {
+      final repos = await seed(status: ProgramStatus.finalized);
+      await _pumpBuilder(tester, repos, programId: 'p1');
+      await _expandMoreDetails(tester);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+
+      expect(shownStatus(tester), ProgramStatus.performed);
+      expect(
+        find.descendant(of: statusField, matching: find.text('Performed')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Marked all dances performed and set the status to Performed.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+
+      expect(shownStatus(tester), ProgramStatus.finalized);
+      expect(
+        find.descendant(of: statusField, matching: find.text('Finalized')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.status, ProgramStatus.finalized);
+      expect(saved.slots.single.performedAt, isNull);
+    });
+
+    testWidgets('Save keeps the status it set', (tester) async {
+      final repos = await seed();
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.status, ProgramStatus.performed);
+      expect(saved.slots.single.performedAt, isNotNull);
+    });
+
+    testWidgets('sets Performed when every dance was already marked', (
+      tester,
+    ) async {
+      final called = DateTime.utc(2025, 12, 31, 20);
+      final repos = await seed(performedAt: called);
+      await _pumpBuilder(tester, repos, programId: 'p1');
+      await _expandMoreDetails(tester);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+      expect(shownStatus(tester), ProgramStatus.performed);
+
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+      expect(shownStatus(tester), ProgramStatus.draft);
+    });
+
+    testWidgets('Undo keeps a status chosen since', (tester) async {
+      final repos = await seed();
+      await _pumpBuilder(tester, repos, programId: 'p1');
+      await _expandMoreDetails(tester);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(statusField);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Finalized').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+
+      expect(shownStatus(tester), ProgramStatus.finalized);
+    });
+
+    testWidgets('persisted Undo puts the stored status back', (tester) async {
+      final repos = await seed(status: ProgramStatus.finalized);
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+      await _expandMoreDetails(tester);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(
+        (await repos.programs.getById('p1'))!.status,
+        ProgramStatus.performed,
+      );
+
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.status, ProgramStatus.finalized);
+      expect(saved.slots.single.performedAt, isNull);
+      expect(shownStatus(tester), ProgramStatus.finalized);
+    });
+
+    testWidgets('persisted Undo of a status-only change', (tester) async {
+      final called = DateTime.utc(2025, 12, 31, 20);
+      final repos = await seed(performedAt: called);
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(
+        (await repos.programs.getById('p1'))!.status,
+        ProgramStatus.performed,
+      );
+
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.status, ProgramStatus.draft);
+      expect(saved.slots.single.performedAt, called);
+    });
+
+    testWidgets('persisted status-only Undo after a later commit', (
+      tester,
+    ) async {
+      final called = DateTime.utc(2025, 12, 31, 20);
+      final repos = await seed(performedAt: called);
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+      await _expandMoreDetails(tester);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      // A later edit that commits too moves the committed generation on, so
+      // only the action token can tell Undo that the status reached the store.
+      await tester.enterText(
+        find.byKey(const ValueKey('program-notes')),
+        'Great crowd',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.status, ProgramStatus.draft);
+      expect(saved.notes, 'Great crowd');
+    });
+
+    testWidgets('leaves the status alone with the setting off', (tester) async {
+      final repos = await seed();
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        markAllSetsStatus: false,
+      );
+      await _expandMoreDetails(tester);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+
+      expect(shownStatus(tester), ProgramStatus.draft);
+      expect(find.text('Marked all dances performed.'), findsOneWidget);
+    });
+
+    testWidgets('the helper text follows the setting', (tester) async {
+      final repos = await seed();
+      await _pumpBuilder(tester, repos, programId: 'p1');
+      await _expandMoreDetails(tester);
+      expect(
+        find.textContaining('Mark all performed sets this status'),
+        findsOneWidget,
+      );
+
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        markAllSetsStatus: false,
+      );
+      await _expandMoreDetails(tester);
+      expect(
+        find.textContaining('Mark all performed sets this status'),
+        findsNothing,
+      );
+      expect(
+        find.text(
+          'Saving a change to Performed marks every unmarked dance performed, '
+          'except alternates. Changing the status back keeps the marks.',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
   // F5: an alternate counts as called only once it is marked by hand
   // (maintainer ruling, 2026-10-28), so Mark all performed skips it and says so.
   testWidgets('mark all performed skips alternates and says so', (
@@ -2532,8 +2814,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'Marked all dances performed except alternates. '
-        'Mark an alternate yourself if you called it.',
+        'Marked all dances performed except alternates, and set the status '
+        'to Performed. Mark an alternate yourself if you called it.',
       ),
       findsOneWidget,
     );
@@ -2567,7 +2849,14 @@ void main() {
         ],
       ),
     );
-    await _pumpBuilder(tester, repos, programId: 'p1');
+    // With the status left alone (GIG-12's setting off) there is nothing at
+    // all to do; the status-setting case is covered by the GIG-12 group.
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      markAllSetsStatus: false,
+    );
 
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
     await tester.pumpAndSettle();
