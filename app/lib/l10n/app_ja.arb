@@ -2768,6 +2768,50 @@
   "@tagManagerMergedSeveralSnack": {
     "x-sourceSha256": "cacbce18bf0b7e9f1ebbf63bd0314e913760eb09f8c6a84c35823cffd21c7cc6"
   },
+  "authorManagerTitle": "作者",
+  "@authorManagerTitle": {
+    "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "authorManagerSearchHint": "作者を検索",
+  "@authorManagerSearchHint": {
+    "x-sourceSha256": "0452ff51d1276a1c8614a4c6fea6778adc0602fd684e9cd0b28ddaa37fcecd73"
+  },
+  "authorManagerNameLabel": "作者名",
+  "@authorManagerNameLabel": {
+    "x-sourceSha256": "d685a2cb040ed21b08f567b677691f66b65360a21c726a75769adfc5003f5b11"
+  },
+  "authorManagerEmpty": "まだ作者がいません。ダンスにクレジットした作者がここに表示されます。",
+  "@authorManagerEmpty": {
+    "x-sourceSha256": "f63be5621924387162fcb2f2337ab644b7e7a7513be0d62d84e67eb1850d91d7"
+  },
+  "authorManagerLoadError": "作者を読み込めませんでした。",
+  "@authorManagerLoadError": {
+    "x-sourceSha256": "1e98ba428f3769746bb32817bcde3de923f11bae8285366daa0d6ab340ceb1d6"
+  },
+  "authorManagerMergedSeveralSnack": "{count}件の作者を「{into}」にまとめました",
+  "@authorManagerMergedSeveralSnack": {
+    "x-sourceSha256": "4ed1779f0ab50c35824ff5fc36d4da9be5a0b9c3a19d6d32fd1205bd46aaf141"
+  },
+  "sourceManagerTitle": "ソース",
+  "@sourceManagerTitle": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
+  "sourceManagerSearchHint": "ソースを検索",
+  "@sourceManagerSearchHint": {
+    "x-sourceSha256": "cad97f05bed4d408bcffdc0557f7c76c72b66a6f879127ba664e555f0b8c16dd"
+  },
+  "sourceManagerTitleLabel": "ソースのタイトル",
+  "@sourceManagerTitleLabel": {
+    "x-sourceSha256": "458fcd13ab87c5b272319876028d19b1f95c5b0ce0d741b4682b56b4b1073f9f"
+  },
+  "sourceManagerEmpty": "まだソースがありません。ダンスで引用した本やウェブサイトがここに表示されます。",
+  "@sourceManagerEmpty": {
+    "x-sourceSha256": "9a021b4606fe11125d54e533c8a0aa2558721897d2bf7677301767245b78071f"
+  },
+  "sourceManagerLoadError": "ソースを読み込めませんでした。",
+  "@sourceManagerLoadError": {
+    "x-sourceSha256": "6939e6571d35bdefa461f9a6b6e94502e9680892f13eafb46f394b4b44a71ad2"
+  },
   "libraryManagerClearSearch": "検索をクリア",
   "@libraryManagerClearSearch": {
     "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
@@ -2843,6 +2887,34 @@
   "libraryManagerEditFailed": "変更を保存できませんでした。もう一度お試しください。",
   "@libraryManagerEditFailed": {
     "x-sourceSha256": "a42fb6a8c1dff3745489ee1813b6fd4ec4d0ecbb6f3b805bb5630e1a9f41809f"
+  },
+  "libraryManagerEditDetails": "詳細を編集…",
+  "@libraryManagerEditDetails": {
+    "x-sourceSha256": "7be509848535577585d4849652192e5e6e0fee6e8155e411bbd4cdb0551ea4e8"
+  },
+  "libraryManagerRenamedSnack": "「{from}」を「{to}」に名前変更しました",
+  "@libraryManagerRenamedSnack": {
+    "x-sourceSha256": "5e97d0d1296f39ceb9230f70ad16cc0d613613aa726d0b96524b7ba899315bed"
+  },
+  "libraryManagerMergedSnack": "「{from}」を「{into}」に統合しました",
+  "@libraryManagerMergedSnack": {
+    "x-sourceSha256": "30e0db7e6b76090c883a36fb5d54a3c129e065769ad3c7ffd0b4e0a00ab7f01c"
+  },
+  "libraryManagerDeletedSnack": "「{name}」を削除しました",
+  "@libraryManagerDeletedSnack": {
+    "x-sourceSha256": "0c82d7f9acbbb899931e8e3827d38f139e9d0c176c0ca021a853096b632b47fb"
+  },
+  "libraryManagerMergeConfirmTitle": "「{from}」を「{into}」に統合しますか？",
+  "@libraryManagerMergeConfirmTitle": {
+    "x-sourceSha256": "aa13d07fa5314e706136c4a008cf535629d2c59a6b6ca05918992c262b7de998"
+  },
+  "libraryManagerMergeDropsHeading": "次の詳細が異なります。統合後の項目は自身の値を保持し、以下は破棄されます：",
+  "@libraryManagerMergeDropsHeading": {
+    "x-sourceSha256": "7c61de6d866ccfdca2c08023452ecc4bd947ca567452215dfbb133f7fbf0a0c6"
+  },
+  "libraryManagerMergeDroppedLine": "{field}：{value}",
+  "@libraryManagerMergeDroppedLine": {
+    "x-sourceSha256": "d3ba5ccd5a5fb39ef6e9fff0582fbef871d2952d1fa9e1e2b454753407c5e043"
   },
   "settingsGeneralLibraryHeader": "ライブラリ",
   "@settingsGeneralLibraryHeader": {
@@ -3155,6 +3227,22 @@
   "settingsGeneralLibraryTagsSubtitle": "タグの名前変更、統合、色付け、削除を行います。",
   "@settingsGeneralLibraryTagsSubtitle": {
     "x-sourceSha256": "c140368a6b9ec7faa4b2244f3cd0e1189e1efb5cb19ad558be423dd4fdec46bc"
+  },
+  "settingsGeneralLibraryAuthorsTitle": "作者",
+  "@settingsGeneralLibraryAuthorsTitle": {
+    "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "settingsGeneralLibraryAuthorsSubtitle": "作者の名前変更、統合、削除と、詳細の編集を行います。",
+  "@settingsGeneralLibraryAuthorsSubtitle": {
+    "x-sourceSha256": "521332210b6feedb6498f3fa63a52dee7b74bc33f6c2445d95fb34d46043db5c"
+  },
+  "settingsGeneralLibrarySourcesTitle": "ソース",
+  "@settingsGeneralLibrarySourcesTitle": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
+  "settingsGeneralLibrarySourcesSubtitle": "ソースの名前変更、統合、削除と、詳細の編集を行います。",
+  "@settingsGeneralLibrarySourcesSubtitle": {
+    "x-sourceSha256": "2551a818f4caacf179f85d90ed9ce7452d5522045b3d63ded39743b83a57d2fa"
   },
   "settingsGeneralAccessibilityHeader": "アクセシビリティ",
   "@settingsGeneralAccessibilityHeader": {

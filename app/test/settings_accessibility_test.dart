@@ -13,6 +13,7 @@ import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/reference_manager_screen.dart';
 import 'package:compendium_app/src/screens/tag_manager_screen.dart';
 
 import 'support/test_repositories.dart';
@@ -126,6 +127,29 @@ void main() {
 
     expect(find.byType(TagManagerScreen), findsOneWidget);
   });
+
+  for (final (key, title) in [
+    ('general-library-authors', 'Authors'),
+    ('general-library-sources', 'Sources'),
+  ]) {
+    testWidgets('Library › $title opens the $title manager (D-N2-3)', (
+      tester,
+    ) async {
+      await _pumpGeneral(tester, openTestRepositories());
+
+      final entry = find.byKey(ValueKey(key));
+      await tester.ensureVisible(entry);
+      await tester.pumpAndSettle();
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReferenceManagerScreen), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.text(title)),
+        findsOneWidget,
+      );
+    });
+  }
 
   testWidgets('all accessibility switches render and default off', (
     tester,

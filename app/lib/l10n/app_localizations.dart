@@ -4267,6 +4267,72 @@ abstract class AppLocalizations {
   /// **'Combined {count} tags into “{into}”'**
   String tagManagerMergedSeveralSnack(int count, String into);
 
+  /// App-bar title of the Authors manager, where the authors credited on dances are renamed, merged, edited and deleted. User-facing text says “author”, never “choreographer” (decision D-3).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get authorManagerTitle;
+
+  /// Hint in the Authors manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search authors'**
+  String get authorManagerSearchHint;
+
+  /// Label of the name field in the Authors manager's rename dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Author name'**
+  String get authorManagerNameLabel;
+
+  /// Shown in the Authors manager when there are no authors.
+  ///
+  /// In en, this message translates to:
+  /// **'No authors yet. Authors you credit on a dance appear here.'**
+  String get authorManagerEmpty;
+
+  /// Shown in the Authors manager when the author list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your authors.'**
+  String get authorManagerLoadError;
+
+  /// Snackbar after a rename merged three or more authors into one (case variants of the same name), with an Undo action. The count includes the author merged into.
+  ///
+  /// In en, this message translates to:
+  /// **'Combined {count} authors into “{into}”'**
+  String authorManagerMergedSeveralSnack(int count, String into);
+
+  /// App-bar title of the Sources manager, where the published sources dances cite (books, websites) are renamed, merged, edited and deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get sourceManagerTitle;
+
+  /// Hint in the Sources manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search sources'**
+  String get sourceManagerSearchHint;
+
+  /// Label of the title field in the Sources manager's rename dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Source title'**
+  String get sourceManagerTitleLabel;
+
+  /// Shown in the Sources manager when there are no sources.
+  ///
+  /// In en, this message translates to:
+  /// **'No sources yet. Books and websites you cite on a dance appear here.'**
+  String get sourceManagerEmpty;
+
+  /// Shown in the Sources manager when the source list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your sources.'**
+  String get sourceManagerLoadError;
+
   /// Tooltip of the button that clears the search field in the Tags, Authors and Sources managers.
   ///
   /// In en, this message translates to:
@@ -4384,6 +4450,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn’t save that change. Please try again.'**
   String get libraryManagerEditFailed;
+
+  /// Authors and Sources manager action: opens the entry's details (website, notes and so on) for editing.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit details…'**
+  String get libraryManagerEditDetails;
+
+  /// Snackbar after renaming an author or a source in its manager, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed “{from}” to “{to}”'**
+  String libraryManagerRenamedSnack(String from, String to);
+
+  /// Snackbar after merging one author or source into another, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged “{from}” into “{into}”'**
+  String libraryManagerMergedSnack(String from, String into);
+
+  /// Snackbar after deleting an author or source no dance uses, with an Undo action. An entry a dance uses cannot be deleted, only merged.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted “{name}”'**
+  String libraryManagerDeletedSnack(String name);
+
+  /// Title of the dialog asking before a merge that will drop details, because both entries hold different values for them. Its body lists the dropped details.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge “{from}” into “{into}”?'**
+  String libraryManagerMergeConfirmTitle(String from, String into);
+
+  /// Heading of the list, in a merge dialog, of the details the merge discards. Empty details are filled from the other entry instead; only conflicting values are dropped.
+  ///
+  /// In en, this message translates to:
+  /// **'These details differ. The merged entry keeps its own, and these are dropped:'**
+  String get libraryManagerMergeDropsHeading;
+
+  /// One line of the list of details a merge drops: the field's label, then the dropped value.
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String libraryManagerMergeDroppedLine(String field, String value);
 
   /// General settings section header for collection-library preferences.
   ///
@@ -4852,6 +4960,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rename, merge, colour and delete your tags.'**
   String get settingsGeneralLibraryTagsSubtitle;
+
+  /// Title of the Settings › General › Library entry that opens the Authors manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get settingsGeneralLibraryAuthorsTitle;
+
+  /// Subtitle of the Settings › General › Library entry that opens the Authors manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge and delete authors, and edit their details.'**
+  String get settingsGeneralLibraryAuthorsSubtitle;
+
+  /// Title of the Settings › General › Library entry that opens the Sources manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsGeneralLibrarySourcesTitle;
+
+  /// Subtitle of the Settings › General › Library entry that opens the Sources manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge and delete sources, and edit their details.'**
+  String get settingsGeneralLibrarySourcesSubtitle;
 
   /// General settings section header for accessibility preferences.
   ///

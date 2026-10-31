@@ -5,7 +5,7 @@ against `origin/main` at `acacb05`, and re-checked after merging `main` at
 `296b594`. Every `file:line` below is for `296b594` unless it names another
 branch. Of the files cited, only `ux.md` moved between the two.*
 
-**Status: decided; T1, T2 and T4 built 2026-10-30, T3 not built.** The maintainer asked for this note (below), and
+**Status: decided; T1–T4 built 2026-10-30.** The maintainer asked for this note (below), and
 on 2026-10-29/30 answered all seven of its questions, each as the note
 recommended (N2-1 … N2-7 in `maintainer-decisions-2026-10-30.md` on
 `claude/app-audit-categories-k2pdon`; this note's D-N2-*n* is the file's
@@ -517,6 +517,9 @@ wire change.
     an empty `page` or `number` on that citation takes the loser's. Rejected
     alternative: drop the loser's citation whole, which is what
     `_rewriteLocalReferences` does today (`sync_storage.dart:5291-5318`).
+    *As built by T3 (2026-10-30):* the citation kept takes the page and number
+    of the merged-into source's citation, filled from the others' when empty;
+    see "What T3 built" under [The manager screens](#the-manager-screens).
 - **Delete** only when unused, as above.
 - **Not proposed:** a "possible duplicates" hint by folded title. It is close
   to the dropped FIND-9, and the maintainer can ask for it separately.
@@ -590,6 +593,57 @@ These choices are T2's own, not maintainer decisions:
   edit wrote. Rejected: restoring it unconditionally, which would undo a
   change made in Settings, or by a sync pass, between the edit and the
   Undo.
+
+**What T3 built (2026-10-30).** The Authors and Sources managers are one
+screen, `ReferenceManagerScreen` (`app/lib/src/screens/reference_manager_screen.dart`),
+on T2's list, listing through new `watchAll` streams on the two repositories.
+The author flows the manager and the dance editor share are in
+`app/lib/src/widgets/author_details_flow.dart`. Core gained
+`ReferenceEditRepository.deleteUnused`, the citation fill, and
+`authorMergeConflicts` / `sourceMergeConflicts`, which list what a merge drops
+by the same rule the merge applies. These choices are T3's own, not maintainer
+decisions:
+
+- **Merge into…** asks first only when the merge drops a value; otherwise it
+  runs at once, with Undo, as a tag merge does. The question is
+  "Merge 'X' into 'Y'?" over the list of dropped values. Rejected: asking
+  before every merge, which `ux.md`'s rule (confirm only what Undo cannot
+  reverse) argues against; D-N2-2's "longer dialog on conflict" is met by
+  asking only then.
+- **Delete** is a new core operation rather than the repositories' guarded
+  delete. It keeps the guard, stamps the tombstone past the row's own
+  `updated_at`, and bumps each dance in Recently deleted that still cites the
+  entry, whose serialised authors or citations no longer list it (§6.5 I1).
+  Undo revives the row with its fields. Rejected: the repository delete,
+  which does neither, and has no Undo.
+- **The citation fill** is the user merge's only. The shared
+  `rewriteLocalReferences` still keeps the survivor's citation as it stands,
+  so sync's reconciliation is unchanged. The kept citation takes the page and
+  number of the merged-into source's citation, as the merged entry takes that
+  source's fields, and each empty one from the others in id order. A locator
+  the two disagree on is dropped without being listed: listing it would mean
+  one line per dance. Undo puts the locator back only while it still reads as
+  the merge left it. Rejected: the survivor id's citation winning, which
+  would keep the merged-away source's page when it held the smaller id.
+- **A rename typed in the details dialog** that collides offers the merge with
+  the dialog's other values taking part: they are saved under the old name
+  first, in the merge's transaction, so the merge fills from them and an Undo
+  of the merge leaves them saved. **Keep editing** re-opens the dialog with
+  what was typed. Rejected: dropping the typed details, which the user saved.
+- **The dance editor follows a merge.** Its draft, and every step of its undo
+  history, credit the survivor in place of a merged-away author, and Undo of
+  the merge puts the draft's credit back. Rejected: leaving the draft as it
+  was, which would save a credit to a tombstone, and the dance would show no
+  author.
+- **A source's row shows its author and year,** because titles are not unique
+  and duplicates are the thing being merged. Rejected: the title alone, which
+  makes "Zesty Contras" and "Zesty Contras" indistinguishable in the picker.
+- **Edit details…** saves as the dance editor does, with no Undo.
+
+T3 kept the "Choreographer details" title the details dialog has had. D-3 says
+"people are 'author'", and renaming existing strings is U4's (see
+[What is already decided](#what-is-already-decided)); T3's new strings say
+"author".
 
 ## The purge GC (LIFE-5 option c)
 
