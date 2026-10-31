@@ -354,7 +354,8 @@ class DedupeIndex {
 
   /// Each entry's [normalizeTitle] with a trailing article fronted, when that
   /// differs from its `normalizedTitle` (#1976); parallel to [_normalized].
-  /// Usually `null`, so most pairs take the one-key path in [fuzzyMatches].
+  /// Usually `null`. Read by [possibleTitleMatches]; [fuzzyMatches] reaches it
+  /// only through [_byNormalizedTitle].
   final List<String?> _frontedTitles = [];
 
   /// Each [dedupeTitleKeys] key → ascending indices into [_normalized] of
@@ -444,6 +445,9 @@ class DedupeIndex {
     for (var i = 0; i < _normalized.length; i++) {
       final e = _normalized[i];
       final eTitle = e.normalizedTitle;
+      // Safe before the exact cursor moves: an entry with no plain key has no
+      // fronted one either, as every article is Latin letters that
+      // `normalizeTitle` keeps, so it is never in [exact].
       if (eTitle.isEmpty) continue;
       final eAuthors = e.normalizedAuthors;
       final isExact = nextExact < exact.length && exact[nextExact] == i;

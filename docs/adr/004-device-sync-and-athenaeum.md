@@ -612,10 +612,10 @@ The silent-merge test reuses the rule already in the import pipeline:
 1. **Exact normalized-title match** (plain `normalizeTitle`, as the import
    gate in `autoResolveAmbiguous` was written). A fuzzy-but-inexact title is
    never confident; that is the "two different dances share a title" trap.
-   This is a second divergence from today's import rule: since #1976 the import
-   gate also accepts a match once a trailing article is fronted
-   (`dedupeTitleKeys`: "Bastringue, La" against "La Bastringue"), and
-   fresh-attach does not.
+   Since #1976 the import gate also accepts a match once a trailing article is
+   fronted (`dedupeTitleKeys`: "Bastringue, La" against "La Bastringue");
+   fresh-attach keeps plain `normalizeTitle`, so it does not (see the
+   divergences below).
 2. **the shared `choreographyFingerprint` contract** — form, formation,
    progression, phrase structure, **figures including their params**, hook,
    calling notes, level, mixed level and tunes. It deliberately ignores
@@ -623,7 +623,8 @@ The silent-merge test reuses the rule already in the import pipeline:
    device-local id collections, so, in the words of its own doc comment, "a
    bundle received on another device still matches by its intrinsic content".
 
-One deliberate divergence from the import rule. Import treats exact title plus
+Two deliberate divergences from the import rule. The first is the title key,
+above. The second: import treats exact title plus
 **author overlap** as confident *even when the choreography differs*, which is
 right when re-importing a source record. **Fresh attach must not**: same title,
 same author, different figures is exactly a dance the user edited differently on

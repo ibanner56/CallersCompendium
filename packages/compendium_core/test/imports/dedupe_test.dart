@@ -447,6 +447,29 @@ void main() {
       );
     });
 
+    test('an exact fronted entry is never pruned by its written length', () {
+      final short = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: 'Rose, The'),
+      ]);
+      expect(short.fuzzyMatches('Rose', const []).single.score, 1.0);
+    });
+
+    test('exact entries under both keys are all found, in entry order', () {
+      // d2 is listed under the query's plain key, d1 and d3 under its fronted
+      // key, so the union must be sorted for the scan to see all three.
+      final mixed = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: 'The Baby Rose', authorNames: ['X']),
+        DedupeEntry(danceId: 'd2', title: 'Baby Rose The', authorNames: ['X']),
+        DedupeEntry(danceId: 'd3', title: 'Baby Rose', authorNames: ['X']),
+      ]);
+      final matches = mixed.fuzzyMatches('Baby Rose, The', ['X']);
+      expect(matches.where((m) => m.confident).map((m) => m.danceId).toSet(), {
+        'd1',
+        'd2',
+        'd3',
+      });
+    });
+
     test('the core-title key fronts it too', () {
       final withAuthor = DedupeIndex([
         DedupeEntry(
