@@ -218,7 +218,8 @@ const List<String> _unnamedOthers = [
 /// before it. Trailing `.`, `…`, `)` and `,` are ignored.
 ///
 /// Also the author's choice (not the maintainer's), on the same reading: a
-/// bare `Others` field, or `others` after a comma or `(`, is the same credit,
+/// bare `Others` field, or `others` after a separator [splitAuthorNames]
+/// splits on (`,` `(` `;` `/` `+` `&` or the word "with"), is the same credit,
 /// since nobody is credited as "Others"; `Bob Others` is left alone.
 ///
 /// Matching is case-insensitive and fixed-string, so it cannot backtrack.
@@ -258,7 +259,10 @@ const List<String> _unnamedOthers = [
         cut = field.length - credit.length;
         // "with" is the separator, not part of the name before it.
         if (credit == 'others' && trimmed.endsWith('with')) {
-          cut = trimmed.length - 'with'.length;
+          // Measured from the end, which is ASCII in both [field] and its
+          // lower-cased copy, so the index holds even if lower-casing ever
+          // changed an earlier character's length.
+          cut = field.length - (lower.length - trimmed.length) - 'with'.length;
         }
         break;
       }
