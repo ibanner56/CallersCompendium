@@ -106,6 +106,19 @@ Acceptance: the same multi-author dance imported from Caller's Box (an
 to the **same** author set, so dedupe's author-overlap signal is consistent
 across sources regardless of which adapter produced it.
 
+**Caller's Companion "and others" (#1976).** Before splitting, the Caller's
+Companion mapping (`mapCallersCompanionDance`, both the `.USR` columns and the
+pasted "by" line) takes an unnamed-others credit off its author fields with
+`peelUnnamedOthers()`: `And Others`, `& others`, `et al.`, a bare `Others`, or
+one ending a field (`Rick Mohr and others.`, `Rick Mohr (and others)`). The
+named authors are credited and the dance gets a `Choreography: Rick Mohr and
+others` calling-notes line (`Choreography: others, not named` when nobody is
+named), so no choreographer called "Others" is made. Scoping it to CC was the
+implementer's choice, not the maintainer's: the decision was made on a CC
+issue, and `splitAuthorNames` is shared, so ContraDB and The Caller's Box still
+split "X and others" into `X` and `others`. The author set for dedupe
+still overlaps across sources on the named authors.
+
 - **Matching policy — exact, normalized, conservative.** A name matches an existing
   `Choreographer` iff its normalized form (NFC composition → trim → collapse
   internal whitespace → lowercase) equals an existing row's normalized name.
@@ -135,7 +148,9 @@ across sources regardless of which adapter produced it.
   no surviving dance still references (the repository's referenced-guard is
   respected). Pre-existing choreographers are never touched.
 - **`callingNotes` behavior change.** Author names are **no longer folded** into
-  `Dance.callingNotes`, and the old per-name `*_unresolved` info issues are removed;
+  `Dance.callingNotes` (except the Caller's Companion `Choreography: … and
+  others` line, above, which records a credit no choreographer row can hold;
+  #1976), and the old per-name `*_unresolved` info issues are removed;
   authorship now lives in `Dance.authorIds`. The per-record resolution outcome
   (matched vs created, per name) is surfaced structurally on
   `CommittedRecord.authorResolutions` for the review step.

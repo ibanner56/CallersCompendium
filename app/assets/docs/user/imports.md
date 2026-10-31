@@ -433,9 +433,21 @@ import again (see
 When the app looks for a dance you already have, "Bastringue, La" and "La
 Bastringue" count as the same title, whichever source either came from.
 
+A dance Caller's Companion credits to a choreographer **"and others"** (such
+as "Rick Mohr" and "And Others") is credited to the people it names, and the
+credit is kept as a line in its calling notes: "Choreography: Rick Mohr and
+others". No choreographer called "Others" is made. "& others", "et al." and a
+credit of just "Others" are read the same way, and a dance credited only to
+others reads "Choreography: others, not named". A dance you imported before
+keeps its credit; if you re-import it with **Also update title and credit**,
+it is credited to the named people only, without the note, and a choreographer
+called "Others" from the earlier import stays in your list until you remove
+it.
+
 Your **notes and sources** come across with each dance. Your calling notes
 come first, then the music, any progression detail, your other notes (under
-"Other notes:"), and where the dance came from (under "Source:"). Source and
+"Other notes:"), an "and others" credit (under "Choreography:"), and where the
+dance came from (under "Source:"). Source and
 video web addresses become links on the dance, a dance with a Caller's Box
 number gets a link to its page there, and a book reference becomes a published
 source cited with its page, reusing a source you already have with the same

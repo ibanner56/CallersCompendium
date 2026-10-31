@@ -195,3 +195,88 @@ List<String> _splitOnCommaWithSuffixProtection(String field) {
 bool _isWordChar(int codeUnit) =>
     (codeUnit >= 0x41 && codeUnit <= 0x5A) || // A-Z
     (codeUnit >= 0x61 && codeUnit <= 0x7A); // a-z
+
+/// The spellings of an unnamed-others credit [peelUnnamedOthers] recognises
+/// after a space, comma or `(`, lower-cased, whitespace collapsed, trailing
+/// `.` dropped.
+const List<String> _unnamedOthers = [
+  'and others',
+  '& others',
+  'et al',
+  'et. al',
+];
+
+/// [rawFields] with any "and others" credit taken off, and whether one was
+/// (#1976).
+///
+/// Caller's Companion credits a dance to "Rick Mohr" and "And Others", which
+/// [splitAuthorNames] would read as an author named "Others". The maintainer's
+/// decision (#1976, 2026-10-30) is to credit only the named authors and keep
+/// "and others" as a note, for "& others" and "et al." too. A field that is
+/// only such a credit is dropped, and one that ends with it (`Rick Mohr and
+/// others.`, `Rick Mohr, et al.`, `Rick Mohr (and others)`) keeps the names
+/// before it. Trailing `.`, `…`, `)` and `,` are ignored.
+///
+/// Also the author's choice (not the maintainer's), on the same reading: a
+/// bare `Others` field, or `others` after `(` or a separator
+/// [splitAuthorNames] splits on (`,` `;` `/` `+` `&` or the word "with"), is
+/// the same credit,
+/// since nobody is credited as "Others"; `Bob Others` is left alone.
+///
+/// Matching is case-insensitive and fixed-string, so it cannot backtrack.
+({List<String?> fields, bool hadOthers}) peelUnnamedOthers(
+  Iterable<String?> rawFields,
+) {
+  var hadOthers = false;
+  final fields = <String?>[];
+  for (final raw in rawFields) {
+    if (raw == null) {
+      fields.add(null);
+      continue;
+    }
+    var field = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+    var end = field.length;
+    while (end > 0 && '.…), '.contains(field[end - 1])) {
+      end--;
+    }
+    field = field.substring(0, end);
+    final lower = field.toLowerCase();
+    int? cut;
+    for (final credit in [..._unnamedOthers, 'others']) {
+      if (!lower.endsWith(credit)) continue;
+      final before = lower.substring(0, lower.length - credit.length);
+      // "And others" follows a name after a space; a bare "others" only after
+      // `(` or a separator [splitAuthorNames] splits on (`,` `;` `/` `+` `&`
+      // or the word "with"), so `Bob Others` stays a name.
+      final trimmed = before.trimRight();
+      final follows = credit == 'others'
+          ? RegExp(r'[,(;/+&]$').hasMatch(trimmed) ||
+                (before.endsWith(' ') &&
+                    (trimmed == 'with' || trimmed.endsWith(' with')))
+          : before.endsWith(' ') ||
+                before.endsWith(',') ||
+                before.endsWith('(');
+      if (before.isEmpty || before == '(' || follows) {
+        cut = field.length - credit.length;
+        // "with" is the separator, not part of the name before it.
+        if (credit == 'others' && trimmed.endsWith('with')) {
+          // Measured from the end, which is ASCII in both [field] and its
+          // lower-cased copy, so the index holds even if lower-casing ever
+          // changed an earlier character's length.
+          cut = field.length - (lower.length - trimmed.length) - 'with'.length;
+        }
+        break;
+      }
+    }
+    if (cut == null) {
+      fields.add(raw);
+      continue;
+    }
+    hadOthers = true;
+    while (cut! > 0 && ' ,(;/+&'.contains(field[cut - 1])) {
+      cut--;
+    }
+    if (cut > 0) fields.add(field.substring(0, cut));
+  }
+  return (fields: fields, hadOthers: hadOthers);
+}
