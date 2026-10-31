@@ -217,7 +217,7 @@ String _titleFor(CcSet set, DateTime? eventDate) {
 ///
 /// A slot name is the set's caller when its words begin the set caller's, read
 /// from the given name on ([_setCallerWords]): "Michael" and "Michael Smith"
-/// for "Michael Smith" or "Smith, Michael". Never the reverse, so on a set
+/// for "Michael Smith". Never the reverse, so on a set
 /// called by "Mary" the slots "Mary Kate" and "Mary Lou" are two callers.
 bool _keepsSlotCallers(List<ProgramSlot> slots, String? setCaller) {
   final caller = _cleanLine(setCaller);
@@ -241,38 +241,36 @@ bool _keepsSlotCallers(List<ProgramSlot> slots, String? setCaller) {
 const Set<String> _nameSuffixes = {'jr', 'sr', 'ii', 'iii', 'iv'};
 
 /// Whether a set's [caller] names more than one person: joined by `&`, `+`,
-/// `/` or the word "and", or a comma list other than "Last, First" and a name
-/// suffix ("Michael Smith, Jr.").
+/// `/`, `;`, or the word "and" or "with", or by a comma that sets off anything
+/// but a name suffix ("Michael Smith, Jr."). A comma between two single words
+/// is read as two people, not "Last, First": "Michael, Lisa" and "Smith,
+/// Michael" cannot be told apart, and keeping the slot callers loses nothing
+/// (the implementer's reading).
 bool _namesSeveralPeople(String caller) {
   final lower = caller.toLowerCase();
-  if (lower.contains('&') || lower.contains('+') || lower.contains('/')) {
-    return true;
-  }
-  if (_words(lower).contains('and')) return true;
+  if (RegExp(r'[&+/;]').hasMatch(lower)) return true;
+  final words = _words(lower);
+  if (words.contains('and') || words.contains('with')) return true;
   final parts = [
     for (final part in lower.split(','))
       if (_words(part) case final words when words.isNotEmpty) words,
   ];
-  if (parts.length < 2) return false;
-  final names = [
-    for (final words in parts)
-      if (!(words.length == 1 && _nameSuffixes.contains(words.single))) words,
-  ];
-  // "Smith, Michael": a lone surname before one comma.
-  return names.length > 2 || (names.length == 2 && names.first.length > 1);
+  return parts
+          .where((w) => !(w.length == 1 && _nameSuffixes.contains(w.single)))
+          .length >
+      1;
 }
 
-/// The set caller's words from the given name on: "Smith, Michael" reads
-/// "michael smith", a name suffix after a comma is dropped, and a leading
-/// dotted initial ("J. Michael Smith") is skipped while two words remain.
+/// The set caller's words from the given name on: a name suffix after a comma
+/// is dropped, and a leading dotted title or initial ("Dr. Michael Smith",
+/// "J. Michael Smith") is skipped while two words remain.
 List<String> _setCallerWords(String caller) {
-  final parts = [
+  final named = [
     for (final part in caller.split(','))
       if (_words(part) case final words when words.isNotEmpty)
         if (!(words.length == 1 && _nameSuffixes.contains(words.single))) part,
-  ];
-  final ordered = parts.length == 2 ? '${parts[1]} ${parts[0]}' : parts.join();
-  final raw = ordered.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  ].join(' ');
+  final raw = named.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
   var first = 0;
   while (raw.length - first > 2 && raw[first].endsWith('.')) {
     first++;

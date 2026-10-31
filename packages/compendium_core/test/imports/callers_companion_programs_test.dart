@@ -257,10 +257,8 @@ void main() {
     });
 
     test('the set caller matches in other written forms', () {
-      expect(slotCallers('Smith, Michael', ['Michael', 'Michael']), [
-        null,
-        null,
-      ]);
+      expect(slotCallers('Michael Smith, Jr', ['Michael']), [null]);
+      expect(slotCallers('Andy Smith', ['Andy', 'Andy']), [null, null]);
       expect(slotCallers('J. Michael Smith', ['Michael']), [null]);
       expect(slotCallers('Mary Kate Olsen', ['Mary Kate']), [null]);
       expect(slotCallers('Mary-Kate Olsen', ['Mary-Kate']), [null]);
@@ -310,6 +308,10 @@ void main() {
         'Michael/Lisa',
         'Michael + Lisa',
         'Michael Smith, Lisa Greenleaf',
+        'Michael, Lisa',
+        'Michael, Lisa, Bob',
+        'Michael with Lisa',
+        'Michael Smith; Lisa Greenleaf',
       ]) {
         expect(slotCallers(caller, ['Michael', 'Michael']), [
           'Michael',
