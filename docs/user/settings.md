@@ -18,7 +18,7 @@ section.*
 
 ## Finding Settings
 
-**Settings** is a top-level destination, marked with a gear icon and labelled
+**Settings** is a top-level destination, marked with a gear icon and labeled
 **Settings**. On a narrow screen (like a phone) it's a tab in the bottom
 navigation; on a wide screen (a tablet or desktop) it's in the side navigation
 rail.
@@ -55,14 +55,14 @@ The **General** section gathers everyday behavior into small groups.
   (built-in figures start in lower case, as in ContraDB). Only the look in those
   places changes; exports, search, sync comparisons and screen-reader wording are
   unaffected.
-- **Tags** — opens the Tags manager, where you rename, merge, colour and delete
+- **Tags** — opens the Tags manager, where you rename, merge, color and delete
   your tags. See [Group by category](./collection.md#group-by-category-a-dances-vibe)
   for what each action does.
 - **Authors** and **Sources** — open the Authors and Sources managers. They
   work like the Tags manager: search, a **Not used** filter, sort by name or by
   number of dances, and a ⋮ on each row (or tap the row) for its actions.
   Each row shows how many dances use it; a dance in
-  [Recently deleted](#deleted-items) doesn't count. A source's row also shows
+  [Recently deleted](#recently-deleted) doesn't count. A source's row also shows
   its author and year, so two sources with the same title can be told apart.
   - **Rename** changes the name everywhere it is credited. Renaming an author
     to a name another author already has offers to **merge** the two instead.
@@ -85,7 +85,7 @@ The **General** section gathers everyday behavior into small groups.
   dropped details come back with Undo, and are gone after it.
 
   Merging two authors loses something on your other devices, as merging two
-  choreographers in [Sync decisions](#sync-decisions) does: an email address,
+  authors in [Sync decisions](#sync-decisions) does: an email address,
   location, and deceased marker are kept only on your own device and are never
   sent to your other devices, so the ones another device holds for the author
   that is not kept cannot be recovered there.
@@ -112,14 +112,15 @@ The **General** section gathers everyday behavior into small groups.
   selection mode. The one exception is swiping a row in the Collection or
   Programs list: that reveals a **Delete** button, and tapping it deletes with
   no prompt, because the swipe plus the tap is already a deliberate two-step
-  action. Deletes are still undoable either way.
+  action. Deletes are still undoable either way. When you delete a program, the
+  prompt also says how many dances lose it from their calling history.
 
 These are the highlights; the [Accessibility guide](./accessibility.md) gives you
 the full picture.
 
-### Deleted items
+### Recently deleted
 
-- **Keep deleted items for** — choose **30 days**, **90 days**, or **Never**
+- **Keep recently deleted items for** — choose **30 days**, **90 days**, or **Never**
   (default is **30 days**). Deleted dances and deleted programs are held for
   this long and then purged. If you use [Device Sync](#device-sync), the
   setting syncs and applies on all your devices: when a shared item's time is
@@ -142,8 +143,8 @@ the full picture.
   answering **Not now** without it asks again next time. A conversion can be
   undone straight after. See
   [Imports & migration](./imports.md#dances-tagged-ecd).
-- **Re-check custom figures** — re-reads imported dances whose figures were kept
-  as plain custom text only because the app couldn't recognise them at the time.
+- **Re-check unrecognized figures** — re-reads imported dances whose figures were kept
+  as plain text only because the app couldn't recognize them at the time.
   You preview and confirm before anything changes, and your tags, ratings, and
   notes are preserved. See
   [Write & edit dances](./authoring.md#fix-figures-an-import-could-not-read).
@@ -228,7 +229,7 @@ details are handled when you export.
   - **Restore removed columns** brings back everything you removed and returns the
     built-in columns to their original order, while keeping your renames and any
     custom columns.
-  - **Restore all defaults** clears every customisation and returns the matrix to
+  - **Restore all defaults** clears every customization and returns the matrix to
     how it ships. Because it discards your renames and custom columns, it asks
     you to confirm first.
 
@@ -303,15 +304,15 @@ There's a **High contrast** theme for maximum legibility — see the
 ### Custom themes
 
 - **New custom theme** — opens an editor seeded from your current theme, so you
-  start from something familiar. You can tune any colour in it.
+  start from something familiar. You can tune any color in it.
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
   They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
 
 ### Easter eggs
 
 - **Color-named dances tint the theme** (off by default) — a playful surprise:
-  open a dance whose title names a colour, like *Baby Rose* or *Blue Boy*, and its
-  view is tinted that colour. It steps aside when a high-contrast theme is active,
+  open a dance whose title names a color, like *Baby Rose* or *Blue Boy*, and its
+  view is tinted that color. It steps aside when a high-contrast theme is active,
   so readability always wins.
 
 ### Set lists
@@ -323,31 +324,31 @@ There's a **High contrast** theme for maximum legibility — see the
   glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
   accent regardless of their formation, so a mixer-flagged Improper reads as
   a mixer rather than a contra, even if you have given that formation its own
-  colour (see [Formation colors](#formation-colors) below). The formation (and "Mixer" when applicable) is
+  color (see [Formation colors](#formation-colors) below). The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
-  on colour, and the family tints adapt to the High contrast theme. On by default;
-  turn it off to hide the tints (your own formation colours are hidden with them).
+  on color, and the family tints adapt to the High contrast theme. On by default;
+  turn it off to hide the tints (your own formation colors are hidden with them).
 
 ### Formation colors
 
 - **Formation label colors** — highlight individual formations in your own
-  colours (for example Becket clockwise in yellow and Becket counter-clockwise in
+  colors (for example Becket clockwise in yellow and Becket counter-clockwise in
   pink). Your choices show on dance cards, in dance detail, in the Perform
   header, and on set-list rows in a program's summary and builder. On a set-list
-  row your colour replaces the built-in tint for that formation's family; a
-  formation you haven't coloured keeps its family tint, and a dance marked as a
-  mixer keeps the mixer accent. Your colour is used as you chose it in every
+  row your color replaces the built-in tint for that formation's family; a
+  formation you haven't colored keeps its family tint, and a dance marked as a
+  mixer keeps the mixer accent. Your color is used as you chose it in every
   theme, High contrast included, because on a row it only paints the edge of the
   row, never text. With **Color-code set-list rows** off, set-list rows show no
-  colour at all.
+  color at all.
 
 ### Tag colors
 
-- **Tag colors** — give a tag its own colour so it stands out wherever it
-  appears, on dance cards and in dance detail. Only the tags you colour change;
+- **Tag colors** — give a tag its own color so it stands out wherever it
+  appears, on dance cards and in dance detail. Only the tags you color change;
   every other tag looks exactly as it does now. The tag's name is always shown
-  beside the colour, so tags stay readable without relying on colour, and the
-  app picks a black or white label automatically so your colour stays legible in
+  beside the color, so tags stay readable without relying on color, and the
+  app picks a black or white label automatically so your color stays legible in
   every theme. This opens the Tags manager (also under **General → Library →
   Tags**): choose **Color…** in a tag's menu to pick one, or **Remove color**.
 
@@ -420,7 +421,7 @@ The **Language & region** section handles formats and localization.
   | `d` or `dd` | Day |
 
   Separate them with a hyphen, slash, dot, comma, or space. If a pattern isn't
-  recognised the app says so and falls back to the system default until you
+  recognized the app says so and falls back to the system default until you
   correct it.
 
 - **First day of week** — choose **System default**, **Sunday**, **Monday**, or
@@ -796,7 +797,7 @@ The Glossary lists them too, when it is shown. While it is on:
   figure doesn't change, and later changes to the app's figure don't reach
   the copy. Its page says what it was copied from.
 - Build a combination from figures that come with the app, in order, the same
-  way as in the dance editor. Custom figures and meanwhile, modifier and
+  way as in the dance editor. Unrecognized figures and meanwhile, modifier and
   sequence groups can't be used as parts.
 - Give a new figure its **Wording**, how it reads in a dance: put a parameter
   in braces, such as `{who}`, use `{move}` for the figure's name and `{beats}`
@@ -842,8 +843,8 @@ The Glossary lists them too, when it is shown. While it is on:
   combination **Expands to** (folded until you open it), or a new figure's
   **Wording** and an **Example** with its defaults, and to **Edit** or
   **Delete** it. Deleting a new figure says how many dances use it; each keeps
-  the wording it shows now, as plain text. It also says how many dances in the
-  Trash use it, which keep the line each last stored, and whether your default
+  the wording it shows now, as plain text. It also says how many dances in
+  Recently deleted use it, which keep the line each last stored, and whether your default
   figures use it; they keep its current wording as plain text, like the
   dances. Each dialect's name and wording for it, and its column's place, name
   and hiding in **Matrix columns**, are removed too. Deleting a combination or
@@ -869,7 +870,7 @@ The Glossary lists them too, when it is shown. While it is on:
   your figure no longer has, or whose name another shorthand also has, stays
   as it is). A line whose wording was edited in an older version of the app,
   or that holds a value your figure no longer has, keeps its wording as plain
-  text, and dances in the Trash keep the line each last stored. As with
+  text, and dances in Recently deleted keep the line each last stored. As with
   deleting, each dialect's name and wording for your figure, and its column in
   **Matrix columns**, are removed: the app's figure has its own.
 
@@ -1033,7 +1034,7 @@ Sync is off and open while it is on.
   from **Other devices**, when the data starts syncing. Choose **See other devices**
   on it to open that list. Each notice lists the records it is
   about, the first few individually and the rest as a count, so you know
-  which ones to look at. Dances, programs, choreographers, tags and venues are
+  which ones to look at. Dances, programs, authors, tags and venues are
   named by the title or name this device has for them, and one this device
   doesn't have is listed as not on this device; other kinds of record —
   settings, custom fields, difficulty levels, published sources, your own
@@ -1250,7 +1251,7 @@ to keep, so it doesn't pick one: both versions stay as they are, and it asks
 you.
 
 It only asks when the versions differ in something you can see. When they look
-exactly the same — the same choreographer added on two devices before they
+exactly the same — the same author added on two devices before they
 synced, say — the app keeps one of them for you, the same one on every device,
 and doesn't ask.
 
@@ -1275,7 +1276,7 @@ comparison shows:
   is only on this device, what is only on the other device, and what both have
   but differently — with the two versions side by side. For a dialect, that
   means the terms that differ in each section; for a theme, whether it's light
-  or dark and each colour that differs;
+  or dark and each color that differs;
 - for a dance: each detail that differs, with both versions. Figures are
   compared line by line under the part of the dance they start in (A1, A2, B1,
   B2), and figures that match aren't repeated; when a figure reads the same in
@@ -1287,8 +1288,8 @@ comparison shows:
   has (a dance is matched by which dance it is, not its title, and repeats are
   counted), whether the dances they share are in a different order, and
   whether their timings, alternates or other details differ;
-- for a tag, venue or choreographer: each detail that differs, such as a tag's
-  colour or a venue's sponsor, schedule or price.
+- for a tag, venue or author: each detail that differs, such as a tag's
+  color or a venue's sponsor, schedule or price.
 
 Nothing is selected for you. Pick the version you want for each item, then
 choose **Keep selected**; with several items, **Keep all
@@ -1335,7 +1336,7 @@ are.
   conflicts that Device Sync couldn't settle on its own, and choose how each one is resolved. Three kinds of
   conflict offer a decision:
   - **A device deleted something another device still has.** One of your
-    devices deleted a choreographer, tag, custom field, or difficulty level
+    devices deleted an author, tag, custom field, or difficulty level
     that this device had already created on its own under the same name,
     before either device had seen the other's copy. **Merge** accepts the
     deletion, so this device's copy goes too. **Keep both** gives this
@@ -1349,12 +1350,12 @@ are.
     the name, and then applies the other device's rename. Until you choose, the
     other device's change is not applied.
 
-    You aren't asked when the tag or choreographer holding the name has been
+    You aren't asked when the tag or author holding the name has been
     deleted: a deleted one gives the name up, and the rename goes ahead. Nor
     are you asked while the record holding the name is already on its way to
     another name; the rename waits until it has moved, then applies.
 
-    Merging two choreographers is the one case that loses something: an email
+    Merging two authors is the one case that loses something: an email
     address, location, and deceased marker are kept only on your own device and
     are never sent to your other devices, so the ones on the record that is not
     kept cannot be recovered. The app asks you to confirm before this happens.

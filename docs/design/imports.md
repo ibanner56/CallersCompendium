@@ -106,6 +106,19 @@ Acceptance: the same multi-author dance imported from Caller's Box (an
 to the **same** author set, so dedupe's author-overlap signal is consistent
 across sources regardless of which adapter produced it.
 
+**Caller's Companion "and others" (#1976).** Before splitting, the Caller's
+Companion mapping (`mapCallersCompanionDance`, both the `.USR` columns and the
+pasted "by" line) takes an unnamed-others credit off its author fields with
+`peelUnnamedOthers()`: `And Others`, `& others`, `et al.`, a bare `Others`, or
+one ending a field (`Rick Mohr and others.`, `Rick Mohr (and others)`). The
+named authors are credited and the dance gets a `Choreography: Rick Mohr and
+others` calling-notes line (`Choreography: others, not named` when nobody is
+named), so no choreographer called "Others" is made. Scoping it to CC was the
+implementer's choice, not the maintainer's: the decision was made on a CC
+issue, and `splitAuthorNames` is shared, so ContraDB and The Caller's Box still
+split "X and others" into `X` and `others`. The author set for dedupe
+still overlaps across sources on the named authors.
+
 - **Matching policy — exact, normalized, conservative.** A name matches an existing
   `Choreographer` iff its normalized form (NFC composition → trim → collapse
   internal whitespace → lowercase) equals an existing row's normalized name.
@@ -135,7 +148,9 @@ across sources regardless of which adapter produced it.
   no surviving dance still references (the repository's referenced-guard is
   respected). Pre-existing choreographers are never touched.
 - **`callingNotes` behavior change.** Author names are **no longer folded** into
-  `Dance.callingNotes`, and the old per-name `*_unresolved` info issues are removed;
+  `Dance.callingNotes` (except the Caller's Companion `Choreography: … and
+  others` line, above, which records a credit no choreographer row can hold;
+  #1976), and the old per-name `*_unresolved` info issues are removed;
   authorship now lives in `Dance.authorIds`. The per-record resolution outcome
   (matched vs created, per name) is surfaced structurally on
   `CommittedRecord.authorResolutions` for the review step.
@@ -1641,7 +1656,7 @@ has to be judged in its own context.
   bracket never overrules the roller a note names. Structured figures already
   stored keep their old `who`: the #1192 repair is unchanged and nothing
   re-reads them, so re-importing the same dance can differ from the stored
-  copy. An import-gap custom that **Re-check custom figures** re-reads gets
+  copy. An import-gap custom that **Re-check unrecognized figures** re-reads gets
   the new reading. `rollaway` and `w/ half sashay` read too.
   **Box circulate balance from beats (#1975, maintainer decision):** a box
   circulate that is a whole line gets `balance: true` in 8 beats and `balance:
@@ -1695,7 +1710,7 @@ has to be judged in its own context.
   decoded comma list says nothing about the balance, so unlike a Caller's Box
   `;` list it does not write `balance: false`. Square throughs already
   structured in a collection keep their balance; an import-gap custom that
-  **Re-check custom figures** reads again gets the new reading.
+  **Re-check unrecognized figures** reads again gets the new reading.
   ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
   is likewise promoted from the existing figure note to `turn`, using the
   maintainer mapping `on the left` → `clockwise` and `on the right` →
@@ -1926,7 +1941,7 @@ has to be judged in its own context.
     scrubbed like the rest of the line, so `form ring` after a figure still
     keeps the line text. Any other piece that reads as nothing keeps the whole
     line text, and a line of more than six pieces is not tried.
-  - Free-text entry and **Re-check custom figures** do not split at commas.
+  - Free-text entry and **Re-check unrecognized figures** do not split at commas.
 
   The shared balance reader also reads the hand Caller's Companion writes
   before it (`R-hand balance`, `Right hand balance`, `RH-balance`).
@@ -1964,13 +1979,46 @@ has to be judged in its own context.
     whole line must be the balance then the circulate, so `Box circulate,
     balance the wave` is not read, and `Balance the wave, circulate` reads the
     same as `Wave balance`. A bracket must say who crosses, as `_circulate`
-    reads The Caller's Box's definition: `(Larks cross)` gives `who`, `(Larks
-    cross, Robins loop R)` also `hand`, and the bracket stays the note. Any
-    other bracket keeps the line text, so the around-the-set line stays text
-    however its count is written.
+    reads The Caller's Box's definition: `(Larks cross)` gives `who` and
+    `(Larks cross, Robins loop R)` also `hand`. The bracket leaves no note
+    since #2089 (below). Any other bracket keeps the line text, so the
+    around-the-set line stays text however its count is written.
   - `goodBeats` is `[0, 4, 8]`: The Caller's Box folds `(4) Form a wave` and
     `(4) Balance the wave` into one balanced form short waves of 8, which keeps
     raising no `atypical_beats` warning.
+
+  **Box circulate brackets and a balance after it (#2089):** the maintainer's
+  decisions on #2089:
+  - `Box circulate (Larks cross)` and a bare `Circulate (Robins cross, Larks
+    loop L)` are a box circulate whose bracket gives `who` and `hand`, as after
+    `Wave balance,` (`_circulateCrossBracket`, through the same bracket reader).
+    No balance is stated, so the line's beats decide it, by the rule above
+    from #1975.
+  - A bracket read whole leaves no note, here and after `Wave balance,`: the box
+    circulate's display already says who crosses and who loops. A note would
+    also lose the line to ContraDB's reader, which keeps the bracket as its
+    note and leaves `who` at its default; the two readings would tie on
+    unexplained text, and precedence gives a tie to ContraDB.
+  - Any other bracket reads as before: a box circulate noting it, or, after a
+    bare `Circulate`, text.
+  - `Box circulate, balance the wave` stays text. A box circulate's balance
+    can only come first, and a line's 8 beats would turn it on. The fan-out
+    has no reading for a box circulate whose note holds a balance, at its
+    start or after a comma, `;`, dash, `and` or `then`
+    (`_balanceAfterCirculate`), for imports and typed figures alike.
+
+  The author's calls:
+  - The rule covers any balance written after it (`balance the ring`,
+    `Neighbor balance`), one after a bracket, and one later in the note (`Box
+    circulate to a wave, balance the wave`), but not `no balance`.
+  - Without the fan-out's reading, a Caller's Companion import splits the line
+    at the comma when the balance reads alone, as any comma line: `(8) Box
+    circulate, balance the ring` is a box circulate in 4 then a ring balance in
+    4, in the order written. `balance the wave` does not read alone, so that
+    line stays text.
+  - The rule covers only the box circulate. A square through, the other move
+    whose balance its beats give, already keeps `Square through 2, balance the
+    wave` text.
 
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on

@@ -640,10 +640,9 @@ decisions:
   makes "Zesty Contras" and "Zesty Contras" indistinguishable in the picker.
 - **Edit details…** saves as the dance editor does, with no Undo.
 
-T3 kept the "Choreographer details" title the details dialog has had. D-3 says
-"people are 'author'", and renaming existing strings is U4's (see
-[What is already decided](#what-is-already-decided)); T3's new strings say
-"author".
+T3 kept the "Choreographer details" title the details dialog had had. D-3 says
+"people are 'author'", and U4 renamed it to "Author details" along with the
+other existing strings (see [What is already decided](#what-is-already-decided)).
 
 ## The purge GC (LIFE-5 option c)
 
@@ -909,8 +908,8 @@ merged; B7 is in flight; B8 and B13 have not started). In the audit branch's
   - the private-details merge dialog;
   - citation page and number fill.
 - **UI text:** ARB keys, and a changelog fragment. The new strings say
-  "author" (D-3). Renaming the existing "Choreographer details" title is
-  U4's job, so coordinate with U4 rather than duplicate it.
+  "author" (D-3). The existing "Choreographer details" title was renamed
+  to "Author details" by U4.
 - **Docs:** `authoring.md:582-597`, `settings.md:1220-1223`.
 - **Hot files:** `dance_editor_screen.dart`, which B23 edited (merged, #2035)
   and N4-S6 also edits; the ARBs.

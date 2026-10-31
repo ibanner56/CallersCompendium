@@ -42,9 +42,9 @@ Perform mode shows one dance at a time in very large type, with the
 [figures](./glossary.md#figure) grouped by section (A1, A2, B1, B2) and set in a
 typeface built to be read from a distance.
 
-Above the figures, the card shows the dance's title, choreographer, formation,
+Above the figures, the card shows the dance's title, author, formation,
 and level; below them come the dance's calling notes. The figure where the
-progression happens is marked with an icon labelled *Progression*. Break and
+progression happens is marked with an icon labeled *Progression*. Break and
 note slots in a program get a card of their own, with the text in the same
 large type.
 
@@ -109,7 +109,7 @@ it is full screen, it opens in its usual window next time. Phones and tablets
 have no button for this, because Perform is always full screen there.
 
 **Caller notes.** When you perform a program, a slot's caller note appears above
-the dance title, labelled *Caller note*. To hide these, turn off **Show caller
+the dance title, labeled *Caller note*. To hide these, turn off **Show caller
 notes in program Perform** in
 [Settings › Program › Performance](./settings.md#performance). The note is for
 your eyes only: it does not change the dance's own calling notes, search, or
@@ -269,9 +269,9 @@ accessibility options.
 
 ## Leaving Perform
 
-Choose **Exit performance view** and the app checks first:
+Choose **Exit Perform mode** and the app checks first:
 
-> **Exit Perform?** — Leave the performance view? Your place and the running clock
+> **Exit Perform?** — Leave Perform mode? Your place and the running clock
 > are kept, so you can resume where you left off.
 
 **Keep performing** returns you to the card; **Exit** leaves. When you are

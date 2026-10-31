@@ -1367,7 +1367,7 @@ void main() {
       find.text(l10n.importRecordErrorNotCompendiumArchive),
       findsOneWidget,
     );
-    expect(find.textContaining("Caller's Compendium file"), findsOneWidget);
+    expect(find.textContaining("share file"), findsOneWidget);
     // A file source still offers to pick another file.
     expect(find.text(l10n.importReviewTryAnother), findsOneWidget);
   });

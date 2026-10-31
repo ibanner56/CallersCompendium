@@ -21,8 +21,25 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - **Phones/tablets**: bottom navigation (Collection, Programs, Glossary when
   turned on, Settings, Guide);
   Perform is a mode, not a tab — entered explicitly, exits back to context.
-- **Desktop**: left nav rail; list/detail split panes; full keyboard map,
-  global search shortcut (Ctrl/Cmd-K).
+- **Desktop**: left nav rail; list/detail split panes; global search shortcut
+  (Ctrl/Cmd-K); and a desktop keyboard map (PLAT-7), bound to Control and
+  Command alike (in a macOS text field Ctrl-F and Ctrl-N keep moving the
+  cursor): Ctrl/Cmd-S saves the open dance or program editor,
+  Ctrl/Cmd-N opens a new dance, Ctrl/Cmd-F focuses the Collection's search box
+  (global search anywhere else), Ctrl/Cmd-, opens Settings, and Esc or
+  Ctrl/Cmd-W goes back. A mouse's Back button goes back too, and a right-click
+  on a Collection or Programs row opens that row's ⋮ menu. "Back" closes
+  whatever a tap outside would close first (a menu, a sheet, a text field's
+  toolbar or an autocomplete's options), then leaves the page as system back
+  does, so an editor with unsaved changes asks first. New dance, Settings and
+  the macOS menu bar's Import and Guide leave pushed pages first through each
+  page's own back guard, stop at one that would ask (and ask it), and do
+  nothing while a dialog is open or while performing. On macOS a small menu bar (PLAT-8) runs the same commands:
+  Settings…, File (New Dance, Import Dances…, Close), View (the system's full
+  screen item), Window and Help (User Guide). It replaces the template menu
+  whole, so there is no Edit menu; text editing keys and the selection
+  right-click menu still work. The binding table is
+  `app/lib/src/widgets/app_shortcuts.dart`.
 - Responsive breakpoints: single pane (phone) / list+detail (tablet landscape,
   desktop) — same screens, adaptive layout, no separate "mobile app".
 
@@ -210,7 +227,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   announcement reads the pair as one continuous "A while B" phrase.
 - Full screen (PLAT-9): phones and tablets go immersive for the whole view.
   Desktop offers a toolbar toggle plus F11 (Ctrl-Cmd-F on macOS); Esc leaves
-  full screen but never Perform. Exit restores the window's entry state, and no
+  full screen but never Perform. Ctrl/Cmd-W and mouse Back reach Perform's
+  exit confirmation, as system back does, and the app-wide shortcuts
+  (Ctrl/Cmd-K, -N, -F, -,) do nothing while performing. Exit restores the window's entry state, and no
   window frame is persisted while the window is full screen.
 - Navigation: giant next/prev hit zones at screen edges (44pt+), on-screen
   prev/next buttons, arrow keys/page keys, jump-to-slot overview. There is no

@@ -65,6 +65,33 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'Arkiv';
+
+  @override
+  String get menuNewDance => 'Ny dans';
+
+  @override
+  String get menuImportDances => 'Importér danse …';
+
+  @override
+  String get menuClose => 'Luk';
+
+  @override
+  String get menuSettings => 'Indstillinger …';
+
+  @override
+  String get menuView => 'Oversigt';
+
+  @override
+  String get menuWindow => 'Vindue';
+
+  @override
+  String get menuHelp => 'Hjælp';
+
+  @override
+  String get menuUserGuide => 'Brugervejledning';
+
+  @override
   String get appBootstrapPreparing => 'Forbereder din samling';
 
   @override
@@ -263,6 +290,17 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 dans slettes. Din søgning skjuler den. Du kan fortryde dette.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteProgramHistoryBody(String itemLabel, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse mister dette program fra deres kaldshistorik.',
+      one: '1 dans mister dette program fra sin kaldshistorik.',
+    );
+    return '„$itemLabel“ slettes. $_temp0 Du kan fortryde dette.';
   }
 
   @override
@@ -757,8 +795,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count koreografer',
-      one: '1 koreograf',
+      other: '$count forfattere',
+      one: '1 forfatter',
     );
     return '$_temp0';
   }
@@ -2648,7 +2686,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt, og en linje skrevet i en eksisterende figurs bevægelse erstatter figuren, når du trykker Enter. Linjen omdannes til figurer; alt der ikke genkendes gemmes som en brugerdefineret figur, du kan rette senere. Nye danse starter uden figurer, medmindre du har gemt startfigurer.';
+      'Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt, og en linje skrevet i en eksisterende figurs bevægelse erstatter figuren, når du trykker Enter. Linjen omdannes til figurer; alt, som appen ikke kan læse, gemmes som en ukendt figur, du kan rette senere. Nye danse starter uden figurer, medmindre du har gemt startfigurer.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -3319,11 +3357,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Bed om bekræftelse inden sletning af en dans eller et program. Sletninger kan stadig fortrydes; dette tilføjer blot en eksplicit prompt først.';
 
   @override
-  String get settingsGeneralDeletedItemsHeader => 'Slettede elementer';
+  String get settingsGeneralDeletedItemsHeader => 'For nylig slettet';
 
   @override
   String get settingsGeneralSoftDeleteRetentionTitle =>
-      'Behold slettede elementer i';
+      'Behold for nylig slettede elementer i';
 
   @override
   String get settingsGeneralSoftDeleteRetentionSubtitle =>
@@ -3370,7 +3408,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Synkroniseringsbeslutningen kunne ikke anvendes. Posten blev bevaret, så du kan prøve igen.';
 
   @override
-  String get syncReviewKindChoreographer => 'Koreograf';
+  String get syncReviewKindChoreographer => 'Forfatter';
 
   @override
   String get syncReviewKindTag => 'Mærke';
@@ -3431,7 +3469,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewMergeDiscardsContactsTitle =>
-      'Vil du flette disse koreografer sammen?';
+      'Vil du flette disse forfattere sammen?';
 
   @override
   String get syncReviewMergeDiscardsContactsBody =>
@@ -3495,11 +3533,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresTitle =>
-      'Genkontrollér brugerdefinerede figurer';
+      'Genkontrollér ukendte figurer';
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Tjek importerede danse igen, hvis figurer kun er gemt som brugerdefinerede, fordi de ikke kunne genkendes ved importtidspunktet. Hvis appen nu kan genkende dem, opgraderes de på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.';
+      'Tjek importerede danse igen, hvis figurer kun er gemt som ukendte figurer, fordi de ikke kunne genkendes ved importtidspunktet. Hvis appen nu kan genkende dem, opgraderes de på stedet – dine tags, vurderinger og noter bevares. Du forhåndsviser og bekræfter, inden noget ændres.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Genkontrollér…';
@@ -3954,14 +3992,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importGapMessage =>
-      'Kunne ikke genkende dette kald – beholdt præcis som skrevet som en brugerdefineret figur.';
+      'Kunne ikke genkende dette kald – beholdt præcis som skrevet som en ukendt figur.';
 
   @override
   String get importGapDialogTitle => 'Ukendt figur';
 
   @override
   String get importGapSemanticLabel =>
-      'Ukendt figur. Beholdt præcis som skrevet som en brugerdefineret figur.';
+      'Ukendt figur. Beholdt præcis som skrevet.';
 
   @override
   String get collectionScreenTitle => 'Samling';
@@ -5262,7 +5300,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsAddDanceButton => 'Tilføj dans';
 
   @override
-  String get programsAddNoteBreakButton => 'Tilføj note / vals';
+  String get programsAddNoteBreakButton => 'Tilføj note eller pause';
 
   @override
   String get programsInsertBreakButton => 'Indsæt pause';
@@ -5915,18 +5953,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performTitle => 'Fremfør';
 
   @override
-  String get performExitTooltip => 'Afslut fremførelsesvisning';
+  String get performExitTooltip => 'Afslut Fremfør';
 
   @override
   String get performExitTitle => 'Afslut Fremfør?';
 
   @override
   String get performExitBody =>
-      'Forlad fremførelsesvisningen? Din placering og det kørende ur bevares, så du kan genoptage når som helst.';
+      'Forlad Fremfør? Din placering og det kørende ur bevares, så du kan genoptage når som helst.';
 
   @override
   String get performDanceExitBody =>
-      'Forlad fremførelsesvisningen? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.';
+      'Forlad Fremfør? Når du fremfører en enkelt dans, gemmes din placering ikke, så næste gang starter forfra.';
 
   @override
   String get performExitCancel => 'Fortsæt fremførelse';
@@ -7601,11 +7639,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueMoveFallback =>
-      'En figur kunne ikke matches til en kendt bevægelse; importeret som brugerdefineret.';
+      'En figur kunne ikke matches til en kendt bevægelse; importeret som ukendt figur.';
 
   @override
   String importIssueMoveFallbackAt(int position) {
-    return 'Figur $position kunne ikke matches til en kendt bevægelse; importeret som brugerdefineret.';
+    return 'Figur $position kunne ikke matches til en kendt bevægelse; importeret som ukendt figur.';
   }
 
   @override
@@ -7649,7 +7687,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importRecordErrorNotCompendiumArchive =>
-      'Det er ikke en Caller\'s Compendium-fil. Vælg en .json-fil, der er eksporteret fra denne app.';
+      'Det er ikke en delefil. Vælg en .json- eller .ccshare-fil, der er eksporteret fra denne app.';
 
   @override
   String get importRecordErrorNotCallersBoxDance =>
@@ -7769,7 +7807,7 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get importReviewCustom => 'Brugerdefineret';
+  String get importReviewCustom => 'Ukendt';
 
   @override
   String get importReviewOptionNewDance => 'Ny dans';
@@ -8103,11 +8141,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorFiguresHelp =>
-      'Skriv en bevægelse (f.eks. \"sw\" → swing) og tryk Enter for at tilføje den med standardværdier; tekst, der ikke genkendes, bliver til en brugerdefineret figur.';
+      'Skriv en bevægelse (f.eks. \"sw\" → swing) og tryk Enter for at tilføje den med standardværdier; tekst, som appen ikke kan læse, bliver til en ukendt figur.';
 
   @override
   String get danceEditorFiguresHelpFreeText =>
-      'Tilføj en figur ved at skrive en hel linje (f.eks. \"nabo balance & swing\") og trykke Enter. En linje skrevet i en eksisterende figurs bevægelse erstatter figuren. Alt der ikke genkendes, bliver en brugerdefineret figur.';
+      'Tilføj en figur ved at skrive en hel linje (f.eks. \"nabo balance & swing\") og trykke Enter. En linje skrevet i en eksisterende figurs bevægelse erstatter figuren. Tekst, som appen ikke kan læse, bliver en ukendt figur.';
 
   @override
   String get danceEditorNotesSection => 'Noter';
@@ -8525,12 +8563,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorChoreographerDuplicate(String name) {
-    return 'En koreograf ved navn „$name“ findes allerede. Navnet blev ikke ændret.';
+    return 'En forfatter ved navn „$name“ findes allerede. Navnet blev ikke ændret.';
   }
 
   @override
   String danceEditorChoreographerCreateDuplicate(String name) {
-    return 'En koreograf ved navn „$name“ findes allerede. Den nye forfatter blev ikke oprettet — vælg den eksisterende i stedet.';
+    return 'En forfatter ved navn „$name“ findes allerede. Den nye forfatter blev ikke oprettet — vælg den eksisterende i stedet.';
   }
 
   @override
@@ -8615,7 +8653,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorLoadError => 'Kunne ikke indlæse dansen.';
 
   @override
-  String get danceEditorChoreographerDetailsTitle => 'Koreografdetaljer';
+  String get danceEditorChoreographerDetailsTitle => 'Forfatterdetaljer';
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
@@ -8785,7 +8823,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorTypeFigureHelper =>
-      'f.eks. „nabo balance & swing“ eller „16 circle left 3/4“. Enter tilføjer den; uigenkendt tekst gemmes som en brugerdefineret figur.';
+      'f.eks. „nabo balance & swing“ eller „16 circle left 3/4“. Enter tilføjer den; tekst, som appen ikke kan læse, gemmes som en ukendt figur.';
 
   @override
   String get danceEditorPasteHere => 'Indsæt her';
@@ -8794,7 +8832,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorEmptyFigureName => 'Tom figur';
 
   @override
-  String get danceEditorCustomFigureName => 'Brugerdefineret figur';
+  String get danceEditorCustomFigureName => 'Ukendt figur';
 
   @override
   String get danceEditorEmptyFigureSummary => '(tom – vælg en bevægelse)';
@@ -9133,7 +9171,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorUnderlineTooltip => 'Understreget (_tekst_)';
 
   @override
-  String get danceEditorCustomFigureTextLabel => 'Brugerdefineret figurtekst';
+  String get danceEditorCustomFigureTextLabel => 'Tekst til ukendt figur';
 
   @override
   String get danceEditorLingoStylingHelper =>
@@ -9831,7 +9869,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get themeEditorSwatchError => 'Fejl';
 
   @override
-  String get reparseConfirmTitle => 'Opgradér brugerdefinerede figurer?';
+  String get reparseConfirmTitle => 'Opgradér ukendte figurer?';
 
   @override
   String reparseConfirmBody(int figureCount, int danceCount) {
@@ -9868,11 +9906,11 @@ class AppLocalizationsDa extends AppLocalizations {
       other: '$danceCount danse',
       one: '1 dans',
     );
-    return 'Opgraderede brugerdefinerede figurer i $_temp0.';
+    return 'Opgraderede ukendte figurer i $_temp0.';
   }
 
   @override
-  String get reparseScreenTitle => 'Genkontrollér brugerdefinerede figurer';
+  String get reparseScreenTitle => 'Genkontrollér ukendte figurer';
 
   @override
   String reparseIntro(int figureCount, int danceCount) {
@@ -9918,7 +9956,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get reparseEmptyBody =>
-      'Ingen af dine brugerdefinerede figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter en kommende opdatering, der forbedrer genkendelsen af figurer.';
+      'Ingen af dine ukendte figurer fra imports kan genkendes som en kendt bevægelse lige nu. Tjek igen efter en kommende opdatering, der forbedrer genkendelsen af figurer.';
 
   @override
   String get reparseErrorTitle => 'Kunne ikke kontrollere dine figurer';
@@ -10192,7 +10230,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get recentlyDeletedLoadError =>
-      'Dine slettede elementer kunne ikke indlæses. Intet er blevet fjernet.';
+      'Dine for nylig slettede elementer kunne ikke indlæses. Intet er blevet fjernet.';
 
   @override
   String get recentlyDeletedDeleteTitle => 'Slet permanent?';
@@ -10245,23 +10283,23 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get recentlyDeletedEmptyDancesKept =>
-      'Intet i papirkurven. Slettede danse bevares her, indtil du fjerner dem.';
+      'Ingen danse er slettet for nylig. Slettede danse bevares her, indtil du fjerner dem.';
 
   @override
   String get recentlyDeletedEmptyTitle => 'Intet slettet';
 
   @override
   String recentlyDeletedEmptyDancesRetention(int days) {
-    return 'Intet i papirkurven. Slettede danse vises her i $days dage, inden de fjernes.';
+    return 'Ingen danse er slettet for nylig. Slettede danse vises her i $days dage, inden de fjernes.';
   }
 
   @override
   String get recentlyDeletedEmptyProgramsKept =>
-      'Intet i papirkurven. Slettede programmer bevares her, indtil du fjerner dem.';
+      'Ingen programmer er slettet for nylig. Slettede programmer bevares her, indtil du fjerner dem.';
 
   @override
   String recentlyDeletedEmptyProgramsRetention(int days) {
-    return 'Intet i papirkurven. Slettede programmer vises her i $days dage, inden de fjernes.';
+    return 'Ingen programmer er slettet for nylig. Slettede programmer vises her i $days dage, inden de fjernes.';
   }
 
   @override
@@ -11085,9 +11123,9 @@ class AppLocalizationsDa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count danse i papirkurven bruger den og beholder de linjer, de sidst gemte.',
+          '$count danse under „For nylig slettet“ bruger den og beholder de linjer, de sidst gemte.',
       one:
-          '1 dans i papirkurven bruger den og beholder den linje, den sidst gemte.',
+          '1 dans under „For nylig slettet“ bruger den og beholder den linje, den sidst gemte.',
     );
     return '$_temp0';
   }

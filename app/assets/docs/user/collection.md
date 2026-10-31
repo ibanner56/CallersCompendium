@@ -89,12 +89,12 @@ connected — and organise a card box into those categories so they can jump to 
 give a dance one or more tags for its vibe or category, and they are ready to
 filter and group by.
 
-You can also give a tag its own colour, so a category stands out on dance
-cards and in dance detail. Tags start with no colour and look exactly as they
+You can also give a tag its own color, so a category stands out on dance
+cards and in dance detail. Tags start with no color and look exactly as they
 always have until you pick one, and the tag's name is always shown beside the
-colour, so nothing depends on being able to tell the colours apart.
+color, so nothing depends on being able to tell the colors apart.
 
-Colours, and everything else about your tags, are in the **Tags** manager:
+Colors, and everything else about your tags, are in the **Tags** manager:
 **Settings → General → Library → Tags** (**Settings → Appearance → Tag
 colors** opens it too). It lists every tag with the number of dances that use
 it, and you can search, show only the tags no dance uses (**Not used**), and
@@ -105,24 +105,24 @@ sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
   instead, under the name you typed; **Keep editing** takes you back to the
   name.
 - **Merge into…** another tag, picked from a searchable list. Every dance with
-  either tag ends up with the one you picked, which keeps its own colour (or
+  either tag ends up with the one you picked, which keeps its own color (or
   takes this tag's, if it had none).
 - Pick a **Color…**, or **Remove color**.
 - **Delete** it. The tag comes off every dance that has it, and the message
   says how many dances that was (dances in
-  [Recently deleted](./settings.md#deleted-items) lose it too, but aren't
+  [Recently deleted](./settings.md#recently-deleted) lose it too, but aren't
   counted).
 
 Each of these happens at once, without asking first. A rename, merge or delete
-offers **Undo** in the message that follows (a colour change has none: pick
-another colour, or **Remove color**, to change it back). That message is the
+offers **Undo** in the message that follows (a color change has none: pick
+another color, or **Remove color**, to change it back). That message is the
 only Undo: a deleted tag doesn't go to Recently deleted. If you create a tag with the same name later, it starts
 with no dances. A rename, merge or delete also updates the
 [tags given to imported dances](./settings.md#import-defaults), and Undo puts
 them back.
 
 Next to **Sort** is a **Group by category** control, which appears once you
-have tags. Pick one tag and the list splits into two labelled sections —
+have tags. Pick one tag and the list splits into two labeled sections —
 the dances that carry that tag, then **Other** — so a whole category is together
 in one place. Your chosen **Sort** still orders the dances *inside* each
 section, and picking a dance behaves exactly as it does anywhere else in
@@ -169,7 +169,7 @@ you typed it. It skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
 [Make your own fields](#make-your-own-fields)). It also looks at figures, which are matched by meaning, so a
 role word finds the figure however the role was worded when the dance was
-entered. (Custom figure text saved before role words were rewritten may not
+entered. (Unrecognized figure text saved before role words were rewritten may not
 match a role word until you save the dance again; see
 [Write & edit dances](./authoring.md).)
 
@@ -424,7 +424,7 @@ From the detail view you can:
   the dance, even only as an alternate, shows **In this program** (with ×N when
   it appears more than once); tapping it asks whether to add the dance again,
   and **Cancel** leaves the sheet open so you can pick another program.
-- **Export** it — share it as text or as a dance file, copy it, or print it as a
+- **Export** it — share it as text or as a share file, copy it, or print it as a
   PDF. The export follows your active dialect, so what you hand someone matches
   how they speak — see [Share, print & export](./sharing.md#share-a-dance).
 - **Perform this dance** — open it in [Perform mode](./glossary.md#perform-mode),
@@ -505,32 +505,32 @@ undone.
   vertical dots), without entering selection mode. You can pick existing
   tags or create new ones, and the change can be undone.
 - **Delete** a dance and it is only *soft-deleted* — an **Undo** option appears
-  right away, and the dance moves to a **Recently Deleted** area rather than
+  right away, and the dance moves to a **Recently deleted** area rather than
   vanishing. To delete several at once, select them and use **Delete** at the
   bottom of **More batch actions** (see
   [Change many dances at once](#change-many-dances-at-once)).
-- **Restore or remove** from **Recently Deleted** (in the **More actions**
+- **Restore or remove** from **Recently deleted** (in the **More actions**
   menu on the **Collection** page) — bring a dance back, or delete
   it permanently when you are sure. Anything left there is purged automatically
   after 30 days; you can choose a longer window, or never, in
-  [Settings](./settings.md#deleted-items).
+  [Settings](./settings.md#recently-deleted).
   - If you use [Device Sync](./settings.md#device-sync), a dance it has already
     shared can't simply vanish, or your other devices would send it back. When
     you delete one permanently, its title, notes, figures and everything else
     are erased, here and on your other devices when they next sync, and it
-    leaves Recently Deleted. Only a small deletion record is kept, with no
+    leaves Recently deleted. Only a small deletion record is kept, with no
     names or text, so your other devices delete it too. A program that
     included the dance keeps its title as a line of text, as it does for any
     dance that is gone for good. Programs work the same way.
   - A device still on an older version of the app shows that deletion record
-    in its Recently Deleted as an untitled "—" entry until you update it. Don't
+    in its Recently deleted as an untitled "—" entry until you update it. Don't
     restore it there: it is empty.
-  - A shared dance left in Recently Deleted is cleared the same way when the
+  - A shared dance left in Recently deleted is cleared the same way when the
     window you chose in Settings runs out, on all your devices. One
     difference: while a program or another dance still includes it, it keeps
     its title, which they show, and they are left exactly as they are. The
     title goes once nothing includes the dance.
-  - A dance in Recently Deleted doesn't stop you deleting its level or a custom
+  - A dance in Recently deleted doesn't stop you deleting its level or a custom
     field it uses. Restoring the dance brings back any you deleted meanwhile,
     so it returns as it was. A restored program brings back its saved
     [venue](./settings.md#venues) the same way.
@@ -575,12 +575,12 @@ The changes:
   this field**. For a choice field, the **+** button beside the list adds a new
   option on the spot, just as it does when editing a single dance.
 - **Delete** — moves every selected dance, shown or not, to **Recently
-  Deleted**, all together or not at all. It asks first only when
+  deleted**, all together or not at all. It asks first only when
   **Confirm before delete** is on in [Settings](./settings.md), and then the
   question gives the number of dances and how many of them your search hides. The message reads, for example, "Deleted
   12 dances", with **Undo**; once it has gone, restore them from Recently
-  Deleted. Undo brings back a level or custom field you deleted while the
-  dances were in the trash, as restoring one dance does. Programs that include
+  deleted. Undo brings back a level or custom field you deleted while the
+  dances were in Recently deleted, as restoring one dance does. Programs that include
   a deleted dance still show it, as they do when you delete one dance.
 
 Every batch change is announced to screen readers and can be undone, and the app
@@ -589,7 +589,7 @@ saved, the app says so and leaves your selection in place so you can try again;
 if an **Undo** can't be completed, it says that too, and nothing is left
 half-undone. Undoing **Edit custom field** puts back only the field you changed,
 so anything else you have edited in the meantime stays as it is. Selected rows are marked
-with a checkmark and a highlight — never colour alone — so the selection is clear
+with a checkmark and a highlight — never color alone — so the selection is clear
 however you are reading the screen.
 
 ## Jump straight to a dance or program

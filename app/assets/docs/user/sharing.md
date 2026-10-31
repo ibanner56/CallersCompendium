@@ -78,17 +78,17 @@ recipient's own dialect.
 ### Share a dance file
 
 **Share dance file** and **Export dance as JSON** build the same file: the dance,
-its credited choreographers, its tags and difficulty level, the published
+its credited authors, its tags and difficulty level, the published
 sources it cites, its [custom fields](./glossary.md#custom-field), and any of
 [your own new figures](./authoring.md#your-own-figures) it uses, without your
 notes on them. The only
-difference is the name — `.ccshare` or `.json`. Choreographers' private details
+difference is the name — `.ccshare` or `.json`. Authors' private details
 are removed (see [What stays private](#what-stays-private)), and custom fields
 with **Include in sharing** turned off are left out. Your star rating of the
 dance is left out too; it stays on your devices and in your backup.
 
 On Linux the system has no file share sheet, so **Share dance file** is
-labelled **Save dance file…** and saves the file through the system dialog
+labeled **Save dance file…** and saves the file through the system dialog
 instead; choosing **Share** in the JSON dialog does the same.
 
 Opening either file in Caller's Compendium goes through import review before
@@ -148,7 +148,7 @@ If none of the program's dances have anything to put on a card — no structured
 figures, and no selected calling notes or walkthrough — the question is skipped
 and the export proceeds as set-list-only automatically.
 
-Cancelling the dialog (or dismissing it) stops the export — nothing is shared or
+Canceling the dialog (or dismissing it) stops the export — nothing is shared or
 copied.
 
 If something goes wrong the app says so plainly — "Couldn't share this set list",
@@ -187,7 +187,7 @@ evening to another caller. It builds a single self-contained file — a
 
 - the program itself;
 - every dance the program's slots refer to;
-- the choreographers credited on those dances;
+- the authors credited on those dances;
 - the tags, published sources, and [custom fields](./glossary.md#custom-field)
   those dances use, so the recipient can import them completely;
 - any of [your own new figures](./authoring.md#your-own-figures) those dances
@@ -200,7 +200,7 @@ The file leaves out what is private to you: the program's **Pay**, its
 own devices and in your [backup](./backup-portability.md), and still move with
 Device Sync. Pay is never part of the shared set-list text or PDF either.
 
-On Linux the system has no file share sheet, so this action is labelled **Save
+On Linux the system has no file share sheet, so this action is labeled **Save
 program file…** and saves the file through the system dialog instead.
 
 Custom fields with **Include in sharing** turned off are left out, values
@@ -225,7 +225,7 @@ until the recipient confirms. Any of your own figures the file carries are
 offered to them afterwards, to add to their Glossary or not — see
 [Figures in a shared file](./imports.md#figures-in-a-shared-file). Bringing the same file in twice does not pile up
 duplicate *dances* — the importer matches what is already there. A dance it
-recognises as one you already have defaults to **Skip**, and the program still
+recognizes as one you already have defaults to **Skip**, and the program still
 points at your copy of it. Programs are different: each import adds the program
 as a new one. If a caller sends you an updated version of a program you already
 have, it arrives beside your copy and never overwrites it, so your own date,
@@ -244,7 +244,7 @@ extras in [**Settings › Program › Venues › Manage venues**](./settings.md#
 
 **Export as JSON file** builds exactly the same content as **Share (program +
 dances)** — same program, same dances with their full figures, same
-choreographers, same venue, same privacy rules. You then choose **Save**,
+authors, same venue, same privacy rules. You then choose **Save**,
 **Copy raw JSON**, **Share**, or **Cancel**. The only difference in the file
 itself is the name: `.json` instead of `.ccshare`. A
 [JSON file](./glossary.md#json-file) is a plain-text format that almost any
@@ -309,10 +309,10 @@ leave, and one thing asks you first.
 
 ### Never included
 
-- **A choreographer's email, location, and deceased mark.** These are marked
+- **An author's email, location, and deceased mark.** These are marked
   private in the editor and are removed from anything you share — see
   [Write & edit dances](./authoring.md#author-and-source-details-are-shared). The
-  choreographer's name, website, and notes do travel.
+  author's name, website, and notes do travel.
 
 - **Your pay, Perform dialect and star ratings.** A program file leaves out the
   program's **Pay** and its **Perform dialect**, and every share file leaves
@@ -383,7 +383,7 @@ They are different tools for different jobs:
 
 | | Share / export | [Backup](./backup-portability.md) |
 |---|---|---|
-| **Covers** | One dance, or one program | Everything: dances, programs, venues, choreographers, dialects, themes, custom fields, and settings |
+| **Covers** | One dance, or one program | Everything: dances, programs, venues, authors, dialects, themes, custom fields, and settings |
 | **Meant for** | Handing to another person | Keeping safe, or moving to your own new device |
 | **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out | Complete — it is your own data, unredacted |
 | **Where** | The **Export** menu on a dance or program | **Settings › General › Export a backup** |

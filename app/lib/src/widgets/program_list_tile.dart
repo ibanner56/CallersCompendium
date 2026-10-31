@@ -6,6 +6,7 @@ import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/venue_label.dart';
 import 'program_status_chip.dart';
+import 'right_click_menu.dart';
 
 /// One Programs list row: title, event date, venue, planned dance count
 /// ([Program.plannedDanceCount]), and a status chip (icon+text). Tapping calls
@@ -60,7 +61,7 @@ class ProgramListTile extends StatelessWidget {
       l10n.programsDanceCount(danceCount),
     ];
 
-    return ListTile(
+    final tile = ListTile(
       selected: selected,
       title: Text(program.title),
       subtitle: Padding(
@@ -79,7 +80,11 @@ class ProgramListTile extends StatelessWidget {
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
+    // A right-click on the row opens the ⋮ menu ([_actionsMenu]).
+    return RightClickMenu(menuKey: _actionsMenuKey, child: tile);
   }
+
+  Key get _actionsMenuKey => ValueKey('program-actions-${program.id}');
 
   /// Trailing content: the row action overflow (⋮) menu when any action
   /// callback is wired, followed by the drill-in chevron; the chevron alone
@@ -99,7 +104,7 @@ class ProgramListTile extends StatelessWidget {
   /// the button itself is labelled by its [PopupMenuButton.tooltip].
   Widget _actionsMenu(AppLocalizations l10n) {
     return PopupMenuButton<_ProgramRowAction>(
-      key: ValueKey('program-actions-${program.id}'),
+      key: _actionsMenuKey,
       tooltip: l10n.collectionRowActionsSemantic(program.title),
       icon: const Icon(Icons.more_vert),
       onSelected: (action) {

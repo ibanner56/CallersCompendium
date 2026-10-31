@@ -512,7 +512,7 @@ void main() {
     // would double-announce), and be focusable — not merely have a non-null
     // onPressed.
     for (final (key, label) in const [
-      ('exit-perform', 'Exit performance view'),
+      ('exit-perform', 'Exit Perform mode'),
       ('decrease-text-size', 'Decrease text size'),
       ('increase-text-size', 'Increase text size'),
     ]) {

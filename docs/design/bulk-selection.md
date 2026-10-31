@@ -132,9 +132,10 @@ control and a hidden scope for nothing.
   (`_buildResultCount`, `:2854`) shows the same count, so the number the caller
   sees before tapping is the number they get.
 - **Desktop.** Ctrl/Cmd-A selects all, but only while keyboard focus is in the
-  list, never in the search field, where it must keep selecting text. B29 owns
-  the desktop shortcut map (`decided-work-plan.md`, B29), so this binding goes
-  through B29's intents and waits for it. Until then *Select all* is
+  list, never in the search field, where it must keep selecting text. B29 built
+  the desktop shortcut map (`decided-work-plan.md`, B29), and its intents and
+  binding table are in `app/lib/src/widgets/app_shortcuts.dart`; this binding
+  goes there, and is N4's to add. Until it is added, *Select all* is
   pointer-and-touch only, and that is acceptable because the button works with a
   keyboard.
 
@@ -303,10 +304,10 @@ and bulk delete has Undo and a trash. Options:
 **Decided: A** (N4-4 = (a), 2026-10-30, as recommended), **with the count and
 the trash named in the snackbar** (this note's detail). The
 snackbar reads "Deleted 12 dances" with *Undo*, and its screen-reader text points
-at Recently Deleted so the recovery path outlasts the snackbar. The
+at Recently deleted so the recovery path outlasts the snackbar. The
 `confirmDeleteIfEnabled` body (`confirmDeleteBody(itemLabel)`) gets a plural
 variant for N dances. We recommend A because the app already built the trash for
-exactly this and the cost of a mistake is one trip to Recently Deleted.
+exactly this and the cost of a mistake is one trip to Recently deleted.
 N4-4 does not mention `_batchClearTunes`'s unconditional confirm (`:1818`),
 which already bends `ux.md:192-193`. *My reading:* it stays as it is, and bulk
 delete does not copy it.
@@ -350,7 +351,7 @@ point above. Implementer's calls, not maintainer decisions:
   SQL path, which this note rules out. A single restore does what it did
   before.
 - The screen-reader announcement is the longer "Deleted 12 dances. Restore them
-  from Recently Deleted."; the snackbar shows "Deleted 12 dances".
+  from Recently deleted."; the snackbar shows "Deleted 12 dances".
 
 **§6.8, checked.** A peer holds an inbound dance tombstone pending only while a
 live program slot or a live dance's link still cites the dance

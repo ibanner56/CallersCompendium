@@ -98,9 +98,10 @@ default and mention that any wording is configurable in your dialect.
 
 This section is the rule for the text inside the app itself, the English
 strings in `app/lib/l10n/app_en.arb`. It was decided by the maintainer as D-4
-(option c) in the October 2026 behavior audit. The guides in this folder are
-covered by it only where they quote an on-screen label: the guide has to match
-the screen.
+(option c) in the October 2026 behavior audit. The guides in this folder ship
+inside the app, so they follow the same US spelling, and where they quote an
+on-screen label they match it exactly, case included. Sentence case is a rule
+for labels and headings, not for the guides' running prose.
 
 - **US spelling.** *color*, *canceled*, *recognize*, *customize*, *gray*,
   *neighbor*. The app already said "neighbor" and "License"; this makes the
@@ -247,7 +248,7 @@ so that a reader on any platform feels the docs are for them.
 - **Keep every heading in a guide distinct.** Two headings that reduce to the
   same anchor are ambiguous — GitHub would silently number them, the in-app
   reader would jump to the last one, and the website build fails outright.
-  Reword one of them; a heading that needs its neighbour for context usually
+  Reword one of them; a heading that needs its neighbor for context usually
   reads better spelled out anyway.
 - End each guide with a **Where to go next** section of onward links.
 - Fenced code blocks only for literal input the reader types or file contents —

@@ -16,7 +16,7 @@ typedef ReparsePreviewLoader =
 typedef ReparseApplier =
     Future<int> Function(CompendiumRepositories repos, List<String> ids);
 
-/// Settings → "Re-check custom figures" (issue #417).
+/// Settings → "Re-check unrecognized figures" (issue #417).
 ///
 /// Re-runs the current figure parser locally over the stored text of every
 /// *import-gap* custom figure (customs that only exist because the parser

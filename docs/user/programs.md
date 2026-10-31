@@ -61,6 +61,14 @@ direction the list opens with, see
   restore, or bring back with **Undo**, is the one you were editing. If you
   cleared the title, it keeps its saved title.
 
+  Deleting a program also takes it out of the
+  [calling history](#track-what-you-have-called) of every dance in it, and
+  restoring it puts it back. With **Confirm before delete** on in
+  [Settings](./settings.md), the prompt says how many dances lose the program
+  from their history, counted under your current calling-history settings. The
+  warning appears only if you turned that setting on, and swiping a row to
+  delete skips the prompt. The Undo message does not repeat the number.
+
 ### Build from a list of titles
 
 Already have your set list written out somewhere — a text file, an email, a note
@@ -128,7 +136,7 @@ repeat imports are easy to spot:
 - **Possibly imported** — one of your programs has the same title, but nothing
   ties it to this ContraDB event (for example, you built it by hand).
 
-Each marker shows an icon and a label — never colour alone — and the same hint
+Each marker shows an icon and a label — never color alone — and the same hint
 appears at the top of the preview once you open a program. It's only a hint:
 re-importing is always allowed if you want a fresh copy.
 
@@ -174,7 +182,7 @@ picker.*
   [Collection card fields](./settings.md#collection-card-fields). Find a dance
   and add it to the program.
 
-**Add note / waltz** adds a free-text slot, and **Insert break** adds a break.
+**Add note or break** adds a free-text slot (a note, a waltz, an announcement), and **Insert break** adds a break.
 On a narrow screen, **Add dance** opens the collection picker.
 
 To bring in a dance you don't have yet, tap the **Online search** icon at the end of the
@@ -352,9 +360,9 @@ Here is how to read it:
   very next dance. Adjacent repeats like this can make two dances feel samey on
   the floor, so the matrix flags them for you to notice and, if you like,
   reconsider. Only the two colliding cells are flagged; a repeat that is not in
-  neighbouring dances, or whose beats don't actually overlap, is left alone.
+  neighboring dances, or whose beats don't actually overlap, is left alone.
   A **break** separates two dances, so the last dance before a break and the
-  first dance after it are not neighbours and are never flagged against each
+  first dance after it are not neighbors and are never flagged against each
   other. A waltz or a note between two dances, with no break, does not
   separate them.
 
@@ -402,7 +410,7 @@ Here is how to read it:
   PDF: drag a column to a new position, give it a name that suits your callers,
   or remove one you never use. Removed columns can be brought back at any time,
   and two reset controls restore the built-in columns or wipe every
-  customisation. The [Programs settings](./settings.md#programs) have the full
+  customization. The [Programs settings](./settings.md#programs) have the full
   walkthrough.
 
 The matrix shows **presence, not counts** — whether a move is in a dance, not how
@@ -489,7 +497,7 @@ menu:
 - **Export as JSON file** — opens a choice to **Save**, **Copy raw JSON**,
   **Share**, or **Cancel**. The file is the same as **Share (program + dances)**,
   named `.json` so a device without the app can still open it. **Save** opens
-  your system's save dialog; cancelling it saves nothing.
+  your system's save dialog; canceling it saves nothing.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
 A set list is titles, event details, and slot notes by default, with each
@@ -578,6 +586,11 @@ sort, and the repeated-venues and half summaries.
 
 The same settings section can also limit calling history to programs you called
 yourself, and control the repeated-venues summary.
+
+A program in **Recently deleted** is in no one's history, so deleting a program
+removes it from the history of each dance it holds, and restoring it brings
+those entries back. After the retention window the program is gone for good and
+so is that history.
 
 ## Where to go next
 

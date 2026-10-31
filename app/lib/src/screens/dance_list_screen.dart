@@ -197,7 +197,19 @@ class _CollectionCompactGroupAction {
   final String value;
 }
 
-class _DanceListScreenState extends State<DanceListScreen> {
+/// What [CollectionShell] can ask of a mounted dance list, for the keyboard
+/// map and the macOS menu bar (PLAT-7, PLAT-8).
+abstract interface class DanceListCommands {
+  /// Opens the new-dance editor, as the New dance button does.
+  void openNewDance();
+
+  /// Moves the keyboard focus to the search box and selects its text. Returns
+  /// false while the list is still loading and has no search box.
+  bool focusSearch();
+}
+
+class _DanceListScreenState extends State<DanceListScreen>
+    implements DanceListCommands {
   /// Active dialect for search canonicalization — read from [ActiveDialectScope]
   /// in [didChangeDependencies] and updated live when the user changes it.
   Dialect _dialect = Dialect.larksRobins;
@@ -248,6 +260,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   static const Duration _debounce = Duration(milliseconds: 250);
 
   final _ftsController = TextEditingController();
+
+  /// The search box's focus, for Ctrl/Cmd-F ([focusSearch]).
+  final _ftsFocusNode = FocusNode(debugLabel: 'collection-search-field');
   FullTextScope _ftsScope = FullTextScope.omni;
   FullTextScope _localFtsScope = FullTextScope.omni;
   final _facets = FacetSelections();
@@ -537,6 +552,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     _debounceTimer?.cancel();
     _callerRefreshTimer?.cancel();
     _ftsController.dispose();
+    _ftsFocusNode.dispose();
     super.dispose();
   }
 
@@ -1666,7 +1682,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
-  /// Moves the selected dances to Recently Deleted in one transaction
+  /// Moves the selected dances to Recently deleted in one transaction
   /// ([DanceRepository.softDeleteMany]), behind the same *Confirm before
   /// delete* gate as the row menu (N4-4 = a). Undo restores exactly the dances
   /// this call deleted, through [DanceRepository.restoreMany], so it revives
@@ -2595,6 +2611,22 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
+  @override
+  void openNewDance() => unawaited(_openNewDance());
+
+  @override
+  bool focusSearch() {
+    // The box is built only once the list has loaded, and not over a load
+    // error (see [_buildBody]).
+    if (_data == null || _loadError != null) return false;
+    _ftsFocusNode.requestFocus();
+    _ftsController.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _ftsController.text.length,
+    );
+    return true;
+  }
+
   Future<void> _openNewDance() async {
     // No explicit reload is needed here, and the reason is the stream rather
     // than the broadcast: a save writes `dances`, which this list watches, so
@@ -2710,6 +2742,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final searchField = TextField(
       key: const ValueKey('collection-search-field'),
       controller: _ftsController,
+      focusNode: _ftsFocusNode,
       onChanged: _onFtsChanged,
       onSubmitted: _onFtsSubmitted,
       textInputAction: TextInputAction.search,
