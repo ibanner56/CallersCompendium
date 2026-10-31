@@ -30,7 +30,7 @@ import 'custom_figure_detail.dart';
 /// The shipped entries are derived from the taxonomy at runtime
 /// ([figureGlossaryEntries]) and never stored. The user's entries, and their
 /// notes on shipped figures, are read from the database. Shown in the app
-/// shell only while the Experimental "Show Glossary" setting is on.
+/// shell only while the Experimental "Show glossary" setting is on.
 ///
 /// - **Narrow (< [splitBreakpoint]):** a searchable list; selecting a figure
 ///   pushes its detail page.

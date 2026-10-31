@@ -25,7 +25,7 @@ import '../sync/sync_record_kind.dart';
 //                      discriminator. Advanced by any write that changes what
 //                      the record would serialise.
 //   * `deleted_at`   — **retention**: NULL means live, non-NULL is a
-//                      tombstone and starts the purge / "Recently Deleted"
+//                      tombstone and starts the purge / "Recently deleted"
 //                      countdown.
 //   * `existence_at` — which **existence transition** (live -> deleted, or
 //                      deleted -> live) happened later. Stamped *causally*,

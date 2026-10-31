@@ -29,8 +29,8 @@ class BrandMark extends StatelessWidget {
     this.semanticLabel,
   });
 
-  /// Brand Soft Dark tile colour — the default launcher-icon background and the
-  /// Soft Dark scheme surface (`#1E2A38`).
+  /// Brand Soft dark tile colour — the default launcher-icon background and the
+  /// Soft dark scheme surface (`#1E2A38`).
   static const Color brandBackground = Color(0xFF1E2A38);
 
   /// Lantern amber — the warm accent in the illustration (`#FFB784`).

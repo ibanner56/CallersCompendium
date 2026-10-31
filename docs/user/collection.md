@@ -84,7 +84,7 @@ screen, and on a tablet or desktop in the pane beside the list. The
 ## Group by category (a dance's "vibe")
 
 Many callers think of dances by their **vibe** — bouncy, flowy, glossy,
-connected — and organise a card box into those categories so they can jump to a
+connected — and organize a card box into those categories so they can jump to a
 "drawer" and hot-swap a dance mid-evening. **Tags** are exactly that in the app:
 give a dance one or more tags for its vibe or category, and they are ready to
 filter and group by.
@@ -193,7 +193,7 @@ example **Filters · 3**), and **Advanced** reads **Advanced (on)** while a
 figure query is in use. The **Advanced** panel's query editor is always
 available; it has no effect until you add a condition, and any condition you
 add applies straight away. To set a query aside, delete its conditions.
-While **Online search** is on, **Filters** and **Advanced** are greyed out,
+While **Online search** is on, **Filters** and **Advanced** are grayed out,
 because they only apply to your own library; **By phrase** stays available for
 sources that support it. A source selector appears under the row so you can
 choose which archive to search.

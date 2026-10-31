@@ -2218,7 +2218,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     });
   }
 
-  /// Back Up + Reset action for the below-floor recovery screen (issue #841).
+  /// Back up + reset action for the below-floor recovery screen (issue #841).
   ///
   /// Delegates the fail-closed snapshot logic to [performBackUpAndReset] (see
   /// `migration_guard.dart`): if the snapshot fails, shows a failure dialog and
@@ -2315,7 +2315,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     await _doReset(dbFile, l10n);
   }
 
-  /// Reset Only action for the below-floor recovery screen (issue #841).
+  /// Reset only action for the below-floor recovery screen (issue #841).
   ///
   /// The `error` parameter is unused here but matches the callback type
   /// (`void Function(DatabaseBelowFloorError)`) shared with [_backUpAndReset],
@@ -2356,7 +2356,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     await _doReset(dbFile, l10n);
   }
 
-  /// Settings ▸ Experimental ▸ Developer Options ▸ reset: deletes the database
+  /// Settings ▸ Experimental ▸ Developer options ▸ reset: deletes the database
   /// and restarts on an empty one, as a first launch would. Returns whether the
   /// database was actually deleted.
   ///

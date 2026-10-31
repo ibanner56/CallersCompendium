@@ -6663,13 +6663,13 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Cleared field on 1 dance} other{Cleared field on {count} dances}}'**
   String collectionBatchCustomFieldCleared(int count);
 
-  /// Snackbar confirming the selected dances were moved to Recently Deleted by Collection's batch Delete; it carries an Undo action.
+  /// Snackbar confirming the selected dances were moved to Recently deleted by Collection's batch Delete; it carries an Undo action.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Deleted 1 dance} other{Deleted {count} dances}}'**
   String collectionBatchDeleted(int count);
 
-  /// Screen-reader announcement after Collection's batch Delete. Names Recently Deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.
+  /// Screen-reader announcement after Collection's batch Delete. Names Recently deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Deleted 1 dance. Restore it from Recently deleted.} other{Deleted {count} dances. Restore them from Recently deleted.}}'**

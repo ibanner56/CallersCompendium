@@ -384,7 +384,7 @@ role names and wording the app uses when it describes dances.
   reads as, and a new dance starts with no figures unless you have saved
   starting figures. See [Free-text entry](./authoring.md#free-text-entry).
 - **Figure shorthands** — map short tokens to one or more figures you can insert
-  during free-text entry. This row is greyed out until **Free-text entry** is on. See
+  during free-text entry. This row is grayed out until **Free-text entry** is on. See
   [Figure shorthands](./authoring.md#figure-shorthands).
 - **Walkthrough snippets** — manage your personal, per-figure walkthrough
   wording. These settings are independent of canonical figure text.
@@ -767,11 +767,11 @@ its **Source** as the file had it.
 is **off by default**, and it doesn't need Show glossary: with the Glossary
 hidden you can still turn it on, and use your figures everywhere. If you turned
 it on in version 0.8.0-beta or before and later turned the Glossary off, it was
-greyed out but kept its setting. It now takes effect, and your figures
+grayed out but kept its setting. It now takes effect, and your figures
 show again everywhere Custom Figures shows them. Turn Custom Figures off here
 to hide them. While it is on, the **Your figures** row under the switch opens them: see your figures,
 choose **+** to add one, or select one to **Edit** or **Delete** it. The row
-is greyed out while Custom Figures is off.
+is grayed out while Custom Figures is off.
 The Glossary lists them too, when it is shown. While it is on:
 
 - Choose **+**, on that screen or in the Glossary, to add a figure of your own: a name and a
@@ -816,7 +816,7 @@ The Glossary lists them too, when it is shown. While it is on:
   a parameter — the other hand, the other role, or partners for neighbors and
   neighbors for partners — where that has one. A choice
   that can't be used, because the kinds differ or no value would fit every
-  setting it fills, is shown greyed out with the reason.
+  setting it fills, is shown grayed out with the reason.
 - If a parameter fills nothing, or a new figure's wording leaves it out, saving
   asks whether to go **Back to editor** or **Save anyway**; a parameter a
   condition tests counts as used. Wording that uses something the figure

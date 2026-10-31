@@ -26,7 +26,7 @@ Map<String, String> _enStrings() {
 final _british = <RegExp>[
   RegExp(r'\bcolou?r\w*', caseSensitive: false), // matched, then filtered below
   RegExp(r'\b(un)?recognis\w*', caseSensitive: false),
-  RegExp(r'\bcancell(ed|ing|ation)\b', caseSensitive: false),
+  RegExp(r'\bcancell(ed|ing)\b', caseSensitive: false),
   RegExp(
     r'\b(customis|organis|normalis|synchronis|initialis|summaris)\w*',
     caseSensitive: false,

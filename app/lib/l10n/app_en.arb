@@ -5540,7 +5540,7 @@
   },
   "collectionBatchDeleted": "{count, plural, =1{Deleted 1 dance} other{Deleted {count} dances}}",
   "@collectionBatchDeleted": {
-    "description": "Snackbar confirming the selected dances were moved to Recently Deleted by Collection's batch Delete; it carries an Undo action.",
+    "description": "Snackbar confirming the selected dances were moved to Recently deleted by Collection's batch Delete; it carries an Undo action.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -5550,7 +5550,7 @@
   },
   "collectionBatchDeletedAnnouncement": "{count, plural, =1{Deleted 1 dance. Restore it from Recently deleted.} other{Deleted {count} dances. Restore them from Recently deleted.}}",
   "@collectionBatchDeletedAnnouncement": {
-    "description": "Screen-reader announcement after Collection's batch Delete. Names Recently Deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.",
+    "description": "Screen-reader announcement after Collection's batch Delete. Names Recently deleted (the screen's title, recentlyDeletedTitle) so the way back outlasts the timed Undo snackbar.",
     "placeholders": {
       "count": {
         "type": "int",
