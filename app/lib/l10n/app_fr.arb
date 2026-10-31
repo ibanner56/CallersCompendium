@@ -64,6 +64,42 @@
   "@navSearchTooltip": {
     "x-sourceSha256": "74a4a4a8fb22e80a9cfe177eecec9308371e993faff0d715bd0e0773939e2bb4"
   },
+  "menuFile": "Fichier",
+  "@menuFile": {
+    "x-sourceSha256": "50009ce1da4d15e1c4a04024df691eed5f0d598e2c4c67092f205366d0adf99e"
+  },
+  "menuNewDance": "Nouvelle danse",
+  "@menuNewDance": {
+    "x-sourceSha256": "29c36f1e1f305aee644c594a32790437a836bfd4e16830c7695487b47e3f751b"
+  },
+  "menuImportDances": "Importer des danses…",
+  "@menuImportDances": {
+    "x-sourceSha256": "cca9da1835392ef1a2e7e141b774337ce0ec1f6cc9d00f4e7a1a21fdd4ea41cf"
+  },
+  "menuClose": "Fermer",
+  "@menuClose": {
+    "x-sourceSha256": "7d9eb7acb13e24625c404401d8e88b2350e32162455885f18276cf802f7701ed"
+  },
+  "menuSettings": "Réglages…",
+  "@menuSettings": {
+    "x-sourceSha256": "7a04083baf8daa20973e671fc0138a81a70c797ef1f28b77e78edbd1acbc57bc"
+  },
+  "menuView": "Présentation",
+  "@menuView": {
+    "x-sourceSha256": "dcc839a4015c4b7dd9db959a8f757833b8adb92462a751b973386e453c6d58a3"
+  },
+  "menuWindow": "Fenêtre",
+  "@menuWindow": {
+    "x-sourceSha256": "19734a1b58cabc22cae1f88493289ee94f40ff2b350f7f1b9f7011ea84096916"
+  },
+  "menuHelp": "Aide",
+  "@menuHelp": {
+    "x-sourceSha256": "b79cac926e0b2e347e72cc91d5174037c9e17ae7733fd7bdb570f71b10cd7bfc"
+  },
+  "menuUserGuide": "Guide d’utilisation",
+  "@menuUserGuide": {
+    "x-sourceSha256": "d131ef7f9b5e2b457faba856dcc5f90438b46b97df6a849234432e76c63f6cbd"
+  },
   "appBootstrapPreparing": "Préparation de votre collection",
   "@appBootstrapPreparing": {
     "x-sourceSha256": "9f6e6d8bd8f24a7c01c10965ed98f264cab12cb4e549ac0f826057e89a60b242"

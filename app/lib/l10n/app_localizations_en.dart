@@ -64,6 +64,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'File';
+
+  @override
+  String get menuNewDance => 'New Dance';
+
+  @override
+  String get menuImportDances => 'Import Dances…';
+
+  @override
+  String get menuClose => 'Close';
+
+  @override
+  String get menuSettings => 'Settings…';
+
+  @override
+  String get menuView => 'View';
+
+  @override
+  String get menuWindow => 'Window';
+
+  @override
+  String get menuHelp => 'Help';
+
+  @override
+  String get menuUserGuide => 'User Guide';
+
+  @override
   String get appBootstrapPreparing => 'Preparing your collection';
 
   @override

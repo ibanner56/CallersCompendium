@@ -126,6 +126,40 @@ search box over whatever you're doing. Start typing to filter your dances and
 programs, use the **up** and **down arrow keys** to move through results, press
 **Enter** to open the highlighted item, and press **Esc** to close.
 
+**Shortcuts on a computer (Windows, macOS and Linux).** Use **Ctrl** on Windows
+and Linux and **Cmd** on a Mac:
+
+- **Ctrl-S** (**Cmd-S**) saves the dance or program you're editing, as its
+  **Save** button does. In the program builder that's on the **Build** tab,
+  where the button is.
+- **Ctrl-N** (**Cmd-N**) starts a new dance.
+- **Ctrl-F** (**Cmd-F**) puts the cursor in the **Collection**'s search box and
+  selects what's already there. Anywhere else it opens Quick search.
+- **Ctrl-,** (**Cmd-,**) opens **Settings**.
+- **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
+  suggestions, or a dialog you could close by clicking outside it is open, it
+  closes that first. Otherwise it leaves
+  the page you're on, as the back button does, so an editor with unsaved
+  changes asks you first. A mouse's **Back** button does the same.
+
+Ctrl-N and Ctrl-, take you out of whatever page you're on. If that page is an
+editor with unsaved changes, it asks about them first; answer, then press the
+keys again. They do nothing while a dialog is open. While performing, Ctrl-N, Ctrl-F
+and Ctrl-, do nothing and Esc only leaves full screen (see below); Ctrl-W and a
+mouse's Back button ask whether to stop performing, as the back button does.
+
+**Right-click.** On a computer, right-click a dance in the **Collection**, or a
+program in **Programs**, to open its **⋮** menu.
+
+**The menu bar on a Mac.** The **Caller's Compendium** menu has **Settings…**.
+**File** has **New Dance**, **Import Dances…** and **Close** (which goes back,
+like Cmd-W). **View** has the system's full-screen item, **Window** has
+Minimize and Zoom, and **Help** has **User Guide**. There is no **Edit** menu.
+Cmd-C, Cmd-X, Cmd-V, Cmd-Z and Cmd-A still work in text, and right-clicking
+text offers **Copy**. The system's own items (About, Hide, Quit, full screen,
+Minimize and the like) are named by macOS, so the app's language setting
+doesn't change them.
+
 **Selecting and copying text (Windows, macOS and Linux).** On a dance's page,
 drag across any text to select it, then press **Ctrl-C** (**Cmd-C** on macOS) to
 copy it. **Ctrl-A** (**Cmd-A**) selects everything on the page, and a right-click

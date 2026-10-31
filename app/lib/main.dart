@@ -4,6 +4,7 @@ import 'dart:io' show Directory, File, Platform, exit;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show TableUpdate;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind, kBackMouseButton;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show MethodCall, MethodChannel, PlatformException;
@@ -124,6 +125,8 @@ import 'src/update/update_scope.dart';
 import 'src/utils/undo_snack_bar.dart';
 import 'src/widgets/app_bootstrap.dart';
 import 'src/widgets/app_closing_overlay.dart';
+import 'src/widgets/app_menu_bar.dart';
+import 'src/widgets/app_shortcuts.dart';
 import 'src/widgets/command_palette.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
 import 'src/widgets/online_import_dialogs.dart';
@@ -254,6 +257,8 @@ Future<void> main(List<String> args) async {
         ),
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
         incomingFileChannel: incomingFileChannel,
+        installPlatformMenuBar:
+            !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS,
       ),
     );
   }, crashReporter);
@@ -331,6 +336,7 @@ class CompendiumApp extends StatefulWidget {
     this.editorDraftShutdownController,
     this.updateTemporaryDirectoryProvider,
     this.shutdownSyncPassWait = kShutdownSyncPassWait,
+    this.installPlatformMenuBar = false,
   });
 
   /// The initially opened database + repositories facade. Injected from [main]
@@ -351,6 +357,11 @@ class CompendiumApp extends StatefulWidget {
   /// before it closes the database anyway. Injectable so a test need not wait
   /// out the production bound. See [kShutdownSyncPassWait].
   final Duration shutdownSyncPassWait;
+
+  /// Whether to install the macOS menu bar ([AppMenuBar], PLAT-8). [main] sets
+  /// it on macOS. It defaults to off because a widget test has no platform
+  /// menu channel, and setting menus there reports an error.
+  final bool installPlatformMenuBar;
 
   /// Constructs the configured Device Sync coordinator after startup has
   /// opened and migrated the database. W13 supplies the endpoint/configuration
@@ -836,6 +847,92 @@ class _CompendiumAppState extends State<CompendiumApp>
     if (_performObserver.performing) return;
     _shellKey.currentState?.openSearch();
   }
+
+  /// The root action for an app-wide command of the keyboard map and the
+  /// macOS menu bar (PLAT-7, PLAT-8). Like Ctrl-K, it does nothing while a
+  /// program or dance is being performed, so a stray key mid-event cannot
+  /// cover the card or ask to leave.
+  CallbackAction<T> _shellCommand<T extends Intent>(
+    void Function(AppShellState shell) run,
+  ) => CallbackAction<T>(
+    onInvoke: (_) {
+      if (_performObserver.performing) return null;
+      final shell = _shellKey.currentState;
+      if (shell != null) run(shell);
+      return null;
+    },
+  );
+
+  static bool get _isDesktop => switch (defaultTargetPlatform) {
+    TargetPlatform.windows ||
+    TargetPlatform.macOS ||
+    TargetPlatform.linux => true,
+    TargetPlatform.android ||
+    TargetPlatform.iOS ||
+    TargetPlatform.fuchsia => false,
+  };
+
+  /// Goes back one step for Esc, Ctrl/Cmd-W, the menu bar's Close and a
+  /// mouse's Back button ([GoBackIntent]).
+  ///
+  /// First it offers a dismiss to whatever is open, as Esc's default binding
+  /// would ([_offerDismiss]): a text field's toolbar, an autocomplete's
+  /// options, a drawer, a menu, or a sheet or dialog that a tap outside would
+  /// close. Failing that, a page leaves through [NavigatorState.maybePop],
+  /// which consults its `PopScope` exactly as the system back gesture does, so
+  /// an editor with unsaved changes asks first and Perform asks before it
+  /// closes. A dialog that does not close on a tap outside stays: it is
+  /// waiting for an answer.
+  void _goBack() {
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused != null && _offerDismiss(focused)) return;
+    final navigator = _navigatorKey.currentState;
+    if (navigator == null) return;
+    Route<dynamic>? top;
+    navigator.popUntil((route) {
+      top = route;
+      return true;
+    });
+    if (top is PageRoute) unawaited(navigator.maybePop());
+  }
+
+  /// Offers a dismiss to the nearest `DismissIntent` action above [context],
+  /// and returns whether something acted on it.
+  ///
+  /// Flutter's own dispatch cannot answer that. A text field and an
+  /// autocomplete handle `DismissIntent` by closing their toolbar or options
+  /// when one is showing, and otherwise pass the intent on to the next action
+  /// above them. On a page, the chain ends at an action that is disabled
+  /// (the Scaffold's drawer, with no drawer open, or the page route's own),
+  /// and a disabled action still stops the key. So Esc, bound to
+  /// `DismissIntent` as Flutter binds it, would do nothing in a text field.
+  ///
+  /// This sends [_DismissProbe] instead. It is a `DismissIntent`, so every
+  /// action treats it as one, but when an action passes it on, the lookup goes
+  /// by its own type and lands on the root's [_DismissProbeAction], which
+  /// continues the chain from where it was passed on. A chain that ends at a
+  /// disabled action, or at none, is one where nothing was open.
+  bool _offerDismiss(BuildContext context) {
+    final action = Actions.maybeFind<Intent>(
+      context,
+      intent: const DismissIntent(),
+    );
+    if (action == null) return false;
+    bool? passedOnAndHandled;
+    _dismissProbes.add((from) => passedOnAndHandled = _offerDismiss(from));
+    try {
+      final (enabled, _) = Actions.of(
+        context,
+      ).invokeActionIfEnabled(action, const _DismissProbe(), context);
+      if (!enabled) return false;
+    } finally {
+      _dismissProbes.removeLast();
+    }
+    return passedOnAndHandled ?? true;
+  }
+
+  /// Continuations for the [_DismissProbe]s in flight, innermost last.
+  final List<ValueChanged<BuildContext>> _dismissProbes = [];
 
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
       GlobalKey<ScaffoldMessengerState>();
@@ -2818,7 +2915,13 @@ class _CompendiumAppState extends State<CompendiumApp>
           scaffoldMessengerKey: _messengerKey,
           // Replacing these drops Flutter's defaults (arrows, Escape, …), so
           // spread them back in.
-          shortcuts: {...WidgetsApp.defaultShortcuts, ...searchShortcuts},
+          // Esc in [appShortcuts] replaces the default's binding; see
+          // [_goBack].
+          shortcuts: {
+            ...WidgetsApp.defaultShortcuts,
+            ...searchShortcuts,
+            ...appShortcuts,
+          },
           actions: {
             ...WidgetsApp.defaultActions,
             OpenSearchIntent: CallbackAction<OpenSearchIntent>(
@@ -2827,6 +2930,27 @@ class _CompendiumAppState extends State<CompendiumApp>
                 return null;
               },
             ),
+            // No root action for [SaveIntent]: only an editor saves.
+            NewDanceIntent: _shellCommand<NewDanceIntent>((s) => s.newDance()),
+            ImportDancesIntent: _shellCommand<ImportDancesIntent>(
+              (s) => s.importDances(),
+            ),
+            OpenSettingsIntent: _shellCommand<OpenSettingsIntent>(
+              (s) => s.showSettings(),
+            ),
+            OpenGuideIntent: _shellCommand<OpenGuideIntent>(
+              (s) => s.showGuide(),
+            ),
+            FocusSearchIntent: _shellCommand<FocusSearchIntent>(
+              (s) => s.focusSearch(),
+            ),
+            GoBackIntent: CallbackAction<GoBackIntent>(
+              onInvoke: (_) {
+                _goBack();
+                return null;
+              },
+            ),
+            _DismissProbe: _DismissProbeAction(_dismissProbes),
           },
           theme: lightTheme,
           darkTheme: darkTheme,
@@ -2853,7 +2977,7 @@ class _CompendiumAppState extends State<CompendiumApp>
             );
             // Always present, so the tree keeps one shape whatever the switch says.
             final media = MediaQuery.of(context);
-            return MediaQuery(
+            final app = MediaQuery(
               data: override == null
                   ? media
                   : media.copyWith(disableAnimations: override),
@@ -2861,9 +2985,22 @@ class _CompendiumAppState extends State<CompendiumApp>
               // Reduce motion switch and shows a still icon for its spinner.
               child: AppClosingOverlay(
                 closing: _closingNotifier,
-                child: scoped,
+                child: Listener(
+                  // A mouse's Back button goes back, as Esc does (PLAT-7).
+                  // Desktop only: Android also turns that button into its
+                  // system back, which would go back a second time.
+                  onPointerDown: (event) {
+                    if (_isDesktop &&
+                        event.kind == PointerDeviceKind.mouse &&
+                        event.buttons & kBackMouseButton != 0) {
+                      _goBack();
+                    }
+                  },
+                  child: scoped,
+                ),
               ),
             );
+            return widget.installPlatformMenuBar ? AppMenuBar(child: app) : app;
           },
           home: AppBootstrap(
             future: _bootstrap,
@@ -2876,6 +3013,27 @@ class _CompendiumAppState extends State<CompendiumApp>
         );
       },
     );
+  }
+}
+
+/// The dismiss [_CompendiumAppState._offerDismiss] sends. Being a
+/// [DismissIntent], it is handled as one; being its own type, it is found by
+/// [_DismissProbeAction] alone when an action passes it on.
+class _DismissProbe extends DismissIntent {
+  const _DismissProbe();
+}
+
+/// Receives a [_DismissProbe] that an action passed on, with the context it
+/// was passed on from, and hands both to the innermost probe in flight.
+class _DismissProbeAction extends ContextAction<_DismissProbe> {
+  _DismissProbeAction(this._probes);
+
+  final List<ValueChanged<BuildContext>> _probes;
+
+  @override
+  Object? invoke(_DismissProbe intent, [BuildContext? context]) {
+    if (_probes.isNotEmpty && context != null) _probes.last(context);
+    return null;
   }
 }
 

@@ -70,6 +70,42 @@
       }
     }
   },
+  "menuFile": "File",
+  "@menuFile": {
+    "description": "Title of the File menu in the macOS menu bar. Shown only on macOS, in the app's menu bar (PlatformMenuBar). Follow the platform's usual name for this menu."
+  },
+  "menuNewDance": "New Dance",
+  "@menuNewDance": {
+    "description": "File menu item that opens the new-dance editor in the Collection (Command-N). Shown only on macOS, in the app's menu bar (PlatformMenuBar). Title case, as macOS menu items are written in English."
+  },
+  "menuImportDances": "Import Dances…",
+  "@menuImportDances": {
+    "description": "File menu item that starts a dance import in the Collection. Shown only on macOS, in the app's menu bar (PlatformMenuBar). The trailing ellipsis means the item asks for more before it acts; keep it."
+  },
+  "menuClose": "Close",
+  "@menuClose": {
+    "description": "File menu item that leaves the current page, like the back button (Command-W). Shown only on macOS, in the app's menu bar (PlatformMenuBar)."
+  },
+  "menuSettings": "Settings…",
+  "@menuSettings": {
+    "description": "App menu item that opens Settings (Command-comma). Shown only on macOS, in the app's menu bar (PlatformMenuBar). Use the name macOS itself uses for this item; keep the trailing ellipsis."
+  },
+  "menuView": "View",
+  "@menuView": {
+    "description": "Title of the View menu in the macOS menu bar; it holds the system's Enter Full Screen item. Shown only on macOS, in the app's menu bar (PlatformMenuBar)."
+  },
+  "menuWindow": "Window",
+  "@menuWindow": {
+    "description": "Title of the Window menu in the macOS menu bar; it holds the system's Minimize and Zoom items. Shown only on macOS, in the app's menu bar (PlatformMenuBar)."
+  },
+  "menuHelp": "Help",
+  "@menuHelp": {
+    "description": "Title of the Help menu in the macOS menu bar. Shown only on macOS, in the app's menu bar (PlatformMenuBar)."
+  },
+  "menuUserGuide": "User Guide",
+  "@menuUserGuide": {
+    "description": "Help menu item that opens the in-app User Guide. Shown only on macOS, in the app's menu bar (PlatformMenuBar). Title case, as macOS menu items are written in English."
+  },
   "appBootstrapPreparing": "Preparing your collection",
   "@appBootstrapPreparing": {
     "description": "Accessibility label on the startup loading spinner shown while the collection database is being prepared."

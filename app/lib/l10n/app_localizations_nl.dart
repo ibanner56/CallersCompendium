@@ -66,6 +66,33 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get menuFile => 'Archief';
+
+  @override
+  String get menuNewDance => 'Nieuwe dans';
+
+  @override
+  String get menuImportDances => 'Importeer dansen…';
+
+  @override
+  String get menuClose => 'Sluit';
+
+  @override
+  String get menuSettings => 'Instellingen…';
+
+  @override
+  String get menuView => 'Weergave';
+
+  @override
+  String get menuWindow => 'Venster';
+
+  @override
+  String get menuHelp => 'Help';
+
+  @override
+  String get menuUserGuide => 'Gebruikersgids';
+
+  @override
   String get appBootstrapPreparing => 'Je collectie voorbereiden';
 
   @override
