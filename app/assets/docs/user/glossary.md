@@ -257,10 +257,12 @@ details & shorthands**. See
 ## Unrecognized figure
 
 A line the app could not read as a known [figure](#figure). It is kept exactly
-as you typed or imported it, with a badge, so nothing is thrown away. You can
-rewrite it by hand, or use **Re-check unrecognized figures** in Settings to see
-whether the app can now read it. Not to be confused with *your own figures*,
-which you make yourself under **Custom Figures**. See
+as written, so nothing is thrown away. One that came from an import or a
+free-text line carries a badge, and **Re-check unrecognized figures** in
+Settings can try it again. One you typed with Free-text entry off, or one left
+behind by a figure of yours that was deleted, has no badge, and Re-check leaves
+it as it is. You can always rewrite any of them by hand. Not to be confused with
+*your own figures*, which you make yourself under **Custom Figures**. See
 [Write & edit dances](./authoring.md#unrecognized-figure).
 
 ## Venue
