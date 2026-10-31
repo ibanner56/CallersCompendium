@@ -1269,9 +1269,8 @@ class ProgramRepository {
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
     bool requireEventDate = false,
-  }) async => _programDerivedRows(_normalizedCallerFilter(callerFilter))
-      .get()
-      .then(
+  }) async =>
+      _programDerivedRows(_normalizedCallerFilter(callerFilter)).get().then(
         (rows) => _lastCalledFromRows(rows, requireEventDate: requireEventDate),
       );
 
@@ -1294,10 +1293,9 @@ class ProgramRepository {
   /// [callingHistoryForDance].
   Future<Map<String, DanceCallCounts>> countByDance({
     String? callerFilter,
-  }) async =>
-      _programDerivedRows(_normalizedCallerFilter(callerFilter))
-          .get()
-          .then(_countsFromRows);
+  }) async => _programDerivedRows(
+    _normalizedCallerFilter(callerFilter),
+  ).get().then(_countsFromRows);
 
   /// The ONE query behind [lastCalledByDance], [countByDance] and
   /// [watchProgramDerivedCounts]. [caller] is already normalized.
@@ -1926,8 +1924,9 @@ class ProgramRepository {
               null) {
         // A derived revival must not cancel a hold; see
         // `DanceRepository._reviveReferences`.
-        await VenueRepository(_db)
-            .restore(venueId, at: at, clearPending: false);
+        await VenueRepository(
+          _db,
+        ).restore(venueId, at: at, clearPending: false);
       }
     }
     await _stampExistence(id, at: at, deleted: false);

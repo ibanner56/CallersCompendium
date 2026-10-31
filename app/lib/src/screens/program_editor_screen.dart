@@ -342,8 +342,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _previewPersistent = persistent;
     });
     try {
-      final preview = await _onlineServiceFor(result.source)
-          .loadPreview(_repos, result);
+      final preview = await _onlineServiceFor(
+        result.source,
+      ).loadPreview(_repos, result);
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
         _previewOnline = preview;
@@ -357,8 +358,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
-        _previewError = AppLocalizations.of(context)
-            .onlineLoadError(result.source.label);
+        _previewError = AppLocalizations.of(
+          context,
+        ).onlineLoadError(result.source.label);
         _previewLoading = false;
       });
     }
@@ -480,8 +482,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               if (snapshot.hasError) {
                 return Center(
                   child: Text(
-                    AppLocalizations.of(context)
-                        .onlineLoadError(result.source.label),
+                    AppLocalizations.of(
+                      context,
+                    ).onlineLoadError(result.source.label),
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -1364,8 +1367,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (_pendingBulkUndoSlotIds != null) {
           _showBulkUndoSnackBar(message: errorMessage);
         } else {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(errorMessage)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(errorMessage)));
         }
         return _AutoCommitOutcome.failed(generation);
       }
@@ -2693,8 +2697,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           message,
           Directionality.maybeOf(context) ?? TextDirection.ltr,
         );
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
       return;
     }
@@ -3198,8 +3203,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (restoreBulkUndoOnFailure) {
         _showBulkUndoSnackBar(message: l10n.programsSaveError);
       } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
       }
     }
   }

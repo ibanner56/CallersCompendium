@@ -1053,8 +1053,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context)
-                  .programsMarkedAllPerformedExceptAlternates,
+              AppLocalizations.of(
+                context,
+              ).programsMarkedAllPerformedExceptAlternates,
             ),
           ),
         );
@@ -1356,8 +1357,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   String _displayProse(String text) {
     if (!CanonicalDiscouragedTermsScope.of(context)) return text;
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    return FigureRenderer(contraTaxonomy)
-        .renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
+    return FigureRenderer(
+      contraTaxonomy,
+    ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
   }
 
   Widget _slotRow(
@@ -1498,8 +1500,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ? setListAccentForRow(
               dance.formation.shape,
               dance.mixer,
-              userColor: FormationColorsScope.of(context)
-                  ?.overrideFor(dance.formation.shape),
+              userColor: FormationColorsScope.of(
+                context,
+              )?.overrideFor(dance.formation.shape),
               highContrast: highContrast,
             )
           : null;
