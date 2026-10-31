@@ -6212,6 +6212,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performShowWalkthrough => 'Doorloop tonen';
 
   @override
+  String get performFullScreen => 'Volledig scherm';
+
+  @override
   String get performWalkthroughEmpty => 'Geen doorloop voor deze dans.';
 
   @override

@@ -9297,6 +9297,12 @@ abstract class AppLocalizations {
   /// **'Show walkthrough'**
   String get performShowWalkthrough;
 
+  /// Tooltip, overflow-menu label and accessible name for the desktop Perform toggle that takes the window full screen and back (PLAT-9). Shown as selected while the window is full screen. The keyboard shortcut is F11, or Ctrl-Cmd-F on macOS.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get performFullScreen;
+
   /// Empty-state text shown in the perform-mode walkthrough overlay when the current dance has no walkthrough written.
   ///
   /// In en, this message translates to:

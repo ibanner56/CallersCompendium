@@ -6237,6 +6237,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get performShowWalkthrough => 'Ablauf anzeigen';
 
   @override
+  String get performFullScreen => 'Vollbild';
+
+  @override
   String get performWalkthroughEmpty => 'Kein Ablauf für diesen Tanz.';
 
   @override

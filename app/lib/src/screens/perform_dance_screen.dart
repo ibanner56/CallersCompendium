@@ -13,6 +13,7 @@ import '../widgets/tap_tempo_metronome.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_card.dart';
 import 'perform_elapsed_clock.dart';
+import 'perform_full_screen.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart'
@@ -54,7 +55,7 @@ class PerformDanceScreen extends StatefulWidget {
 }
 
 class _PerformDanceScreenState extends State<PerformDanceScreen>
-    with WidgetsBindingObserver, PerformWakelockMixin {
+    with WidgetsBindingObserver, PerformWakelockMixin, PerformFullScreenMixin {
   /// Manual large-print text scale, applied when auto-size is off. Persisted
   /// across sessions (issue #449) and restored on entry so a caller's chosen
   /// size survives app relaunch instead of resetting to the default.
@@ -388,14 +389,16 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => _buildContent(
-        context,
-        // Collapse the AppBar's secondary actions into an overflow menu on
-        // narrow widths (issue #433). LayoutBuilder reflects the actual
-        // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
-        // in widget tests).
-        wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+    return buildPerformFullScreenShortcuts(
+      child: LayoutBuilder(
+        builder: (context, constraints) => _buildContent(
+          context,
+          // Collapse the AppBar's secondary actions into an overflow menu on
+          // narrow widths (issue #433). LayoutBuilder reflects the actual
+          // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
+          // in widget tests).
+          wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+        ),
       ),
     );
   }
@@ -443,6 +446,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                     icon: const Icon(Icons.av_timer),
                     onPressed: _openMetronomeSheet,
                   ),
+                  ...performFullScreenInlineActions,
                   PerformSizeControls(
                     canDecrease: canDecrease,
                     onDecrease: _decreaseTextSize,
@@ -473,6 +477,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                     label: l10n.performTapTempo,
                     onSelected: _openMetronomeSheet,
                   ),
+                  ...performFullScreenMenuActions,
                   PerformMenuAction(
                     menuKey: const ValueKey('decrease-text-size-menu'),
                     icon: Icons.text_decrease,
@@ -509,31 +514,37 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                 ),
               ),
             ),
-            body: SafeArea(
-              child: Stack(
-                children: [
-                  PerformCard(
-                    dance: widget.dance,
-                    renderer: widget.renderer,
-                    dialect: dialect,
-                    textScale: _textScale,
-                    autoSize: _autoSize,
-                    authorNames: widget.authorNames,
-                    difficultyLevel: widget.difficultyLevel,
-                  ),
-                  // The walkthrough overlay is a sibling of the card — never a
-                  // child routed through its `_FitToHeight` measurement — so
-                  // showing it can't shrink or compete with the notation (#370).
-                  if (_showWalkthrough && _hasWalkthrough)
-                    Positioned.fill(
-                      child: PerformWalkthroughOverlay(
-                        walkthrough: widget.dance.walkthrough,
-                        renderer: widget.renderer,
-                        dialect: dialect,
-                        onClose: _toggleWalkthrough,
-                      ),
+            // Holds focus inside the view, so its keys (full screen and
+            // Escape, from [buildPerformFullScreenShortcuts]) work before the
+            // caller has clicked anything.
+            body: Focus(
+              autofocus: true,
+              child: SafeArea(
+                child: Stack(
+                  children: [
+                    PerformCard(
+                      dance: widget.dance,
+                      renderer: widget.renderer,
+                      dialect: dialect,
+                      textScale: _textScale,
+                      autoSize: _autoSize,
+                      authorNames: widget.authorNames,
+                      difficultyLevel: widget.difficultyLevel,
                     ),
-                ],
+                    // The walkthrough overlay is a sibling of the card — never a
+                    // child routed through its `_FitToHeight` measurement — so
+                    // showing it can't shrink or compete with the notation (#370).
+                    if (_showWalkthrough && _hasWalkthrough)
+                      Positioned.fill(
+                        child: PerformWalkthroughOverlay(
+                          walkthrough: widget.dance.walkthrough,
+                          renderer: widget.renderer,
+                          dialect: dialect,
+                          onClose: _toggleWalkthrough,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             bottomNavigationBar: _showIndividualPerformTimer == true
