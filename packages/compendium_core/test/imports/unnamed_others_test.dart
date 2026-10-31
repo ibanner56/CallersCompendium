@@ -111,7 +111,7 @@ void main() {
           fromUsrColumns: true,
         ),
       );
-      final notes = mapping.dance.callingNotes!;
+      final notes = mapping.dance.callingNotes;
       final credit = notes.indexOf('Choreography: Rick Mohr and others');
       expect(credit, greaterThan(notes.indexOf('Other notes: Taught at camp')));
       expect(credit, lessThan(notes.indexOf('Source: A book')));
@@ -136,7 +136,7 @@ void main() {
       final mapping = mapCallersCompanionDance(
         CcDanceRecord(name: 'D', authors: const ['Rick Mohr']),
       );
-      expect(mapping.dance.callingNotes ?? '', isNot(contains('Choreography')));
+      expect(mapping.dance.callingNotes, isNot(contains('Choreography')));
     });
   });
 }
