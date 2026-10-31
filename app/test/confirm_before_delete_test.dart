@@ -443,6 +443,30 @@ void main() {
       );
     });
 
+    testWidgets('a second tap while the count loads opens one dialog', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2']);
+      await _pumpProgramsShell(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      // No pump between the taps: the second lands while the first is still
+      // awaiting the settings read and the count query.
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('confirm-delete-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-confirm')));
+      await tester.pumpAndSettle();
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+
     testWidgets('the summary pane names the count too', (tester) async {
       final repos = openTestRepositories();
       await _programWithDances(repos, 'p1', 'Barn Dance', ['d1', 'd2']);
