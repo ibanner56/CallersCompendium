@@ -20,6 +20,8 @@ DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   callingNotes: l10n.exportLabelCallingNotes,
   walkthrough: l10n.exportLabelWalkthrough,
   tunes: l10n.exportLabelTunes,
+  hook: l10n.exportLabelHook,
+  sources: l10n.exportLabelSources,
   beats: l10n.exportBeatsLabel,
   pageOf: l10n.exportPageOfPages,
 );

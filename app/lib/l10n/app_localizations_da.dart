@@ -243,6 +243,29 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String confirmDeleteDancesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse slettes. Du kan fortryde dette.',
+      one: '1 dans slettes. Du kan fortryde dette.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confirmDeleteDancesNotShownBody(int count, int notShown) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danse slettes, heraf $notShown skjult af din søgning. Du kan fortryde dette.',
+      one: '1 dans slettes. Din søgning skjuler den. Du kan fortryde dette.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get colorEditHexLabel => 'Hex';
 
   @override
@@ -2370,7 +2393,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.';
+      'Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — medmindre du har givet den formation sin egen farve, som så gælder. Danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -2378,7 +2401,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAppearanceFormationColoursSubtitle =>
-      'Fremhæv individuelle formationer i dine egne farver – f.eks. Becket (CW) i gult, Becket (CCW) i lyserødt – på danskort, dansdetaljer og Perform-overskriften.';
+      'Fremhæv individuelle formationer i dine egne farver – f.eks. Becket (CW) i gult, Becket (CCW) i lyserødt – på danskort, dansdetaljer, Perform-overskriften og sætlisterækker.';
 
   @override
   String get settingsAppearanceSelectedBadge => 'Valgt';
@@ -2591,6 +2614,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsShareFieldsTunes => 'Melodier';
 
   @override
+  String get settingsDefaultsShareFieldsHook => 'Hook';
+
+  @override
+  String get settingsDefaultsShareFieldsSources => 'Kilder';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Samlingsfiltre';
 
   @override
@@ -2715,7 +2744,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsFormationColoursIntro =>
-      'Giv en formation sin egen farve for at fremhæve dens etiket på danskort, dansdetaljer og Perform-overskriften. Kun de formationer, du tilpasser, fremhæves; de øvrige viser deres etiket som normalt. Formationen vises altid som tekst, så etiketter forbliver læsbare uden farver.';
+      'Giv en formation sin egen farve for at fremhæve dens etiket på danskort, dansdetaljer og Perform-overskriften og for at farve dens sætlisterækker (mixer-danse beholder mixer-farven). Kun de formationer, du tilpasser, fremhæves; de øvrige viser deres etiket som normalt. Formationen vises altid som tekst, så etiketter forbliver læsbare uden farver.';
 
   @override
   String get settingsFormationColoursListHeader => 'Formationer';
@@ -2793,6 +2822,43 @@ class AppLocalizationsDa extends AppLocalizations {
   String tagManagerMergedSeveralSnack(int count, String into) {
     return 'Samlede $count tags i „$into“';
   }
+
+  @override
+  String get authorManagerTitle => 'Forfattere';
+
+  @override
+  String get authorManagerSearchHint => 'Søg i forfattere';
+
+  @override
+  String get authorManagerNameLabel => 'Forfatternavn';
+
+  @override
+  String get authorManagerEmpty =>
+      'Ingen forfattere endnu. Forfattere, du krediterer på en dans, vises her.';
+
+  @override
+  String get authorManagerLoadError => 'Dine forfattere kunne ikke indlæses.';
+
+  @override
+  String authorManagerMergedSeveralSnack(int count, String into) {
+    return 'Samlede $count forfattere i „$into“';
+  }
+
+  @override
+  String get sourceManagerTitle => 'Kilder';
+
+  @override
+  String get sourceManagerSearchHint => 'Søg i kilder';
+
+  @override
+  String get sourceManagerTitleLabel => 'Kildens titel';
+
+  @override
+  String get sourceManagerEmpty =>
+      'Ingen kilder endnu. Bøger og websteder, du citerer på en dans, vises her.';
+
+  @override
+  String get sourceManagerLoadError => 'Dine kilder kunne ikke indlæses.';
 
   @override
   String get libraryManagerClearSearch => 'Ryd søgning';
@@ -2878,6 +2944,38 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get libraryManagerEditFailed =>
       'Ændringen kunne ikke gemmes. Prøv igen.';
+
+  @override
+  String get libraryManagerEditDetails => 'Rediger detaljer…';
+
+  @override
+  String libraryManagerRenamedSnack(String from, String to) {
+    return 'Omdøbte „$from“ til „$to“';
+  }
+
+  @override
+  String libraryManagerMergedSnack(String from, String into) {
+    return 'Flettede „$from“ ind i „$into“';
+  }
+
+  @override
+  String libraryManagerDeletedSnack(String name) {
+    return 'Slettede „$name“';
+  }
+
+  @override
+  String libraryManagerMergeConfirmTitle(String from, String into) {
+    return 'Flet „$from“ ind i „$into“?';
+  }
+
+  @override
+  String get libraryManagerMergeDropsHeading =>
+      'Disse detaljer er forskellige. Den flettede post beholder sine egne, og disse kasseres:';
+
+  @override
+  String libraryManagerMergeDroppedLine(String field, String value) {
+    return '$field: $value';
+  }
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotek';
@@ -3164,6 +3262,20 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsGeneralLibraryTagsSubtitle =>
       'Omdøb, flet, farvelæg og slet dine tags.';
+
+  @override
+  String get settingsGeneralLibraryAuthorsTitle => 'Forfattere';
+
+  @override
+  String get settingsGeneralLibraryAuthorsSubtitle =>
+      'Omdøb, flet og slet forfattere, og rediger deres detaljer.';
+
+  @override
+  String get settingsGeneralLibrarySourcesTitle => 'Kilder';
+
+  @override
+  String get settingsGeneralLibrarySourcesSubtitle =>
+      'Omdøb, flet og slet kilder, og rediger deres detaljer.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
@@ -4201,6 +4313,28 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other: 'Ryddede felt på $count danse',
       one: 'Ryddede felt på 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Slettede $count danse',
+      one: 'Slettede 1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchDeletedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Slettede $count danse. Gendan dem fra For nylig slettet.',
+      one: 'Slettede 1 dans. Gendan den fra For nylig slettet.',
     );
     return '$_temp0';
   }
@@ -6039,6 +6173,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performShowWalkthrough => 'Vis gennemgang';
 
   @override
+  String get performFullScreen => 'Fuld skærm';
+
+  @override
   String get performWalkthroughEmpty => 'Ingen gennemgang for denne dans.';
 
   @override
@@ -6273,6 +6410,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get exportLabelTunes => 'Melodier';
+
+  @override
+  String get exportLabelHook => 'Hook';
+
+  @override
+  String get exportLabelSources => 'Kilder';
 
   @override
   String exportSlotAuthorSuffix(String names) {
@@ -8418,6 +8561,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorRedoLabel => 'Annullér fortryd';
+
+  @override
+  String get editorDraftNotSaved =>
+      'Kladde ikke gemt – dine seneste ændringer bliver ikke bevaret endnu';
 
   @override
   String danceEditorUndoShortcutTooltip(String platform) {

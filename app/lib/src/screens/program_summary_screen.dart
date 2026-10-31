@@ -16,6 +16,7 @@ import '../data/callersbox_online.dart';
 import '../data/contradb_online.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
+import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../data/show_performed_toggles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -1464,9 +1465,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // Resolve the redundant formation accent (issue #270, extended for mixer
       // flag in issue #732). Only when a dance resolves, color-coding is on, and
       // the family has a themed accent. Mixer-flagged dances get the mixer accent
-      // regardless of shape — see setListAccentForDance.
+      // regardless of shape; otherwise the user's own formation colour wins
+      // over the family tint (PRES-12) — see setListAccentForRow.
       final accent = (dance != null && colorCodingEnabled)
-          ? setListAccentForDance(dance, highContrast: highContrast)
+          ? setListAccentForRow(
+              dance.formation.shape,
+              dance.mixer,
+              userColor: FormationColorsScope.of(
+                context,
+              )?.overrideFor(dance.formation.shape),
+              highContrast: highContrast,
+            )
           : null;
       // Expose the formation and, for mixer-flagged dances, the mixer term to AT
       // so the row is fully readable without colour (ux.md §4): the accent is

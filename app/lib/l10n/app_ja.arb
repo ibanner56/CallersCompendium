@@ -232,6 +232,14 @@
   "@confirmDeleteBody": {
     "x-sourceSha256": "d08275cc446047e0a6a2578efa594ce7ff3d9b39f2db83a4ebd6e13f57861eb8"
   },
+  "confirmDeleteDancesBody": "{count, plural, other{{count}件のダンスを削除します。元に戻せます。}}",
+  "@confirmDeleteDancesBody": {
+    "x-sourceSha256": "5bf4789578375243769bbeaa1a924d2dfe8584634cac8e15d22e0a36e5aa0519"
+  },
+  "confirmDeleteDancesNotShownBody": "{count, plural, other{{count}件のダンスを削除します（うち{notShown}件は検索で非表示）。元に戻せます。}}",
+  "@confirmDeleteDancesNotShownBody": {
+    "x-sourceSha256": "5eec5a5f7dd5f0845c6736bb763c8017983643cfaf238442db0a9c103f98044f"
+  },
   "colorEditHexLabel": "HEX",
   "@colorEditHexLabel": {
     "x-sourceSha256": "69493e6f1a6957cad7e3ece5267a57e8a8ed035b5ea5fd7e360ce9eb2405c30b"
@@ -2300,17 +2308,17 @@
   "@settingsAppearanceSetListColorTitle": {
     "x-sourceSha256": "7e01df33d94b5e6e118e6fea4b925e84f23ab5cc48edcce8d4ae3975a1c940f6"
   },
-  "settingsAppearanceSetListColorSubtitle": "各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。",
+  "settingsAppearanceSetListColorSubtitle": "各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ただし、そのフォーメーションに独自の色を設定している場合は、その色が優先されます。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。",
   "@settingsAppearanceSetListColorSubtitle": {
-    "x-sourceSha256": "c20369b0d136fc3f39266e67024966f1e20c80b5f5b716ce98a1531c87faef5d"
+    "x-sourceSha256": "232f4627ed9e2f518689fc74c581702696c4699041bd904500c86630a2da1ca3"
   },
   "settingsAppearanceFormationColoursTitle": "フォーメーションラベルの色",
   "@settingsAppearanceFormationColoursTitle": {
     "x-sourceSha256": "79f6f85c15a24218dbe046fac396504b123ad5b6a7779091924f0b884a142676"
   },
-  "settingsAppearanceFormationColoursSubtitle": "個々のフォーメーションを独自の色でハイライト表示（例：Becket（CW）を黄色、Becket（CCW）をピンク）します。ダンスカード、ダンス詳細、パフォームヘッダーに反映されます。",
+  "settingsAppearanceFormationColoursSubtitle": "個々のフォーメーションを独自の色でハイライト表示（例：Becket（CW）を黄色、Becket（CCW）をピンク）します。ダンスカード、ダンス詳細、パフォームヘッダー、セットリストの行に反映されます。",
   "@settingsAppearanceFormationColoursSubtitle": {
-    "x-sourceSha256": "9c2468624ba508b9206d3fe38bf4e701a3c050e3093473eabba1c9d77adce030"
+    "x-sourceSha256": "eec836f8e8c66b85321f7b6e69a83ede9c3e3cda62b45529773a1d8a77635619"
   },
   "settingsAppearanceSelectedBadge": "選択済み",
   "@settingsAppearanceSelectedBadge": {
@@ -2548,6 +2556,14 @@
   "@settingsDefaultsShareFieldsTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
   },
+  "settingsDefaultsShareFieldsHook": "フック",
+  "@settingsDefaultsShareFieldsHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "settingsDefaultsShareFieldsSources": "ソース",
+  "@settingsDefaultsShareFieldsSources": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
   "settingsDefaultsCollectionFiltersHeader": "コレクションのフィルター",
   "@settingsDefaultsCollectionFiltersHeader": {
     "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"
@@ -2680,9 +2696,9 @@
   "@settingsFormationColoursTitle": {
     "x-sourceSha256": "a104f2d03f3e233ef1d22dc19c2c5a24cbf68ff9293b471fdcefe9020f953d33"
   },
-  "settingsFormationColoursIntro": "フォーメーションに独自の色を設定すると、ダンスカード、ダンス詳細、パフォームヘッダーのラベルをハイライト表示できます。カスタマイズしたフォーメーションのみハイライトされ、他のフォーメーションは通常どおりラベルが表示されます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。",
+  "settingsFormationColoursIntro": "フォーメーションに独自の色を設定すると、ダンスカード、ダンス詳細、パフォームヘッダーのラベルをハイライト表示し、セットリストの行にも色が付きます（ミキサーはミキサーの色のままです）。カスタマイズしたフォーメーションのみハイライトされ、他のフォーメーションは通常どおりラベルが表示されます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。",
   "@settingsFormationColoursIntro": {
-    "x-sourceSha256": "b2526e3c480c39a881769a827fd2a82d81bdc6bf5d0b200c3553c4e857283592"
+    "x-sourceSha256": "908f4e23f32c266ded3e6fdccea065468f9a4daaeccacfea004031804037595b"
   },
   "settingsFormationColoursListHeader": "フォーメーション",
   "@settingsFormationColoursListHeader": {
@@ -2760,6 +2776,50 @@
   "@tagManagerMergedSeveralSnack": {
     "x-sourceSha256": "cacbce18bf0b7e9f1ebbf63bd0314e913760eb09f8c6a84c35823cffd21c7cc6"
   },
+  "authorManagerTitle": "作者",
+  "@authorManagerTitle": {
+    "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "authorManagerSearchHint": "作者を検索",
+  "@authorManagerSearchHint": {
+    "x-sourceSha256": "0452ff51d1276a1c8614a4c6fea6778adc0602fd684e9cd0b28ddaa37fcecd73"
+  },
+  "authorManagerNameLabel": "作者名",
+  "@authorManagerNameLabel": {
+    "x-sourceSha256": "d685a2cb040ed21b08f567b677691f66b65360a21c726a75769adfc5003f5b11"
+  },
+  "authorManagerEmpty": "まだ作者がいません。ダンスにクレジットした作者がここに表示されます。",
+  "@authorManagerEmpty": {
+    "x-sourceSha256": "f63be5621924387162fcb2f2337ab644b7e7a7513be0d62d84e67eb1850d91d7"
+  },
+  "authorManagerLoadError": "作者を読み込めませんでした。",
+  "@authorManagerLoadError": {
+    "x-sourceSha256": "1e98ba428f3769746bb32817bcde3de923f11bae8285366daa0d6ab340ceb1d6"
+  },
+  "authorManagerMergedSeveralSnack": "{count}件の作者を「{into}」にまとめました",
+  "@authorManagerMergedSeveralSnack": {
+    "x-sourceSha256": "4ed1779f0ab50c35824ff5fc36d4da9be5a0b9c3a19d6d32fd1205bd46aaf141"
+  },
+  "sourceManagerTitle": "ソース",
+  "@sourceManagerTitle": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
+  "sourceManagerSearchHint": "ソースを検索",
+  "@sourceManagerSearchHint": {
+    "x-sourceSha256": "cad97f05bed4d408bcffdc0557f7c76c72b66a6f879127ba664e555f0b8c16dd"
+  },
+  "sourceManagerTitleLabel": "ソースのタイトル",
+  "@sourceManagerTitleLabel": {
+    "x-sourceSha256": "458fcd13ab87c5b272319876028d19b1f95c5b0ce0d741b4682b56b4b1073f9f"
+  },
+  "sourceManagerEmpty": "まだソースがありません。ダンスで引用した本やウェブサイトがここに表示されます。",
+  "@sourceManagerEmpty": {
+    "x-sourceSha256": "9a021b4606fe11125d54e533c8a0aa2558721897d2bf7677301767245b78071f"
+  },
+  "sourceManagerLoadError": "ソースを読み込めませんでした。",
+  "@sourceManagerLoadError": {
+    "x-sourceSha256": "6939e6571d35bdefa461f9a6b6e94502e9680892f13eafb46f394b4b44a71ad2"
+  },
   "libraryManagerClearSearch": "検索をクリア",
   "@libraryManagerClearSearch": {
     "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
@@ -2835,6 +2895,34 @@
   "libraryManagerEditFailed": "変更を保存できませんでした。もう一度お試しください。",
   "@libraryManagerEditFailed": {
     "x-sourceSha256": "a42fb6a8c1dff3745489ee1813b6fd4ec4d0ecbb6f3b805bb5630e1a9f41809f"
+  },
+  "libraryManagerEditDetails": "詳細を編集…",
+  "@libraryManagerEditDetails": {
+    "x-sourceSha256": "7be509848535577585d4849652192e5e6e0fee6e8155e411bbd4cdb0551ea4e8"
+  },
+  "libraryManagerRenamedSnack": "「{from}」を「{to}」に名前変更しました",
+  "@libraryManagerRenamedSnack": {
+    "x-sourceSha256": "5e97d0d1296f39ceb9230f70ad16cc0d613613aa726d0b96524b7ba899315bed"
+  },
+  "libraryManagerMergedSnack": "「{from}」を「{into}」に統合しました",
+  "@libraryManagerMergedSnack": {
+    "x-sourceSha256": "30e0db7e6b76090c883a36fb5d54a3c129e065769ad3c7ffd0b4e0a00ab7f01c"
+  },
+  "libraryManagerDeletedSnack": "「{name}」を削除しました",
+  "@libraryManagerDeletedSnack": {
+    "x-sourceSha256": "0c82d7f9acbbb899931e8e3827d38f139e9d0c176c0ca021a853096b632b47fb"
+  },
+  "libraryManagerMergeConfirmTitle": "「{from}」を「{into}」に統合しますか？",
+  "@libraryManagerMergeConfirmTitle": {
+    "x-sourceSha256": "aa13d07fa5314e706136c4a008cf535629d2c59a6b6ca05918992c262b7de998"
+  },
+  "libraryManagerMergeDropsHeading": "次の詳細が異なります。統合後の項目は自身の値を保持し、以下は破棄されます：",
+  "@libraryManagerMergeDropsHeading": {
+    "x-sourceSha256": "7c61de6d866ccfdca2c08023452ecc4bd947ca567452215dfbb133f7fbf0a0c6"
+  },
+  "libraryManagerMergeDroppedLine": "{field}：{value}",
+  "@libraryManagerMergeDroppedLine": {
+    "x-sourceSha256": "d3ba5ccd5a5fb39ef6e9fff0582fbef871d2952d1fa9e1e2b454753407c5e043"
   },
   "settingsGeneralLibraryHeader": "ライブラリ",
   "@settingsGeneralLibraryHeader": {
@@ -3147,6 +3235,22 @@
   "settingsGeneralLibraryTagsSubtitle": "タグの名前変更、統合、色付け、削除を行います。",
   "@settingsGeneralLibraryTagsSubtitle": {
     "x-sourceSha256": "c140368a6b9ec7faa4b2244f3cd0e1189e1efb5cb19ad558be423dd4fdec46bc"
+  },
+  "settingsGeneralLibraryAuthorsTitle": "作者",
+  "@settingsGeneralLibraryAuthorsTitle": {
+    "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "settingsGeneralLibraryAuthorsSubtitle": "作者の名前変更、統合、削除と、詳細の編集を行います。",
+  "@settingsGeneralLibraryAuthorsSubtitle": {
+    "x-sourceSha256": "521332210b6feedb6498f3fa63a52dee7b74bc33f6c2445d95fb34d46043db5c"
+  },
+  "settingsGeneralLibrarySourcesTitle": "ソース",
+  "@settingsGeneralLibrarySourcesTitle": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
+  "settingsGeneralLibrarySourcesSubtitle": "ソースの名前変更、統合、削除と、詳細の編集を行います。",
+  "@settingsGeneralLibrarySourcesSubtitle": {
+    "x-sourceSha256": "2551a818f4caacf179f85d90ed9ce7452d5522045b3d63ded39743b83a57d2fa"
   },
   "settingsGeneralAccessibilityHeader": "アクセシビリティ",
   "@settingsGeneralAccessibilityHeader": {
@@ -4207,6 +4311,14 @@
   "collectionBatchCustomFieldCleared": "{count, plural, other{{count}件のダンスのフィールドをクリアしました}}",
   "@collectionBatchCustomFieldCleared": {
     "x-sourceSha256": "8dc201ced3074421cced8200ab8a82fa8cbb079ad5f865a63a949d65d9f403e1"
+  },
+  "collectionBatchDeleted": "{count, plural, other{{count}件のダンスを削除しました}}",
+  "@collectionBatchDeleted": {
+    "x-sourceSha256": "1ef3b9ba3ecc644ac4da51df5ae5d330a6675b78d8f8784637904fd357bb96e5"
+  },
+  "collectionBatchDeletedAnnouncement": "{count, plural, other{{count}件のダンスを削除しました。「最近削除したアイテム」から復元できます。}}",
+  "@collectionBatchDeletedAnnouncement": {
+    "x-sourceSha256": "2e8f5004a5ed7f87b40bfe951987617b35a3d584eb828b0dba0a9150a6e25b87"
   },
   "collectionSelectDanceLabel": "{title}を選択",
   "@collectionSelectDanceLabel": {
@@ -5986,6 +6098,10 @@
   "@performShowWalkthrough": {
     "x-sourceSha256": "64f01c3e30adb389ccdd0650799fed8a51beeb4a3137e888f5f49cfd3970c1c0"
   },
+  "performFullScreen": "全画面表示",
+  "@performFullScreen": {
+    "x-sourceSha256": "674fe2acd0d5f47b46180dd66e26e349cd9c9db215046f5e86ea2f5728d18117"
+  },
   "performWalkthroughEmpty": "このダンスのウォークスルーはありません。",
   "@performWalkthroughEmpty": {
     "x-sourceSha256": "4a06a15c574a27546aefaab25f6251d757d4685f97a8b3da52f8ad67104848b1"
@@ -6249,6 +6365,14 @@
   "exportLabelTunes": "チューン",
   "@exportLabelTunes": {
     "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
+  },
+  "exportLabelHook": "フック",
+  "@exportLabelHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "exportLabelSources": "ソース",
+  "@exportLabelSources": {
+    "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
   },
   "exportSlotAuthorSuffix": "作: {names}",
   "@exportSlotAuthorSuffix": {
@@ -8277,6 +8401,10 @@
   "danceEditorRedoLabel": "やり直し",
   "@danceEditorRedoLabel": {
     "x-sourceSha256": "74273989b0966e2369b6d01aadb23af4ad6a9e724643fa88f2bde99202a36708"
+  },
+  "editorDraftNotSaved": "下書きを保存できていません。直近の変更はまだ保持されていません",
+  "@editorDraftNotSaved": {
+    "x-sourceSha256": "e7b0e357b6454d0285f6a3b3a4c516654f94c0fbec49dd7555eab4278e523dbe"
   },
   "danceEditorUndoShortcutTooltip": "{platform, select, apple{元に戻す (⌘Z)} other{元に戻す (Ctrl+Z)}}",
   "@danceEditorUndoShortcutTooltip": {

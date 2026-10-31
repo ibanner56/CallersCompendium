@@ -31,6 +31,8 @@ class DanceCardContent {
     required this.callingNotes,
     required this.walkthrough,
     required this.tuneNames,
+    this.hook,
+    this.sourceLines = const [],
   });
 
   /// Takes the same inputs as `danceToPlainText`.
@@ -45,6 +47,7 @@ class DanceCardContent {
     DanceExportLabels labels = const DanceExportLabels(),
     bool canonicalizeDiscouragedTerms = false,
     Set<DanceShareField> fields = DanceShareField.allExceptTunes,
+    List<String> sourceLines = const [],
   }) {
     final fig = renderer ?? FigureRenderer(contraTaxonomy);
     String renderText(String text) => canonicalizeDiscouragedTerms
@@ -74,12 +77,14 @@ class DanceCardContent {
       callingNotes: gated(DanceShareField.callingNotes, dance.callingNotes),
       walkthrough: gated(DanceShareField.walkthrough, dance.walkthrough),
       tuneNames: danceCardTuneNames(dance, fields),
+      hook: gated(DanceShareField.hook, dance.hook),
+      sourceLines: danceCardSourceLines(sourceLines, fields),
     );
   }
 
   /// Whether [dance] has anything to lay out beneath its title and meta lines
-  /// under [fields]: structured figures, or calling notes or a walkthrough that
-  /// are selected and non-blank. A set-list export appends a card for exactly
+  /// under [fields]: structured figures, or calling notes, a walkthrough, a
+  /// hook or source citations that are selected and non-empty. A set-list export appends a card for exactly
   /// these dances (a dance with only a title would add nothing).
   static bool hasBody(Dance dance, Set<DanceShareField> fields) =>
       switch (dance.figuresSource) {
@@ -89,7 +94,10 @@ class DanceCardContent {
       (fields.contains(DanceShareField.callingNotes) &&
           dance.callingNotes.trim().isNotEmpty) ||
       (fields.contains(DanceShareField.walkthrough) &&
-          dance.walkthrough.trim().isNotEmpty);
+          dance.walkthrough.trim().isNotEmpty) ||
+      (fields.contains(DanceShareField.hook) && dance.hook.trim().isNotEmpty) ||
+      (fields.contains(DanceShareField.sources) &&
+          dance.sourceCitations.isNotEmpty);
 
   /// The trimmed dance title.
   final String title;
@@ -114,4 +122,12 @@ class DanceCardContent {
 
   /// Resolved, non-blank tune names; empty when the field is deselected.
   final List<String> tuneNames;
+
+  /// Dialect-rendered, trimmed hook; `null` when the field is deselected or the
+  /// hook is blank.
+  final String? hook;
+
+  /// Resolved source-citation lines (one per citation); empty when the field is
+  /// deselected or the caller supplied none.
+  final List<String> sourceLines;
 }

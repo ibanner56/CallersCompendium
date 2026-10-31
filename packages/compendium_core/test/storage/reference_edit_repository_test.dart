@@ -565,4 +565,264 @@ void main() {
       expect(await tagJoins(), {('live', a), ('trashed', a)});
     });
   });
+
+  group('source merge (T3)', () {
+    Future<void> source(String id, String title, {String? author}) =>
+        repos.publishedSources.upsert(
+          PublishedSource(id: id, title: title, author: author),
+          at: t0,
+        );
+
+    Future<Map<String, (String?, String?)>> citations(String danceId) async => {
+      for (final row in await (db.select(
+        db.danceSources,
+      )..where((t) => t.danceId.equals(danceId))).get())
+        row.sourceId: (row.page, row.number),
+    };
+
+    test("a dance citing both keeps one citation, with the loser's page "
+        'filling an empty page and its own number kept', () async {
+      await source(a, 'Zesty Contras');
+      await source(b, 'Zesty Contras (2nd ed.)');
+      await dance(
+        'both',
+        sources: [
+          SourceCitation(sourceId: a, number: '12'),
+          SourceCitation(sourceId: b, page: '34', number: '99'),
+        ],
+      );
+
+      await edits.merge(ReferenceKind.source, intoId: a, otherIds: [b]);
+
+      expect(await citations('both'), {a: ('34', '12')});
+    });
+
+    test(
+      'Undo puts the loser citation back and empties the filled page',
+      () async {
+        await source(a, 'Zesty Contras');
+        await source(b, 'Zesty Contras (2nd ed.)');
+        await dance(
+          'both',
+          sources: [
+            SourceCitation(sourceId: a, number: '12'),
+            SourceCitation(sourceId: b, page: '34'),
+          ],
+        );
+
+        await edits.undo(
+          await edits.merge(ReferenceKind.source, intoId: b, otherIds: [a]),
+        );
+
+        expect(await citations('both'), {a: (null, '12'), b: ('34', null)});
+      },
+    );
+
+    test("Undo leaves a page edited since the merge as it is", () async {
+      await source(a, 'Zesty Contras');
+      await source(b, 'Zesty Contras (2nd ed.)');
+      await dance(
+        'both',
+        sources: [
+          SourceCitation(sourceId: a),
+          SourceCitation(sourceId: b, page: '34'),
+        ],
+      );
+      final undo = await edits.merge(
+        ReferenceKind.source,
+        intoId: a,
+        otherIds: [b],
+      );
+      await (db.update(db.danceSources)
+            ..where((t) => t.danceId.equals('both') & t.sourceId.equals(a)))
+          .write(const DanceSourcesCompanion(page: Value('35')));
+
+      await edits.undo(undo);
+
+      expect((await citations('both'))[a], ('35', null));
+    });
+    test('Undo of a merge of two losers that each filled a locator empties '
+        'both', () async {
+      await source(a, 'Zesty Contras');
+      await source(b, 'Zesty Contras (2nd ed.)');
+      await source(c, 'Zesty');
+      await dance(
+        'all',
+        sources: [
+          SourceCitation(sourceId: a),
+          SourceCitation(sourceId: b, page: '34'),
+          SourceCitation(sourceId: c, number: '7'),
+        ],
+      );
+      final undo = await edits.merge(
+        ReferenceKind.source,
+        intoId: a,
+        otherIds: [b, c],
+      );
+      expect(await citations('all'), {a: ('34', '7')});
+
+      await edits.undo(undo);
+
+      expect(await citations('all'), {
+        a: (null, null),
+        b: ('34', null),
+        c: (null, '7'),
+      });
+    });
+
+    test("the merged-into source's page wins over the survivor id's", () async {
+      await source(a, 'Zesty Contras');
+      await source(b, 'Zesty Contras (2nd ed.)');
+      await dance(
+        'both',
+        sources: [
+          SourceCitation(sourceId: a, page: '12'),
+          SourceCitation(sourceId: b, page: '34', number: '5'),
+        ],
+      );
+
+      // "Merge A into B": the id kept is A's, the locator B's.
+      await edits.merge(ReferenceKind.source, intoId: b, otherIds: [a]);
+
+      expect(await citations('both'), {a: ('34', '5')});
+    });
+
+    test('a dance citing two losers but not the survivor keeps one citation '
+        'with both locators, and Undo puts both back', () async {
+      await source(a, 'Zesty');
+      await source(b, 'Zesty Contras');
+      await source(c, 'Zesty Contras (2nd ed.)');
+      await dance(
+        'losers',
+        sources: [
+          SourceCitation(sourceId: b, page: '1'),
+          SourceCitation(sourceId: c, number: '2'),
+        ],
+      );
+
+      final undo = await edits.merge(
+        ReferenceKind.source,
+        intoId: a,
+        otherIds: [b, c],
+      );
+      expect(await citations('losers'), {a: ('1', '2')});
+
+      await edits.undo(undo);
+      expect(await citations('losers'), {b: ('1', null), c: (null, '2')});
+    });
+  });
+
+  group('deleteUnused (T3)', () {
+    Future<void> author(String id, String name) async {
+      final _ = await repos.choreographers.upsert(
+        Choreographer(id: id, name: name),
+        at: t0,
+      );
+    }
+
+    test(
+      'refuses, writing nothing, while a live dance credits the author',
+      () async {
+        await author(a, 'Gene Hubert');
+        await dance('live', authors: [a]);
+
+        await expectLater(
+          edits.deleteUnused(ReferenceKind.author, a),
+          throwsStateError,
+        );
+        expect(await repos.choreographers.getById(a), isNotNull);
+      },
+    );
+
+    test('deletes an author only trashed dances credit, bumping them, and '
+        'Undo revives it', () async {
+      await author(a, 'Gene Hubert');
+      await dance('trashed', authors: [a]);
+      await repos.dances.softDelete('trashed', at: t0);
+      final before = await (db.select(
+        db.dances,
+      )..where((t) => t.id.equals('trashed'))).getSingle();
+
+      final undo = await edits.deleteUnused(ReferenceKind.author, a);
+
+      expect(await repos.choreographers.getById(a), isNull);
+      final after = await (db.select(
+        db.dances,
+      )..where((t) => t.id.equals('trashed'))).getSingle();
+      expect(after.updatedAt.isAfter(before.updatedAt), isTrue);
+
+      await edits.undo(undo);
+      expect((await repos.choreographers.getById(a))!.name, 'Gene Hubert');
+    });
+
+    test('is not for tags', () {
+      expect(
+        () => edits.deleteUnused(ReferenceKind.tag, a),
+        throwsArgumentError,
+      );
+    });
+  });
+
+  group('authorMergeConflicts (T3)', () {
+    test('an empty email takes the other\'s and is not listed; a conflicting '
+        'one is listed, and the merge drops exactly what is listed', () async {
+      final into = Choreographer(
+        id: b,
+        name: 'Gene Hubert',
+        website: 'gene.example',
+      );
+      final other = Choreographer(
+        id: a,
+        name: 'Gene Hurbert',
+        website: 'other.example',
+        email: 'gene@example.com',
+        location: 'Portland, OR',
+      );
+
+      expect(authorMergeConflicts(into, [other]), [
+        ReferenceMergeConflict(
+          ReferenceDetailField.website,
+          'gene.example',
+          'other.example',
+        ),
+      ]);
+
+      final _ = await repos.choreographers.upsert(into, at: t0);
+      final _ = await repos.choreographers.upsert(other, at: t0);
+      await edits.merge(ReferenceKind.author, intoId: b, otherIds: [a]);
+      final merged = (await repos.choreographers.getById(a))!;
+      expect(merged.website, 'gene.example');
+      expect(merged.email, 'gene@example.com');
+      expect(merged.location, 'Portland, OR');
+    });
+
+    test('lists a value each loser drops, once, in id order', () {
+      final into = Choreographer(id: c, name: 'X', notes: 'kept');
+      expect(
+        authorMergeConflicts(into, [
+          Choreographer(id: b, name: 'Y', notes: 'second'),
+          Choreographer(id: a, name: 'Z', notes: 'first', email: 'z@x.org'),
+          Choreographer(
+            id: '00000000-0000-4000-8000-00000000000d',
+            name: 'W',
+            notes: 'first',
+          ),
+        ]),
+        [
+          ReferenceMergeConflict(ReferenceDetailField.notes, 'kept', 'first'),
+          ReferenceMergeConflict(ReferenceDetailField.notes, 'kept', 'second'),
+        ],
+      );
+    });
+
+    test('sources compare author, year, URL and notes', () {
+      expect(
+        sourceMergeConflicts(
+          PublishedSource(id: a, title: 'Zesty', year: 1998),
+          [PublishedSource(id: b, title: 'Zesty 2', year: 2004, url: 'u')],
+        ),
+        [ReferenceMergeConflict(ReferenceDetailField.year, '1998', '2004')],
+      );
+    });
+  });
 }

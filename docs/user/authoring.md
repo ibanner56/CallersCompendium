@@ -605,6 +605,13 @@ explicit about two things, and both matter:
 
 - These details are **shared across every dance credited to that author**, so
   correcting a spelling here corrects it everywhere.
+- If you rename an author to a name another author already has, the app offers
+  to **merge** them into one, listing any details it would drop because the two
+  disagree. **Keep editing** takes you back to what you typed. After a merge,
+  every dance that credited either author credits the one that's left, this
+  dance included, and **Undo** in the message at the bottom of the screen puts
+  both back. The same merge is in **Settings → General → Library → Authors**;
+  see [Settings](./settings.md#library).
 - **Email and location are private, and so is the deceased mark.** They are
   stored only on this device and are never shared or exported. See
   [Share, print & export](./sharing.md#what-stays-private) for exactly what
@@ -658,6 +665,14 @@ The draft is written about half a second after you stop typing, and at once
 when you switch away from the app on a phone or tablet, or close it on a
 computer, so even the last few keystrokes are kept. Drafts stay on your device; they are never uploaded, shared,
 or included in exports.
+
+If the app cannot write the draft — the device is out of storage space, for
+example — a small cloud-with-a-slash icon appears in the top bar of the dance
+editor and the program editor, and its tooltip says **Draft not saved**. Your
+edits stay on screen and you can keep working, but nothing is being kept in
+case the app closes. Free up space, or save the dance or program now. The icon
+disappears by itself the next time a draft is written. The app also notes the
+first such failure in **Diagnostics** (by error type only, never your text).
 
 Each new dance keeps its own draft. If a new dance you never saved left one
 behind, the next new dance you start offers it back by its title — *You have an

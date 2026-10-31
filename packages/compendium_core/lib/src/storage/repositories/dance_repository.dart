@@ -1910,6 +1910,42 @@ class DanceRepository {
   Future<void> softDelete(String id, {required DateTime at}) =>
       _stampExistence(id, at: at, deleted: true);
 
+  /// Soft-deletes every live dance in [ids] at [at], in one transaction, for
+  /// the Collection multi-select Delete (N4-S3). Each dance goes through
+  /// [softDelete], so a bulk delete is exactly N single deletes; the
+  /// transaction only makes them all-or-nothing, so a failure part-way leaves
+  /// every dance live.
+  ///
+  /// Skips ids that are unknown or already in Recently deleted, and returns
+  /// the ids it deleted, in [ids]' order. That list is what Undo passes to
+  /// [restoreMany]: a dance that was already in the trash must not come back
+  /// with the ones this call put there.
+  Future<List<String>> softDeleteMany(
+    Iterable<String> ids, {
+    required DateTime at,
+  }) {
+    assertUtc(at, 'at');
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value(const []);
+    return _db.transaction(() async {
+      final live = <String>{};
+      for (final chunk in _chunkIds(list)) {
+        final query = _db.selectOnly(_db.dances)
+          ..addColumns([_db.dances.id])
+          ..where(_db.dances.id.isIn(chunk) & _db.dances.deletedAt.isNull());
+        live.addAll(await query.map((r) => r.read(_db.dances.id)!).get());
+      }
+      final deleted = [
+        for (final id in list)
+          if (live.contains(id)) id,
+      ];
+      for (final id in deleted) {
+        await softDelete(id, at: at);
+      }
+      return deleted;
+    });
+  }
+
   /// Revives the dance, stamping `existence_at` causally (schema v25, issue
   /// #898). A revival is an existence transition, so it must advance
   /// `existence_at`: leaving it at the tombstone's value would tie, and a tie
@@ -1931,7 +1967,7 @@ class DanceRepository {
   /// tombstoned would save two FTS delete-by-scans on a single-dance user
   /// action, at the cost of a second code path that can drift from this one.
   ///
-  /// [getById] hydrates, so this decodes `figures_json`. That used to make
+  /// The rebuild hydrates the dance, so this decodes `figures_json`. That used to make
   /// restore throw for a row whose stored text cannot be decoded, and this
   /// comment used to say so and call failing loudly deliberate "in the
   /// meantime", pending #1347. #1347 has landed: the load path is total for
@@ -1963,26 +1999,105 @@ class DanceRepository {
     required DateTime at,
     bool clearPending = true,
     bool reviveReferences = true,
+  }) => _restoreAll(
+    [id],
+    at: at,
+    clearPending: clearPending,
+    reviveReferences: reviveReferences,
+  );
+
+  /// Restores every dance in [ids] that is in Recently deleted, at [at], in
+  /// one transaction: the Undo of [softDeleteMany]. It runs [restore]'s own
+  /// body with its defaults ([_restoreAll]), never a second path, so a bulk Undo
+  /// revives the level and custom fields each dance names and clears its
+  /// pending sync deletion exactly as a single restore does. A failure
+  /// part-way leaves every dance in the trash.
+  ///
+  /// Skips ids that are unknown, live or permanently deleted, so a dance
+  /// restored from Recently deleted in the meantime is not stamped with a second revival. Returns how
+  /// many dances it restored.
+  Future<int> restoreMany(Iterable<String> ids, {required DateTime at}) {
+    assertUtc(at, 'at');
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      final trashed = <String>{};
+      for (final chunk in _chunkIds(list)) {
+        final query = _db.selectOnly(_db.dances)
+          ..addColumns([_db.dances.id, _db.dances.deletedAt])
+          ..where(_db.dances.id.isIn(chunk) & _db.dances.deletedAt.isNotNull());
+        for (final row in await query.get()) {
+          // A permanently deleted dance is not in Recently deleted; [restore]
+          // would skip it, so it is not counted either.
+          if (isPermanentlyDeleted(row.read(_db.dances.deletedAt))) continue;
+          trashed.add(row.read(_db.dances.id)!);
+        }
+      }
+      final restoring = [
+        for (final id in list)
+          if (trashed.contains(id)) id,
+      ];
+      await _restoreAll(restoring, at: at);
+      return restoring.length;
+    });
+  }
+
+  /// The body of [restore], for one dance or many, so [restoreMany] is
+  /// [restore] and never a second path beside it. Each step runs for every
+  /// dance before the next: the revivals, then the existence stamps, then the
+  /// rebuild of the derived rows, then the pending sync deletions. The order
+  /// matters only in that a revival precedes the rebuild, so the index sees
+  /// the revived parents. Many dances are rebuilt together ([_reindexDerived]):
+  /// rebuilding each one scans both FTS tables, which made a 5,000-dance Undo
+  /// take about 25 s (N4-S3, in-memory database).
+  Future<void> _restoreAll(
+    List<String> ids, {
+    required DateTime at,
+    bool clearPending = true,
+    bool reviveReferences = true,
   }) => _db.transaction(() async {
+    var restoring = ids;
     if (reviveReferences) {
-      final row = await (_db.select(
-        _db.dances,
-      )..where((t) => t.id.equals(id))).getSingleOrNull();
-      if (row == null || isPermanentlyDeleted(row.deletedAt)) return;
-      await _reviveReferences(row, at: at);
+      restoring = [];
+      for (final chunk in _chunkIds(ids)) {
+        final rows = {
+          for (final row in await (_db.select(
+            _db.dances,
+          )..where((t) => t.id.isIn(chunk))).get())
+            row.id: row,
+        };
+        for (final id in chunk) {
+          final row = rows[id];
+          if (row == null || isPermanentlyDeleted(row.deletedAt)) continue;
+          await _reviveReferences(row, at: at);
+          restoring.add(id);
+        }
+      }
     }
-    await _stampExistence(id, at: at, deleted: false);
-    final restored = await getById(id, includeDeleted: true);
-    if (restored != null) await _rebuildDerived(restored);
+    if (restoring.isEmpty) return;
+    for (final id in restoring) {
+      await _stampExistence(id, at: at, deleted: false);
+    }
+    // One dance keeps the per-dance rebuild: [_reindexDerived] reads its
+    // lookups from whole tables, which costs more than two FTS scans when one
+    // dance is restored at a time (the archive merge restores per dance).
+    if (restoring.length == 1) {
+      final restored = await getById(restoring.single, includeDeleted: true);
+      if (restored != null) await _rebuildDerived(restored);
+    } else {
+      await _reindexDerived(restoring);
+    }
     if (clearPending) {
-      await clearPendingSyncDeletionForRestore(
-        _db,
-        kind: SyncRecordKind.dance,
-        recordId: id,
-        table: _db.dances,
-        keyColumn: 'id',
-        at: at,
-      );
+      for (final id in restoring) {
+        await clearPendingSyncDeletionForRestore(
+          _db,
+          kind: SyncRecordKind.dance,
+          recordId: id,
+          table: _db.dances,
+          keyColumn: 'id',
+          at: at,
+        );
+      }
     }
   });
 

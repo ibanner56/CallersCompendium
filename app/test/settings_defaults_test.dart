@@ -15,6 +15,7 @@ import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/default_program_caller_scope.dart';
+import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
@@ -153,6 +154,7 @@ Future<void> _pumpDefaults(
   // rows (issue #1841) pushed the move-defaults editor past the old 4500.
   Size surface = const Size(1200, 6400),
   double textScale = 1,
+  ValueNotifier<Set<DanceShareField>>? shareFields,
 }) async {
   await setScreenSize(tester, surface);
 
@@ -206,7 +208,12 @@ Future<void> _pumpDefaults(
                         notifier: facetsNotifier,
                         child: DefaultProgramCallerScope(
                           notifier: defaultCaller,
-                          child: scaled ?? child!,
+                          child: shareFields == null
+                              ? scaled ?? child!
+                              : DanceShareFieldsScope(
+                                  notifier: shareFields,
+                                  child: scaled ?? child!,
+                                ),
                         ),
                       ),
                     ),
@@ -431,6 +438,33 @@ void main() {
       expect(stored.last.text, 'Guest caller');
     },
   );
+
+  testWidgets('the dance-card picker offers Hook and Sources, off by default, '
+      'and persists them under the existing key (OUT-6)', (tester) async {
+    final repos = openTestRepositories();
+    final fields = ValueNotifier<Set<DanceShareField>>(
+      DanceShareField.allExceptTunes,
+    );
+    addTearDown(fields.dispose);
+    await _pumpDefaults(tester, repos, shareFields: fields);
+
+    for (final name in ['hook', 'sources']) {
+      final key = ValueKey('defaults-share-field-$name');
+      await _scrollTo(tester, key);
+      expect(tester.widget<CheckboxListTile>(find.byKey(key)).value, isFalse);
+      await tester.tap(find.byKey(key));
+      await tester.pumpAndSettle();
+    }
+
+    expect(
+      fields.value,
+      containsAll([DanceShareField.hook, DanceShareField.sources]),
+    );
+    expect(
+      (await repos.settings.get(kProgramDanceShareFieldsKey) as List),
+      containsAll(['hook', 'sources']),
+    );
+  });
 
   group('default import tags (#1476)', () {
     Future<void> openImportGroup(WidgetTester tester) async {

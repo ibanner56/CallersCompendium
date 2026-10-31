@@ -135,10 +135,14 @@ they can't select part of a figure; use **Copy dance** for a figure's full text.
 Phones and Perform mode don't offer text selection.
 
 **Moving through Perform mode.** In [Perform mode](./glossary.md#perform-mode),
-move between [slots](./glossary.md#slot) with the **left** and **right arrow
-keys**, or with **Page Up** and **Page Down**. These work alongside the on-screen
-next and previous controls and the large edge zones, so you can use whichever
-suits you. While a dance's walkthrough overlay is open, those keys pause — the
+move between [slots](./glossary.md#slot) with the arrow keys, or with **Page Up**
+and **Page Down**. When a card is too long to fit, **down** and **Page Down**
+scroll it to the end before moving on, and **up** and **Page Up** scroll back to
+the top before going back. The **left** and **right** keys always change slot.
+These work alongside the on-screen next and previous controls and the large edge
+zones, so you can use whichever suits you. On a computer, **F11** (**Ctrl-Cmd-F**
+on macOS) takes Perform full screen and back, and **Esc** leaves full screen
+without leaving Perform. While a dance's walkthrough overlay is open, those keys pause — the
 **up** and **down** keys scroll the walkthrough instead — and **Esc** closes it,
 so reading ahead never changes your slot.
 
