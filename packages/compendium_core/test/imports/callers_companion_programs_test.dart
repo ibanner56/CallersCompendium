@@ -259,6 +259,11 @@ void main() {
     test('the set caller matches in other written forms', () {
       expect(slotCallers('Michael Smith, Jr', ['Michael']), [null]);
       expect(slotCallers('Michael Smith,', ['Michael']), [null]);
+      expect(slotCallers('Michael Smith, Jr.', ['Michael Smith Jr']), [null]);
+      expect(slotCallers('Michael Smith, Jr.', ['Michael Smith, Jr.']), [null]);
+      expect(slotCallers('Michael Smith', ['Michael Smith Jr']), [
+        'Michael Smith Jr',
+      ]);
       expect(slotCallers('Andy Smith', ['Andy', 'Andy']), [null, null]);
       expect(slotCallers('J. Michael Smith', ['Michael']), [null]);
       expect(slotCallers('Mary Kate Olsen', ['Mary Kate']), [null]);

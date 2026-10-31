@@ -237,7 +237,8 @@ bool _keepsSlotCallers(List<ProgramSlot> slots, String? setCaller) {
   return names.single != setCallerKey;
 }
 
-/// Name suffixes a comma may set off without starting another name.
+/// Name suffixes, which may follow a name with or without a comma ("Michael
+/// Smith, Jr.") without being another name or a given name.
 const Set<String> _nameSuffixes = {'jr', 'sr', 'ii', 'iii', 'iv'};
 
 /// Whether a set's [caller] names more than one person: joined by `&`, `+`,
@@ -261,30 +262,34 @@ bool _namesSeveralPeople(String caller) {
       1;
 }
 
-/// The set caller's words from the given name on: trailing name suffixes
-/// ("Michael Smith, Jr.") are dropped, then a leading dotted title or initial
-/// ("Dr. Michael Smith", "J. Michael Smith") is skipped while two words
-/// remain, so an initial never leaves just a surname ("J. Smith, Jr.").
+/// The set caller's words from the given name on: a leading dotted title or
+/// initial ("Dr. Michael Smith", "J. Michael Smith") is skipped while two
+/// words other than trailing name suffixes remain, so an initial never leaves
+/// just a surname ("J. Smith, Jr."). The suffix itself is kept, so a slot
+/// naming "Michael Smith Jr" still matches "Michael Smith, Jr.".
 List<String> _setCallerWords(String caller) {
   final raw = caller
       .replaceAll(',', ' ')
       .split(RegExp(r'\s+'))
       .where((w) => w.isNotEmpty)
       .toList();
-  while (raw.length > 1 &&
-      _nameSuffixes.contains(raw.last.toLowerCase().replaceAll('.', ''))) {
-    raw.removeLast();
+  var named = raw.length;
+  while (named > 1 &&
+      _nameSuffixes.contains(
+        raw[named - 1].toLowerCase().replaceAll('.', ''),
+      )) {
+    named--;
   }
   var first = 0;
-  while (raw.length - first > 2 && raw[first].endsWith('.')) {
+  while (named - first > 2 && raw[first].endsWith('.')) {
     first++;
   }
   return _words(raw.skip(first).join(' '));
 }
 
-/// [name] lower-cased and split on whitespace, with `.` dropped.
+/// [name] lower-cased and split on whitespace and commas, with `.` dropped.
 List<String> _words(String name) => [
-  for (final word in name.toLowerCase().split(RegExp(r'\s+')))
+  for (final word in name.toLowerCase().split(RegExp(r'[\s,]+')))
     if (word.replaceAll('.', '') case final w when w.isNotEmpty) w,
 ];
 
